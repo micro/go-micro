@@ -109,6 +109,35 @@ func (o *openAI) GenerateImage(prompt string, opts ...genai.Option) (string, err
 	return result.Data[0].URL, nil
 }
 
+func (o *openAI) GenerateSpeech(prompt string, opts ...genai.Option) ([]byte, error) {
+	options := o.options
+	for _, opt := range opts {
+		opt(&options)
+	}
+
+	body := map[string]interface{}{
+		"model": "tts-1",
+		"input": prompt,
+		"voice": "alloy", // or another supported voice
+	}
+	b, _ := json.Marshal(body)
+
+	httpReq, err := http.NewRequest("POST", "https://api.openai.com/v1/audio/speech", bytes.NewReader(b))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+options.APIKey)
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	return io.ReadAll(resp.Body)
+}
+
 func init() {
 	genai.Register("openai", New())
 }

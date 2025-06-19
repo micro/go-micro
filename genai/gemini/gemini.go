@@ -1,16 +1,16 @@
 package gemini
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
-	"mime/multipart"
-	"net/http"
+	"google.golang.org/genai/go/genai"
+	"google.golang.org/api/option"
 	"go-micro.dev/v5/genai"
 )
 
 type gemini struct {
 	options genai.Options
+	client  *genai.Client
 }
 
 func New(opts ...genai.Option) genai.GenAI {
@@ -18,14 +18,12 @@ func New(opts ...genai.Option) genai.GenAI {
 	for _, o := range opts {
 		o(&options)
 	}
-	return &gemini{options: options}
+	client, err := genai.NewClient(context.Background(), option.WithAPIKey(options.APIKey))
+	if err != nil {
+		panic(err) // or handle error appropriately
+	}
+	return &gemini{options: options, client: client}
 }
-
-const (
-	geminiTextURL   = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
-	geminiImageURL  = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent"
-	geminiSpeechURL = "https://speech.googleapis.com/v1/speech:recognize"
-)
 
 func (g *gemini) GenerateText(ctx context.Context, req *genai.TextRequest, opts ...genai.Option) (*genai.TextResponse, error) {
 	options := g.options
@@ -33,41 +31,22 @@ func (g *gemini) GenerateText(ctx context.Context, req *genai.TextRequest, opts 
 		opt(&options)
 	}
 
-	body := map[string]interface{}{
-		"contents": []map[string]interface{}{
-			{"parts": []map[string]string{{"text": req.Prompt}}},
-		},
-	}
-	b, _ := json.Marshal(body)
-
-	httpReq, err := http.NewRequest("POST", geminiTextURL+"?key="+options.APIKey, bytes.NewReader(b))
+	model := "models/gemini-2.5-pro"
+	resp, err := g.client.GenerateContent(ctx, &genai.GenerateContentRequest{
+		Model: model,
+		Contents: []*genai.Content{{
+			Parts: []*genai.Part{{
+				Data: &genai.Part_Text{Text: req.Prompt},
+			}},
+		}},
+	})
 	if err != nil {
 		return nil, err
 	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		Candidates []struct {
-			Content struct {
-				Parts []struct {
-					Text string `json:"text"`
-				} `json:"parts"`
-			} `json:"content"`
-		} `json:"candidates"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		return nil, fmt.Errorf("no candidates returned")
 	}
-	return &genai.TextResponse{Text: result.Candidates[0].Content.Parts[0].Text}, nil
+	return &genai.TextResponse{Text: resp.Candidates[0].Content.Parts[0].GetText()}, nil
 }
 
 func (g *gemini) GenerateImage(ctx context.Context, req *genai.ImageRequest, opts ...genai.Option) (*genai.ImageResponse, error) {
@@ -76,48 +55,48 @@ func (g *gemini) GenerateImage(ctx context.Context, req *genai.ImageRequest, opt
 		opt(&options)
 	}
 
-	body := map[string]interface{}{
-		"contents": []map[string]interface{}{
-			{"parts": []map[string]string{{"text": req.Prompt}}},
-		},
-	}
-	b, _ := json.Marshal(body)
-
-	httpReq, err := http.NewRequest("POST", geminiImageURL+"?key="+options.APIKey, bytes.NewReader(b))
+	model := "models/gemini-2.5-pro-vision"
+	resp, err := g.client.GenerateContent(ctx, &genai.GenerateContentRequest{
+		Model: model,
+		Contents: []*genai.Content{{
+			Parts: []*genai.Part{{
+				Data: &genai.Part_Text{Text: req.Prompt},
+			}},
+		}},
+	})
 	if err != nil {
 		return nil, err
 	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		Candidates []struct {
-			Content struct {
-				Parts []struct {
-					InlineData struct {
-						MimeType string `json:"mimeType"`
-						Data     string `json:"data"`
-					} `json:"inline_data"`
-				} `json:"parts"`
-			} `json:"content"`
-		} `json:"candidates"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		return nil, fmt.Errorf("no image returned")
 	}
-	// Return the base64 image data (could be changed to a URL if needed)
-	return &genai.ImageResponse{ImageURL: result.Candidates[0].Content.Parts[0].InlineData.Data}, nil
+	// Gemini API may return image data as base64 or a URL depending on the model/version
+	return &genai.ImageResponse{ImageURL: resp.Candidates[0].Content.Parts[0].GetText()}, nil
 }
 
 // Gemini does not support speech-to-text. Do not implement SpeechToText.
+
+func (g *gemini) GenerateSpeech(prompt string, opts ...genai.Option) ([]byte, error) {
+	ctx := context.Background()
+	model := "models/gemini-2.5-pro"
+	resp, err := g.client.GenerateContent(ctx, &genai.GenerateContentRequest{
+		Model: model,
+		Contents: []*genai.Content{{
+			Parts: []*genai.Part{{
+				Data: &genai.Part_Text{Text: prompt},
+			}},
+		}},
+		ResponseModality: []genai.ResponseModality{genai.ResponseModality_AUDIO},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return nil, nil
+	}
+	// The audio data is returned as binary in the part's data
+	return resp.Candidates[0].Content.Parts[0].GetAudio(), nil
+}
 
 func init() {
 	genai.Register("gemini", New())
