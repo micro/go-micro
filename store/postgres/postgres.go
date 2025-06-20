@@ -257,8 +257,6 @@ func (s *sqlStore) prepare(database, table, query string) (*sql.Stmt, error) {
 		return nil, errors.New("unsupported statement")
 	}
 
-
-
 	// get DB
 	database, table = s.getDB(database, table)
 

@@ -45,8 +45,6 @@ type publication struct {
 	err error
 }
 
-
-
 func (p *publication) Ack() error {
 	return p.d.Ack(false)
 }

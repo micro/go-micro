@@ -43,6 +43,7 @@ type natsStore struct {
 	js      nats.JetStreamContext
 	buckets *hashmap.Map[string, nats.KeyValue]
 }
+
 // NewStore will create a new NATS JetStream Object Store.
 func NewStore(opts ...store.Option) store.Store {
 	options := store.Options{
