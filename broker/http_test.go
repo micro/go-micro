@@ -362,7 +362,6 @@ func BenchmarkSub32(b *testing.B) {
 	sub(b, 32)
 }
 
-
 func BenchmarkPub1(b *testing.B) {
 	pub(b, 1)
 }

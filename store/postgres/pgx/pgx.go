@@ -198,11 +198,11 @@ func (s *sqlStore) List(opts ...store.ListOption) ([]string, error) {
 
 	var rows pgx.Rows
 	if options.Limit > 0 {
-			rows, err = db.Query(s.options.Context, queries.ListAscLimit, pattern, options.Limit, options.Offset)
+		rows, err = db.Query(s.options.Context, queries.ListAscLimit, pattern, options.Limit, options.Offset)
 
 	} else {
 
-			rows, err = db.Query(s.options.Context, queries.ListAsc, pattern)
+		rows, err = db.Query(s.options.Context, queries.ListAsc, pattern)
 
 	}
 	if err != nil {
@@ -273,9 +273,7 @@ func (s *sqlStore) rowsToRecords(rows pgx.Rows) ([]*store.Record, error) {
 
 // Read a single key
 func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
-	options := store.ReadOptions{
-
-	}
+	options := store.ReadOptions{}
 	for _, o := range opts {
 		o(&options)
 	}
@@ -307,11 +305,11 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 	var rows pgx.Rows
 	if options.Limit > 0 {
 
-			rows, err = db.Query(s.options.Context, queries.ListAscLimit, pattern, options.Limit, options.Offset)
+		rows, err = db.Query(s.options.Context, queries.ListAscLimit, pattern, options.Limit, options.Offset)
 
 	} else {
 
-			rows, err = db.Query(s.options.Context, queries.ListAsc, pattern)
+		rows, err = db.Query(s.options.Context, queries.ListAsc, pattern)
 
 	}
 	if err != nil {

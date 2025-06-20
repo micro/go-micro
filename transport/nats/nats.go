@@ -61,8 +61,6 @@ var (
 	DefaultTimeout = time.Minute
 )
 
-
-
 func configure(n *ntport, opts ...transport.Option) {
 	for _, o := range opts {
 		o(&n.opts)
