@@ -12,11 +12,11 @@ func TestOpenAI_GenerateText(t *testing.T) {
 		t.Skip("OPENAI_API_KEY not set")
 	}
 	client := New(genai.WithAPIKey(apiKey))
-	resp, err := client.GenerateText("Say hello world")
+	res, err := client.Generate("Say hello world", genai.Text)
 	if err != nil {
-		t.Fatalf("GenerateText error: %v", err)
+		t.Fatalf("Generate error: %v", err)
 	}
-	if resp == "" {
+	if res == nil || res.Text == "" {
 		t.Error("Expected non-empty text response")
 	}
 }
@@ -27,11 +27,11 @@ func TestOpenAI_GenerateImage(t *testing.T) {
 		t.Skip("OPENAI_API_KEY not set")
 	}
 	client := New(genai.WithAPIKey(apiKey))
-	resp, err := client.GenerateImage("A cat wearing sunglasses")
+	res, err := client.Generate("A cat wearing sunglasses", genai.Image)
 	if err != nil {
-		t.Fatalf("GenerateImage error: %v", err)
+		t.Fatalf("Generate error: %v", err)
 	}
-	if resp == "" {
+	if res == nil || res.Text == "" {
 		t.Error("Expected non-empty image URL")
 	}
 }

@@ -12,3 +12,9 @@ func WithEndpoint(endpoint string) Option {
 		o.Endpoint = endpoint
 	}
 }
+
+func WithModel(model string) Option {
+	return func(o *Options) {
+		o.Model = model
+	}
+}

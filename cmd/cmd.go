@@ -4,17 +4,12 @@ package cmd
 import (
 	"fmt"
 	"math/rand"
-	"os"
 	"sort"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5/auth"
-	nbroker "go-micro.dev/v5/broker/nats"
-	rabbit "go-micro.dev/v5/broker/rabbitmq"
-
-	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cache"
 	"go-micro.dev/v5/cache/redis"
 	"go-micro.dev/v5/client"
@@ -26,6 +21,13 @@ import (
 	"go-micro.dev/v5/events"
 	"go-micro.dev/v5/logger"
 	mprofile "go-micro.dev/v5/profile"
+	"go-micro.dev/v5/auth"
+	"go-micro.dev/v5/broker"
+	nbroker "go-micro.dev/v5/broker/nats"
+	rabbit "go-micro.dev/v5/broker/rabbitmq"
+	"go-micro.dev/v5/genai"
+	"go-micro.dev/v5/genai/gemini"
+	"go-micro.dev/v5/genai/openai"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/consul"
 	"go-micro.dev/v5/registry/etcd"
@@ -246,6 +248,21 @@ var (
 			EnvVars: []string{"MICRO_CONFIG"},
 			Usage:   "The source of the config to be used to get configuration",
 		},
+		&cli.StringFlag{
+			Name:    "genai",
+			EnvVars: []string{"MICRO_GENAI"},
+			Usage:   "GenAI provider to use (e.g. openai, gemini, noop)",
+		},
+		&cli.StringFlag{
+			Name:    "genai_key",
+			EnvVars: []string{"MICRO_GENAI_KEY"},
+			Usage:   "GenAI API key",
+		},
+		&cli.StringFlag{
+			Name:    "genai_model",
+			EnvVars: []string{"MICRO_GENAI_MODEL"},
+			Usage:   "GenAI model to use (optional)",
+		},
 	}
 
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
@@ -295,6 +312,11 @@ var (
 		"redis": redis.NewRedisCache,
 	}
 	DefaultStreams = map[string]func(...events.Option) (events.Stream, error){}
+
+	DefaultGenAI = map[string]func(...genai.Option) genai.GenAI{
+		"openai": openai.New,
+		"gemini": gemini.New,
+	}
 )
 
 func init() {
@@ -367,6 +389,8 @@ func (c *cmd) Options() Options {
 }
 
 func (c *cmd) Before(ctx *cli.Context) error {
+	// Set GenAI provider from flags/env
+	setGenAIFromFlags(ctx)
 	// If flags are set then use them otherwise do nothing
 	var serverOpts []server.Option
 	var clientOpts []client.Option
@@ -798,4 +822,25 @@ func Register(cmds ...*cli.Command) {
 	sort.Slice(app.Commands, func(i, j int) bool {
 		return app.Commands[i].Name < app.Commands[j].Name
 	})
+}
+
+func setGenAIFromFlags(ctx *cli.Context) {
+	provider := ctx.String("genai")
+	key := ctx.String("genai_key")
+	model := ctx.String("genai_model")
+
+	switch provider {
+	case "openai":
+		if key == "" {
+			key = os.Getenv("OPENAI_API_KEY")
+		}
+		genai.DefaultGenAI = openai.New(genai.WithAPIKey(key), genai.WithModel(model))
+	case "gemini":
+		if key == "" {
+			key = os.Getenv("GEMINI_API_KEY")
+		}
+		genai.DefaultGenAI = gemini.New(genai.WithAPIKey(key), genai.WithModel(model))
+	default:
+		genai.DefaultGenAI = genai.Default
+	}
 }
