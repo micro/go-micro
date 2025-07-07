@@ -89,7 +89,7 @@ type CallOptions struct {
 	CallWrappers []CallWrapper
 
 	// ConnectionTimeout of one request to the server.
-	// Set this lower than the RequestTimeout to enbale retries on connection timeout.
+	// Set this lower than the RequestTimeout to enable retries on connection timeout.
 	ConnectionTimeout time.Duration
 	// Request/Response timeout of entire srv.Call, for single request timeout set ConnectionTimeout.
 	RequestTimeout time.Duration
@@ -258,6 +258,13 @@ func Retries(i int) Option {
 func Retry(fn RetryFunc) Option {
 	return func(o *Options) {
 		o.CallOptions.Retry = fn
+	}
+}
+
+// ConnectionTimeout sets the connection timeout
+func ConnectionTimeout(t time.Duration) Option {
+	return func(o *Options) {
+		o.CallOptions.ConnectionTimeout = t
 	}
 }
 
