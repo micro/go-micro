@@ -106,6 +106,10 @@ curl -XPOST \
       http://localhost:8080
 ```
 
+## Experimental
+
+There's a new `genai` package for generative AI capabilities. This is an evolving feature which may change over time as we think about how Go Micro plays the right role in the developers workflow. We'll also ve looking at agentic features and a2a and mcp protocol integration.
+
 ## Adopters
 
 - [Sourse](https://sourse.eu) - Work in the field of earth observation, including embedded Kubernetes running onboard aircraft, and we’ve built a mission management SaaS platform using Go Micro.
