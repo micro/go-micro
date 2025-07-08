@@ -108,7 +108,7 @@ curl -XPOST \
 
 ## Experimental
 
-There's a new `genai` package for generative AI capabilities. This is an evolving feature which may change over time as we think about how Go Micro plays the right role in the developers workflow. We'll also be looking at agentic features and a2a and mcp protocol integration.
+There's a new `genai` package for generative AI capabilities. This is an evolving feature which may change over time as we think about how Go Micro plays the right role in the developers workflow. We'll also be looking at agentic features and a2a/mcp protocol integration.
 
 ## Adopters
 
