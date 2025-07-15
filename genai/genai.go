@@ -20,6 +20,7 @@ type Stream struct {
 type GenAI interface {
 	Generate(prompt string, opts ...Option) (*Result, error)
 	Stream(prompt string, opts ...Option) (*Stream, error)
+	String() string
 }
 
 // Option is a functional option for configuring providers.

@@ -13,4 +13,8 @@ func (n *noopGenAI) Stream(prompt string, opts ...Option) (*Stream, error) {
 	return &Stream{Results: results}, nil
 }
 
+func (n *noopGenAI) String() string {
+	return "noop"
+}
+
 var Default = &noopGenAI{}

@@ -156,6 +156,10 @@ func (g *gemini) Stream(prompt string, opts ...genai.Option) (*genai.Stream, err
 	return &genai.Stream{Results: results}, nil
 }
 
+func (g *gemini) String() string {
+	return "gemini"
+}
+
 func init() {
 	genai.Register("gemini", New())
 }

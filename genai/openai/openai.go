@@ -146,6 +146,10 @@ func (o *openAI) Stream(prompt string, opts ...genai.Option) (*genai.Stream, err
 	return &genai.Stream{Results: results}, nil
 }
 
+func (o *openAI) String() string {
+	return "openai"
+}
+
 func init() {
 	genai.Register("openai", New())
 }
