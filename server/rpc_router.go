@@ -81,11 +81,11 @@ type router struct {
 // rpcRouter encapsulates functions that become a Router.
 type rpcRouter struct {
 	h func(context.Context, Request, interface{}) error
-	m func(context.Context, Message) error
+	m func(context.Context, string, Message) error
 }
 
-func (r rpcRouter) ProcessMessage(ctx context.Context, msg Message) error {
-	return r.m(ctx, msg)
+func (r rpcRouter) ProcessMessage(ctx context.Context, subscriber string, msg Message) error {
+	return r.m(ctx, subscriber, msg)
 }
 
 func (r rpcRouter) ServeRequest(ctx context.Context, req Request, rsp Response) error {
@@ -188,7 +188,11 @@ func prepareMethod(method reflect.Method, logger log.Logger) *methodType {
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
 }
 
-func (router *router) sendResponse(sending sync.Locker, req *request, reply interface{}, cc codec.Writer, last bool) error {
+func (router *router) sendResponse(sending sync.Locker,
+	req *request,
+	reply interface{},
+	cc codec.Writer,
+	last bool) error {
 	msg := new(codec.Message)
 	msg.Type = codec.Response
 	resp := router.getResponse()
@@ -205,7 +209,13 @@ func (router *router) sendResponse(sending sync.Locker, req *request, reply inte
 	return err
 }
 
-func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, cc codec.Writer) error {
+func (s *service) call(ctx context.Context,
+	router *router,
+	sending *sync.Mutex,
+	mtype *methodType,
+	req *request,
+	argv, replyv reflect.Value,
+	cc codec.Writer) error {
 	defer router.freeRequest(req)
 
 	function := mtype.method.Func
@@ -227,7 +237,8 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 
 	if !mtype.stream {
 		fn := func(ctx context.Context, req Request, rsp interface{}) error {
-			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
+			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx),
+				reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
 
 			// The return value for the method is an error.
 			if err := returnValues[0].Interface(); err != nil {
@@ -534,7 +545,7 @@ func (router *router) Subscribe(s Subscriber) error {
 	return nil
 }
 
-func (router *router) ProcessMessage(ctx context.Context, msg Message) (err error) {
+func (router *router) ProcessMessage(ctx context.Context, subscriber string, msg Message) (err error) {
 	defer func() {
 		// recover any panics
 		if r := recover(); r != nil {
@@ -546,7 +557,7 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 
 	// get the subscribers by topic
 	router.su.RLock()
-	subs, ok := router.subscribers[msg.Topic()]
+	subs, ok := router.subscribers[subscriber]
 	router.su.RUnlock()
 	if !ok {
 		log.Warnf("Subscriber not found for topic %s", msg.Topic())
