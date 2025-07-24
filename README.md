@@ -106,6 +106,10 @@ curl -XPOST \
       http://localhost:8080
 ```
 
+## Toolkit
+
+Once you've written a service you'll want to run, query and manage it. This is where the [micro](https://github.com/micro/micro) CLI can offer some value. Check it out.
+
 ## Experimental
 
 There's a new `genai` package for generative AI capabilities. This is an evolving feature which may change over time as we think about how Go Micro plays the right role in the developers workflow. We'll also be looking at agentic features and a2a/mcp protocol integration.
