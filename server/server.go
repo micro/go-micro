@@ -40,7 +40,7 @@ type Server interface {
 // Router handle serving messages.
 type Router interface {
 	// ProcessMessage processes a message
-	ProcessMessage(context.Context, Message) error
+	ProcessMessage(context.Context, string, Message) error
 	// ServeRequest processes a request to completion
 	ServeRequest(context.Context, Request, Response) error
 }
