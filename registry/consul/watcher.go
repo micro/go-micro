@@ -1,13 +1,12 @@
 package consul
 
 import (
-	"fmt"
-	"net"
 	"sync"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"go-micro.dev/v5/registry"
+	mnet "go-micro.dev/v5/util/net"
 	regutil "go-micro.dev/v5/util/registry"
 )
 
@@ -106,7 +105,7 @@ func (cw *consulWatcher) serviceHandler(idx uint64, data interface{}) {
 
 		svc.Nodes = append(svc.Nodes, &registry.Node{
 			Id:       id,
-			Address:  net.JoinHostPort(address, fmt.Sprint(e.Service.Port)),
+			Address:  mnet.HostPort(address, e.Service.Port),
 			Metadata: decodeMetadata(e.Service.Tags),
 		})
 	}
