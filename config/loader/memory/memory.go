@@ -183,10 +183,12 @@ func (m *memory) update() {
 
 		val, _ := vals.Get(w.path...)
 
+		m.RLock()
 		uv := updateValue{
 			version: m.snap.Version,
 			value:   val,
 		}
+		m.RUnlock()
 
 		select {
 		case w.updates <- uv:
