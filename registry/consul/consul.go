@@ -82,18 +82,18 @@ func configure(c *consulRegistry, opts ...registry.Option) {
 
 	if c.opts.Context != nil {
 		// Use the consul config passed in the options, if available
-		if co, ok := c.opts.Context.Value("consul_config").(*consul.Config); ok {
+		if co, ok := c.opts.Context.Value(consulConfigKey).(*consul.Config); ok {
 			config = co
 		}
-		if cn, ok := c.opts.Context.Value("consul_connect").(bool); ok {
+		if cn, ok := c.opts.Context.Value(consulConnectKey).(bool); ok {
 			c.connect = cn
 		}
 
 		// Use the consul query options passed in the options, if available
-		if qo, ok := c.opts.Context.Value("consul_query_options").(*consul.QueryOptions); ok && qo != nil {
+		if qo, ok := c.opts.Context.Value(consulQueryOptionsKey).(*consul.QueryOptions); ok && qo != nil {
 			c.queryOptions = qo
 		}
-		if as, ok := c.opts.Context.Value("consul_allow_stale").(bool); ok {
+		if as, ok := c.opts.Context.Value(consulAllowStaleKey).(bool); ok {
 			c.queryOptions.AllowStale = as
 		}
 	}
@@ -182,12 +182,12 @@ func (c *consulRegistry) Register(s *registry.Service, opts ...registry.Register
 	}
 
 	if c.opts.Context != nil {
-		if tcpCheckInterval, ok := c.opts.Context.Value("consul_tcp_check").(time.Duration); ok {
+		if tcpCheckInterval, ok := c.opts.Context.Value(consulTCPCheckKey).(time.Duration); ok {
 			regTCPCheck = true
 			regInterval = tcpCheckInterval
 		}
 		var ok bool
-		if httpCheckConfig, ok = c.opts.Context.Value("consul_http_check_config").(consul.AgentServiceCheck); ok {
+		if httpCheckConfig, ok = c.opts.Context.Value(consulHTTPCheckConfigKey).(consul.AgentServiceCheck); ok {
 			regHTTPCheck = true
 		}
 	}
