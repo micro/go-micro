@@ -106,11 +106,11 @@ curl -XPOST \
       http://localhost:8080
 ```
 
-## Toolkit
+## Command Line
 
 Once you've written a service you'll want to run, query and manage it, code generate protobuf. 
 
-This is where the [micro](https://github.com/micro/micro) comes in. Check it out.
+This is where the [micro](https://github.com/micro/micro) CLI comes in. Check it out.
 
 ## Experimental
 
