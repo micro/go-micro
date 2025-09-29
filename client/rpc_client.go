@@ -373,6 +373,7 @@ func (r *rpcClient) Init(opts ...Option) error {
 			pool.Size(r.opts.PoolSize),
 			pool.TTL(r.opts.PoolTTL),
 			pool.Transport(r.opts.Transport),
+			pool.CloseTimeout(r.opts.PoolCloseTimeout),
 		)
 	}
 
