@@ -165,48 +165,51 @@ func (h *httpTransportSocket) recvHTTP1(msg *Message) error {
 }
 
 func (h *httpTransportSocket) recvHTTP2(msg *Message) error {
-	// only process if the socket is open
-	select {
-	case <-h.closed:
-		return io.EOF
-	default:
-	}
+       // only process if the socket is open
+       select {
+       case <-h.closed:
+	       return io.EOF
+       default:
+       }
 
-	// read streaming body
+       // buffer pool for reuse
+       var bufPool = getHTTP2BufPool()
 
-	// set max buffer size
-	s := h.ht.opts.BuffSizeH2
-	if s == 0 {
-		s = DefaultBufSizeH2
-	}
+       // set max buffer size
+       s := h.ht.opts.BuffSizeH2
+       if s == 0 {
+	       s = DefaultBufSizeH2
+       }
 
-	buf := make([]byte, s)
+       buf := bufPool.Get().([]byte)
+       if cap(buf) < s {
+	       buf = make([]byte, s)
+       }
+       buf = buf[:s]
 
-	// read the request body
-	n, err := h.buf.Read(buf)
-	// not an eof error
-	if err != nil {
-		return err
-	}
+       n, err := h.buf.Read(buf)
+       if err != nil {
+	       bufPool.Put(buf)
+	       return err
+       }
 
-	// check if we have data
-	if n > 0 {
-		msg.Body = buf[:n]
-	}
+       if n > 0 {
+	       msg.Body = make([]byte, n)
+	       copy(msg.Body, buf[:n])
+       }
+       bufPool.Put(buf)
 
-	// set headers
-	for k, v := range h.r.Header {
-		if len(v) > 0 {
-			msg.Header[k] = v[0]
-		} else {
-			msg.Header[k] = ""
-		}
-	}
+       for k, v := range h.r.Header {
+	       if len(v) > 0 {
+		       msg.Header[k] = v[0]
+	       } else {
+		       msg.Header[k] = ""
+	       }
+       }
 
-	// set path
-	msg.Header[":path"] = h.r.URL.Path
+       msg.Header[":path"] = h.r.URL.Path
 
-	return nil
+       return nil
 }
 
 func (h *httpTransportSocket) sendHTTP1(msg *Message) error {
