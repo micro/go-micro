@@ -327,39 +327,49 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		wg.Add(2)
 
 		// Process the outbound messages from the socket
-		go func(psock *socket.Socket) {
-			defer func() {
-				// TODO: don't hack this but if its grpc just break out of the stream
-				// We do this because the underlying connection is h2 and its a stream
-				if protocol == "grpc" {
-					if err := sock.Close(); err != nil {
-						logger.Logf(log.ErrorLevel, "Failed to close socket: %v", err)
-					}
-				}
+	       go func(psock *socket.Socket) {
+		       defer func() {
+			       if r := recover(); r != nil {
+				       logger.Log(log.ErrorLevel, "panic recovered in outbound goroutine: ", r)
+				       logger.Log(log.ErrorLevel, string(debug.Stack()))
+			       }
+			       // TODO: don't hack this but if its grpc just break out of the stream
+			       // We do this because the underlying connection is h2 and its a stream
+			       if protocol == "grpc" {
+				       if err := sock.Close(); err != nil {
+					       logger.Logf(log.ErrorLevel, "Failed to close socket: %v", err)
+				       }
+			       }
 
-				s.deferer(pool, psock, wg)
-			}()
+			       s.deferer(pool, psock, wg)
+		       }()
 
-			for {
-				// Get the message from our internal handler/stream
-				m := new(transport.Message)
-				if err := psock.Process(m); err != nil {
-					return
-				}
+		       for {
+			       // Get the message from our internal handler/stream
+			       m := new(transport.Message)
+			       if err := psock.Process(m); err != nil {
+				       return
+			       }
 
-				// Send the message back over the socket
-				if err := sock.Send(m); err != nil {
-					return
-				}
-			}
-		}(psock)
+			       // Send the message back over the socket
+			       if err := sock.Send(m); err != nil {
+				       return
+			       }
+		       }
+	       }(psock)
 
 		// Serve the request in a go routine as this may be a stream
-		go func(psock *socket.Socket) {
-			defer s.deferer(pool, psock, wg)
+	       go func(psock *socket.Socket) {
+		       defer func() {
+			       if r := recover(); r != nil {
+				       logger.Log(log.ErrorLevel, "panic recovered in serveReq goroutine: ", r)
+				       logger.Log(log.ErrorLevel, string(debug.Stack()))
+			       }
+			       s.deferer(pool, psock, wg)
+		       }()
 
-			s.serveReq(ctx, msg, &request, &response, rcodec)
-		}(psock)
+		       s.serveReq(ctx, msg, &request, &response, rcodec)
+	       }(psock)
 	}
 }
 
