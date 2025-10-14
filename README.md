@@ -106,12 +106,6 @@ curl -XPOST \
       http://localhost:8080
 ```
 
-## Command Line
-
-Once you've written a service you'll want to run, query and manage it, code generate protobuf. 
-
-This is where the [micro](https://github.com/micro/micro) CLI comes in. Check it out.
-
 ## Experimental
 
 There's a new `genai` package for generative AI capabilities.
