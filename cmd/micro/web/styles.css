@@ -1,0 +1,236 @@
+body {
+  background: #fff;
+  color: #111;
+  font-family: 'Inter', 'Segoe UI', 'Arial', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 15px;
+  margin: 0;
+  padding: 0;
+  line-height: 1.7;
+}
+
+header, nav, footer {
+  background: #fff;
+  color: #111;
+  padding: 1.2em 2em 1.2em 2em;
+  margin-bottom: 2em;
+}
+nav {
+  margin: 20px;
+  border-radius: 20px;
+
+}
+main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2em 1em 3em 1em;
+  background: #fff;
+  margin-left: 100px; /* leave space for sidebar */
+  margin-right: 100px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #111;
+  font-weight: 600;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: 2.2em;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 1.4em;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #222;
+  margin: 2em 0;
+}
+
+a {
+  color: #111;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+a:hover {
+  font-weight: bold;
+}
+
+ul, ol {
+  margin: 1em 0 1em 2em;
+  padding: 0;
+}
+
+li {
+  margin-bottom: 0.5em;
+}
+
+pre, code {
+  background: #f7f7f7;
+  color: #111;
+  font-family: inherit;
+  font-size: 0.98em;
+  border-radius: 5px;
+  padding: 0.2em 0.4em;
+}
+
+pre {
+  padding: 1em;
+  overflow-x: auto;
+  border-radius: 0;
+  margin: 1.5em 0;
+}
+
+form {
+  background: #fff;
+  border: 1px solid #222;
+  padding: 1.5em 1.5em 1em 1.5em;
+  margin: 2em 0;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+input, select, textarea {
+  background: #fff;
+  color: #111;
+  border: 1px solid #222;
+  border-radius: 7px;
+  font-size: 1em;
+  padding: 0.5em 0.7em;
+  margin-bottom: 1em;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: border 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border: 1.5px solid #111;
+}
+
+button, input[type="submit"], .button {
+  background: #fff;
+  color: #111;
+  border: 1.5px solid #111;
+  border-radius: 7px;
+  font-size: 1em;
+  padding: 0.5em 1.2em;
+  margin: 0.5em 0.2em 0.5em 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s;
+}
+button:hover, input[type="submit"]:hover, .button:hover {
+  background: #111;
+  color: #fff;
+}
+
+.table, table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  margin: 2em 0;
+}
+table th, table td {
+  border: none;
+  padding: 0.7em 1em;
+  text-align: left;
+}
+table th {
+  background: #f7f7f7;
+  color: #111;
+  font-weight: 600;
+}
+table tr:nth-child(even) {
+  background: #f7f7f7;
+}
+
+.no-bullets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.copy-btn {
+  background: #fff;
+  color: #111;
+  border: 1px solid #222;
+  border-radius: 7px;
+  font-size: 0.95em;
+  padding: 0.2em 0.7em;
+  margin-left: 0.5em;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.copy-btn:hover {
+  background: #111;
+  color: #fff;
+}
+
+.alert, .error, .success {
+  background: #fff;
+  color: #111;
+  border: 1px solid #222;
+  padding: 1em 1.5em;
+  margin: 2em 0;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #fff;
+}
+::-webkit-scrollbar-thumb {
+  background: #222;
+}
+
+@media (max-width: 800px) {
+  main {
+    max-width: 98vw;
+    padding: 1em 0.2em 2em 0.2em;
+    margin-left: 0;
+  }
+}
+
+/* Inline/unstyled form for delete button */
+.form-inline, .form-plain {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+}
+.form-inline input, .form-inline button, .form-plain input, .form-plain button {
+  margin: 0;
+  padding: 0.3em 1em;
+  border-radius: 7px;
+  font-size: 1em;
+}
+.delete-btn, .form-inline .delete-btn, .form-plain .delete-btn {
+  background: #fff;
+  color: #c00;
+  border: 1.5px solid #c00;
+  border-radius: 7px;
+  font-size: 1em;
+  padding: 0.3em 1em;
+  margin: 0 0.2em;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s, color 0.2s;
+}
+.delete-btn:hover {
+  background: #c00;
+  color: #fff;
+}
+
+#title {
+  text-decoration: none;
+}
+.log-link:hover {
+  font-weight: normal;
+  text-decoration: underline;
+}

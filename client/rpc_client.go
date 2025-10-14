@@ -30,11 +30,11 @@ const (
 )
 
 type rpcClient struct {
-	seq uint64
+	seq  uint64
 	opts Options
 	once atomic.Value
 	pool pool.Pool
-	mu sync.RWMutex
+	mu   sync.RWMutex
 }
 
 func newRPCClient(opt ...Option) Client {

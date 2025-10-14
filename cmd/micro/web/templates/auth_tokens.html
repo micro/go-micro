@@ -1,0 +1,63 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">Auth Tokens</h2>
+<table style="margin-bottom:2em;">
+  <thead>
+    <tr><th>ID</th><th>Type</th><th>Scopes</th><th>Metadata</th><th>Token</th><th>Delete</th></tr>
+  </thead>
+  <tbody>
+    {{range .Tokens}}
+    <tr>
+      <td>{{.ID}}</td>
+      <td>{{.Type}}</td>
+      <td>{{range .Scopes}}<code>{{.}}</code> {{end}}</td>
+      <td>
+        {{range $k, $v := .Metadata}}
+          {{if and (ne $k "password_hash") (ne $k "token")}}
+            <b>{{$k}}</b>: {{$v}} 
+          {{end}}
+        {{end}}
+      </td>
+      <td style="max-width:320px; word-break:break-all;">
+        {{if .Token}}
+          <span class="obfuscated-token" data-token="{{.Token}}">
+            {{if .TokenSuffix}}
+              {{.TokenPrefix}}...{{.TokenSuffix}}
+            {{else}}
+              {{.Token}}
+            {{end}}
+          </span>
+          <button onclick="copyToken(this)" data-token="{{.Token}}" style="margin-left:0.5em;">Copy</button>
+        {{end}}
+      </td>
+      <td>
+        <form method="POST" action="/auth/tokens" style="display:inline; padding: 0; border: 0">
+          <input type="hidden" name="delete" value="{{.ID}}">
+          <button type="submit" onclick="return confirm('Delete token {{.ID}}?')">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+<h3 style="margin-bottom:1em;">Create New Token</h3>
+<form method="POST" action="/auth/tokens">
+  <input name="id" placeholder="Name/ID" required style="margin-right:1em;">
+  <select name="type" style="margin-right:1em;">
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+    <option value="service">Service</option>
+  </select>
+  <input name="scopes" placeholder="Scopes (comma separated)" style="margin-right:1em;">
+  <button type="submit">Create</button>
+</form>
+<script>
+function copyToken(btn) {
+  const token = btn.getAttribute('data-token');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(token);
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+  }
+}
+</script>
+{{end}}

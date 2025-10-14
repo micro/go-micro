@@ -1,0 +1,21 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+<div style="display:flex; align-items:center; gap:2em; margin-bottom:2em;">
+  <div style="display:flex; align-items:center; gap:0.5em;">
+    <span style="font-size:2.2em; vertical-align:middle;">
+      {{if eq .StatusDot "green"}}
+        <span style="display:inline-block; width:1em; height:1em; background:#2ecc40; border-radius:50%;"></span>
+      {{else if eq .StatusDot "yellow"}}
+        <span style="display:inline-block; width:1em; height:1em; background:#ffcc00; border-radius:50%;"></span>
+      {{else}}
+        <span style="display:inline-block; width:1em; height:1em; background:#ff4136; border-radius:50%;"></span>
+      {{end}}
+    </span>
+    <span style="font-size:1.2em; font-weight:bold;">Status</span>
+  </div>
+  <div style="font-size:1.1em;">Services: <b>{{.ServiceCount}}</b></div>
+  <div style="font-size:1.1em; color:#2ecc40;">Running: <b>{{.RunningCount}}</b></div>
+  <div style="font-size:1.1em; color:#ff4136;">Stopped: <b>{{.StoppedCount}}</b></div>
+</div>
+<p>Welcome to the Micro dashboard. Use the sidebar to navigate services, logs, status, and API.</p>
+{{end}}
