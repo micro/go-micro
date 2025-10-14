@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/config/source"
