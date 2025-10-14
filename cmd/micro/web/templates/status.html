@@ -1,0 +1,29 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">Service Status</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Service</th>
+      <th>Directory</th>
+      <th>Status</th>
+      <th>PID</th>
+      <th>Uptime</th>
+      <th>ID</th>
+      <th>Logs</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Statuses}}
+    <tr>
+      <td>{{.Service}}</td>
+      <td><code>{{.Dir}}</code></td>
+      <td>{{.Status}}</td>
+      <td>{{.PID}}</td>
+      <td>{{.Uptime}}</td>
+      <td style="font-size:0.9em; color:#888;">{{.ID}}</td>
+      <td><a href="/logs/{{.ID}}" class="log-link">View logs</a></td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{end}}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div id="layout" style="display:flex; min-height:100vh;">
+        {{if not .HideSidebar}}
+        <nav id="sidebar" style="width:220px; background:#f5f5f5; padding:2em 1.5em 2em 2em; border:1px solid #eee;">
+            <h1 style="margin-bottom:1em;"><a href="/" id="title">Micro</a></h1>
+            {{if .User}}
+              <div style="margin-bottom:1.5em; font-size:1.05em;">
+                <span style="color:#888;">Logged in as</span>
+                <b>{{.User.ID}}</b>
+                <form method="POST" action="/auth/logout" style="margin-top:0.7em; display:block; background:none; box-shadow:none; padding:0; border:none;">
+                  <button type="submit" style="padding:0.25em 0.8em; font-size:0.97em; border-radius:4px; margin:0; cursor:pointer;">Logout</button>
+                </form>
+              </div>
+            {{else}}
+              <div style="margin-bottom:1.5em;">
+                <a href="/auth/login" class="micro-link">Login</a>
+              </div>
+            {{end}}
+            <ul class="no-bullets" style="padding-left:0;">
+                <li><a href="/" class="micro-link">Home</a></li>
+                <li><a href="/services" class="micro-link">Services</a></li>
+                <li><a href="/logs" class="micro-link">Logs</a></li>
+                <li><a href="/status" class="micro-link">Status</a></li>
+                <li><a href="/api" class="micro-link">API</a></li>
+                <li><a href="/auth/tokens" class="micro-link">Tokens</a></li>
+                <li><a href="/auth/users" class="micro-link">Users</a></li>
+            </ul>
+            {{if and .SidebarEndpoints .SidebarEndpointsEnabled}}
+            <hr style="margin:2em 0 1em 0;">
+            <div style="font-weight:bold; margin-bottom:0.5em;">API Endpoints</div>
+            <div style="max-height:40vh; overflow-y:auto; font-size:0.97em;">
+              {{range .SidebarEndpoints}}
+                <div style="margin-bottom:0.3em;"><a href="#{{.Anchor}}" class="micro-link">{{.Name}}</a></div>
+              {{end}}
+            </div>
+            {{end}}
+        </nav>
+        {{end}}
+        <main class="container" style="flex:1; min-width:0;">
+            {{template "content" .}}
+        </main>
+    </div>
+</body>
+</html>

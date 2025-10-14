@@ -1,0 +1,15 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">Login</h2>
+<form method="POST" action="/auth/login" style="max-width:340px; margin:2em 0;">
+  <div style="margin-bottom:1.2em;">
+    <input name="id" placeholder="Username" required style="width:100%; padding:0.7em;">
+  </div>
+  <div style="margin-bottom:1.2em;">
+    <input name="password" type="password" placeholder="Password" required style="width:100%; padding:0.7em;">
+  </div>
+  <button type="submit" style="width:100%; padding:0.7em;">Login</button>
+</form>
+{{if .Error}}
+  <div style="color:#c00; margin-top:1em;">{{.Error}}</div>
+{{end}}
+{{end}}
