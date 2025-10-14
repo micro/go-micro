@@ -110,6 +110,14 @@ curl -XPOST \
 
 There's a new `genai` package for generative AI capabilities.
 
+## Protobuf
+
+See [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation
+
+## Command line
+
+See [cmd/micro](https://github.com/micro/go-micro/tree/master/cmd/micro) for the command line
+
 ## Adopters
 
 - [Sourse](https://sourse.eu) - Work in the field of earth observation, including embedded Kubernetes running onboard aircraft, and we’ve built a mission management SaaS platform using Go Micro.
