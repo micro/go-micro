@@ -127,6 +127,27 @@ func (s *rpcServer) reSubscribe(config Options) {
 		if s.subscribers[sb] != nil {
 			continue
 		}
+		// If we've already created a broker subscription for this topic
+		// (from a different Subscriber entry) then don't create another
+		// broker.Subscribe. We still need to register the subscriber with
+		// the router so it receives dispatched messages.
+		var already bool
+		for other, subs := range s.subscribers {
+			if other.Topic() == sb.Topic() && subs != nil {
+				already = true
+				break
+			}
+		}
+		if already {
+			// register with router only
+			if err := s.router.Subscribe(sb); err != nil {
+				config.Logger.Logf(log.WarnLevel, "Unable to subscribing to topic: %s, error: %s", sb.Topic(), err)
+				continue
+			}
+			// mark this subscriber as having no broker subscription
+			s.subscribers[sb] = nil
+			continue
+		}
 		var opts []broker.SubscribeOption
 		if queue := sb.Options().Queue; len(queue) > 0 {
 			opts = append(opts, broker.Queue(queue))
