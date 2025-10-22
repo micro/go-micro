@@ -262,11 +262,12 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 		}
 	}
 
-	log.Logf(logger.TraceLevel, "Registering %s id %s with lease %v and leaseID %v and ttl %v", service.Name, node.Id, lgr, lgr.ID, options.TTL)
 	// create an entry for the node
 	if lgr != nil {
+		log.Logf(logger.TraceLevel, "Registering %s id %s with lease %v and leaseID %v and ttl %v", service.Name, node.Id, lgr, lgr.ID, options.TTL)
 		_, err = e.client.Put(ctx, nodePath(service.Name, node.Id), encode(service), clientv3.WithLease(lgr.ID))
 	} else {
+		log.Logf(logger.TraceLevel, "Registering %s id %s ttl %v", service.Name, node.Id, options.TTL)
 		_, err = e.client.Put(ctx, nodePath(service.Name, node.Id), encode(service))
 	}
 	if err != nil {
