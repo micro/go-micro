@@ -10,8 +10,6 @@ Install `micro` via `go install`
 go install go-micro.dev/v5/cmd/micro@v5.10.0
 ```
 
-Or via install script
-
 
 ## Create a service
 
