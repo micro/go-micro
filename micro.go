@@ -9,7 +9,7 @@ import (
 	"go-micro.dev/v5/service"
 )
 
-type serviceKey struct{}
+type a struct{}
 
 // Service is an interface that wraps the lower level libraries
 // within go-micro. Its a convenience method for building
@@ -60,13 +60,13 @@ func NewService(opts ...Option) Service {
 
 // FromContext retrieves a Service from the Context.
 func FromContext(ctx context.Context) (Service, bool) {
-	s, ok := ctx.Value(serviceKey{}).(Service)
+	s, ok := ctx.Value(a{}).(Service)
 	return s, ok
 }
 
 // NewContext returns a new Context with the Service embedded within it.
 func NewContext(ctx context.Context, s Service) context.Context {
-	return context.WithValue(ctx, serviceKey{}, s)
+	return context.WithValue(ctx, a{}, s)
 }
 
 // NewEvent creates a new event publisher.

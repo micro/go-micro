@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "ask": [
+      "Read(!/Users/leon/qoder/go-micro/**)",
+      "Edit(!/Users/leon/qoder/go-micro/**)"
+    ],
+    "allow": [
+      "Read(/Users/leon/qoder/go-micro/**)",
+      "Edit(/Users/leon/qoder/go-micro/**)"
+    ]
+  },
+  "memoryImport": {},
+  "monitoring": {}
+}
