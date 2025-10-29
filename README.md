@@ -1,6 +1,6 @@
 # Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v5?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro) 
 
-[Sponsor](https://github.com/sponsors/micro/button)
+[Sponsor the project](https://github.com/sponsors/micro)
 
 Go Micro is a framework for distributed systems development.
 
