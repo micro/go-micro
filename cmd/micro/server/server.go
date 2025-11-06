@@ -69,16 +69,16 @@ type Account struct {
 
 func parseTemplates() *templates {
 	return &templates{
-		api:        template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/api.html")),
-		service:    template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/service.html")),
-		form:       template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/form.html")),
-		home:       template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/home.html")),
-		logs:       template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/logs.html")),
-		log:        template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/log.html")),
-		status:     template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/status.html")),
-		authTokens: template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/auth_tokens.html")),
-		authLogin:  template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/auth_login.html")),
-		authUsers:  template.Must(template.ParseFS(HTML, "html/templates/base.html", "html/templates/auth_users.html")),
+		api:        template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/api.html")),
+		service:    template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/service.html")),
+		form:       template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/form.html")),
+		home:       template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/home.html")),
+		logs:       template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/logs.html")),
+		log:        template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/log.html")),
+		status:     template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/status.html")),
+		authTokens: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_tokens.html")),
+		authLogin:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")),
+		authUsers:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_users.html")),
 	}
 }
 
@@ -867,7 +867,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 	}))
 	http.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
-			loginTmpl, err := template.ParseFS(HTML, "html/templates/base.html", "html/templates/auth_login.html")
+			loginTmpl, err := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
 			if err != nil {
 				w.WriteHeader(500)
 				w.Write([]byte("Template error: " + err.Error()))
@@ -882,26 +882,26 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			recKey := "auth/" + id
 			recs, _ := storeInst.Read(recKey)
 			if len(recs) == 0 {
-				loginTmpl, _ := template.ParseFS(HTML, "html/templates/base.html", "html/templates/auth_login.html")
+				loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
 				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
 				return
 			}
 			var acc Account
 			if err := json.Unmarshal(recs[0].Value, &acc); err != nil {
-				loginTmpl, _ := template.ParseFS(HTML, "html/templates/base.html", "html/templates/auth_login.html")
+				loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
 				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
 				return
 			}
 			hash, ok := acc.Metadata["password_hash"]
 			if !ok || bcrypt.CompareHashAndPassword([]byte(hash), []byte(pass)) != nil {
-				loginTmpl, _ := template.ParseFS(HTML, "html/templates/base.html", "html/templates/auth_login.html")
+				loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
 				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
 				return
 			}
 			tok, err := GenerateJWT(acc.ID, acc.Type, acc.Scopes, 24*time.Hour)
 			if err != nil {
 				log.Printf("[LOGIN ERROR] Token generation failed: %v\nAccount: %+v", err, acc)
-				loginTmpl, _ := template.ParseFS(HTML, "html/templates/base.html", "html/templates/auth_login.html")
+				loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
 				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Token error", "User": "", "HideSidebar": true})
 				return
 			}
