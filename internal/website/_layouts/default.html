@@ -62,6 +62,7 @@
     </a>
     <nav>
       <a href="/docs/">Docs</a>
+      <a href="/docs/search.html">Search</a>
       <a href="https://github.com/micro/go-micro" target="_blank" rel="noopener">GitHub</a>
       <a href="/">Home</a>
     </nav>
@@ -85,7 +86,7 @@
       {% assign docs_root = site.baseurl | append: '/' %}
       {% if page.url != docs_root and page.url contains docs_root %}
         <nav style="font-size:.75rem; margin-bottom:1rem;">
-          <a href="{{ site.baseurl }}/">Docs</a>
+          <a href="/docs/">Docs</a>
           {% capture path_acc %}/docs{% endcapture %}
           {% for c in crumbs %}
             {% if forloop.index0 > 1 and c != '' %}
@@ -105,12 +106,12 @@
         {% if current_index != -1 %}
           <hr style="margin:2.5rem 0;" />
           <div style="display:flex; justify-content:space-between; font-size:.85rem;">
-            <nav>
-              <a href="{{ site.baseurl }}/">Docs</a>
-              <a href="{{ site.baseurl }}/search/">Search</a>
-              <a href="https://github.com/micro/go-micro" target="_blank" rel="noopener">GitHub</a>
-              <a href="/">Home</a>
-            </nav>
+            <div>
+              {% if current_index > 0 %}
+                {% assign prev_url = order[current_index | minus: 1] %}
+                <a href="{{ prev_url }}">← Previous</a>
+              {% endif %}
+            </div>
             <div>
               {% assign next_index = current_index | plus: 1 %}
               {% if next_index < order.size %}
@@ -124,7 +125,7 @@
     </main>
   </div>
   <footer>
-    © {{ site.time | date: '%Y' }} Go Micro. Built with Jekyll. <a href="https://github.com/micro/go-micro">GitHub</a>
+    © {{ site.time | date: '%Y' }} Go Micro. Built with Jekyll. <a href="/docs/">Docs</a> · <a href="/docs/search.html">Search</a> · <a href="https://github.com/micro/go-micro">GitHub</a>
   </footer>
   <script>
   (function(){
