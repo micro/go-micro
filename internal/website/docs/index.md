@@ -32,3 +32,5 @@ about the framework.
 - [Client/Server](client-server.md)
 - [Transport](transport.md)
 - [Store](store.md)
+- [Plugins](plugins.md)
+- [Examples](examples/index.md)

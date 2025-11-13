@@ -7,7 +7,7 @@ layout: default
 To make use of Go Micro 
 
 ```golang
-go get "go-micro.dev/v5"
+go get go-micro.dev/v5@latest
 ```
 
 ## Create a service
@@ -105,7 +105,13 @@ curl -XPOST \
 
 ## Protobuf
 
-If you want to define services with protobuf you can use [protoc-gen-micro](https://github.com/micro/micro/tree/master/cmd/protoc-gen-micro)
+If you want to define services with protobuf you can use protoc-gen-micro (go-micro.dev/v5/cmd/protoc-gen-micro).
+
+Install the generator:
+
+```
+go install go-micro.dev/v5/cmd/protoc-gen-micro@latest
+```
 
 ```
 cd helloworld
@@ -133,7 +139,7 @@ message Response {
 }
 ```
 
-You can now generate a client/server like so
+You can now generate a client/server like so (ensure `$GOBIN` is on your `$PATH` so `protoc` can find `protoc-gen-micro`):
 
 ```
 protoc --proto_path=. --micro_out=. --go_out=. helloworld.proto
@@ -213,17 +219,19 @@ func main() {
 
 ## Command line
 
-If you'd like to use a command line checkout [Micro](https://github.com/micro/micro)
+Install the Micro CLI:
 
 ```
-go get github.com/micro/micro/v5@latest
+go install go-micro.dev/v5/cmd/micro@latest
 ```
+
+Call a running service via RPC:
 
 ```
 micro call helloworld Say.Hello '{"name": "John"}'
 ```
 
-Alternative using the dynamic CLI commands
+Alternative using the dynamic CLI commands:
 
 ```
 micro helloworld say hello --name="John"

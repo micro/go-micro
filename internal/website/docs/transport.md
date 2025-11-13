@@ -12,10 +12,14 @@ The transport layer is responsible for communication between services.
 
 ## Implementations
 Supported transports include:
-- TCP (default)
-- gRPC
+- HTTP (default)
+- NATS (`go-micro.dev/v5/transport/nats`)
+- gRPC (`go-micro.dev/v5/transport/grpc`)
+- Memory (`go-micro.dev/v5/transport/memory`)
 
-You can specify the transport when initializing your service.
+Plugins are scoped under `go-micro.dev/v5/transport/<plugin>`.
+
+You can specify the transport when initializing your service or via env vars.
 
 ## Example Usage
 
@@ -38,3 +42,28 @@ func main() {
     service.Run()
 }
 ```
+
+NATS transport:
+```go
+import (
+    "go-micro.dev/v5"
+    tnats "go-micro.dev/v5/transport/nats"
+)
+
+func main() {
+    t := tnats.NewTransport()
+    service := micro.NewService(micro.Transport(t))
+    service.Init()
+    service.Run()
+}
+```
+
+## Configure via environment
+
+```
+MICRO_TRANSPORT=nats MICRO_TRANSPORT_ADDRESS=nats://127.0.0.1:4222 micro server
+```
+
+Common variables:
+- `MICRO_TRANSPORT`: selects the transport implementation (`http`, `nats`, `grpc`, `memory`).
+- `MICRO_TRANSPORT_ADDRESS`: comma-separated list of transport addresses.

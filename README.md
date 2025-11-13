@@ -50,7 +50,7 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 To make use of Go Micro 
 
 ```golang
-go get "go-micro.dev/v5"
+go get go-micro.dev/v5@latest
 ```
 
 Create a service and register a handler
@@ -114,11 +114,30 @@ There's a new `genai` package for generative AI capabilities.
 
 ## Protobuf
 
-See [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro) for protobuf code generation
+Install the code generator and see usage in the docs:
+
+```
+go install go-micro.dev/v5/cmd/protoc-gen-micro@latest
+```
+
+Docs: [`internal/website/docs/getting-started.md`](internal/website/docs/getting-started.md)
 
 ## Command line
 
-See [cmd/micro](https://github.com/micro/go-micro/tree/master/cmd/micro) for the command line
+Install the CLI and see usage in the docs:
+
+```
+go install go-micro.dev/v5/cmd/micro@latest
+```
+
+Docs: [`internal/website/docs`](internal/website/docs)
+
+Package reference: https://pkg.go.dev/go-micro.dev/v5
+
+Selected topics:
+- Getting Started: [`internal/website/docs/getting-started.md`](internal/website/docs/getting-started.md)
+- Plugins overview: [`internal/website/docs/plugins.md`](internal/website/docs/plugins.md)
+- Learn by Example: [`internal/website/docs/examples/index.md`](internal/website/docs/examples/index.md)
 
 ## Adopters
 
