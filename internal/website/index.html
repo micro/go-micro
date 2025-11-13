@@ -140,6 +140,67 @@
       .stats a:hover {
         text-decoration: underline;
       }
+      .showcase {
+        margin: 2.5rem 0 1.5rem;
+        text-align: left;
+      }
+      .showcase h2 {
+        font-size: 1.35rem;
+        margin-bottom: 1.25rem;
+        color: #1a1a1a;
+        text-align: center;
+      }
+      .showcase-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .showcase-item {
+        background: #f8f9fa;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 1.25rem;
+        transition: all 0.2s;
+      }
+      .showcase-item:hover {
+        border-color: #0366d6;
+        box-shadow: 0 4px 12px rgba(3,102,214,0.1);
+        transform: translateY(-2px);
+      }
+      .showcase-item h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        color: #0366d6;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .showcase-item h3 a {
+        color: #0366d6;
+        text-decoration: none;
+      }
+      .showcase-item h3 a:hover {
+        text-decoration: underline;
+      }
+      .showcase-item p {
+        font-size: 0.9rem;
+        color: #555;
+        margin-bottom: 0.75rem;
+        line-height: 1.5;
+      }
+      .showcase-tags {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .showcase-tag {
+        font-size: 0.75rem;
+        background: white;
+        color: #666;
+        padding: 0.25rem 0.6rem;
+        border-radius: 4px;
+        border: 1px solid #d0d7de;
+      }
       @media (max-width: 600px) {
         .container { padding: 2rem 1.5rem; }
         h1 { font-size: 1.5rem; }
@@ -192,6 +253,25 @@
         <a href="docs/" class="primary">Documentation</a>
         <a href="https://github.com/micro/go-micro" class="secondary">GitHub</a>
         <a href="https://pkg.go.dev/go-micro.dev/v5" class="secondary">Reference</a>
+      </div>
+      
+      <div class="showcase">
+        <h2>Built with Go Micro</h2>
+        <div class="showcase-grid">
+          <div class="showcase-item">
+            <h3>
+              <span>📝</span>
+              <a href="https://github.com/micro/blog" target="_blank" rel="noopener">Micro Blog</a>
+            </h3>
+            <p>A full-featured microblogging platform demonstrating microservices architecture with users, posts, comments, and real-time feeds.</p>
+            <div class="showcase-tags">
+              <span class="showcase-tag">Microservices</span>
+              <span class="showcase-tag">RPC</span>
+              <span class="showcase-tag">Web UI</span>
+              <span class="showcase-tag">AGPL 3.0</span>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div class="stats">
