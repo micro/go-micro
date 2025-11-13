@@ -12,3 +12,7 @@ A collection of small, focused examples demonstrating common patterns with Go Mi
 - [Service Discovery with Consul](registry-consul.md)
 - [State with Postgres Store](store-postgres.md)
 - [NATS Transport](transport-nats.md)
+
+## More
+
+- [Real-World Examples](realworld/index.md)

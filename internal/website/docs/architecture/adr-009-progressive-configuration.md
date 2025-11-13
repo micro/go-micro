@@ -150,3 +150,4 @@ func (s *service) Init() error {
 - [ADR-004: mDNS as Default Registry](adr-004-mdns-default-registry.md)
 - ADR-008: Environment Variable Support (planned)
 - [Getting Started Guide](../getting-started.md) - Configuration examples
+ - [Configuration Guide](../config.md)

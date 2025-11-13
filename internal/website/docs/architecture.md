@@ -45,6 +45,12 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 
 We will share more on architecture soon
 
+## Related
+
+- [ADR Index](architecture/index.md)
+- [Configuration](config.md)
+- [Plugins](plugins.md)
+
 ## Example Usage
 
 Here's a minimal Go Micro service demonstrating the architecture:
