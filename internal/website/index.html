@@ -1,43 +1,194 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Go Micro - A pluggable Go microservices framework for building distributed systems" />
     <meta name="go-import" content="go-micro.dev/v5 git https://github.com/micro/go-micro">
     <meta name="go-source" content="go-micro.dev/5 https://github.com/micro/go-micro https://github.com/micro/go-micro/tree/master{/dir} https://github.com/micro/go-micro/blob/master{/dir}/{file}#L{line}">
-    <title>Go Micro</title>
+    <title>Go Micro - Pluggable Go Microservices Framework</title>
     <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
       body {
-        font-family: Arial;
-        font-size: 16px;
-        margin: 25px;
+        font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
       }
       .container {
-        max-width: 520px;
-        margin: 0 auto;
-        padding-top: 70px;
+        max-width: 680px;
+        background: white;
+        padding: 3rem 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.15);
         text-align: center;
       }
-      a { color: black; text-decoration: none; font-weight: bold; padding: 10px;}
-      pre { background: #f5f5f5; border-radius: 5px; padding: 10px;}
+      .logo-wrapper {
+        margin-bottom: 1.5rem;
+      }
+      .logo-wrapper img {
+        max-width: 280px;
+        width: 100%;
+        height: auto;
+      }
+      h1 {
+        font-size: 1.75rem;
+        margin-bottom: 0.75rem;
+        color: #1a1a1a;
+      }
+      .tagline {
+        font-size: 1.15rem;
+        color: #555;
+        margin-bottom: 2rem;
+        font-weight: 400;
+      }
+      .install-section {
+        background: #f6f8fa;
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 2rem;
+      }
+      .install-section label {
+        display: block;
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+      }
+      pre {
+        background: #fff;
+        border: 1px solid #d0d7de;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.95rem;
+        color: #0366d6;
+        overflow-x: auto;
+      }
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+        text-align: left;
+      }
+      .feature {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+      }
+      .feature strong {
+        display: block;
+        color: #0366d6;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+      }
+      .links {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .links a {
+        display: inline-block;
+        padding: 0.7rem 1.5rem;
+        text-decoration: none;
+        font-weight: 600;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+      }
+      .links a.primary {
+        background: #0366d6;
+        color: white;
+      }
+      .links a.primary:hover {
+        background: #0256c5;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(3,102,214,0.3);
+      }
+      .links a.secondary {
+        background: #f6f8fa;
+        color: #0366d6;
+        border: 1px solid #d0d7de;
+      }
+      .links a.secondary:hover {
+        background: #e9ecef;
+        border-color: #0366d6;
+      }
+      .stats {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e5e5;
+        font-size: 0.85rem;
+        color: #666;
+      }
+      .stats a {
+        color: #0366d6;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .stats a:hover {
+        text-decoration: underline;
+      }
+      @media (max-width: 600px) {
+        .container { padding: 2rem 1.5rem; }
+        h1 { font-size: 1.5rem; }
+        .features { grid-template-columns: 1fr; }
+      }
     </style>
   </head>
-
   <body>
-     <div class="container">
-        <!-- <h1>Go Micro</h1> -->
-        <a href="https://github.com/micro/go-micro">
-          <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" style="height: auto; width: 100%;" />
-        </a>
-        <p>A Go microservices framework</p>
+    <div class="container">
+      <div class="logo-wrapper">
+        <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" alt="Go Micro Logo" />
+      </div>
+      
+      <h1>Go Micro</h1>
+      <p class="tagline">A pluggable Go framework for distributed systems development</p>
+      
+      <div class="install-section">
+        <label>Get Started</label>
         <pre>go get go-micro.dev/v5</pre>
-        <div>
-          <a href="docs/">Docs</a>
-          <a href="https://github.com/micro/go-micro">GitHub</a>
-          <a href="https://pkg.go.dev/go-micro.dev/v5">pkg.go.dev</a>
+      </div>
+      
+      <div class="features">
+        <div class="feature">
+          <strong>🔌 Pluggable</strong>
+          Swap components without changing code
         </div>
-     </div>
+        <div class="feature">
+          <strong>⚡ Zero Config</strong>
+          Works out of the box with sensible defaults
+        </div>
+        <div class="feature">
+          <strong>🎯 RPC First</strong>
+          Built-in service discovery and load balancing
+        </div>
+        <div class="feature">
+          <strong>📡 Pub/Sub</strong>
+          Event-driven architecture support
+        </div>
+      </div>
+      
+      <div class="links">
+        <a href="docs/" class="primary">Documentation</a>
+        <a href="https://github.com/micro/go-micro" class="secondary">GitHub</a>
+        <a href="https://pkg.go.dev/go-micro.dev/v5" class="secondary">Reference</a>
+      </div>
+      
+      <div class="stats">
+        23K+ stars on <a href="https://github.com/micro/go-micro">GitHub</a> · Production ready · MIT Licensed
+      </div>
+    </div>
   </body>
 </html>
-
