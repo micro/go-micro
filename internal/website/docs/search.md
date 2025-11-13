@@ -13,7 +13,7 @@ Type below to search page titles and content.
 <script>
 (function(){
   const pages = [
-    {% assign docs = site.pages | where_exp:'p','p.url contains '/docs/'' %}
+    {% assign docs = site.pages | where_exp: "p", "p.url contains '/docs/'" %}
     {% for p in docs %}
       {
         url: '{{ p.url }}',
