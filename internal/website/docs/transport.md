@@ -60,8 +60,8 @@ func main() {
 
 ## Configure via environment
 
-```
-MICRO_TRANSPORT=nats MICRO_TRANSPORT_ADDRESS=nats://127.0.0.1:4222 micro server
+```bash
+MICRO_TRANSPORT=nats MICRO_TRANSPORT_ADDRESS=nats://127.0.0.1:4222 go run main.go
 ```
 
 Common variables:

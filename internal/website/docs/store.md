@@ -87,10 +87,10 @@ func main() {
 
 ## Configure via environment
 
-```
+```bash
 MICRO_STORE=postgres MICRO_STORE_ADDRESS=postgres://user:pass@127.0.0.1:5432/db \
 MICRO_STORE_DATABASE=micro MICRO_STORE_TABLE=micro \
-micro server
+go run main.go
 ```
 
 Common variables:

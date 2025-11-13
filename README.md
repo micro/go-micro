@@ -49,13 +49,13 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 
 To make use of Go Micro 
 
-```golang
+```bash
 go get go-micro.dev/v5@latest
 ```
 
 Create a service and register a handler
 
-```golang
+```go
 package main
 
 import (
@@ -91,7 +91,7 @@ func main() {
 
 Set a fixed address
 
-```golang
+```go
 service := micro.NewService(
     micro.Name("helloworld"),
     micro.Address(":8080"),
@@ -100,7 +100,7 @@ service := micro.NewService(
 
 Call it via curl
 
-```
+```bash
 curl -XPOST \
      -H 'Content-Type: application/json' \
      -H 'Micro-Endpoint: Say.Hello' \
@@ -116,7 +116,7 @@ There's a new `genai` package for generative AI capabilities.
 
 Install the code generator and see usage in the docs:
 
-```
+```bash
 go install go-micro.dev/v5/cmd/protoc-gen-micro@latest
 ```
 

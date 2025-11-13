@@ -96,8 +96,8 @@ func main() {
 
 Using the built-in configuration flags/env vars (no code changes):
 
-```
-MICRO_BROKER=nats MICRO_BROKER_ADDRESS=nats://127.0.0.1:4222 micro server
+```bash
+MICRO_BROKER=nats MICRO_BROKER_ADDRESS=nats://127.0.0.1:4222 go run main.go
 ```
 
 Common variables:
