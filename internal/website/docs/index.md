@@ -34,3 +34,4 @@ about the framework.
 - [Store](store.md)
 - [Plugins](plugins.md)
 - [Examples](examples/index.md)
+- [Server (optional)](server.md)
