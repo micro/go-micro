@@ -39,37 +39,42 @@
     .content { flex:1; min-width:0; padding:2rem 2.5rem; }
     .content .markdown-body { max-width: 100%; }
     pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
-    pre { background:#f6f8fa; border:1px solid #d0d7de; padding:.9rem 1rem; border-radius:6px; overflow:auto; }
-    table { border-collapse:collapse; width:100%; }
+    pre { background:#f6f8fa; border:1px solid #d0d7de; padding:.9rem 1rem; border-radius:6px; overflow-x:auto; max-width:100%; }
+    code { word-wrap: break-word; }
+    pre code { word-wrap: normal; }
+    table { border-collapse:collapse; width:100%; overflow-x:auto; display:block; }
     th, td { border:1px solid #d0d7de; padding:.5rem .6rem; text-align:left; }
     th { background:#f2f5f8; }
     img { max-width:100%; height:auto; }
     footer { max-width:1400px; margin:0 auto; padding:2rem 1.5rem; border-top:1px solid var(--border); font-size:.8rem; color:#555; }
+    .menu-toggle { display:none; background:#0366d6; color:#fff; border:none; padding:.5rem .75rem; border-radius:4px; cursor:pointer; font-size:.85rem; margin-left:auto; }
+    .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:25; }
+    .sidebar-overlay.active { display:block; }
     @media (max-width: 900px) {
       header { padding:.5rem 1rem; }
       header nav a { margin-left:.5rem; font-size:.85rem; }
       .logo-link { font-size:1.1rem !important; }
       .logo-link img { height:28px; }
-      .layout { flex-direction:column; padding:0 .75rem 2rem; }
-      .sidebar { position:relative; top:0; max-height:none; width:100%; border-right:none; border-bottom:1px solid var(--border); padding:.75rem .5rem; }
-      .sidebar h4 { font-size:.7rem; margin:.8rem 0 .4rem; }
-      .sidebar ul { margin-bottom:.5rem; }
-      .sidebar li { margin:.25rem 0; }
-      .sidebar a { padding:.2rem .3rem; font-size:.85rem; }
-      .content { padding:1rem .75rem; }
-      .content h1 { font-size:1.75rem; }
+      .menu-toggle { display:block; }
+      .layout { padding:0; }
+      .sidebar { position:fixed; left:-100%; top:60px; bottom:0; width:280px; max-width:85vw; background:var(--bg); border-right:1px solid var(--border); border-bottom:none; z-index:30; transition:left 0.3s ease; overflow-y:auto; padding:1rem; }
+      .sidebar.active { left:0; }
+      .content { width:100%; padding:1.5rem 1rem; }
+      .content h1 { font-size:1.75rem; margin-top:0; }
       .content h2 { font-size:1.4rem; }
       .content h3 { font-size:1.15rem; }
-      pre { padding:.6rem .7rem; font-size:.85rem; overflow-x:auto; }
-      table { font-size:.85rem; overflow-x:auto; display:block; }
+      pre { padding:.6rem; font-size:.8rem; overflow-x:auto; white-space:pre; }
+      table { font-size:.85rem; }
       footer { padding:1.5rem 1rem; font-size:.75rem; }
     }
     @media (max-width: 480px) {
-      header nav a { font-size:.8rem; margin-left:.4rem; }
+      header nav a { font-size:.75rem; margin-left:.4rem; }
       .logo-link span { font-size:1rem !important; }
-      .content { padding:.75rem .5rem; }
+      .content { padding:1rem .75rem; }
       .content h1 { font-size:1.5rem; }
-      pre { font-size:.8rem; }
+      .content h2 { font-size:1.25rem; }
+      pre { font-size:.75rem; padding:.5rem; }
+      .sidebar { width:100%; max-width:100%; }
     }
   </style>
 </head>
@@ -79,6 +84,7 @@
       <img src="/images/logo.png" alt="Go Micro Logo">
       <span style="font-size: 1.3rem; font-weight: bold; color: #222;">Go Micro</span>
     </a>
+    <button class="menu-toggle" id="menuToggle">☰ Menu</button>
     <nav>
       <a href="/docs/">Docs</a>
       <a href="/docs/search.html">Search</a>
@@ -86,6 +92,7 @@
       <a href="/">Home</a>
     </nav>
   </header>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="layout">
     <aside class="sidebar">
       {% assign nav = site.data.navigation %}
@@ -162,6 +169,27 @@
       btn.addEventListener('click', function(){
         localStorage.setItem(key, localStorage.getItem(key)==='1' ? '0' : '1');
         apply();
+      });
+    }
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if(menuToggle && sidebar && overlay){
+      menuToggle.addEventListener('click', function(){
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+      });
+      overlay.addEventListener('click', function(){
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+      });
+      // Close sidebar when clicking a link
+      sidebar.querySelectorAll('a').forEach(function(link){
+        link.addEventListener('click', function(){
+          sidebar.classList.remove('active');
+          overlay.classList.remove('active');
+        });
       });
     }
   })();
