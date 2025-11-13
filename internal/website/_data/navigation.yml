@@ -37,6 +37,8 @@ project:
     url: /docs/contributing.html
   - title: Roadmap
     url: /docs/roadmap.html
+  - title: Get Badge
+    url: /badge.html
   - title: Server (optional)
     url: /docs/server.html
 search_order:
