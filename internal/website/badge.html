@@ -1,68 +1,178 @@
----
-layout: default
-title: Powered by Go Micro Badge
----
-
-# Powered by Go Micro Badge
-
-Show your support and let others know your project is built with Go Micro!
-
-## Badges
-
-### Dark Badge
-[![Powered by Go Micro](https://img.shields.io/badge/Powered%20by-Go%20Micro-0366d6?style=for-the-badge&logo=go&logoColor=white)](https://go-micro.dev)
-
-```markdown
-[![Powered by Go Micro](https://img.shields.io/badge/Powered%20by-Go%20Micro-0366d6?style=for-the-badge&logo=go&logoColor=white)](https://go-micro.dev)
-```
-
-### Light Badge
-[![Powered by Go Micro](https://img.shields.io/badge/Powered%20by-Go%20Micro-00ADD8?style=flat&logo=go&logoColor=white)](https://go-micro.dev)
-
-```markdown
-[![Powered by Go Micro](https://img.shields.io/badge/Powered%20by-Go%20Micro-00ADD8?style=flat&logo=go&logoColor=white)](https://go-micro.dev)
-```
-
-### Compact Badge
-[![Go Micro](https://img.shields.io/badge/Go-Micro-0366d6?style=flat-square)](https://go-micro.dev)
-
-```markdown
-[![Go Micro](https://img.shields.io/badge/Go-Micro-0366d6?style=flat-square)](https://go-micro.dev)
-```
-
-## HTML Badges
-
-If you prefer HTML:
-
-### Standard HTML Badge
-
-```html
-<a href="https://go-micro.dev" target="_blank">
-  <img src="https://img.shields.io/badge/Powered%20by-Go%20Micro-0366d6?style=for-the-badge&logo=go&logoColor=white" alt="Powered by Go Micro">
-</a>
-```
-
-### Custom SVG Badge
-
-```html
-<a href="https://go-micro.dev" style="display:inline-block;text-decoration:none;">
-  <svg width="160" height="32" xmlns="http://www.w3.org/2000/svg">
-    <rect width="160" height="32" rx="6" fill="#0366d6"/>
-    <text x="16" y="21" font-family="system-ui,-apple-system,sans-serif" font-size="13" font-weight="600" fill="white">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Powered by Go Micro Badge</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: #f6f8fa;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 3rem 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      color: #1a1a1a;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+    h2 {
+      font-size: 1.5rem;
+      margin: 2rem 0 1rem;
+      color: #0366d6;
+    }
+    h3 {
+      font-size: 1.15rem;
+      margin: 1.5rem 0 0.75rem;
+      color: #333;
+    }
+    .badge-preview {
+      background: #f8f9fa;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      text-align: center;
+    }
+    .badge-preview img {
+      display: inline-block;
+      margin: 0.5rem 0;
+    }
+    pre {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9rem;
+      margin: 0.75rem 0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: #f6f8fa;
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.9rem;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      color: #0366d6;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+    .guideline {
+      background: #e8f4fd;
+      border-left: 4px solid #0366d6;
+      padding: 1rem 1.25rem;
+      margin: 1.5rem 0;
+      border-radius: 4px;
+    }
+    .guideline ul {
+      margin: 0.5rem 0 0 1.5rem;
+    }
+    .guideline li {
+      margin: 0.25rem 0;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 2rem 1.5rem; }
+      h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back-link">← Back to Home</a>
+    
+    <h1>Powered by Go Micro Badge</h1>
+    <p class="subtitle">Show your support and let others know your project is built with Go Micro!</p>
+    
+    <h2>Badges</h2>
+    
+    <h3>Dark Badge</h3>
+    <div class="badge-preview">
+      <a href="https://go-micro.dev" target="_blank">
+        <img src="https://img.shields.io/badge/Powered%20by-Go%20Micro-0366d6?style=for-the-badge&logo=go&logoColor=white" alt="Powered by Go Micro">
+      </a>
+    </div>
+    <pre><code>[![Powered by Go Micro](https://img.shields.io/badge/Powered%20by-Go%20Micro-0366d6?style=for-the-badge&logo=go&logoColor=white)](https://go-micro.dev)</code></pre>
+    
+    <h3>Light Badge</h3>
+    <div class="badge-preview">
+      <a href="https://go-micro.dev" target="_blank">
+        <img src="https://img.shields.io/badge/Powered%20by-Go%20Micro-00ADD8?style=flat&logo=go&logoColor=white" alt="Powered by Go Micro">
+      </a>
+    </div>
+    <pre><code>[![Powered by Go Micro](https://img.shields.io/badge/Powered%20by-Go%20Micro-00ADD8?style=flat&logo=go&logoColor=white)](https://go-micro.dev)</code></pre>
+    
+    <h3>Compact Badge</h3>
+    <div class="badge-preview">
+      <a href="https://go-micro.dev" target="_blank">
+        <img src="https://img.shields.io/badge/Go-Micro-0366d6?style=flat-square" alt="Go Micro">
+      </a>
+    </div>
+    <pre><code>[![Go Micro](https://img.shields.io/badge/Go-Micro-0366d6?style=flat-square)](https://go-micro.dev)</code></pre>
+    
+    <h2>HTML Badges</h2>
+    
+    <h3>Standard HTML Badge</h3>
+    <div class="badge-preview">
+      <a href="https://go-micro.dev" target="_blank">
+        <img src="https://img.shields.io/badge/Powered%20by-Go%20Micro-0366d6?style=for-the-badge&logo=go&logoColor=white" alt="Powered by Go Micro">
+      </a>
+    </div>
+    <pre><code>&lt;a href="https://go-micro.dev" target="_blank"&gt;
+  &lt;img src="https://img.shields.io/badge/Powered%20by-Go%20Micro-0366d6?style=for-the-badge&logo=go&logoColor=white" alt="Powered by Go Micro"&gt;
+&lt;/a&gt;</code></pre>
+    
+    <h3>Custom SVG Badge</h3>
+    <div class="badge-preview">
+      <a href="https://go-micro.dev" style="display:inline-block;text-decoration:none;">
+        <svg width="160" height="32" xmlns="http://www.w3.org/2000/svg">
+          <rect width="160" height="32" rx="6" fill="#0366d6"/>
+          <text x="16" y="21" font-family="system-ui,-apple-system,sans-serif" font-size="13" font-weight="600" fill="white">
+            Powered by Go Micro
+          </text>
+        </svg>
+      </a>
+    </div>
+    <pre><code>&lt;a href="https://go-micro.dev" style="display:inline-block;text-decoration:none;"&gt;
+  &lt;svg width="160" height="32" xmlns="http://www.w3.org/2000/svg"&gt;
+    &lt;rect width="160" height="32" rx="6" fill="#0366d6"/&gt;
+    &lt;text x="16" y="21" font-family="system-ui,-apple-system,sans-serif" font-size="13" font-weight="600" fill="white"&gt;
       Powered by Go Micro
-    </text>
-  </svg>
-</a>
-```
-
-## Usage
-
-Add one of these badges to your README.md, documentation, or website footer to show that your project uses Go Micro.
-
-### Example README
-
-```markdown
-# My Awesome Project
+    &lt;/text&gt;
+  &lt;/svg&gt;
+&lt;/a&gt;</code></pre>
+    
+    <h2>Usage</h2>
+    <p>Add one of these badges to your README.md, documentation, or website footer to show that your project uses Go Micro.</p>
+    
+    <h3>Example README</h3>
+    <pre><code># My Awesome Project
 
 ![Project Logo](logo.png)
 
@@ -73,16 +183,20 @@ My project does amazing things using Go Micro microservices framework.
 ## Features
 - Fast and scalable
 - Built with Go Micro
-- Production ready
-```
-
-## Badge Guidelines
-
-- Link the badge to `https://go-micro.dev` to help others discover Go Micro
-- Use the badge prominently in your README
-- Consider adding it to your project website footer
-- Feel free to customize the colors to match your brand
-
-## Showcase Your Project
-
-Built something cool with Go Micro? [Open an issue](https://github.com/micro/go-micro/issues/new) to get featured on our homepage!
+- Production ready</code></pre>
+    
+    <div class="guideline">
+      <h3>Badge Guidelines</h3>
+      <ul>
+        <li>Link the badge to <code>https://go-micro.dev</code> to help others discover Go Micro</li>
+        <li>Use the badge prominently in your README</li>
+        <li>Consider adding it to your project website footer</li>
+        <li>Feel free to customize the colors to match your brand</li>
+      </ul>
+    </div>
+    
+    <h2>Showcase Your Project</h2>
+    <p>Built something cool with Go Micro? <a href="https://github.com/micro/go-micro/issues/new" target="_blank">Open an issue</a> to get featured on our homepage!</p>
+  </div>
+</body>
+</html>
