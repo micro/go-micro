@@ -35,3 +35,10 @@ about the framework.
 - [Plugins](plugins.md)
 - [Examples](examples/index.md)
 - [Server (optional)](server.md)
+
+## Advanced
+
+- [Framework Comparison](guides/comparison.md)
+- [Architecture Decisions](architecture/index.md)
+- [Real-World Examples](examples/realworld/index.md)
+- [Migration Guides](guides/migration/index.md)
