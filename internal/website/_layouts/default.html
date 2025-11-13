@@ -5,14 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% if page.title %}{{ page.title }} | {% endif %}Go Micro Documentation</title>
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
-    header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 2rem; background: #fff; border-bottom: 1px solid #eee; }
-    .logo-link { display: flex; align-items: center; text-decoration: none; }
-    .logo-link img { height: 40px; margin-right: 10px; }
-    nav a { margin-left: 24px; color: #333; text-decoration: none; font-weight: 500; }
-    nav a:hover { color: #007d9c; }
-    main { max-width: 800px; margin: 2rem auto; background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
-    pre { background: whitesmoke; padding: 10px; border-radius: 5px; }
+    :root {
+      --bg: #ffffff;
+      --border: #e5e5e5;
+      --sidebar-width: 230px;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; margin:0; background: var(--bg); color:#222; }
+    a { color:#0366d6; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:.75rem 1.5rem; background:#fff; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+    .logo-link { display:flex; align-items:center; gap:.5rem; font-weight:600; color:#222; }
+    .logo-link img { height:36px; }
+    header nav a { margin-left:1rem; font-weight:500; }
+    .layout { display:flex; align-items:flex-start; max-width: 1400px; margin:0 auto; padding:0 1.25rem 4rem; }
+    .sidebar { width:var(--sidebar-width); padding:1.25rem .75rem 2rem; border-right:1px solid var(--border); position:sticky; top:60px; max-height:calc(100vh - 60px); overflow:auto; font-size:.9rem; }
+    .sidebar h4 { margin:1.2rem 0 .5rem; font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:#555; }
+    .sidebar ul { list-style:none; margin:0; padding:0; }
+    .sidebar li { margin:.35rem 0; }
+    .sidebar a { color:#222; display:block; padding:.25rem .4rem; border-radius:4px; }
+    .sidebar a:hover { background:#f2f5f8; }
+    .content { flex:1; min-width:0; padding:2rem 2.5rem; }
+    .content .markdown-body { max-width: 100%; }
+    pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    pre { background:#f6f8fa; border:1px solid #d0d7de; padding:.9rem 1rem; border-radius:6px; overflow:auto; }
+    table { border-collapse:collapse; width:100%; }
+    th, td { border:1px solid #d0d7de; padding:.5rem .6rem; text-align:left; }
+    th { background:#f2f5f8; }
+    img { max-width:100%; height:auto; }
+    footer { max-width:1400px; margin:0 auto; padding:2rem 1.5rem; border-top:1px solid var(--border); font-size:.8rem; color:#555; }
+    @media (max-width: 900px) {
+      .layout { flex-direction:column; }
+      .sidebar { position:relative; top:0; max-height:none; width:100%; border-right:none; border-bottom:1px solid var(--border); display:flex; flex-wrap:wrap; gap:.5rem; }
+      .sidebar h4 { flex-basis:100%; }
+      .sidebar ul { display:contents; }
+      .sidebar li { flex:1 1 48%; }
+      .content { padding:1.25rem 1rem; }
+    }
   </style>
 </head>
 <body>
@@ -27,8 +56,47 @@
       <a href="/">Home</a>
     </nav>
   </header>
-  <main>
-    {{ content }}
-  </main>
+  <div class="layout">
+    <aside class="sidebar">
+      <h4>Core</h4>
+      <ul>
+        <li><a href="/docs/">Overview</a></li>
+        <li><a href="/docs/getting-started/">Getting Started</a></li>
+        <li><a href="/docs/architecture/">Architecture</a></li>
+        <li><a href="/docs/config/">Configuration</a></li>
+        <li><a href="/docs/observability/">Observability</a></li>
+      </ul>
+      <h4>Interfaces</h4>
+      <ul>
+        <li><a href="/docs/registry/">Registry</a></li>
+        <li><a href="/docs/broker/">Broker</a></li>
+        <li><a href="/docs/transport/">Transport</a></li>
+        <li><a href="/docs/store/">Store</a></li>
+        <li><a href="/docs/plugins/">Plugins</a></li>
+      </ul>
+      <h4>Examples</h4>
+      <ul>
+        <li><a href="/docs/examples/">Learn by Example</a></li>
+        <li><a href="/docs/examples/realworld/">Real-World</a></li>
+      </ul>
+      <h4>Guides</h4>
+      <ul>
+        <li><a href="/docs/guides/comparison/">Comparison</a></li>
+        <li><a href="/docs/guides/migration/">Migration</a></li>
+      </ul>
+      <h4>Project</h4>
+      <ul>
+        <li><a href="/docs/contributing/">Contributing</a></li>
+        <li><a href="/docs/roadmap/">Roadmap</a></li>
+        <li><a href="/docs/architecture/index.html">ADR Index</a></li>
+      </ul>
+    </aside>
+    <main class="content markdown-body">
+      {{ content }}
+    </main>
+  </div>
+  <footer>
+    © {{ site.time | date: '%Y' }} Go Micro. Built with Jekyll. <a href="https://github.com/micro/go-micro">GitHub</a>
+  </footer>
 </body>
 </html>
