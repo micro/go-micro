@@ -15,6 +15,16 @@
     a { color:#0366d6; text-decoration:none; }
     a:hover { text-decoration:underline; }
     header { display:flex; align-items:center; justify-content:space-between; padding:.75rem 1.5rem; background:#fff; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+    .right-tools { display:flex; align-items:center; gap:.75rem; }
+    .search-inline { position:relative; }
+    .search-inline input { padding:.4rem .6rem; border:1px solid #d0d7de; border-radius:4px; font-size:.85rem; width:160px; }
+    .search-inline input:focus { outline:none; border-color:#0366d6; }
+    .dark-toggle { cursor:pointer; background:#f6f8fa; border:1px solid #d0d7de; padding:.35rem .6rem; border-radius:4px; font-size:.75rem; }
+    .dark body, body.dark { --bg:#0d1117; --border:#30363d; color:#e6edf3; background:#0d1117; }
+    body.dark header, body.dark .sidebar, body.dark .content, body.dark footer { background:#0d1117; }
+    body.dark a { color:#58a6ff; }
+    body.dark pre { background:#161b22; border-color:#30363d; }
+    body.dark .sidebar a:hover { background:#161b22; }
     .logo-link { display:flex; align-items:center; gap:.5rem; font-weight:600; color:#222; }
     .logo-link img { height:36px; }
     header nav a { margin-left:1rem; font-weight:500; }
@@ -58,45 +68,83 @@
   </header>
   <div class="layout">
     <aside class="sidebar">
-      <h4>Core</h4>
-      <ul>
-        <li><a href="/docs/">Overview</a></li>
-        <li><a href="/docs/getting-started/">Getting Started</a></li>
-        <li><a href="/docs/architecture/">Architecture</a></li>
-        <li><a href="/docs/config/">Configuration</a></li>
-        <li><a href="/docs/observability/">Observability</a></li>
-      </ul>
-      <h4>Interfaces</h4>
-      <ul>
-        <li><a href="/docs/registry/">Registry</a></li>
-        <li><a href="/docs/broker/">Broker</a></li>
-        <li><a href="/docs/transport/">Transport</a></li>
-        <li><a href="/docs/store/">Store</a></li>
-        <li><a href="/docs/plugins/">Plugins</a></li>
-      </ul>
-      <h4>Examples</h4>
-      <ul>
-        <li><a href="/docs/examples/">Learn by Example</a></li>
-        <li><a href="/docs/examples/realworld/">Real-World</a></li>
-      </ul>
-      <h4>Guides</h4>
-      <ul>
-        <li><a href="/docs/guides/comparison/">Comparison</a></li>
-        <li><a href="/docs/guides/migration/">Migration</a></li>
-      </ul>
-      <h4>Project</h4>
-      <ul>
-        <li><a href="/docs/contributing/">Contributing</a></li>
-        <li><a href="/docs/roadmap/">Roadmap</a></li>
-        <li><a href="/docs/architecture/index.html">ADR Index</a></li>
-      </ul>
+      {% assign nav = site.data.navigation %}
+      {% for section in nav %}
+        {% unless section[0] == 'search_order' %}
+        <h4>{{ section[0] | capitalize }}</h4>
+        <ul>
+          {% for item in section[1] %}
+            <li><a href="{{ item.url }}" {% if item.url == page.url %}style="font-weight:600"{% endif %}>{{ item.title }}</a></li>
+          {% endfor %}
+        </ul>
+        {% endunless %}
+      {% endfor %}
     </aside>
     <main class="content markdown-body">
+      {% assign crumbs = page.url | split:'/' %}
+      {% assign docs_root = site.baseurl | append: '/' %}
+      {% if page.url != docs_root and page.url contains docs_root %}
+        <nav style="font-size:.75rem; margin-bottom:1rem;">
+          <a href="{{ site.baseurl }}/">Docs</a>
+          {% capture path_acc %}/docs{% endcapture %}
+          {% for c in crumbs %}
+            {% if forloop.index0 > 1 and c != '' %}
+              {% capture path_acc %}{{ path_acc }}/{{ c }}{% endcapture %}
+               › <a href="{{ path_acc }}/">{{ c | replace:'.html','' | replace:'index','' | replace:'realworld','Real-World' | replace:'guides','Guides' | replace:'migration','Migration' | replace:'architecture','Architecture' | replace:'examples','Examples' | replace:'config','Configuration' | replace:'observability','Observability' | capitalize }}</a>
+            {% endif %}
+          {% endfor %}
+        </nav>
+      {% endif %}
       {{ content }}
+      {% assign order = site.data.navigation.search_order %}
+      {% if page.url %}
+          {% assign current_index = -1 %}
+          {% for u in order %}
+            {% if u == page.url %}{% assign current_index = forloop.index0 %}{% endif %}
+        {% endfor %}
+        {% if current_index != -1 %}
+          <hr style="margin:2.5rem 0;" />
+          <div style="display:flex; justify-content:space-between; font-size:.85rem;">
+            <nav>
+              <a href="{{ site.baseurl }}/">Docs</a>
+              <a href="{{ site.baseurl }}/search/">Search</a>
+              <a href="https://github.com/micro/go-micro" target="_blank" rel="noopener">GitHub</a>
+              <a href="/">Home</a>
+            </nav>
+            <div>
+              {% assign next_index = current_index | plus: 1 %}
+              {% if next_index < order.size %}
+                {% assign next_url = order[next_index] %}
+                  <a href="{{ next_url }}">Next →</a>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
     </main>
   </div>
   <footer>
     © {{ site.time | date: '%Y' }} Go Micro. Built with Jekyll. <a href="https://github.com/micro/go-micro">GitHub</a>
   </footer>
+  <script>
+  (function(){
+    const key='gm.dark';
+    function apply(){
+      if(localStorage.getItem(key)==='1'){
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+    }
+    apply();
+    const btn=document.getElementById('dark-toggle');
+    if(btn){
+      btn.addEventListener('click', function(){
+        localStorage.setItem(key, localStorage.getItem(key)==='1' ? '0' : '1');
+        apply();
+      });
+    }
+  })();
+  </script>
 </body>
 </html>

@@ -1,0 +1,59 @@
+core:
+  - title: Overview
+    url: /docs/
+  - title: Getting Started
+    url: /docs/getting-started/
+  - title: Architecture
+    url: /docs/architecture/
+  - title: Configuration
+    url: /docs/config/
+  - title: Observability
+    url: /docs/observability/
+interfaces:
+  - title: Registry
+    url: /docs/registry/
+  - title: Broker
+    url: /docs/broker/
+  - title: Transport
+    url: /docs/transport/
+  - title: Store
+    url: /docs/store/
+  - title: Plugins
+    url: /docs/plugins/
+examples:
+  - title: Learn by Example
+    url: /docs/examples/
+  - title: Real-World Examples
+    url: /docs/examples/realworld/
+guides:
+  - title: Comparison
+    url: /docs/guides/comparison/
+  - title: Migration Guides
+    url: /docs/guides/migration/
+project:
+  - title: ADR Index
+    url: /docs/architecture/index.html
+  - title: Contributing
+    url: /docs/contributing/
+  - title: Roadmap
+    url: /docs/roadmap/
+  - title: Server (optional)
+    url: /docs/server/
+search_order:
+  - /docs/getting-started/
+  - /docs/architecture/
+  - /docs/config/
+  - /docs/observability/
+  - /docs/registry/
+  - /docs/broker/
+  - /docs/transport/
+  - /docs/store/
+  - /docs/plugins/
+  - /docs/examples/
+  - /docs/examples/realworld/
+  - /docs/guides/comparison/
+  - /docs/guides/migration/
+  - /docs/architecture/index.html
+  - /docs/contributing/
+  - /docs/roadmap/
+  - /docs/server/
