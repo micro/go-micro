@@ -2,24 +2,24 @@ core:
   - title: Overview
     url: /docs/
   - title: Getting Started
-    url: /docs/getting-started/
+    url: /docs/getting-started.html
   - title: Architecture
-    url: /docs/architecture/
+    url: /docs/architecture.html
   - title: Configuration
-    url: /docs/config/
+    url: /docs/config.html
   - title: Observability
-    url: /docs/observability/
+    url: /docs/observability.html
 interfaces:
   - title: Registry
-    url: /docs/registry/
+    url: /docs/registry.html
   - title: Broker
-    url: /docs/broker/
+    url: /docs/broker.html
   - title: Transport
-    url: /docs/transport/
+    url: /docs/transport.html
   - title: Store
-    url: /docs/store/
+    url: /docs/store.html
   - title: Plugins
-    url: /docs/plugins/
+    url: /docs/plugins.html
 examples:
   - title: Learn by Example
     url: /docs/examples/
@@ -27,33 +27,33 @@ examples:
     url: /docs/examples/realworld/
 guides:
   - title: Comparison
-    url: /docs/guides/comparison/
+    url: /docs/guides/comparison.html
   - title: Migration Guides
     url: /docs/guides/migration/
 project:
   - title: ADR Index
-    url: /docs/architecture/index.html
+    url: /docs/architecture/
   - title: Contributing
-    url: /docs/contributing/
+    url: /docs/contributing.html
   - title: Roadmap
-    url: /docs/roadmap/
+    url: /docs/roadmap.html
   - title: Server (optional)
-    url: /docs/server/
+    url: /docs/server.html
 search_order:
-  - /docs/getting-started/
-  - /docs/architecture/
-  - /docs/config/
-  - /docs/observability/
-  - /docs/registry/
-  - /docs/broker/
-  - /docs/transport/
-  - /docs/store/
-  - /docs/plugins/
+  - /docs/getting-started.html
+  - /docs/architecture.html
+  - /docs/config.html
+  - /docs/observability.html
+  - /docs/registry.html
+  - /docs/broker.html
+  - /docs/transport.html
+  - /docs/store.html
+  - /docs/plugins.html
   - /docs/examples/
   - /docs/examples/realworld/
-  - /docs/guides/comparison/
+  - /docs/guides/comparison.html
   - /docs/guides/migration/
-  - /docs/architecture/index.html
-  - /docs/contributing/
-  - /docs/roadmap/
-  - /docs/server/
+  - /docs/architecture/
+  - /docs/contributing.html
+  - /docs/roadmap.html
+  - /docs/server.html
