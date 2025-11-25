@@ -133,14 +133,20 @@ func main() {
 
 ### Integration
 
-You can use gRPC with Go Micro:
+You can use gRPC with Go Micro for native gRPC compatibility:
 ```go
-import "go-micro.dev/v5/client/grpc"
+import (
+    grpcServer "go-micro.dev/v5/server/grpc"
+    grpcClient "go-micro.dev/v5/client/grpc"
+)
 
 svc := micro.NewService(
-    micro.Client(grpc.NewClient()),
+    micro.Server(grpcServer.NewServer()),
+    micro.Client(grpcClient.NewClient()),
 )
 ```
+
+See [Native gRPC Compatibility](grpc-compatibility.md) for a complete guide.
 
 ## vs Dapr
 

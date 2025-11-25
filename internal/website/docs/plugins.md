@@ -10,6 +10,8 @@ Common interfaces and locations:
 - Registry: `go-micro.dev/v5/registry/*` (e.g. `consul`, `etcd`, `nats`, `mdns`)
 - Broker: `go-micro.dev/v5/broker/*` (e.g. `nats`, `rabbitmq`, `http`, `memory`)
 - Transport: `go-micro.dev/v5/transport/*` (e.g. `nats`, default `http`)
+- Server: `go-micro.dev/v5/server/*` (e.g. `grpc` for native gRPC compatibility)
+- Client: `go-micro.dev/v5/client/*` (e.g. `grpc` for native gRPC compatibility)
 - Store: `go-micro.dev/v5/store/*` (e.g. `postgres`, `mysql`, `nats-js-kv`, `memory`)
 - Auth, Cache, etc. follow the same pattern under their respective directories.
 
@@ -93,6 +95,29 @@ func main() {
     svc.Run()
 }
 ```
+
+## gRPC Server/Client (Native gRPC Compatibility)
+
+For native gRPC compatibility (required for `grpcurl`, polyglot gRPC clients, etc.), use the gRPC server and client plugins. Note: This is different from the gRPC transport.
+
+```go
+import (
+    "go-micro.dev/v5"
+    grpcServer "go-micro.dev/v5/server/grpc"
+    grpcClient "go-micro.dev/v5/client/grpc"
+)
+
+func main() {
+    svc := micro.NewService(
+        micro.Server(grpcServer.NewServer()),
+        micro.Client(grpcClient.NewClient()),
+    )
+    svc.Init()
+    svc.Run()
+}
+```
+
+See [Native gRPC Compatibility](guides/grpc-compatibility.md) for a complete guide.
 
 ## Store Examples
 
