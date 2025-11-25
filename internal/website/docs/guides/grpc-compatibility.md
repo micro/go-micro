@@ -156,7 +156,6 @@ import (
 
 func main() {
     // Create service with gRPC client
-    // Note: Client should be set before Name for consistency
     service := micro.NewService(
         micro.Client(grpcClient.NewClient()),
         micro.Name("helloworld.client"),
