@@ -29,9 +29,11 @@ import (
     grpcClient "go-micro.dev/v5/client/grpc"
 )
 
+// Note: Server and Client options should be specified before Name
 service := micro.NewService(
     micro.Server(grpcServer.NewServer()),
     micro.Client(grpcClient.NewClient()),
+    micro.Name("myservice"),  // Name must come after Server
 )
 ```
 

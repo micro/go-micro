@@ -43,11 +43,13 @@ import (
 )
 
 service := micro.NewService(
-    micro.Name("helloworld"),
-    micro.Server(grpcServer.NewServer()),
+    micro.Server(grpcServer.NewServer()),  // Server must come before Name
     micro.Client(grpcClient.NewClient()),
+    micro.Name("helloworld"),
 )
 ```
+
+> **Important**: The `micro.Server()` option must be specified **before** `micro.Name()`. This is because `micro.Name()` sets the name on the current server, and if `micro.Server()` comes after, it replaces the server with a new one that has no name set.
 
 ## When to Use Which
 
@@ -118,10 +120,11 @@ func (s *Say) Hello(ctx context.Context, req *pb.Request, rsp *pb.Response) erro
 
 func main() {
     // Create service with gRPC server for native gRPC compatibility
+    // Note: Server must be set before Name to ensure the name is applied to the gRPC server
     service := micro.NewService(
+        micro.Server(grpcServer.NewServer()),
         micro.Name("helloworld"),
         micro.Address(":8080"),
-        micro.Server(grpcServer.NewServer()),
     )
 
     service.Init()
@@ -153,13 +156,15 @@ import (
 
 func main() {
     // Create service with gRPC client
+    // Note: Client should be set before Name for consistency
     service := micro.NewService(
-        micro.Name("helloworld.client"),
         micro.Client(grpcClient.NewClient()),
+        micro.Name("helloworld.client"),
     )
     service.Init()
 
-    // Create client
+    // Create client - use the service name "helloworld" (not the proto package name)
+    // Go Micro uses this name for registry lookup, which may differ from the package name
     sayService := pb.NewSayService("helloworld", service.Client())
 
     // Call service
@@ -202,10 +207,10 @@ import (
 
 func main() {
     service := micro.NewService(
-        micro.Name("helloworld"),
-        micro.Address(":8080"),
-        micro.Server(grpcServer.NewServer()),
+        micro.Server(grpcServer.NewServer()),  // Server first
         micro.Client(grpcClient.NewClient()),
+        micro.Name("helloworld"),              // Name after Server
+        micro.Address(":8080"),
     )
 
     service.Init()
@@ -263,6 +268,44 @@ import "go-micro.dev/v5/server/grpc"
 // Client (native gRPC compatible)
 import "go-micro.dev/v5/client/grpc"
 ```
+
+### Option Ordering Issue
+
+If the gRPC server is working but your service has no name or is not being found in the registry:
+
+**Cause**: The `micro.Server()` option is specified **after** `micro.Name()`.
+
+When options are processed, `micro.Name()` sets the name on the current server. If `micro.Server()` comes later, it replaces the server with a new one that doesn't have the name set.
+
+**Solution**: Always specify `micro.Server()` **before** `micro.Name()`:
+
+```go
+// Wrong - server replaces the one with the name set
+service := micro.NewService(
+    micro.Name("helloworld"),              // Sets name on default server
+    micro.Server(grpcServer.NewServer()),  // Replaces server, name is lost!
+)
+
+// Correct - name is set on the gRPC server
+service := micro.NewService(
+    micro.Server(grpcServer.NewServer()),  // Set server first
+    micro.Name("helloworld"),              // Name is now applied to gRPC server
+)
+```
+
+### Service Name vs Package Name
+
+When creating a client to call another service, use the **service name** (set via `micro.Name()`), not the proto package name:
+
+```go
+// If the server was started with micro.Name("helloworld")
+sayService := pb.NewSayService("helloworld", service.Client())  // Use service name
+
+// NOT the package name from the proto file
+// sayService := pb.NewSayService("helloworld.Say", service.Client())  // Wrong!
+```
+
+Go Micro uses the service name for registry lookup, which may differ from the proto package name.
 
 ## Environment Variable Configuration
 
