@@ -67,7 +67,7 @@ service := micro.NewService(
 syntax = "proto3";
 
 package helloworld;
-option go_package = "/proto;helloworld";
+option go_package = "./proto;helloworld";
 
 service Say {
     rpc Hello(Request) returns (Response) {}
