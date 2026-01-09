@@ -86,6 +86,7 @@ func TestSingleflightPreventsStampede(t *testing.T) {
 		},
 	}
 
+	// Type assertion to *cache is necessary to access internal state for verification
 	c := New(mock, func(o *Options) {
 		o.TTL = time.Minute
 		o.Logger = logger.DefaultLogger
@@ -136,6 +137,7 @@ func TestSingleflightWithError(t *testing.T) {
 		err:   expectedErr,
 	}
 
+	// Type assertion to *cache is necessary to access internal state for verification
 	c := New(mock, func(o *Options) {
 		o.TTL = time.Minute
 		o.Logger = logger.DefaultLogger
@@ -186,6 +188,7 @@ func TestStaleCacheOnError(t *testing.T) {
 		},
 	}
 
+	// Type assertion to *cache is necessary to access internal state for verification
 	c := New(mock, func(o *Options) {
 		o.TTL = 100 * time.Millisecond // Short TTL for testing
 		o.Logger = logger.DefaultLogger
@@ -235,6 +238,7 @@ func TestCachePenetrationPrevention(t *testing.T) {
 		},
 	}
 
+	// Type assertion to *cache is necessary to access internal state for verification
 	c := New(mock, func(o *Options) {
 		o.TTL = 100 * time.Millisecond
 		o.Logger = logger.DefaultLogger

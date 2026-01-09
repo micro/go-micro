@@ -155,7 +155,7 @@ func TestKeepAliveReducesAuthRequests(t *testing.T) {
 			Nodes: []*registry.Node{
 				{
 					Id:      fmt.Sprintf("test-node-%d", i),
-					Address: fmt.Sprintf("localhost:909%d", i),
+					Address: fmt.Sprintf("localhost:%d", 9090+i),
 				},
 			},
 		}

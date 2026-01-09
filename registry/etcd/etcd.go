@@ -214,22 +214,16 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 	if leaseID > 0 {
 		log.Logf(logger.TraceLevel, "Renewing existing lease for %s %d", s.Name, leaseID)
 		
-		// Check if keepalive is already running
-		e.RLock()
-		_, hasKeepalive := e.keepaliveChs[s.Name+node.Id]
-		e.RUnlock()
-		
-		if !hasKeepalive {
-			// Start long-lived keepalive channel to reduce auth requests
-			if err := e.startKeepAlive(s.Name+node.Id, leaseID); err != nil {
-				if err != rpctypes.ErrLeaseNotFound {
-					return err
-				}
-				
-				log.Logf(logger.TraceLevel, "Lease not found for %s %d", s.Name, leaseID)
-				// lease not found do register
-				leaseNotFound = true
+		// Start long-lived keepalive channel to reduce auth requests
+		// startKeepAlive checks if already running and is atomic
+		if err := e.startKeepAlive(s.Name+node.Id, leaseID); err != nil {
+			if err != rpctypes.ErrLeaseNotFound {
+				return err
 			}
+			
+			log.Logf(logger.TraceLevel, "Lease not found for %s %d", s.Name, leaseID)
+			// lease not found do register
+			leaseNotFound = true
 		}
 	}
 
@@ -476,8 +470,11 @@ func (e *etcdRegistry) startKeepAlive(key string, leaseID clientv3.LeaseID) erro
 				if !ok {
 					log.Logf(logger.DebugLevel, "Keepalive channel closed for %s", key)
 					e.Lock()
-					delete(e.keepaliveChs, key)
-					delete(e.keepaliveStop, key)
+					// Only delete if still present (avoid race with stopKeepAlive)
+					if _, exists := e.keepaliveChs[key]; exists {
+						delete(e.keepaliveChs, key)
+						delete(e.keepaliveStop, key)
+					}
 					e.Unlock()
 					return
 				}
