@@ -35,6 +35,8 @@ jobs:
   etcd-integration:
     name: Etcd Integration Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       etcd:
         image: quay.io/coreos/etcd:v3.5.2
