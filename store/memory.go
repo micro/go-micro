@@ -138,7 +138,7 @@ func (m *memoryStore) list(prefix string, limit, offset uint) []string {
 			}
 			return j
 		}
-		return foundKeys[offset:min(limit, uint(len(foundKeys)))]
+		return foundKeys[offset:min(offset+limit, uint(len(foundKeys)))]
 	}
 
 	return foundKeys
@@ -184,7 +184,12 @@ func (m *memoryStore) Read(key string, opts ...ReadOption) ([]*Record, error) {
 			offset = len(k)
 		}
 
-		for i := offset; i < limit; i++ {
+		endIdx := offset + limit
+		if endIdx > len(k) {
+			endIdx = len(k)
+		}
+
+		for i := offset; i < endIdx; i++ {
 			kk := k[i]
 
 			if readOpts.Prefix && !strings.HasPrefix(kk, key) {
