@@ -173,25 +173,10 @@ func (m *memoryStore) Read(key string, opts ...ReadOption) ([]*Record, error) {
 	// Handle Prefix / suffix
 	if readOpts.Prefix || readOpts.Suffix {
 		k := m.list(prefix, 0, 0)
-		limit := int(readOpts.Limit)
-		offset := int(readOpts.Offset)
-
-		if limit > len(k) {
-			limit = len(k)
-		}
-
-		if offset > len(k) {
-			offset = len(k)
-		}
-
-		endIdx := offset + limit
-		if endIdx > len(k) {
-			endIdx = len(k)
-		}
-
-		for i := offset; i < endIdx; i++ {
-			kk := k[i]
-
+		
+		// First, filter by prefix/suffix to get all matching keys
+		var matchingKeys []string
+		for _, kk := range k {
 			if readOpts.Prefix && !strings.HasPrefix(kk, key) {
 				continue
 			}
@@ -200,8 +185,23 @@ func (m *memoryStore) Read(key string, opts ...ReadOption) ([]*Record, error) {
 				continue
 			}
 
-			keys = append(keys, kk)
+			matchingKeys = append(matchingKeys, kk)
 		}
+		
+		// Then apply limit and offset to the filtered results
+		limit := int(readOpts.Limit)
+		offset := int(readOpts.Offset)
+		
+		if offset > len(matchingKeys) {
+			offset = len(matchingKeys)
+		}
+		
+		endIdx := offset + limit
+		if endIdx > len(matchingKeys) || limit == 0 {
+			endIdx = len(matchingKeys)
+		}
+		
+		keys = matchingKeys[offset:endIdx]
 	} else {
 		keys = []string{key}
 	}
