@@ -53,6 +53,7 @@ func runTestStream(t *testing.T, stream Stream) {
 
 		// setup the subscriber async
 		var wg sync.WaitGroup
+		wg.Add(1)
 
 		go func() {
 			timeout := time.NewTimer(time.Millisecond * 250)
@@ -75,7 +76,6 @@ func runTestStream(t *testing.T, stream Stream) {
 
 		err = stream.Publish("test", payload, WithMetadata(metadata))
 		assert.Nil(t, err, "Publishing a valid message should not return an error")
-		wg.Add(1)
 
 		// wait for the subscriber to recieve the message or timeout
 		wg.Wait()
@@ -95,6 +95,7 @@ func runTestStream(t *testing.T, stream Stream) {
 
 		// setup the subscriber async
 		var wg sync.WaitGroup
+		wg.Add(2)
 
 		go func() {
 			timeout := time.NewTimer(time.Millisecond * 250)
@@ -117,7 +118,6 @@ func runTestStream(t *testing.T, stream Stream) {
 
 		err = stream.Publish(topic, payload, WithMetadata(metadata))
 		assert.Nil(t, err, "Publishing a valid message should not return an error")
-		wg.Add(2)
 
 		// create the second subscriber
 		evChan2, err := stream.Consume(topic,
