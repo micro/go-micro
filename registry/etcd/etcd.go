@@ -31,15 +31,19 @@ type etcdRegistry struct {
 	options registry.Options
 
 	sync.RWMutex
-	register map[string]uint64
-	leases   map[string]clientv3.LeaseID
+	register      map[string]uint64
+	leases        map[string]clientv3.LeaseID
+	keepaliveChs  map[string]<-chan *clientv3.LeaseKeepAliveResponse
+	keepaliveStop map[string]chan bool
 }
 
 func NewEtcdRegistry(opts ...registry.Option) registry.Registry {
 	e := &etcdRegistry{
-		options:  registry.Options{},
-		register: make(map[string]uint64),
-		leases:   make(map[string]clientv3.LeaseID),
+		options:       registry.Options{},
+		register:      make(map[string]uint64),
+		leases:        make(map[string]clientv3.LeaseID),
+		keepaliveChs:  make(map[string]<-chan *clientv3.LeaseKeepAliveResponse),
+		keepaliveStop: make(map[string]chan bool),
 	}
 	username, password := os.Getenv("ETCD_USERNAME"), os.Getenv("ETCD_PASSWORD")
 	if len(username) > 0 && len(password) > 0 {
@@ -209,14 +213,23 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 	// renew the lease if it exists
 	if leaseID > 0 {
 		log.Logf(logger.TraceLevel, "Renewing existing lease for %s %d", s.Name, leaseID)
-		if _, err := e.client.KeepAliveOnce(context.TODO(), leaseID); err != nil {
-			if err != rpctypes.ErrLeaseNotFound {
-				return err
+		
+		// Check if keepalive is already running
+		e.RLock()
+		_, hasKeepalive := e.keepaliveChs[s.Name+node.Id]
+		e.RUnlock()
+		
+		if !hasKeepalive {
+			// Start long-lived keepalive channel to reduce auth requests
+			if err := e.startKeepAlive(s.Name+node.Id, leaseID); err != nil {
+				if err != rpctypes.ErrLeaseNotFound {
+					return err
+				}
+				
+				log.Logf(logger.TraceLevel, "Lease not found for %s %d", s.Name, leaseID)
+				// lease not found do register
+				leaseNotFound = true
 			}
-
-			log.Logf(logger.TraceLevel, "Lease not found for %s %d", s.Name, leaseID)
-			// lease not found do register
-			leaseNotFound = true
 		}
 	}
 
@@ -283,6 +296,13 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 	}
 	e.Unlock()
 
+	// start keepalive for the new lease
+	if lgr != nil {
+		if err := e.startKeepAlive(s.Name+node.Id, lgr.ID); err != nil {
+			log.Logf(logger.WarnLevel, "Failed to start keepalive for %s %s: %v", s.Name, node.Id, err)
+		}
+	}
+
 	return nil
 }
 
@@ -292,12 +312,17 @@ func (e *etcdRegistry) Deregister(s *registry.Service, opts ...registry.Deregist
 	}
 
 	for _, node := range s.Nodes {
+		key := s.Name + node.Id
+		
 		e.Lock()
 		// delete our hash of the service
-		delete(e.register, s.Name+node.Id)
+		delete(e.register, key)
 		// delete our lease of the service
-		delete(e.leases, s.Name+node.Id)
+		delete(e.leases, key)
 		e.Unlock()
+		
+		// stop keepalive goroutine
+		e.stopKeepAlive(key)
 
 		ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
 		defer cancel()
@@ -416,4 +441,66 @@ func (e *etcdRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher, er
 
 func (e *etcdRegistry) String() string {
 	return "etcd"
+}
+
+// startKeepAlive starts a keepalive goroutine for the given lease
+// It uses a long-lived KeepAlive channel instead of KeepAliveOnce to reduce authentication requests
+func (e *etcdRegistry) startKeepAlive(key string, leaseID clientv3.LeaseID) error {
+	e.Lock()
+	defer e.Unlock()
+
+	// check if keepalive is already running
+	if _, ok := e.keepaliveChs[key]; ok {
+		return nil
+	}
+
+	// create keepalive channel
+	ch, err := e.client.KeepAlive(context.Background(), leaseID)
+	if err != nil {
+		return err
+	}
+
+	e.keepaliveChs[key] = ch
+	stopCh := make(chan bool, 1)
+	e.keepaliveStop[key] = stopCh
+
+	// start goroutine to consume keepalive responses
+	go func() {
+		log := e.options.Logger
+		for {
+			select {
+			case <-stopCh:
+				log.Logf(logger.TraceLevel, "Stopping keepalive for %s", key)
+				return
+			case ka, ok := <-ch:
+				if !ok {
+					log.Logf(logger.DebugLevel, "Keepalive channel closed for %s", key)
+					e.Lock()
+					delete(e.keepaliveChs, key)
+					delete(e.keepaliveStop, key)
+					e.Unlock()
+					return
+				}
+				if ka == nil {
+					log.Logf(logger.WarnLevel, "Keepalive response is nil for %s", key)
+					continue
+				}
+				log.Logf(logger.TraceLevel, "Keepalive response for %s lease %d, TTL %d", key, ka.ID, ka.TTL)
+			}
+		}
+	}()
+
+	return nil
+}
+
+// stopKeepAlive stops the keepalive goroutine for the given key
+func (e *etcdRegistry) stopKeepAlive(key string) {
+	e.Lock()
+	defer e.Unlock()
+
+	if stopCh, ok := e.keepaliveStop[key]; ok {
+		close(stopCh)
+		delete(e.keepaliveChs, key)
+		delete(e.keepaliveStop, key)
+	}
 }
