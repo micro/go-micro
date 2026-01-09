@@ -26,6 +26,9 @@ type Options struct {
 	Logger log.Logger
 	// TTL is the cache TTL
 	TTL time.Duration
+	// MinimumRetryInterval is the minimum time to wait before retrying a failed service lookup
+	// This prevents cache penetration when registry is failing and there's no stale cache
+	MinimumRetryInterval time.Duration
 }
 
 type Option func(o *Options)
@@ -51,12 +54,20 @@ type cache struct {
 	// indicate whether its running
 	watchedRunning map[string]bool
 
+	// failedAttempts tracks last failed lookup time per service to prevent cache penetration
+	failedAttempts map[string]time.Time
+	// consecutiveFailures counts consecutive failures globally to detect registry issues
+	consecutiveFailures int
+
 	// registry cache
 	sync.RWMutex
 }
 
 var (
 	DefaultTTL = time.Minute
+	// DefaultMinimumRetryInterval is the default minimum time between retry attempts
+	// when a service lookup fails with no stale cache available
+	DefaultMinimumRetryInterval = 5 * time.Second
 )
 
 func backoff(attempts int) time.Duration {
@@ -127,6 +138,7 @@ func (c *cache) del(service string) {
 	delete(c.cache, service)
 	delete(c.ttls, service)
 	delete(c.nttls, service)
+	delete(c.failedAttempts, service)
 }
 
 func (c *cache) get(service string) ([]*registry.Service, error) {
@@ -147,6 +159,24 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		return cp, nil
 	}
 
+	// Check if we should throttle this request to prevent cache penetration
+	// when there's no stale cache and registry is failing
+	lastFailedAttempt := c.failedAttempts[service]
+	minimumRetryInterval := c.opts.MinimumRetryInterval
+	if minimumRetryInterval == 0 {
+		minimumRetryInterval = DefaultMinimumRetryInterval
+	}
+
+	// If this service failed recently and we have no cache, enforce minimum retry interval
+	if len(cp) == 0 && !lastFailedAttempt.IsZero() {
+		timeSinceLastAttempt := time.Since(lastFailedAttempt)
+		if timeSinceLastAttempt < minimumRetryInterval {
+			c.RUnlock()
+			// Return error indicating we're throttling to protect registry
+			return nil, registry.ErrNotFound
+		}
+	}
+
 	// get does the actual request for a service and cache it
 	get := func(service string, cached []*registry.Service) ([]*registry.Service, error) {
 		// ask the registry
@@ -155,6 +185,12 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		})
 		services, _ := val.([]*registry.Service)
 		if err != nil {
+			// Track this failed attempt
+			c.Lock()
+			c.failedAttempts[service] = time.Now()
+			c.consecutiveFailures++
+			c.Unlock()
+
 			// check the cache
 			if len(cached) > 0 {
 				// set the error status
@@ -166,6 +202,12 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 			// otherwise return error
 			return nil, err
 		}
+
+		// Success - clear failed attempt tracking for this service
+		c.Lock()
+		delete(c.failedAttempts, service)
+		c.consecutiveFailures = 0
+		c.Unlock()
 
 		// reset the status
 		if err := c.getStatus(); err != nil {
@@ -499,8 +541,9 @@ func New(r registry.Registry, opts ...Option) Cache {
 	rand.Seed(time.Now().UnixNano())
 
 	options := Options{
-		TTL:    DefaultTTL,
-		Logger: log.DefaultLogger,
+		TTL:                  DefaultTTL,
+		MinimumRetryInterval: DefaultMinimumRetryInterval,
+		Logger:               log.DefaultLogger,
 	}
 
 	for _, o := range opts {
@@ -508,13 +551,14 @@ func New(r registry.Registry, opts ...Option) Cache {
 	}
 
 	return &cache{
-		Registry:       r,
-		opts:           options,
-		watched:        make(map[string]bool),
-		watchedRunning: make(map[string]bool),
-		cache:          make(map[string][]*registry.Service),
-		ttls:           make(map[string]time.Time),
-		nttls:          make(map[string]map[string]time.Time),
-		exit:           make(chan bool),
+		Registry:        r,
+		opts:            options,
+		watched:         make(map[string]bool),
+		watchedRunning:  make(map[string]bool),
+		cache:           make(map[string][]*registry.Service),
+		ttls:            make(map[string]time.Time),
+		nttls:           make(map[string]map[string]time.Time),
+		failedAttempts:  make(map[string]time.Time),
+		exit:            make(chan bool),
 	}
 }
