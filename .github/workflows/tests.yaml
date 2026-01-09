@@ -31,3 +31,42 @@ jobs:
         env:
           IN_TRAVIS_CI: yes
           RICHGO_FORCE_COLOR: 1
+  
+  etcd-integration:
+    name: Etcd Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      etcd:
+        image: quay.io/coreos/etcd:v3.5.2
+        env:
+          ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+          ETCD_ADVERTISE_CLIENT_URLS: http://0.0.0.0:2379
+        ports:
+          - 2379:2379
+        options: >-
+          --health-cmd "etcdctl endpoint health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.24
+          check-latest: true
+          cache: true
+      - name: Get dependencies
+        run: |
+          go install github.com/kyoh86/richgo@latest
+          go get -v -t -d ./...
+      - name: Wait for etcd
+        run: |
+          timeout 30 bash -c 'until curl -s http://localhost:2379/health; do sleep 1; done'
+      - name: Run etcd integration tests
+        run: richgo test -v -race ./registry/etcd/...
+        env:
+          ETCD_ADDRESS: localhost:2379
+          IN_TRAVIS_CI: yes
+          RICHGO_FORCE_COLOR: 1
+
