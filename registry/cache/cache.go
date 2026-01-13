@@ -56,6 +56,9 @@ type cache struct {
 
 	// failedAttempts tracks last failed lookup time per service to prevent cache penetration
 	failedAttempts map[string]time.Time
+	// lastRefreshAttempt tracks the last time we attempted to refresh cache for a service
+	// This is used to rate limit ALL refresh attempts, not just failed ones
+	lastRefreshAttempt map[string]time.Time
 	// consecutiveFailures counts consecutive failures globally to detect registry issues
 	consecutiveFailures int
 
@@ -65,8 +68,9 @@ type cache struct {
 
 var (
 	DefaultTTL = time.Minute
-	// DefaultMinimumRetryInterval is the default minimum time between retry attempts
-	// when a service lookup fails with no stale cache available
+	// DefaultMinimumRetryInterval is the default minimum time between cache refresh attempts
+	// This applies to ALL refresh attempts (not just errors) to prevent cache penetration
+	// during scenarios like rolling deployments where all caches expire simultaneously
 	DefaultMinimumRetryInterval = 5 * time.Second
 )
 
@@ -139,6 +143,7 @@ func (c *cache) del(service string) {
 	delete(c.ttls, service)
 	delete(c.nttls, service)
 	delete(c.failedAttempts, service)
+	delete(c.lastRefreshAttempt, service)
 }
 
 func (c *cache) get(service string) ([]*registry.Service, error) {
@@ -159,30 +164,47 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		return cp, nil
 	}
 
-	// Check if we should throttle this request to prevent cache penetration
-	// when there's no stale cache and registry is failing
-	lastFailedAttempt := c.failedAttempts[service]
+	// Check rate limiting before unlocking
+	// This prevents multiple sequential attempts within the retry interval
+	lastRefresh := c.lastRefreshAttempt[service]
 	minimumRetryInterval := c.opts.MinimumRetryInterval
 	if minimumRetryInterval == 0 {
 		minimumRetryInterval = DefaultMinimumRetryInterval
 	}
 
-	// If this service failed recently and we have no cache, enforce minimum retry interval
-	if len(cp) == 0 && !lastFailedAttempt.IsZero() {
-		timeSinceLastAttempt := time.Since(lastFailedAttempt)
-		if timeSinceLastAttempt < minimumRetryInterval {
-			c.RUnlock()
-			// Return error indicating we're throttling to protect registry
-			return nil, registry.ErrNotFound
-		}
-	}
+	// unlock the read lock before potentially blocking operations
+	c.RUnlock()
 
 	// get does the actual request for a service and cache it
 	get := func(service string, cached []*registry.Service) ([]*registry.Service, error) {
-		// ask the registry
+		// Use singleflight to deduplicate concurrent requests
 		val, err, _ := c.sg.Do(service, func() (interface{}, error) {
+			// Inside singleflight - only one goroutine executes this
+			// Apply rate limiting to prevent excessive registry calls
+			if !lastRefresh.IsZero() && time.Since(lastRefresh) < minimumRetryInterval {
+				// We're being rate limited
+				// Check if we have stale cache to return
+				c.RLock()
+				cachedServices := util.Copy(c.cache[service])
+				c.RUnlock()
+				
+				if len(cachedServices) > 0 {
+					// Return stale cache even if expired
+					return cachedServices, nil
+				}
+				// No cache available, return error
+				return nil, registry.ErrNotFound
+			}
+
+			// Track this refresh attempt
+			c.Lock()
+			c.lastRefreshAttempt[service] = time.Now()
+			c.Unlock()
+
+			// Actually call the registry
 			return c.Registry.GetService(service)
 		})
+		
 		services, _ := val.([]*registry.Service)
 		if err != nil {
 			// Track this failed attempt
@@ -227,9 +249,8 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 	}
 
 	// watch service if not watched
+	c.RLock()
 	_, ok := c.watched[service]
-
-	// unlock the read lock
 	c.RUnlock()
 
 	// check if its being watched
@@ -551,14 +572,15 @@ func New(r registry.Registry, opts ...Option) Cache {
 	}
 
 	return &cache{
-		Registry:        r,
-		opts:            options,
-		watched:         make(map[string]bool),
-		watchedRunning:  make(map[string]bool),
-		cache:           make(map[string][]*registry.Service),
-		ttls:            make(map[string]time.Time),
-		nttls:           make(map[string]map[string]time.Time),
-		failedAttempts:  make(map[string]time.Time),
-		exit:            make(chan bool),
+		Registry:           r,
+		opts:               options,
+		watched:            make(map[string]bool),
+		watchedRunning:     make(map[string]bool),
+		cache:              make(map[string][]*registry.Service),
+		ttls:               make(map[string]time.Time),
+		nttls:              make(map[string]map[string]time.Time),
+		failedAttempts:     make(map[string]time.Time),
+		lastRefreshAttempt: make(map[string]time.Time),
+		exit:               make(chan bool),
 	}
 }

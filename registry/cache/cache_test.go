@@ -223,8 +223,8 @@ func TestStaleCacheOnError(t *testing.T) {
 // 1. Cache populated
 // 2. Cache expires
 // 3. Registry fails
-// 4. Concurrent requests don't stampede registry
-// 5. Stale cache is returned
+// 4. Concurrent requests don't stampede registry due to rate limiting
+// 5. Stale cache is returned without hitting registry
 func TestCachePenetrationPrevention(t *testing.T) {
 	mock := &mockRegistry{
 		services: []*registry.Service{
@@ -242,6 +242,8 @@ func TestCachePenetrationPrevention(t *testing.T) {
 	c := New(mock, func(o *Options) {
 		o.TTL = 100 * time.Millisecond
 		o.Logger = logger.DefaultLogger
+		// Use short retry interval to test rate limiting
+		o.MinimumRetryInterval = 5 * time.Second
 	}).(*cache)
 
 	// Initial request to populate cache
@@ -255,7 +257,7 @@ func TestCachePenetrationPrevention(t *testing.T) {
 		t.Fatalf("Expected 1 initial call, got %d", initialCalls)
 	}
 
-	// Wait for cache to expire
+	// Wait for cache to expire (but not past retry interval)
 	time.Sleep(150 * time.Millisecond)
 
 	// Configure mock to fail with delay
@@ -273,7 +275,7 @@ func TestCachePenetrationPrevention(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			services, err := c.GetService("test.service")
-			// Should return stale cache without error
+			// Should return stale cache without error (rate limiting prevents registry call)
 			if err == nil && len(services) > 0 {
 				atomic.AddInt32(&successCount, 1)
 			}
@@ -283,10 +285,10 @@ func TestCachePenetrationPrevention(t *testing.T) {
 	wg.Wait()
 
 	// Verify:
-	// 1. Only ONE additional call was made (singleflight prevented stampede)
+	// 1. NO additional calls (rate limiting + stale cache prevented registry access)
 	totalCalls := mock.getCallCount()
-	if totalCalls != 2 { // initial + 1 retry
-		t.Errorf("Expected 2 total calls (1 initial + 1 retry), got %d", totalCalls)
+	if totalCalls != 1 { // only initial call, no retry due to rate limiting
+		t.Errorf("Expected 1 total call (rate limiting prevented retry), got %d", totalCalls)
 	}
 
 	// 2. All requests got stale cache (no errors)
