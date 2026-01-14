@@ -54,13 +54,9 @@ type cache struct {
 	// indicate whether its running
 	watchedRunning map[string]bool
 
-	// failedAttempts tracks last failed lookup time per service to prevent cache penetration
-	failedAttempts map[string]time.Time
 	// lastRefreshAttempt tracks the last time we attempted to refresh cache for a service
 	// This is used to rate limit ALL refresh attempts, not just failed ones
 	lastRefreshAttempt map[string]time.Time
-	// consecutiveFailures counts consecutive failures globally to detect registry issues
-	consecutiveFailures int
 
 	// registry cache
 	sync.RWMutex
@@ -142,7 +138,6 @@ func (c *cache) del(service string) {
 	delete(c.cache, service)
 	delete(c.ttls, service)
 	delete(c.nttls, service)
-	delete(c.failedAttempts, service)
 	delete(c.lastRefreshAttempt, service)
 }
 
@@ -207,12 +202,6 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		
 		services, _ := val.([]*registry.Service)
 		if err != nil {
-			// Track this failed attempt
-			c.Lock()
-			c.failedAttempts[service] = time.Now()
-			c.consecutiveFailures++
-			c.Unlock()
-
 			// check the cache
 			if len(cached) > 0 {
 				// set the error status
@@ -225,13 +214,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 			return nil, err
 		}
 
-		// Success - clear failed attempt tracking for this service
-		c.Lock()
-		delete(c.failedAttempts, service)
-		c.consecutiveFailures = 0
-		c.Unlock()
-
-		// reset the status
+		// Success - reset the status
 		if err := c.getStatus(); err != nil {
 			c.setStatus(nil)
 		}
@@ -579,7 +562,6 @@ func New(r registry.Registry, opts ...Option) Cache {
 		cache:              make(map[string][]*registry.Service),
 		ttls:               make(map[string]time.Time),
 		nttls:              make(map[string]map[string]time.Time),
-		failedAttempts:     make(map[string]time.Time),
 		lastRefreshAttempt: make(map[string]time.Time),
 		exit:               make(chan bool),
 	}
