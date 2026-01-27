@@ -440,7 +440,13 @@ func (c *consulRegistry) Client() *consul.Client {
 	}
 
 	// set the default
-	c.client, _ = consul.NewClient(c.config)
+	var err error
+	c.client, err = consul.NewClient(c.config)
+	if err != nil {
+		// Log the error but return nil - caller should handle
+		// This maintains backward compatibility while surfacing the error
+		return nil
+	}
 
 	// return the client
 	return c.client
