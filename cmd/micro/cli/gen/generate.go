@@ -1,5 +1,5 @@
 // Package generate provides code generation commands for micro
-package generate
+package gen
 
 import (
 	"context"
