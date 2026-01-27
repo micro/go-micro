@@ -178,11 +178,12 @@ The gateway runs on :8080 by default, so services should use other ports.
 ### Deployment
 
 ```bash
-micro build              # Build container images
-micro build --compose    # Generate docker-compose.yml
-micro deploy             # Deploy with docker-compose
-micro deploy --ssh user@host  # Deploy via SSH
+micro build                     # Build Go binaries to ./bin/
+micro build --os linux          # Cross-compile for Linux
+micro deploy --ssh user@host    # Deploy via SSH
 ```
+
+No Docker required. Go binaries are self-contained.
 
 See [cmd/micro/README.md](cmd/micro/README.md) for full CLI documentation.
 

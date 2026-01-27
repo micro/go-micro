@@ -4,19 +4,19 @@ layout: default
 
 # Deployment
 
-The `micro build` and `micro deploy` commands help you go from development to production.
+Go produces self-contained binaries. No Docker required.
 
 ## Quick Start
 
 ```bash
-# Build container images
-micro build
+# Build binaries
+micro build --os linux
 
-# Deploy with docker-compose
-micro deploy
+# Deploy to server
+micro deploy --ssh user@host
 ```
 
-## Building Images
+## Building
 
 ### Basic Build
 
@@ -24,168 +24,111 @@ micro deploy
 micro build
 ```
 
-This:
-1. Reads `micro.mu` (if present) to find services
-2. Generates a `Dockerfile` for each service (if not present)
-3. Runs `docker build` for each service
+This builds Go binaries for all services in `micro.mu` (or the current directory) to `./bin/`.
 
-### Build Options
+### Cross-Compilation
 
 ```bash
-micro build --tag v1.0.0         # Specific tag (default: latest)
-micro build --registry docker.io/myuser  # Push to registry
-micro build --push               # Build and push
+micro build --os linux              # For Linux servers
+micro build --os linux --arch arm64 # For ARM64 (e.g., AWS Graviton)
+micro build --os darwin             # For macOS
+micro build --os windows            # For Windows (.exe)
 ```
 
-### Generated Dockerfile
-
-If no Dockerfile exists, one is generated:
-
-```dockerfile
-FROM golang:1.22-alpine AS builder
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 go build -o /service .
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /app
-COPY --from=builder /service /app/service
-EXPOSE 8080
-CMD ["/app/service"]
-```
-
-Customize by creating your own `Dockerfile`.
-
-## Generating docker-compose.yml
+### Custom Output
 
 ```bash
-micro build --compose
-```
-
-Generates a `docker-compose.yml` from your `micro.mu` config:
-
-```yaml
-version: '3.8'
-
-services:
-  users:
-    image: users:latest
-    ports:
-      - "8081:8081"
-    environment:
-      - MICRO_REGISTRY=mdns
-
-  posts:
-    image: posts:latest
-    ports:
-      - "8082:8082"
-    depends_on:
-      - users
-    environment:
-      - MICRO_REGISTRY=mdns
+micro build --output ./dist
 ```
 
 ## Deploying
 
-### Docker Compose
-
-```bash
-micro deploy
-```
-
-Runs `docker compose up -d` using the generated `docker-compose.yml`.
-
-```bash
-micro deploy --build  # Rebuild images first
-```
-
 ### SSH Deploy
-
-For simple deployments to a single server:
 
 ```bash
 micro deploy --ssh user@host
 ```
 
 This:
-1. Creates `~/micro` on the remote host
-2. Syncs your code using rsync
-3. Builds each service on the remote host
-4. Starts services in the background
+1. Copies `./bin/*` to the remote host (if exists)
+2. Or syncs source and builds on remote
+3. Restarts services
+
+### Workflow
+
+**Option 1: Build locally, copy binaries**
 
 ```bash
-micro deploy --ssh user@host --path /opt/myapp  # Custom remote path
+micro build --os linux          # Build for target OS
+micro deploy --ssh user@host    # Copy and restart
+```
+
+**Option 2: Build on remote**
+
+```bash
+micro deploy --ssh user@host    # Syncs source, builds there
+```
+
+### Remote Structure
+
+```
+~/micro/
+├── bin/           # Service binaries
+│   ├── users
+│   ├── posts
+│   └── web
+├── logs/          # Service logs
+│   ├── users.log
+│   ├── posts.log
+│   └── web.log
+└── src/           # Source (if building on remote)
 ```
 
 ### View Logs
 
-After deploying:
+```bash
+ssh user@host 'tail -f ~/micro/logs/*.log'
+```
+
+## Docker (Optional)
+
+If you prefer containers:
 
 ```bash
-# Docker Compose
-docker compose logs -f
-
-# SSH deploy
-ssh user@host 'tail -f ~/micro/*.log'
+micro build --docker             # Build images
+micro build --docker --push      # Build and push to registry
+micro build --compose            # Generate docker-compose.yml
 ```
 
-## Complete Workflow
+Then deploy with docker-compose on your server:
 
 ```bash
-# 1. Develop locally
-micro run
-
-# 2. Build images
-micro build --tag v1.0.0
-
-# 3. Generate compose file
-micro build --compose
-
-# 4. Deploy
-micro deploy
+scp docker-compose.yml user@host:~/
+ssh user@host 'docker compose up -d'
 ```
 
-Or for SSH:
+## Complete Example
 
 ```bash
-# 1. Develop locally
-micro run
+# Development
+micro new myapp
+cd myapp
+micro run              # Develop locally
 
-# 2. Deploy to server
-micro deploy --ssh user@host
+# Build
+micro build --os linux
+
+# Deploy
+micro deploy --ssh deploy@prod.example.com
+
+# Check
+ssh deploy@prod.example.com 'tail -f ~/micro/logs/*.log'
 ```
-
-## Configuration
-
-The `micro.mu` file drives both build and deploy:
-
-```
-service users
-    path ./users
-    port 8081
-
-service posts
-    path ./posts
-    port 8082
-    depends users
-
-service web
-    path ./web
-    port 8089
-    depends users posts
-```
-
-- `path` - Where to find the service code
-- `port` - Exposed port (used in Dockerfile and compose)
-- `depends` - Service dependencies (used in compose depends_on)
 
 ## Tips
 
-1. **Version your images** - Use `--tag v1.0.0` not just `latest`
-2. **Use a registry** - Push images with `--registry` for team sharing
-3. **Custom Dockerfiles** - Override the generated one for complex builds
-4. **SSH for simple deploys** - Great for single-server setups
-5. **Compose for local prod** - Test production config locally
+1. **Cross-compile locally** - Faster than building on remote
+2. **Use `--os linux`** - Most servers are Linux
+3. **Single binary** - Go's strength, no runtime needed
+4. **Logs in ~/micro/logs/** - Easy to tail and rotate
+5. **No Docker needed** - Unless you want it
