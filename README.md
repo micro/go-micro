@@ -177,13 +177,33 @@ The gateway runs on :8080 by default, so services should use other ports.
 
 ### Deployment
 
+Deploy to any Linux server with systemd:
+
 ```bash
-micro build                     # Build Go binaries to ./bin/
-micro build --os linux          # Cross-compile for Linux
-micro deploy --ssh user@host    # Deploy via SSH
+# On your server (one-time setup)
+curl -fsSL https://go-micro.dev/install.sh | sh
+sudo micro init --server
+
+# From your laptop
+micro deploy user@your-server
 ```
 
-No Docker required. Go binaries are self-contained.
+The deploy command:
+1. Builds binaries for Linux
+2. Copies via SSH to the server
+3. Sets up systemd services
+4. Verifies services are healthy
+
+Manage deployed services:
+```bash
+micro status --remote user@server    # Check status
+micro logs --remote user@server      # View logs
+micro logs myservice --remote user@server -f  # Follow specific service
+```
+
+No Docker required. No Kubernetes. Just systemd.
+
+See [docs/deployment.md](docs/deployment.md) for full deployment guide.
 
 See [cmd/micro/README.md](cmd/micro/README.md) for full CLI documentation.
 
