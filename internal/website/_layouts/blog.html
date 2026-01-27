@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page.title %}{{ page.title }} | {% endif %}Go Micro Blog</title>
+  <meta name="description" content="{{ page.description | default: 'Go Micro Blog - News, updates, and tutorials for the Go Micro framework' }}">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --border: #e5e5e5;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; margin:0; background: var(--bg); color:#222; line-height: 1.7; }
+    a { color:#0366d6; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    header { display:flex; align-items:center; justify-content:space-between; padding:.75rem 1.5rem; background:#fff; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; }
+    .logo-link { display:flex; align-items:center; gap:.5rem; font-weight:600; color:#222; }
+    .logo-link img { height:36px; }
+    header nav { display:flex; align-items:center; gap: 1rem; }
+    header nav a { font-weight:500; }
+    .container { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    .blog-header { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    .blog-header h1 { margin: 0 0 0.5rem; font-size: 2rem; }
+    .blog-header .meta { color: #666; font-size: 0.9rem; }
+    article h1 { font-size: 2.25rem; margin: 0 0 0.5rem; line-height: 1.3; }
+    article .meta { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
+    article h2 { font-size: 1.5rem; margin-top: 2.5rem; }
+    article h3 { font-size: 1.25rem; margin-top: 2rem; }
+    article p { margin: 1rem 0; }
+    article ul, article ol { margin: 1rem 0; padding-left: 1.5rem; }
+    article li { margin: 0.5rem 0; }
+    pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre { background:#f6f8fa; border:1px solid #d0d7de; padding:1rem; border-radius:6px; overflow-x:auto; font-size: 0.9rem; }
+    code { background: #f6f8fa; padding: 0.15rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
+    pre code { background: none; padding: 0; }
+    blockquote { margin: 1.5rem 0; padding: 0.5rem 1rem; border-left: 4px solid #0366d6; background: #f6f8fa; }
+    blockquote p { margin: 0; }
+    .post-nav { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 0.9rem; }
+    footer { max-width: 720px; margin: 0 auto; padding: 2rem 1.5rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: #666; }
+    @media (max-width: 600px) {
+      .container { padding: 1.5rem 1rem; }
+      article h1 { font-size: 1.75rem; }
+      header { padding: 0.5rem 1rem; }
+      header nav { gap: 0.5rem; font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="logo-link" href="/">
+      <img src="/images/logo.png" alt="Go Micro Logo">
+      <span style="font-size: 1.3rem;">Go Micro</span>
+    </a>
+    <nav>
+      <a href="/blog/">Blog</a>
+      <a href="/docs/">Docs</a>
+      <a href="https://github.com/micro/go-micro" target="_blank">GitHub</a>
+    </nav>
+  </header>
+  <div class="container">
+    {{ content }}
+  </div>
+  <footer>
+    © {{ site.time | date: '%Y' }} Go Micro. Apache 2.0 Licensed.
+  </footer>
+</body>
+</html>

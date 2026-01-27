@@ -3,6 +3,8 @@ core:
     url: /docs/
   - title: Getting Started
     url: /docs/getting-started.html
+  - title: Deployment
+    url: /docs/deployment.html
   - title: Architecture
     url: /docs/architecture.html
   - title: Configuration
