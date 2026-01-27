@@ -79,7 +79,7 @@ func showDeployTargets(cfg *config.Config) error {
 		sb.WriteString(fmt.Sprintf("  %s -> %s\n", name, dt.SSH))
 	}
 	sb.WriteString("\nDeploy with: micro deploy <target>")
-	return fmt.Errorf(sb.String())
+	return fmt.Errorf("%s", sb.String())
 }
 
 func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
