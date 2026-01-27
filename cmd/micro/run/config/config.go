@@ -15,6 +15,14 @@ import (
 type Config struct {
 	Services map[string]*Service         `json:"services"`
 	Envs     map[string]map[string]string `json:"env"`
+	Deploy   map[string]*DeployTarget     `json:"deploy"`
+}
+
+// DeployTarget represents a deployment target configuration
+type DeployTarget struct {
+	Name string `json:"-"`
+	SSH  string `json:"ssh"`
+	Path string `json:"path,omitempty"`
 }
 
 // Service represents a service configuration
@@ -87,11 +95,13 @@ func ParseMu(path string) (*Config, error) {
 	cfg := &Config{
 		Services: make(map[string]*Service),
 		Envs:     make(map[string]map[string]string),
+		Deploy:   make(map[string]*DeployTarget),
 	}
 
 	var currentService *Service
 	var currentEnv string
 	var currentEnvMap map[string]string
+	var currentDeploy *DeployTarget
 
 	scanner := bufio.NewScanner(file)
 	lineNum := 0
@@ -137,8 +147,20 @@ func ParseMu(path string) (*Config, error) {
 					cfg.Envs[currentEnv] = currentEnvMap
 				}
 				currentService = nil
+				currentDeploy = nil
 				currentEnv = name
 				currentEnvMap = make(map[string]string)
+
+			case "deploy":
+				// Save previous env if any
+				if currentEnv != "" && currentEnvMap != nil {
+					cfg.Envs[currentEnv] = currentEnvMap
+				}
+				currentService = nil
+				currentEnv = ""
+				currentEnvMap = nil
+				currentDeploy = &DeployTarget{Name: name}
+				cfg.Deploy[name] = currentDeploy
 
 			default:
 				return nil, fmt.Errorf("%s:%d: unknown keyword '%s'", path, lineNum, keyword)
@@ -168,11 +190,20 @@ func ParseMu(path string) (*Config, error) {
 				default:
 					return nil, fmt.Errorf("%s:%d: unknown service property '%s'", path, lineNum, key)
 				}
+			} else if currentDeploy != nil {
+				switch key {
+				case "ssh":
+					currentDeploy.SSH = value
+				case "path":
+					currentDeploy.Path = value
+				default:
+					return nil, fmt.Errorf("%s:%d: unknown deploy property '%s'", path, lineNum, key)
+				}
 			} else if currentEnvMap != nil {
 				// Environment variable
 				currentEnvMap[key] = value
 			} else {
-				return nil, fmt.Errorf("%s:%d: property outside of service or env block", path, lineNum)
+				return nil, fmt.Errorf("%s:%d: property outside of service, deploy, or env block", path, lineNum)
 			}
 		}
 	}

@@ -6,25 +6,84 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/cmd/micro/run/config"
 )
 
+const (
+	defaultRemotePath = "/opt/micro"
+)
+
 // Deploy deploys services to a target
 func Deploy(c *cli.Context) error {
-	sshTarget := c.String("ssh")
-	if sshTarget == "" {
-		return fmt.Errorf("specify target with --ssh user@host")
+	// Get target from args or flag
+	target := c.Args().First()
+	if target == "" {
+		target = c.String("ssh")
 	}
 
-	return deploySSH(c, sshTarget)
+	// Load config to check for deploy targets
+	dir := "."
+	absDir, _ := filepath.Abs(dir)
+	cfg, _ := config.Load(absDir)
+
+	// If still no target, check config for named targets
+	if target == "" && cfg != nil && len(cfg.Deploy) > 0 {
+		// Show available targets
+		return showDeployTargets(cfg)
+	}
+
+	if target == "" {
+		return showDeployHelp()
+	}
+
+	// Check if target is a named target from config
+	if cfg != nil {
+		if dt, ok := cfg.Deploy[target]; ok {
+			target = dt.SSH
+		}
+	}
+
+	return deploySSH(c, target, cfg)
 }
 
-func deploySSH(c *cli.Context, target string) error {
-	dir := c.Args().Get(0)
+func showDeployHelp() error {
+	return fmt.Errorf(`No deployment target specified.
+
+To deploy, you need a server running micro. Quick setup:
+
+  1. On your server (Ubuntu/Debian):
+     ssh user@your-server
+     curl -fsSL https://go-micro.dev/install.sh | sh
+     sudo micro init --server
+
+  2. Then deploy from here:
+     micro deploy user@your-server
+
+  Or add to micro.mu:
+     deploy prod
+         ssh user@your-server
+
+Run 'micro deploy --help' for more options.`)
+}
+
+func showDeployTargets(cfg *config.Config) error {
+	var sb strings.Builder
+	sb.WriteString("Available deploy targets:\n\n")
+	for name, dt := range cfg.Deploy {
+		sb.WriteString(fmt.Sprintf("  %s -> %s\n", name, dt.SSH))
+	}
+	sb.WriteString("\nDeploy with: micro deploy <target>")
+	return fmt.Errorf(sb.String())
+}
+
+func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
+	dir := c.Args().Get(1)
 	if dir == "" {
 		dir = "."
 	}
@@ -34,205 +93,339 @@ func deploySSH(c *cli.Context, target string) error {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	// Load config
-	cfg, err := config.Load(absDir)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+	// Load config if not passed
+	if cfg == nil {
+		cfg, _ = config.Load(absDir)
 	}
 
 	remotePath := c.String("path")
 	if remotePath == "" {
-		remotePath = "~/micro"
+		remotePath = defaultRemotePath
 	}
 
-	// Check if we have pre-built binaries
-	binDir := filepath.Join(absDir, "bin")
-	hasBinaries := false
-	if _, err := os.Stat(binDir); err == nil {
-		hasBinaries = true
-	}
+	fmt.Printf("Deploying to %s...\n\n", target)
 
-	fmt.Printf("Deploying to %s...\n", target)
-
-	// Create remote directory
-	fmt.Println("Creating remote directory...")
-	if err := runSSH(target, fmt.Sprintf("mkdir -p %s/bin", remotePath)); err != nil {
+	// Step 1: Check SSH connectivity
+	fmt.Print("  Checking SSH connection... ")
+	if err := checkSSH(target); err != nil {
+		fmt.Println("\u2717")
 		return err
 	}
+	fmt.Println("\u2713")
 
-	if hasBinaries && !c.Bool("build") {
-		// Deploy pre-built binaries
-		fmt.Println("Copying binaries...")
-		if err := copyBinaries(target, binDir, remotePath); err != nil {
+	// Step 2: Check server is initialized
+	fmt.Print("  Checking server setup...   ")
+	if err := checkServerInit(target, remotePath); err != nil {
+		fmt.Println("\u2717")
+		return err
+	}
+	fmt.Println("\u2713")
+
+	// Step 3: Build binaries
+	var services []string
+	if cfg != nil && len(cfg.Services) > 0 {
+		sorted, err := cfg.TopologicalSort()
+		if err != nil {
 			return err
+		}
+		for _, svc := range sorted {
+			services = append(services, svc.Name)
 		}
 	} else {
-		// Sync source and build on remote
-		fmt.Println("Syncing source code...")
-		if err := syncSource(target, absDir, remotePath); err != nil {
-			return err
-		}
+		services = []string{filepath.Base(absDir)}
+	}
 
-		fmt.Println("Building on remote...")
-		if err := buildOnRemote(target, remotePath, cfg); err != nil {
-			return err
+	fmt.Printf("  Building binaries...       ")
+	if err := buildBinaries(absDir, cfg, c.Bool("build")); err != nil {
+		fmt.Println("\u2717")
+		return err
+	}
+	fmt.Printf("\u2713 %s\n", strings.Join(services, ", "))
+
+	// Step 4: Copy binaries
+	fmt.Printf("  Copying binaries...        ")
+	if err := copyBinaries(target, filepath.Join(absDir, "bin"), remotePath); err != nil {
+		fmt.Println("\u2717")
+		return err
+	}
+	fmt.Printf("\u2713 %d services\n", len(services))
+
+	// Step 5: Setup and restart services via systemd
+	fmt.Printf("  Updating systemd...        ")
+	if err := setupSystemdServices(target, remotePath, services); err != nil {
+		fmt.Println("\u2717")
+		return err
+	}
+	fmt.Printf("\u2713 %s\n", strings.Join(prefixServices(services), ", "))
+
+	// Step 6: Restart services
+	fmt.Printf("  Restarting services...     ")
+	if err := restartServices(target, services); err != nil {
+		fmt.Println("\u2717")
+		return err
+	}
+	fmt.Println("\u2713")
+
+	// Step 7: Check health
+	fmt.Printf("  Checking health...         ")
+	time.Sleep(2 * time.Second) // Give services time to start
+	healthy, unhealthy := checkServicesHealth(target, services)
+	if len(unhealthy) > 0 {
+		fmt.Printf("\u26a0 %d/%d healthy\n", len(healthy), len(services))
+	} else {
+		fmt.Println("\u2713 all healthy")
+	}
+
+	fmt.Println()
+	fmt.Printf("\u2713 Deployed to %s\n", target)
+	fmt.Println()
+	fmt.Printf("  Status: micro status --remote %s\n", target)
+	fmt.Printf("  Logs:   micro logs --remote %s\n", target)
+
+	if len(unhealthy) > 0 {
+		fmt.Println()
+		fmt.Printf("\u26a0 Some services may have issues: %s\n", strings.Join(unhealthy, ", "))
+		fmt.Printf("  Check logs: micro logs %s --remote %s\n", unhealthy[0], target)
+	}
+
+	return nil
+}
+
+func prefixServices(services []string) []string {
+	result := make([]string, len(services))
+	for i, s := range services {
+		result[i] = "micro@" + s
+	}
+	return result
+}
+
+func checkSSH(host string) error {
+	testCmd := exec.Command("ssh", "-o", "ConnectTimeout=5", "-o", "BatchMode=yes", host, "echo ok")
+	output, err := testCmd.CombinedOutput()
+
+	if err != nil {
+		return fmt.Errorf(`
+\u2717 Cannot connect to %s
+
+  SSH connection failed. Check that:
+  \u2022 The server is reachable: ping %s
+  \u2022 SSH is configured: ssh %s
+  \u2022 Your key is added: ssh-add -l
+
+  Common fixes:
+  \u2022 Add SSH key: ssh-copy-id %s
+  \u2022 Check hostname in ~/.ssh/config
+
+  Error: %s`, host, host, host, host, strings.TrimSpace(string(output)))
+	}
+	return nil
+}
+
+func checkServerInit(host, remotePath string) error {
+	checkCmd := fmt.Sprintf("test -f %s/.micro-initialized", remotePath)
+	sshCmd := exec.Command("ssh", host, checkCmd)
+	if err := sshCmd.Run(); err != nil {
+		return fmt.Errorf(`
+\u2717 Server not initialized
+
+  micro is not set up on %s.
+
+  Run this on the server:
+    ssh %s
+    curl -fsSL https://go-micro.dev/install.sh | sh
+    sudo micro init --server
+
+  Or initialize remotely (requires sudo):
+    micro init --server --remote %s`, host, host, host)
+	}
+	return nil
+}
+
+func buildBinaries(absDir string, cfg *config.Config, forceBuild bool) error {
+	binDir := filepath.Join(absDir, "bin")
+
+	// Check if we already have binaries and don't need to rebuild
+	if !forceBuild {
+		if _, err := os.Stat(binDir); err == nil {
+			// Check if binaries are for linux
+			// For now, just rebuild to be safe
 		}
 	}
 
-	// Stop and start services
-	fmt.Println("Restarting services...")
-	if err := restartServices(target, remotePath, cfg); err != nil {
+	// Always build for linux/amd64
+	targetOS := "linux"
+	targetArch := "amd64"
+
+	if err := os.MkdirAll(binDir, 0755); err != nil {
 		return err
 	}
 
-	fmt.Printf("\n✓ Deployed to %s\n", target)
-	fmt.Printf("\nView logs: ssh %s 'tail -f %s/logs/*.log'\n", target, remotePath)
+	if cfg != nil && len(cfg.Services) > 0 {
+		sorted, err := cfg.TopologicalSort()
+		if err != nil {
+			return err
+		}
+
+		for _, svc := range sorted {
+			svcDir := filepath.Join(absDir, svc.Path)
+			outPath := filepath.Join(binDir, svc.Name)
+
+			buildCmd := exec.Command("go", "build", "-o", outPath, ".")
+			buildCmd.Dir = svcDir
+			buildCmd.Env = append(os.Environ(),
+				"GOOS="+targetOS,
+				"GOARCH="+targetArch,
+				"CGO_ENABLED=0",
+			)
+
+			if output, err := buildCmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("failed to build %s:\n%s", svc.Name, string(output))
+			}
+		}
+	} else {
+		name := filepath.Base(absDir)
+		outPath := filepath.Join(binDir, name)
+
+		buildCmd := exec.Command("go", "build", "-o", outPath, ".")
+		buildCmd.Dir = absDir
+		buildCmd.Env = append(os.Environ(),
+			"GOOS="+targetOS,
+			"GOARCH="+targetArch,
+			"CGO_ENABLED=0",
+		)
+
+		if output, err := buildCmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to build:\n%s", string(output))
+		}
+	}
 
 	return nil
 }
 
 func copyBinaries(target, binDir, remotePath string) error {
-	// Use scp to copy binaries
-	scpArgs := []string{
-		"-r",
+	// Ensure remote bin directory exists
+	mkdirCmd := exec.Command("ssh", target, fmt.Sprintf("mkdir -p %s/bin", remotePath))
+	if err := mkdirCmd.Run(); err != nil {
+		return fmt.Errorf("failed to create remote directory: %w", err)
+	}
+
+	// Use rsync for efficient copy
+	rsyncArgs := []string{
+		"-avz", "--delete",
 		binDir + "/",
 		fmt.Sprintf("%s:%s/bin/", target, remotePath),
 	}
-	scpCmd := exec.Command("scp", scpArgs...)
-	scpCmd.Stdout = os.Stdout
-	scpCmd.Stderr = os.Stderr
-	return scpCmd.Run()
-}
 
-func syncSource(target, absDir, remotePath string) error {
-	rsyncArgs := []string{
-		"-avz", "--delete",
-		"--exclude", ".git",
-		"--exclude", "bin",
-		"--exclude", "node_modules",
-		"--exclude", "vendor",
-		absDir + "/",
-		fmt.Sprintf("%s:%s/src/", target, remotePath),
-	}
 	rsyncCmd := exec.Command("rsync", rsyncArgs...)
-	rsyncCmd.Stdout = os.Stdout
-	rsyncCmd.Stderr = os.Stderr
-	return rsyncCmd.Run()
-}
-
-func buildOnRemote(target, remotePath string, cfg *config.Config) error {
-	if cfg != nil && len(cfg.Services) > 0 {
-		sorted, err := cfg.TopologicalSort()
-		if err != nil {
-			return err
-		}
-
-		for _, svc := range sorted {
-			srcPath := filepath.Join(remotePath, "src", svc.Path)
-			binPath := filepath.Join(remotePath, "bin", svc.Name)
-
-			buildCmd := fmt.Sprintf("cd %s && go build -o %s .", srcPath, binPath)
-			fmt.Printf("  Building %s...\n", svc.Name)
-			if err := runSSH(target, buildCmd); err != nil {
-				return fmt.Errorf("failed to build %s: %w", svc.Name, err)
+	if output, err := rsyncCmd.CombinedOutput(); err != nil {
+		// Fall back to scp if rsync not available
+		if strings.Contains(string(output), "command not found") {
+			scpCmd := exec.Command("scp", "-r", binDir+"/", fmt.Sprintf("%s:%s/bin/", target, remotePath))
+			if scpOutput, scpErr := scpCmd.CombinedOutput(); scpErr != nil {
+				return fmt.Errorf("copy failed: %s", string(scpOutput))
 			}
+			return nil
 		}
-	} else {
-		// Single service
-		srcPath := filepath.Join(remotePath, "src")
-		binPath := filepath.Join(remotePath, "bin", "service")
-
-		buildCmd := fmt.Sprintf("cd %s && go build -o %s .", srcPath, binPath)
-		if err := runSSH(target, buildCmd); err != nil {
-			return fmt.Errorf("build failed: %w", err)
-		}
+		return fmt.Errorf("copy failed: %s", string(output))
 	}
 
 	return nil
 }
 
-func restartServices(target, remotePath string, cfg *config.Config) error {
-	// Create logs directory
-	runSSH(target, fmt.Sprintf("mkdir -p %s/logs", remotePath))
+func setupSystemdServices(target, remotePath string, services []string) error {
+	for _, svc := range services {
+		// Enable the service using the template
+		enableCmd := fmt.Sprintf("sudo systemctl enable micro@%s 2>/dev/null || true", svc)
+		sshCmd := exec.Command("ssh", target, enableCmd)
+		sshCmd.Run() // Ignore errors, service might already be enabled
+	}
 
-	if cfg != nil && len(cfg.Services) > 0 {
-		sorted, err := cfg.TopologicalSort()
-		if err != nil {
-			return err
-		}
-
-		for _, svc := range sorted {
-			binPath := filepath.Join(remotePath, "bin", svc.Name)
-			logPath := filepath.Join(remotePath, "logs", svc.Name+".log")
-
-			// Stop existing
-			stopCmd := fmt.Sprintf("pkill -f '%s' 2>/dev/null || true", binPath)
-			runSSH(target, stopCmd)
-
-			// Start new
-			startCmd := fmt.Sprintf("nohup %s >> %s 2>&1 &", binPath, logPath)
-			if err := runSSH(target, startCmd); err != nil {
-				return fmt.Errorf("failed to start %s: %w", svc.Name, err)
-			}
-
-			fmt.Printf("  ✓ %s\n", svc.Name)
-		}
-	} else {
-		binPath := filepath.Join(remotePath, "bin", "service")
-		logPath := filepath.Join(remotePath, "logs", "service.log")
-
-		runSSH(target, fmt.Sprintf("pkill -f '%s' 2>/dev/null || true", binPath))
-
-		startCmd := fmt.Sprintf("nohup %s >> %s 2>&1 &", binPath, logPath)
-		if err := runSSH(target, startCmd); err != nil {
-			return fmt.Errorf("start failed: %w", err)
-		}
-
-		fmt.Println("  ✓ service")
+	// Reload systemd
+	reloadCmd := exec.Command("ssh", target, "sudo systemctl daemon-reload")
+	if err := reloadCmd.Run(); err != nil {
+		return fmt.Errorf("failed to reload systemd: %w", err)
 	}
 
 	return nil
 }
 
-func runSSH(host, command string) error {
-	// Expand ~ on remote
-	command = strings.Replace(command, "~/", "$HOME/", -1)
-	cmd := exec.Command("ssh", host, command)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+func restartServices(target string, services []string) error {
+	for _, svc := range services {
+		restartCmd := fmt.Sprintf("sudo systemctl restart micro@%s", svc)
+		sshCmd := exec.Command("ssh", target, restartCmd)
+		if output, err := sshCmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to restart %s: %s", svc, string(output))
+		}
+	}
+	return nil
+}
+
+func checkServicesHealth(target string, services []string) (healthy, unhealthy []string) {
+	for _, svc := range services {
+		checkCmd := fmt.Sprintf("systemctl is-active micro@%s", svc)
+		sshCmd := exec.Command("ssh", target, checkCmd)
+		if err := sshCmd.Run(); err != nil {
+			unhealthy = append(unhealthy, svc)
+		} else {
+			healthy = append(healthy, svc)
+		}
+	}
+	return
+}
+
+// Ensure we're not on Windows for deploy
+func checkPlatform() error {
+	if runtime.GOOS == "windows" {
+		return fmt.Errorf("micro deploy requires SSH and rsync, which work best on Linux/macOS.\nConsider using WSL on Windows.")
+	}
+	return nil
 }
 
 func init() {
 	cmd.Register(&cli.Command{
 		Name:  "deploy",
-		Usage: "Deploy services via SSH",
-		Description: `Deploy copies binaries or source to a remote host and starts services.
+		Usage: "Deploy services to a remote server",
+		Description: `Deploy copies binaries to a remote server and manages them with systemd.
 
-If ./bin/ exists (from 'micro build'), copies binaries directly.
-Otherwise, syncs source and builds on the remote host.
+Before deploying, initialize the server:
+  ssh user@server 'curl -fsSL https://go-micro.dev/install.sh | sh && sudo micro init --server'
 
-Examples:
-  micro build --os linux          # Build Linux binaries locally
-  micro deploy --ssh user@host    # Copy binaries and restart
+Then deploy:
+  micro deploy user@server
 
-  micro deploy --ssh user@host    # Sync source, build on remote, restart
-  micro deploy --ssh user@host --build  # Force rebuild on remote`,
-		Action: Deploy,
+With a micro.mu config, you can define named targets:
+  deploy prod
+      ssh user@prod.example.com
+
+  deploy staging
+      ssh user@staging.example.com
+
+Then: micro deploy prod
+
+The deploy process:
+  1. Builds binaries for linux/amd64
+  2. Copies to /opt/micro/bin/ via rsync
+  3. Enables and restarts systemd services
+  4. Verifies services are healthy`,
+		Action: func(c *cli.Context) error {
+			if err := checkPlatform(); err != nil {
+				return err
+			}
+			return Deploy(c)
+		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "ssh",
-				Usage:    "Deploy to user@host via SSH",
-				Required: true,
+				Name:  "ssh",
+				Usage: "Deploy target as user@host (can also be positional arg)",
 			},
 			&cli.StringFlag{
 				Name:  "path",
-				Usage: "Remote path (default: ~/micro)",
-				Value: "~/micro",
+				Usage: "Remote path (default: /opt/micro)",
+				Value: "/opt/micro",
 			},
 			&cli.BoolFlag{
 				Name:  "build",
-				Usage: "Force rebuild on remote (ignore local binaries)",
+				Usage: "Force rebuild of binaries",
 			},
 		},
 	})
