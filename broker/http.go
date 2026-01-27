@@ -74,7 +74,6 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
 }
 
 func newTransport(config *tls.Config) *http.Transport {

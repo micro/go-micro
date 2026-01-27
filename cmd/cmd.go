@@ -320,7 +320,6 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
 }
 
 func newCmd(opts ...Option) Cmd {

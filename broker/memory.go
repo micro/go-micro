@@ -223,7 +223,6 @@ func (m *memorySubscriber) Unsubscribe() error {
 func NewMemoryBroker(opts ...Option) Broker {
 	options := NewOptions(opts...)
 
-	rand.Seed(time.Now().UnixNano())
 
 	return &memoryBroker{
 		opts:        options,

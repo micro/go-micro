@@ -542,7 +542,6 @@ func (c *cache) String() string {
 
 // New returns a new cache.
 func New(r registry.Registry, opts ...Option) Cache {
-	rand.Seed(time.Now().UnixNano())
 
 	options := Options{
 		TTL:                  DefaultTTL,

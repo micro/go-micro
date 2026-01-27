@@ -286,7 +286,6 @@ func (m *memoryTransport) String() string {
 func NewMemoryTransport(opts ...Option) Transport {
 	var options Options
 
-	rand.Seed(time.Now().UnixNano())
 
 	for _, o := range opts {
 		o(&options)
