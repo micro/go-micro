@@ -3,7 +3,6 @@ package cmd
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"sort"
 	"strings"
@@ -320,7 +319,6 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
 }
 
 func newCmd(opts ...Option) Cmd {
@@ -841,6 +839,6 @@ func setGenAIFromFlags(ctx *cli.Context) {
 		}
 		genai.DefaultGenAI = gemini.New(genai.WithAPIKey(key), genai.WithModel(model))
 	default:
-		genai.DefaultGenAI = genai.Default
+		// No GenAI provider configured - using default noop
 	}
 }

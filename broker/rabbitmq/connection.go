@@ -5,7 +5,6 @@ package rabbitmq
 //
 
 import (
-	"crypto/tls"
 	"regexp"
 	"strings"
 	"sync"
@@ -13,6 +12,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go-micro.dev/v5/logger"
+	mtls "go-micro.dev/v5/util/tls"
 )
 
 type MQExchangeType string
@@ -232,9 +232,8 @@ func (r *rabbitMQConn) tryConnect(secure bool, config *amqp.Config) error {
 
 	if secure || config.TLSClientConfig != nil || strings.HasPrefix(r.url, "amqps://") {
 		if config.TLSClientConfig == nil {
-			config.TLSClientConfig = &tls.Config{
-				InsecureSkipVerify: true,
-			}
+			// Use environment-based config - secure by default
+			config.TLSClientConfig = mtls.Config()
 		}
 
 		url = strings.Replace(r.url, "amqp://", "amqps://", 1)

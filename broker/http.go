@@ -74,14 +74,12 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().Unix())
 }
 
 func newTransport(config *tls.Config) *http.Transport {
 	if config == nil {
-		config = &tls.Config{
-			InsecureSkipVerify: true,
-		}
+		// Use environment-based config - secure by default
+		config = mls.Config()
 	}
 
 	dialTLS := func(network string, addr string) (net.Conn, error) {

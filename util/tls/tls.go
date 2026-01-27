@@ -1,3 +1,4 @@
+// Package tls provides TLS utilities for go-micro.
 package tls
 
 import (
@@ -11,9 +12,52 @@ import (
 	"encoding/pem"
 	"math/big"
 	"net"
+	"os"
 	"time"
 )
 
+// Config returns a TLS config.
+// By default, InsecureSkipVerify is true for local development.
+// For production, either:
+//   - Set MICRO_TLS_SECURE=true with proper CA certs
+//   - Use a service mesh (Istio, Linkerd) for mTLS
+//   - Configure TLSConfig directly with your certs
+func Config() *tls.Config {
+	// Check environment for secure mode
+	if os.Getenv("MICRO_TLS_SECURE") == "true" {
+		return &tls.Config{
+			InsecureSkipVerify: false,
+			MinVersion:         tls.VersionTLS12,
+		}
+	}
+	// Default: insecure for local development
+	return &tls.Config{
+		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS12,
+	}
+}
+
+// SecureConfig returns a TLS config with certificate verification enabled.
+// Use this when you have proper CA-signed certificates.
+func SecureConfig() *tls.Config {
+	return &tls.Config{
+		InsecureSkipVerify: false,
+		MinVersion:         tls.VersionTLS12,
+	}
+}
+
+// InsecureConfig returns a TLS config with certificate verification disabled.
+// WARNING: Only use for development/testing.
+func InsecureConfig() *tls.Config {
+	return &tls.Config{
+		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS12,
+	}
+}
+
+// Certificate generates a self-signed certificate for the given hosts.
+// Note: These certs are for development only. For production, use proper
+// CA-signed certificates or a service mesh.
 func Certificate(host ...string) (tls.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -32,7 +76,7 @@ func Certificate(host ...string) (tls.Certificate, error) {
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Acme Co"},
+			Organization: []string{"Micro"},
 		},
 		NotBefore: notBefore,
 		NotAfter:  notAfter,

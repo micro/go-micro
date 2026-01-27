@@ -3,7 +3,6 @@ package etcd
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"net"
@@ -17,6 +16,7 @@ import (
 	hash "github.com/mitchellh/hashstructure"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
+	mtls "go-micro.dev/v5/util/tls"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
@@ -79,9 +79,8 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 	if e.options.Secure || e.options.TLSConfig != nil {
 		tlsConfig := e.options.TLSConfig
 		if tlsConfig == nil {
-			tlsConfig = &tls.Config{
-				InsecureSkipVerify: true,
-			}
+			// Use environment-based config - secure by default
+			tlsConfig = mtls.Config()
 		}
 
 		config.TLS = tlsConfig

@@ -47,7 +47,8 @@ func genTextHandler(c *cli.Context) error {
 		return nil
 	}
 
-	res, err := gen.Generate(prompt)
+	ctx := context.Background()
+	res, err := gen.Generate(ctx, prompt)
 	if err != nil {
 		return err
 	}

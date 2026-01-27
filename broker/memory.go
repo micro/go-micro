@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	log "go-micro.dev/v5/logger"
@@ -223,7 +222,6 @@ func (m *memorySubscriber) Unsubscribe() error {
 func NewMemoryBroker(opts ...Option) Broker {
 	options := NewOptions(opts...)
 
-	rand.Seed(time.Now().UnixNano())
 
 	return &memoryBroker{
 		opts:        options,
