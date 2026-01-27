@@ -135,20 +135,29 @@ go install go-micro.dev/v5/cmd/micro@latest
 ```bash
 micro new helloworld   # Create a new service
 cd helloworld
-micro run              # Run with hot reload
+micro run              # Run with API gateway
 ```
+
+Then open http://localhost:8080 to see your service and call it from the browser.
 
 ### micro run
 
-Run services with hot reload, dependency ordering, and environment management:
+`micro run` starts your services with:
+- **API Gateway** - HTTP to RPC proxy at `/api/{service}/{method}`
+- **Web Dashboard** - Browse and call services at `/`
+- **Health Checks** - Aggregated health at `/health`
+- **Hot Reload** - Auto-rebuild on file changes
 
 ```bash
-micro run                    # Hot reload enabled
-micro run --no-watch         # Disable hot reload
+micro run                    # Gateway on :8080
+micro run --address :3000    # Custom gateway port
+micro run --no-gateway       # Services only
 micro run --env production   # Use production environment
 ```
 
-For multi-service projects, create a `micro.mu` configuration file:
+### Configuration
+
+For multi-service projects, create a `micro.mu` file:
 
 ```
 service users
@@ -162,9 +171,6 @@ service api
 
 env development
     DATABASE_URL sqlite://./dev.db
-
-env production
-    DATABASE_URL postgres://...
 ```
 
 See [cmd/micro/README.md](cmd/micro/README.md) for full CLI documentation.

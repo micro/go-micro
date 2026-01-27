@@ -4,22 +4,48 @@ layout: default
 
 # micro run - Local Development
 
-`micro run` provides a Rails/Spring-like development experience for Go microservices.
+`micro run` provides a complete development environment for Go microservices.
 
 ## Quick Start
 
 ```bash
-# Run services in current directory with hot reload
+micro new helloworld
+cd helloworld
 micro run
-
-# Run from a specific directory
-micro run ./myapp
-
-# Clone and run from GitHub
-micro run github.com/micro/blog
 ```
 
+Open http://localhost:8080 to see your service.
+
+## What You Get
+
+When you run `micro run`, you get:
+
+| URL | Description |
+|-----|-------------|
+| http://localhost:8080 | Web dashboard - browse and call services |
+| http://localhost:8080/api/{service}/{method} | API gateway - HTTP to RPC proxy |
+| http://localhost:8080/health | Health checks - aggregated service health |
+| http://localhost:8080/services | Service list - JSON |
+
+Plus:
+- **Hot Reload** - File changes trigger automatic rebuild
+- **Dependency Ordering** - Services start in the right order
+- **Environment Management** - Dev/staging/production configs
+
 ## Features
+
+### API Gateway
+
+The gateway converts HTTP requests to RPC calls:
+
+```bash
+# Call a service method
+curl -X POST http://localhost:8080/api/helloworld/Say.Hello \
+  -d '{"name": "World"}'
+
+# Response
+{"message": "Hello World"}
+```
 
 ### Hot Reload
 
@@ -183,9 +209,20 @@ Run it:
 micro run github.com/micro/blog
 ```
 
+## Options
+
+```bash
+micro run                    # Gateway on :8080, hot reload
+micro run --address :3000    # Custom gateway port
+micro run --no-gateway       # Services only, no HTTP gateway
+micro run --no-watch         # Disable hot reload
+micro run --env production   # Use production environment
+```
+
 ## Tips
 
-1. **Port Configuration**: Set `port` for services that expose HTTP to enable health check waiting
-2. **Health Endpoint**: Implement `/health` returning 200 for reliable startup sequencing
-3. **Environment Separation**: Keep secrets in production env, use file:// paths for development
-4. **Hot Reload Scope**: Only `.go` files trigger rebuilds; static assets don't
+1. **Browse First**: Open http://localhost:8080 to explore your services
+2. **Port Configuration**: Set `port` for services to enable health check waiting
+3. **Health Endpoint**: Implement `/health` returning 200 for reliable startup sequencing
+4. **Environment Separation**: Keep secrets in production env, use file:// paths for development
+5. **Hot Reload Scope**: Only `.go` files trigger rebuilds; static assets don't
