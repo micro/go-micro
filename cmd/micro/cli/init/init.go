@@ -15,7 +15,7 @@ import (
 )
 
 const systemdTemplate = `[Unit]
-Description=Micro service: %i
+Description=Micro service: %%i
 After=network.target
 
 [Service]
