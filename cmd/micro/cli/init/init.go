@@ -36,7 +36,7 @@ SyslogIdentifier=micro-%%i
 # Security hardening
 NoNewPrivileges=true
 ProtectSystem=strict
-ProtectHome=true
+ProtectHome=false
 ReadWritePaths=%s/data
 
 [Install]
