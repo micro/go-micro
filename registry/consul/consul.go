@@ -16,6 +16,7 @@ import (
 	hash "github.com/mitchellh/hashstructure"
 	"go-micro.dev/v5/registry"
 	mnet "go-micro.dev/v5/util/net"
+	mtls "go-micro.dev/v5/util/tls"
 )
 
 type consulRegistry struct {
@@ -51,9 +52,8 @@ func getDeregisterTTL(t time.Duration) time.Duration {
 
 func newTransport(config *tls.Config) *http.Transport {
 	if config == nil {
-		config = &tls.Config{
-			InsecureSkipVerify: true,
-		}
+		// Use environment-based config - secure by default
+		config = mtls.ConfigFromEnv()
 	}
 
 	t := &http.Transport{

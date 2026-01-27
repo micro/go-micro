@@ -1,3 +1,4 @@
+// Package tls provides TLS utilities for go-micro.
 package tls
 
 import (
@@ -11,9 +12,39 @@ import (
 	"encoding/pem"
 	"math/big"
 	"net"
+	"os"
 	"time"
 )
 
+// Config returns a TLS config with secure defaults.
+// If insecureSkipVerify is true, certificate verification is disabled (NOT recommended for production).
+func Config(insecureSkipVerify bool) *tls.Config {
+	return &tls.Config{
+		InsecureSkipVerify: insecureSkipVerify,
+		MinVersion:         tls.VersionTLS12,
+	}
+}
+
+// SecureConfig returns a TLS config with secure defaults and certificate verification enabled.
+func SecureConfig() *tls.Config {
+	return Config(false)
+}
+
+// InsecureConfig returns a TLS config with certificate verification disabled.
+// WARNING: This should only be used for development/testing.
+func InsecureConfig() *tls.Config {
+	return Config(true)
+}
+
+// ConfigFromEnv returns a TLS config based on the MICRO_TLS_INSECURE environment variable.
+// If MICRO_TLS_INSECURE is set to "true", certificate verification is disabled.
+// Otherwise, secure defaults are used.
+func ConfigFromEnv() *tls.Config {
+	insecure := os.Getenv("MICRO_TLS_INSECURE") == "true"
+	return Config(insecure)
+}
+
+// Certificate generates a self-signed certificate for the given hosts.
 func Certificate(host ...string) (tls.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
