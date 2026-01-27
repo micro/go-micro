@@ -272,6 +272,74 @@ func main() {
 }
 ```
 
+## Building and Deployment
+
+### Build Binaries
+
+Build Go binaries for deployment:
+
+```bash
+micro build                     # Build for current OS
+micro build --os linux          # Cross-compile for Linux
+micro build --os linux --arch arm64  # For ARM64
+micro build --output ./dist     # Custom output directory
+```
+
+### Deploy to Server
+
+Deploy to any Linux server with systemd:
+
+```bash
+# First time: set up the server
+ssh user@server
+curl -fsSL https://go-micro.dev/install.sh | sh
+sudo micro init --server
+exit
+
+# Deploy from your laptop
+micro deploy user@server
+```
+
+The deploy command:
+1. Builds binaries for linux/amd64
+2. Copies via SSH to `/opt/micro/bin/`
+3. Sets up systemd services (`micro@<service>`)
+4. Restarts and verifies services are running
+
+### Named Deploy Targets
+
+Add deploy targets to `micro.mu`:
+
+```
+deploy prod
+    ssh deploy@prod.example.com
+
+deploy staging
+    ssh deploy@staging.example.com
+```
+
+Then:
+```bash
+micro deploy prod      # Deploy to production
+micro deploy staging   # Deploy to staging
+```
+
+### Managing Deployed Services
+
+```bash
+# Check status
+micro status --remote user@server
+
+# View logs
+micro logs --remote user@server
+micro logs myservice --remote user@server -f
+
+# Stop a service
+micro stop myservice --remote user@server
+```
+
+See [docs/deployment.md](../../docs/deployment.md) for the full deployment guide.
+
 ## Protobuf 
 
 Use protobuf for code generation with [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro)
