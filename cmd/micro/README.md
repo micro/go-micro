@@ -27,17 +27,96 @@ This will:
 
 ## Run the service
 
-Run the service
+Run the service with hot reload:
 
 ```
 micro run
 ```
 
-List services to see it's running and registered itself
+This will:
+- Watch for file changes and auto-rebuild/restart
+- Start services in dependency order (if configured)
+- Apply environment-specific settings
+
+Options:
+```
+micro run                    # Hot reload enabled (default)
+micro run --no-watch         # Disable hot reload
+micro run --env production   # Use production environment
+micro run ./path/to/service  # Run specific directory
+micro run github.com/micro/blog  # Clone and run from GitHub
+```
+
+List services to see it's running and registered itself:
 
 ```
 micro services
 ```
+
+## Configuration (micro.mu)
+
+For multi-service projects, create a `micro.mu` file to define services, dependencies, and environments:
+
+```
+service users
+    path ./users
+    port 8081
+
+service posts
+    path ./posts
+    port 8082
+    depends users
+
+service web
+    path ./web
+    port 8089
+    depends users posts
+
+env development
+    STORE_ADDRESS file://./data
+    DEBUG true
+
+env production
+    STORE_ADDRESS postgres://localhost/db
+```
+
+### Configuration Options
+
+| Property | Description |
+|----------|-------------|
+| `path` | Directory containing the service (with main.go) |
+| `port` | Port the service listens on (for health checks) |
+| `depends` | Services that must start first (space-separated) |
+
+### Environment Management
+
+Environment variables are injected based on the `--env` flag:
+
+```
+micro run                    # Uses 'development' env (default)
+micro run --env production   # Uses 'production' env
+MICRO_ENV=staging micro run  # Uses 'staging' env
+```
+
+### JSON Alternative
+
+You can also use `micro.json` if you prefer:
+
+```json
+{
+  "services": {
+    "users": { "path": "./users", "port": 8081 },
+    "posts": { "path": "./posts", "port": 8082, "depends": ["users"] }
+  },
+  "env": {
+    "development": { "STORE_ADDRESS": "file://./data" }
+  }
+}
+```
+
+### Without Configuration
+
+If no `micro.mu` or `micro.json` exists, `micro run` discovers all `main.go` files and runs them (original behavior).
 
 ## Describe the service
 

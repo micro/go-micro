@@ -122,13 +122,52 @@ go install go-micro.dev/v5/cmd/protoc-gen-micro@latest
 
 Docs: [`internal/website/docs/getting-started.md`](internal/website/docs/getting-started.md)
 
-## Command line
+## Command Line
 
-Install the CLI and see usage in the docs:
+Install the CLI:
 
 ```
 go install go-micro.dev/v5/cmd/micro@latest
 ```
+
+### Quick Start
+
+```bash
+micro new helloworld   # Create a new service
+cd helloworld
+micro run              # Run with hot reload
+```
+
+### micro run
+
+Run services with hot reload, dependency ordering, and environment management:
+
+```bash
+micro run                    # Hot reload enabled
+micro run --no-watch         # Disable hot reload
+micro run --env production   # Use production environment
+```
+
+For multi-service projects, create a `micro.mu` configuration file:
+
+```
+service users
+    path ./users
+    port 8081
+
+service api
+    path ./api
+    port 8080
+    depends users
+
+env development
+    DATABASE_URL sqlite://./dev.db
+
+env production
+    DATABASE_URL postgres://...
+```
+
+See [cmd/micro/README.md](cmd/micro/README.md) for full CLI documentation.
 
 Docs: [`internal/website/docs`](internal/website/docs)
 
