@@ -5,17 +5,21 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/cmd"
+	"go-micro.dev/v5/cmd/micro/run/config"
+	"go-micro.dev/v5/cmd/micro/run/watcher"
 )
 
 // Color codes for log output
@@ -28,175 +32,360 @@ var colors = []string{
 	"\033[36m", // cyan
 }
 
+const colorReset = "\033[0m"
+
 func colorFor(idx int) string {
 	return colors[idx%len(colors)]
 }
 
+// serviceProcess tracks a running service
+type serviceProcess struct {
+	name       string
+	dir        string
+	binPath    string
+	pidFile    string
+	logFile    string
+	cmd        *exec.Cmd
+	pipeWriter *io.PipeWriter
+	color      string
+	port       int
+	env        []string
+
+	mu      sync.Mutex
+	running bool
+}
+
+func (s *serviceProcess) start(logDir string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.running {
+		return nil
+	}
+
+	// Build
+	buildCmd := exec.Command("go", "build", "-o", s.binPath, ".")
+	buildCmd.Dir = s.dir
+	buildOut, buildErr := buildCmd.CombinedOutput()
+	if buildErr != nil {
+		return fmt.Errorf("build failed: %s\n%s", buildErr, string(buildOut))
+	}
+
+	// Open log file
+	logFile, err := os.OpenFile(s.logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open log file: %w", err)
+	}
+
+	// Start process
+	s.cmd = exec.Command(s.binPath)
+	s.cmd.Dir = s.dir
+	s.cmd.Env = append(os.Environ(), s.env...)
+
+	pr, pw := io.Pipe()
+	s.pipeWriter = pw
+	s.cmd.Stdout = pw
+	s.cmd.Stderr = pw
+
+	// Stream output
+	go func(name string, color string, pr *io.PipeReader, logFile *os.File) {
+		defer logFile.Close()
+		scanner := bufio.NewScanner(pr)
+		for scanner.Scan() {
+			line := scanner.Text()
+			fmt.Printf("%s[%s]%s %s\n", color, name, colorReset, line)
+			logFile.WriteString("[" + name + "] " + line + "\n")
+		}
+	}(s.name, s.color, pr, logFile)
+
+	if err := s.cmd.Start(); err != nil {
+		pw.Close()
+		return fmt.Errorf("failed to start: %w", err)
+	}
+
+	// Write PID file
+	os.WriteFile(s.pidFile, []byte(fmt.Sprintf("%d\n%s\n%s\n%s\n",
+		s.cmd.Process.Pid, s.dir, s.name, time.Now().Format(time.RFC3339))), 0644)
+
+	s.running = true
+	fmt.Printf("%s[%s]%s started (pid %d)\n", s.color, s.name, colorReset, s.cmd.Process.Pid)
+
+	return nil
+}
+
+func (s *serviceProcess) stop() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if !s.running || s.cmd == nil || s.cmd.Process == nil {
+		return
+	}
+
+	fmt.Printf("%s[%s]%s stopping...\n", s.color, s.name, colorReset)
+
+	// Graceful shutdown
+	s.cmd.Process.Signal(syscall.SIGTERM)
+
+	// Wait with timeout
+	done := make(chan error, 1)
+	go func() {
+		done <- s.cmd.Wait()
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		s.cmd.Process.Kill()
+		<-done
+	}
+
+	if s.pipeWriter != nil {
+		s.pipeWriter.Close()
+	}
+
+	os.Remove(s.pidFile)
+	s.running = false
+}
+
+func (s *serviceProcess) restart(logDir string) error {
+	s.stop()
+	return s.start(logDir)
+}
+
+// waitForHealth waits for a service's health endpoint to respond
+func waitForHealth(port int, timeout time.Duration) bool {
+	if port == 0 {
+		return true // No port configured, assume ready
+	}
+
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/health", port))
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == 200 {
+				return true
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return false
+}
+
 func Run(c *cli.Context) error {
 	dir := c.Args().Get(0)
-	var tmpDir string
-	if len(dir) == 0 {
+	if dir == "" {
 		dir = "."
-	} else if strings.HasPrefix(dir, "github.com/") || strings.HasPrefix(dir, "https://github.com/") {
-		// Handle git URLs
-		repo := dir
-		if strings.HasPrefix(repo, "https://") {
-			repo = strings.TrimPrefix(repo, "https://")
-		}
-		// Clone to a temp directory
+	}
+
+	// Handle git URLs
+	if strings.HasPrefix(dir, "github.com/") || strings.HasPrefix(dir, "https://github.com/") {
+		repo := strings.TrimPrefix(dir, "https://")
 		tmp, err := os.MkdirTemp("", "micro-run-")
 		if err != nil {
 			return fmt.Errorf("failed to create temp dir: %w", err)
 		}
-		tmpDir = tmp
-		cloneURL := repo
-		if !strings.HasPrefix(cloneURL, "https://") {
-			cloneURL = "https://" + repo
+		defer os.RemoveAll(tmp)
+
+		cloneURL := "https://" + repo
+		cloneCmd := exec.Command("git", "clone", "--depth", "1", cloneURL, tmp)
+		cloneCmd.Stdout = os.Stdout
+		cloneCmd.Stderr = os.Stderr
+		if err := cloneCmd.Run(); err != nil {
+			return fmt.Errorf("failed to clone %s: %w", cloneURL, err)
 		}
-		// Run git clone
-		cmd := exec.Command("git", "clone", cloneURL, tmpDir)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to clone repo %s: %w", cloneURL, err)
-		}
-		dir = tmpDir
+		dir = tmp
 	}
 
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	// Setup directories
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get home dir: %w", err)
 	}
 	logsDir := filepath.Join(homeDir, "micro", "logs")
-	if err := os.MkdirAll(logsDir, 0755); err != nil {
-		return fmt.Errorf("failed to create logs dir: %w", err)
-	}
 	runDir := filepath.Join(homeDir, "micro", "run")
-	if err := os.MkdirAll(runDir, 0755); err != nil {
-		return fmt.Errorf("failed to create run dir: %w", err)
-	}
 	binDir := filepath.Join(homeDir, "micro", "bin")
-	if err := os.MkdirAll(binDir, 0755); err != nil {
-		return fmt.Errorf("failed to create bin dir: %w", err)
+
+	for _, d := range []string{logsDir, runDir, binDir} {
+		if err := os.MkdirAll(d, 0755); err != nil {
+			return fmt.Errorf("failed to create %s: %w", d, err)
+		}
 	}
 
-	// Always run all services (find all main.go)
-	var mainFiles []string
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if info.Name() == "main.go" {
-			mainFiles = append(mainFiles, path)
-		}
-		return nil
-	})
+	// Load configuration
+	cfg, err := config.Load(absDir)
 	if err != nil {
-		return fmt.Errorf("error walking the path: %w", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
-	if len(mainFiles) == 0 {
-		return fmt.Errorf("no main.go files found in %s", dir)
-	}
-	var procs []*exec.Cmd
-	var pidFiles []string
-	for i, mainFile := range mainFiles {
-		serviceDir := filepath.Dir(mainFile)
-		var serviceName string
-		absServiceDir, _ := filepath.Abs(serviceDir)
-		// Determine service name: if absServiceDir matches the provided dir (which may be "."), use cwd
-		if absServiceDir == dir {
-			cwd, _ := os.Getwd()
-			serviceName = filepath.Base(cwd)
-		} else {
-			serviceName = filepath.Base(serviceDir)
-		}
-		serviceNameForPid := serviceName + "-" + fmt.Sprintf("%x", md5.Sum([]byte(absServiceDir)))[:8]
-		logFilePath := filepath.Join(logsDir, serviceNameForPid+".log")
-		binPath := filepath.Join(binDir, serviceNameForPid)
-		pidFilePath := filepath.Join(runDir, serviceNameForPid+".pid")
 
-		// Check if pid file exists and process is running
-		if pidBytes, err := os.ReadFile(pidFilePath); err == nil {
-			lines := strings.Split(string(pidBytes), "\n")
-			if len(lines) > 0 && len(lines[0]) > 0 {
-				pid := lines[0]
-				if _, err := os.FindProcess(parsePid(pid)); err == nil {
-					if processRunning(pid) {
-						fmt.Fprintf(os.Stderr, "Service %s already running (pid %s)\n", serviceNameForPid, pid)
-						continue
+	// Get environment
+	envName := c.String("env")
+	if envName == "" {
+		envName = os.Getenv("MICRO_ENV")
+	}
+	if envName == "" {
+		envName = "development"
+	}
+
+	var envVars []string
+	if cfg != nil {
+		if envMap := cfg.GetEnv(envName); envMap != nil {
+			for k, v := range envMap {
+				envVars = append(envVars, k+"="+v)
+			}
+		}
+	}
+
+	// Discover services
+	var services []*serviceProcess
+	servicesByDir := make(map[string]*serviceProcess)
+
+	if cfg != nil && len(cfg.Services) > 0 {
+		// Use configured services in dependency order
+		sorted, err := cfg.TopologicalSort()
+		if err != nil {
+			return fmt.Errorf("dependency error: %w", err)
+		}
+
+		for i, svc := range sorted {
+			svcDir := filepath.Join(absDir, svc.Path)
+			absSvcDir, _ := filepath.Abs(svcDir)
+			hash := fmt.Sprintf("%x", md5.Sum([]byte(absSvcDir)))[:8]
+
+			sp := &serviceProcess{
+				name:    svc.Name,
+				dir:     absSvcDir,
+				binPath: filepath.Join(binDir, svc.Name+"-"+hash),
+				pidFile: filepath.Join(runDir, svc.Name+"-"+hash+".pid"),
+				logFile: filepath.Join(logsDir, svc.Name+"-"+hash+".log"),
+				color:   colorFor(i),
+				port:    svc.Port,
+				env:     envVars,
+			}
+			services = append(services, sp)
+			servicesByDir[absSvcDir] = sp
+		}
+	} else {
+		// Auto-discover from main.go files
+		var mainFiles []string
+		filepath.Walk(absDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() {
+				return nil
+			}
+			if info.Name() == "main.go" {
+				mainFiles = append(mainFiles, path)
+			}
+			return nil
+		})
+
+		if len(mainFiles) == 0 {
+			return fmt.Errorf("no main.go files found in %s", absDir)
+		}
+
+		for i, mainFile := range mainFiles {
+			svcDir := filepath.Dir(mainFile)
+			absSvcDir, _ := filepath.Abs(svcDir)
+
+			var name string
+			if absSvcDir == absDir {
+				name = filepath.Base(absDir)
+			} else {
+				name = filepath.Base(svcDir)
+			}
+
+			hash := fmt.Sprintf("%x", md5.Sum([]byte(absSvcDir)))[:8]
+
+			sp := &serviceProcess{
+				name:    name,
+				dir:     absSvcDir,
+				binPath: filepath.Join(binDir, name+"-"+hash),
+				pidFile: filepath.Join(runDir, name+"-"+hash+".pid"),
+				logFile: filepath.Join(logsDir, name+"-"+hash+".log"),
+				color:   colorFor(i),
+				env:     envVars,
+			}
+			services = append(services, sp)
+			servicesByDir[absSvcDir] = sp
+		}
+	}
+
+	if len(services) == 0 {
+		return fmt.Errorf("no services found")
+	}
+
+	// Start services
+	fmt.Printf("Starting %d service(s)...\n", len(services))
+	for _, svc := range services {
+		if err := svc.start(logsDir); err != nil {
+			fmt.Fprintf(os.Stderr, "[%s] %v\n", svc.name, err)
+			continue
+		}
+
+		// Wait for health if port configured
+		if svc.port > 0 {
+			if !waitForHealth(svc.port, 10*time.Second) {
+				fmt.Fprintf(os.Stderr, "[%s] health check timeout\n", svc.name)
+			}
+		}
+	}
+
+	// Setup signal handling
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	// Watch mode
+	watchEnabled := !c.Bool("no-watch")
+	var watch *watcher.Watcher
+
+	if watchEnabled {
+		var dirs []string
+		for _, svc := range services {
+			dirs = append(dirs, svc.dir)
+		}
+
+		watch = watcher.New(dirs)
+		watch.Start()
+		fmt.Println("Watching for changes... (use --no-watch to disable)")
+
+		go func() {
+			for event := range watch.Events() {
+				if svc, ok := servicesByDir[event.Dir]; ok {
+					fmt.Printf("%s[%s]%s rebuilding...\n", svc.color, svc.name, colorReset)
+					if err := svc.restart(logsDir); err != nil {
+						fmt.Fprintf(os.Stderr, "%s[%s]%s restart failed: %v\n", svc.color, svc.name, colorReset, err)
 					}
 				}
 			}
-		}
+		}()
+	}
 
-		logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to open log file for %s: %v\n", serviceName, err)
-			continue
-		}
-		buildCmd := exec.Command("go", "build", "-o", binPath, ".")
-		buildCmd.Dir = serviceDir
-		buildOut, buildErr := buildCmd.CombinedOutput()
-		if buildErr != nil {
-			logFile.WriteString(string(buildOut))
-			logFile.Close()
-			fmt.Fprintf(os.Stderr, "failed to build %s: %v\n", serviceName, buildErr)
-			continue
-		}
-		cmd := exec.Command(binPath)
-		cmd.Dir = serviceDir
-		pr, pw := io.Pipe()
-		cmd.Stdout = pw
-		cmd.Stderr = pw
-		color := colorFor(i)
-		go func(name string, color string, pr *io.PipeReader, logFile *os.File) {
-			defer logFile.Close()
-			scanner := bufio.NewScanner(pr)
-			for scanner.Scan() {
-				line := scanner.Text()
-				// Write to terminal with color and service name
-				fmt.Printf("%s[%s]\033[0m %s\n", color, name, line)
-				// Write to log file with service name prefix
-				logFile.WriteString("[" + name + "] " + line + "\n")
-			}
-		}(serviceName, color, pr, logFile)
-		if err := cmd.Start(); err != nil {
-			fmt.Fprintf(os.Stderr, "failed to start service %s: %v\n", serviceName, err)
-			pw.Close()
-			continue
-		}
-		procs = append(procs, cmd)
-		pidFiles = append(pidFiles, pidFilePath)
-		os.WriteFile(pidFilePath, []byte(fmt.Sprintf("%d\n%s\n%s\n%s\n", cmd.Process.Pid, absServiceDir, serviceName, time.Now().Format(time.RFC3339))), 0644)
+	// Wait for signal
+	<-sigCh
+	fmt.Println("\nShutting down...")
+
+	if watch != nil {
+		watch.Stop()
 	}
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-	go func() {
-		<-ch
-		for _, proc := range procs {
-			if proc.Process != nil {
-				_ = proc.Process.Kill()
-			}
-		}
-		for _, pf := range pidFiles {
-			_ = os.Remove(pf)
-		}
-		os.Exit(1)
-	}()
-	for _, proc := range procs {
-		_ = proc.Wait()
+
+	// Stop services in reverse order
+	for i := len(services) - 1; i >= 0; i-- {
+		services[i].stop()
 	}
+
 	return nil
 }
 
-// Add helpers for process check
+// Helper functions
 func parsePid(pidStr string) int {
 	pid, _ := strconv.Atoi(pidStr)
 	return pid
 }
+
 func processRunning(pidStr string) bool {
 	pid := parsePid(pidStr)
 	if pid <= 0 {
@@ -206,21 +395,35 @@ func processRunning(pidStr string) bool {
 	if err != nil {
 		return false
 	}
-	// On Unix, sending signal 0 checks if process exists
 	return proc.Signal(syscall.Signal(0)) == nil
 }
 
 func init() {
 	cmd.Register(&cli.Command{
-		Name:   "run",
-		Usage:  "Run all services in a directory",
+		Name:  "run",
+		Usage: "Run services with hot reload",
+		Description: `Run discovers and runs services in a directory.
+
+With a micro.mu or micro.json config file, services start in dependency order.
+Without config, all main.go files are discovered and run.
+
+Examples:
+  micro run                    # Run services in current directory with hot reload
+  micro run ./myapp            # Run services in ./myapp
+  micro run --no-watch         # Run without hot reload
+  micro run --env production   # Use production environment
+  micro run github.com/micro/blog  # Clone and run`,
 		Action: Run,
 		Flags: []cli.Flag{
+			&cli.BoolFlag{
+				Name:  "no-watch",
+				Usage: "Disable hot reload (file watching)",
+			},
 			&cli.StringFlag{
-				Name:    "address",
-				Aliases: []string{"a"},
-				Usage:   "Address to bind the micro web UI (default :8080)",
-				Value:   ":8080",
+				Name:    "env",
+				Aliases: []string{"e"},
+				Usage:   "Environment to use (default: development)",
+				EnvVars: []string{"MICRO_ENV"},
 			},
 		},
 	})
