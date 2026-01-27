@@ -164,14 +164,16 @@ service users
     path ./users
     port 8081
 
-service api
-    path ./api
-    port 8080
+service posts
+    path ./posts
+    port 8082
     depends users
 
 env development
     DATABASE_URL sqlite://./dev.db
 ```
+
+The gateway runs on :8080 by default, so services should use other ports.
 
 See [cmd/micro/README.md](cmd/micro/README.md) for full CLI documentation.
 
