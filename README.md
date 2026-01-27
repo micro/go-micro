@@ -175,6 +175,15 @@ env development
 
 The gateway runs on :8080 by default, so services should use other ports.
 
+### Deployment
+
+```bash
+micro build              # Build container images
+micro build --compose    # Generate docker-compose.yml
+micro deploy             # Deploy with docker-compose
+micro deploy --ssh user@host  # Deploy via SSH
+```
+
 See [cmd/micro/README.md](cmd/micro/README.md) for full CLI documentation.
 
 Docs: [`internal/website/docs`](internal/website/docs)
