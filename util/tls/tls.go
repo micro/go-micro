@@ -16,35 +16,48 @@ import (
 	"time"
 )
 
-// Config returns a TLS config with secure defaults.
-// If insecureSkipVerify is true, certificate verification is disabled (NOT recommended for production).
-func Config(insecureSkipVerify bool) *tls.Config {
+// Config returns a TLS config.
+// By default, InsecureSkipVerify is true for local development.
+// For production, either:
+//   - Set MICRO_TLS_SECURE=true with proper CA certs
+//   - Use a service mesh (Istio, Linkerd) for mTLS
+//   - Configure TLSConfig directly with your certs
+func Config() *tls.Config {
+	// Check environment for secure mode
+	if os.Getenv("MICRO_TLS_SECURE") == "true" {
+		return &tls.Config{
+			InsecureSkipVerify: false,
+			MinVersion:         tls.VersionTLS12,
+		}
+	}
+	// Default: insecure for local development
 	return &tls.Config{
-		InsecureSkipVerify: insecureSkipVerify,
+		InsecureSkipVerify: true,
 		MinVersion:         tls.VersionTLS12,
 	}
 }
 
-// SecureConfig returns a TLS config with secure defaults and certificate verification enabled.
+// SecureConfig returns a TLS config with certificate verification enabled.
+// Use this when you have proper CA-signed certificates.
 func SecureConfig() *tls.Config {
-	return Config(false)
+	return &tls.Config{
+		InsecureSkipVerify: false,
+		MinVersion:         tls.VersionTLS12,
+	}
 }
 
 // InsecureConfig returns a TLS config with certificate verification disabled.
-// WARNING: This should only be used for development/testing.
+// WARNING: Only use for development/testing.
 func InsecureConfig() *tls.Config {
-	return Config(true)
-}
-
-// ConfigFromEnv returns a TLS config based on the MICRO_TLS_INSECURE environment variable.
-// If MICRO_TLS_INSECURE is set to "true", certificate verification is disabled.
-// Otherwise, secure defaults are used.
-func ConfigFromEnv() *tls.Config {
-	insecure := os.Getenv("MICRO_TLS_INSECURE") == "true"
-	return Config(insecure)
+	return &tls.Config{
+		InsecureSkipVerify: true,
+		MinVersion:         tls.VersionTLS12,
+	}
 }
 
 // Certificate generates a self-signed certificate for the given hosts.
+// Note: These certs are for development only. For production, use proper
+// CA-signed certificates or a service mesh.
 func Certificate(host ...string) (tls.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -63,7 +76,7 @@ func Certificate(host ...string) (tls.Certificate, error) {
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			Organization: []string{"Acme Co"},
+			Organization: []string{"Micro"},
 		},
 		NotBefore: notBefore,
 		NotAfter:  notAfter,

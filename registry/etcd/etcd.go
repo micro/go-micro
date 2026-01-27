@@ -80,7 +80,7 @@ func configure(e *etcdRegistry, opts ...registry.Option) error {
 		tlsConfig := e.options.TLSConfig
 		if tlsConfig == nil {
 			// Use environment-based config - secure by default
-			tlsConfig = mtls.ConfigFromEnv()
+			tlsConfig = mtls.Config()
 		}
 
 		config.TLS = tlsConfig

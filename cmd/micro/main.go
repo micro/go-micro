@@ -5,6 +5,7 @@ import (
 	"go-micro.dev/v5/cmd"
 
 	_ "go-micro.dev/v5/cmd/micro/cli"
+	_ "go-micro.dev/v5/cmd/micro/cli/generate"
 	_ "go-micro.dev/v5/cmd/micro/run"
 	"go-micro.dev/v5/cmd/micro/server"
 )

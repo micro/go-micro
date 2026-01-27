@@ -233,7 +233,7 @@ func (r *rabbitMQConn) tryConnect(secure bool, config *amqp.Config) error {
 	if secure || config.TLSClientConfig != nil || strings.HasPrefix(r.url, "amqps://") {
 		if config.TLSClientConfig == nil {
 			// Use environment-based config - secure by default
-			config.TLSClientConfig = mtls.ConfigFromEnv()
+			config.TLSClientConfig = mtls.Config()
 		}
 
 		url = strings.Replace(r.url, "amqp://", "amqps://", 1)

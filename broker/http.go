@@ -79,7 +79,7 @@ func init() {
 func newTransport(config *tls.Config) *http.Transport {
 	if config == nil {
 		// Use environment-based config - secure by default
-		config = mls.ConfigFromEnv()
+		config = mls.Config()
 	}
 
 	dialTLS := func(network string, addr string) (net.Conn, error) {

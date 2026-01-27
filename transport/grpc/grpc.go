@@ -106,7 +106,7 @@ func (t *grpcTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 		config := t.opts.TLSConfig
 		if config == nil {
 			// Use environment-based config - secure by default
-			config = mtls.ConfigFromEnv()
+			config = mtls.Config()
 		}
 		creds := credentials.NewTLS(config)
 		options = append(options, grpc.WithTransportCredentials(creds))

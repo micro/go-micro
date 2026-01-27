@@ -53,7 +53,7 @@ func getDeregisterTTL(t time.Duration) time.Duration {
 func newTransport(config *tls.Config) *http.Transport {
 	if config == nil {
 		// Use environment-based config - secure by default
-		config = mtls.ConfigFromEnv()
+		config = mtls.Config()
 	}
 
 	t := &http.Transport{
