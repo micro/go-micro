@@ -27,28 +27,60 @@ This will:
 
 ## Run the service
 
-Run the service with hot reload:
+Run your service:
 
 ```
 micro run
 ```
 
-This will:
-- Watch for file changes and auto-rebuild/restart
-- Start services in dependency order (if configured)
-- Apply environment-specific settings
+This starts:
+- **API Gateway** on http://localhost:8080
+- **Web Dashboard** at http://localhost:8080
+- **Hot Reload** watching for file changes
+- **Services** in dependency order
 
-Options:
+Open http://localhost:8080 to see your services and call them from the browser.
+
+### Output
+
 ```
-micro run                    # Hot reload enabled (default)
+  ┌─────────────────────────────────────────────────────────────┐
+  │                                                             │
+  │   Micro                                                     │
+  │                                                             │
+  │   Web:     http://localhost:8080                            │
+  │   API:     http://localhost:8080/api/{service}/{method}     │
+  │   Health:  http://localhost:8080/health                     │
+  │                                                             │
+  │   Services:                                                 │
+  │     ● helloworld                                            │
+  │                                                             │
+  │   Watching for changes...                                   │
+  │                                                             │
+  └─────────────────────────────────────────────────────────────┘
+```
+
+### Options
+
+```
+micro run                    # Gateway on :8080, hot reload enabled
+micro run --address :3000    # Gateway on custom port
+micro run --no-gateway       # Services only, no HTTP gateway
 micro run --no-watch         # Disable hot reload
 micro run --env production   # Use production environment
-micro run ./path/to/service  # Run specific directory
 micro run github.com/micro/blog  # Clone and run from GitHub
 ```
 
-List services to see it's running and registered itself:
+### Calling Services
 
+Via curl:
+```bash
+curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call -d '{"name": "World"}'
+```
+
+Or browse to http://localhost:8080 and use the web interface.
+
+List services:
 ```
 micro services
 ```

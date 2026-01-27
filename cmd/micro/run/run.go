@@ -19,6 +19,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/cmd/micro/run/config"
+	"go-micro.dev/v5/cmd/micro/run/gateway"
 	"go-micro.dev/v5/cmd/micro/run/watcher"
 )
 
@@ -318,8 +319,29 @@ func Run(c *cli.Context) error {
 		return fmt.Errorf("no services found")
 	}
 
+	// Start gateway unless disabled
+	var gw *gateway.Gateway
+	gatewayAddr := c.String("address")
+	if gatewayAddr == "" {
+		gatewayAddr = ":8080"
+	}
+
+	if !c.Bool("no-gateway") {
+		gw = gateway.New(gatewayAddr)
+		var svcInfos []gateway.ServiceInfo
+		for _, svc := range services {
+			svcInfos = append(svcInfos, gateway.ServiceInfo{
+				Name: svc.name,
+				Port: svc.port,
+			})
+		}
+		gw.SetServices(svcInfos)
+		if err := gw.Start(); err != nil {
+			return fmt.Errorf("failed to start gateway: %w", err)
+		}
+	}
+
 	// Start services
-	fmt.Printf("Starting %d service(s)...\n", len(services))
 	for _, svc := range services {
 		if err := svc.start(logsDir); err != nil {
 			fmt.Fprintf(os.Stderr, "[%s] %v\n", svc.name, err)
@@ -333,6 +355,9 @@ func Run(c *cli.Context) error {
 			}
 		}
 	}
+
+	// Print startup banner
+	printBanner(services, gw, !c.Bool("no-watch"))
 
 	// Setup signal handling
 	sigCh := make(chan os.Signal, 1)
@@ -350,7 +375,6 @@ func Run(c *cli.Context) error {
 
 		watch = watcher.New(dirs)
 		watch.Start()
-		fmt.Println("Watching for changes... (use --no-watch to disable)")
 
 		go func() {
 			for event := range watch.Events() {
@@ -370,6 +394,10 @@ func Run(c *cli.Context) error {
 
 	if watch != nil {
 		watch.Stop()
+	}
+
+	if gw != nil {
+		gw.Stop()
 	}
 
 	// Stop services in reverse order
@@ -398,23 +426,84 @@ func processRunning(pidStr string) bool {
 	return proc.Signal(syscall.Signal(0)) == nil
 }
 
+func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool) {
+	fmt.Println()
+	fmt.Println("  ┌─────────────────────────────────────────────────────────────┐")
+	fmt.Println("  │                                                             │")
+	fmt.Println("  │   \033[1mMicro\033[0m                                                    │")
+	fmt.Println("  │                                                             │")
+
+	if gw != nil {
+		fmt.Printf("  │   Web:     \033[36mhttp://localhost%s\033[0m                       │\n", gw.Addr())
+		fmt.Printf("  │   API:     \033[36mhttp://localhost%s/api/{service}/{method}\033[0m  │\n", gw.Addr())
+		fmt.Printf("  │   Health:  \033[36mhttp://localhost%s/health\033[0m                 │\n", gw.Addr())
+	}
+
+	fmt.Println("  │                                                             │")
+	fmt.Println("  │   Services:                                                 │")
+
+	for _, svc := range services {
+		status := "\033[32m●\033[0m" // green dot
+		if !svc.running {
+			status = "\033[31m●\033[0m" // red dot
+		}
+		name := svc.name
+		if len(name) > 20 {
+			name = name[:17] + "..."
+		}
+		fmt.Printf("  │     %s %-20s                                │\n", status, name)
+	}
+
+	fmt.Println("  │                                                             │")
+
+	if watching {
+		fmt.Println("  │   \033[33mWatching for changes...\033[0m                                │")
+		fmt.Println("  │                                                             │")
+	}
+
+	if gw != nil && len(services) > 0 {
+		svc := services[0]
+		fmt.Println("  │   Try:                                                     │")
+		fmt.Printf("  │   \033[90mcurl -X POST http://localhost%s/api/%s/...\033[0m   │\n", gw.Addr(), svc.name)
+		fmt.Println("  │                                                             │")
+	}
+
+	fmt.Println("  └─────────────────────────────────────────────────────────────┘")
+	fmt.Println()
+}
+
 func init() {
 	cmd.Register(&cli.Command{
 		Name:  "run",
-		Usage: "Run services with hot reload",
+		Usage: "Run services with API gateway and hot reload",
 		Description: `Run discovers and runs services in a directory.
+
+Starts an HTTP gateway on :8080 providing:
+  - Web dashboard at /
+  - API proxy at /api/{service}/{endpoint}
+  - Health checks at /health
 
 With a micro.mu or micro.json config file, services start in dependency order.
 Without config, all main.go files are discovered and run.
 
 Examples:
-  micro run                    # Run services in current directory with hot reload
-  micro run ./myapp            # Run services in ./myapp
-  micro run --no-watch         # Run without hot reload
-  micro run --env production   # Use production environment
-  micro run github.com/micro/blog  # Clone and run`,
+  micro run                    # Run with gateway on :8080
+  micro run --address :3000    # Gateway on custom port
+  micro run --no-gateway       # Services only, no HTTP gateway
+  micro run --no-watch         # Disable hot reload
+  micro run --env production   # Use production environment`,
 		Action: Run,
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "address",
+				Aliases: []string{"a"},
+				Usage:   "Gateway address (default :8080)",
+				Value:   ":8080",
+			},
+			&cli.BoolFlag{
+				Name:  "no-gateway",
+				Usage: "Disable HTTP gateway",
+			},
 			&cli.BoolFlag{
 				Name:  "no-watch",
 				Usage: "Disable hot reload (file watching)",
