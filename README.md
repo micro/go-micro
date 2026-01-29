@@ -120,6 +120,8 @@ Install the code generator and see usage in the docs:
 go install go-micro.dev/v5/cmd/protoc-gen-micro@v5.13.0
 ```
 
+> **Note:** Use a specific version (e.g., `@v5.13.0`) instead of `@latest` to avoid conflicts. See [releases](https://github.com/micro/go-micro/releases) for latest.
+
 Docs: [`internal/website/docs/getting-started.md`](internal/website/docs/getting-started.md)
 
 ## Command Line

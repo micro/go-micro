@@ -113,6 +113,8 @@ Install the generator:
 go install go-micro.dev/v5/cmd/protoc-gen-micro@v5.13.0
 ```
 
+> **Note:** We recommend using a specific version (e.g., `@v5.13.0`) instead of `@latest` to avoid module path conflicts with older tags. For the latest version, check the [releases page](https://github.com/micro/go-micro/releases).
+
 ```bash
 cd helloworld
 mkdir proto
