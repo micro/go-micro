@@ -110,8 +110,10 @@ If you want to define services with protobuf you can use protoc-gen-micro (go-mi
 Install the generator:
 
 ```bash
-go install go-micro.dev/v5/cmd/protoc-gen-micro@latest
+go install go-micro.dev/v5/cmd/protoc-gen-micro@v5.13.0
 ```
+
+> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
 
 ```bash
 cd helloworld
@@ -222,8 +224,10 @@ func main() {
 Install the Micro CLI:
 
 ```
-go install go-micro.dev/v5/cmd/micro@latest
+go install go-micro.dev/v5/cmd/micro@v5.13.0
 ```
+
+> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
 
 Call a running service via RPC:
 
