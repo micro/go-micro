@@ -113,7 +113,7 @@ Install the generator:
 go install go-micro.dev/v5/cmd/protoc-gen-micro@v5.13.0
 ```
 
-> **Note:** We recommend using a specific version (e.g., `@v5.13.0`) instead of `@latest` to avoid module path conflicts with older tags. For the latest version, check the [releases page](https://github.com/micro/go-micro/releases).
+> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
 
 ```bash
 cd helloworld
@@ -226,6 +226,8 @@ Install the Micro CLI:
 ```
 go install go-micro.dev/v5/cmd/micro@v5.13.0
 ```
+
+> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
 
 Call a running service via RPC:
 

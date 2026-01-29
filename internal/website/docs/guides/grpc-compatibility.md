@@ -97,6 +97,8 @@ protoc --proto_path=. \
     proto/helloworld.proto
 ```
 
+> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
+
 ### Server Implementation
 
 ```go

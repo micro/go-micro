@@ -100,6 +100,8 @@ protoc --proto_path=. \
   proto/hello.proto
 ```
 
+> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
+
 This generates:
 - `hello.pb.go` - Protocol Buffers types
 - `hello_grpc.pb.go` - gRPC client/server (keep for compatibility)
