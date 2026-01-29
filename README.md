@@ -117,7 +117,7 @@ There's a new `genai` package for generative AI capabilities.
 Install the code generator and see usage in the docs:
 
 ```bash
-go install go-micro.dev/v5/cmd/protoc-gen-micro@latest
+go install go-micro.dev/v5/cmd/protoc-gen-micro@v5.13.0
 ```
 
 Docs: [`internal/website/docs/getting-started.md`](internal/website/docs/getting-started.md)
@@ -127,7 +127,7 @@ Docs: [`internal/website/docs/getting-started.md`](internal/website/docs/getting
 Install the CLI:
 
 ```
-go install go-micro.dev/v5/cmd/micro@latest
+go install go-micro.dev/v5/cmd/micro@v5.13.0
 ```
 
 ### Quick Start

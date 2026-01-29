@@ -13,7 +13,7 @@ write services. Surrounding this we introduce a number of tools to make it easy 
 Install `micro` via `go install`
 
 ```
-go install go-micro.dev/v5@latest
+go install go-micro.dev/v5/cmd/micro@v5.13.0
 ```
 
 Or via install script
