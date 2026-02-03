@@ -40,7 +40,14 @@ func (l *defaultLogger) Init(opts ...Option) error {
 		AddSource: true,
 	}
 
-	handler := slog.NewTextHandler(l.opts.Out, handlerOpts)
+	// Create text handler for stdout
+	textHandler := slog.NewTextHandler(l.opts.Out, handlerOpts)
+	
+	// Create debug log handler for debug/log buffer
+	debugHandler := newDebugLogHandler(handlerOpts.Level)
+	
+	// Combine both handlers
+	handler := newMultiHandler(textHandler, debugHandler)
 	
 	l.slog = slog.New(handler)
 
