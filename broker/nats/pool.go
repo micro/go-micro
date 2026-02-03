@@ -66,7 +66,7 @@ func (p *connectionPool) Get() (*pooledConnection, error) {
 	case conn := <-p.connections:
 		// Check if connection is still valid and not idle for too long
 		if conn.isValid() && !conn.isExpired(p.idleTimeout) {
-			conn.lastUsed = time.Now()
+			conn.updateLastUsed()
 			return conn, nil
 		}
 		// Connection is invalid or expired, close it and create a new one
@@ -92,7 +92,7 @@ func (p *connectionPool) Put(conn *pooledConnection) error {
 		return conn.close()
 	}
 
-	conn.lastUsed = time.Now()
+	conn.updateLastUsed()
 
 	// Try to return connection to pool
 	select {
@@ -180,4 +180,11 @@ func (pc *pooledConnection) Conn() *natsp.Conn {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
 	return pc.conn
+}
+
+// updateLastUsed updates the last used timestamp in a thread-safe manner
+func (pc *pooledConnection) updateLastUsed() {
+	pc.mu.Lock()
+	defer pc.mu.Unlock()
+	pc.lastUsed = time.Now()
 }
