@@ -159,12 +159,20 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		return cp, nil
 	}
 
-	// Check rate limiting before unlocking
-	// This prevents multiple sequential attempts within the retry interval
+	// Check rate limiting BEFORE entering singleflight
+	// This prevents blocking when we have stale cache and etcd is down
 	lastRefresh := c.lastRefreshAttempt[service]
 	minimumRetryInterval := c.opts.MinimumRetryInterval
 	if minimumRetryInterval == 0 {
 		minimumRetryInterval = DefaultMinimumRetryInterval
+	}
+
+	// If we're being rate limited AND have stale cache, return it immediately
+	// This avoids blocking all goroutines when etcd has long timeout
+	if !lastRefresh.IsZero() && time.Since(lastRefresh) < minimumRetryInterval && len(cp) > 0 {
+		c.RUnlock()
+		// Return stale cache even if expired
+		return cp, nil
 	}
 
 	// unlock the read lock before potentially blocking operations
@@ -175,8 +183,18 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		// Use singleflight to deduplicate concurrent requests
 		val, err, _ := c.sg.Do(service, func() (interface{}, error) {
 			// Inside singleflight - only one goroutine executes this
-			// Apply rate limiting to prevent excessive registry calls
-			if !lastRefresh.IsZero() && time.Since(lastRefresh) < minimumRetryInterval {
+			
+			// Re-check rate limiting inside singleflight
+			// (in case another goroutine just completed a refresh)
+			c.RLock()
+			currentLastRefresh := c.lastRefreshAttempt[service]
+			currentMinimumRetryInterval := c.opts.MinimumRetryInterval
+			if currentMinimumRetryInterval == 0 {
+				currentMinimumRetryInterval = DefaultMinimumRetryInterval
+			}
+			c.RUnlock()
+			
+			if !currentLastRefresh.IsZero() && time.Since(currentLastRefresh) < currentMinimumRetryInterval {
 				// We're being rate limited
 				// Check if we have stale cache to return
 				c.RLock()
