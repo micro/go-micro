@@ -335,12 +335,11 @@ To remove reflection, go-micro would need:
 
 Based on reflection overhead patterns:
 
-| Metric | Current (Reflection) | After Removal (Hypothetical) |
-|--------|---------------------|------------------------------|
-| Method dispatch | 10-50μs | 1-5μs |
-| Type construction | 5-20μs | 1-2μs |
-| Total per-RPC overhead | ~50μs | ~10μs |
-| **Speedup** | **1x** | **~5x faster** |
+| Metric | Current (Reflection) | After Removal (Hypothetical) | Improvement |
+|--------|---------------------|------------------------------|-------------|
+| Method dispatch | 10-50μs | 1-5μs | 5-10x |
+| Type construction | 5-20μs | 1-2μs | 5-10x |
+| Total per-RPC overhead | ~50μs | ~10μs | **5x faster** |
 
 **But in context**:
 
