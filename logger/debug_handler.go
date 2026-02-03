@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
-	"sort"
 	"strings"
 
 	dlog "go-micro.dev/v5/debug/log"
@@ -49,24 +48,8 @@ func (h *debugLogHandler) Handle(_ context.Context, r slog.Record) error {
 	metadata["level"] = r.Level.String()
 	
 	// Add source if available
-	if r.PC != 0 {
-		fs := runtime.CallersFrames([]uintptr{r.PC})
-		f, _ := fs.Next()
-		if f.File != "" {
-			// Extract just filename, not full path
-			idx := strings.LastIndexByte(f.File, '/')
-			if idx == -1 {
-				metadata["file"] = fmt.Sprintf("%s:%d", f.File, f.Line)
-			} else {
-				// Get package/file:line
-				idx2 := strings.LastIndexByte(f.File[:idx], '/')
-				if idx2 == -1 {
-					metadata["file"] = fmt.Sprintf("%s:%d", f.File[idx+1:], f.Line)
-				} else {
-					metadata["file"] = fmt.Sprintf("%s:%d", f.File[idx2+1:], f.Line)
-				}
-			}
-		}
+	if sourcePath := extractSourceFilePath(r.PC); sourcePath != "" {
+		metadata["file"] = sourcePath
 	}
 	
 	// Create debug log record
@@ -151,62 +134,29 @@ func (h *multiHandler) WithGroup(name string) slog.Handler {
 	return &multiHandler{handlers: newHandlers}
 }
 
-// buildFormattedOutput builds the formatted output string for stdout
-// This maintains the original logger format for backward compatibility
-func buildFormattedOutput(r slog.Record, attrs []slog.Attr) string {
-	// Collect all fields
-	fields := make(map[string]interface{})
-	
-	// Add handler's attributes
-	for _, attr := range attrs {
-		fields[attr.Key] = attr.Value.String()
+// extractSourceFilePath extracts the package/file:line from a PC
+func extractSourceFilePath(pc uintptr) string {
+	if pc == 0 {
+		return ""
 	}
 	
-	// Add record's attributes
-	r.Attrs(func(a slog.Attr) bool {
-		fields[a.Key] = a.Value.String()
-		return true
-	})
-	
-	// Add level
-	fields["level"] = r.Level.String()
-	
-	// Add source if available
-	if r.PC != 0 {
-		fs := runtime.CallersFrames([]uintptr{r.PC})
-		f, _ := fs.Next()
-		if f.File != "" {
-			// Extract just filename, not full path
-			idx := strings.LastIndexByte(f.File, '/')
-			if idx == -1 {
-				fields["file"] = fmt.Sprintf("%s:%d", f.File, f.Line)
-			} else {
-				// Get package/file:line
-				idx2 := strings.LastIndexByte(f.File[:idx], '/')
-				if idx2 == -1 {
-					fields["file"] = fmt.Sprintf("%s:%d", f.File[idx+1:], f.Line)
-				} else {
-					fields["file"] = fmt.Sprintf("%s:%d", f.File[idx2+1:], f.Line)
-				}
-			}
-		}
+	fs := runtime.CallersFrames([]uintptr{pc})
+	f, _ := fs.Next()
+	if f.File == "" {
+		return ""
 	}
 	
-	// Sort keys for consistent output
-	keys := make([]string, 0, len(fields))
-	for k := range fields {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	
-	// Build metadata string
-	metadata := ""
-	for _, k := range keys {
-		metadata += fmt.Sprintf(" %s=%v", k, fields[k])
+	// Extract just filename, not full path
+	idx := strings.LastIndexByte(f.File, '/')
+	if idx == -1 {
+		return fmt.Sprintf("%s:%d", f.File, f.Line)
 	}
 	
-	// Format timestamp
-	t := r.Time.Format("2006-01-02 15:04:05")
+	// Get package/file:line
+	idx2 := strings.LastIndexByte(f.File[:idx], '/')
+	if idx2 == -1 {
+		return fmt.Sprintf("%s:%d", f.File[idx+1:], f.Line)
+	}
 	
-	return fmt.Sprintf("%s %s %v\n", t, metadata, r.Message)
+	return fmt.Sprintf("%s:%d", f.File[idx2+1:], f.Line)
 }
