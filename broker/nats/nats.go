@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strings"
 	"sync"
+	"time"
 
 	natsp "github.com/nats-io/nats.go"
 	"go-micro.dev/v5/broker"
@@ -22,9 +23,14 @@ type natsBroker struct {
 	connected bool
 
 	addrs []string
-	conn  *natsp.Conn
+	conn  *natsp.Conn      // single connection (used when pool is disabled)
+	pool  *connectionPool  // connection pool (used when pooling is enabled)
 	opts  broker.Options
 	nopts natsp.Options
+
+	// pool configuration
+	poolSize        int
+	poolIdleTimeout time.Duration
 
 	// should we drain the connection
 	drain   bool
@@ -109,6 +115,39 @@ func (n *natsBroker) Connect() error {
 		return nil
 	}
 
+	// Check if we should use connection pooling
+	if n.poolSize > 1 {
+		// Initialize connection pool
+		factory := func() (*natsp.Conn, error) {
+			opts := n.nopts
+			opts.Servers = n.addrs
+			opts.Secure = n.opts.Secure
+			opts.TLSConfig = n.opts.TLSConfig
+
+			// secure might not be set
+			if n.opts.TLSConfig != nil {
+				opts.Secure = true
+			}
+
+			return opts.Connect()
+		}
+
+		pool, err := newConnectionPool(n.poolSize, factory)
+		if err != nil {
+			return err
+		}
+
+		// Set idle timeout if configured
+		if n.poolIdleTimeout > 0 {
+			pool.idleTimeout = n.poolIdleTimeout
+		}
+
+		n.pool = pool
+		n.connected = true
+		return nil
+	}
+
+	// Single connection mode (original behavior)
 	status := natsp.CLOSED
 	if n.conn != nil {
 		status = n.conn.Status()
@@ -143,14 +182,26 @@ func (n *natsBroker) Disconnect() error {
 	n.Lock()
 	defer n.Unlock()
 
-	// drain the connection if specified
-	if n.drain {
-		n.conn.Drain()
-		n.closeCh <- nil
+	// Close connection pool if it exists
+	if n.pool != nil {
+		if err := n.pool.Close(); err != nil {
+			n.opts.Logger.Log(logger.ErrorLevel, "error closing connection pool:", err)
+		}
+		n.pool = nil
 	}
 
-	// close the client connection
-	n.conn.Close()
+	// Close single connection if it exists
+	if n.conn != nil {
+		// drain the connection if specified
+		if n.drain {
+			n.conn.Drain()
+			n.closeCh <- nil
+		}
+
+		// close the client connection
+		n.conn.Close()
+		n.conn = nil
+	}
 
 	// set not connected
 	n.connected = false
@@ -171,24 +222,42 @@ func (n *natsBroker) Publish(topic string, msg *broker.Message, opts ...broker.P
 	n.RLock()
 	defer n.RUnlock()
 
-	if n.conn == nil {
-		return errors.New("not connected")
-	}
-
 	b, err := n.opts.Codec.Marshal(msg)
 	if err != nil {
 		return err
 	}
+
+	// Use connection pool if enabled
+	if n.pool != nil {
+		poolConn, err := n.pool.Get()
+		if err != nil {
+			return err
+		}
+		defer n.pool.Put(poolConn)
+
+		conn := poolConn.Conn()
+		if conn == nil {
+			return errors.New("invalid connection from pool")
+		}
+		return conn.Publish(topic, b)
+	}
+
+	// Use single connection (original behavior)
+	if n.conn == nil {
+		return errors.New("not connected")
+	}
+
 	return n.conn.Publish(topic, b)
 }
 
 func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...broker.SubscribeOption) (broker.Subscriber, error) {
 	n.RLock()
-	if n.conn == nil {
-		n.RUnlock()
+	hasConnection := n.conn != nil || n.pool != nil
+	n.RUnlock()
+
+	if !hasConnection {
 		return nil, errors.New("not connected")
 	}
-	n.RUnlock()
 
 	opt := broker.SubscribeOptions{
 		AutoAck: true,
@@ -226,6 +295,38 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 	var sub *natsp.Subscription
 	var err error
 
+	// Use connection pool if enabled
+	if n.pool != nil {
+		poolConn, err := n.pool.Get()
+		if err != nil {
+			return nil, err
+		}
+
+		conn := poolConn.Conn()
+		if conn == nil {
+			n.pool.Put(poolConn)
+			return nil, errors.New("invalid connection from pool")
+		}
+
+		if len(opt.Queue) > 0 {
+			sub, err = conn.QueueSubscribe(topic, opt.Queue, fn)
+		} else {
+			sub, err = conn.Subscribe(topic, fn)
+		}
+
+		if err != nil {
+			n.pool.Put(poolConn)
+			return nil, err
+		}
+
+		// Return connection to pool after subscription is created
+		// The subscription keeps the connection alive
+		n.pool.Put(poolConn)
+
+		return &subscriber{s: sub, opts: opt}, nil
+	}
+
+	// Use single connection (original behavior)
 	n.RLock()
 	if len(opt.Queue) > 0 {
 		sub, err = n.conn.QueueSubscribe(topic, opt.Queue, fn)
@@ -250,10 +351,22 @@ func (n *natsBroker) setOption(opts ...broker.Option) {
 
 	n.Once.Do(func() {
 		n.nopts = natsp.GetDefaultOptions()
+		n.poolSize = 1 // Default to single connection (no pooling)
+		n.poolIdleTimeout = 5 * time.Minute
 	})
 
 	if nopts, ok := n.opts.Context.Value(optionsKey{}).(natsp.Options); ok {
 		n.nopts = nopts
+	}
+
+	// Set pool size if configured
+	if poolSize, ok := n.opts.Context.Value(poolSizeKey{}).(int); ok && poolSize > 0 {
+		n.poolSize = poolSize
+	}
+
+	// Set pool idle timeout if configured
+	if idleTimeout, ok := n.opts.Context.Value(poolIdleTimeoutKey{}).(time.Duration); ok {
+		n.poolIdleTimeout = idleTimeout
 	}
 
 	// broker.Options have higher priority than nats.Options

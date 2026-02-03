@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -35,11 +36,12 @@ func NewStream(opts ...Option) (events.Stream, error) {
 
 	s := &stream{opts: options}
 
-	natsJetStreamCtx, err := connectToNatsJetStream(options)
+	conn, natsJetStreamCtx, err := connectToNatsJetStream(options)
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to nats cluster %v: %w", options.ClusterID, err)
 	}
 
+	s.conn = conn
 	s.natsJetStreamCtx = natsJetStreamCtx
 
 	return s, nil
@@ -47,10 +49,11 @@ func NewStream(opts ...Option) (events.Stream, error) {
 
 type stream struct {
 	opts             Options
+	conn             *nats.Conn           // store connection for lifecycle management
 	natsJetStreamCtx nats.JetStreamContext
 }
 
-func connectToNatsJetStream(options Options) (nats.JetStreamContext, error) {
+func connectToNatsJetStream(options Options) (*nats.Conn, nats.JetStreamContext, error) {
 	nopts := nats.GetDefaultOptions()
 	if options.TLSConfig != nil {
 		nopts.Secure = true
@@ -77,15 +80,16 @@ func connectToNatsJetStream(options Options) (nats.JetStreamContext, error) {
 	conn, err := nopts.Connect()
 	if err != nil {
 		tls := nopts.TLSConfig != nil
-		return nil, fmt.Errorf("error connecting to nats at %v with tls enabled (%v): %w", options.Address, tls, err)
+		return nil, nil, fmt.Errorf("error connecting to nats at %v with tls enabled (%v): %w", options.Address, tls, err)
 	}
 
 	js, err := conn.JetStream()
 	if err != nil {
-		return nil, fmt.Errorf("error while obtaining JetStream context: %w", err)
+		conn.Close() // Close connection if JetStream context fails
+		return nil, nil, fmt.Errorf("error while obtaining JetStream context: %w", err)
 	}
 
-	return js, nil
+	return conn, js, nil
 }
 
 // Publish a message to a topic.
@@ -268,3 +272,16 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 
 	return channel, nil
 }
+
+// Close implements io.Closer and closes the underlying NATS connection.
+// This method is optional but recommended to prevent connection leaks.
+func (s *stream) Close() error {
+	if s.conn != nil {
+		s.conn.Close()
+		s.conn = nil
+	}
+	return nil
+}
+
+// Ensure stream implements io.Closer
+var _ io.Closer = (*stream)(nil)

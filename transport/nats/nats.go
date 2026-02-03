@@ -16,19 +16,25 @@ import (
 )
 
 type ntport struct {
-	addrs []string
-	opts  transport.Options
-	nopts nats.Options
+	addrs           []string
+	opts            transport.Options
+	nopts           nats.Options
+	pool            *connectionPool  // connection pool for clients
+	poolSize        int
+	poolIdleTimeout time.Duration
+	mu              sync.RWMutex
 }
 
 type ntportClient struct {
-	conn   *nats.Conn
-	addr   string
-	id     string
-	local  string
-	remote string
-	sub    *nats.Subscription
-	opts   transport.Options
+	conn       *nats.Conn
+	pooledConn *pooledConnection  // reference to pooled connection if using pool
+	pool       *connectionPool    // reference to pool to return connection on close
+	addr       string
+	id         string
+	local      string
+	remote     string
+	sub        *nats.Subscription
+	opts       transport.Options
 }
 
 type ntportSocket struct {
@@ -67,8 +73,20 @@ func configure(n *ntport, opts ...transport.Option) {
 	}
 
 	natsOptions := nats.GetDefaultOptions()
-	if n, ok := n.opts.Context.Value(optionsKey{}).(nats.Options); ok {
-		natsOptions = n
+	if no, ok := n.opts.Context.Value(optionsKey{}).(nats.Options); ok {
+		natsOptions = no
+	}
+
+	// Set pool size (default is 1 - no pooling)
+	n.poolSize = 1
+	if poolSize, ok := n.opts.Context.Value(poolSizeKey{}).(int); ok && poolSize > 0 {
+		n.poolSize = poolSize
+	}
+
+	// Set pool idle timeout (default is 5 minutes)
+	n.poolIdleTimeout = 5 * time.Minute
+	if idleTimeout, ok := n.opts.Context.Value(poolIdleTimeoutKey{}).(time.Duration); ok {
+		n.poolIdleTimeout = idleTimeout
 	}
 
 	// transport.Options have higher priority than nats.Options
@@ -91,6 +109,31 @@ func configure(n *ntport, opts ...transport.Option) {
 	n.opts.Addrs = setAddrs(n.opts.Addrs)
 	n.nopts = natsOptions
 	n.addrs = n.opts.Addrs
+
+	// Initialize connection pool if size > 1
+	if n.poolSize > 1 && n.pool == nil {
+		factory := func() (*nats.Conn, error) {
+			opts := n.nopts
+			opts.Servers = n.addrs
+			opts.Secure = n.opts.Secure
+			opts.TLSConfig = n.opts.TLSConfig
+
+			// secure might not be set
+			if n.opts.TLSConfig != nil {
+				opts.Secure = true
+			}
+
+			return opts.Connect()
+		}
+
+		pool, err := newConnectionPool(n.poolSize, factory)
+		if err == nil {
+			if n.poolIdleTimeout > 0 {
+				pool.idleTimeout = n.poolIdleTimeout
+			}
+			n.pool = pool
+		}
+	}
 }
 
 func setAddrs(addrs []string) []string {
@@ -166,6 +209,13 @@ func (n *ntportClient) Recv(m *transport.Message) error {
 
 func (n *ntportClient) Close() error {
 	n.sub.Unsubscribe()
+
+	// If using a pooled connection, return it to the pool
+	if n.pool != nil && n.pooledConn != nil {
+		return n.pool.Put(n.pooledConn)
+	}
+
+	// Otherwise, close the connection directly
 	n.conn.Close()
 	return nil
 }
@@ -344,37 +394,68 @@ func (n *ntport) Dial(addr string, dialOpts ...transport.DialOption) (transport.
 		o(&dopts)
 	}
 
-	opts := n.nopts
-	opts.Servers = n.addrs
-	opts.Secure = n.opts.Secure
-	opts.TLSConfig = n.opts.TLSConfig
-	opts.Timeout = dopts.Timeout
+	var c *nats.Conn
+	var pooledConn *pooledConnection
+	var err error
 
-	// secure might not be set
-	if n.opts.TLSConfig != nil {
-		opts.Secure = true
-	}
+	// Use connection pool if available
+	n.mu.RLock()
+	hasPool := n.pool != nil
+	n.mu.RUnlock()
 
-	c, err := opts.Connect()
-	if err != nil {
-		return nil, err
+	if hasPool {
+		pooledConn, err = n.pool.Get()
+		if err != nil {
+			return nil, err
+		}
+		c = pooledConn.Conn()
+		if c == nil {
+			n.pool.Put(pooledConn)
+			return nil, errors.New("invalid connection from pool")
+		}
+	} else {
+		// Create a new connection (original behavior)
+		opts := n.nopts
+		opts.Servers = n.addrs
+		opts.Secure = n.opts.Secure
+		opts.TLSConfig = n.opts.TLSConfig
+		opts.Timeout = dopts.Timeout
+
+		// secure might not be set
+		if n.opts.TLSConfig != nil {
+			opts.Secure = true
+		}
+
+		c, err = opts.Connect()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	id := nats.NewInbox()
 	sub, err := c.SubscribeSync(id)
 	if err != nil {
+		if pooledConn != nil {
+			n.pool.Put(pooledConn)
+		} else {
+			c.Close()
+		}
 		return nil, err
 	}
 
-	return &ntportClient{
-		conn:   c,
-		addr:   addr,
-		id:     id,
-		sub:    sub,
-		opts:   n.opts,
-		local:  id,
-		remote: addr,
-	}, nil
+	client := &ntportClient{
+		conn:       c,
+		pooledConn: pooledConn,
+		pool:       n.pool,
+		addr:       addr,
+		id:         id,
+		sub:        sub,
+		opts:       n.opts,
+		local:      id,
+		remote:     addr,
+	}
+
+	return client, nil
 }
 
 func (n *ntport) Listen(addr string, listenOpts ...transport.ListenOption) (transport.Listener, error) {
