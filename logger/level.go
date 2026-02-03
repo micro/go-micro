@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 )
 
@@ -44,6 +45,26 @@ func (l Level) String() string {
 // Enabled returns true if the given level is at or above this level.
 func (l Level) Enabled(lvl Level) bool {
 	return lvl >= l
+}
+
+// ToSlog converts our Level to slog.Level
+func (l Level) ToSlog() slog.Level {
+	switch l {
+	case TraceLevel:
+		return slog.LevelDebug - 4 // Lower than Debug
+	case DebugLevel:
+		return slog.LevelDebug
+	case InfoLevel:
+		return slog.LevelInfo
+	case WarnLevel:
+		return slog.LevelWarn
+	case ErrorLevel:
+		return slog.LevelError
+	case FatalLevel:
+		return slog.LevelError + 4 // Higher than Error
+	default:
+		return slog.LevelInfo
+	}
 }
 
 // GetLevel converts a level string into a logger Level value.
