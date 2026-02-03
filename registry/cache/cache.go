@@ -187,14 +187,14 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 			// Re-check rate limiting inside singleflight
 			// (in case another goroutine just completed a refresh)
 			c.RLock()
-			lastRefresh := c.lastRefreshAttempt[service]
-			minimumRetryInterval := c.opts.MinimumRetryInterval
-			if minimumRetryInterval == 0 {
-				minimumRetryInterval = DefaultMinimumRetryInterval
+			currentLastRefresh := c.lastRefreshAttempt[service]
+			currentMinimumRetryInterval := c.opts.MinimumRetryInterval
+			if currentMinimumRetryInterval == 0 {
+				currentMinimumRetryInterval = DefaultMinimumRetryInterval
 			}
 			c.RUnlock()
 			
-			if !lastRefresh.IsZero() && time.Since(lastRefresh) < minimumRetryInterval {
+			if !currentLastRefresh.IsZero() && time.Since(currentLastRefresh) < currentMinimumRetryInterval {
 				// We're being rate limited
 				// Check if we have stale cache to return
 				c.RLock()
