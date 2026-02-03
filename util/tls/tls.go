@@ -10,27 +10,56 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"log"
 	"math/big"
 	"net"
 	"os"
+	"sync"
 	"time"
 )
 
+var (
+	// Track if we've already logged the warning to avoid spam
+	warningOnce sync.Once
+)
+
 // Config returns a TLS config.
-// By default, InsecureSkipVerify is true for local development.
-// For production, either:
-//   - Set MICRO_TLS_SECURE=true with proper CA certs
+// 
+// BACKWARD COMPATIBILITY: By default, InsecureSkipVerify is true for compatibility
+// with existing deployments. This maintains the existing behavior to avoid breaking
+// production systems during upgrades.
+//
+// SECURITY WARNING: The default behavior skips certificate verification. This is
+// insecure and vulnerable to man-in-the-middle attacks.
+//
+// To enable secure certificate verification (RECOMMENDED for production):
+//   - Set environment variable: MICRO_TLS_SECURE=true
+//   - Use SecureConfig() function directly
+//   - Configure TLSConfig with proper certificates
 //   - Use a service mesh (Istio, Linkerd) for mTLS
-//   - Configure TLSConfig directly with your certs
+//
+// DEPRECATION NOTICE: The insecure default will be changed in a future major version (v6).
+// Please migrate to secure mode by setting MICRO_TLS_SECURE=true in your environment.
 func Config() *tls.Config {
-	// Check environment for secure mode
+	// Check environment for explicit secure mode
 	if os.Getenv("MICRO_TLS_SECURE") == "true" {
 		return &tls.Config{
 			InsecureSkipVerify: false,
 			MinVersion:         tls.VersionTLS12,
 		}
 	}
-	// Default: insecure for local development
+	
+	// Log deprecation warning once (only if not in test environment)
+	if os.Getenv("IN_TRAVIS_CI") == "" {
+		warningOnce.Do(func() {
+			log.Println("[SECURITY WARNING] TLS certificate verification is disabled by default. " +
+				"This is insecure and will change in v6. " +
+				"Set MICRO_TLS_SECURE=true to enable certificate verification.")
+		})
+	}
+	
+	// DEPRECATED: Default remains insecure for backward compatibility
+	// This will change in v6 - please migrate to secure mode
 	return &tls.Config{
 		InsecureSkipVerify: true,
 		MinVersion:         tls.VersionTLS12,
