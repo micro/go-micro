@@ -21,7 +21,6 @@ type connectionPool struct {
 	connections chan *pooledConnection
 	factory     func() (*natsp.Conn, error)
 	size        int
-	maxIdle     int
 	idleTimeout time.Duration
 	closed      bool
 }
@@ -44,7 +43,6 @@ func newConnectionPool(size int, factory func() (*natsp.Conn, error)) (*connecti
 		connections: make(chan *pooledConnection, size),
 		factory:     factory,
 		size:        size,
-		maxIdle:     size,
 		idleTimeout: 5 * time.Minute,
 		closed:      false,
 	}
