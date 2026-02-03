@@ -64,28 +64,22 @@ func (l *defaultLogger) String() string {
 
 func (l *defaultLogger) Fields(fields map[string]interface{}) Logger {
 	l.RLock()
-	nfields := make(map[string]interface{}, len(l.opts.Fields))
-
-	for k, v := range l.opts.Fields {
-		nfields[k] = v
-	}
+	nfields := copyFields(l.opts.Fields)
+	opts := l.opts
 	l.RUnlock()
 
 	for k, v := range fields {
 		nfields[k] = v
 	}
 
-	newLogger := &defaultLogger{opts: Options{
-		Level:           l.opts.Level,
-		Fields:          nfields,
-		Out:             l.opts.Out,
-		CallerSkipCount: l.opts.CallerSkipCount,
-		Context:         l.opts.Context,
-	}}
-	
-	// Initialize the slog logger for the new instance
-	_ = newLogger.Init()
-	
+	// Create new logger without locks
+	newLogger := NewLogger(
+		WithLevel(opts.Level),
+		WithFields(nfields),
+		WithOutput(opts.Out),
+		WithCallerSkipCount(opts.CallerSkipCount),
+	)
+
 	return newLogger
 }
 
