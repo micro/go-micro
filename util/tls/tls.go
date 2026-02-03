@@ -17,22 +17,25 @@ import (
 )
 
 // Config returns a TLS config.
-// By default, InsecureSkipVerify is true for local development.
-// For production, either:
-//   - Set MICRO_TLS_SECURE=true with proper CA certs
+// By default, certificate verification is ENABLED for security.
+// For development/testing only, you can disable verification by setting:
+//   - MICRO_TLS_INSECURE=true (NOT recommended for production)
+//
+// For production, use one of these secure options:
+//   - Default behavior (secure, verifies certificates)
 //   - Use a service mesh (Istio, Linkerd) for mTLS
 //   - Configure TLSConfig directly with your certs
 func Config() *tls.Config {
-	// Check environment for secure mode
-	if os.Getenv("MICRO_TLS_SECURE") == "true" {
+	// Check environment for insecure mode (development/testing only)
+	if os.Getenv("MICRO_TLS_INSECURE") == "true" {
 		return &tls.Config{
-			InsecureSkipVerify: false,
+			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS12,
 		}
 	}
-	// Default: insecure for local development
+	// Default: secure with certificate verification enabled
 	return &tls.Config{
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: false,
 		MinVersion:         tls.VersionTLS12,
 	}
 }
