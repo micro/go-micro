@@ -47,11 +47,16 @@ func (l Level) Enabled(lvl Level) bool {
 	return lvl >= l
 }
 
-// ToSlog converts our Level to slog.Level
+// ToSlog converts our Level to slog.Level.
 func (l Level) ToSlog() slog.Level {
+	const (
+		traceLevelOffset = 4
+		fatalLevelOffset = 4
+	)
+
 	switch l {
 	case TraceLevel:
-		return slog.LevelDebug - 4 // Lower than Debug
+		return slog.LevelDebug - traceLevelOffset // Lower than Debug
 	case DebugLevel:
 		return slog.LevelDebug
 	case InfoLevel:
@@ -61,7 +66,7 @@ func (l Level) ToSlog() slog.Level {
 	case ErrorLevel:
 		return slog.LevelError
 	case FatalLevel:
-		return slog.LevelError + 4 // Higher than Error
+		return slog.LevelError + fatalLevelOffset // Higher than Error
 	default:
 		return slog.LevelInfo
 	}

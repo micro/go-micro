@@ -20,8 +20,8 @@ func init() {
 }
 
 type defaultLogger struct {
-	opts   Options
-	slog   *slog.Logger
+	opts Options
+	slog *slog.Logger
 	sync.RWMutex
 }
 
@@ -36,21 +36,22 @@ func (l *defaultLogger) Init(opts ...Option) error {
 
 	// Recreate slog logger with new options
 	handlerOpts := &slog.HandlerOptions{
-		Level: l.opts.Level.ToSlog(),
+		Level:     l.opts.Level.ToSlog(),
 		AddSource: true,
 	}
 
-	var handler slog.Handler
-	handler = slog.NewTextHandler(l.opts.Out, handlerOpts)
+	handler := slog.NewTextHandler(l.opts.Out, handlerOpts)
 	
 	l.slog = slog.New(handler)
 
 	// Add fields if any
 	if len(l.opts.Fields) > 0 {
-		args := make([]any, 0, len(l.opts.Fields)*2)
+		const fieldsPerKV = 2
+		args := make([]any, 0, len(l.opts.Fields)*fieldsPerKV)
 		for k, v := range l.opts.Fields {
 			args = append(args, k, v)
 		}
+
 		l.slog = l.slog.With(args...)
 	}
 
@@ -105,6 +106,7 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 
 	l.RLock()
 	slogger := l.slog
+
 	if slogger == nil {
 		// Fallback if not initialized
 		slogger = slog.Default()
@@ -113,6 +115,7 @@ func (l *defaultLogger) Log(level Level, v ...interface{}) {
 
 	// Get caller information
 	var pcs [1]uintptr
+
 	runtime.Callers(l.opts.CallerSkipCount, pcs[:])
 	r := slog.NewRecord(time.Now(), level.ToSlog(), fmt.Sprint(v...), pcs[0])
 
@@ -127,6 +130,7 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 
 	l.RLock()
 	slogger := l.slog
+
 	if slogger == nil {
 		// Fallback if not initialized
 		slogger = slog.Default()
@@ -135,6 +139,7 @@ func (l *defaultLogger) Logf(level Level, format string, v ...interface{}) {
 
 	// Get caller information
 	var pcs [1]uintptr
+
 	runtime.Callers(l.opts.CallerSkipCount, pcs[:])
 	r := slog.NewRecord(time.Now(), level.ToSlog(), fmt.Sprintf(format, v...), pcs[0])
 
@@ -155,11 +160,13 @@ func (l *defaultLogger) Options() Options {
 // NewLogger builds a new logger based on options.
 func NewLogger(opts ...Option) Logger {
 	// Default options
+	const defaultCallerSkipCount = 2
+
 	options := Options{
 		Level:           InfoLevel,
 		Fields:          make(map[string]interface{}),
 		Out:             os.Stderr,
-		CallerSkipCount: 2,
+		CallerSkipCount: defaultCallerSkipCount,
 		Context:         context.Background(),
 	}
 
