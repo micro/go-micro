@@ -14,33 +14,36 @@ func TestConfig(t *testing.T) {
 		description    string
 	}{
 		{
-			name:         "default_secure",
+			name:         "default_insecure_for_backward_compatibility",
 			envVar:       "",
 			envValue:     "",
-			wantInsecure: false,
-			description:  "Default should be secure with certificate verification enabled",
-		},
-		{
-			name:         "insecure_mode_enabled",
-			envVar:       "MICRO_TLS_INSECURE",
-			envValue:     "true",
 			wantInsecure: true,
-			description:  "MICRO_TLS_INSECURE=true should disable certificate verification",
+			description:  "Default should remain insecure for backward compatibility (will change in v6)",
 		},
 		{
-			name:         "insecure_mode_disabled",
-			envVar:       "MICRO_TLS_INSECURE",
-			envValue:     "false",
+			name:         "secure_mode_enabled",
+			envVar:       "MICRO_TLS_SECURE",
+			envValue:     "true",
 			wantInsecure: false,
-			description:  "MICRO_TLS_INSECURE=false should enable certificate verification",
+			description:  "MICRO_TLS_SECURE=true should enable certificate verification",
+		},
+		{
+			name:         "secure_mode_disabled",
+			envVar:       "MICRO_TLS_SECURE",
+			envValue:     "false",
+			wantInsecure: true,
+			description:  "MICRO_TLS_SECURE=false should remain insecure",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up environment
-			os.Unsetenv("MICRO_TLS_INSECURE")
 			os.Unsetenv("MICRO_TLS_SECURE")
+			os.Unsetenv("MICRO_TLS_INSECURE")
+			// Suppress warning in tests
+			os.Setenv("IN_TRAVIS_CI", "yes")
+			defer os.Unsetenv("IN_TRAVIS_CI")
 
 			// Set environment variable if specified
 			if tt.envVar != "" {
