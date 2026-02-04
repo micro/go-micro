@@ -83,7 +83,7 @@ func TestSubscriberNoDuplicates(t *testing.T) {
 	// Publish a message to the topic
 	if err := memBroker.Publish(topic, &broker.Message{
 		Header: map[string]string{
-			"Micro-Topic": topic,
+			"Micro-Topic":  topic,
 			"Content-Type": "application/json",
 		},
 		Body: []byte(`{"value":"test"}`),
@@ -172,7 +172,7 @@ func TestSubscriberMultipleTopics(t *testing.T) {
 	// Publish messages to different topics
 	if err := memBroker.Publish(topic1, &broker.Message{
 		Header: map[string]string{
-			"Micro-Topic": topic1,
+			"Micro-Topic":  topic1,
 			"Content-Type": "application/json",
 		},
 		Body: []byte(`{"value":"test1"}`),
@@ -182,7 +182,7 @@ func TestSubscriberMultipleTopics(t *testing.T) {
 
 	if err := memBroker.Publish(topic2, &broker.Message{
 		Header: map[string]string{
-			"Micro-Topic": topic2,
+			"Micro-Topic":  topic2,
 			"Content-Type": "application/json",
 		},
 		Body: []byte(`{"value":"test2"}`),

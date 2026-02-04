@@ -24,7 +24,7 @@ var (
 )
 
 // Config returns a TLS config.
-// 
+//
 // BACKWARD COMPATIBILITY: By default, InsecureSkipVerify is true for compatibility
 // with existing deployments. This maintains the existing behavior to avoid breaking
 // production systems during upgrades.
@@ -48,7 +48,7 @@ func Config() *tls.Config {
 			MinVersion:         tls.VersionTLS12,
 		}
 	}
-	
+
 	// Log deprecation warning once (only if not in test environment)
 	if os.Getenv("IN_TRAVIS_CI") == "" {
 		warningOnce.Do(func() {
@@ -57,7 +57,7 @@ func Config() *tls.Config {
 				"Set MICRO_TLS_SECURE=true to enable certificate verification.")
 		})
 	}
-	
+
 	// DEPRECATED: Default remains insecure for backward compatibility
 	// This will change in v6 - please migrate to secure mode
 	return &tls.Config{

@@ -102,7 +102,7 @@ Run with sudo:
 		if err != nil {
 			return fmt.Errorf("user %s not found: %w", userName, err)
 		}
-		
+
 		// chown -R user:user /opt/micro
 		chownCmd := exec.Command("chown", "-R", fmt.Sprintf("%s:%s", u.Username, u.Username), basePath)
 		if err := chownCmd.Run(); err != nil {
@@ -181,7 +181,7 @@ func initRemote(c *cli.Context, host string) error {
 
 	// Run micro init --server on remote
 	initCmd := fmt.Sprintf("sudo micro init --server --path %s --user %s", basePath, userName)
-	
+
 	sshCmd := exec.Command("ssh", host, initCmd)
 	sshCmd.Stdout = os.Stdout
 	sshCmd.Stderr = os.Stderr

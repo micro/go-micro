@@ -183,7 +183,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 		// Use singleflight to deduplicate concurrent requests
 		val, err, _ := c.sg.Do(service, func() (interface{}, error) {
 			// Inside singleflight - only one goroutine executes this
-			
+
 			// Re-check rate limiting inside singleflight
 			// (in case another goroutine just completed a refresh)
 			c.RLock()
@@ -193,14 +193,14 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 				currentMinimumRetryInterval = DefaultMinimumRetryInterval
 			}
 			c.RUnlock()
-			
+
 			if !currentLastRefresh.IsZero() && time.Since(currentLastRefresh) < currentMinimumRetryInterval {
 				// We're being rate limited
 				// Check if we have stale cache to return
 				c.RLock()
 				cachedServices := util.Copy(c.cache[service])
 				c.RUnlock()
-				
+
 				if len(cachedServices) > 0 {
 					// Return stale cache even if expired
 					return cachedServices, nil
@@ -217,7 +217,7 @@ func (c *cache) get(service string) ([]*registry.Service, error) {
 			// Actually call the registry
 			return c.Registry.GetService(service)
 		})
-		
+
 		services, _ := val.([]*registry.Service)
 		if err != nil {
 			// check the cache

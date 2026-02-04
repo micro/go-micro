@@ -61,15 +61,15 @@ type Result struct {
 
 // Response represents the overall health response
 type Response struct {
-	Status  Status            `json:"status"`
-	Checks  []Result          `json:"checks,omitempty"`
-	Info    map[string]string `json:"info,omitempty"`
+	Status Status            `json:"status"`
+	Checks []Result          `json:"checks,omitempty"`
+	Info   map[string]string `json:"info,omitempty"`
 }
 
 var (
-	mu       sync.RWMutex
-	checks   []Check
-	info     = make(map[string]string)
+	mu             sync.RWMutex
+	checks         []Check
+	info           = make(map[string]string)
 	defaultTimeout = 5 * time.Second
 )
 

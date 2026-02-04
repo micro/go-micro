@@ -9,13 +9,13 @@
 //	func TestUserService(t *testing.T) {
 //	    h := test.NewHarness(t)
 //	    defer h.Stop()
-//	
+//
 //	    // Register your service handler
 //	    h.Register(new(UsersHandler))
-//	
+//
 //	    // Start the harness
 //	    h.Start()
-//	
+//
 //	    // Call the service
 //	    var rsp UserResponse
 //	    err := h.Call("Users.Create", &CreateRequest{Name: "Alice"}, &rsp)
@@ -186,7 +186,7 @@ func (h *Harness) Client() client.Client {
 	return h.client
 }
 
-// Server returns the test server for advanced usage  
+// Server returns the test server for advanced usage
 func (h *Harness) Server() server.Server {
 	return h.server
 }

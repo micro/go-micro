@@ -222,7 +222,6 @@ func (m *memorySubscriber) Unsubscribe() error {
 func NewMemoryBroker(opts ...Option) Broker {
 	options := NewOptions(opts...)
 
-
 	return &memoryBroker{
 		opts:        options,
 		Subscribers: make(map[string][]*memorySubscriber),

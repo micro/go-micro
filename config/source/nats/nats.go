@@ -15,7 +15,7 @@ type nats struct {
 	url    string
 	bucket string
 	key    string
-	conn   *natsgo.Conn     // store connection for lifecycle management
+	conn   *natsgo.Conn // store connection for lifecycle management
 	kv     natsgo.KeyValue
 	opts   source.Options
 }
@@ -129,7 +129,7 @@ func NewSource(opts ...source.Option) source.Source {
 		url:    config.Url,
 		bucket: bucket,
 		key:    key,
-		conn:   nc,  // store connection reference
+		conn:   nc, // store connection reference
 		kv:     kv,
 		opts:   options,
 	}

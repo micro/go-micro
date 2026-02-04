@@ -23,8 +23,8 @@ type natsBroker struct {
 	connected bool
 
 	addrs []string
-	conn  *natsp.Conn      // single connection (used when pool is disabled)
-	pool  *connectionPool  // connection pool (used when pooling is enabled)
+	conn  *natsp.Conn     // single connection (used when pool is disabled)
+	pool  *connectionPool // connection pool (used when pooling is enabled)
 	opts  broker.Options
 	nopts natsp.Options
 

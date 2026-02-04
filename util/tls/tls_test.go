@@ -7,11 +7,11 @@ import (
 
 func TestConfig(t *testing.T) {
 	tests := []struct {
-		name           string
-		envVar         string
-		envValue       string
-		wantInsecure   bool
-		description    string
+		name         string
+		envVar       string
+		envValue     string
+		wantInsecure bool
+		description  string
 	}{
 		{
 			name:         "default_insecure_for_backward_compatibility",

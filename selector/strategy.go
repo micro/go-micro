@@ -7,7 +7,6 @@ import (
 	"go-micro.dev/v5/registry"
 )
 
-
 // Random is a random strategy algorithm for node selection.
 func Random(services []*registry.Service) Next {
 	nodes := make([]*registry.Node, 0, len(services))

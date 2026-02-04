@@ -212,14 +212,14 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 	// renew the lease if it exists
 	if leaseID > 0 {
 		log.Logf(logger.TraceLevel, "Renewing existing lease for %s %d", s.Name, leaseID)
-		
+
 		// Start long-lived keepalive channel to reduce auth requests
 		// startKeepAlive checks if already running and is atomic
 		if err := e.startKeepAlive(s.Name+node.Id, leaseID); err != nil {
 			if err != rpctypes.ErrLeaseNotFound {
 				return err
 			}
-			
+
 			log.Logf(logger.TraceLevel, "Lease not found for %s %d", s.Name, leaseID)
 			// lease not found do register
 			leaseNotFound = true
@@ -306,14 +306,14 @@ func (e *etcdRegistry) Deregister(s *registry.Service, opts ...registry.Deregist
 
 	for _, node := range s.Nodes {
 		key := s.Name + node.Id
-		
+
 		e.Lock()
 		// delete our hash of the service
 		delete(e.register, key)
 		// delete our lease of the service
 		delete(e.leases, key)
 		e.Unlock()
-		
+
 		// stop keepalive goroutine
 		e.stopKeepAlive(key)
 

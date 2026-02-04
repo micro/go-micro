@@ -286,7 +286,6 @@ func (m *memoryTransport) String() string {
 func NewMemoryTransport(opts ...Option) Transport {
 	var options Options
 
-
 	for _, o := range opts {
 		o(&options)
 	}

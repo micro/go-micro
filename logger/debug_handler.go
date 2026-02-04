@@ -32,36 +32,36 @@ func (h *debugLogHandler) Enabled(_ context.Context, level slog.Level) bool {
 func (h *debugLogHandler) Handle(_ context.Context, r slog.Record) error {
 	// Build metadata from attributes
 	metadata := make(map[string]string)
-	
+
 	// Add handler's attributes
 	for _, attr := range h.attrs {
 		metadata[attr.Key] = attr.Value.String()
 	}
-	
+
 	// Add record's attributes
 	r.Attrs(func(a slog.Attr) bool {
 		metadata[a.Key] = a.Value.String()
 		return true
 	})
-	
+
 	// Add level to metadata
 	metadata["level"] = r.Level.String()
-	
+
 	// Add source if available
 	if sourcePath := extractSourceFilePath(r.PC); sourcePath != "" {
 		metadata["file"] = sourcePath
 	}
-	
+
 	// Create debug log record
 	rec := dlog.Record{
 		Timestamp: r.Time,
 		Message:   r.Message,
 		Metadata:  metadata,
 	}
-	
+
 	// Write to debug log
 	_ = dlog.DefaultLog.Write(rec)
-	
+
 	return nil
 }
 
@@ -69,7 +69,7 @@ func (h *debugLogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	newAttrs := make([]slog.Attr, len(h.attrs)+len(attrs))
 	copy(newAttrs, h.attrs)
 	copy(newAttrs[len(h.attrs):], attrs)
-	
+
 	return &debugLogHandler{
 		level: h.level,
 		attrs: newAttrs,
@@ -139,24 +139,24 @@ func extractSourceFilePath(pc uintptr) string {
 	if pc == 0 {
 		return ""
 	}
-	
+
 	fs := runtime.CallersFrames([]uintptr{pc})
 	f, _ := fs.Next()
 	if f.File == "" {
 		return ""
 	}
-	
+
 	// Extract just filename, not full path
 	idx := strings.LastIndexByte(f.File, '/')
 	if idx == -1 {
 		return fmt.Sprintf("%s:%d", f.File, f.Line)
 	}
-	
+
 	// Get package/file:line
 	idx2 := strings.LastIndexByte(f.File[:idx], '/')
 	if idx2 == -1 {
 		return fmt.Sprintf("%s:%d", f.File[idx+1:], f.Line)
 	}
-	
+
 	return fmt.Sprintf("%s:%d", f.File[idx2+1:], f.Line)
 }

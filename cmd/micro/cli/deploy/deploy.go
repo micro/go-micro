@@ -334,9 +334,9 @@ func copyBinaries(target, binDir, remotePath string) error {
 		exitErr, ok := err.(*exec.ExitError)
 		if ok && (exitErr.ExitCode() == 23 || exitErr.ExitCode() == 24) {
 			// Check if it's just permission warnings on metadata, not actual file transfer failures
-			if !strings.Contains(outputStr, "Permission denied (13)") || 
-			   strings.Contains(outputStr, "failed to set times") ||
-			   strings.Contains(outputStr, "chgrp") {
+			if !strings.Contains(outputStr, "Permission denied (13)") ||
+				strings.Contains(outputStr, "failed to set times") ||
+				strings.Contains(outputStr, "chgrp") {
 				// These are acceptable warnings
 				return nil
 			}

@@ -49,7 +49,7 @@ func NewStream(opts ...Option) (events.Stream, error) {
 
 type stream struct {
 	opts             Options
-	conn             *nats.Conn           // store connection for lifecycle management
+	conn             *nats.Conn // store connection for lifecycle management
 	natsJetStreamCtx nats.JetStreamContext
 }
 

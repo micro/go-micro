@@ -13,7 +13,7 @@ import (
 
 // Config represents the micro run configuration
 type Config struct {
-	Services map[string]*Service         `json:"services"`
+	Services map[string]*Service          `json:"services"`
 	Envs     map[string]map[string]string `json:"env"`
 	Deploy   map[string]*DeployTarget     `json:"deploy"`
 }

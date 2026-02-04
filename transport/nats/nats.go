@@ -19,7 +19,7 @@ type ntport struct {
 	addrs           []string
 	opts            transport.Options
 	nopts           nats.Options
-	pool            *connectionPool  // connection pool for clients
+	pool            *connectionPool // connection pool for clients
 	poolSize        int
 	poolIdleTimeout time.Duration
 	mu              sync.RWMutex
@@ -27,8 +27,8 @@ type ntport struct {
 
 type ntportClient struct {
 	conn       *nats.Conn
-	pooledConn *pooledConnection  // reference to pooled connection if using pool
-	pool       *connectionPool    // reference to pool to return connection on close
+	pooledConn *pooledConnection // reference to pooled connection if using pool
+	pool       *connectionPool   // reference to pool to return connection on close
 	addr       string
 	id         string
 	local      string

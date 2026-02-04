@@ -73,7 +73,7 @@ func TestSSEBroadcaster_BroadcastEvent(t *testing.T) {
 
 	// Read and verify
 	reader := bufio.NewReader(resp.Body)
-	
+
 	// Skip connection event
 	for i := 0; i < 3; i++ {
 		reader.ReadString('\n')
@@ -88,7 +88,7 @@ func TestSSEBroadcaster_BroadcastEvent(t *testing.T) {
 	// Parse the data
 	dataStr := strings.TrimPrefix(line, "data: ")
 	dataStr = strings.TrimSpace(dataStr)
-	
+
 	var event SSEEvent
 	if err := json.Unmarshal([]byte(dataStr), &event); err != nil {
 		t.Fatalf("Failed to parse event: %v", err)
