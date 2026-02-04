@@ -19,15 +19,23 @@ Be respectful, inclusive, and collaborative. We're all here to build great softw
 # Install dependencies
 go mod download
 
+# Install development tools
+make install-tools
+
 # Run tests
-go test ./...
+make test
 
-# Run tests with coverage
-go test -race -coverprofile=coverage.out ./...
+# Run tests with race detector and coverage
+make test-coverage
 
-# Run linter (install golangci-lint first)
-golangci-lint run
+# Run linter
+make lint
+
+# Format code
+make fmt
 ```
+
+See `make help` for all available commands.
 
 ## Making Changes
 

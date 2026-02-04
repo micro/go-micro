@@ -30,6 +30,7 @@ _cgo_export.*
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage.html
 
 # vim temp files
 *~
@@ -39,3 +40,10 @@ _cgo_export.*
 # go work files
 go.work
 go.work.sum
+
+# Build artifacts
+dist/
+bin/
+
+# IDE-specific files
+.DS_Store

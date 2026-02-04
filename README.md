@@ -211,11 +211,19 @@ Docs: [`internal/website/docs`](internal/website/docs)
 
 Package reference: https://pkg.go.dev/go-micro.dev/v5
 
-Selected topics:
-- Getting Started: [`internal/website/docs/getting-started.md`](internal/website/docs/getting-started.md)
-- Plugins overview: [`internal/website/docs/plugins.md`](internal/website/docs/plugins.md)
-- Learn by Example: [`internal/website/docs/examples/index.md`](internal/website/docs/examples/index.md)
-- Performance Considerations: [`internal/website/docs/performance.md`](internal/website/docs/performance.md)
+**User Guides:**
+- [Getting Started](internal/website/docs/getting-started.md)
+- [Plugins Overview](internal/website/docs/plugins.md)
+- [Learn by Example](internal/website/docs/examples/index.md)
+- [Deployment Guide](internal/website/docs/deployment.md)
+
+**Architecture & Performance:**
+- [Performance Considerations](internal/website/docs/performance.md)
+- [Reflection Usage & Philosophy](internal/website/docs/REFLECTION-EVALUATION-SUMMARY.md)
+
+**Security:**
+- [TLS Security Migration](internal/website/docs/TLS_SECURITY_UPDATE.md)
+- [Security Migration Guide](internal/website/docs/SECURITY_MIGRATION.md)
 
 ## Adopters
 
