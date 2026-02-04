@@ -21,26 +21,12 @@ cd hello-world
 go run .
 ```
 
-### [pubsub-events](./pubsub-events/)
-Event-driven architecture with NATS:
-- Publishing events
-- Subscribing to topics
-- Event handlers
-- Asynchronous processing
-
-**Run it:**
-```bash
-cd pubsub-events
-go run publisher/main.go  # Terminal 1
-go run subscriber/main.go # Terminal 2
-```
-
 ### [web-service](./web-service/)
 HTTP web service with service discovery:
 - HTTP handlers
 - Service registration
 - Health checks
-- Static file serving
+- JSON REST API
 
 **Run it:**
 ```bash
@@ -48,35 +34,13 @@ cd web-service
 go run .
 ```
 
-### [grpc-integration](./grpc-integration/)
-Using go-micro with gRPC:
-- Protocol buffer definitions
-- gRPC client/server
-- Code generation
-- Type-safe APIs
+## Coming Soon
 
-**Run it:**
-```bash
-cd grpc-integration
-make proto  # Generate code
-go run server/main.go  # Terminal 1
-go run client/main.go  # Terminal 2
-```
+The following examples are planned:
 
-### [production-ready](./production-ready/)
-Complete production-grade service:
-- Structured logging
-- Metrics and tracing
-- Health checks
-- Graceful shutdown
-- Configuration management
-- Error handling
-
-**Run it:**
-```bash
-cd production-ready
-go run .
-```
+- **pubsub-events** - Event-driven architecture with NATS
+- **grpc-integration** - Using go-micro with gRPC
+- **production-ready** - Complete production-grade service with observability
 
 ## Prerequisites
 
