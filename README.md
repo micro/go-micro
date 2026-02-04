@@ -203,7 +203,7 @@ micro logs myservice --remote user@server -f  # Follow specific service
 
 No Docker required. No Kubernetes. Just systemd.
 
-See [docs/deployment.md](docs/deployment.md) for full deployment guide.
+See [internal/website/docs/deployment.md](internal/website/docs/deployment.md) for full deployment guide.
 
 See [cmd/micro/README.md](cmd/micro/README.md) for full CLI documentation.
 

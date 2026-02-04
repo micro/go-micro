@@ -338,7 +338,7 @@ micro logs myservice --remote user@server -f
 micro stop myservice --remote user@server
 ```
 
-See [docs/deployment.md](../../docs/deployment.md) for the full deployment guide.
+See [internal/website/docs/deployment.md](../../internal/website/docs/deployment.md) for the full deployment guide.
 
 ## Protobuf 
 
