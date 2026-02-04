@@ -11,7 +11,6 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/cmd"
-	"go-micro.dev/v5/genai"
 )
 
 var handlerTemplate = `package handler
@@ -191,38 +190,6 @@ func generateModel(c *cli.Context) error {
 	return generateFile("model", strings.ToLower(name)+".go", modelTemplate, data)
 }
 
-func generateWithAI(c *cli.Context) error {
-	prompt := c.Args().First()
-	if prompt == "" {
-		return fmt.Errorf("description required: micro generate ai <description>")
-	}
-
-	gen := genai.DefaultGenAI
-	if gen.String() == "noop" {
-		return fmt.Errorf("no AI provider configured. Set OPENAI_API_KEY or GEMINI_API_KEY")
-	}
-
-	aiPrompt := fmt.Sprintf(`Generate Go code for a micro service handler based on this description: %s
-
-Use the go-micro.dev/v5 framework. Include:
-- Proper imports
-- Handler struct with methods
-- Context handling
-- Logging with go-micro.dev/v5/logger
-- Error handling
-
-Only output the Go code, no explanations.`, prompt)
-
-	ctx := context.Background()
-	res, err := gen.Generate(ctx, aiPrompt)
-	if err != nil {
-		return fmt.Errorf("AI generation failed: %w", err)
-	}
-
-	fmt.Println(res.Text)
-	return nil
-}
-
 func generateFile(dir, filename, tmplStr string, data interface{}) error {
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -300,11 +267,6 @@ func init() {
 				Name:   "model",
 				Usage:  "Generate a model: micro g model <name>",
 				Action: generateModel,
-			},
-			{
-				Name:   "ai",
-				Usage:  "Generate code using AI: micro g ai <description>",
-				Action: generateWithAI,
 			},
 		},
 	})

@@ -108,10 +108,6 @@ curl -XPOST \
       http://localhost:8080
 ```
 
-## Experimental
-
-There's a new `genai` package for generative AI capabilities.
-
 ## Protobuf
 
 Install the code generator and see usage in the docs:

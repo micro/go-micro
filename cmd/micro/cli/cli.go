@@ -11,7 +11,6 @@ import (
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/codec/bytes"
-	"go-micro.dev/v5/genai"
 	"go-micro.dev/v5/registry"
 
 	"go-micro.dev/v5/cmd/micro/cli/new"
@@ -37,27 +36,6 @@ func genProtoHandler(c *cli.Context) error {
 	return cmd.Run()
 }
 
-func genTextHandler(c *cli.Context) error {
-	prompt := c.String("prompt")
-	if len(prompt) == 0 {
-		return nil
-	}
-
-	gen := genai.DefaultGenAI
-	if gen.String() == "noop" {
-		return nil
-	}
-
-	ctx := context.Background()
-	res, err := gen.Generate(ctx, prompt)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(res.Text)
-	return nil
-}
-
 func init() {
 	cmd.Register([]*cli.Command{
 		{
@@ -69,18 +47,6 @@ func init() {
 			Name:  "gen",
 			Usage: "Generate various things",
 			Subcommands: []*cli.Command{
-				{
-					Name:   "text",
-					Usage:  "Generate text via an LLM",
-					Action: genTextHandler,
-					Flags: []cli.Flag{
-						&cli.StringFlag{
-							Name:    "prompt",
-							Aliases: []string{"p"},
-							Usage:   "The prompt to generate text from",
-						},
-					},
-				},
 				{
 					Name:   "proto",
 					Usage:  "Generate proto requires protoc and protoc-gen-micro",
