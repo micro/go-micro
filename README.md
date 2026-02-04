@@ -215,7 +215,7 @@ Selected topics:
 - Getting Started: [`internal/website/docs/getting-started.md`](internal/website/docs/getting-started.md)
 - Plugins overview: [`internal/website/docs/plugins.md`](internal/website/docs/plugins.md)
 - Learn by Example: [`internal/website/docs/examples/index.md`](internal/website/docs/examples/index.md)
-- Performance Considerations: [`docs/performance.md`](docs/performance.md)
+- Performance Considerations: [`internal/website/docs/performance.md`](internal/website/docs/performance.md)
 
 ## Adopters
 

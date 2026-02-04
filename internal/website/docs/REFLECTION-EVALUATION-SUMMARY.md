@@ -67,7 +67,7 @@ go-micro serves a different use case: **rapid development with minimal boilerpla
 
 ## Deliverables
 
-1. **[docs/reflection-removal-analysis.md](reflection-removal-analysis.md)**
+1. **[reflection-removal-analysis.md](reflection-removal-analysis.md)**
    - 16KB technical deep-dive
    - Code examples showing current reflection usage
    - Comparison with psrpc architecture
@@ -75,7 +75,7 @@ go-micro serves a different use case: **rapid development with minimal boilerpla
    - Performance measurements
    - Recommendation with rationale
 
-2. **[docs/performance.md](performance.md)**
+2. **[performance.md](performance.md)**
    - 6KB user-facing guide
    - When reflection matters (rarely)
    - Performance best practices
@@ -111,8 +111,8 @@ go-micro serves a different use case: **rapid development with minimal boilerpla
 >    - Direct use of transport layer
 > 
 > **Documentation added**:
-> - [docs/reflection-removal-analysis.md](../docs/reflection-removal-analysis.md) - Detailed technical analysis
-> - [docs/performance.md](../docs/performance.md) - Performance best practices and when to consider alternatives
+> - [reflection-removal-analysis.md](reflection-removal-analysis.md) - Detailed technical analysis
+> - [performance.md](performance.md) - Performance best practices and when to consider alternatives
 > 
 > **Recommendation**: Keep reflection as a deliberate architectural choice that enables go-micro's simplicity and developer productivity. Profile before optimizing, and consider code-generation-based alternatives (gRPC/psrpc) only if profiling proves reflection is genuinely a bottleneck.
 >

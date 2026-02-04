@@ -514,6 +514,6 @@ Reflection introduces these allocations per request:
 >
 > **Recommendation**: Keep reflection as a deliberate design choice. For users needing maximum performance, recommend profiling first and considering gRPC/psrpc if code generation is acceptable.
 >
-> See detailed analysis: [docs/reflection-removal-analysis.md](docs/reflection-removal-analysis.md)
+> See detailed analysis: [reflection-removal-analysis.md](reflection-removal-analysis.md)
 >
 > Closing as "won't fix" - reflection is an intentional architectural decision that enables go-micro's simplicity and flexibility.
