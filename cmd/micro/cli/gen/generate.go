@@ -2,7 +2,6 @@
 package gen
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
