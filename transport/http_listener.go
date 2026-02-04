@@ -29,14 +29,13 @@ func (h *httpTransportListener) Close() error {
 
 func (h *httpTransportListener) Accept(fn func(Socket)) error {
 	// Create handler mux
-	// TODO: see if we should make a plugin out of the mux
 	mux := http.NewServeMux()
 
 	// Register our transport handler
 	mux.HandleFunc("/", h.newHandler(fn))
 
-	// Get optional handlers
-	// TODO: This needs to be documented clearer, and examples provided
+	// Get optional handlers from context.
+	// See examples/web-service for usage.
 	if h.ht.opts.Context != nil {
 		handlers, ok := h.ht.opts.Context.Value("http_handlers").(map[string]http.Handler)
 		if ok {

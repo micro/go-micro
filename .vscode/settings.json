@@ -1,0 +1,137 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "go.toolsManagement.autoUpdate": true,
+    "go.useLanguageServer": true,
+    "go.lintOnSave": "workspace",
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": [
+      "--fast"
+    ],
+    "go.formatTool": "goimports",
+    "go.formatFlags": [],
+    "go.buildOnSave": "workspace",
+    "go.testOnSave": false,
+    "go.coverOnSave": false,
+    "go.testFlags": ["-v", "-race"],
+    "go.testTimeout": "60s",
+    "go.gopath": "",
+    "go.goroot": "",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "files.exclude": {
+      "**/.git": true,
+      "**/.DS_Store": true,
+      "**/node_modules": true,
+      "**/*.test": true,
+      "**/coverage.out": true,
+      "**/coverage.html": true
+    },
+    "files.watcherExclude": {
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/node_modules/**": true,
+      "**/.vscode/**": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/bower_components": true,
+      "**/*.code-search": true,
+      "**/vendor": true,
+      "**/.git": true
+    },
+    "[go]": {
+      "editor.tabSize": 4,
+      "editor.insertSpaces": false,
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "golang.go"
+    },
+    "[go.mod]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "golang.go"
+    },
+    "[markdown]": {
+      "editor.formatOnSave": false,
+      "editor.wordWrap": "on"
+    },
+    "gopls": {
+      "ui.semanticTokens": true,
+      "ui.completion.usePlaceholders": true,
+      "formatting.gofumpt": false,
+      "analyses": {
+        "unusedparams": true,
+        "shadow": true,
+        "fieldalignment": false
+      }
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "golang.go",
+      "editorconfig.editorconfig",
+      "redhat.vscode-yaml",
+      "ms-vscode.makefile-tools"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Run Tests",
+        "type": "shell",
+        "command": "make test",
+        "group": {
+          "kind": "test",
+          "isDefault": true
+        },
+        "presentation": {
+          "reveal": "always",
+          "panel": "new"
+        }
+      },
+      {
+        "label": "Run Tests with Coverage",
+        "type": "shell",
+        "command": "make test-coverage",
+        "group": "test"
+      },
+      {
+        "label": "Run Linter",
+        "type": "shell",
+        "command": "make lint",
+        "group": "build"
+      },
+      {
+        "label": "Format Code",
+        "type": "shell",
+        "command": "make fmt",
+        "group": "build"
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Current File",
+        "type": "go",
+        "request": "launch",
+        "mode": "debug",
+        "program": "${file}"
+      },
+      {
+        "name": "Debug Test",
+        "type": "go",
+        "request": "launch",
+        "mode": "test",
+        "program": "${workspaceFolder}"
+      }
+    ]
+  }
+}

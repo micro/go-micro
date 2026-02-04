@@ -91,6 +91,10 @@ go test -v ./...
 
 # Run specific test
 go test -run TestMyFunction ./pkg/...
+
+# Optional: Use richgo for colored output
+go install github.com/kyoh86/richgo@latest
+richgo test -v ./...
 ```
 
 ### Documentation

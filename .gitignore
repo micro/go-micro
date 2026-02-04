@@ -1,7 +1,10 @@
 # Develop tools
-/.vscode/
 /.idea/
 /.trunk
+
+# VS Code workspace files (keep settings for consistency)
+/.vscode/*
+!/.vscode/settings.json
 
 # Binaries for programs and plugins
 *.exe

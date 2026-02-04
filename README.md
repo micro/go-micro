@@ -108,6 +108,14 @@ curl -XPOST \
       http://localhost:8080
 ```
 
+## Examples
+
+Check out [/examples](examples/) for runnable code:
+- [hello-world](examples/hello-world/) - Basic RPC service
+- [web-service](examples/web-service/) - HTTP REST API
+
+See [all examples](examples/README.md) for more.
+
 ## Protobuf
 
 Install the code generator and see usage in the docs:

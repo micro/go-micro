@@ -11,11 +11,11 @@ The `testing` package provides utilities for testing micro services in isolation
 ```go
 import (
     "testing"
-    microtesting "go-micro.dev/v5/testing"
+    "go-micro.dev/v5/test"
 )
 
 func TestGreeter(t *testing.T) {
-    h := microtesting.NewHarness(t)
+    h := test.NewHarness(t)
     defer h.Stop()
 
     h.Name("greeter").Register(new(GreeterHandler))
@@ -47,7 +47,7 @@ This allows your service to run without affecting or being affected by other ser
 ### Creating a Harness
 
 ```go
-h := microtesting.NewHarness(t)
+h := test.NewHarness(t)
 defer h.Stop()  // Always stop to clean up
 ```
 
@@ -103,7 +103,7 @@ package users
 import (
     "context"
     "testing"
-    microtesting "go-micro.dev/v5/testing"
+    "go-micro.dev/v5/test"
 )
 
 type UsersHandler struct {
@@ -131,7 +131,7 @@ func (h *UsersHandler) Create(ctx context.Context, req *CreateRequest, rsp *Crea
 }
 
 func TestUsersCreate(t *testing.T) {
-    h := microtesting.NewHarness(t)
+    h := test.NewHarness(t)
     defer h.Stop()
 
     handler := &UsersHandler{users: make(map[string]*User)}

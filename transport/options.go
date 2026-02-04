@@ -39,9 +39,8 @@ type Options struct {
 }
 
 type DialOptions struct {
-
-	// TODO: add tls options when dialing
-	// Currently set in global options
+	// TLS options can be set via global transport options or Context.
+	// See SECURITY.md for TLS configuration best practices.
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -58,8 +57,8 @@ type DialOptions struct {
 }
 
 type ListenOptions struct {
-	// TODO: add tls options when listening
-	// Currently set in global options
+	// TLS options can be set via global transport options or Context.
+	// See SECURITY.md for TLS configuration best practices.
 
 	// Other options for implementations of the interface
 	// can be stored in a context

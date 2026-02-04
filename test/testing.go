@@ -1,4 +1,4 @@
-// Package testing provides utilities for testing micro services.
+// Package test provides utilities for testing micro services.
 //
 // Due to go-micro's global defaults, running multiple services in one process
 // requires careful isolation. This package provides helpers for the common case
@@ -7,7 +7,7 @@
 // Basic usage:
 //
 //	func TestUserService(t *testing.T) {
-//	    h := testing.NewHarness(t)
+//	    h := test.NewHarness(t)
 //	    defer h.Stop()
 //	
 //	    // Register your service handler
@@ -23,7 +23,7 @@
 //	        t.Fatal(err)
 //	    }
 //	}
-package testing
+package test
 
 import (
 	"context"

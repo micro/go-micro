@@ -26,19 +26,26 @@ A clear and concise description of what you expected to happen.
 
 ## Environment
 - Go Micro version: [e.g. v5.3.0]
-- Go version: [e.g. 1.21.0]
-- OS: [e.g. Ubuntu 22.04]
-- Plugins used: [e.g. consul registry, nats broker]
+- Go version: [run `go version`]
+- OS/Platform: [e.g. Ubuntu 22.04, macOS 14, Docker]
+- Plugins/Integrations: [e.g. consul registry, nats broker, redis cache]
 
 ## Logs
 ```
-Paste relevant logs here
+Paste relevant logs here (use -v flag for verbose output)
 ```
+
+## Checklist
+- [ ] I've searched existing issues and this is not a duplicate
+- [ ] I've provided a minimal code sample that reproduces the issue
+- [ ] I've included my environment details
+- [ ] I've checked the documentation
 
 ## Additional context
 Add any other context about the problem here.
 
-## Resources
-- [Documentation](https://github.com/micro/go-micro/tree/master/internal/website/docs)
-- [Examples](https://github.com/micro/go-micro/tree/master/internal/website/docs/examples)
+## Helpful Resources
+- [Troubleshooting Guide](https://github.com/micro/go-micro/tree/master/internal/website/docs/getting-started.md)
+- [Examples](https://github.com/micro/go-micro/tree/master/examples)
 - [API Reference](https://pkg.go.dev/go-micro.dev/v5)
+- [Discord Community](https://discord.gg/jwTYuUVAGh)
