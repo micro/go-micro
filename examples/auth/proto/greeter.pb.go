@@ -6,9 +6,9 @@ package greeter
 import (
 	context "context"
 	fmt "fmt"
-	proto "google.golang.org/protobuf/proto"
 	client "go-micro.dev/v5/client"
 	server "go-micro.dev/v5/server"
+	proto "google.golang.org/protobuf/proto"
 	math "math"
 )
 
