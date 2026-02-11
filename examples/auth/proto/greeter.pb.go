@@ -18,7 +18,7 @@ type Request struct {
 }
 
 func (m *Request) Reset()         { *m = Request{} }
-func (m *Request) String() string { return fmt.Sprintf("%+v", m) }
+func (m *Request) String() string { return fmt.Sprintf("Request{Name:%s}", m.Name) }
 func (*Request) ProtoMessage()    {}
 
 func (m *Request) GetName() string {
@@ -33,7 +33,7 @@ type Response struct {
 }
 
 func (m *Response) Reset()         { *m = Response{} }
-func (m *Response) String() string { return fmt.Sprintf("%+v", m) }
+func (m *Response) String() string { return fmt.Sprintf("Response{Msg:%s}", m.Msg) }
 func (*Response) ProtoMessage()    {}
 
 func (m *Response) GetMsg() string {
@@ -46,7 +46,7 @@ func (m *Response) GetMsg() string {
 type HealthRequest struct{}
 
 func (m *HealthRequest) Reset()         { *m = HealthRequest{} }
-func (m *HealthRequest) String() string { return fmt.Sprintf("%+v", m) }
+func (m *HealthRequest) String() string { return "HealthRequest{}" }
 func (*HealthRequest) ProtoMessage()    {}
 
 type HealthResponse struct {
@@ -54,7 +54,7 @@ type HealthResponse struct {
 }
 
 func (m *HealthResponse) Reset()         { *m = HealthResponse{} }
-func (m *HealthResponse) String() string { return fmt.Sprintf("%+v", m) }
+func (m *HealthResponse) String() string { return fmt.Sprintf("HealthResponse{Status:%s}", m.Status) }
 func (*HealthResponse) ProtoMessage()    {}
 
 func (m *HealthResponse) GetStatus() string {

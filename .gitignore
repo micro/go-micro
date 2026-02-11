@@ -48,6 +48,10 @@ go.work.sum
 dist/
 bin/
 
+# Example binaries (go build in examples/)
+examples/**/server/server
+examples/**/client/client
+
 # IDE-specific files
 .DS_Store
 micro
