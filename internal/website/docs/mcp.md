@@ -3,6 +3,8 @@ layout: default
 title: MCP Gateway
 ---
 
+# MCP Gateway
+
 The MCP (Model Context Protocol) gateway automatically exposes your go-micro services as AI-accessible tools.
 
 ### Features
