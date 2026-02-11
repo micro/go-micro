@@ -119,10 +119,10 @@ This will auto-generate a token for testing.
 ### Server Setup
 
 ```go
-// 1. Create auth provider (JWT in production, noop for testing)
-authProvider, err := jwt.NewAuth(
-    auth.Issuer("go-micro"),
-)
+// 1. Create auth provider
+// For this example we use the noop auth (accepts all tokens)
+// In production, use JWT or a custom auth provider
+authProvider := noop.NewAuth()
 
 // 2. Create authorization rules
 rules := auth.NewRules()
@@ -279,7 +279,9 @@ rules.Grant(&auth.Rule{
 You can test auth logic without a running server:
 
 ```go
-// Create auth provider
+import "go-micro.dev/v5/auth/noop"
+
+// Create auth provider (noop for testing)
 authProvider := noop.NewAuth()
 
 // Generate account
@@ -290,30 +292,34 @@ token, _ := authProvider.Token(auth.WithCredentials(acc.ID, acc.Secret))
 
 // Verify token
 verified, _ := authProvider.Inspect(token.AccessToken)
-fmt.Println(verified.ID) // "test-user"
+fmt.Println(verified.ID) // Returns a generated UUID
 ```
 
 ## Production Considerations
 
-### 1. Use JWT Auth (Not Noop)
+### 1. Use Production Auth Provider
+
+The noop auth provider (`auth.NewAuth()`) is for development only. It accepts any token.
+
+For production, implement a proper auth provider or use the JWT implementation:
 
 ```go
-authProvider, err := jwt.NewAuth(
-    auth.Issuer("your-company"),
-    auth.Store(store), // Persistent store for keys
-)
-```
+// Option 1: Implement custom auth.Auth interface
+type MyAuth struct {
+    // Your implementation
+}
 
-### 2. Load Keys from Files
+func (m *MyAuth) Generate(id string, opts ...auth.GenerateOption) (*auth.Account, error) {
+    // Generate real accounts
+}
 
-```go
-privateKey, _ := os.ReadFile("/etc/secrets/jwt-private.pem")
-publicKey, _ := os.ReadFile("/etc/secrets/jwt-public.pem")
+func (m *MyAuth) Inspect(token string) (*auth.Account, error) {
+    // Verify real tokens (JWT, OAuth, etc.)
+}
 
-authProvider, err := jwt.NewAuth(
-    auth.PrivateKey(string(privateKey)),
-    auth.PublicKey(string(publicKey)),
-)
+// Option 2: Use JWT auth (requires jwt package implementation)
+// Note: The jwt package in auth/jwt depends on an external plugin
+// You may need to implement your own JWT auth or use a third-party library
 ```
 
 ### 3. Add Gateway Auth

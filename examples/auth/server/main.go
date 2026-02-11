@@ -6,9 +6,7 @@ import (
 
 	"go-micro.dev/v5"
 	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/auth/jwt"
 	"go-micro.dev/v5/auth/noop"
-	"go-micro.dev/v5/server"
 	authWrapper "go-micro.dev/v5/wrapper/auth"
 
 	pb "go-micro.dev/v5/examples/auth/proto"
@@ -37,19 +35,9 @@ func (g *Greeter) Health(ctx context.Context, req *pb.HealthRequest, rsp *pb.Hea
 }
 
 func main() {
-	// Create auth provider (use JWT in production, noop for testing)
-	var authProvider auth.Auth
-	var err error
-
-	// Try JWT with RSA keys (production)
-	authProvider, err = jwt.NewAuth(
-		auth.Issuer("go-micro"),
-		auth.Store(nil), // Use default store
-	)
-	if err != nil {
-		log.Printf("JWT auth failed, falling back to noop: %v", err)
-		authProvider = noop.NewAuth()
-	}
+	// Create auth provider (noop for this example)
+	// In production, use JWT or custom auth provider
+	authProvider := noop.NewAuth()
 
 	// Create authorization rules
 	rules := auth.NewRules()

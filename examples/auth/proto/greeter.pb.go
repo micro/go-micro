@@ -8,21 +8,17 @@ import (
 	fmt "fmt"
 	client "go-micro.dev/v5/client"
 	server "go-micro.dev/v5/server"
-	proto "google.golang.org/protobuf/proto"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto.Marshal
 var _ = fmt.Errorf
-var _ = math.Inf
 
 type Request struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 }
 
 func (m *Request) Reset()         { *m = Request{} }
-func (m *Request) String() string { return proto.CompactTextString(m) }
+func (m *Request) String() string { return fmt.Sprintf("%+v", m) }
 func (*Request) ProtoMessage()    {}
 
 func (m *Request) GetName() string {
@@ -37,7 +33,7 @@ type Response struct {
 }
 
 func (m *Response) Reset()         { *m = Response{} }
-func (m *Response) String() string { return proto.CompactTextString(m) }
+func (m *Response) String() string { return fmt.Sprintf("%+v", m) }
 func (*Response) ProtoMessage()    {}
 
 func (m *Response) GetMsg() string {
@@ -50,7 +46,7 @@ func (m *Response) GetMsg() string {
 type HealthRequest struct{}
 
 func (m *HealthRequest) Reset()         { *m = HealthRequest{} }
-func (m *HealthRequest) String() string { return proto.CompactTextString(m) }
+func (m *HealthRequest) String() string { return fmt.Sprintf("%+v", m) }
 func (*HealthRequest) ProtoMessage()    {}
 
 type HealthResponse struct {
@@ -58,7 +54,7 @@ type HealthResponse struct {
 }
 
 func (m *HealthResponse) Reset()         { *m = HealthResponse{} }
-func (m *HealthResponse) String() string { return proto.CompactTextString(m) }
+func (m *HealthResponse) String() string { return fmt.Sprintf("%+v", m) }
 func (*HealthResponse) ProtoMessage()    {}
 
 func (m *HealthResponse) GetStatus() string {
@@ -69,10 +65,7 @@ func (m *HealthResponse) GetStatus() string {
 }
 
 func init() {
-	proto.RegisterType((*Request)(nil), "greeter.Request")
-	proto.RegisterType((*Response)(nil), "greeter.Response")
-	proto.RegisterType((*HealthRequest)(nil), "greeter.HealthRequest")
-	proto.RegisterType((*HealthResponse)(nil), "greeter.HealthResponse")
+	// Types registered
 }
 
 // Reference imports to suppress errors if they are not otherwise used.

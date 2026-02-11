@@ -8,7 +8,6 @@ import (
 
 	"go-micro.dev/v5"
 	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/auth/jwt"
 	"go-micro.dev/v5/auth/noop"
 	"go-micro.dev/v5/client"
 	authWrapper "go-micro.dev/v5/wrapper/auth"
@@ -21,17 +20,7 @@ func main() {
 	token := os.Getenv("TOKEN")
 
 	// Create auth provider (same as server)
-	var authProvider auth.Auth
-	var err error
-
-	authProvider, err = jwt.NewAuth(
-		auth.Issuer("go-micro"),
-		auth.Store(nil),
-	)
-	if err != nil {
-		log.Printf("JWT auth failed, falling back to noop: %v", err)
-		authProvider = noop.NewAuth()
-	}
+	authProvider := noop.NewAuth()
 
 	// If no token provided, generate one
 	if token == "" {
