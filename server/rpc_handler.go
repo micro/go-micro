@@ -26,6 +26,24 @@ func NewRpcHandler(handler interface{}, opts ...HandlerOption) Handler {
 	hdlr := reflect.ValueOf(handler)
 	name := reflect.Indirect(hdlr).Type().Name()
 
+	// Auto-extract documentation from Go doc comments
+	autoMetadata := extractHandlerDocs(handler)
+
+	// Merge auto-extracted metadata with manually provided metadata
+	// Manual metadata takes precedence over auto-extracted
+	for endpoint, meta := range autoMetadata {
+		fullName := name + "." + endpoint
+		if options.Metadata[fullName] == nil {
+			options.Metadata[fullName] = make(map[string]string)
+		}
+		// Only add auto-extracted values if not manually provided
+		for k, v := range meta {
+			if _, exists := options.Metadata[fullName][k]; !exists {
+				options.Metadata[fullName][k] = v
+			}
+		}
+	}
+
 	var endpoints []*registry.Endpoint
 
 	for m := 0; m < typ.NumMethod(); m++ {

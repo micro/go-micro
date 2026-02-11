@@ -138,13 +138,30 @@ func (s *Server) discoverServices() error {
 			// Build input schema from endpoint request type
 			inputSchema := s.buildInputSchema(ep.Request)
 
-			s.tools[toolName] = &Tool{
+			// Get description from endpoint metadata (set by service during registration)
+			description := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
+			if ep.Metadata != nil {
+				if desc, ok := ep.Metadata["description"]; ok && desc != "" {
+					description = desc
+				}
+			}
+
+			tool := &Tool{
 				Name:        toolName,
-				Description: fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name),
+				Description: description,
 				InputSchema: inputSchema,
 				Service:     svc.Name,
 				Endpoint:    ep.Name,
 			}
+
+			// Add example from metadata if available
+			if ep.Metadata != nil {
+				if example, ok := ep.Metadata["example"]; ok && example != "" {
+					inputSchema["examples"] = []string{example}
+				}
+			}
+
+			s.tools[toolName] = tool
 		}
 	}
 

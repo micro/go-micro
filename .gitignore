@@ -51,6 +51,8 @@ bin/
 # Example binaries (go build in examples/)
 examples/**/server/server
 examples/**/client/client
+examples/mcp/documented/documented
+examples/mcp/hello/hello
 
 # IDE-specific files
 .DS_Store

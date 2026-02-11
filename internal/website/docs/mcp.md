@@ -1,191 +1,151 @@
----
-layout: default
-title: MCP Gateway
----
+# Model Context Protocol (MCP)
 
-# MCP Gateway
+Go Micro provides built-in support for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/), enabling AI agents like Claude to discover and interact with your microservices as tools.
 
-The MCP (Model Context Protocol) gateway automatically exposes your go-micro services as AI-accessible tools.
+## Overview
 
-### Features
+MCP gateway automatically exposes your microservices as AI-accessible tools through:
+- **Automatic service discovery** via the registry
+- **Dynamic tool generation** from service endpoints
+- **Stdio transport** for local AI tools (Claude Code, etc.)
+- **HTTP/SSE transport** for web-based agents
+- **Automatic documentation extraction** from Go comments
 
-- **Automatic Service Discovery**: Queries the registry and exposes all service endpoints as MCP tools
-- **Dynamic Updates**: Watches for service changes and updates tool list automatically
-- **Multiple Transports**: Supports both stdio (for Claude Code) and HTTP/SSE (for web clients)
-- **Zero Configuration**: Works out of the box with your existing services
-- **Type-Safe**: Converts service schemas to JSON Schema for MCP
+## Quick Start
 
-### Quick Start
+### 1. Add Documentation to Your Service
 
-#### Add to Existing Service
+Simply write Go doc comments on your handler methods:
 
 ```go
 package main
 
 import (
+    "context"
     "go-micro.dev/v5"
-    "go-micro.dev/v5/gateway/mcp"
 )
 
+type GreeterService struct{}
+
+// SayHello greets a person by name. Returns a friendly greeting message.
+//
+// @example {"name": "Alice"}
+func (g *GreeterService) SayHello(ctx context.Context, req *HelloRequest, rsp *HelloResponse) error {
+    rsp.Message = "Hello " + req.Name
+    return nil
+}
+
+type HelloRequest struct {
+    Name string `json:"name" description:"Person's name to greet"`
+}
+
+type HelloResponse struct {
+    Message string `json:"message" description:"Greeting message"`
+}
+
 func main() {
-    service := micro.NewService(micro.Name("myservice"))
+    service := micro.NewService(
+        micro.Name("greeter"),
+    )
+
     service.Init()
 
-    // Add MCP gateway in 3 lines
-    go mcp.Serve(mcp.Options{
-        Registry: service.Options().Registry,
-        Address:  ":3000",
-    })
+    // Register handler - docs extracted automatically from comments!
+    handler := service.Server().NewHandler(new(GreeterService))
+    service.Server().Handle(handler)
 
     service.Run()
 }
 ```
 
-#### Standalone Gateway
+**That's it!** Documentation is automatically extracted from your Go comments.
 
-```go
-package main
+### 2. Start the MCP Server
 
-import (
-    "go-micro.dev/v5/gateway/mcp"
-    "go-micro.dev/v5/registry/mdns"
-)
-
-func main() {
-    // Standalone MCP gateway
-    // Discovers and exposes all services in registry
-    mcp.ListenAndServe(":3000", mcp.Options{
-        Registry: mdns.NewRegistry(),
-    })
-}
-```
-
-### Usage with Claude Code
-
-Start your services with MCP gateway:
+#### Option A: Stdio Transport (for Claude Code)
 
 ```bash
+# Start your service
 go run main.go
+
+# In another terminal, start MCP server with stdio
+micro mcp serve
 ```
 
-The MCP server will be available at `http://localhost:3000`. Claude Code or other MCP clients can connect and call your services as tools.
-
-### API Endpoints
-
-When using HTTP transport:
-
-- `GET /mcp/tools` - List all available tools
-- `POST /mcp/call` - Execute a tool (make RPC call)
-- `GET /health` - Gateway health status
-
-### Options
-
-```go
-type Options struct {
-    // Registry for service discovery (required)
-    Registry registry.Registry
-
-    // Address for HTTP/SSE transport (e.g., ":3000")
-    // Leave empty for stdio transport
-    Address string
-
-    // Client for RPC calls (optional, defaults to client.DefaultClient)
-    Client client.Client
-
-    // Context for cancellation (optional)
-    Context context.Context
-
-    // Logger for debug output (optional)
-    Logger *log.Logger
-
-    // AuthFunc validates requests (optional)
-    AuthFunc func(r *http.Request) error
-}
-```
-
-### With Authentication
-
-```go
-mcp.Serve(mcp.Options{
-    Registry: registry.DefaultRegistry,
-    Address:  ":3000",
-    AuthFunc: func(r *http.Request) error {
-        token := r.Header.Get("Authorization")
-        if token != "Bearer secret" {
-            return errors.New("unauthorized")
-        }
-        return nil
-    },
-})
-```
-
-### Docker Compose Example
-
-```yaml
-version: '3.8'
-
-services:
-  users:
-    build: ./users
-    environment:
-      - MICRO_REGISTRY=mdns
-
-  posts:
-    build: ./posts
-    environment:
-      - MICRO_REGISTRY=mdns
-
-  mcp-gateway:
-    build: ./mcp-gateway
-    ports:
-      - "3000:3000"
-    environment:
-      - MICRO_REGISTRY=mdns
-```
-
-### How It Works
-
-1. **Service Discovery**: Gateway queries your registry (mdns/consul/etcd)
-2. **Tool Generation**: Each service endpoint becomes an MCP tool
-3. **Schema Conversion**: Request/response types → JSON Schema
-4. **RPC Translation**: MCP tool calls → go-micro RPC calls
-5. **Dynamic Updates**: New services automatically appear as tools
-
-### Tool Format
-
-Services are exposed in this format:
+Add to Claude Code config (\`~/.claude/claude_desktop_config.json\`):
 
 ```json
 {
-  "name": "users.Users.Create",
-  "description": "Call Users.Create on users service",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "email": {"type": "string"},
-      "name": {"type": "string"}
+  "mcpServers": {
+    "go-micro": {
+      "command": "micro",
+      "args": ["mcp", "serve"]
     }
   }
 }
 ```
 
-### Why MCP?
+#### Option B: HTTP Transport (for web agents)
 
-MCP makes your microservices **AI-native**:
+Start MCP gateway with HTTP/SSE:
 
-- ✅ Claude can directly call your services
-- ✅ No manual API wrappers needed
-- ✅ No OpenAPI specs to maintain
-- ✅ Services automatically become AI tools
-- ✅ Perfect for AI assistants, debugging, operations
+```bash
+micro mcp serve --address :3000
+```
 
-### Use Cases
+Access tools at \`http://localhost:3000/mcp/tools\`
 
-- **AI Assistants**: Let Claude query your services
-- **Debugging**: "Why is user 123's order failing?" → Claude investigates
-- **Operations**: "Scale the worker service" → Claude calls admin APIs
-- **Customer Support**: AI checks account status by calling your services
+### 3. Use Your Service with AI
 
-### License
+Claude can now discover and call your service:
 
-Apache 2.0
+```
+User: "Say hello to Bob using the greeter service"
+
+Claude: [calls greeter.GreeterService.SayHello with {"name": "Bob"}]
+       "Hello Bob"
+```
+
+## Features
+
+### Automatic Documentation Extraction
+
+Go Micro **automatically** extracts documentation from your handler method comments at registration time. No extra code needed!
+
+See [Documentation Guide](../../gateway/mcp/DOCUMENTATION.md) for complete details.
+
+### MCP Command Line
+
+The \`micro mcp\` command provides tools for working with MCP:
+
+```bash
+# Start MCP server (stdio by default)
+micro mcp serve
+
+# Start with HTTP transport
+micro mcp serve --address :3000
+
+# List available tools
+micro mcp list
+
+# Test a specific tool
+micro mcp test greeter.GreeterService.SayHello
+```
+
+### Transport Options
+
+- **Stdio** - For local AI tools (Claude Code, recommended)
+- **HTTP/SSE** - For web-based agents
+
+See examples for complete usage.
+
+## Examples
+
+See \`examples/mcp/documented\` for a complete working example.
+
+## Learn More
+
+- [MCP Specification](https://modelcontextprotocol.io/)
+- [Full Documentation Guide](../../gateway/mcp/DOCUMENTATION.md)
+- [Examples](../../examples/mcp/)
+
