@@ -114,6 +114,21 @@ type Options struct {
 	// RateLimit configures per-tool rate limiting.
 	// When set, each tool is limited to the configured requests per second.
 	RateLimit *RateLimitConfig
+
+	// ToolScopes lets the gateway operator define or override per-tool
+	// scope requirements without changing the services themselves.
+	// Keys are tool names (e.g. "blog.Blog.Create") and values are the
+	// required scopes. Gateway-level scopes are merged with (and take
+	// precedence over) any scopes declared by the service via endpoint
+	// metadata.
+	//
+	// Example:
+	//
+	//   ToolScopes: map[string][]string{
+	//       "blog.Blog.Create": {"blog:write"},
+	//       "blog.Blog.Delete": {"blog:admin"},
+	//   }
+	ToolScopes map[string][]string
 }
 
 // Server represents a running MCP gateway
@@ -230,6 +245,13 @@ func (s *Server) discoverServices() error {
 			if ep.Metadata != nil {
 				if scopes, ok := ep.Metadata["scopes"]; ok && scopes != "" {
 					tool.Scopes = strings.Split(scopes, ",")
+				}
+			}
+
+			// Gateway-level ToolScopes override service-level scopes
+			if s.opts.ToolScopes != nil {
+				if scopes, ok := s.opts.ToolScopes[toolName]; ok {
+					tool.Scopes = scopes
 				}
 			}
 

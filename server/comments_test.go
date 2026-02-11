@@ -123,3 +123,36 @@ func TestManualMetadataOverridesAutoExtract(t *testing.T) {
 
 	t.Error("GetItem endpoint not found")
 }
+
+func TestWithEndpointScopes(t *testing.T) {
+	handler := NewRpcHandler(
+		&TestService{},
+		WithEndpointScopes("TestService.GetItem", "items:read"),
+		WithEndpointScopes("TestService.CreateItem", "items:write", "items:admin"),
+	)
+
+	rpcHandler := handler.(*RpcHandler)
+
+	var foundGet, foundCreate bool
+	for _, ep := range rpcHandler.Endpoints() {
+		switch ep.Name {
+		case "TestService.GetItem":
+			foundGet = true
+			if ep.Metadata["scopes"] != "items:read" {
+				t.Errorf("GetItem scopes = %q, want %q", ep.Metadata["scopes"], "items:read")
+			}
+		case "TestService.CreateItem":
+			foundCreate = true
+			if ep.Metadata["scopes"] != "items:write,items:admin" {
+				t.Errorf("CreateItem scopes = %q, want %q", ep.Metadata["scopes"], "items:write,items:admin")
+			}
+		}
+	}
+
+	if !foundGet {
+		t.Error("GetItem endpoint not found")
+	}
+	if !foundCreate {
+		t.Error("CreateItem endpoint not found")
+	}
+}

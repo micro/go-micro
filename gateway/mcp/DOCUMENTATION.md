@@ -63,7 +63,43 @@ handler := service.Server().NewHandler(
 
 Manual metadata **takes precedence** over auto-extracted comments.
 
-### 3. Struct Tags (For Field Descriptions)
+### 3. Endpoint Scopes (Auth)
+
+Use `server.WithEndpointScopes()` to declare the auth scopes required for each
+endpoint. The MCP gateway reads these from the registry and enforces them when
+an `Auth` provider is configured.
+
+```go
+handler := service.Server().NewHandler(
+    new(BlogService),
+    server.WithEndpointScopes("Blog.Create", "blog:write"),
+    server.WithEndpointScopes("Blog.Delete", "blog:write", "blog:admin"),
+    server.WithEndpointScopes("Blog.Read", "blog:read"),
+)
+```
+
+Scopes are stored as comma-separated values in endpoint metadata (`"scopes"` key)
+and are propagated through the service registry just like descriptions and examples.
+
+#### Gateway-Level Scope Overrides
+
+An operator can also define or override scopes at the MCP gateway without
+modifying individual services. This is useful for centralized policy management:
+
+```go
+mcp.Serve(mcp.Options{
+    Registry: reg,
+    Auth:     authProvider,
+    ToolScopes: map[string][]string{
+        "blog.Blog.Create": {"blog:write"},
+        "blog.Blog.Delete": {"blog:admin"},
+    },
+})
+```
+
+Gateway-level scopes **take precedence** over service-level scopes.
+
+### 4. Struct Tags (For Field Descriptions)
 
 Add descriptions to struct fields using the `description` tag:
 
@@ -345,6 +381,21 @@ A: The MCP gateway will still work, generating basic descriptions from method na
 
 **Q: How do I know if my documentation is good?**
 A: Test it with Claude Code. If Claude understands your service and calls it correctly on the first try, your documentation is good!
+
+**Q: How do I add auth scopes to my endpoints?**
+A: Use `server.WithEndpointScopes()` when registering your handler:
+
+```go
+handler := service.Server().NewHandler(
+    new(MyService),
+    server.WithEndpointScopes("MyService.Create", "write"),
+)
+```
+
+Or define scopes at the gateway level using `ToolScopes` in `mcp.Options`.
+
+**Q: Can I set scopes at the gateway without changing services?**
+A: Yes. Use the `ToolScopes` option on `mcp.Options` to define or override scopes for any tool at the gateway layer. This is useful for centralized policy management.
 
 ## License
 

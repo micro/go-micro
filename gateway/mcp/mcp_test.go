@@ -511,3 +511,58 @@ func TestDiscoverServices_RateLimiters(t *testing.T) {
 		}
 	}
 }
+
+func TestToolScopesFromGatewayOptions(t *testing.T) {
+	reg := registry.NewMemoryRegistry()
+	svc := &registry.Service{
+		Name: "blog",
+		Nodes: []*registry.Node{{
+			Id:      "blog-1",
+			Address: "localhost:9090",
+		}},
+		Endpoints: []*registry.Endpoint{
+			{
+				Name: "Blog.Create",
+				Metadata: map[string]string{
+					"scopes": "blog:write",
+				},
+			},
+			{
+				Name: "Blog.Delete",
+			},
+		},
+	}
+	if err := reg.Register(svc); err != nil {
+		t.Fatal(err)
+	}
+
+	// Gateway-level ToolScopes override service-level metadata scopes
+	s := newTestServer(Options{
+		Registry: reg,
+		ToolScopes: map[string][]string{
+			"blog.Blog.Create": {"blog:admin"},        // override service scope
+			"blog.Blog.Delete": {"blog:admin", "sudo"}, // add scope to tool without service scope
+		},
+	})
+	if err := s.discoverServices(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Blog.Create should have gateway-level scope (overrides service "blog:write")
+	createTool := s.tools["blog.Blog.Create"]
+	if createTool == nil {
+		t.Fatal("expected tool blog.Blog.Create")
+	}
+	if len(createTool.Scopes) != 1 || createTool.Scopes[0] != "blog:admin" {
+		t.Errorf("expected gateway scopes [blog:admin], got: %v", createTool.Scopes)
+	}
+
+	// Blog.Delete should get gateway-level scopes
+	deleteTool := s.tools["blog.Blog.Delete"]
+	if deleteTool == nil {
+		t.Fatal("expected tool blog.Blog.Delete")
+	}
+	if len(deleteTool.Scopes) != 2 || deleteTool.Scopes[0] != "blog:admin" || deleteTool.Scopes[1] != "sudo" {
+		t.Errorf("expected gateway scopes [blog:admin sudo], got: %v", deleteTool.Scopes)
+	}
+}
