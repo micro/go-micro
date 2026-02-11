@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"go-micro.dev/v5"
+	"go-micro.dev/v5/auth/jwt"
 	"go-micro.dev/v5/registry"
 )
 
@@ -85,4 +86,41 @@ func Example_customContext() {
 
 	service.Run()
 	// cancel() will stop the MCP gateway
+}
+
+// Example_withScopesAndTracing shows how to add per-tool scopes, tracing, rate
+// limiting and audit logging to the MCP gateway. Services register scope
+// requirements via endpoint metadata ("scopes" key, comma-separated).
+func Example_withScopesAndTracing() {
+	service := micro.NewService(micro.Name("blog"))
+	service.Init()
+
+	// Use JWT auth provider
+	authProvider := jwt.NewAuth()
+
+	go func() {
+		if err := Serve(Options{
+			Registry: service.Options().Registry,
+			Address:  ":3000",
+
+			// Auth inspects Bearer tokens and enforces per-tool scopes
+			Auth: authProvider,
+
+			// Rate limit all tools to 10 req/s with burst of 20
+			RateLimit: &RateLimitConfig{
+				RequestsPerSecond: 10,
+				Burst:             20,
+			},
+
+			// Audit every tool call for compliance
+			AuditFunc: func(r AuditRecord) {
+				log.Printf("[audit] trace=%s tool=%s account=%s allowed=%v reason=%s",
+					r.TraceID, r.Tool, r.AccountID, r.Allowed, r.DeniedReason)
+			},
+		}); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	service.Run()
 }
