@@ -26,6 +26,7 @@ about the framework.
 ## Contents
 
 - [Getting Started](getting-started.md)
+- [CLI & Gateway Guide](guides/cli-gateway.md) - Development vs Production modes
 - [Architecture](architecture.md)
 - [Configuration](config.md)
 - [Registry](registry.md)

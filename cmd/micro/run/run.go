@@ -2,6 +2,7 @@ package run
 
 import (
 	"bufio"
+	"context"
 	"crypto/md5"
 	"fmt"
 	"io"
@@ -19,8 +20,8 @@ import (
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/cmd/micro/run/config"
-	"go-micro.dev/v5/cmd/micro/run/gateway"
 	"go-micro.dev/v5/cmd/micro/run/watcher"
+	"go-micro.dev/v5/cmd/micro/server"
 )
 
 // Color codes for log output
@@ -320,23 +321,23 @@ func Run(c *cli.Context) error {
 	}
 
 	// Start gateway unless disabled
-	var gw *gateway.Gateway
+	var gw *server.Gateway
 	gatewayAddr := c.String("address")
 	if gatewayAddr == "" {
 		gatewayAddr = ":8080"
 	}
 
 	if !c.Bool("no-gateway") {
-		gw = gateway.New(gatewayAddr)
-		var svcInfos []gateway.ServiceInfo
-		for _, svc := range services {
-			svcInfos = append(svcInfos, gateway.ServiceInfo{
-				Name: svc.name,
-				Port: svc.port,
-			})
-		}
-		gw.SetServices(svcInfos)
-		if err := gw.Start(); err != nil {
+		var err error
+		mcpAddr := c.String("mcp-address")
+		gw, err = server.StartGateway(server.GatewayOptions{
+			Address:     gatewayAddr,
+			AuthEnabled: false, // No auth in development mode
+			Context:     context.Background(),
+			MCPEnabled:  mcpAddr != "",
+			MCPAddress:  mcpAddr,
+		})
+		if err != nil {
 			return fmt.Errorf("failed to start gateway: %w", err)
 		}
 	}
@@ -426,7 +427,7 @@ func processRunning(pidStr string) bool {
 	return proc.Signal(syscall.Signal(0)) == nil
 }
 
-func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool) {
+func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool) {
 	fmt.Println()
 	fmt.Println("  ┌─────────────────────────────────────────────────────────────┐")
 	fmt.Println("  │                                                             │")
@@ -513,6 +514,11 @@ Examples:
 				Aliases: []string{"e"},
 				Usage:   "Environment to use (default: development)",
 				EnvVars: []string{"MICRO_ENV"},
+			},
+			&cli.StringFlag{
+				Name:    "mcp-address",
+				Usage:   "MCP gateway address (e.g., :3000). Enables MCP protocol for AI tools.",
+				EnvVars: []string{"MICRO_MCP_ADDRESS"},
 			},
 		},
 	})

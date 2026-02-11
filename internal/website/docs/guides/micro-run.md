@@ -6,6 +6,8 @@ layout: default
 
 `micro run` provides a complete development environment for Go microservices.
 
+> **Note**: This guide focuses on `micro run` features. For a comparison with `micro server` and gateway architecture details, see the [CLI & Gateway Guide](cli-gateway.md).
+
 ## Quick Start
 
 ```bash

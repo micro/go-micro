@@ -387,3 +387,81 @@ micro server
 Then browse to [localhost:8080](http://localhost:8080) and log in with the default admin account (`admin`/`micro`).
 
 > **Note:** See the `/api` page for details on API authentication and how to generate tokens for use with the HTTP API
+
+## Gateway Architecture
+
+The `micro run` and `micro server` commands both use a unified gateway implementation (`cmd/micro/server/gateway.go`), providing consistent HTTP-to-RPC translation, service discovery, and web UI capabilities.
+
+### Key Differences
+
+| Feature | `micro run` | `micro server` |
+|---------|-------------|----------------|
+| **Purpose** | Development | Production |
+| **Authentication** | Disabled | Required (JWT) |
+| **Process Management** | Yes (builds/runs services) | No (assumes services running) |
+| **Hot Reload** | Yes (watches files) | No |
+| **Auth Routes** | Not available | `/auth/login`, `/auth/tokens`, `/auth/users` |
+| **Use Case** | Local development | Deployed API gateway |
+
+### Why Unified?
+
+Previously, each command had its own gateway implementation, leading to code duplication. The unified gateway means:
+
+- New features (like MCP integration) benefit both commands
+- Consistent behavior between development and production
+- Single codebase to test and maintain
+- Same HTTP API, web UI, and service discovery logic
+
+### Gateway Features
+
+Both commands provide:
+
+- **HTTP API**: `POST /api/{service}/{endpoint}` with JSON request/response
+- **Service Discovery**: Automatic detection via registry (mdns/consul/etcd)
+- **Health Checks**: `/health`, `/health/live`, `/health/ready` endpoints
+- **Web Dashboard**: Browse services, test endpoints, view documentation
+- **Hot Service Updates**: Gateway automatically picks up new service registrations
+
+### Development Mode (`micro run`)
+
+```bash
+micro run  # Auth disabled, all endpoints public
+```
+
+- No authentication required
+- Direct access to all endpoints
+- Ideal for rapid iteration
+- Web UI shows all services without login
+
+### Production Mode (`micro server`)
+
+```bash
+micro server  # Auth enabled, JWT tokens required
+```
+
+- JWT authentication on all API calls
+- User/token management via web UI
+- Secure by default
+- Login required: default credentials `admin/micro`
+
+### Programmatic Gateway Usage
+
+You can also start the gateway programmatically in your own Go code:
+
+```go
+import "go-micro.dev/v5/cmd/micro/server"
+
+// Development gateway (no auth)
+gw, err := server.StartGateway(server.GatewayOptions{
+    Address:     ":8080",
+    AuthEnabled: false,
+})
+
+// Production gateway (with auth)
+err := server.RunGateway(server.GatewayOptions{
+    Address:     ":8080",
+    AuthEnabled: true,
+})
+```
+
+See [`internal/website/docs/architecture/adr-010-unified-gateway.md`](../../internal/website/docs/architecture/adr-010-unified-gateway.md) for architecture details.

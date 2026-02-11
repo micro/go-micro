@@ -326,12 +326,21 @@ func getSidebarEndpoints() ([]map[string]string, error) {
 	return sidebarEndpoints, nil
 }
 
-func registerHandlers(tmpls *templates, storeInst store.Store) {
-	authMw := authRequired(storeInst)
-	wrap := wrapAuth(authMw)
+func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Store, authEnabled bool) {
+	var wrap func(http.HandlerFunc) http.HandlerFunc
+
+	if authEnabled {
+		authMw := authRequired(storeInst)
+		wrap = wrapAuth(authMw)
+	} else {
+		// No auth in dev mode - pass through handlers unchanged
+		wrap = func(h http.HandlerFunc) http.HandlerFunc {
+			return h
+		}
+	}
 
 	// Serve static files from root (not /html/) with correct Content-Type
-	http.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		f, err := HTML.Open("html/styles.css")
 		if err != nil {
@@ -342,7 +351,7 @@ func registerHandlers(tmpls *templates, storeInst store.Store) {
 		io.Copy(w, f)
 	})
 
-	http.HandleFunc("/main.js", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/main.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 		f, err := HTML.Open("html/main.js")
 		if err != nil {
@@ -354,7 +363,7 @@ func registerHandlers(tmpls *templates, storeInst store.Store) {
 	})
 
 	// Serve /html/styles.css and /html/main.js for compatibility
-	http.HandleFunc("/html/styles.css", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/html/styles.css", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		f, err := HTML.Open("html/styles.css")
 		if err != nil {
@@ -364,7 +373,7 @@ func registerHandlers(tmpls *templates, storeInst store.Store) {
 		defer f.Close()
 		io.Copy(w, f)
 	})
-	http.HandleFunc("/html/main.js", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/html/main.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 		f, err := HTML.Open("html/main.js")
 		if err != nil {
@@ -375,7 +384,7 @@ func registerHandlers(tmpls *templates, storeInst store.Store) {
 		io.Copy(w, f)
 	})
 
-	http.HandleFunc("/", wrap(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", wrap(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasPrefix(path, "/auth/") {
 			// Let the dedicated /auth/* handlers process this
@@ -739,11 +748,16 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 		w.WriteHeader(404)
 		w.Write([]byte("Not found"))
 	}))
-	http.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
+
+	// Auth routes - only registered when auth is enabled
+	if authEnabled {
+		authMw := authRequired(storeInst)
+
+	mux.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: "micro_token", Value: "", Path: "/", Expires: time.Now().Add(-1 * time.Hour), HttpOnly: true})
 		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
 	})
-	http.HandleFunc("/auth/tokens", authMw(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/auth/tokens", authMw(func(w http.ResponseWriter, r *http.Request) {
 		userID := getUser(r)
 		var user any
 		if userID != "" {
@@ -814,7 +828,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 		_ = tmpls.authTokens.Execute(w, map[string]any{"Title": "Auth Tokens", "Tokens": tokens, "User": user, "Sub": userID})
 	}))
 
-	http.HandleFunc("/auth/users", authMw(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/auth/users", authMw(func(w http.ResponseWriter, r *http.Request) {
 		userID := getUser(r)
 		var user any
 		if userID != "" {
@@ -865,7 +879,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 		}
 		_ = tmpls.authUsers.Execute(w, map[string]any{"Title": "User Accounts", "Users": users, "User": user})
 	}))
-	http.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			loginTmpl, err := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
 			if err != nil {
@@ -919,31 +933,28 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 		w.WriteHeader(405)
 		w.Write([]byte("Method not allowed"))
 	})
+	} // end if authEnabled
 }
 
 func Run(c *cli.Context) error {
-	if err := initAuth(); err != nil {
-		log.Fatalf("Failed to initialize auth: %v", err)
-	}
-	homeDir, _ := os.UserHomeDir()
-	keyDir := filepath.Join(homeDir, "micro", "keys")
-	privPath := filepath.Join(keyDir, "private.pem")
-	pubPath := filepath.Join(keyDir, "public.pem")
-	if err := InitJWTKeys(privPath, pubPath); err != nil {
-		log.Fatalf("Failed to init JWT keys: %v", err)
-	}
-	storeInst := store.DefaultStore
-	tmpls := parseTemplates()
-	registerHandlers(tmpls, storeInst)
 	addr := c.String("address")
 	if addr == "" {
 		addr = ":8080"
 	}
-	log.Printf("[micro-server] Web/API listening on %s", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatalf("Web/API server error: %v", err)
+
+	mcpAddr := c.String("mcp-address")
+
+	// Run the gateway with authentication enabled
+	opts := GatewayOptions{
+		Address:     addr,
+		AuthEnabled: true,
+		Store:       store.DefaultStore,
+		Context:     c.Context,
+		MCPEnabled:  mcpAddr != "",
+		MCPAddress:  mcpAddr,
 	}
-	return nil
+
+	return RunGateway(opts)
 }
 
 // --- PID FILES ---
@@ -1066,6 +1077,11 @@ func init() {
 				Usage:   "Address to listen on",
 				EnvVars: []string{"MICRO_SERVER_ADDRESS"},
 				Value:   ":8080",
+			},
+			&cli.StringFlag{
+				Name:    "mcp-address",
+				Usage:   "MCP gateway address (e.g., :3000). Enables MCP protocol support for AI tools.",
+				EnvVars: []string{"MICRO_MCP_ADDRESS"},
 			},
 		},
 	})

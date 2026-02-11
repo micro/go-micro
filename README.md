@@ -151,10 +151,12 @@ Then open http://localhost:8080 to see your service and call it from the browser
 ### micro run
 
 `micro run` starts your services with:
-- **API Gateway** - HTTP to RPC proxy at `/api/{service}/{method}`
+- **API Gateway** - HTTP to RPC proxy at `/api/{service}/{method}` (no auth in dev mode)
 - **Web Dashboard** - Browse and call services at `/`
 - **Health Checks** - Aggregated health at `/health`
 - **Hot Reload** - Auto-rebuild on file changes
+
+> **Note:** `micro run` and `micro server` use a unified gateway architecture. See [Gateway Architecture](cmd/micro/README.md#gateway-architecture) for details.
 
 ```bash
 micro run                    # Gateway on :8080
