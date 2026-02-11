@@ -158,7 +158,7 @@ Or define scopes at the gateway layer without changing services:
 mcp.Serve(mcp.Options{
     Registry: reg,
     Auth:     authProvider,
-    ToolScopes: map[string][]string{
+    Scopes: map[string][]string{
         "blog.Blog.Create": {"blog:write"},
         "blog.Blog.Delete": {"blog:admin"},
     },

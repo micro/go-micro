@@ -90,7 +90,7 @@ modifying individual services. This is useful for centralized policy management:
 mcp.Serve(mcp.Options{
     Registry: reg,
     Auth:     authProvider,
-    ToolScopes: map[string][]string{
+    Scopes: map[string][]string{
         "blog.Blog.Create": {"blog:write"},
         "blog.Blog.Delete": {"blog:admin"},
     },
@@ -392,10 +392,10 @@ handler := service.Server().NewHandler(
 )
 ```
 
-Or define scopes at the gateway level using `ToolScopes` in `mcp.Options`.
+Or define scopes at the gateway level using `Scopes` in `mcp.Options`.
 
 **Q: Can I set scopes at the gateway without changing services?**
-A: Yes. Use the `ToolScopes` option on `mcp.Options` to define or override scopes for any tool at the gateway layer. This is useful for centralized policy management.
+A: Yes. Use the `Scopes` option on `mcp.Options` to define or override scopes for any tool at the gateway layer. This is useful for centralized policy management.
 
 ## License
 

@@ -512,7 +512,7 @@ func TestDiscoverServices_RateLimiters(t *testing.T) {
 	}
 }
 
-func TestToolScopesFromGatewayOptions(t *testing.T) {
+func TestScopesFromGatewayOptions(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
 	svc := &registry.Service{
 		Name: "blog",
@@ -536,10 +536,10 @@ func TestToolScopesFromGatewayOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Gateway-level ToolScopes override service-level metadata scopes
+	// Gateway-level Scopes override service-level metadata scopes
 	s := newTestServer(Options{
 		Registry: reg,
-		ToolScopes: map[string][]string{
+		Scopes: map[string][]string{
 			"blog.Blog.Create": {"blog:admin"},        // override service scope
 			"blog.Blog.Delete": {"blog:admin", "sudo"}, // add scope to tool without service scope
 		},
