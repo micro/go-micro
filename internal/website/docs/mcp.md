@@ -1,4 +1,7 @@
-## MCP Gateway for Go Micro
+---
+layout: default
+title: MCP Gateway
+---
 
 The MCP (Model Context Protocol) gateway automatically exposes your go-micro services as AI-accessible tools.
 
