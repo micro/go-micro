@@ -42,6 +42,9 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 - **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures.
   Event notifications are a core pattern in micro service development. The default messaging system is a HTTP event message broker.
 
+- **MCP Integration** - An MCP gateway you can integrate as a library, server or CLI command which automatically exposes services
+  as tools for agents or other AI applications. Every service/endpoint get's converted into a callable tool.
+
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces
   are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology.
 
