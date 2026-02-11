@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package greeter;
+
+option go_package = "go-micro.dev/v5/examples/auth/proto;greeter";
+
+service Greeter {
+	rpc Hello(Request) returns (Response) {}
+	rpc Health(HealthRequest) returns (HealthResponse) {}
+}
+
+message Request {
+	string name = 1;
+}
+
+message Response {
+	string msg = 1;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+	string status = 1;
+}
