@@ -112,7 +112,7 @@ Claude: [calls greeter.GreeterService.SayHello with {"name": "Bob"}]
 
 Go Micro **automatically** extracts documentation from your handler method comments at registration time. No extra code needed!
 
-See [Documentation Guide](../../gateway/mcp/DOCUMENTATION.md) for complete details.
+For complete documentation details, see the [gateway/mcp package documentation](https://github.com/micro/go-micro/tree/master/gateway/mcp).
 
 ### MCP Command Line
 
@@ -146,6 +146,6 @@ See \`examples/mcp/documented\` for a complete working example.
 ## Learn More
 
 - [MCP Specification](https://modelcontextprotocol.io/)
-- [Full Documentation Guide](../../gateway/mcp/DOCUMENTATION.md)
-- [Examples](../../examples/mcp/)
+- [Full Documentation Guide](https://github.com/micro/go-micro/blob/master/gateway/mcp/DOCUMENTATION.md)
+- [Examples](https://github.com/micro/go-micro/tree/master/examples/mcp)
 
