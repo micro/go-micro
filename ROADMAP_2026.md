@@ -92,15 +92,17 @@ Go Micro's MCP integration means:
 
 ## Q2 2026: Agent Developer Experience
 
+**Status:** IN PROGRESS - Several features delivered early (Feb 2026)
+
 **Theme:** Make it trivial for any AI to call your services
 
 ### MCP Enhancements
 
-#### Stdio Transport for Claude Code
-- [ ] Implement stdio JSON-RPC protocol
-- [ ] Auto-detection: stdio vs HTTP based on environment
-- [ ] `micro mcp` command for Claude Code integration
-- [ ] Example: Add go-micro services to Claude Code
+#### Stdio Transport for Claude Code ✅ COMPLETE (delivered early)
+- [x] Implement stdio JSON-RPC protocol
+- [x] Auto-detection: stdio vs HTTP based on environment
+- [x] `micro mcp` command for Claude Code integration
+- [x] Example: Add go-micro services to Claude Code
 
 **Why:** Claude Code and other local AI tools use stdio MCP servers. This enables:
 ```bash
@@ -117,10 +119,10 @@ Go Micro's MCP integration means:
 
 **Business value:** Direct integration with Anthropic's flagship developer tool.
 
-#### Tool Descriptions from Comments
-- [ ] Parse Go comments to generate tool descriptions
-- [ ] Support JSDoc-style tags: `@param`, `@return`, `@example`
-- [ ] Schema generation from struct tags
+#### Tool Descriptions from Comments ✅ COMPLETE (delivered early)
+- [x] Parse Go comments to generate tool descriptions
+- [x] Support JSDoc-style tags: `@param`, `@return`, `@example`
+- [x] Schema generation from struct tags
 - [ ] Auto-generate examples from test cases
 
 **Before:**
@@ -146,7 +148,7 @@ Tools:
 #### Multi-Protocol Support
 - [ ] WebSocket transport for streaming
 - [ ] gRPC reflection for MCP (bidirectional streaming)
-- [ ] Server-Sent Events with auth
+- [x] Server-Sent Events with auth (HTTP/SSE implemented)
 - [ ] HTTP/3 support
 
 **Why:** Different agents prefer different protocols. Support them all.
@@ -174,18 +176,23 @@ Create official SDKs for popular agent frameworks:
 
 ### Developer Experience
 
-#### `micro mcp` Command Suite
+#### `micro mcp` Command Suite ✅ PARTIALLY COMPLETE
+
+**Implemented:**
 ```bash
 # Start MCP server
-micro mcp serve                    # Stdio (for Claude Code)
-micro mcp serve --address :3000    # HTTP/SSE (for web agents)
+micro mcp serve                    # Stdio (for Claude Code) ✅
+micro mcp serve --address :3000    # HTTP/SSE (for web agents) ✅
 
 # Development
-micro mcp list                     # List available tools
-micro mcp test users.Users.Get     # Test a tool
-micro mcp docs                     # Generate MCP documentation
+micro mcp list                     # List available tools ✅
+micro mcp list --json              # JSON output ✅
+```
 
-# Integration
+**Not Yet Implemented:**
+```bash
+micro mcp test users.Users.Get     # Test a tool (placeholder only)
+micro mcp docs                     # Generate MCP documentation
 micro mcp export langchain         # Export to LangChain format
 micro mcp export openapi           # Export as OpenAPI (for fallback)
 ```
@@ -227,6 +234,8 @@ Here are the 5 most recent orders for Alice Smith:
 
 ## Q3 2026: Production & Scale
 
+**Status:** IN PROGRESS - Core security features delivered early (Feb 2026)
+
 **Theme:** Run MCP gateways in production at scale
 
 ### Enterprise MCP Gateway
@@ -236,9 +245,9 @@ Create a production-grade standalone MCP gateway:
 #### Gateway Features
 - [ ] Standalone binary: `micro-mcp-gateway`
 - [ ] Horizontal scaling (stateless design)
-- [ ] Rate limiting per agent/token
+- [x] Rate limiting per agent/token ✅ (delivered early)
 - [ ] Usage tracking and analytics
-- [ ] Cost attribution (track which agent called what)
+- [x] Cost attribution (track which agent called what) ✅ (audit logging)
 - [ ] Circuit breakers for service protection
 - [ ] Request/response caching
 - [ ] Multi-tenant support (isolate services by namespace)
@@ -258,7 +267,7 @@ micro-mcp-gateway \
 
 #### Observability
 - [ ] OpenTelemetry integration
-- [ ] Agent call tracing (which agent called what)
+- [x] Agent call tracing (which agent called what) ✅ (trace IDs implemented)
 - [ ] Tool usage metrics (which tools are popular)
 - [ ] Performance dashboards
 - [ ] Anomaly detection (unusual agent behavior)
@@ -286,40 +295,57 @@ payments.Payments.Process    890ms avg
 
 **Business value:** Enterprises need observability. This justifies MCP Gateway pricing.
 
-### Security
+### Security ✅ CORE FEATURES COMPLETE (delivered early)
 
-#### Agent Authentication
-- [ ] OAuth2 for agent authorization
-- [ ] API keys per agent
-- [ ] Scope-based permissions (agent can only call certain services)
-- [ ] Audit logging (full trail of what agents accessed)
+#### Agent Authentication ✅ COMPLETE
+- [x] Auth provider integration (auth.Auth)
+- [x] Bearer token authentication
+- [x] Scope-based permissions (agent can only call certain services)
+- [x] Audit logging (full trail of what agents accessed)
+- [ ] OAuth2 for agent authorization (basic auth implemented)
+- [ ] API keys per agent (bearer tokens supported)
 
-**Example:**
+**Implemented Example:**
 ```go
 mcp.Serve(mcp.Options{
     Registry: registry,
-    Auth: mcp.AgentAuth{
-        Provider: oauth2Provider,
-        Policies: map[string][]string{
-            "claude-support-agent": {"users.*", "orders.*"},
-            "claude-admin-agent":   {"*"}, // Full access
-            "gpt-analyst":          {"analytics.*"},
-        },
+    Auth:     authProvider,  // ✅ Implemented
+    Scopes: map[string][]string{  // ✅ Implemented
+        "blog.Blog.Create": {"blog:write"},
+        "blog.Blog.Delete": {"blog:admin"},
+    },
+    AuditFunc: func(r mcp.AuditRecord) {  // ✅ Implemented
+        log.Printf("[audit] %+v", r)
     },
 })
 ```
 
-#### Service-Side Authorization
-- [ ] Services can validate which agent is calling
-- [ ] Agent identity in context
-- [ ] Fine-grained permissions (Agent X can read but not write)
+#### Service-Side Authorization ✅ COMPLETE
+- [x] Services can validate which agent is calling
+- [x] Agent identity in context (via metadata)
+- [x] Fine-grained permissions (Agent X can read but not write)
+- [x] Trace ID propagation for debugging
 
-**Example:**
+**Implemented - Metadata in Context:**
 ```go
+// Trace ID, Tool Name, and Account ID are automatically
+// propagated to services via context metadata:
+// - Mcp-Trace-Id
+// - Mcp-Tool-Name  
+// - Mcp-Account-Id
+```
+
+**Future Enhancement - Service-Side Example:**
+```go
+// Future: Direct access to agent info from context
 func (s *Users) Delete(ctx context.Context, req *Request, rsp *Response) error {
-    agent, ok := mcp.AgentFromContext(ctx)
-    if !ok || agent.ID != "admin-agent" {
-        return errors.Forbidden("users", "only admin agent can delete users")
+    // For now, services can read metadata keys:
+    // Mcp-Account-Id, Mcp-Trace-Id, Mcp-Tool-Name
+    md, _ := metadata.FromContext(ctx)
+    accountID := md["Mcp-Account-Id"]
+    
+    if accountID != "admin-account" {
+        return errors.Forbidden("users", "admin only")
     }
     // ...
 }
