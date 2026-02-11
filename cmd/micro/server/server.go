@@ -753,186 +753,186 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 	if authEnabled {
 		authMw := authRequired(storeInst)
 
-	mux.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
-		http.SetCookie(w, &http.Cookie{Name: "micro_token", Value: "", Path: "/", Expires: time.Now().Add(-1 * time.Hour), HttpOnly: true})
-		http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
-	})
-	mux.HandleFunc("/auth/tokens", authMw(func(w http.ResponseWriter, r *http.Request) {
-		userID := getUser(r)
-		var user any
-		if userID != "" {
-			user = &TemplateUser{ID: userID}
-		} else {
-			user = nil
-		}
-		if r.Method == "POST" {
-			id := r.FormValue("id")
-			typeStr := r.FormValue("type")
-			scopesStr := r.FormValue("scopes")
-			accType := "user"
-			if typeStr == "admin" {
-				accType = "admin"
-			} else if typeStr == "service" {
-				accType = "service"
+		mux.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{Name: "micro_token", Value: "", Path: "/", Expires: time.Now().Add(-1 * time.Hour), HttpOnly: true})
+			http.Redirect(w, r, "/auth/login", http.StatusSeeOther)
+		})
+		mux.HandleFunc("/auth/tokens", authMw(func(w http.ResponseWriter, r *http.Request) {
+			userID := getUser(r)
+			var user any
+			if userID != "" {
+				user = &TemplateUser{ID: userID}
+			} else {
+				user = nil
 			}
-			scopes := []string{"*"}
-			if scopesStr != "" {
-				scopes = strings.Split(scopesStr, ",")
-				for i := range scopes {
-					scopes[i] = strings.TrimSpace(scopes[i])
+			if r.Method == "POST" {
+				id := r.FormValue("id")
+				typeStr := r.FormValue("type")
+				scopesStr := r.FormValue("scopes")
+				accType := "user"
+				if typeStr == "admin" {
+					accType = "admin"
+				} else if typeStr == "service" {
+					accType = "service"
+				}
+				scopes := []string{"*"}
+				if scopesStr != "" {
+					scopes = strings.Split(scopesStr, ",")
+					for i := range scopes {
+						scopes[i] = strings.TrimSpace(scopes[i])
+					}
+				}
+				acc := &Account{
+					ID:       id,
+					Type:     accType,
+					Scopes:   scopes,
+					Metadata: map[string]string{"created": time.Now().Format(time.RFC3339)},
+				}
+				// Service tokens do not require a password, generate a JWT directly
+				tok, _ := GenerateJWT(acc.ID, acc.Type, acc.Scopes, 24*time.Hour)
+				acc.Metadata["token"] = tok
+				b, _ := json.Marshal(acc)
+				storeInst.Write(&store.Record{Key: "auth/" + id, Value: b})
+				storeJWTToken(storeInst, tok, acc.ID) // Store the JWT token
+				http.Redirect(w, r, "/auth/tokens", http.StatusSeeOther)
+				return
+			}
+			recs, _ := storeInst.Read("auth/", store.ReadPrefix())
+			var tokens []map[string]any
+			for _, rec := range recs {
+				var acc Account
+				if err := json.Unmarshal(rec.Value, &acc); err == nil {
+					tok := ""
+					if t, ok := acc.Metadata["token"]; ok {
+						tok = t
+					}
+					var tokenPrefix, tokenSuffix string
+					if len(tok) > 12 {
+						tokenPrefix = tok[:4]
+						tokenSuffix = tok[len(tok)-4:]
+					} else {
+						tokenPrefix = tok
+						tokenSuffix = ""
+					}
+					tokens = append(tokens, map[string]any{
+						"ID":          acc.ID,
+						"Type":        acc.Type,
+						"Scopes":      acc.Scopes,
+						"Metadata":    acc.Metadata,
+						"Token":       tok,
+						"TokenPrefix": tokenPrefix,
+						"TokenSuffix": tokenSuffix,
+					})
 				}
 			}
-			acc := &Account{
-				ID:       id,
-				Type:     accType,
-				Scopes:   scopes,
-				Metadata: map[string]string{"created": time.Now().Format(time.RFC3339)},
-			}
-			// Service tokens do not require a password, generate a JWT directly
-			tok, _ := GenerateJWT(acc.ID, acc.Type, acc.Scopes, 24*time.Hour)
-			acc.Metadata["token"] = tok
-			b, _ := json.Marshal(acc)
-			storeInst.Write(&store.Record{Key: "auth/" + id, Value: b})
-			storeJWTToken(storeInst, tok, acc.ID) // Store the JWT token
-			http.Redirect(w, r, "/auth/tokens", http.StatusSeeOther)
-			return
-		}
-		recs, _ := storeInst.Read("auth/", store.ReadPrefix())
-		var tokens []map[string]any
-		for _, rec := range recs {
-			var acc Account
-			if err := json.Unmarshal(rec.Value, &acc); err == nil {
-				tok := ""
-				if t, ok := acc.Metadata["token"]; ok {
-					tok = t
-				}
-				var tokenPrefix, tokenSuffix string
-				if len(tok) > 12 {
-					tokenPrefix = tok[:4]
-					tokenSuffix = tok[len(tok)-4:]
-				} else {
-					tokenPrefix = tok
-					tokenSuffix = ""
-				}
-				tokens = append(tokens, map[string]any{
-					"ID":          acc.ID,
-					"Type":        acc.Type,
-					"Scopes":      acc.Scopes,
-					"Metadata":    acc.Metadata,
-					"Token":       tok,
-					"TokenPrefix": tokenPrefix,
-					"TokenSuffix": tokenSuffix,
-				})
-			}
-		}
-		_ = tmpls.authTokens.Execute(w, map[string]any{"Title": "Auth Tokens", "Tokens": tokens, "User": user, "Sub": userID})
-	}))
+			_ = tmpls.authTokens.Execute(w, map[string]any{"Title": "Auth Tokens", "Tokens": tokens, "User": user, "Sub": userID})
+		}))
 
-	mux.HandleFunc("/auth/users", authMw(func(w http.ResponseWriter, r *http.Request) {
-		userID := getUser(r)
-		var user any
-		if userID != "" {
-			user = &TemplateUser{ID: userID}
-		} else {
-			user = nil
-		}
-		if r.Method == "POST" {
-			if del := r.FormValue("delete"); del != "" {
-				// Delete user
-				storeInst.Delete("auth/" + del)
-				deleteUserTokens(storeInst, del) // Delete all JWT tokens for this user
+		mux.HandleFunc("/auth/users", authMw(func(w http.ResponseWriter, r *http.Request) {
+			userID := getUser(r)
+			var user any
+			if userID != "" {
+				user = &TemplateUser{ID: userID}
+			} else {
+				user = nil
+			}
+			if r.Method == "POST" {
+				if del := r.FormValue("delete"); del != "" {
+					// Delete user
+					storeInst.Delete("auth/" + del)
+					deleteUserTokens(storeInst, del) // Delete all JWT tokens for this user
+					http.Redirect(w, r, "/auth/users", http.StatusSeeOther)
+					return
+				}
+				id := r.FormValue("id")
+				if id == "" {
+					http.Redirect(w, r, "/auth/users", http.StatusSeeOther)
+					return
+				}
+				pass := r.FormValue("password")
+				typeStr := r.FormValue("type")
+				accType := "user"
+				if typeStr == "admin" {
+					accType = "admin"
+				}
+				hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+				acc := &Account{
+					ID:       id,
+					Type:     accType,
+					Scopes:   []string{"*"},
+					Metadata: map[string]string{"created": time.Now().Format(time.RFC3339), "password_hash": string(hash)},
+				}
+				b, _ := json.Marshal(acc)
+				storeInst.Write(&store.Record{Key: "auth/" + id, Value: b})
 				http.Redirect(w, r, "/auth/users", http.StatusSeeOther)
 				return
 			}
-			id := r.FormValue("id")
-			if id == "" {
-				http.Redirect(w, r, "/auth/users", http.StatusSeeOther)
-				return
-			}
-			pass := r.FormValue("password")
-			typeStr := r.FormValue("type")
-			accType := "user"
-			if typeStr == "admin" {
-				accType = "admin"
-			}
-			hash, _ := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
-			acc := &Account{
-				ID:       id,
-				Type:     accType,
-				Scopes:   []string{"*"},
-				Metadata: map[string]string{"created": time.Now().Format(time.RFC3339), "password_hash": string(hash)},
-			}
-			b, _ := json.Marshal(acc)
-			storeInst.Write(&store.Record{Key: "auth/" + id, Value: b})
-			http.Redirect(w, r, "/auth/users", http.StatusSeeOther)
-			return
-		}
-		recs, _ := storeInst.Read("auth/", store.ReadPrefix())
-		var users []Account
-		for _, rec := range recs {
-			var acc Account
-			if err := json.Unmarshal(rec.Value, &acc); err == nil {
-				if acc.Type == "user" || acc.Type == "admin" {
-					users = append(users, acc)
+			recs, _ := storeInst.Read("auth/", store.ReadPrefix())
+			var users []Account
+			for _, rec := range recs {
+				var acc Account
+				if err := json.Unmarshal(rec.Value, &acc); err == nil {
+					if acc.Type == "user" || acc.Type == "admin" {
+						users = append(users, acc)
+					}
 				}
 			}
-		}
-		_ = tmpls.authUsers.Execute(w, map[string]any{"Title": "User Accounts", "Users": users, "User": user})
-	}))
-	mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			loginTmpl, err := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
-			if err != nil {
-				w.WriteHeader(500)
-				w.Write([]byte("Template error: " + err.Error()))
+			_ = tmpls.authUsers.Execute(w, map[string]any{"Title": "User Accounts", "Users": users, "User": user})
+		}))
+		mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == "GET" {
+				loginTmpl, err := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
+				if err != nil {
+					w.WriteHeader(500)
+					w.Write([]byte("Template error: " + err.Error()))
+					return
+				}
+				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "", "User": getUser(r), "HideSidebar": true})
 				return
 			}
-			_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "", "User": getUser(r), "HideSidebar": true})
-			return
-		}
-		if r.Method == "POST" {
-			id := r.FormValue("id")
-			pass := r.FormValue("password")
-			recKey := "auth/" + id
-			recs, _ := storeInst.Read(recKey)
-			if len(recs) == 0 {
-				loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
-				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
+			if r.Method == "POST" {
+				id := r.FormValue("id")
+				pass := r.FormValue("password")
+				recKey := "auth/" + id
+				recs, _ := storeInst.Read(recKey)
+				if len(recs) == 0 {
+					loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
+					_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
+					return
+				}
+				var acc Account
+				if err := json.Unmarshal(recs[0].Value, &acc); err != nil {
+					loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
+					_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
+					return
+				}
+				hash, ok := acc.Metadata["password_hash"]
+				if !ok || bcrypt.CompareHashAndPassword([]byte(hash), []byte(pass)) != nil {
+					loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
+					_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
+					return
+				}
+				tok, err := GenerateJWT(acc.ID, acc.Type, acc.Scopes, 24*time.Hour)
+				if err != nil {
+					log.Printf("[LOGIN ERROR] Token generation failed: %v\nAccount: %+v", err, acc)
+					loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
+					_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Token error", "User": "", "HideSidebar": true})
+					return
+				}
+				storeJWTToken(storeInst, tok, acc.ID) // Store the JWT token
+				http.SetCookie(w, &http.Cookie{
+					Name:     "micro_token",
+					Value:    tok,
+					Path:     "/",
+					Expires:  time.Now().Add(time.Hour * 24),
+					HttpOnly: true,
+				})
+				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
 			}
-			var acc Account
-			if err := json.Unmarshal(recs[0].Value, &acc); err != nil {
-				loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
-				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
-				return
-			}
-			hash, ok := acc.Metadata["password_hash"]
-			if !ok || bcrypt.CompareHashAndPassword([]byte(hash), []byte(pass)) != nil {
-				loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
-				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Invalid credentials", "User": "", "HideSidebar": true})
-				return
-			}
-			tok, err := GenerateJWT(acc.ID, acc.Type, acc.Scopes, 24*time.Hour)
-			if err != nil {
-				log.Printf("[LOGIN ERROR] Token generation failed: %v\nAccount: %+v", err, acc)
-				loginTmpl, _ := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
-				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "Token error", "User": "", "HideSidebar": true})
-				return
-			}
-			storeJWTToken(storeInst, tok, acc.ID) // Store the JWT token
-			http.SetCookie(w, &http.Cookie{
-				Name:     "micro_token",
-				Value:    tok,
-				Path:     "/",
-				Expires:  time.Now().Add(time.Hour * 24),
-				HttpOnly: true,
-			})
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
-		w.WriteHeader(405)
-		w.Write([]byte("Method not allowed"))
-	})
+			w.WriteHeader(405)
+			w.Write([]byte("Method not allowed"))
+		})
 	} // end if authEnabled
 }
 

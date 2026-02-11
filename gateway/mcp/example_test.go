@@ -1,4 +1,4 @@
-package mcp_test
+package mcp
 
 import (
 	"context"
@@ -7,8 +7,7 @@ import (
 	"net/http"
 
 	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
-	"go-micro.dev/v5/registry/mdns"
+	"go-micro.dev/v5/registry"
 )
 
 // Example_inlineGateway shows how to add MCP gateway to an existing service
@@ -18,7 +17,7 @@ func Example_inlineGateway() {
 
 	// Add MCP gateway alongside your service
 	go func() {
-		if err := mcp.Serve(mcp.Options{
+		if err := Serve(Options{
 			Registry: service.Options().Registry,
 			Address:  ":3000",
 		}); err != nil {
@@ -34,8 +33,8 @@ func Example_inlineGateway() {
 func Example_standaloneGateway() {
 	// Standalone MCP gateway
 	// Discovers all services via registry
-	if err := mcp.ListenAndServe(":3000", mcp.Options{
-		Registry: mdns.NewRegistry(),
+	if err := ListenAndServe(":3000", Options{
+		Registry: registry.NewMDNSRegistry(),
 	}); err != nil {
 		log.Fatal(err)
 	}
@@ -47,7 +46,7 @@ func Example_withAuthentication() {
 	service.Init()
 
 	go func() {
-		if err := mcp.Serve(mcp.Options{
+		if err := Serve(Options{
 			Registry: service.Options().Registry,
 			Address:  ":3000",
 			AuthFunc: func(r *http.Request) error {
@@ -75,7 +74,7 @@ func Example_customContext() {
 	service.Init()
 
 	go func() {
-		if err := mcp.Serve(mcp.Options{
+		if err := Serve(Options{
 			Registry: service.Options().Registry,
 			Address:  ":3000",
 			Context:  ctx,
