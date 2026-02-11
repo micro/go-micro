@@ -948,7 +948,6 @@ func Run(c *cli.Context) error {
 	opts := GatewayOptions{
 		Address:     addr,
 		AuthEnabled: true,
-		Store:       store.DefaultStore,
 		Context:     c.Context,
 		MCPEnabled:  mcpAddr != "",
 		MCPAddress:  mcpAddr,

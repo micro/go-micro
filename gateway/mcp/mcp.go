@@ -243,13 +243,8 @@ func (s *Server) serveHTTP() error {
 
 // serveStdio starts stdio-based MCP server (for Claude Code, etc.)
 func (s *Server) serveStdio() error {
-	s.opts.Logger.Printf("[mcp] MCP gateway using stdio transport")
-
-	// TODO: Implement stdio JSON-RPC protocol
-	// For now, this is a placeholder showing the architecture
-
-	<-s.opts.Context.Done()
-	return nil
+	transport := NewStdioTransport(s)
+	return transport.Serve()
 }
 
 // handleListTools returns the list of available tools
