@@ -118,9 +118,8 @@ type Options struct {
 	// ToolScopes lets the gateway operator define or override per-tool
 	// scope requirements without changing the services themselves.
 	// Keys are tool names (e.g. "blog.Blog.Create") and values are the
-	// required scopes. Gateway-level scopes are merged with (and take
-	// precedence over) any scopes declared by the service via endpoint
-	// metadata.
+	// required scopes. When a tool appears in ToolScopes its scopes
+	// replace any scopes declared by the service via endpoint metadata.
 	//
 	// Example:
 	//
