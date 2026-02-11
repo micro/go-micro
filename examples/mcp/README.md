@@ -26,6 +26,7 @@ Complete example showing all MCP features with a user service.
 **What it shows:**
 - Multiple endpoints (GetUser, CreateUser)
 - Rich documentation with examples
+- Per-endpoint auth scopes via `server.WithEndpointScopes()`
 - Pre-populated test data
 - Production-ready patterns
 
@@ -138,6 +139,51 @@ micro mcp test <tool-name>   # Test a tool
 - No API wrappers
 - No code generation
 - Just write normal Go code!
+
+### ✅ Per-Tool Auth Scopes
+
+Declare required scopes when registering a handler:
+
+```go
+handler := service.Server().NewHandler(
+    new(BlogService),
+    server.WithEndpointScopes("Blog.Create", "blog:write"),
+    server.WithEndpointScopes("Blog.Delete", "blog:admin"),
+)
+```
+
+Or define scopes at the gateway layer without changing services:
+
+```go
+mcp.Serve(mcp.Options{
+    Registry: reg,
+    Auth:     authProvider,
+    Scopes: map[string][]string{
+        "blog.Blog.Create": {"blog:write"},
+        "blog.Blog.Delete": {"blog:admin"},
+    },
+})
+```
+
+### ✅ Tracing, Rate Limiting & Audit Logging
+
+Every tool call generates a trace ID that propagates through the RPC chain.
+Configure rate limiting and audit logging at the gateway:
+
+```go
+mcp.Serve(mcp.Options{
+    Registry: reg,
+    Auth:     authProvider,
+    RateLimit: &mcp.RateLimitConfig{
+        RequestsPerSecond: 10,
+        Burst:             20,
+    },
+    AuditFunc: func(r mcp.AuditRecord) {
+        log.Printf("[audit] trace=%s tool=%s account=%s allowed=%v",
+            r.TraceID, r.Tool, r.AccountID, r.Allowed)
+    },
+})
+```
 
 ## Documentation
 

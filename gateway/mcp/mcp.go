@@ -21,13 +21,63 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
+	"go-micro.dev/v5/auth"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/codec/bytes"
+	"go-micro.dev/v5/metadata"
 	"go-micro.dev/v5/registry"
+
+	"github.com/google/uuid"
 )
+
+// Metadata keys for MCP tracing and auth propagated via context/metadata.
+const (
+	// TraceIDKey is the metadata key for the MCP trace ID.
+	TraceIDKey = "Mcp-Trace-Id"
+	// ToolNameKey is the metadata key for the tool being invoked.
+	ToolNameKey = "Mcp-Tool-Name"
+	// AccountIDKey is the metadata key for the authenticated account ID.
+	AccountIDKey = "Mcp-Account-Id"
+)
+
+// AuditRecord represents an immutable log entry for an MCP tool call.
+type AuditRecord struct {
+	// TraceID uniquely identifies this tool call chain.
+	TraceID string `json:"trace_id"`
+	// Timestamp of the tool call.
+	Timestamp time.Time `json:"timestamp"`
+	// Tool is the name of the tool that was called.
+	Tool string `json:"tool"`
+	// AccountID is the ID of the authenticated account (empty if unauthenticated).
+	AccountID string `json:"account_id,omitempty"`
+	// Scopes that were required for this tool.
+	ScopesRequired []string `json:"scopes_required,omitempty"`
+	// Allowed indicates whether the call was authorized.
+	Allowed bool `json:"allowed"`
+	// Denied reason, if the call was not allowed.
+	DeniedReason string `json:"denied_reason,omitempty"`
+	// Duration of the RPC call (zero if call was denied before execution).
+	Duration time.Duration `json:"duration,omitempty"`
+	// Error from the RPC call, if any.
+	Error string `json:"error,omitempty"`
+}
+
+// AuditFunc is called for every tool call with an audit record.
+// Implementations should treat the record as immutable and persist it
+// (e.g. to a log, database, or event stream).
+type AuditFunc func(record AuditRecord)
+
+// RateLimitConfig configures rate limiting for the MCP gateway.
+type RateLimitConfig struct {
+	// Requests per second allowed per tool (0 = unlimited).
+	RequestsPerSecond float64
+	// Burst size (maximum number of requests that can be made at once).
+	Burst int
+}
 
 // Options configures the MCP gateway
 type Options struct {
@@ -47,9 +97,37 @@ type Options struct {
 	// Logger for debug output (defaults to log.Default())
 	Logger *log.Logger
 
-	// AuthFunc validates requests (optional)
+	// AuthFunc validates requests (optional, legacy)
 	// Return error to reject, nil to allow
 	AuthFunc func(r *http.Request) error
+
+	// Auth provider for token inspection (optional).
+	// When set, incoming requests must carry a Bearer token which is
+	// inspected to obtain an account. The account's scopes are then
+	// checked against the tool's required scopes.
+	Auth auth.Auth
+
+	// AuditFunc is called for every tool call with an immutable audit record.
+	// Use this to persist tool-call logs for compliance and debugging.
+	AuditFunc AuditFunc
+
+	// RateLimit configures per-tool rate limiting.
+	// When set, each tool is limited to the configured requests per second.
+	RateLimit *RateLimitConfig
+
+	// Scopes lets the gateway operator define or override per-tool
+	// scope requirements without changing the services themselves.
+	// Keys are tool names (e.g. "blog.Blog.Create") and values are the
+	// required scopes. When a tool appears in Scopes its scopes
+	// replace any scopes declared by the service via endpoint metadata.
+	//
+	// Example:
+	//
+	//   Scopes: map[string][]string{
+	//       "blog.Blog.Create": {"blog:write"},
+	//       "blog.Blog.Delete": {"blog:admin"},
+	//   }
+	Scopes map[string][]string
 }
 
 // Server represents a running MCP gateway
@@ -59,6 +137,10 @@ type Server struct {
 	toolsMu  sync.RWMutex
 	server   *http.Server
 	watching bool
+
+	// limiters holds per-tool rate limiters (nil if rate limiting is disabled).
+	limiters   map[string]*rateLimiter
+	limitersMu sync.RWMutex
 }
 
 // Tool represents an MCP tool (exposed service endpoint)
@@ -66,8 +148,11 @@ type Tool struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	InputSchema map[string]interface{} `json:"inputSchema"`
-	Service     string                 `json:"-"`
-	Endpoint    string                 `json:"-"`
+	// Scopes lists the auth scopes required to call this tool.
+	// An empty list means no scope restriction (subject to Auth provider).
+	Scopes   []string `json:"scopes,omitempty"`
+	Service  string   `json:"-"`
+	Endpoint string   `json:"-"`
 }
 
 // Serve starts an MCP gateway with the given options.
@@ -89,8 +174,9 @@ func Serve(opts Options) error {
 	}
 
 	server := &Server{
-		opts:  opts,
-		tools: make(map[string]*Tool),
+		opts:     opts,
+		tools:    make(map[string]*Tool),
+		limiters: make(map[string]*rateLimiter),
 	}
 
 	// Discover services and build tool list
@@ -154,6 +240,20 @@ func (s *Server) discoverServices() error {
 				Endpoint:    ep.Name,
 			}
 
+			// Extract scopes from endpoint metadata
+			if ep.Metadata != nil {
+				if scopes, ok := ep.Metadata["scopes"]; ok && scopes != "" {
+					tool.Scopes = strings.Split(scopes, ",")
+				}
+			}
+
+			// Gateway-level Scopes override service-level scopes
+			if s.opts.Scopes != nil {
+				if scopes, ok := s.opts.Scopes[toolName]; ok {
+					tool.Scopes = scopes
+				}
+			}
+
 			// Add example from metadata if available
 			if ep.Metadata != nil {
 				if example, ok := ep.Metadata["example"]; ok && example != "" {
@@ -162,6 +262,18 @@ func (s *Server) discoverServices() error {
 			}
 
 			s.tools[toolName] = tool
+
+			// Create rate limiter for this tool if rate limiting is configured
+			if s.opts.RateLimit != nil && s.opts.RateLimit.RequestsPerSecond > 0 {
+				s.limitersMu.Lock()
+				if _, exists := s.limiters[toolName]; !exists {
+					s.limiters[toolName] = newRateLimiter(
+						s.opts.RateLimit.RequestsPerSecond,
+						s.opts.RateLimit.Burst,
+					)
+				}
+				s.limitersMu.Unlock()
+			}
 		}
 	}
 
@@ -315,6 +427,67 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate trace ID for this call
+	traceID := uuid.New().String()
+
+	// Authenticate and authorise
+	var account *auth.Account
+	if s.opts.Auth != nil {
+		token := r.Header.Get("Authorization")
+		if strings.HasPrefix(token, "Bearer ") {
+			token = strings.TrimPrefix(token, "Bearer ")
+		}
+		if token == "" {
+			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool, Allowed: false, DeniedReason: "missing token"})
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		acc, err := s.opts.Auth.Inspect(token)
+		if err != nil {
+			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool, Allowed: false, DeniedReason: "invalid token"})
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		account = acc
+
+		// Check per-tool scopes
+		if len(tool.Scopes) > 0 {
+			if !hasScope(account.Scopes, tool.Scopes) {
+				s.audit(AuditRecord{
+					TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+					AccountID: account.ID, ScopesRequired: tool.Scopes,
+					Allowed: false, DeniedReason: "insufficient scopes",
+				})
+				http.Error(w, "Forbidden: insufficient scopes", http.StatusForbidden)
+				return
+			}
+		}
+	}
+
+	// Rate limit check
+	if err := s.allowRate(req.Tool); err != nil {
+		accountID := ""
+		if account != nil {
+			accountID = account.ID
+		}
+		s.audit(AuditRecord{
+			TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+			AccountID: accountID, Allowed: false, DeniedReason: "rate limited",
+		})
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
+
+	// Build context with tracing metadata
+	ctx := r.Context()
+	md := metadata.Metadata{}
+	md.Set(TraceIDKey, traceID)
+	md.Set(ToolNameKey, req.Tool)
+	if account != nil {
+		md.Set(AccountIDKey, account.ID)
+	}
+	ctx = metadata.MergeContext(ctx, md, true)
+
 	// Convert input to JSON bytes for RPC call
 	inputBytes, err := json.Marshal(req.Input)
 	if err != nil {
@@ -323,19 +496,42 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make RPC call
+	start := time.Now()
 	rpcReq := s.opts.Client.NewRequest(tool.Service, tool.Endpoint, &bytes.Frame{Data: inputBytes})
 	var rsp bytes.Frame
 
-	if err := s.opts.Client.Call(r.Context(), rpcReq, &rsp); err != nil {
+	if err := s.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
 		s.opts.Logger.Printf("[mcp] RPC call failed: %v", err)
+		accountID := ""
+		if account != nil {
+			accountID = account.ID
+		}
+		s.audit(AuditRecord{
+			TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+			AccountID: accountID, ScopesRequired: tool.Scopes,
+			Allowed: true, Duration: time.Since(start), Error: err.Error(),
+		})
 		http.Error(w, fmt.Sprintf("RPC call failed: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Return response
+	// Audit successful call
+	accountID := ""
+	if account != nil {
+		accountID = account.ID
+	}
+	s.audit(AuditRecord{
+		TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+		AccountID: accountID, ScopesRequired: tool.Scopes,
+		Allowed: true, Duration: time.Since(start),
+	})
+
+	// Return response with trace ID
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(TraceIDKey, traceID)
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"result": json.RawMessage(rsp.Data),
+		"result":   json.RawMessage(rsp.Data),
+		"trace_id": traceID,
 	})
 }
 
@@ -372,6 +568,43 @@ func (s *Server) GetTools() []*Tool {
 		tools = append(tools, tool)
 	}
 	return tools
+}
+
+// audit emits an audit record if an AuditFunc is configured.
+func (s *Server) audit(record AuditRecord) {
+	if s.opts.AuditFunc != nil {
+		s.opts.AuditFunc(record)
+	}
+}
+
+// allowRate checks if the tool call is allowed under the configured rate limit.
+// Returns nil if allowed, non-nil error if rate-limited.
+func (s *Server) allowRate(toolName string) error {
+	if s.opts.RateLimit == nil {
+		return nil
+	}
+	s.limitersMu.RLock()
+	limiter, ok := s.limiters[toolName]
+	s.limitersMu.RUnlock()
+	if !ok {
+		return nil
+	}
+	if !limiter.Allow() {
+		return fmt.Errorf("rate limit exceeded for tool %s", toolName)
+	}
+	return nil
+}
+
+// hasScope checks if the account has at least one of the required scopes.
+func hasScope(accountScopes, requiredScopes []string) bool {
+	for _, req := range requiredScopes {
+		for _, have := range accountScopes {
+			if strings.EqualFold(have, req) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Example shows how to use the MCP gateway in your code

@@ -1,5 +1,7 @@
 package server
 
+import "strings"
+
 // Package server provides options for documenting service endpoints.
 //
 // Documentation is AUTOMATICALLY EXTRACTED from Go doc comments on handler methods.
@@ -75,5 +77,22 @@ func WithEndpointDescription(endpoint, description string) HandlerOption {
 func WithEndpointExample(endpoint, example string) HandlerOption {
 	return EndpointMetadata(endpoint, map[string]string{
 		"example": example,
+	})
+}
+
+// WithEndpointScopes sets the required auth scopes for a single endpoint.
+// Scopes are stored as comma-separated values in endpoint metadata and
+// enforced by the MCP gateway when an Auth provider is configured.
+//
+// Example:
+//
+//	server.NewHandler(
+//	    new(BlogService),
+//	    server.WithEndpointScopes("Blog.Create", "blog:write", "blog:admin"),
+//	    server.WithEndpointScopes("Blog.Read", "blog:read"),
+//	)
+func WithEndpointScopes(endpoint string, scopes ...string) HandlerOption {
+	return EndpointMetadata(endpoint, map[string]string{
+		"scopes": strings.Join(scopes, ","),
 	})
 }

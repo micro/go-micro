@@ -12,6 +12,7 @@ import (
 
 	"go-micro.dev/v5"
 	"go-micro.dev/v5/gateway/mcp"
+	"go-micro.dev/v5/server"
 )
 
 // User represents a user in the system
@@ -114,9 +115,13 @@ func main() {
 		},
 	}
 
-	// Register handler - documentation is automatically extracted from method comments
-	// You can also use server.WithEndpointDocs() to manually provide documentation
-	handler := service.Server().NewHandler(usersService)
+	// Register handler - documentation is automatically extracted from method comments.
+	// Use WithEndpointScopes to declare required auth scopes per endpoint.
+	handler := service.Server().NewHandler(
+		usersService,
+		server.WithEndpointScopes("Users.GetUser", "users:read"),
+		server.WithEndpointScopes("Users.CreateUser", "users:write"),
+	)
 
 	if err := service.Server().Handle(handler); err != nil {
 		log.Fatal(err)

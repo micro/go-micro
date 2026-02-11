@@ -8,7 +8,14 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"sync"
+	"time"
+
+	"go-micro.dev/v5/auth"
+	"go-micro.dev/v5/metadata"
+
+	"github.com/google/uuid"
 )
 
 // StdioTransport implements MCP JSON-RPC 2.0 over stdio
@@ -161,6 +168,9 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 	var params struct {
 		Name      string                 `json:"name"`
 		Arguments map[string]interface{} `json:"arguments"`
+		// Token allows callers to pass a bearer token for auth via the
+		// JSON-RPC params (since stdio has no HTTP headers).
+		Token string `json:"_token,omitempty"`
 	}
 	if err := json.Unmarshal(req.Params, &params); err != nil {
 		t.sendError(req.ID, InvalidParams, "Invalid params", err.Error())
@@ -177,6 +187,57 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 		return
 	}
 
+	// Generate trace ID
+	traceID := uuid.New().String()
+
+	// Authenticate and authorise (if Auth is configured)
+	var account *auth.Account
+	if t.server.opts.Auth != nil {
+		token := params.Token
+		if token == "" {
+			t.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "missing token"})
+			t.sendError(req.ID, InvalidParams, "Unauthorized", "missing _token in params")
+			return
+		}
+		if strings.HasPrefix(token, "Bearer ") {
+			token = strings.TrimPrefix(token, "Bearer ")
+		}
+		acc, err := t.server.opts.Auth.Inspect(token)
+		if err != nil {
+			t.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "invalid token"})
+			t.sendError(req.ID, InvalidParams, "Unauthorized", "invalid token")
+			return
+		}
+		account = acc
+
+		// Check per-tool scopes
+		if len(tool.Scopes) > 0 {
+			if !hasScope(account.Scopes, tool.Scopes) {
+				t.server.audit(AuditRecord{
+					TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
+					AccountID: account.ID, ScopesRequired: tool.Scopes,
+					Allowed: false, DeniedReason: "insufficient scopes",
+				})
+				t.sendError(req.ID, InvalidParams, "Forbidden", "insufficient scopes")
+				return
+			}
+		}
+	}
+
+	// Rate limit check
+	if err := t.server.allowRate(params.Name); err != nil {
+		accountID := ""
+		if account != nil {
+			accountID = account.ID
+		}
+		t.server.audit(AuditRecord{
+			TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
+			AccountID: accountID, Allowed: false, DeniedReason: "rate limited",
+		})
+		t.sendError(req.ID, InternalError, "Rate limit exceeded", params.Name)
+		return
+	}
+
 	// Convert arguments to JSON bytes for RPC call
 	inputBytes, err := json.Marshal(params.Arguments)
 	if err != nil {
@@ -184,7 +245,18 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 		return
 	}
 
+	// Build context with tracing metadata
+	ctx := t.ctx
+	md := metadata.Metadata{}
+	md.Set(TraceIDKey, traceID)
+	md.Set(ToolNameKey, params.Name)
+	if account != nil {
+		md.Set(AccountIDKey, account.ID)
+	}
+	ctx = metadata.MergeContext(ctx, md, true)
+
 	// Make RPC call
+	start := time.Now()
 	rpcReq := t.server.opts.Client.NewRequest(tool.Service, tool.Endpoint, &struct {
 		Data []byte
 	}{Data: inputBytes})
@@ -193,10 +265,30 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 		Data []byte
 	}
 
-	if err := t.server.opts.Client.Call(t.ctx, rpcReq, &rsp); err != nil {
+	if err := t.server.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
+		accountID := ""
+		if account != nil {
+			accountID = account.ID
+		}
+		t.server.audit(AuditRecord{
+			TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
+			AccountID: accountID, ScopesRequired: tool.Scopes,
+			Allowed: true, Duration: time.Since(start), Error: err.Error(),
+		})
 		t.sendError(req.ID, InternalError, "RPC call failed", err.Error())
 		return
 	}
+
+	// Audit successful call
+	accountID := ""
+	if account != nil {
+		accountID = account.ID
+	}
+	t.server.audit(AuditRecord{
+		TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
+		AccountID: accountID, ScopesRequired: tool.Scopes,
+		Allowed: true, Duration: time.Since(start),
+	})
 
 	// Parse response
 	var result interface{}
@@ -214,6 +306,7 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 				"text": fmt.Sprintf("%v", result),
 			},
 		},
+		"trace_id": traceID,
 	})
 }
 
