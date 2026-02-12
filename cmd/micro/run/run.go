@@ -481,7 +481,10 @@ func init() {
 
 Starts an HTTP gateway on :8080 providing:
   - Web dashboard at /
+  - Agent playground at /agent (AI chat with MCP tools)
+  - API explorer at /api
   - API proxy at /api/{service}/{endpoint}
+  - MCP tools at /api/mcp/tools
   - Health checks at /health
 
 With a micro.mu or micro.json config file, services start in dependency order.
@@ -492,7 +495,8 @@ Examples:
   micro run --address :3000    # Gateway on custom port
   micro run --no-gateway       # Services only, no HTTP gateway
   micro run --no-watch         # Disable hot reload
-  micro run --env production   # Use production environment`,
+  micro run --env production   # Use production environment
+  micro run --mcp-address :3000  # Enable MCP protocol gateway`,
 		Action: Run,
 		Flags: []cli.Flag{
 			&cli.StringFlag{

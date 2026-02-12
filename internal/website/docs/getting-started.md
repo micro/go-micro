@@ -46,8 +46,11 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
 ```
 
 `micro run` gives you:
-- **API Gateway** at `http://localhost:8080/api/{service}/{method}`
 - **Web Dashboard** at `http://localhost:8080`
+- **Agent Playground** at `http://localhost:8080/agent` — AI chat with MCP tools
+- **API Explorer** at `http://localhost:8080/api` — browse endpoints and schemas
+- **API Gateway** at `http://localhost:8080/api/{service}/{method}`
+- **MCP Tools** at `http://localhost:8080/api/mcp/tools` — services exposed as AI tools
 - **Hot Reload** — auto-rebuild on file changes
 - **Health Checks** at `http://localhost:8080/health`
 

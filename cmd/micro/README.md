@@ -36,6 +36,9 @@ micro run
 This starts:
 - **API Gateway** on http://localhost:8080
 - **Web Dashboard** at http://localhost:8080
+- **Agent Playground** at http://localhost:8080/agent
+- **API Explorer** at http://localhost:8080/api
+- **MCP Tools** at http://localhost:8080/api/mcp/tools
 - **Hot Reload** watching for file changes
 - **Services** in dependency order
 

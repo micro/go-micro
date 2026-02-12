@@ -163,8 +163,11 @@ Then open http://localhost:8080 to see your service and call it from the browser
 ### micro run
 
 `micro run` starts your services with:
-- **API Gateway** - HTTP to RPC proxy at `/api/{service}/{method}` (no auth in dev mode)
 - **Web Dashboard** - Browse and call services at `/`
+- **Agent Playground** - AI chat with MCP tools at `/agent`
+- **API Explorer** - Browse endpoints and schemas at `/api`
+- **API Gateway** - HTTP to RPC proxy at `/api/{service}/{method}` (no auth in dev mode)
+- **MCP Tools** - Services as AI tools at `/api/mcp/tools`
 - **Health Checks** - Aggregated health at `/health`
 - **Hot Reload** - Auto-rebuild on file changes
 

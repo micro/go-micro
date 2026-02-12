@@ -25,7 +25,10 @@ When you run `micro run`, you get:
 | URL | Description |
 |-----|-------------|
 | http://localhost:8080 | Web dashboard - browse and call services |
+| http://localhost:8080/agent | Agent playground - AI chat with MCP tools |
+| http://localhost:8080/api | API explorer - browse endpoints and schemas |
 | http://localhost:8080/api/{service}/{method} | API gateway - HTTP to RPC proxy |
+| http://localhost:8080/api/mcp/tools | MCP tools - list all services as AI tools |
 | http://localhost:8080/health | Health checks - aggregated service health |
 | http://localhost:8080/services | Service list - JSON |
 
@@ -33,6 +36,7 @@ Plus:
 - **Hot Reload** - File changes trigger automatic rebuild
 - **Dependency Ordering** - Services start in the right order
 - **Environment Management** - Dev/staging/production configs
+- **MCP Gateway** - Optional dedicated MCP protocol listener via `--mcp-address`
 
 ## Features
 
@@ -47,6 +51,24 @@ curl -X POST http://localhost:8080/api/helloworld/Say.Hello \
 
 # Response
 {"message": "Hello World"}
+```
+
+### Agent Playground
+
+The agent playground at `/agent` lets you interact with your services using AI. Your services are automatically exposed as MCP (Model Context Protocol) tools — no configuration needed.
+
+1. Open http://localhost:8080/agent
+2. Configure your API key in Agent Settings (supports OpenAI and Anthropic)
+3. Chat with the AI agent — it can discover and call your services as tools
+
+The MCP tools API is available at:
+- `/api/mcp/tools` — list all services as AI-callable tools
+- `/api/mcp/call` — invoke a tool (service endpoint) by name
+
+For a dedicated MCP protocol listener (for external AI clients), use:
+
+```bash
+micro run --mcp-address :3000
 ```
 
 ### Hot Reload
@@ -214,17 +236,19 @@ micro run github.com/micro/blog
 ## Options
 
 ```bash
-micro run                    # Gateway on :8080, hot reload
-micro run --address :3000    # Custom gateway port
-micro run --no-gateway       # Services only, no HTTP gateway
-micro run --no-watch         # Disable hot reload
-micro run --env production   # Use production environment
+micro run                        # Gateway on :8080, hot reload
+micro run --address :3000        # Custom gateway port
+micro run --no-gateway           # Services only, no HTTP gateway
+micro run --no-watch             # Disable hot reload
+micro run --env production       # Use production environment
+micro run --mcp-address :3000    # Enable MCP protocol gateway for AI clients
 ```
 
 ## Tips
 
 1. **Browse First**: Open http://localhost:8080 to explore your services
-2. **Port Configuration**: Set `port` for services to enable health check waiting
-3. **Health Endpoint**: Implement `/health` returning 200 for reliable startup sequencing
-4. **Environment Separation**: Keep secrets in production env, use file:// paths for development
-5. **Hot Reload Scope**: Only `.go` files trigger rebuilds; static assets don't
+2. **Try the Agent**: Open http://localhost:8080/agent to chat with your services via AI
+3. **Port Configuration**: Set `port` for services to enable health check waiting
+4. **Health Endpoint**: Implement `/health` returning 200 for reliable startup sequencing
+5. **Environment Separation**: Keep secrets in production env, use file:// paths for development
+6. **Hot Reload Scope**: Only `.go` files trigger rebuilds; static assets don't
