@@ -146,10 +146,19 @@ go install go-micro.dev/v5/cmd/micro@v5.15.0
 ```bash
 micro new helloworld   # Create a new service
 cd helloworld
-micro run              # Run with API gateway
+micro run              # Run with API gateway and hot reload
 ```
 
 Then open http://localhost:8080 to see your service and call it from the browser.
+
+### Development Workflow
+
+| Stage | Command | Purpose |
+|-------|---------|---------|
+| **Develop** | `micro run` | Local dev with hot reload and API gateway |
+| **Build** | `micro build` | Compile production binaries |
+| **Deploy** | `micro deploy` | Push to a remote Linux server via SSH + systemd |
+| **Dashboard** | `micro server` | Optional production web UI with JWT auth |
 
 ### micro run
 
@@ -206,6 +215,8 @@ The deploy command:
 2. Copies via SSH to the server
 3. Sets up systemd services
 4. Verifies services are healthy
+
+Optionally run `micro server` on the deployed machine for a production web dashboard with JWT auth, user management, and API explorer.
 
 Manage deployed services:
 ```bash

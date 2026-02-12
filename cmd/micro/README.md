@@ -346,7 +346,7 @@ Use protobuf for code generation with [protoc-gen-micro](https://github.com/micr
 
 ## Server
 
-The micro server is an api and web dashboard that provide a fixed entrypoint for seeing and querying services.
+The micro server is a production web dashboard and authenticated API gateway for interacting with services that are already running (e.g., managed by systemd via `micro deploy`). It does **not** build, run, or watch services — for local development, use `micro run` instead.
 
 Run it like so
 
@@ -354,7 +354,7 @@ Run it like so
 micro server
 ```
 
-Then browse to [localhost:8080](http://localhost:8080)
+Then browse to [localhost:8080](http://localhost:8080) and log in with the default admin account (`admin`/`micro`).
 
 ### API Endpoints 
 

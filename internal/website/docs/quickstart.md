@@ -5,8 +5,10 @@ Get up and running with go-micro in under 5 minutes.
 ## Install
 
 ```bash
-go install go-micro.dev/v5/cmd/micro@latest
+go install go-micro.dev/v5/cmd/micro@v5.13.0
 ```
+
+> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
 
 ## Create Your First Service
 

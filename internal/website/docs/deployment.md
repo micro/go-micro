@@ -9,13 +9,21 @@ This guide covers deploying go-micro services to a Linux server using systemd.
 
 ## Overview
 
-go-micro provides a simple deployment workflow:
+go-micro provides a clear workflow from development to production:
 
-1. **Develop locally** with `micro run`
-2. **Build binaries** with `micro build`
-3. **Deploy to server** with `micro deploy`
+| Stage | Command | Purpose |
+|-------|---------|---------|
+| **Develop** | `micro run` | Local dev with hot reload and API gateway |
+| **Build** | `micro build` | Compile production binaries for any target OS |
+| **Deploy** | `micro deploy` | Push binaries to a remote Linux server via SSH + systemd |
+| **Dashboard** | `micro server` | Optional production web UI with JWT auth and user management |
 
-On the server, services are managed by systemd - the standard Linux process supervisor.
+Each command has a distinct role — they don't overlap:
+
+- **`micro run`** builds, runs, and watches services locally. It includes a lightweight gateway. Use it for development.
+- **`micro build`** compiles binaries without running them. Use it to prepare release artifacts.
+- **`micro deploy`** sends binaries to a remote server and manages them with systemd. It builds automatically if needed.
+- **`micro server`** provides an authenticated web dashboard for services that are already running. It does NOT build or run services.
 
 ## Quick Start
 
@@ -342,8 +350,28 @@ deploy ALL=(ALL) NOPASSWD: /bin/systemctl stop micro@*
 deploy ALL=(ALL) NOPASSWD: /bin/systemctl status micro@*
 ```
 
+## Production Dashboard (Optional)
+
+Once services are deployed and managed by systemd, you can optionally run `micro server` on the same machine to get a full web dashboard with authentication:
+
+```bash
+# On your server
+micro server
+```
+
+This gives you:
+- **Web Dashboard** at http://your-server:8080 with JWT authentication
+- **API Gateway** with authenticated HTTP-to-RPC proxy
+- **User Management** — create accounts, generate/revoke API tokens
+- **Logs & Status** — view service logs and uptime from the browser
+
+The server discovers services via the registry automatically. Default login: `admin` / `micro`.
+
+See the [micro server documentation](server.md) for details.
+
 ## Next Steps
 
-- [micro run](./micro-run.md) - Local development
-- [micro.mu configuration](./config.md) - Configuration file format
-- [Health checks](./health.md) - Service health endpoints
+- [micro run](guides/micro-run.md) - Local development
+- [micro server](server.md) - Production web dashboard with auth
+- [micro.mu configuration](guides/micro-run.md#configuration-file) - Configuration file format
+- [Health checks](guides/health.md) - Service health endpoints

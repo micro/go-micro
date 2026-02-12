@@ -2,133 +2,78 @@
 layout: default
 ---
 
-# Deployment
+# Deployment Guide
 
-Go produces self-contained binaries. No Docker required.
+This is a quick reference for deploying go-micro services. For the full guide, see the [Deployment documentation](../deployment.md).
+
+## Workflow
+
+```
+micro run      →  Develop locally with hot reload
+micro build    →  Compile production binaries
+micro deploy   →  Push to a remote Linux server via SSH + systemd
+micro server   →  Optional: production web dashboard with auth
+```
 
 ## Quick Start
 
 ```bash
-# Build binaries
+# Build binaries for Linux
 micro build --os linux
 
-# Deploy to server
-micro deploy --ssh user@host
+# Deploy to server (builds automatically if needed)
+micro deploy user@your-server
 ```
 
-## Building
+## First-Time Server Setup
 
-### Basic Build
+On your server (any Linux with systemd):
 
 ```bash
-micro build
+curl -fsSL https://go-micro.dev/install.sh | sh
+sudo micro init --server
 ```
 
-This builds Go binaries for all services in `micro.mu` (or the current directory) to `./bin/`.
+This creates `/opt/micro/{bin,data,config}` and a systemd template for managing services.
 
-### Cross-Compilation
+## Deploy
 
 ```bash
-micro build --os linux              # For Linux servers
-micro build --os linux --arch arm64 # For ARM64 (e.g., AWS Graviton)
-micro build --os darwin             # For macOS
-micro build --os windows            # For Windows (.exe)
+micro deploy user@your-server
 ```
 
-### Custom Output
+This builds for linux/amd64, copies binaries to `/opt/micro/bin/`, configures systemd services, and verifies they're running.
+
+### Named Targets
+
+Add deploy targets to `micro.mu`:
+
+```
+deploy prod
+    ssh deploy@prod.example.com
+
+deploy staging
+    ssh deploy@staging.example.com
+```
+
+Then: `micro deploy prod`
+
+## Managing Services
 
 ```bash
-micro build --output ./dist
-```
-
-## Deploying
-
-### SSH Deploy
-
-```bash
-micro deploy --ssh user@host
-```
-
-This:
-1. Copies `./bin/*` to the remote host (if exists)
-2. Or syncs source and builds on remote
-3. Restarts services
-
-### Workflow
-
-**Option 1: Build locally, copy binaries**
-
-```bash
-micro build --os linux          # Build for target OS
-micro deploy --ssh user@host    # Copy and restart
-```
-
-**Option 2: Build on remote**
-
-```bash
-micro deploy --ssh user@host    # Syncs source, builds there
-```
-
-### Remote Structure
-
-```
-~/micro/
-├── bin/           # Service binaries
-│   ├── users
-│   ├── posts
-│   └── web
-├── logs/          # Service logs
-│   ├── users.log
-│   ├── posts.log
-│   └── web.log
-└── src/           # Source (if building on remote)
-```
-
-### View Logs
-
-```bash
-ssh user@host 'tail -f ~/micro/logs/*.log'
+micro status --remote user@server       # Check status
+micro logs --remote user@server         # View logs
+micro logs myservice --remote user@server -f  # Follow logs
 ```
 
 ## Docker (Optional)
 
-If you prefer containers:
-
 ```bash
-micro build --docker             # Build images
-micro build --docker --push      # Build and push to registry
-micro build --compose            # Generate docker-compose.yml
+micro build --docker          # Build Docker images
+micro build --docker --push   # Build and push
+micro build --compose         # Generate docker-compose.yml
 ```
 
-Then deploy with docker-compose on your server:
+## Full Documentation
 
-```bash
-scp docker-compose.yml user@host:~/
-ssh user@host 'docker compose up -d'
-```
-
-## Complete Example
-
-```bash
-# Development
-micro new myapp
-cd myapp
-micro run              # Develop locally
-
-# Build
-micro build --os linux
-
-# Deploy
-micro deploy --ssh deploy@prod.example.com
-
-# Check
-ssh deploy@prod.example.com 'tail -f ~/micro/logs/*.log'
-```
-
-## Tips
-
-1. **Cross-compile locally** - Faster than building on remote
-2. **Use `--os linux`** - Most servers are Linux
-3. **Single binary** - Go's strength, no runtime needed
-4. **Logs in ~/micro/logs/** - Easy to tail and rotate
-5. **No Docker needed** - Unless you want it
+See the [Deployment documentation](../deployment.md) for complete details including SSH setup, environment variables, security best practices, and troubleshooting.

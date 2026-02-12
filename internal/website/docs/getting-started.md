@@ -4,13 +4,64 @@ layout: default
 
 # Getting Started
 
-To make use of Go Micro 
+Go Micro provides two ways to get started: the CLI (recommended) or manual setup.
+
+## Development Workflow
+
+Go Micro has a clear lifecycle for development through deployment:
+
+| Stage | Command | Purpose |
+|-------|---------|--------|
+| **Develop** | `micro run` | Local dev with hot reload and API gateway |
+| **Build** | `micro build` | Compile production binaries |
+| **Deploy** | `micro deploy` | Push to a remote Linux server via SSH + systemd |
+| **Dashboard** | `micro server` | Optional production web UI with auth |
+
+## Quick Start (CLI)
+
+Install the CLI:
+
+```bash
+go install go-micro.dev/v5/cmd/micro@v5.13.0
+```
+
+> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
+
+Create and run a service:
+
+```bash
+micro new helloworld
+cd helloworld
+micro run
+```
+
+Open http://localhost:8080 to see your service and call it from the browser.
+
+The gateway proxies HTTP to RPC:
+
+```bash
+curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
+  -H "Content-Type: application/json" \
+  -d '{"name": "World"}'
+```
+
+`micro run` gives you:
+- **API Gateway** at `http://localhost:8080/api/{service}/{method}`
+- **Web Dashboard** at `http://localhost:8080`
+- **Hot Reload** — auto-rebuild on file changes
+- **Health Checks** at `http://localhost:8080/health`
+
+See the [micro run guide](guides/micro-run.md) for configuration, multi-service projects, and more.
+
+## Manual Setup (Framework Only)
+
+If you prefer to set up a service without the CLI:
 
 ```bash
 go get go-micro.dev/v5@latest
 ```
 
-## Create a service
+### Create a service
 
 This is a basic example of how you'd create a service and register a handler in pure Go.
 
@@ -219,7 +270,7 @@ func main() {
 }
 ```
 
-## Command line
+## Command Line
 
 Install the Micro CLI:
 
@@ -240,3 +291,10 @@ Alternative using the dynamic CLI commands:
 ```
 micro helloworld say hello --name="John"
 ```
+
+## Next Steps
+
+- **[micro run guide](guides/micro-run.md)** — Local development with hot reload
+- **[Deployment guide](deployment.md)** — Deploy to production with systemd
+- **[micro server](server.md)** — Optional production web dashboard with auth
+- **[Examples](examples/)** — More code examples

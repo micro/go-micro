@@ -27,6 +27,7 @@ about the framework.
 
 - [Getting Started](getting-started.md)
 - [CLI & Gateway Guide](guides/cli-gateway.md) - Development vs Production modes
+- [Quick Start](quickstart.md)
 - [Architecture](architecture.md)
 - [Configuration](config.md)
 - [Registry](registry.md)
@@ -36,7 +37,12 @@ about the framework.
 - [Store](store.md)
 - [Plugins](plugins.md)
 - [Examples](examples/index.md)
-- [Server (optional)](server.md)
+
+## Development & Deployment
+
+- [micro run](guides/micro-run.md) - Local development with hot reload and API gateway
+- [micro build & deploy](deployment.md) - Build binaries and deploy to production
+- [micro server](server.md) - Optional production web dashboard with auth
 
 ## Advanced
 
