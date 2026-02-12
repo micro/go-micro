@@ -1,0 +1,337 @@
+{{define "content"}}
+<h2 style="margin-top:0;">MCP Playground</h2>
+<p style="color:#666; margin-bottom:1.5em;">Interact with your microservices through MCP tools. Select a tool, fill in parameters, and call it — or use the prompt to describe what you want to do.</p>
+
+<div id="playground" style="display:flex; gap:2em; flex-wrap:wrap;">
+  <!-- Tools Panel -->
+  <div id="tools-panel" style="min-width:260px; max-width:320px; flex:0 0 auto;">
+    <div style="font-weight:600; margin-bottom:0.8em; font-size:1.05em;">Available Tools</div>
+    <div id="tools-list" style="max-height:60vh; overflow-y:auto;">
+      <div style="color:#888; padding:1em;">Loading tools...</div>
+    </div>
+  </div>
+
+  <!-- Main Chat / Interaction Area -->
+  <div style="flex:1; min-width:0;">
+    <!-- Tool Detail & Call Form -->
+    <div id="tool-detail" style="display:none; margin-bottom:2em;">
+      <div style="display:flex; align-items:center; gap:1em; margin-bottom:0.8em;">
+        <h3 id="tool-name" style="margin:0; font-size:1.15em;"></h3>
+        <span id="tool-scopes" style="font-size:0.85em; color:#888;"></span>
+      </div>
+      <p id="tool-description" style="color:#555; margin-bottom:1em;"></p>
+      <form id="tool-call-form" data-reactive style="margin:0;">
+        <div id="tool-inputs"></div>
+        <div style="display:flex; gap:0.5em; align-items:center;">
+          <button type="submit" id="call-btn">Call Tool</button>
+          <span id="call-status" style="font-size:0.9em; color:#888;"></span>
+        </div>
+      </form>
+    </div>
+
+    <!-- Conversation History -->
+    <div id="chat-area">
+      <div style="font-weight:600; margin-bottom:0.8em; font-size:1.05em;">Activity Log</div>
+      <div id="chat-messages" style="max-height:50vh; overflow-y:auto; border:1px solid #eee; border-radius:7px; padding:1em; background:#fafbfc; min-height:120px;">
+        <div class="chat-msg system" style="color:#888; font-size:0.95em;">
+          Select a tool from the left panel to get started, or use the prompt below.
+        </div>
+      </div>
+
+      <!-- Prompt Input -->
+      <div style="margin-top:1em; display:flex; gap:0.5em;">
+        <input type="text" id="prompt-input" placeholder="Describe what you want to do... e.g. 'List all users' or 'Create a new blog post'" style="flex:1; margin-bottom:0;">
+        <button id="prompt-btn" onclick="handlePrompt()" style="margin:0; white-space:nowrap;">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  #tools-list .tool-item {
+    padding: 0.6em 0.8em;
+    border: 1px solid #eee;
+    border-radius: 5px;
+    margin-bottom: 0.4em;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    font-size: 0.95em;
+  }
+  #tools-list .tool-item:hover {
+    background: #f0f0f0;
+    border-color: #ccc;
+  }
+  #tools-list .tool-item.active {
+    background: #111;
+    color: #fff;
+    border-color: #111;
+  }
+  #tools-list .tool-item .tool-service {
+    font-size: 0.82em;
+    color: #999;
+  }
+  #tools-list .tool-item.active .tool-service {
+    color: #bbb;
+  }
+  .chat-msg {
+    margin-bottom: 1em;
+    font-size: 0.95em;
+    line-height: 1.6;
+  }
+  .chat-msg.user {
+    padding: 0.6em 0.9em;
+    background: #f7f7f7;
+    border-radius: 6px;
+    border: 1px solid #eee;
+  }
+  .chat-msg.user::before {
+    content: "▸ ";
+    color: #888;
+  }
+  .chat-msg.result {
+    padding: 0.6em 0.9em;
+    background: #f0faf0;
+    border-radius: 6px;
+    border: 1px solid #d0e8d0;
+  }
+  .chat-msg.error {
+    padding: 0.6em 0.9em;
+    background: #faf0f0;
+    border-radius: 6px;
+    border: 1px solid #e8d0d0;
+    color: #a00;
+  }
+  .chat-msg pre {
+    margin: 0.5em 0 0 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .chat-msg .trace-id {
+    font-size: 0.8em;
+    color: #999;
+    margin-top: 0.3em;
+  }
+</style>
+
+<script>
+(function() {
+  var tools = [];
+  var selectedTool = null;
+
+  // Load tools on page load
+  loadTools();
+
+  function loadTools() {
+    fetch('/api/mcp/tools')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        tools = data.tools || [];
+        renderToolsList();
+      })
+      .catch(function(err) {
+        document.getElementById('tools-list').innerHTML = '<div style="color:#c00; padding:1em;">Failed to load tools: ' + err + '</div>';
+      });
+  }
+
+  function renderToolsList() {
+    var list = document.getElementById('tools-list');
+    if (tools.length === 0) {
+      list.innerHTML = '<div style="color:#888; padding:1em;">No tools available. Start some services and they will appear here.</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < tools.length; i++) {
+      var t = tools[i];
+      var parts = t.name.split('.');
+      var service = parts.length > 1 ? parts[0] : '';
+      var method = parts.length > 1 ? parts.slice(1).join('.') : t.name;
+      html += '<div class="tool-item" data-tool="' + t.name + '" onclick="window._selectTool(\'' + t.name + '\')">';
+      html += '<div style="font-weight:500;">' + escapeHtml(method) + '</div>';
+      if (service) {
+        html += '<div class="tool-service">' + escapeHtml(service) + '</div>';
+      }
+      html += '</div>';
+    }
+    list.innerHTML = html;
+  }
+
+  window._selectTool = function(name) {
+    selectedTool = null;
+    for (var i = 0; i < tools.length; i++) {
+      if (tools[i].name === name) {
+        selectedTool = tools[i];
+        break;
+      }
+    }
+    if (!selectedTool) return;
+
+    // Highlight active tool
+    var items = document.querySelectorAll('#tools-list .tool-item');
+    for (var j = 0; j < items.length; j++) {
+      items[j].classList.toggle('active', items[j].getAttribute('data-tool') === name);
+    }
+
+    // Show tool detail
+    var detail = document.getElementById('tool-detail');
+    detail.style.display = 'block';
+    document.getElementById('tool-name').textContent = selectedTool.name;
+    document.getElementById('tool-description').textContent = selectedTool.description || '';
+
+    // Show scopes
+    var scopesEl = document.getElementById('tool-scopes');
+    if (selectedTool.scopes && selectedTool.scopes.length > 0) {
+      scopesEl.textContent = 'Scopes: ' + selectedTool.scopes.join(', ');
+    } else {
+      scopesEl.textContent = '';
+    }
+
+    // Build input form
+    var inputsDiv = document.getElementById('tool-inputs');
+    inputsDiv.innerHTML = '';
+    var schema = selectedTool.inputSchema;
+    if (schema && schema.properties) {
+      var props = schema.properties;
+      var keys = Object.keys(props);
+      for (var k = 0; k < keys.length; k++) {
+        var field = keys[k];
+        var prop = props[field];
+        var label = document.createElement('label');
+        label.textContent = field;
+        label.style.fontWeight = '500';
+        label.style.display = 'block';
+        label.style.marginBottom = '0.3em';
+
+        var input = document.createElement('input');
+        input.name = field;
+        input.placeholder = (prop.description || field);
+        input.type = prop.type === 'integer' || prop.type === 'number' ? 'number' : 'text';
+
+        inputsDiv.appendChild(label);
+        inputsDiv.appendChild(input);
+      }
+    }
+    document.getElementById('call-status').textContent = '';
+  };
+
+  // Handle tool call form submission
+  document.getElementById('tool-call-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!selectedTool) return;
+    callTool(selectedTool.name, getFormInputs());
+  });
+
+  function getFormInputs() {
+    var inputs = {};
+    var fields = document.querySelectorAll('#tool-inputs input');
+    for (var i = 0; i < fields.length; i++) {
+      var val = fields[i].value;
+      if (val !== '') {
+        // Try to parse numbers
+        if (fields[i].type === 'number') {
+          inputs[fields[i].name] = Number(val);
+        } else {
+          inputs[fields[i].name] = val;
+        }
+      }
+    }
+    return inputs;
+  }
+
+  function callTool(toolName, input) {
+    var statusEl = document.getElementById('call-status');
+    statusEl.textContent = 'Calling...';
+    addMessage('user', 'Call ' + toolName + (Object.keys(input).length > 0 ? ' with: ' + JSON.stringify(input) : ''));
+
+    fetch('/api/mcp/call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: toolName, input: input })
+    })
+    .then(function(r) {
+      if (!r.ok) {
+        return r.text().then(function(t) { throw new Error(t); });
+      }
+      return r.json();
+    })
+    .then(function(data) {
+      statusEl.textContent = 'Done';
+      var msgHtml = '<pre>' + escapeHtml(JSON.stringify(data.result, null, 2)) + '</pre>';
+      if (data.trace_id) {
+        msgHtml += '<div class="trace-id">Trace: ' + escapeHtml(data.trace_id) + '</div>';
+      }
+      addMessage('result', msgHtml);
+    })
+    .catch(function(err) {
+      statusEl.textContent = 'Error';
+      addMessage('error', 'Error: ' + escapeHtml(err.message || String(err)));
+    });
+  }
+
+  // Handle prompt input
+  window.handlePrompt = function() {
+    var input = document.getElementById('prompt-input');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    addMessage('user', escapeHtml(text));
+
+    // Simple intent matching: find a tool whose name or description matches
+    var matched = matchTool(text);
+    if (matched) {
+      addMessage('system', 'Matched tool: <b>' + escapeHtml(matched.name) + '</b> — ' + escapeHtml(matched.description || ''));
+      window._selectTool(matched.name);
+    } else {
+      addMessage('system', 'No matching tool found. Try selecting a tool from the panel or be more specific.');
+    }
+  };
+
+  document.getElementById('prompt-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      window.handlePrompt();
+    }
+  });
+
+  function matchTool(query) {
+    var lower = query.toLowerCase();
+    // Exact name match first
+    for (var i = 0; i < tools.length; i++) {
+      if (tools[i].name.toLowerCase() === lower) return tools[i];
+    }
+    // Partial name match
+    for (var i = 0; i < tools.length; i++) {
+      if (tools[i].name.toLowerCase().indexOf(lower) !== -1) return tools[i];
+    }
+    // Description match
+    for (var i = 0; i < tools.length; i++) {
+      var desc = (tools[i].description || '').toLowerCase();
+      var words = lower.split(/\s+/);
+      var matched = 0;
+      for (var w = 0; w < words.length; w++) {
+        if (desc.indexOf(words[w]) !== -1 || tools[i].name.toLowerCase().indexOf(words[w]) !== -1) {
+          matched++;
+        }
+      }
+      if (matched >= Math.ceil(words.length / 2)) return tools[i];
+    }
+    return null;
+  }
+
+  function addMessage(type, html) {
+    var container = document.getElementById('chat-messages');
+    var div = document.createElement('div');
+    div.className = 'chat-msg ' + type;
+    div.innerHTML = html;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+})();
+</script>
+{{end}}
