@@ -88,11 +88,6 @@ func parseTemplates() *templates {
 	}
 }
 
-// Helper to render templates
-func render(w http.ResponseWriter, tmpl *template.Template, data any) error {
-	return tmpl.Execute(w, data)
-}
-
 // Helper to extract user info from JWT cookie
 func getUser(r *http.Request) string {
 	cookie, err := r.Cookie("micro_token")
@@ -343,6 +338,13 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		wrap = func(h http.HandlerFunc) http.HandlerFunc {
 			return h
 		}
+	}
+
+	// renderPage injects AuthEnabled into template data so the sidebar can
+	// conditionally show/hide auth links.
+	renderPage := func(w http.ResponseWriter, tmpl *template.Template, data map[string]any) error {
+		data["AuthEnabled"] = authEnabled
+		return tmpl.Execute(w, data)
 	}
 
 	// Serve static files with correct Content-Type
@@ -942,7 +944,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		if path == "/" {
 			serviceCount, runningCount, stoppedCount, statusDot := getDashboardData()
 			// Do NOT include SidebarEndpoints on home page
-			err := tmpls.home.Execute(w, map[string]any{
+			err := renderPage(w, tmpls.home, map[string]any{
 				"Title":        "Micro Dashboard",
 				"WebLink":      "/",
 				"ServiceCount": serviceCount,
@@ -1036,7 +1038,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 <b>API Authentication Required:</b> All API calls to <code>/api/...</code> endpoints (except this page) must include an <b>Authorization: Bearer &lt;token&gt;</b> header. <br>
 You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 </div>`
-			_ = render(w, tmpls.api, apiData)
+			_ = renderPage(w, tmpls.api, apiData)
 			return
 		}
 		if path == "/services" {
@@ -1047,11 +1049,11 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 				serviceNames = append(serviceNames, service.Name)
 			}
 			sort.Strings(serviceNames)
-			_ = render(w, tmpls.service, map[string]any{"Title": "Services", "WebLink": "/", "Services": serviceNames, "User": user})
+			_ = renderPage(w, tmpls.service, map[string]any{"Title": "Services", "WebLink": "/", "Services": serviceNames, "User": user})
 			return
 		}
 		if path == "/agent" {
-			_ = render(w, tmpls.playground, map[string]any{"Title": "Agent", "WebLink": "/", "User": user})
+			_ = renderPage(w, tmpls.playground, map[string]any{"Title": "Agent", "WebLink": "/", "User": user})
 			return
 		}
 		if path == "/logs" || path == "/logs/" {
@@ -1076,7 +1078,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					serviceNames = append(serviceNames, strings.TrimSuffix(name, ".log"))
 				}
 			}
-			_ = render(w, tmpls.logs, map[string]any{"Title": "Logs", "WebLink": "/", "Services": serviceNames, "User": user})
+			_ = renderPage(w, tmpls.logs, map[string]any{"Title": "Logs", "WebLink": "/", "Services": serviceNames, "User": user})
 			return
 		}
 		if strings.HasPrefix(path, "/logs/") {
@@ -1108,7 +1110,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 				return
 			}
 			logText := string(logBytes)
-			_ = render(w, tmpls.log, map[string]any{"Title": "Logs for " + service, "WebLink": "/logs", "Service": service, "Log": logText, "User": user})
+			_ = renderPage(w, tmpls.log, map[string]any{"Title": "Logs for " + service, "WebLink": "/logs", "Service": service, "Log": logText, "User": user})
 			return
 		}
 		if path == "/status" {
@@ -1186,7 +1188,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					"ID":      strings.TrimSuffix(entry.Name(), ".pid"),
 				})
 			}
-			_ = render(w, tmpls.status, map[string]any{"Title": "Service Status", "WebLink": "/", "Statuses": statuses, "User": user})
+			_ = renderPage(w, tmpls.status, map[string]any{"Title": "Service Status", "WebLink": "/", "Statuses": statuses, "User": user})
 			return
 		}
 		// Match /{service} and /{service}/{endpoint}
@@ -1208,7 +1210,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					})
 				}
 				b, _ := json.MarshalIndent(s[0], "", "    ")
-				_ = render(w, tmpls.service, map[string]any{
+				_ = renderPage(w, tmpls.service, map[string]any{
 					"Title":       "Service: " + service,
 					"WebLink":     "/",
 					"ServiceName": service,
@@ -1252,7 +1254,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 							})
 						}
 					}
-					_ = render(w, tmpls.form, map[string]any{
+					_ = renderPage(w, tmpls.form, map[string]any{
 						"Title":        "Service: " + service,
 						"WebLink":      "/",
 						"ServiceName":  service,
@@ -1371,7 +1373,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					})
 				}
 			}
-			_ = tmpls.authTokens.Execute(w, map[string]any{"Title": "Auth Tokens", "Tokens": tokens, "User": user, "Sub": userID})
+			_ = renderPage(w, tmpls.authTokens, map[string]any{"Title": "Auth Tokens", "Tokens": tokens, "User": user, "Sub": userID})
 		}))
 
 		mux.HandleFunc("/auth/users", authMw(func(w http.ResponseWriter, r *http.Request) {
@@ -1423,7 +1425,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					}
 				}
 			}
-			_ = tmpls.authUsers.Execute(w, map[string]any{"Title": "User Accounts", "Users": users, "User": user})
+			_ = renderPage(w, tmpls.authUsers, map[string]any{"Title": "User Accounts", "Users": users, "User": user})
 		}))
 		mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == "GET" {
