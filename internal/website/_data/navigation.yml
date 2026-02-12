@@ -3,6 +3,8 @@ core:
     url: /docs/
   - title: Getting Started
     url: /docs/getting-started.html
+  - title: MCP & AI Agents
+    url: /docs/mcp.html
   - title: Deployment
     url: /docs/deployment.html
   - title: Architecture
@@ -45,6 +47,7 @@ project:
     url: /docs/server.html
 search_order:
   - /docs/getting-started.html
+  - /docs/mcp.html
   - /docs/architecture.html
   - /docs/config.html
   - /docs/observability.html

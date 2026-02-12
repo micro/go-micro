@@ -111,11 +111,45 @@ curl -XPOST \
       http://localhost:8080
 ```
 
+## MCP & AI Agents
+
+Go Micro is designed for an **agent-first** workflow. Every service you build automatically becomes a tool that AI agents can discover and use via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/).
+
+- **[🤖 Agent Playground](https://go-micro.dev/docs/mcp.html)** — Chat with your services through an interactive AI agent at `/agent`
+- **[🔧 MCP Tools Registry](https://go-micro.dev/docs/mcp.html)** — Browse all services exposed as AI-callable tools at `/api/mcp/tools`
+- **[📖 MCP Documentation](https://go-micro.dev/docs/mcp.html)** — Full guide to MCP integration, auth, and scopes
+
+### Services as Tools
+
+Write a normal Go Micro service and it's instantly available as an MCP tool:
+
+```go
+// SayHello greets a person by name.
+// @example {"name": "Alice"}
+func (g *GreeterService) SayHello(ctx context.Context, req *HelloRequest, rsp *HelloResponse) error {
+    rsp.Message = "Hello " + req.Name
+    return nil
+}
+```
+
+Run with `micro run` and the agent playground and MCP tools registry are ready:
+
+```bash
+micro run
+# Agent Playground:  http://localhost:8080/agent
+# MCP Tools:         http://localhost:8080/api/mcp/tools
+```
+
+Use `micro mcp serve` for local AI tools like Claude Code, or connect any MCP-compatible agent to the HTTP endpoint.
+
+See the [MCP guide](https://go-micro.dev/docs/mcp.html) for authentication, scopes, and advanced usage.
+
 ## Examples
 
 Check out [/examples](examples/) for runnable code:
 - [hello-world](examples/hello-world/) - Basic RPC service
 - [web-service](examples/web-service/) - HTTP REST API
+- [mcp](examples/mcp/) - MCP integration with AI agents
 
 See [all examples](examples/README.md) for more.
 
@@ -240,6 +274,7 @@ Package reference: https://pkg.go.dev/go-micro.dev/v5
 
 **User Guides:**
 - [Getting Started](internal/website/docs/getting-started.md)
+- [MCP & AI Agents](internal/website/docs/mcp.md)
 - [Plugins Overview](internal/website/docs/plugins.md)
 - [Learn by Example](internal/website/docs/examples/index.md)
 - [Deployment Guide](internal/website/docs/deployment.md)
