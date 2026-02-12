@@ -16,8 +16,9 @@ The Micro server is an optional web dashboard and authenticated API gateway for 
 | **Builds services** | Yes | No |
 | **Runs services** | Yes (as child processes) | No (discovers already-running services) |
 | **Hot reload** | Yes | No |
-| **Authentication** | No (dev mode) | Yes (JWT + bcrypt, user management) |
-| **Dashboard** | Lightweight gateway UI | Full dashboard with API explorer, logs, user/token management |
+| **Authentication** | Yes (default `admin`/`micro`) | Yes (default `admin`/`micro`) |
+| **Scopes** | Yes (`/auth/scopes`) | Yes (`/auth/scopes`) |
+| **Dashboard** | Full gateway UI with auth, scopes, agent | Full dashboard with API explorer, logs, user/token management |
 | **When to use** | Day-to-day development | Deployed environments, shared servers |
 
 For local development, use [`micro run`](guides/micro-run.md) instead.
@@ -49,6 +50,8 @@ Then open http://localhost:8080 and log in with the default admin account (`admi
 - **JWT Authentication** — All API endpoints require a Bearer token or session cookie
 - **Token Management** — Generate, view, copy, and revoke JWT tokens
 - **User Management** — Create, list, and delete users with bcrypt-hashed passwords
+- **Endpoint Scopes** — Restrict which tokens can call which endpoints via `/auth/scopes`
+- **MCP Integration** — AI agent playground and MCP tools, with scope enforcement
 - **Logs & Status** — View service logs and status (PID, uptime) from the dashboard
 
 ## Typical Production Setup

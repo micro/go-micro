@@ -114,6 +114,45 @@ Go Micro **automatically** extracts documentation from your handler method comme
 
 For complete documentation details, see the [gateway/mcp package documentation](https://github.com/micro/go-micro/tree/master/gateway/mcp).
 
+### Authentication & Scopes for MCP Tools
+
+MCP tool calls go through the same authentication and scope enforcement as regular API calls. This means you can control which tokens (and therefore which users, services, or AI agents) can invoke which tools.
+
+#### Restricting MCP Tool Access
+
+1. **Set endpoint scopes** — Visit `/auth/scopes` and set required scopes on service endpoints. For example, set `internal` on `billing.Billing.Charge` to restrict it.
+
+2. **Create scoped tokens** — Visit `/auth/tokens` and create tokens with specific scopes:
+   - A token with scope `internal` can call endpoints requiring `internal`
+   - A token with scope `*` has unrestricted access (admin)
+   - A token with no matching scope gets `403 Forbidden`
+
+3. **Use the token** — Pass it in the `Authorization` header for API/MCP calls:
+
+```bash
+# List available MCP tools (requires valid token)
+curl http://localhost:8080/api/mcp/tools \
+  -H "Authorization: Bearer <token>"
+
+# Call a specific tool (scope-checked)
+curl -X POST http://localhost:8080/api/mcp/call \
+  -H "Authorization: Bearer <token>" \
+  -d '{"tool":"greeter.GreeterService.SayHello","input":{"name":"World"}}'
+```
+
+#### Common MCP Token Patterns
+
+| Use Case | Token Scopes | What It Can Do |
+|----------|-------------|----------------|
+| Internal tooling | `internal` | Call endpoints tagged with `internal` scope |
+| Production AI agent | `greeter, users` | Only call greeter and user service endpoints |
+| Admin / debugging | `*` | Full access to all tools |
+| Read-only agent | `readonly` | Call endpoints tagged with `readonly` scope |
+
+#### Agent Playground
+
+The agent playground at `/agent` uses the logged-in user's session token. Scope checks apply based on the scopes of the user's account. The default `admin` user has `*` scope (full access).
+
 ### MCP Command Line
 
 The \`micro mcp\` command provides tools for working with MCP:

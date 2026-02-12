@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v5/auth"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
 	codecBytes "go-micro.dev/v5/codec/bytes"
@@ -63,14 +64,10 @@ type TemplateUser struct {
 	ID string
 }
 
-// Define a local Account struct to replace auth.Account
-// (matches fields used in the code)
-type Account struct {
-	ID       string            `json:"id"`
-	Type     string            `json:"type"`
-	Scopes   []string          `json:"scopes"`
-	Metadata map[string]string `json:"metadata"`
-}
+// Account is an alias for auth.Account from the framework.
+// The gateway stores accounts in the default store under "auth/<id>" keys.
+// Scopes on accounts are checked against endpoint-scopes by checkEndpointScopes.
+type Account = auth.Account
 
 func parseTemplates() *templates {
 	return &templates{
@@ -1075,16 +1072,23 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		}
 		if path == "/" {
 			serviceCount, runningCount, stoppedCount, statusDot := getDashboardData()
-			// Do NOT include SidebarEndpoints on home page
+			// Fetch registered services for the home page
+			var homeServices []string
+			if svcs, err := registry.ListServices(); err == nil {
+				for _, s := range svcs {
+					homeServices = append(homeServices, s.Name)
+				}
+				sort.Strings(homeServices)
+			}
 			err := renderPage(w, tmpls.home, map[string]any{
-				"Title":        "Micro Dashboard",
+				"Title":        "Home",
 				"WebLink":      "/",
 				"ServiceCount": serviceCount,
 				"RunningCount": runningCount,
 				"StoppedCount": stoppedCount,
 				"StatusDot":    statusDot,
+				"Services":     homeServices,
 				"User":         user,
-				// No SidebarEndpoints or SidebarEndpointsEnabled here
 			})
 			if err != nil {
 				log.Printf("[TEMPLATE ERROR] home: %v", err)
@@ -1161,6 +1165,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 					return sidebarEndpoints[i]["Name"] < sidebarEndpoints[j]["Name"]
 				})
 				apiData = map[string]any{"Title": "API", "WebLink": "/", "Services": apiServices, "SidebarEndpoints": sidebarEndpoints, "SidebarEndpointsEnabled": true, "User": user}
+
 				apiCache.data = apiData
 				apiCache.time = time.Now()
 			}
@@ -1182,10 +1187,12 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			}
 			sort.Strings(serviceNames)
 			_ = renderPage(w, tmpls.service, map[string]any{"Title": "Services", "WebLink": "/", "Services": serviceNames, "User": user})
+
 			return
 		}
 		if path == "/agent" {
 			_ = renderPage(w, tmpls.playground, map[string]any{"Title": "Agent", "WebLink": "/", "User": user})
+
 			return
 		}
 		if path == "/logs" || path == "/logs/" {
@@ -1320,7 +1327,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					"ID":      strings.TrimSuffix(entry.Name(), ".pid"),
 				})
 			}
-			_ = renderPage(w, tmpls.status, map[string]any{"Title": "Service Status", "WebLink": "/", "Statuses": statuses, "User": user})
+			_ = renderPage(w, tmpls.status, map[string]any{"Title": "Status", "WebLink": "/", "Statuses": statuses, "User": user})
 			return
 		}
 		// Match /{service} and /{service}/{endpoint}
@@ -1638,7 +1645,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					})
 				}
 			}
-			_ = renderPage(w, tmpls.authTokens, map[string]any{"Title": "Auth Tokens", "Tokens": tokens, "User": user, "Sub": userID})
+			_ = renderPage(w, tmpls.authTokens, map[string]any{"Title": "Tokens", "Tokens": tokens, "User": user, "Sub": userID})
 		}))
 
 		mux.HandleFunc("/auth/users", authMw(func(w http.ResponseWriter, r *http.Request) {
@@ -1690,7 +1697,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					}
 				}
 			}
-			_ = renderPage(w, tmpls.authUsers, map[string]any{"Title": "User Accounts", "Users": users, "User": user})
+			_ = renderPage(w, tmpls.authUsers, map[string]any{"Title": "Users", "Users": users, "User": user})
 		}))
 		mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
 			if r.Method == "GET" {

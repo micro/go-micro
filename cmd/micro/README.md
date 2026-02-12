@@ -400,10 +400,10 @@ The `micro run` and `micro server` commands both use a unified gateway implement
 | Feature | `micro run` | `micro server` |
 |---------|-------------|----------------|
 | **Purpose** | Development | Production |
-| **Authentication** | Disabled | Required (JWT) |
+| **Authentication** | Enabled (default `admin`/`micro`) | Enabled (default `admin`/`micro`) |
 | **Process Management** | Yes (builds/runs services) | No (assumes services running) |
 | **Hot Reload** | Yes (watches files) | No |
-| **Auth Routes** | Not available | `/auth/login`, `/auth/tokens`, `/auth/users` |
+| **Scopes** | Available (`/auth/scopes`) | Available (`/auth/scopes`) |
 | **Use Case** | Local development | Deployed API gateway |
 
 ### Why Unified?
@@ -424,17 +424,36 @@ Both commands provide:
 - **Health Checks**: `/health`, `/health/live`, `/health/ready` endpoints
 - **Web Dashboard**: Browse services, test endpoints, view documentation
 - **Hot Service Updates**: Gateway automatically picks up new service registrations
+- **JWT Authentication**: Tokens, user management, login at `/auth/login`, `/auth/tokens`, `/auth/users`
+- **Endpoint Scopes**: Restrict which tokens can call which endpoints via `/auth/scopes`
+- **MCP Integration**: AI tools at `/api/mcp/tools`, agent playground at `/agent`
+
+### Authentication & Scopes
+
+Both `micro run` and `micro server` use the same `auth.Account` type from the go-micro framework. The gateway stores accounts under `auth/<id>` in the default store and uses JWT tokens with RSA256 signing.
+
+**Scope enforcement** applies to all call paths:
+
+| Path | Description |
+|------|-------------|
+| `POST /api/{service}/{endpoint}` | HTTP API calls |
+| `POST /api/mcp/call` | MCP tool invocations |
+| Agent playground | Tool calls made by the AI agent |
+
+Scopes are configured via the web UI at `/auth/scopes`. Each endpoint can require one or more scopes. A token must carry at least one matching scope to call a protected endpoint. The `*` scope on a token bypasses all checks. Endpoints with no scopes set are open to any authenticated token.
+
+See the [Scopes](#scopes) section below for details.
 
 ### Development Mode (`micro run`)
 
 ```bash
-micro run  # Auth disabled, all endpoints public
+micro run  # Auth enabled, default admin/micro
 ```
 
-- No authentication required
-- Direct access to all endpoints
-- Ideal for rapid iteration
-- Web UI shows all services without login
+- Authentication enabled with default credentials (`admin`/`micro`)
+- Web UI requires login
+- Scopes available for testing access control
+- Ideal for development with realistic auth behavior
 
 ### Production Mode (`micro server`)
 
@@ -454,17 +473,50 @@ You can also start the gateway programmatically in your own Go code:
 ```go
 import "go-micro.dev/v5/cmd/micro/server"
 
-// Development gateway (no auth)
+// Start gateway with auth (recommended)
+gw, err := server.StartGateway(server.GatewayOptions{
+    Address:     ":8080",
+    AuthEnabled: true,
+})
+
+// Start gateway without auth (testing only)
 gw, err := server.StartGateway(server.GatewayOptions{
     Address:     ":8080",
     AuthEnabled: false,
 })
-
-// Production gateway (with auth)
-err := server.RunGateway(server.GatewayOptions{
-    Address:     ":8080",
-    AuthEnabled: true,
-})
 ```
 
 See [`internal/website/docs/architecture/adr-010-unified-gateway.md`](../../internal/website/docs/architecture/adr-010-unified-gateway.md) for architecture details.
+
+### Scopes
+
+Scopes provide fine-grained access control over which tokens can call which service endpoints. They are managed through the web UI at `/auth/scopes` and enforced on every call through the gateway.
+
+#### How It Works
+
+1. **Define scopes on endpoints** — Visit `/auth/scopes` and set required scopes for each service endpoint (e.g., set `billing` on `payments.Payments.Charge`)
+2. **Create tokens with scopes** — Visit `/auth/tokens` and create tokens with matching scopes (e.g., a token with `billing` scope)
+3. **Scopes are enforced** — When a token calls an endpoint, the gateway checks that the token has at least one scope matching the endpoint's required scopes
+
+#### Scope Matching Rules
+
+- Scopes are **exact string matches** — `billing` on a token matches `billing` on an endpoint
+- A token with `*` scope bypasses all scope checks (admin wildcard)
+- Endpoints with **no scopes set** are open to any valid token
+- An endpoint can require **multiple scopes** — the token needs to match just one
+- Scope names are free-form strings — use whatever convention fits your project
+
+#### Common Patterns
+
+| Pattern | Endpoint Scopes | Token Scopes | Result |
+|---------|----------------|--------------|--------|
+| Protect a service | Set `greeter` on all greeter endpoints (use Bulk Set with `greeter.*`) | Token with `greeter` | Token can call any greeter endpoint |
+| Restrict an endpoint | Set `billing` on `payments.Payments.Charge` | Token with `billing` | Only that endpoint is restricted |
+| Role-based | Set `admin` on sensitive endpoints | Admin token with `admin`, user token with `user` | Only admin tokens can call sensitive endpoints |
+| Full access | Any | Token with `*` | Bypasses all scope checks |
+
+#### Relationship to Framework Auth
+
+The gateway's scope system uses `auth.Account` from the go-micro framework. Scopes on accounts are the same `[]string` field used by the framework's `auth.Rules` and `wrapper/auth` package. The gateway stores scope requirements in the default store under `endpoint-scopes/<service>.<endpoint>` keys and checks them on every HTTP request.
+
+For service-level (RPC) auth within the go-micro mesh, use the `wrapper/auth` package which provides `auth.Rules` with priority-based access control. See the [auth wrapper documentation](../../wrapper/auth/README.md) for details.

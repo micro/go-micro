@@ -29,10 +29,14 @@ When you run `micro run`, you get:
 | http://localhost:8080/api | API explorer - browse endpoints and schemas |
 | http://localhost:8080/api/{service}/{method} | API gateway - HTTP to RPC proxy |
 | http://localhost:8080/api/mcp/tools | MCP tools - list all services as AI tools |
+| http://localhost:8080/auth/tokens | Token management - create and manage API tokens |
+| http://localhost:8080/auth/scopes | Scope management - restrict endpoint access |
+| http://localhost:8080/auth/users | User management - create and manage users |
 | http://localhost:8080/health | Health checks - aggregated service health |
 | http://localhost:8080/services | Service list - JSON |
 
 Plus:
+- **Authentication** - JWT auth enabled with default credentials (`admin`/`micro`)
 - **Hot Reload** - File changes trigger automatic rebuild
 - **Dependency Ordering** - Services start in the right order
 - **Environment Management** - Dev/staging/production configs
@@ -42,16 +46,20 @@ Plus:
 
 ### API Gateway
 
-The gateway converts HTTP requests to RPC calls:
+The gateway converts HTTP requests to RPC calls. All API calls require authentication:
 
 ```bash
-# Call a service method
+# Log in at http://localhost:8080 with admin/micro to get a session
+# Or use a token for programmatic access:
 curl -X POST http://localhost:8080/api/helloworld/Say.Hello \
+  -H "Authorization: Bearer <token>" \
   -d '{"name": "World"}'
 
 # Response
 {"message": "Hello World"}
 ```
+
+Create tokens at `/auth/tokens`. The default admin token has `*` scope (full access).
 
 ### Agent Playground
 

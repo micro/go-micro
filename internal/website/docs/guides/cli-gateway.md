@@ -33,10 +33,10 @@ The Go Micro CLI provides two gateway modes for accessing your microservices: de
 | Feature | `micro run` | `micro server` |
 |---------|-------------|----------------|
 | **Purpose** | Local development | Production API gateway |
-| **Authentication** | None (public access) | JWT tokens required |
+| **Authentication** | Yes (default `admin`/`micro`) | Yes (default `admin`/`micro`) |
 | **Process Management** | Yes (builds & runs services) | No (services run separately) |
 | **Hot Reload** | Yes (watches file changes) | No |
-| **Web UI Login** | Not required | Required (`admin/micro` default) |
+| **Endpoint Scopes** | Yes (`/auth/scopes`) | Yes (`/auth/scopes`) |
 | **Best For** | Coding, testing, iteration | Deployed environments |
 
 ## Development Mode: `micro run`
@@ -57,7 +57,8 @@ Open http://localhost:8080 - no login required!
 - **Instant Gateway**: HTTP API at `/api/{service}/{method}`
 - **Web Dashboard**: Browse and test services at `/`
 - **Hot Reload**: Code changes trigger automatic rebuild
-- **No Auth**: All endpoints are public for easy testing
+- **Authentication**: JWT auth with default credentials (`admin`/`micro`)
+- **Scopes**: Endpoint access control via `/auth/scopes`
 
 ### Example Usage
 
@@ -65,8 +66,10 @@ Open http://localhost:8080 - no login required!
 # Start with hot reload
 micro run
 
-# Call a service
+# Log in at http://localhost:8080 with admin/micro
+# Or use a token for API calls:
 curl -X POST http://localhost:8080/api/myservice/Handler.Call \
+  -H "Authorization: Bearer <token>" \
   -d '{"name": "World"}'
 ```
 
@@ -75,7 +78,7 @@ curl -X POST http://localhost:8080/api/myservice/Handler.Call \
 - Writing new services
 - Testing changes locally
 - Debugging service interactions
-- Rapid iteration without deployment
+- Testing auth and scopes before production
 
 See [micro run guide](micro-run.md) for full details.
 
@@ -99,6 +102,7 @@ Open http://localhost:8080 and log in with `admin/micro`.
 - **JWT Authentication**: Token-based access control
 - **Web Dashboard**: Service management UI with login
 - **User Management**: Create users and API tokens
+- **Endpoint Scopes**: Fine-grained access control per endpoint
 - **Production Ready**: Designed for deployed environments
 
 ### Authentication
@@ -115,11 +119,12 @@ curl -X POST http://localhost:8080/api/myservice/Handler.Call \
   -d '{"name": "World"}'
 ```
 
-### Managing Users & Tokens
+### Managing Users, Tokens & Scopes
 
 1. **Log in**: Visit http://localhost:8080 → Enter `admin/micro`
-2. **Create API Token**: Go to `/auth/tokens` → Generate token
-3. **Use Token**: Copy and use in `Authorization: Bearer <token>` header
+2. **Create API Token**: Go to `/auth/tokens` → Generate token with scopes
+3. **Set Endpoint Scopes**: Go to `/auth/scopes` → Restrict which endpoints require which scopes
+4. **Use Token**: Copy and use in `Authorization: Bearer <token>` header
 
 ### When to Use
 
@@ -197,6 +202,31 @@ The gateway automatically picks up:
 
 No gateway restart needed!
 
+### 6. Endpoint Scopes
+
+Scopes provide fine-grained access control over which tokens can call which endpoints. Both `micro run` and `micro server` support scopes.
+
+**Set up endpoint scopes:**
+
+1. Visit `/auth/scopes` to see all discovered endpoints
+2. Set required scopes for endpoints (e.g., `billing` on `payments.Payments.Charge`)
+3. Use Bulk Set to apply scopes to all endpoints matching a pattern (e.g., `greeter.*`)
+
+**Create scoped tokens:**
+
+1. Visit `/auth/tokens` and create a token with matching scopes
+2. A token with scope `billing` can call endpoints that require `billing`
+3. A token with scope `*` bypasses all scope checks
+4. Endpoints with no scopes set are open to any authenticated token
+
+**Scopes are enforced on all call paths:**
+
+- Direct API calls (`/api/{service}/{endpoint}`)
+- MCP tool calls (`/api/mcp/call`)
+- Agent playground tool invocations
+
+The gateway uses `auth.Account` from the go-micro framework. The account's `Scopes` field carries the same `[]string` used by the framework's `wrapper/auth` package for service-level auth.
+
 ## Architecture Benefits
 
 ### Why Unified?
@@ -216,10 +246,10 @@ The unified gateway means:
 
 ### What Changed for Users?
 
-**Nothing!** From a user perspective:
+From a user perspective:
 
-- `micro run` works exactly the same (but no auth)
-- `micro server` works exactly the same (with auth)
+- `micro run` and `micro server` both have auth enabled
+- Both use the same JWT authentication and scopes system
 - API endpoints are unchanged
 - Web UI is identical
 
@@ -349,7 +379,7 @@ This gives you full control over gateway configuration in custom deployments.
 2. Check exact endpoint name (case-sensitive): `Handler.Call` vs `handler.call`
 3. Ensure service is registered: `micro services` or check web UI
 
-### Authentication errors (micro server)
+### Authentication errors
 
 **Problem**: API returns `401 Unauthorized`
 
@@ -358,6 +388,16 @@ This gives you full control over gateway configuration in custom deployments.
 2. Use header: `Authorization: Bearer <token>`
 3. Check token not expired (24h default)
 4. Verify user not deleted (tokens revoked on user deletion)
+
+### Scope errors
+
+**Problem**: API returns `403 Forbidden` with `insufficient scopes`
+
+**Solution**:
+1. Check which scopes the endpoint requires: Visit `/auth/scopes`
+2. Ensure your token has a matching scope (check at `/auth/tokens`)
+3. Use a token with `*` scope for full access
+4. Clear scopes from the endpoint if it should be unrestricted
 
 ### Port already in use
 

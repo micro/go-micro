@@ -36,8 +36,9 @@ We unified the gateway implementation by:
 
 3. **Updating `micro run`**:
    - Removed duplicate gateway implementation (`cmd/micro/run/gateway/`)
-   - Now calls `server.StartGateway()` with `AuthEnabled: false`
+   - Now calls `server.StartGateway()` with `AuthEnabled: true`
    - Retains process management and hot reload functionality
+   - Same auth, scopes, and token management as `micro server`
 
 ## Architecture
 
@@ -51,6 +52,8 @@ We unified the gateway implementation by:
 │  • Web UI (dashboard, logs, API docs)                      │
 │  • Health checks                                           │
 │  • Configurable authentication                             │
+│  • Endpoint scopes for access control                      │
+│  • MCP tool integration with scope enforcement             │
 └─────────────────────────────────────────────────────────────┘
            ▲                              ▲
            │                              │
@@ -59,9 +62,10 @@ We unified the gateway implementation by:
     │             │              │                 │
     │  + Process  │              │  + Auth enabled │
     │    mgmt     │              │  + JWT tokens   │
-    │  + Hot      │              │  + Production   │
-    │    reload   │              │                 │
-    │  - No auth  │              │                 │
+    │  + Hot      │              │  + Scopes       │
+    │    reload   │              │  + Production   │
+    │  + Auth     │              │                 │
+    │  + Scopes   │              │                 │
     └─────────────┘              └─────────────────┘
 ```
 
@@ -70,13 +74,14 @@ We unified the gateway implementation by:
 ### Development Mode (`micro run`)
 
 ```bash
-# Start services with gateway (no auth)
+# Start services with gateway (auth enabled, default admin/micro)
 micro run
 
 # Gateway provides:
 # - HTTP API at /api/{service}/{endpoint}
 # - Web dashboard at /
-# - No authentication required
+# - JWT authentication (admin/micro default)
+# - Endpoint scopes at /auth/scopes
 ```
 
 ### Production Mode (`micro server`)
@@ -90,6 +95,7 @@ micro server --address :8080
 # - Web dashboard with login
 # - JWT-based authentication
 # - User/token management UI
+# - Endpoint scopes at /auth/scopes
 ```
 
 ## Benefits
