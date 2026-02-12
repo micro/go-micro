@@ -153,6 +153,13 @@ table tr:nth-child(even) {
   margin: 0;
   padding: 0;
 }
+.no-bullets li {
+  padding: 0.45em 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+.no-bullets li:last-child {
+  border-bottom: none;
+}
 
 .copy-btn {
   background: #fff;

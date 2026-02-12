@@ -1,32 +1,30 @@
 {{define "content"}}
 <h2 class="text-2xl font-bold mb-4">API</h2>
-<p class="api-auth-info" style="background:#f8f8e8; border:1px solid #e0e0b0; padding:1em; margin-bottom:2em; font-size:1.08em; border-radius:6px;">
-  <b>API Authentication Required:</b> All API calls to <code>/api/...</code> endpoints (except this page) must include an <b>Authorization: Bearer &lt;token&gt;</b> header.<br>
-  You can generate tokens on the <a href="/auth/tokens">Tokens page</a>.
+<p style="background:#f8f8e8; border:1px solid #e0e0b0; padding:1em; margin-bottom:2em; font-size:1.05em; border-radius:6px;">
+  <b>Authentication Required:</b> Include an <b>Authorization: Bearer &lt;token&gt;</b> header with all <code>/api/...</code> requests.
+  Generate tokens on the <a href="/auth/tokens">Tokens page</a>.
 </p>
 {{range .Services}}
-  <h3 id="{{.Anchor}}" style="margin-top:3em; font-size:1.2em; font-weight:bold;">{{.Name}}</h3>
+  <h3 id="{{.Anchor}}" style="margin-top:2.5em; margin-bottom:0.8em; font-size:1.15em; font-weight:bold; border-bottom:2px solid #ddd; padding-bottom:0.4em;">{{.Name}}</h3>
   {{if .Endpoints}}
-    <div style="margin-bottom:3em;">
     {{range .Endpoints}}
-      <div style="margin-bottom:2.8em; padding:1.3em 1.5em; background:#fafbfc; border-radius:7px; border:1px solid #eee;">
-        <div style="font-size:1.12em; margin-bottom:0.7em;"><a href="{{.Path}}" class="micro-link" style="font-weight:bold;">{{.Name}}</a></div>
-        <div style="margin-bottom:0.8em; color:#888; font-size:1em;">
-          <b>HTTP Path:</b> <code>{{.Path}}</code>
+      <div style="margin-bottom:1.8em; padding:1.2em 1.4em; background:#fafbfc; border-radius:7px; border:1px solid #e5e5e5;">
+        <div style="display:flex; align-items:baseline; gap:1em; margin-bottom:0.6em;">
+          <span style="font-size:1.08em; font-weight:600;"><a href="{{.Path}}" class="micro-link">{{.Name}}</a></span>
+          <code style="font-size:0.92em; color:#666;">{{.Path}}</code>
         </div>
-        <div style="display:flex; gap:3em; flex-wrap:wrap;">
-          <div style="min-width:240px;">
-            <b>Request:</b>
-            <pre style="background:#f4f4f4; border-radius:5px; padding:1em 1.2em; margin:0.5em 0 1em 0; font-size:1em;">{{.Params}}</pre>
+        <div style="display:flex; gap:2.5em; flex-wrap:wrap;">
+          <div style="flex:1; min-width:220px;">
+            <div style="font-weight:600; font-size:0.92em; color:#555; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.3em;">Request</div>
+            {{.Params}}
           </div>
-          <div style="min-width:240px;">
-            <b>Response:</b>
-            <pre style="background:#f4f4f4; border-radius:5px; padding:1em 1.2em; margin:0.5em 0 1em 0; font-size:1em;">{{.Response}}</pre>
+          <div style="flex:1; min-width:220px;">
+            <div style="font-weight:600; font-size:0.92em; color:#555; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.3em;">Response</div>
+            {{.Response}}
           </div>
         </div>
       </div>
     {{end}}
-    </div>
   {{else}}
     <p style="color:#888;">No endpoints</p>
   {{end}}
