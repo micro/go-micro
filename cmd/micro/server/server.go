@@ -704,9 +704,61 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		// executeToolCall runs an RPC tool call and returns the result.
 		// toolName can be either the original dotted name or the LLM-safe
 		// underscored name; the safe name is resolved first.
+		// Checks endpoint scopes against the caller's token before executing.
 		executeToolCall := func(toolName string, input map[string]any) (any, string) {
 			if orig, ok := safeNameMap[toolName]; ok {
 				toolName = orig
+			}
+			// Check endpoint scopes
+			if authEnabled {
+				recs, _ := storeInst.Read("endpoint-scopes/" + toolName)
+				if len(recs) > 0 {
+					var requiredScopes []string
+					if err := json.Unmarshal(recs[0].Value, &requiredScopes); err == nil && len(requiredScopes) > 0 {
+						// Get caller's scopes from JWT
+						callerScopes := []string{}
+						token := ""
+						if authz := r.Header.Get("Authorization"); strings.HasPrefix(authz, "Bearer ") {
+							token = strings.TrimPrefix(authz, "Bearer ")
+						}
+						if token == "" {
+							if cookie, err := r.Cookie("micro_token"); err == nil {
+								token = cookie.Value
+							}
+						}
+						if token != "" {
+							if claims, err := ParseJWT(token); err == nil {
+								if s, ok := claims["scopes"].([]interface{}); ok {
+									for _, v := range s {
+										if str, ok := v.(string); ok {
+											callerScopes = append(callerScopes, str)
+										}
+									}
+								}
+							}
+						}
+						allowed := false
+						for _, cs := range callerScopes {
+							if cs == "*" {
+								allowed = true
+								break
+							}
+							for _, rs := range requiredScopes {
+								if cs == rs {
+									allowed = true
+									break
+								}
+							}
+							if allowed {
+								break
+							}
+						}
+						if !allowed {
+							errMsg := fmt.Sprintf(`{"error":"insufficient scopes","required_scopes":"%s"}`, strings.Join(requiredScopes, ","))
+							return map[string]string{"error": "insufficient scopes", "required_scopes": strings.Join(requiredScopes, ",")}, errMsg
+						}
+					}
+				}
 			}
 			parts := strings.SplitN(toolName, ".", 2)
 			if len(parts) != 2 {
