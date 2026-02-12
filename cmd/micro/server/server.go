@@ -802,16 +802,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 					"system":     agentSystemPrompt,
 					"messages": []map[string]any{
 						{"role": "user", "content": req.Prompt},
-						{"role": "assistant", "content": respBody},
+						{"role": "assistant", "content": anthropicResp.Content},
 						{"role": "user", "content": toolResultBlocks},
 					},
-				}
-
-				// Re-parse the assistant content for the follow-up message
-				followUpReq["messages"] = []map[string]any{
-					{"role": "user", "content": req.Prompt},
-					{"role": "assistant", "content": anthropicResp.Content},
-					{"role": "user", "content": toolResultBlocks},
 				}
 
 				followUpBody, _ := json.Marshal(followUpReq)
