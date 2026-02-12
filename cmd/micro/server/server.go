@@ -345,10 +345,10 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		}
 	}
 
-	// Serve static files from root (not /html/) with correct Content-Type
+	// Serve static files with correct Content-Type
 	mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
-		f, err := HTML.Open("html/styles.css")
+		f, err := HTML.Open("web/styles.css")
 		if err != nil {
 			w.WriteHeader(404)
 			return
@@ -359,29 +359,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 
 	mux.HandleFunc("/main.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		f, err := HTML.Open("html/main.js")
-		if err != nil {
-			w.WriteHeader(404)
-			return
-		}
-		defer f.Close()
-		io.Copy(w, f)
-	})
-
-	// Serve /html/styles.css and /html/main.js for compatibility
-	mux.HandleFunc("/html/styles.css", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/css; charset=utf-8")
-		f, err := HTML.Open("html/styles.css")
-		if err != nil {
-			w.WriteHeader(404)
-			return
-		}
-		defer f.Close()
-		io.Copy(w, f)
-	})
-	mux.HandleFunc("/html/main.js", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
-		f, err := HTML.Open("html/main.js")
+		f, err := HTML.Open("web/main.js")
 		if err != nil {
 			w.WriteHeader(404)
 			return
