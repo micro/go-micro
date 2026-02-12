@@ -1,0 +1,184 @@
+{{define "content"}}
+<h2>Agent</h2>
+<p>Chat with your microservices using AI. Configure a model API key in settings, then use the prompt to interact with your services.</p>
+
+<h3>Prompt</h3>
+<div id="agent-messages"></div>
+<form onsubmit="return false;" style="display:flex; gap:0.5em; align-items:flex-end;">
+  <input type="text" id="prompt-input" placeholder="e.g. List all users, Create a blog post..." style="flex:1; margin-bottom:0;">
+  <button id="prompt-btn" onclick="sendPrompt()">Send</button>
+</form>
+
+<h3>Settings</h3>
+<form id="settings-form" onsubmit="return false;">
+  <label style="display:block; font-weight:600;">Provider</label>
+  <select id="provider">
+    <option value="openai">OpenAI</option>
+    <option value="anthropic">Anthropic</option>
+  </select>
+  <label style="display:block; font-weight:600;">Model API Key</label>
+  <input type="password" id="api-key" placeholder="sk-... or API key for your model provider">
+  <label style="display:block; font-weight:600;">Model (optional)</label>
+  <input type="text" id="model-name" placeholder="e.g. gpt-4o or claude-sonnet-4-20250514">
+  <label style="display:block; font-weight:600;">Base URL (optional)</label>
+  <input type="text" id="base-url" placeholder="Leave blank for default">
+  <button onclick="saveSettings()">Save Settings</button>
+  <span id="settings-status" style="margin-left:0.5em; color:#888;"></span>
+</form>
+
+<h3>Available Tools</h3>
+<div id="tools-list">
+  <p style="color:#888;">Loading tools...</p>
+</div>
+
+<script>
+(function() {
+  var tools = [];
+
+  loadSettings();
+  loadTools();
+
+  function loadSettings() {
+    fetch('/api/agent/settings')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.provider) document.getElementById('provider').value = data.provider;
+        if (data.api_key) document.getElementById('api-key').value = data.api_key;
+        if (data.model) document.getElementById('model-name').value = data.model;
+        if (data.base_url) document.getElementById('base-url').value = data.base_url;
+      })
+      .catch(function() {});
+  }
+
+  window.saveSettings = function() {
+    var status = document.getElementById('settings-status');
+    status.textContent = 'Saving...';
+    fetch('/api/agent/settings', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        provider: document.getElementById('provider').value,
+        api_key: document.getElementById('api-key').value,
+        model: document.getElementById('model-name').value,
+        base_url: document.getElementById('base-url').value
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function() { status.textContent = 'Saved'; })
+    .catch(function(err) { status.textContent = 'Error: ' + err; });
+  };
+
+  function loadTools() {
+    fetch('/api/mcp/tools')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        tools = data.tools || [];
+        renderTools();
+      })
+      .catch(function(err) {
+        document.getElementById('tools-list').innerHTML = '<p style="color:#c00;">Failed to load tools: ' + err + '</p>';
+      });
+  }
+
+  function renderTools() {
+    var el = document.getElementById('tools-list');
+    if (tools.length === 0) {
+      el.innerHTML = '<p style="color:#888;">No tools available. Start some services and they will appear here.</p>';
+      return;
+    }
+    var html = '<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody>';
+    for (var i = 0; i < tools.length; i++) {
+      var t = tools[i];
+      html += '<tr><td><code>' + escapeHtml(t.name) + '</code></td>';
+      html += '<td>' + escapeHtml(t.description || '') + '</td></tr>';
+    }
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  }
+
+  window.sendPrompt = function() {
+    var input = document.getElementById('prompt-input');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+
+    addMessage('user', escapeHtml(text));
+
+    var btn = document.getElementById('prompt-btn');
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    fetch('/api/agent/prompt', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt: text})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.textContent = 'Send';
+      if (data.error) {
+        addMessage('error', escapeHtml(data.error));
+        return;
+      }
+      if (data.reply) {
+        addMessage('assistant', escapeHtml(data.reply));
+      }
+      if (data.tool_calls && data.tool_calls.length > 0) {
+        for (var i = 0; i < data.tool_calls.length; i++) {
+          var tc = data.tool_calls[i];
+          addMessage('tool', '<b>Tool:</b> <code>' + escapeHtml(tc.tool) + '</code>' +
+            '<pre>' + escapeHtml(JSON.stringify(tc.input, null, 2)) + '</pre>' +
+            '<b>Result:</b><pre>' + escapeHtml(JSON.stringify(tc.result, null, 2)) + '</pre>');
+        }
+      }
+      if (data.answer) {
+        addMessage('assistant', escapeHtml(data.answer));
+      }
+    })
+    .catch(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Send';
+      addMessage('error', 'Error: ' + escapeHtml(String(err)));
+    });
+  };
+
+  document.getElementById('prompt-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); window.sendPrompt(); }
+  });
+
+  function addMessage(type, html) {
+    var container = document.getElementById('agent-messages');
+    var div = document.createElement('div');
+    div.style.cssText = 'padding:0.8em 1em; border-radius:7px; margin-bottom:0.8em; line-height:1.6;';
+    if (type === 'user') {
+      div.style.background = '#f7f7f7';
+      div.style.border = '1px solid #eee';
+      div.innerHTML = '<b>You:</b> ' + html;
+    } else if (type === 'assistant' || type === 'answer') {
+      div.style.background = '#fff';
+      div.style.border = '1px solid #ddd';
+      div.innerHTML = '<b>Agent:</b> ' + html;
+    } else if (type === 'tool') {
+      div.style.background = '#fafafa';
+      div.style.border = '1px solid #e0e0e0';
+      div.style.fontSize = '0.95em';
+      div.innerHTML = html;
+    } else if (type === 'error') {
+      div.style.background = '#fff';
+      div.style.border = '1px solid #c00';
+      div.style.color = '#c00';
+      div.innerHTML = html;
+    }
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  function escapeHtml(str) {
+    var d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+})();
+</script>
+{{end}}

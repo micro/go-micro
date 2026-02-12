@@ -24,7 +24,9 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
+	codecBytes "go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
 	"golang.org/x/crypto/bcrypt"
@@ -32,6 +34,8 @@ import (
 
 // HTML is the embedded filesystem for templates and static files, set by main.go
 var HTML fs.FS
+
+const agentSystemPrompt = "You are an agent that helps users interact with microservices. Use the available tools to fulfill user requests. When you call a tool, explain what you are doing."
 
 var (
 	apiCache struct {
@@ -52,6 +56,7 @@ type templates struct {
 	authTokens *template.Template
 	authLogin  *template.Template
 	authUsers  *template.Template
+	playground *template.Template
 }
 
 type TemplateUser struct {
@@ -79,6 +84,7 @@ func parseTemplates() *templates {
 		authTokens: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_tokens.html")),
 		authLogin:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")),
 		authUsers:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_users.html")),
+		playground: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/playground.html")),
 	}
 }
 
@@ -384,6 +390,564 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		io.Copy(w, f)
 	})
 
+	// MCP API endpoints - list tools and call tools through the web server
+	mux.HandleFunc("/api/mcp/tools", wrap(func(w http.ResponseWriter, r *http.Request) {
+		services, err := registry.ListServices()
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(500)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		var tools []map[string]any
+		for _, svc := range services {
+			fullSvcs, err := registry.GetService(svc.Name)
+			if err != nil || len(fullSvcs) == 0 {
+				continue
+			}
+			for _, ep := range fullSvcs[0].Endpoints {
+				toolName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
+				description := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
+				if ep.Metadata != nil {
+					if desc, ok := ep.Metadata["description"]; ok && desc != "" {
+						description = desc
+					}
+				}
+				inputSchema := map[string]any{
+					"type":       "object",
+					"properties": map[string]any{},
+				}
+				if ep.Request != nil && len(ep.Request.Values) > 0 {
+					props := inputSchema["properties"].(map[string]any)
+					for _, field := range ep.Request.Values {
+						props[field.Name] = map[string]any{
+							"type":        mapGoTypeToJSON(field.Type),
+							"description": fmt.Sprintf("%s field", field.Name),
+						}
+					}
+				}
+				tool := map[string]any{
+					"name":        toolName,
+					"description": description,
+					"inputSchema": inputSchema,
+				}
+				// Extract scopes from endpoint metadata
+				if ep.Metadata != nil {
+					if scopes, ok := ep.Metadata["scopes"]; ok && scopes != "" {
+						tool["scopes"] = strings.Split(scopes, ",")
+					}
+				}
+				tools = append(tools, tool)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"tools": tools})
+	}))
+
+	mux.HandleFunc("/api/mcp/call", wrap(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+			return
+		}
+		var req struct {
+			Tool  string         `json:"tool"`
+			Input map[string]any `json:"input"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		// Parse tool name into service and endpoint
+		parts := strings.SplitN(req.Tool, ".", 2)
+		if len(parts) != 2 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": "invalid tool name, expected service.endpoint"})
+			return
+		}
+		serviceName := parts[0]
+		endpointName := parts[1]
+
+		// Build RPC request using default client
+		inputBytes, err := json.Marshal(req.Input)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		rpcReq := client.DefaultClient.NewRequest(serviceName, endpointName, &codecBytes.Frame{Data: inputBytes})
+		var rsp codecBytes.Frame
+		if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("RPC call failed: %v", err)})
+			return
+		}
+
+		var traceBytes [16]byte
+		rand.Read(traceBytes[:])
+		traceID := fmt.Sprintf("%x", traceBytes)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"result":   json.RawMessage(rsp.Data),
+			"trace_id": traceID,
+		})
+	}))
+
+	// Agent settings endpoints
+	mux.HandleFunc("/api/agent/settings", wrap(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" {
+			recs, _ := storeInst.Read("agent/settings")
+			if len(recs) == 0 {
+				json.NewEncoder(w).Encode(map[string]string{})
+				return
+			}
+			var settings map[string]string
+			if err := json.Unmarshal(recs[0].Value, &settings); err != nil {
+				log.Printf("[agent] failed to parse settings: %v", err)
+				json.NewEncoder(w).Encode(map[string]string{})
+				return
+			}
+			json.NewEncoder(w).Encode(settings)
+			return
+		}
+		if r.Method == "POST" {
+			var settings map[string]string
+			if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+			b, _ := json.Marshal(settings)
+			storeInst.Write(&store.Record{Key: "agent/settings", Value: b})
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			return
+		}
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+	}))
+
+	// Agent prompt endpoint — sends user prompt to LLM with tool definitions
+	mux.HandleFunc("/api/agent/prompt", wrap(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+			return
+		}
+		var req struct {
+			Prompt string `json:"prompt"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		// Load settings
+		recs, _ := storeInst.Read("agent/settings")
+		var settings map[string]string
+		if len(recs) > 0 {
+			if err := json.Unmarshal(recs[0].Value, &settings); err != nil {
+				log.Printf("[agent] failed to parse settings: %v", err)
+			}
+		}
+		apiKey := ""
+		model := ""
+		baseURL := ""
+		provider := ""
+		if settings != nil {
+			if v := settings["api_key"]; v != "" {
+				apiKey = v
+			}
+			if v := settings["model"]; v != "" {
+				model = v
+			}
+			if v := settings["base_url"]; v != "" {
+				baseURL = v
+			}
+			if v := settings["provider"]; v != "" {
+				provider = v
+			}
+		}
+		if apiKey == "" {
+			json.NewEncoder(w).Encode(map[string]string{"error": "No API key configured. Go to Agent settings to add one."})
+			return
+		}
+
+		// Auto-detect provider if not explicitly set
+		if provider == "" {
+			if strings.Contains(baseURL, "anthropic") {
+				provider = "anthropic"
+			} else {
+				provider = "openai"
+			}
+		}
+
+		// Set defaults based on provider
+		if provider == "anthropic" {
+			if model == "" {
+				model = "claude-sonnet-4-20250514"
+			}
+			if baseURL == "" {
+				baseURL = "https://api.anthropic.com"
+			}
+		} else {
+			if model == "" {
+				model = "gpt-4o"
+			}
+			if baseURL == "" {
+				baseURL = "https://api.openai.com"
+			}
+		}
+
+		// Discover tools from registry
+		services, _ := registry.ListServices()
+		type toolInfo struct {
+			Name        string
+			Description string
+			Properties  map[string]any
+		}
+		var discoveredTools []toolInfo
+		for _, svc := range services {
+			fullSvcs, err := registry.GetService(svc.Name)
+			if err != nil || len(fullSvcs) == 0 {
+				continue
+			}
+			for _, ep := range fullSvcs[0].Endpoints {
+				tName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
+				desc := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
+				if ep.Metadata != nil {
+					if d, ok := ep.Metadata["description"]; ok && d != "" {
+						desc = d
+					}
+				}
+				props := map[string]any{}
+				if ep.Request != nil {
+					for _, field := range ep.Request.Values {
+						props[field.Name] = map[string]any{
+							"type":        mapGoTypeToJSON(field.Type),
+							"description": fmt.Sprintf("%s (%s)", field.Name, field.Type),
+						}
+					}
+				}
+				discoveredTools = append(discoveredTools, toolInfo{
+					Name:        tName,
+					Description: desc,
+					Properties:  props,
+				})
+			}
+		}
+
+		// executeToolCall runs an RPC tool call and returns the result
+		executeToolCall := func(toolName string, input map[string]any) (any, string) {
+			parts := strings.SplitN(toolName, ".", 2)
+			if len(parts) != 2 {
+				errMsg := `{"error":"invalid tool name"}`
+				return map[string]string{"error": "invalid tool name"}, errMsg
+			}
+			inputBytes, _ := json.Marshal(input)
+			rpcReq := client.DefaultClient.NewRequest(parts[0], parts[1], &codecBytes.Frame{Data: inputBytes})
+			var rsp codecBytes.Frame
+			if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
+				errMsg := fmt.Sprintf(`{"error":"%s"}`, err.Error())
+				return map[string]string{"error": err.Error()}, errMsg
+			}
+			var rpcResult any
+			if err := json.Unmarshal(rsp.Data, &rpcResult); err != nil {
+				rpcResult = string(rsp.Data)
+			}
+			return rpcResult, string(rsp.Data)
+		}
+
+		// callLLMAPI makes an HTTP request to the LLM provider
+		callLLMAPI := func(url string, body []byte) ([]byte, error) {
+			httpReq, err := http.NewRequestWithContext(r.Context(), "POST", url, bytes.NewReader(body))
+			if err != nil {
+				return nil, err
+			}
+			httpReq.Header.Set("Content-Type", "application/json")
+			if provider == "anthropic" {
+				httpReq.Header.Set("x-api-key", apiKey)
+				httpReq.Header.Set("anthropic-version", "2023-06-01")
+			} else {
+				httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+			}
+			resp, err := http.DefaultClient.Do(httpReq)
+			if err != nil {
+				return nil, fmt.Errorf("LLM API request failed: %w", err)
+			}
+			defer resp.Body.Close()
+			respBody, _ := io.ReadAll(resp.Body)
+			if resp.StatusCode != 200 {
+				return nil, fmt.Errorf("LLM API error (%s): %s", resp.Status, string(respBody))
+			}
+			return respBody, nil
+		}
+
+		result := map[string]any{}
+
+		if provider == "anthropic" {
+			// --- Anthropic Messages API ---
+			var anthropicTools []map[string]any
+			for _, t := range discoveredTools {
+				anthropicTools = append(anthropicTools, map[string]any{
+					"name":        t.Name,
+					"description": t.Description,
+					"input_schema": map[string]any{
+						"type":       "object",
+						"properties": t.Properties,
+					},
+				})
+			}
+
+			anthropicReq := map[string]any{
+				"model":      model,
+				"max_tokens": 4096,
+				"system":     agentSystemPrompt,
+				"messages": []map[string]any{
+					{"role": "user", "content": req.Prompt},
+				},
+			}
+			if len(anthropicTools) > 0 {
+				anthropicReq["tools"] = anthropicTools
+			}
+			chatBody, _ := json.Marshal(anthropicReq)
+
+			apiURL := strings.TrimRight(baseURL, "/") + "/v1/messages"
+			respBody, err := callLLMAPI(apiURL, chatBody)
+			if err != nil {
+				json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+
+			// Parse Anthropic response
+			var anthropicResp struct {
+				Content []struct {
+					Type  string          `json:"type"`
+					Text  string          `json:"text"`
+					ID    string          `json:"id"`
+					Name  string          `json:"name"`
+					Input json.RawMessage `json:"input"`
+				} `json:"content"`
+				StopReason string `json:"stop_reason"`
+			}
+			if err := json.Unmarshal(respBody, &anthropicResp); err != nil {
+				json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
+				return
+			}
+
+			// Extract text reply
+			var replyParts []string
+			for _, block := range anthropicResp.Content {
+				if block.Type == "text" && block.Text != "" {
+					replyParts = append(replyParts, block.Text)
+				}
+			}
+			if len(replyParts) > 0 {
+				result["reply"] = strings.Join(replyParts, "\n")
+			}
+
+			// Execute tool uses
+			var toolUseBlocks []struct {
+				ID    string
+				Name  string
+				Input map[string]any
+			}
+			for _, block := range anthropicResp.Content {
+				if block.Type == "tool_use" {
+					var input map[string]any
+					if err := json.Unmarshal(block.Input, &input); err != nil {
+						log.Printf("[agent] failed to parse tool input: %v", err)
+						input = map[string]any{}
+					}
+					toolUseBlocks = append(toolUseBlocks, struct {
+						ID    string
+						Name  string
+						Input map[string]any
+					}{ID: block.ID, Name: block.Name, Input: input})
+				}
+			}
+
+			if len(toolUseBlocks) > 0 {
+				var toolCalls []map[string]any
+				var toolResultBlocks []map[string]any
+
+				for _, tu := range toolUseBlocks {
+					rpcResult, rpcContent := executeToolCall(tu.Name, tu.Input)
+					toolCalls = append(toolCalls, map[string]any{
+						"tool":   tu.Name,
+						"input":  tu.Input,
+						"result": rpcResult,
+					})
+					toolResultBlocks = append(toolResultBlocks, map[string]any{
+						"type":         "tool_result",
+						"tool_use_id":  tu.ID,
+						"content":      rpcContent,
+					})
+				}
+				result["tool_calls"] = toolCalls
+
+				// Follow-up: send tool results back to Anthropic
+				followUpReq := map[string]any{
+					"model":      model,
+					"max_tokens": 4096,
+					"system":     agentSystemPrompt,
+					"messages": []map[string]any{
+						{"role": "user", "content": req.Prompt},
+						{"role": "assistant", "content": anthropicResp.Content},
+						{"role": "user", "content": toolResultBlocks},
+					},
+				}
+
+				followUpBody, _ := json.Marshal(followUpReq)
+				if followUpRespBody, err := callLLMAPI(apiURL, followUpBody); err == nil {
+					var followUpResp struct {
+						Content []struct {
+							Type string `json:"type"`
+							Text string `json:"text"`
+						} `json:"content"`
+					}
+					if json.Unmarshal(followUpRespBody, &followUpResp) == nil {
+						var answerParts []string
+						for _, block := range followUpResp.Content {
+							if block.Type == "text" && block.Text != "" {
+								answerParts = append(answerParts, block.Text)
+							}
+						}
+						if len(answerParts) > 0 {
+							result["answer"] = strings.Join(answerParts, "\n")
+						}
+					}
+				}
+			}
+		} else {
+			// --- OpenAI Chat Completions API ---
+			var openaiTools []map[string]any
+			for _, t := range discoveredTools {
+				openaiTools = append(openaiTools, map[string]any{
+					"type": "function",
+					"function": map[string]any{
+						"name":        t.Name,
+						"description": t.Description,
+						"parameters": map[string]any{
+							"type":       "object",
+							"properties": t.Properties,
+						},
+					},
+				})
+			}
+
+			messages := []map[string]any{
+				{"role": "system", "content": agentSystemPrompt},
+				{"role": "user", "content": req.Prompt},
+			}
+			chatReq := map[string]any{
+				"model":    model,
+				"messages": messages,
+			}
+			if len(openaiTools) > 0 {
+				chatReq["tools"] = openaiTools
+			}
+			chatBody, _ := json.Marshal(chatReq)
+
+			apiURL := strings.TrimRight(baseURL, "/") + "/v1/chat/completions"
+			respBody, err := callLLMAPI(apiURL, chatBody)
+			if err != nil {
+				json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+
+			var chatResp struct {
+				Choices []struct {
+					Message struct {
+						Content   string `json:"content"`
+						ToolCalls []struct {
+							ID       string `json:"id"`
+							Function struct {
+								Name      string `json:"name"`
+								Arguments string `json:"arguments"`
+							} `json:"function"`
+						} `json:"tool_calls"`
+					} `json:"message"`
+				} `json:"choices"`
+			}
+			if err := json.Unmarshal(respBody, &chatResp); err != nil {
+				json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
+				return
+			}
+			if len(chatResp.Choices) == 0 {
+				json.NewEncoder(w).Encode(map[string]string{"error": "No response from LLM"})
+				return
+			}
+
+			choice := chatResp.Choices[0]
+			if choice.Message.Content != "" {
+				result["reply"] = choice.Message.Content
+			}
+
+			// Execute any tool calls
+			if len(choice.Message.ToolCalls) > 0 {
+				var toolCalls []map[string]any
+				followUpMessages := append(messages, map[string]any{
+					"role":       "assistant",
+					"content":    choice.Message.Content,
+					"tool_calls": choice.Message.ToolCalls,
+				})
+
+				for _, tc := range choice.Message.ToolCalls {
+					var input map[string]any
+					if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
+						log.Printf("[agent] failed to parse tool arguments: %v", err)
+					}
+					if input == nil {
+						input = map[string]any{}
+					}
+					rpcResult, rpcContent := executeToolCall(tc.Function.Name, input)
+					toolCalls = append(toolCalls, map[string]any{
+						"tool":   tc.Function.Name,
+						"input":  input,
+						"result": rpcResult,
+					})
+					followUpMessages = append(followUpMessages, map[string]any{
+						"role":         "tool",
+						"tool_call_id": tc.ID,
+						"content":      rpcContent,
+					})
+				}
+				result["tool_calls"] = toolCalls
+
+				// Follow-up: send tool results back to LLM for a final answer
+				followUpReq := map[string]any{
+					"model":    model,
+					"messages": followUpMessages,
+				}
+				followUpBody, _ := json.Marshal(followUpReq)
+				if followUpRespBody, err := callLLMAPI(apiURL, followUpBody); err == nil {
+					var followUpChat struct {
+						Choices []struct {
+							Message struct {
+								Content string `json:"content"`
+							} `json:"message"`
+						} `json:"choices"`
+					}
+					if json.Unmarshal(followUpRespBody, &followUpChat) == nil && len(followUpChat.Choices) > 0 {
+						result["answer"] = followUpChat.Choices[0].Message.Content
+					}
+				}
+			}
+		}
+
+		json.NewEncoder(w).Encode(result)
+	}))
+
 	mux.HandleFunc("/", wrap(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasPrefix(path, "/auth/") {
@@ -506,6 +1070,10 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			}
 			sort.Strings(serviceNames)
 			_ = render(w, tmpls.service, map[string]any{"Title": "Services", "WebLink": "/", "Services": serviceNames, "User": user})
+			return
+		}
+		if path == "/agent" {
+			_ = render(w, tmpls.playground, map[string]any{"Title": "Agent", "WebLink": "/", "User": user})
 			return
 		}
 		if path == "/logs" || path == "/logs/" {
@@ -956,7 +1524,22 @@ func Run(c *cli.Context) error {
 	return RunGateway(opts)
 }
 
-// --- PID FILES ---
+// mapGoTypeToJSON maps Go types to JSON schema types
+func mapGoTypeToJSON(goType string) string {
+	switch goType {
+	case "string":
+		return "string"
+	case "int", "int32", "int64", "uint", "uint32", "uint64":
+		return "integer"
+	case "float32", "float64":
+		return "number"
+	case "bool":
+		return "boolean"
+	default:
+		return "object"
+	}
+}
+
 // --- PID FILES ---
 func parsePid(pidStr string) int {
 	pid, _ := strconv.Atoi(pidStr)

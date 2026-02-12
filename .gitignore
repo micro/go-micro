@@ -56,4 +56,4 @@ examples/mcp/hello/hello
 
 # IDE-specific files
 .DS_Store
-micro
+/micro
