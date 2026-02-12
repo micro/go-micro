@@ -35,6 +35,8 @@ import (
 // HTML is the embedded filesystem for templates and static files, set by main.go
 var HTML fs.FS
 
+const agentSystemPrompt = "You are an agent that helps users interact with microservices. Use the available tools to fulfill user requests. When you call a tool, explain what you are doing."
+
 var (
 	apiCache struct {
 		sync.Mutex
@@ -508,7 +510,11 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 				return
 			}
 			var settings map[string]string
-			json.Unmarshal(recs[0].Value, &settings)
+			if err := json.Unmarshal(recs[0].Value, &settings); err != nil {
+				log.Printf("[agent] failed to parse settings: %v", err)
+				json.NewEncoder(w).Encode(map[string]string{})
+				return
+			}
 			json.NewEncoder(w).Encode(settings)
 			return
 		}
@@ -549,7 +555,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		recs, _ := storeInst.Read("agent/settings")
 		var settings map[string]string
 		if len(recs) > 0 {
-			json.Unmarshal(recs[0].Value, &settings)
+			if err := json.Unmarshal(recs[0].Value, &settings); err != nil {
+				log.Printf("[agent] failed to parse settings: %v", err)
+			}
 		}
 		apiKey := ""
 		model := "gpt-4o"
@@ -591,7 +599,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 					for _, field := range ep.Request.Values {
 						props[field.Name] = map[string]any{
 							"type":        mapGoTypeToJSON(field.Type),
-							"description": field.Name + " field",
+							"description": fmt.Sprintf("%s (%s)", field.Name, field.Type),
 						}
 					}
 				}
@@ -611,7 +619,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 
 		// Build chat completion request
 		messages := []map[string]any{
-			{"role": "system", "content": "You are an agent that helps users interact with microservices. Use the available tools to fulfill user requests. When you call a tool, explain what you are doing."},
+			{"role": "system", "content": agentSystemPrompt},
 			{"role": "user", "content": req.Prompt},
 		}
 		chatReq := map[string]any{
@@ -686,7 +694,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 
 			for _, tc := range choice.Message.ToolCalls {
 				var input map[string]any
-				json.Unmarshal([]byte(tc.Function.Arguments), &input)
+				if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
+					log.Printf("[agent] failed to parse tool arguments: %v", err)
+				}
 				if input == nil {
 					input = map[string]any{}
 				}
@@ -711,7 +721,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						})
 					} else {
 						var rpcResult any
-						json.Unmarshal(rsp.Data, &rpcResult)
+						if err := json.Unmarshal(rsp.Data, &rpcResult); err != nil {
+							rpcResult = string(rsp.Data)
+						}
 						tcResult["result"] = rpcResult
 						followUpMessages = append(followUpMessages, map[string]any{
 							"role":         "tool",
