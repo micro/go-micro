@@ -57,8 +57,8 @@ type templates struct {
 	authLogin  *template.Template
 	authUsers  *template.Template
 	playground *template.Template
+	scopes *template.Template
 }
-
 type TemplateUser struct {
 	ID string
 }
@@ -85,6 +85,7 @@ func parseTemplates() *templates {
 		authLogin:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")),
 		authUsers:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_users.html")),
 		playground: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/playground.html")),
+		scopes: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/scopes.html")),
 	}
 }
 
@@ -347,6 +348,62 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		return tmpl.Execute(w, data)
 	}
 
+	// checkEndpointScopes verifies the caller's token scopes against the
+	// required scopes for a service endpoint. Returns true if allowed.
+	// If not allowed, writes a 403 response and returns false.
+	checkEndpointScopes := func(w http.ResponseWriter, r *http.Request, endpointKey string) bool {
+		if !authEnabled {
+			return true
+		}
+		recs, _ := storeInst.Read("endpoint-scopes/" + endpointKey)
+		if len(recs) == 0 {
+			return true // no scopes configured = unrestricted
+		}
+		var requiredScopes []string
+		if err := json.Unmarshal(recs[0].Value, &requiredScopes); err != nil || len(requiredScopes) == 0 {
+			return true
+		}
+		// Extract caller's scopes from JWT
+		callerScopes := []string{}
+		token := ""
+		if authz := r.Header.Get("Authorization"); strings.HasPrefix(authz, "Bearer ") {
+			token = strings.TrimPrefix(authz, "Bearer ")
+		}
+		if token == "" {
+			if cookie, err := r.Cookie("micro_token"); err == nil {
+				token = cookie.Value
+			}
+		}
+		if token != "" {
+			if claims, err := ParseJWT(token); err == nil {
+				if s, ok := claims["scopes"].([]interface{}); ok {
+					for _, v := range s {
+						if str, ok := v.(string); ok {
+							callerScopes = append(callerScopes, str)
+						}
+					}
+				}
+			}
+		}
+		for _, cs := range callerScopes {
+			if cs == "*" {
+				return true
+			}
+			for _, rs := range requiredScopes {
+				if cs == rs {
+					return true
+				}
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":           "insufficient scopes",
+			"required_scopes": strings.Join(requiredScopes, ","),
+		})
+		return false
+	}
+
 	// Serve static files with correct Content-Type
 	mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
@@ -411,10 +468,17 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 					"description": description,
 					"inputSchema": inputSchema,
 				}
-				// Extract scopes from endpoint metadata
+				// Extract scopes from endpoint metadata or store
 				if ep.Metadata != nil {
 					if scopes, ok := ep.Metadata["scopes"]; ok && scopes != "" {
 						tool["scopes"] = strings.Split(scopes, ",")
+					}
+				}
+				// Override with stored scopes (from UI) if present
+				if recs, _ := storeInst.Read("endpoint-scopes/" + toolName); len(recs) > 0 {
+					var storedScopes []string
+					if err := json.Unmarshal(recs[0].Value, &storedScopes); err == nil && len(storedScopes) > 0 {
+						tool["scopes"] = storedScopes
 					}
 				}
 				tools = append(tools, tool)
@@ -451,6 +515,11 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		}
 		serviceName := parts[0]
 		endpointName := parts[1]
+
+		// Check endpoint scopes
+		if !checkEndpointScopes(w, r, req.Tool) {
+			return
+		}
 
 		// Build RPC request using default client
 		inputBytes, err := json.Marshal(req.Input)
@@ -1277,6 +1346,11 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					return
 				}
 				if r.Method == "POST" {
+					// Check endpoint scopes
+					endpointKey := fmt.Sprintf("%s.%s", service, endpoint)
+					if !checkEndpointScopes(w, r, endpointKey) {
+						return
+					}
 					// Parse form values into a map
 					var reqBody map[string]interface{}
 					if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
@@ -1311,6 +1385,134 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 	// Auth routes - only registered when auth is enabled
 	if authEnabled {
 		authMw := authRequired(storeInst)
+
+		// loadEndpointScopes returns all stored endpoint scopes from the store
+		loadEndpointScopes := func() map[string][]string {
+			recs, _ := storeInst.Read("endpoint-scopes/", store.ReadPrefix())
+			result := map[string][]string{}
+			for _, rec := range recs {
+				name := strings.TrimPrefix(rec.Key, "endpoint-scopes/")
+				var scopes []string
+				if err := json.Unmarshal(rec.Value, &scopes); err == nil && len(scopes) > 0 {
+					result[name] = scopes
+				}
+			}
+			return result
+		}
+
+		// Scopes management — per-endpoint scope requirements
+		mux.HandleFunc("/auth/scopes", authMw(func(w http.ResponseWriter, r *http.Request) {
+			userID := getUser(r)
+			var user any
+			if userID != "" {
+				user = &TemplateUser{ID: userID}
+			}
+			success := false
+
+			if r.Method == "POST" {
+				endpoint := r.FormValue("endpoint")
+				scopesStr := r.FormValue("scopes")
+				if endpoint != "" {
+					if scopesStr == "" {
+						storeInst.Delete("endpoint-scopes/" + endpoint)
+					} else {
+						scopes := strings.Split(scopesStr, ",")
+						for i := range scopes {
+							scopes[i] = strings.TrimSpace(scopes[i])
+						}
+						b, _ := json.Marshal(scopes)
+						storeInst.Write(&store.Record{Key: "endpoint-scopes/" + endpoint, Value: b})
+					}
+					success = true
+				}
+			}
+
+			// Discover endpoints
+			services, _ := registry.ListServices()
+			storedScopes := loadEndpointScopes()
+			type endpointEntry struct {
+				Name      string
+				Service   string
+				Endpoint  string
+				Scopes    []string
+				ScopesStr string
+			}
+			var endpoints []endpointEntry
+			for _, svc := range services {
+				fullSvcs, err := registry.GetService(svc.Name)
+				if err != nil || len(fullSvcs) == 0 {
+					continue
+				}
+				for _, ep := range fullSvcs[0].Endpoints {
+					key := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
+					scopes := storedScopes[key]
+					scopesStr := strings.Join(scopes, ", ")
+					endpoints = append(endpoints, endpointEntry{
+						Name:      key,
+						Service:   svc.Name,
+						Endpoint:  ep.Name,
+						Scopes:    scopes,
+						ScopesStr: scopesStr,
+					})
+				}
+			}
+
+			_ = renderPage(w, tmpls.scopes, map[string]any{
+				"Title":     "Scopes",
+				"Endpoints": endpoints,
+				"User":      user,
+				"Success":   success,
+			})
+		}))
+
+		// Bulk set scopes for endpoints matching a pattern
+		mux.HandleFunc("/auth/scopes/bulk", authMw(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != "POST" {
+				http.Redirect(w, r, "/auth/scopes", http.StatusSeeOther)
+				return
+			}
+			pattern := r.FormValue("pattern")
+			scopesStr := r.FormValue("scopes")
+			if pattern == "" {
+				http.Redirect(w, r, "/auth/scopes", http.StatusSeeOther)
+				return
+			}
+			scopes := []string{}
+			if scopesStr != "" {
+				scopes = strings.Split(scopesStr, ",")
+				for i := range scopes {
+					scopes[i] = strings.TrimSpace(scopes[i])
+				}
+			}
+
+			// Find matching endpoints
+			services, _ := registry.ListServices()
+			for _, svc := range services {
+				fullSvcs, err := registry.GetService(svc.Name)
+				if err != nil || len(fullSvcs) == 0 {
+					continue
+				}
+				for _, ep := range fullSvcs[0].Endpoints {
+					key := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
+					matched := false
+					if strings.HasSuffix(pattern, "*") {
+						prefix := strings.TrimSuffix(pattern, "*")
+						matched = strings.HasPrefix(key, prefix)
+					} else {
+						matched = key == pattern
+					}
+					if matched {
+						if len(scopes) == 0 {
+							storeInst.Delete("endpoint-scopes/" + key)
+						} else {
+							b, _ := json.Marshal(scopes)
+							storeInst.Write(&store.Record{Key: "endpoint-scopes/" + key, Value: b})
+						}
+					}
+				}
+			}
+			http.Redirect(w, r, "/auth/scopes", http.StatusSeeOther)
+		}))
 
 		mux.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &http.Cookie{Name: "micro_token", Value: "", Path: "/", Expires: time.Now().Add(-1 * time.Hour), HttpOnly: true})

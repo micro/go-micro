@@ -1,0 +1,65 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">Scopes</h2>
+<p style="color:#666; margin-bottom:1.5em;">
+  Define which scopes are required to call each service endpoint. API tokens and users must include a matching scope.
+  Applies to API calls, MCP tools, and the agent. Leave empty for unrestricted access.
+</p>
+
+{{if .Success}}
+<div style="background:#e6ffe6; border:1px solid #5a5; padding:0.8em 1.2em; border-radius:6px; margin-bottom:1.5em; color:#050;">
+  &#10003; Scopes updated successfully.
+</div>
+{{end}}
+
+<table style="margin-bottom:2em;">
+  <thead>
+    <tr><th>Service</th><th>Endpoint</th><th>Required Scopes</th><th></th></tr>
+  </thead>
+  <tbody>
+    {{range .Endpoints}}
+    <tr>
+      <td>{{.Service}}</td>
+      <td><code>{{.Endpoint}}</code></td>
+      <td>
+        {{if .Scopes}}
+          {{range .Scopes}}<code>{{.}}</code> {{end}}
+        {{else}}
+          <span style="color:#999;">none (unrestricted)</span>
+        {{end}}
+      </td>
+      <td>
+        <form method="POST" action="/auth/scopes" style="display:inline; padding:0; border:0; box-shadow:none; background:none;">
+          <input type="hidden" name="endpoint" value="{{.Name}}">
+          <input name="scopes" value="{{.ScopesStr}}" placeholder="e.g. read, write" style="width:180px; margin-right:0.5em;">
+          <button type="submit">Save</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+    {{if not .Endpoints}}
+    <tr>
+      <td colspan="4" style="color:#888; text-align:center; padding:2em;">No services discovered. Start some services and they will appear here.</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+
+<h3 style="margin-bottom:1em;">Bulk Set Scopes</h3>
+<p style="color:#666; margin-bottom:1em;">Apply scopes to all endpoints matching a pattern.</p>
+<form method="POST" action="/auth/scopes/bulk" style="margin-bottom:2em;">
+  <input name="pattern" placeholder="Pattern (e.g. greeter.*)" required style="margin-right:0.5em; width:220px;">
+  <input name="scopes" placeholder="Scopes (comma separated)" style="margin-right:0.5em; width:220px;">
+  <button type="submit">Apply</button>
+</form>
+
+<h3 style="margin-bottom:1em;">How Scopes Work</h3>
+<div style="background:#f9f9f9; border:1px solid #eee; padding:1.2em 1.5em; border-radius:6px; font-size:0.97em; line-height:1.6;">
+  <ol style="margin:0; padding-left:1.5em;">
+    <li>Create a <b>Token</b> with specific scopes (e.g. <code>greeter:read</code>, <code>users:write</code>)</li>
+    <li>Set <b>endpoint scopes</b> here to require matching scopes for access</li>
+    <li>Scopes are enforced on all access: <b>API calls</b> (<code>/api/service/endpoint</code>), <b>MCP tools</b>, and the <b>agent</b></li>
+    <li>Tokens with <code>*</code> scope bypass all scope checks</li>
+    <li>Endpoints with no scopes configured are unrestricted</li>
+  </ol>
+</div>
+{{end}}

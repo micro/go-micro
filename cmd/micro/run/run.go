@@ -332,7 +332,7 @@ func Run(c *cli.Context) error {
 		mcpAddr := c.String("mcp-address")
 		gw, err = server.StartGateway(server.GatewayOptions{
 			Address:     gatewayAddr,
-			AuthEnabled: false, // No auth in development mode
+			AuthEnabled: true, // Auth enabled with default admin/micro user
 			Context:     context.Background(),
 			MCPEnabled:  mcpAddr != "",
 			MCPAddress:  mcpAddr,
@@ -461,6 +461,9 @@ func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool) 
 		fmt.Println("  │   \033[33mWatching for changes...\033[0m                                │")
 		fmt.Println("  │                                                             │")
 	}
+
+	fmt.Println("  │   Auth:    \033[32menabled\033[0m (admin / micro)                        │")
+	fmt.Println("  │                                                             │")
 
 	if gw != nil && len(services) > 0 {
 		svc := services[0]
