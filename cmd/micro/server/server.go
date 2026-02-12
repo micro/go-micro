@@ -560,8 +560,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			}
 		}
 		apiKey := ""
-		model := "gpt-4o"
-		baseURL := "https://api.openai.com"
+		model := ""
+		baseURL := ""
+		provider := ""
 		if settings != nil {
 			if v := settings["api_key"]; v != "" {
 				apiKey = v
@@ -572,26 +573,60 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			if v := settings["base_url"]; v != "" {
 				baseURL = v
 			}
+			if v := settings["provider"]; v != "" {
+				provider = v
+			}
 		}
 		if apiKey == "" {
 			json.NewEncoder(w).Encode(map[string]string{"error": "No API key configured. Go to Agent settings to add one."})
 			return
 		}
 
+		// Auto-detect provider if not explicitly set
+		if provider == "" {
+			if strings.Contains(baseURL, "anthropic") {
+				provider = "anthropic"
+			} else {
+				provider = "openai"
+			}
+		}
+
+		// Set defaults based on provider
+		if provider == "anthropic" {
+			if model == "" {
+				model = "claude-sonnet-4-20250514"
+			}
+			if baseURL == "" {
+				baseURL = "https://api.anthropic.com"
+			}
+		} else {
+			if model == "" {
+				model = "gpt-4o"
+			}
+			if baseURL == "" {
+				baseURL = "https://api.openai.com"
+			}
+		}
+
 		// Discover tools from registry
 		services, _ := registry.ListServices()
-		var llmTools []map[string]any
+		type toolInfo struct {
+			Name        string
+			Description string
+			Properties  map[string]any
+		}
+		var discoveredTools []toolInfo
 		for _, svc := range services {
 			fullSvcs, err := registry.GetService(svc.Name)
 			if err != nil || len(fullSvcs) == 0 {
 				continue
 			}
 			for _, ep := range fullSvcs[0].Endpoints {
-				toolName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
-				description := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
+				tName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
+				desc := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
 				if ep.Metadata != nil {
-					if desc, ok := ep.Metadata["description"]; ok && desc != "" {
-						description = desc
+					if d, ok := ep.Metadata["description"]; ok && d != "" {
+						desc = d
 					}
 				}
 				props := map[string]any{}
@@ -603,159 +638,306 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						}
 					}
 				}
-				llmTools = append(llmTools, map[string]any{
-					"type": "function",
-					"function": map[string]any{
-						"name":        toolName,
-						"description": description,
-						"parameters": map[string]any{
-							"type":       "object",
-							"properties": props,
-						},
-					},
+				discoveredTools = append(discoveredTools, toolInfo{
+					Name:        tName,
+					Description: desc,
+					Properties:  props,
 				})
 			}
 		}
 
-		// Build chat completion request
-		messages := []map[string]any{
-			{"role": "system", "content": agentSystemPrompt},
-			{"role": "user", "content": req.Prompt},
-		}
-		chatReq := map[string]any{
-			"model":    model,
-			"messages": messages,
-		}
-		if len(llmTools) > 0 {
-			chatReq["tools"] = llmTools
-		}
-		chatBody, _ := json.Marshal(chatReq)
-
-		// Call LLM API
-		httpReq, err := http.NewRequestWithContext(r.Context(), "POST", strings.TrimRight(baseURL, "/")+"/v1/chat/completions", bytes.NewReader(chatBody))
-		if err != nil {
-			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-			return
-		}
-		httpReq.Header.Set("Content-Type", "application/json")
-		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-
-		httpResp, err := http.DefaultClient.Do(httpReq)
-		if err != nil {
-			json.NewEncoder(w).Encode(map[string]string{"error": "LLM API request failed: " + err.Error()})
-			return
-		}
-		defer httpResp.Body.Close()
-		respBody, _ := io.ReadAll(httpResp.Body)
-
-		if httpResp.StatusCode != 200 {
-			json.NewEncoder(w).Encode(map[string]string{"error": "LLM API error (" + httpResp.Status + "): " + string(respBody)})
-			return
+		// executeToolCall runs an RPC tool call and returns the result
+		executeToolCall := func(toolName string, input map[string]any) (any, string) {
+			parts := strings.SplitN(toolName, ".", 2)
+			if len(parts) != 2 {
+				errMsg := `{"error":"invalid tool name"}`
+				return map[string]string{"error": "invalid tool name"}, errMsg
+			}
+			inputBytes, _ := json.Marshal(input)
+			rpcReq := client.DefaultClient.NewRequest(parts[0], parts[1], &codecBytes.Frame{Data: inputBytes})
+			var rsp codecBytes.Frame
+			if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
+				errMsg := fmt.Sprintf(`{"error":"%s"}`, err.Error())
+				return map[string]string{"error": err.Error()}, errMsg
+			}
+			var rpcResult any
+			if err := json.Unmarshal(rsp.Data, &rpcResult); err != nil {
+				rpcResult = string(rsp.Data)
+			}
+			return rpcResult, string(rsp.Data)
 		}
 
-		var chatResp struct {
-			Choices []struct {
-				Message struct {
-					Content   string `json:"content"`
-					ToolCalls []struct {
-						ID       string `json:"id"`
-						Function struct {
-							Name      string `json:"name"`
-							Arguments string `json:"arguments"`
-						} `json:"function"`
-					} `json:"tool_calls"`
-				} `json:"message"`
-			} `json:"choices"`
-		}
-		if err := json.Unmarshal(respBody, &chatResp); err != nil {
-			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
-			return
-		}
-		if len(chatResp.Choices) == 0 {
-			json.NewEncoder(w).Encode(map[string]string{"error": "No response from LLM"})
-			return
+		// callLLMAPI makes an HTTP request to the LLM provider
+		callLLMAPI := func(url string, body []byte) ([]byte, error) {
+			httpReq, err := http.NewRequestWithContext(r.Context(), "POST", url, bytes.NewReader(body))
+			if err != nil {
+				return nil, err
+			}
+			httpReq.Header.Set("Content-Type", "application/json")
+			if provider == "anthropic" {
+				httpReq.Header.Set("x-api-key", apiKey)
+				httpReq.Header.Set("anthropic-version", "2023-06-01")
+			} else {
+				httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+			}
+			resp, err := http.DefaultClient.Do(httpReq)
+			if err != nil {
+				return nil, fmt.Errorf("LLM API request failed: %w", err)
+			}
+			defer resp.Body.Close()
+			respBody, _ := io.ReadAll(resp.Body)
+			if resp.StatusCode != 200 {
+				return nil, fmt.Errorf("LLM API error (%s): %s", resp.Status, string(respBody))
+			}
+			return respBody, nil
 		}
 
-		choice := chatResp.Choices[0]
 		result := map[string]any{}
-		if choice.Message.Content != "" {
-			result["reply"] = choice.Message.Content
-		}
 
-		// Execute any tool calls
-		if len(choice.Message.ToolCalls) > 0 {
-			var toolCalls []map[string]any
-			// Build tool results for follow-up
-			followUpMessages := append(messages, map[string]any{
-				"role":       "assistant",
-				"content":    choice.Message.Content,
-				"tool_calls": choice.Message.ToolCalls,
-			})
+		if provider == "anthropic" {
+			// --- Anthropic Messages API ---
+			var anthropicTools []map[string]any
+			for _, t := range discoveredTools {
+				anthropicTools = append(anthropicTools, map[string]any{
+					"name":        t.Name,
+					"description": t.Description,
+					"input_schema": map[string]any{
+						"type":       "object",
+						"properties": t.Properties,
+					},
+				})
+			}
 
-			for _, tc := range choice.Message.ToolCalls {
-				var input map[string]any
-				if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
-					log.Printf("[agent] failed to parse tool arguments: %v", err)
+			anthropicReq := map[string]any{
+				"model":      model,
+				"max_tokens": 4096,
+				"system":     agentSystemPrompt,
+				"messages": []map[string]any{
+					{"role": "user", "content": req.Prompt},
+				},
+			}
+			if len(anthropicTools) > 0 {
+				anthropicReq["tools"] = anthropicTools
+			}
+			chatBody, _ := json.Marshal(anthropicReq)
+
+			apiURL := strings.TrimRight(baseURL, "/") + "/v1/messages"
+			respBody, err := callLLMAPI(apiURL, chatBody)
+			if err != nil {
+				json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+
+			// Parse Anthropic response
+			var anthropicResp struct {
+				Content []struct {
+					Type  string          `json:"type"`
+					Text  string          `json:"text"`
+					ID    string          `json:"id"`
+					Name  string          `json:"name"`
+					Input json.RawMessage `json:"input"`
+				} `json:"content"`
+				StopReason string `json:"stop_reason"`
+			}
+			if err := json.Unmarshal(respBody, &anthropicResp); err != nil {
+				json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
+				return
+			}
+
+			// Extract text reply
+			var replyParts []string
+			for _, block := range anthropicResp.Content {
+				if block.Type == "text" && block.Text != "" {
+					replyParts = append(replyParts, block.Text)
 				}
-				if input == nil {
-					input = map[string]any{}
-				}
+			}
+			if len(replyParts) > 0 {
+				result["reply"] = strings.Join(replyParts, "\n")
+			}
 
-				// Execute the tool call via RPC
-				parts := strings.SplitN(tc.Function.Name, ".", 2)
-				tcResult := map[string]any{
-					"tool":  tc.Function.Name,
-					"input": input,
-				}
-
-				if len(parts) == 2 {
-					inputBytes, _ := json.Marshal(input)
-					rpcReq := client.DefaultClient.NewRequest(parts[0], parts[1], &codecBytes.Frame{Data: inputBytes})
-					var rsp codecBytes.Frame
-					if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
-						tcResult["result"] = map[string]string{"error": err.Error()}
-						followUpMessages = append(followUpMessages, map[string]any{
-							"role":         "tool",
-							"tool_call_id": tc.ID,
-							"content":      fmt.Sprintf(`{"error":"%s"}`, err.Error()),
-						})
-					} else {
-						var rpcResult any
-						if err := json.Unmarshal(rsp.Data, &rpcResult); err != nil {
-							rpcResult = string(rsp.Data)
-						}
-						tcResult["result"] = rpcResult
-						followUpMessages = append(followUpMessages, map[string]any{
-							"role":         "tool",
-							"tool_call_id": tc.ID,
-							"content":      string(rsp.Data),
-						})
+			// Execute tool uses
+			var toolUseBlocks []struct {
+				ID    string
+				Name  string
+				Input map[string]any
+			}
+			for _, block := range anthropicResp.Content {
+				if block.Type == "tool_use" {
+					var input map[string]any
+					if err := json.Unmarshal(block.Input, &input); err != nil {
+						log.Printf("[agent] failed to parse tool input: %v", err)
+						input = map[string]any{}
 					}
-				} else {
-					tcResult["result"] = map[string]string{"error": "invalid tool name"}
+					toolUseBlocks = append(toolUseBlocks, struct {
+						ID    string
+						Name  string
+						Input map[string]any
+					}{ID: block.ID, Name: block.Name, Input: input})
+				}
+			}
+
+			if len(toolUseBlocks) > 0 {
+				var toolCalls []map[string]any
+				var toolResultBlocks []map[string]any
+
+				for _, tu := range toolUseBlocks {
+					rpcResult, rpcContent := executeToolCall(tu.Name, tu.Input)
+					toolCalls = append(toolCalls, map[string]any{
+						"tool":   tu.Name,
+						"input":  tu.Input,
+						"result": rpcResult,
+					})
+					toolResultBlocks = append(toolResultBlocks, map[string]any{
+						"type":         "tool_result",
+						"tool_use_id":  tu.ID,
+						"content":      rpcContent,
+					})
+				}
+				result["tool_calls"] = toolCalls
+
+				// Follow-up: send tool results back to Anthropic
+				followUpReq := map[string]any{
+					"model":      model,
+					"max_tokens": 4096,
+					"system":     agentSystemPrompt,
+					"messages": []map[string]any{
+						{"role": "user", "content": req.Prompt},
+						{"role": "assistant", "content": respBody},
+						{"role": "user", "content": toolResultBlocks},
+					},
+				}
+
+				// Re-parse the assistant content for the follow-up message
+				followUpReq["messages"] = []map[string]any{
+					{"role": "user", "content": req.Prompt},
+					{"role": "assistant", "content": anthropicResp.Content},
+					{"role": "user", "content": toolResultBlocks},
+				}
+
+				followUpBody, _ := json.Marshal(followUpReq)
+				if followUpRespBody, err := callLLMAPI(apiURL, followUpBody); err == nil {
+					var followUpResp struct {
+						Content []struct {
+							Type string `json:"type"`
+							Text string `json:"text"`
+						} `json:"content"`
+					}
+					if json.Unmarshal(followUpRespBody, &followUpResp) == nil {
+						var answerParts []string
+						for _, block := range followUpResp.Content {
+							if block.Type == "text" && block.Text != "" {
+								answerParts = append(answerParts, block.Text)
+							}
+						}
+						if len(answerParts) > 0 {
+							result["answer"] = strings.Join(answerParts, "\n")
+						}
+					}
+				}
+			}
+		} else {
+			// --- OpenAI Chat Completions API ---
+			var openaiTools []map[string]any
+			for _, t := range discoveredTools {
+				openaiTools = append(openaiTools, map[string]any{
+					"type": "function",
+					"function": map[string]any{
+						"name":        t.Name,
+						"description": t.Description,
+						"parameters": map[string]any{
+							"type":       "object",
+							"properties": t.Properties,
+						},
+					},
+				})
+			}
+
+			messages := []map[string]any{
+				{"role": "system", "content": agentSystemPrompt},
+				{"role": "user", "content": req.Prompt},
+			}
+			chatReq := map[string]any{
+				"model":    model,
+				"messages": messages,
+			}
+			if len(openaiTools) > 0 {
+				chatReq["tools"] = openaiTools
+			}
+			chatBody, _ := json.Marshal(chatReq)
+
+			apiURL := strings.TrimRight(baseURL, "/") + "/v1/chat/completions"
+			respBody, err := callLLMAPI(apiURL, chatBody)
+			if err != nil {
+				json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+
+			var chatResp struct {
+				Choices []struct {
+					Message struct {
+						Content   string `json:"content"`
+						ToolCalls []struct {
+							ID       string `json:"id"`
+							Function struct {
+								Name      string `json:"name"`
+								Arguments string `json:"arguments"`
+							} `json:"function"`
+						} `json:"tool_calls"`
+					} `json:"message"`
+				} `json:"choices"`
+			}
+			if err := json.Unmarshal(respBody, &chatResp); err != nil {
+				json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
+				return
+			}
+			if len(chatResp.Choices) == 0 {
+				json.NewEncoder(w).Encode(map[string]string{"error": "No response from LLM"})
+				return
+			}
+
+			choice := chatResp.Choices[0]
+			if choice.Message.Content != "" {
+				result["reply"] = choice.Message.Content
+			}
+
+			// Execute any tool calls
+			if len(choice.Message.ToolCalls) > 0 {
+				var toolCalls []map[string]any
+				followUpMessages := append(messages, map[string]any{
+					"role":       "assistant",
+					"content":    choice.Message.Content,
+					"tool_calls": choice.Message.ToolCalls,
+				})
+
+				for _, tc := range choice.Message.ToolCalls {
+					var input map[string]any
+					if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
+						log.Printf("[agent] failed to parse tool arguments: %v", err)
+					}
+					if input == nil {
+						input = map[string]any{}
+					}
+					rpcResult, rpcContent := executeToolCall(tc.Function.Name, input)
+					toolCalls = append(toolCalls, map[string]any{
+						"tool":   tc.Function.Name,
+						"input":  input,
+						"result": rpcResult,
+					})
 					followUpMessages = append(followUpMessages, map[string]any{
 						"role":         "tool",
 						"tool_call_id": tc.ID,
-						"content":      `{"error":"invalid tool name"}`,
+						"content":      rpcContent,
 					})
 				}
-				toolCalls = append(toolCalls, tcResult)
-			}
-			result["tool_calls"] = toolCalls
+				result["tool_calls"] = toolCalls
 
-			// Follow-up: send tool results back to LLM for a final answer
-			followUpReq := map[string]any{
-				"model":    model,
-				"messages": followUpMessages,
-			}
-			followUpBody, _ := json.Marshal(followUpReq)
-			followUpHTTP, err := http.NewRequestWithContext(r.Context(), "POST", strings.TrimRight(baseURL, "/")+"/v1/chat/completions", bytes.NewReader(followUpBody))
-			if err == nil {
-				followUpHTTP.Header.Set("Content-Type", "application/json")
-				followUpHTTP.Header.Set("Authorization", "Bearer "+apiKey)
-				if followUpResp, err := http.DefaultClient.Do(followUpHTTP); err == nil {
-					defer followUpResp.Body.Close()
-					followUpRespBody, _ := io.ReadAll(followUpResp.Body)
+				// Follow-up: send tool results back to LLM for a final answer
+				followUpReq := map[string]any{
+					"model":    model,
+					"messages": followUpMessages,
+				}
+				followUpBody, _ := json.Marshal(followUpReq)
+				if followUpRespBody, err := callLLMAPI(apiURL, followUpBody); err == nil {
 					var followUpChat struct {
 						Choices []struct {
 							Message struct {

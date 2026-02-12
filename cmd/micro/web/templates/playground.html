@@ -11,12 +11,17 @@
 
 <h3>Settings</h3>
 <form id="settings-form" onsubmit="return false;">
+  <label style="display:block; font-weight:600;">Provider</label>
+  <select id="provider">
+    <option value="openai">OpenAI</option>
+    <option value="anthropic">Anthropic</option>
+  </select>
   <label style="display:block; font-weight:600;">Model API Key</label>
   <input type="password" id="api-key" placeholder="sk-... or API key for your model provider">
   <label style="display:block; font-weight:600;">Model (optional)</label>
-  <input type="text" id="model-name" placeholder="e.g. gpt-4o (default)">
+  <input type="text" id="model-name" placeholder="e.g. gpt-4o or claude-sonnet-4-20250514">
   <label style="display:block; font-weight:600;">Base URL (optional)</label>
-  <input type="text" id="base-url" placeholder="https://api.openai.com (default)">
+  <input type="text" id="base-url" placeholder="Leave blank for default">
   <button onclick="saveSettings()">Save Settings</button>
   <span id="settings-status" style="margin-left:0.5em; color:#888;"></span>
 </form>
@@ -37,6 +42,7 @@
     fetch('/api/agent/settings')
       .then(function(r) { return r.json(); })
       .then(function(data) {
+        if (data.provider) document.getElementById('provider').value = data.provider;
         if (data.api_key) document.getElementById('api-key').value = data.api_key;
         if (data.model) document.getElementById('model-name').value = data.model;
         if (data.base_url) document.getElementById('base-url').value = data.base_url;
@@ -51,6 +57,7 @@
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
+        provider: document.getElementById('provider').value,
         api_key: document.getElementById('api-key').value,
         model: document.getElementById('model-name').value,
         base_url: document.getElementById('base-url').value
