@@ -7,7 +7,7 @@ Go Micro Command Line
 Install `micro` via `go install`
 
 ```
-go install go-micro.dev/v5/cmd/micro@v5.10.0
+go install go-micro.dev/v5/cmd/micro@v5.16.0
 ```
 
 

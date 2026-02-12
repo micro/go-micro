@@ -27,7 +27,7 @@ For local development, use [`micro run`](guides/micro-run.md) instead.
 Install the CLI which includes the server command:
 
 ```bash
-go install go-micro.dev/v5/cmd/micro@v5.13.0
+go install go-micro.dev/v5/cmd/micro@v5.16.0
 ```
 
 > **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
@@ -69,4 +69,4 @@ Services managed by systemd are discovered via the registry and appear in the da
 - You want user management and token revocation
 - You're running a shared environment where multiple people interact with services
 
-For CLI usage details, see `cmd/micro/README.md` in this repository.
+For CLI usage details, see the [CLI documentation on GitHub](https://github.com/micro/go-micro/blob/master/cmd/micro/README.md).

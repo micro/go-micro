@@ -124,7 +124,7 @@ See [all examples](examples/README.md) for more.
 Install the code generator and see usage in the docs:
 
 ```bash
-go install go-micro.dev/v5/cmd/protoc-gen-micro@v5.15.0
+go install go-micro.dev/v5/cmd/protoc-gen-micro@v5.16.0
 ```
 
 > **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
@@ -136,7 +136,7 @@ Docs: [`internal/website/docs/getting-started.md`](internal/website/docs/getting
 Install the CLI:
 
 ```
-go install go-micro.dev/v5/cmd/micro@v5.15.0
+go install go-micro.dev/v5/cmd/micro@v5.16.0
 ```
 
 > **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
