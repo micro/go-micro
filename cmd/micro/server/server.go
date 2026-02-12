@@ -24,7 +24,9 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
+	codecBytes "go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
 	"golang.org/x/crypto/bcrypt"
@@ -52,6 +54,7 @@ type templates struct {
 	authTokens *template.Template
 	authLogin  *template.Template
 	authUsers  *template.Template
+	playground *template.Template
 }
 
 type TemplateUser struct {
@@ -79,6 +82,7 @@ func parseTemplates() *templates {
 		authTokens: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_tokens.html")),
 		authLogin:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")),
 		authUsers:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_users.html")),
+		playground: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/playground.html")),
 	}
 }
 
@@ -384,6 +388,114 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		io.Copy(w, f)
 	})
 
+	// MCP API endpoints - list tools and call tools through the web server
+	mux.HandleFunc("/api/mcp/tools", wrap(func(w http.ResponseWriter, r *http.Request) {
+		services, err := registry.ListServices()
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(500)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		var tools []map[string]any
+		for _, svc := range services {
+			fullSvcs, err := registry.GetService(svc.Name)
+			if err != nil || len(fullSvcs) == 0 {
+				continue
+			}
+			for _, ep := range fullSvcs[0].Endpoints {
+				toolName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
+				description := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
+				if ep.Metadata != nil {
+					if desc, ok := ep.Metadata["description"]; ok && desc != "" {
+						description = desc
+					}
+				}
+				inputSchema := map[string]any{
+					"type":       "object",
+					"properties": map[string]any{},
+				}
+				if ep.Request != nil && len(ep.Request.Values) > 0 {
+					props := inputSchema["properties"].(map[string]any)
+					for _, field := range ep.Request.Values {
+						props[field.Name] = map[string]any{
+							"type":        mapGoTypeToJSON(field.Type),
+							"description": fmt.Sprintf("%s field", field.Name),
+						}
+					}
+				}
+				tool := map[string]any{
+					"name":        toolName,
+					"description": description,
+					"inputSchema": inputSchema,
+				}
+				// Extract scopes from endpoint metadata
+				if ep.Metadata != nil {
+					if scopes, ok := ep.Metadata["scopes"]; ok && scopes != "" {
+						tool["scopes"] = strings.Split(scopes, ",")
+					}
+				}
+				tools = append(tools, tool)
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"tools": tools})
+	}))
+
+	mux.HandleFunc("/api/mcp/call", wrap(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+			return
+		}
+		var req struct {
+			Tool  string         `json:"tool"`
+			Input map[string]any `json:"input"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		// Parse tool name into service and endpoint
+		parts := strings.SplitN(req.Tool, ".", 2)
+		if len(parts) != 2 {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": "invalid tool name, expected service.endpoint"})
+			return
+		}
+		serviceName := parts[0]
+		endpointName := parts[1]
+
+		// Build RPC request using default client
+		inputBytes, err := json.Marshal(req.Input)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		rpcReq := client.DefaultClient.NewRequest(serviceName, endpointName, &codecBytes.Frame{Data: inputBytes})
+		var rsp codecBytes.Frame
+		if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("RPC call failed: %v", err)})
+			return
+		}
+
+		traceID := fmt.Sprintf("%d", time.Now().UnixNano())
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"result":   json.RawMessage(rsp.Data),
+			"trace_id": traceID,
+		})
+	}))
+
 	mux.HandleFunc("/", wrap(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasPrefix(path, "/auth/") {
@@ -506,6 +618,10 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			}
 			sort.Strings(serviceNames)
 			_ = render(w, tmpls.service, map[string]any{"Title": "Services", "WebLink": "/", "Services": serviceNames, "User": user})
+			return
+		}
+		if path == "/playground" {
+			_ = render(w, tmpls.playground, map[string]any{"Title": "MCP Playground", "WebLink": "/", "User": user})
 			return
 		}
 		if path == "/logs" || path == "/logs/" {
@@ -954,6 +1070,22 @@ func Run(c *cli.Context) error {
 	}
 
 	return RunGateway(opts)
+}
+
+// mapGoTypeToJSON maps Go types to JSON schema types
+func mapGoTypeToJSON(goType string) string {
+	switch goType {
+	case "string":
+		return "string"
+	case "int", "int32", "int64", "uint", "uint32", "uint64":
+		return "integer"
+	case "float32", "float64":
+		return "number"
+	case "bool":
+		return "boolean"
+	default:
+		return "object"
+	}
 }
 
 // --- PID FILES ---
