@@ -1,8 +1,8 @@
 {{define "content"}}
 <h2 class="text-2xl font-bold mb-4">Scopes</h2>
 <p style="color:#666; margin-bottom:1.5em;">
-  Define which scopes are required to call each service endpoint. API tokens and users must include a matching scope.
-  Applies to API calls, MCP tools, and the agent. Leave empty for unrestricted access.
+  Set which scopes are required to call each endpoint. Tokens must carry a matching scope.
+  Endpoints with no scopes are open to any authenticated token.
 </p>
 
 {{if .Success}}
@@ -24,13 +24,13 @@
         {{if .Scopes}}
           {{range .Scopes}}<code>{{.}}</code> {{end}}
         {{else}}
-          <span style="color:#999;">none (unrestricted)</span>
+          <span style="color:#999;">none</span>
         {{end}}
       </td>
       <td>
         <form method="POST" action="/auth/scopes" style="display:inline; padding:0; border:0; box-shadow:none; background:none;">
           <input type="hidden" name="endpoint" value="{{.Name}}">
-          <input name="scopes" value="{{.ScopesStr}}" placeholder="e.g. read, write" style="width:180px; margin-right:0.5em;">
+          <input name="scopes" value="{{.ScopesStr}}" placeholder="scope names" style="width:180px; margin-right:0.5em;">
           <button type="submit">Save</button>
         </form>
       </td>
@@ -44,46 +44,44 @@
   </tbody>
 </table>
 
-<h3 style="margin-bottom:1em;">Bulk Set Scopes</h3>
-<p style="color:#666; margin-bottom:1em;">Apply scopes to all endpoints matching a pattern.</p>
+<h3 style="margin-bottom:1em;">Bulk Set</h3>
+<p style="color:#666; margin-bottom:1em;">Apply scopes to all endpoints matching a pattern. Use <code>*</code> as a suffix wildcard. Leave scopes empty to clear.</p>
 <form method="POST" action="/auth/scopes/bulk" style="margin-bottom:2em;">
   <input name="pattern" placeholder="Pattern (e.g. greeter.*)" required style="margin-right:0.5em; width:220px;">
   <input name="scopes" placeholder="Scopes (comma separated)" style="margin-right:0.5em; width:220px;">
   <button type="submit">Apply</button>
 </form>
 
-<h3 style="margin-bottom:1em;">How Scopes Work</h3>
+<h3 style="margin-bottom:1em;">Examples</h3>
 <div style="background:#f9f9f9; border:1px solid #eee; padding:1.2em 1.5em; border-radius:6px; font-size:0.97em; line-height:1.6;">
-  <ol style="margin:0; padding-left:1.5em;">
-    <li><b>Create a Token</b> — go to <a href="/auth/tokens">Tokens</a> and create a token with specific scopes (e.g. <code>greeter:read</code>, <code>users:write</code>)</li>
-    <li><b>Set Endpoint Scopes</b> — use the table above to require matching scopes for each endpoint</li>
-    <li><b>Access is enforced everywhere:</b>
-      <ul style="margin:0.5em 0; padding-left:1.5em;">
-        <li><b>API calls</b> — pass token via <code>Authorization: Bearer &lt;token&gt;</code> header</li>
-        <li><b>MCP tools</b> — external clients (Claude Code, etc.) pass the token when calling <code>/api/mcp/call</code></li>
-        <li><b>Agent playground</b> — uses your logged-in session scopes when calling tools</li>
-      </ul>
-    </li>
-    <li>The default <code>admin</code> user has <code>*</code> scope which bypasses all checks</li>
-    <li>Endpoints with no scopes set are unrestricted</li>
-  </ol>
 
-  <h4 style="margin-top:1.2em; margin-bottom:0.5em;">Quick Start</h4>
-  <pre style="background:#fff; border:1px solid #ddd; padding:1em; border-radius:4px; overflow-x:auto; font-size:0.93em;">
-# 1. Create a scoped token (via Tokens page or API)
-curl -X POST http://localhost:8080/auth/tokens \
-  -H "Authorization: Bearer &lt;admin-token&gt;" \
-  -d "id=myapp&amp;type=service&amp;scopes=greeter:read,greeter:write"
+  <p style="margin-top:0;">Scopes are strings that you define. A call is allowed when at least one of the token's scopes matches one of the endpoint's required scopes.</p>
 
-# 2. Use the token for API calls
-curl -X POST http://localhost:8080/api/greeter/Greeter/Hello \
-  -H "Authorization: Bearer &lt;myapp-token&gt;" \
-  -d '{"name": "World"}'
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Restrict a whole service</h4>
+  <p>Use Bulk Set with pattern <code>greeter.*</code> and scope <code>greeter</code>.<br>
+  Then create a <a href="/auth/tokens">token</a> with scope <code>greeter</code> — it can call any endpoint on that service.</p>
 
-# 3. Use the token for MCP tool calls
-curl -X POST http://localhost:8080/api/mcp/call \
-  -H "Authorization: Bearer &lt;myapp-token&gt;" \
-  -d '{"tool":"greeter.Greeter.Hello","input":{"name":"World"}}'
-  </pre>
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Restrict a specific endpoint</h4>
+  <p>Set scope <code>billing</code> on <code>payments.Payments.Charge</code> using the table above.<br>
+  Only tokens with the <code>billing</code> scope can call that endpoint. Other payment endpoints remain unaffected.</p>
+
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Role-based access</h4>
+  <p>Set scope <code>admin</code> on sensitive endpoints (e.g. <code>users.Users.Delete</code>).<br>
+  Create tokens with <code>admin</code> scope for operators and <code>user</code> scope for regular access.<br>
+  An endpoint can require multiple scopes — the token only needs to match <b>one</b> of them.</p>
+
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Full access</h4>
+  <p>The default <code>admin</code> user has scope <code>*</code> which bypasses all checks.<br>
+  Create a token with <code>*</code> scope for services that need unrestricted access.</p>
+
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Where scopes are checked</h4>
+  <table style="font-size:0.95em; margin:0.5em 0;">
+    <thead><tr><th>Access method</th><th>How auth works</th></tr></thead>
+    <tbody>
+      <tr><td>API (<code>/api/service/endpoint</code>)</td><td><code>Authorization: Bearer &lt;token&gt;</code> header</td></tr>
+      <tr><td>MCP tools (<code>/api/mcp/call</code>)</td><td><code>Authorization: Bearer &lt;token&gt;</code> header</td></tr>
+      <tr><td>Agent playground</td><td>Uses your logged-in session and its scopes</td></tr>
+    </tbody>
+  </table>
 </div>
 {{end}}

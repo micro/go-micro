@@ -1,5 +1,5 @@
 {{define "content"}}
-<h2 class="text-2xl font-bold mb-4">Auth Tokens</h2>
+<h2 class="text-2xl font-bold mb-4">Tokens</h2>
 <table style="margin-bottom:2em;">
   <thead>
     <tr><th>ID</th><th>Type</th><th>Scopes</th><th>Metadata</th><th>Token</th><th>Delete</th></tr>
@@ -39,7 +39,7 @@
     {{end}}
   </tbody>
 </table>
-<h3 style="margin-bottom:1em;">Create New Token</h3>
+<h3 style="margin-bottom:1em;">Create Token</h3>
 <form method="POST" action="/auth/tokens">
   <input name="id" placeholder="Name/ID" required style="margin-right:1em;">
   <select name="type" style="margin-right:1em;">
@@ -47,9 +47,33 @@
     <option value="admin">Admin</option>
     <option value="service">Service</option>
   </select>
-  <input name="scopes" placeholder="Scopes (comma separated)" style="margin-right:1em;">
+  <input name="scopes" placeholder="Scopes (comma separated)" style="margin-right:1em; width:260px;">
   <button type="submit">Create</button>
 </form>
+
+<div style="background:#f9f9f9; border:1px solid #eee; padding:1.2em 1.5em; border-radius:6px; font-size:0.97em; line-height:1.6; margin-top:2em;">
+  <h4 style="margin-top:0;">Token Scopes</h4>
+  <p>Scopes define what a token is allowed to access. They work with the <a href="/auth/scopes">Scopes</a> page where you set what each endpoint requires.</p>
+
+  <table style="font-size:0.95em; margin:1em 0;">
+    <thead><tr><th>Scopes</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td><code>*</code></td><td>Full access — bypasses all scope checks (default for admin)</td></tr>
+      <tr><td><code>greeter</code></td><td>Can call any endpoint that requires the <code>greeter</code> scope</td></tr>
+      <tr><td><code>greeter, users</code></td><td>Can call endpoints requiring <code>greeter</code> or <code>users</code></td></tr>
+      <tr><td><code>admin</code></td><td>Can call endpoints requiring the <code>admin</code> scope</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-bottom:0;">Scopes are just strings — you define them. Set the same string on a token and on an endpoint, and they match. See <a href="/auth/scopes">Scopes</a> for examples.</p>
+</div>
+
+<h4 style="margin-top:2em;">Using a Token</h4>
+<pre style="background:#fff; border:1px solid #ddd; padding:1em; border-radius:4px; overflow-x:auto; font-size:0.93em;">
+curl http://localhost:8080/api/greeter/Greeter/Hello \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -d '{"name": "World"}'</pre>
+
 <script>
 function copyToken(btn) {
   const token = btn.getAttribute('data-token');
