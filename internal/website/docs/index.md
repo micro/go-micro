@@ -26,6 +26,7 @@ about the framework.
 ## Contents
 
 - [Getting Started](getting-started.md)
+- [MCP & AI Agents](mcp.md) - Turn services into AI-callable tools with the Model Context Protocol
 - [CLI & Gateway Guide](guides/cli-gateway.md) - Development vs Production modes
 - [Quick Start](quickstart.md)
 - [Architecture](architecture.md)
@@ -40,7 +41,7 @@ about the framework.
 
 ## Development & Deployment
 
-- [micro run](guides/micro-run.md) - Local development with hot reload and API gateway
+- [micro run](guides/micro-run.md) - Local development with hot reload, API gateway, and agent playground
 - [micro build & deploy](deployment.md) - Build binaries and deploy to production
 - [micro server](server.md) - Optional production web dashboard with auth
 
