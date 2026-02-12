@@ -295,25 +295,26 @@
 
   function matchTool(query) {
     var lower = query.toLowerCase();
+    var idx;
     // Exact name match first
-    for (var i = 0; i < tools.length; i++) {
-      if (tools[i].name.toLowerCase() === lower) return tools[i];
+    for (idx = 0; idx < tools.length; idx++) {
+      if (tools[idx].name.toLowerCase() === lower) return tools[idx];
     }
     // Partial name match
-    for (var i = 0; i < tools.length; i++) {
-      if (tools[i].name.toLowerCase().indexOf(lower) !== -1) return tools[i];
+    for (idx = 0; idx < tools.length; idx++) {
+      if (tools[idx].name.toLowerCase().indexOf(lower) !== -1) return tools[idx];
     }
     // Description match
-    for (var i = 0; i < tools.length; i++) {
-      var desc = (tools[i].description || '').toLowerCase();
+    for (idx = 0; idx < tools.length; idx++) {
+      var desc = (tools[idx].description || '').toLowerCase();
       var words = lower.split(/\s+/);
       var matched = 0;
       for (var w = 0; w < words.length; w++) {
-        if (desc.indexOf(words[w]) !== -1 || tools[i].name.toLowerCase().indexOf(words[w]) !== -1) {
+        if (desc.indexOf(words[w]) !== -1 || tools[idx].name.toLowerCase().indexOf(words[w]) !== -1) {
           matched++;
         }
       }
-      if (matched >= Math.ceil(words.length / 2)) return tools[i];
+      if (matched >= Math.ceil(words.length / 2)) return tools[idx];
     }
     return null;
   }

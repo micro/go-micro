@@ -488,7 +488,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			return
 		}
 
-		traceID := fmt.Sprintf("%d", time.Now().UnixNano())
+		var traceBytes [16]byte
+		rand.Read(traceBytes[:])
+		traceID := fmt.Sprintf("%x", traceBytes)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
 			"result":   json.RawMessage(rsp.Data),
@@ -1088,7 +1090,6 @@ func mapGoTypeToJSON(goType string) string {
 	}
 }
 
-// --- PID FILES ---
 // --- PID FILES ---
 func parsePid(pidStr string) int {
 	pid, _ := strconv.Atoi(pidStr)
