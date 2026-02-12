@@ -1,274 +1,95 @@
 {{define "content"}}
-<h2 style="margin-top:0;">MCP Playground</h2>
-<p style="color:#666; margin-bottom:1.5em;">Interact with your microservices through MCP tools. Select a tool, fill in parameters, and call it — or use the prompt to describe what you want to do.</p>
+<h2>Agent</h2>
+<p>Chat with your microservices using AI. Configure a model API key in settings, then use the prompt to interact with your services.</p>
 
-<div id="playground" style="display:flex; gap:2em; flex-wrap:wrap;">
-  <!-- Tools Panel -->
-  <div id="tools-panel" style="min-width:260px; max-width:320px; flex:0 0 auto;">
-    <div style="font-weight:600; margin-bottom:0.8em; font-size:1.05em;">Available Tools</div>
-    <div id="tools-list" style="max-height:60vh; overflow-y:auto;">
-      <div style="color:#888; padding:1em;">Loading tools...</div>
-    </div>
-  </div>
+<h3>Prompt</h3>
+<div id="agent-messages"></div>
+<form onsubmit="return false;" style="display:flex; gap:0.5em; align-items:flex-end;">
+  <input type="text" id="prompt-input" placeholder="e.g. List all users, Create a blog post..." style="flex:1; margin-bottom:0;">
+  <button id="prompt-btn" onclick="sendPrompt()">Send</button>
+</form>
 
-  <!-- Main Chat / Interaction Area -->
-  <div style="flex:1; min-width:0;">
-    <!-- Tool Detail & Call Form -->
-    <div id="tool-detail" style="display:none; margin-bottom:2em;">
-      <div style="display:flex; align-items:center; gap:1em; margin-bottom:0.8em;">
-        <h3 id="tool-name" style="margin:0; font-size:1.15em;"></h3>
-        <span id="tool-scopes" style="font-size:0.85em; color:#888;"></span>
-      </div>
-      <p id="tool-description" style="color:#555; margin-bottom:1em;"></p>
-      <form id="tool-call-form" data-reactive style="margin:0;">
-        <div id="tool-inputs"></div>
-        <div style="display:flex; gap:0.5em; align-items:center;">
-          <button type="submit" id="call-btn">Call Tool</button>
-          <span id="call-status" style="font-size:0.9em; color:#888;"></span>
-        </div>
-      </form>
-    </div>
+<h3>Settings</h3>
+<form id="settings-form" onsubmit="return false;">
+  <label style="display:block; font-weight:600;">Model API Key</label>
+  <input type="password" id="api-key" placeholder="sk-... or API key for your model provider">
+  <label style="display:block; font-weight:600;">Model (optional)</label>
+  <input type="text" id="model-name" placeholder="e.g. gpt-4o (default)">
+  <label style="display:block; font-weight:600;">Base URL (optional)</label>
+  <input type="text" id="base-url" placeholder="https://api.openai.com (default)">
+  <button onclick="saveSettings()">Save Settings</button>
+  <span id="settings-status" style="margin-left:0.5em; color:#888;"></span>
+</form>
 
-    <!-- Conversation History -->
-    <div id="chat-area">
-      <div style="font-weight:600; margin-bottom:0.8em; font-size:1.05em;">Activity Log</div>
-      <div id="chat-messages" style="max-height:50vh; overflow-y:auto; border:1px solid #eee; border-radius:7px; padding:1em; background:#fafbfc; min-height:120px;">
-        <div class="chat-msg system" style="color:#888; font-size:0.95em;">
-          Select a tool from the left panel to get started, or use the prompt below.
-        </div>
-      </div>
-
-      <!-- Prompt Input -->
-      <div style="margin-top:1em; display:flex; gap:0.5em;">
-        <input type="text" id="prompt-input" placeholder="Describe what you want to do... e.g. 'List all users' or 'Create a new blog post'" style="flex:1; margin-bottom:0;">
-        <button id="prompt-btn" onclick="handlePrompt()" style="margin:0; white-space:nowrap;">Send</button>
-      </div>
-    </div>
-  </div>
+<h3>Available Tools</h3>
+<div id="tools-list">
+  <p style="color:#888;">Loading tools...</p>
 </div>
-
-<style>
-  #tools-list .tool-item {
-    padding: 0.6em 0.8em;
-    border: 1px solid #eee;
-    border-radius: 5px;
-    margin-bottom: 0.4em;
-    cursor: pointer;
-    transition: background 0.15s, border-color 0.15s;
-    font-size: 0.95em;
-  }
-  #tools-list .tool-item:hover {
-    background: #f0f0f0;
-    border-color: #ccc;
-  }
-  #tools-list .tool-item.active {
-    background: #111;
-    color: #fff;
-    border-color: #111;
-  }
-  #tools-list .tool-item .tool-service {
-    font-size: 0.82em;
-    color: #999;
-  }
-  #tools-list .tool-item.active .tool-service {
-    color: #bbb;
-  }
-  .chat-msg {
-    margin-bottom: 1em;
-    font-size: 0.95em;
-    line-height: 1.6;
-  }
-  .chat-msg.user {
-    padding: 0.6em 0.9em;
-    background: #f7f7f7;
-    border-radius: 6px;
-    border: 1px solid #eee;
-  }
-  .chat-msg.user::before {
-    content: "▸ ";
-    color: #888;
-  }
-  .chat-msg.result {
-    padding: 0.6em 0.9em;
-    background: #f0faf0;
-    border-radius: 6px;
-    border: 1px solid #d0e8d0;
-  }
-  .chat-msg.error {
-    padding: 0.6em 0.9em;
-    background: #faf0f0;
-    border-radius: 6px;
-    border: 1px solid #e8d0d0;
-    color: #a00;
-  }
-  .chat-msg pre {
-    margin: 0.5em 0 0 0;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-  .chat-msg .trace-id {
-    font-size: 0.8em;
-    color: #999;
-    margin-top: 0.3em;
-  }
-</style>
 
 <script>
 (function() {
   var tools = [];
-  var selectedTool = null;
 
-  // Load tools on page load
+  loadSettings();
   loadTools();
+
+  function loadSettings() {
+    fetch('/api/agent/settings')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.api_key) document.getElementById('api-key').value = data.api_key;
+        if (data.model) document.getElementById('model-name').value = data.model;
+        if (data.base_url) document.getElementById('base-url').value = data.base_url;
+      })
+      .catch(function() {});
+  }
+
+  window.saveSettings = function() {
+    var status = document.getElementById('settings-status');
+    status.textContent = 'Saving...';
+    fetch('/api/agent/settings', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        api_key: document.getElementById('api-key').value,
+        model: document.getElementById('model-name').value,
+        base_url: document.getElementById('base-url').value
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function() { status.textContent = 'Saved'; })
+    .catch(function(err) { status.textContent = 'Error: ' + err; });
+  };
 
   function loadTools() {
     fetch('/api/mcp/tools')
       .then(function(r) { return r.json(); })
       .then(function(data) {
         tools = data.tools || [];
-        renderToolsList();
+        renderTools();
       })
       .catch(function(err) {
-        document.getElementById('tools-list').innerHTML = '<div style="color:#c00; padding:1em;">Failed to load tools: ' + err + '</div>';
+        document.getElementById('tools-list').innerHTML = '<p style="color:#c00;">Failed to load tools: ' + err + '</p>';
       });
   }
 
-  function renderToolsList() {
-    var list = document.getElementById('tools-list');
+  function renderTools() {
+    var el = document.getElementById('tools-list');
     if (tools.length === 0) {
-      list.innerHTML = '<div style="color:#888; padding:1em;">No tools available. Start some services and they will appear here.</div>';
+      el.innerHTML = '<p style="color:#888;">No tools available. Start some services and they will appear here.</p>';
       return;
     }
-    var html = '';
+    var html = '<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody>';
     for (var i = 0; i < tools.length; i++) {
       var t = tools[i];
-      var parts = t.name.split('.');
-      var service = parts.length > 1 ? parts[0] : '';
-      var method = parts.length > 1 ? parts.slice(1).join('.') : t.name;
-      html += '<div class="tool-item" data-tool="' + t.name + '" onclick="window._selectTool(\'' + t.name + '\')">';
-      html += '<div style="font-weight:500;">' + escapeHtml(method) + '</div>';
-      if (service) {
-        html += '<div class="tool-service">' + escapeHtml(service) + '</div>';
-      }
-      html += '</div>';
+      html += '<tr><td><code>' + escapeHtml(t.name) + '</code></td>';
+      html += '<td>' + escapeHtml(t.description || '') + '</td></tr>';
     }
-    list.innerHTML = html;
+    html += '</tbody></table>';
+    el.innerHTML = html;
   }
 
-  window._selectTool = function(name) {
-    selectedTool = null;
-    for (var i = 0; i < tools.length; i++) {
-      if (tools[i].name === name) {
-        selectedTool = tools[i];
-        break;
-      }
-    }
-    if (!selectedTool) return;
-
-    // Highlight active tool
-    var items = document.querySelectorAll('#tools-list .tool-item');
-    for (var j = 0; j < items.length; j++) {
-      items[j].classList.toggle('active', items[j].getAttribute('data-tool') === name);
-    }
-
-    // Show tool detail
-    var detail = document.getElementById('tool-detail');
-    detail.style.display = 'block';
-    document.getElementById('tool-name').textContent = selectedTool.name;
-    document.getElementById('tool-description').textContent = selectedTool.description || '';
-
-    // Show scopes
-    var scopesEl = document.getElementById('tool-scopes');
-    if (selectedTool.scopes && selectedTool.scopes.length > 0) {
-      scopesEl.textContent = 'Scopes: ' + selectedTool.scopes.join(', ');
-    } else {
-      scopesEl.textContent = '';
-    }
-
-    // Build input form
-    var inputsDiv = document.getElementById('tool-inputs');
-    inputsDiv.innerHTML = '';
-    var schema = selectedTool.inputSchema;
-    if (schema && schema.properties) {
-      var props = schema.properties;
-      var keys = Object.keys(props);
-      for (var k = 0; k < keys.length; k++) {
-        var field = keys[k];
-        var prop = props[field];
-        var label = document.createElement('label');
-        label.textContent = field;
-        label.style.fontWeight = '500';
-        label.style.display = 'block';
-        label.style.marginBottom = '0.3em';
-
-        var input = document.createElement('input');
-        input.name = field;
-        input.placeholder = (prop.description || field);
-        input.type = prop.type === 'integer' || prop.type === 'number' ? 'number' : 'text';
-
-        inputsDiv.appendChild(label);
-        inputsDiv.appendChild(input);
-      }
-    }
-    document.getElementById('call-status').textContent = '';
-  };
-
-  // Handle tool call form submission
-  document.getElementById('tool-call-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    if (!selectedTool) return;
-    callTool(selectedTool.name, getFormInputs());
-  });
-
-  function getFormInputs() {
-    var inputs = {};
-    var fields = document.querySelectorAll('#tool-inputs input');
-    for (var i = 0; i < fields.length; i++) {
-      var val = fields[i].value;
-      if (val !== '') {
-        // Try to parse numbers
-        if (fields[i].type === 'number') {
-          inputs[fields[i].name] = Number(val);
-        } else {
-          inputs[fields[i].name] = val;
-        }
-      }
-    }
-    return inputs;
-  }
-
-  function callTool(toolName, input) {
-    var statusEl = document.getElementById('call-status');
-    statusEl.textContent = 'Calling...';
-    addMessage('user', 'Call ' + toolName + (Object.keys(input).length > 0 ? ' with: ' + JSON.stringify(input) : ''));
-
-    fetch('/api/mcp/call', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tool: toolName, input: input })
-    })
-    .then(function(r) {
-      if (!r.ok) {
-        return r.text().then(function(t) { throw new Error(t); });
-      }
-      return r.json();
-    })
-    .then(function(data) {
-      statusEl.textContent = 'Done';
-      var msgHtml = '<pre>' + escapeHtml(JSON.stringify(data.result, null, 2)) + '</pre>';
-      if (data.trace_id) {
-        msgHtml += '<div class="trace-id">Trace: ' + escapeHtml(data.trace_id) + '</div>';
-      }
-      addMessage('result', msgHtml);
-    })
-    .catch(function(err) {
-      statusEl.textContent = 'Error';
-      addMessage('error', 'Error: ' + escapeHtml(err.message || String(err)));
-    });
-  }
-
-  // Handle prompt input
-  window.handlePrompt = function() {
+  window.sendPrompt = function() {
     var input = document.getElementById('prompt-input');
     var text = input.value.trim();
     if (!text) return;
@@ -276,62 +97,80 @@
 
     addMessage('user', escapeHtml(text));
 
-    // Simple intent matching: find a tool whose name or description matches
-    var matched = matchTool(text);
-    if (matched) {
-      addMessage('system', 'Matched tool: <b>' + escapeHtml(matched.name) + '</b> — ' + escapeHtml(matched.description || ''));
-      window._selectTool(matched.name);
-    } else {
-      addMessage('system', 'No matching tool found. Try selecting a tool from the panel or be more specific.');
-    }
+    var btn = document.getElementById('prompt-btn');
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    fetch('/api/agent/prompt', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt: text})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      btn.disabled = false;
+      btn.textContent = 'Send';
+      if (data.error) {
+        addMessage('error', escapeHtml(data.error));
+        return;
+      }
+      if (data.reply) {
+        addMessage('assistant', escapeHtml(data.reply));
+      }
+      if (data.tool_calls && data.tool_calls.length > 0) {
+        for (var i = 0; i < data.tool_calls.length; i++) {
+          var tc = data.tool_calls[i];
+          addMessage('tool', '<b>Tool:</b> <code>' + escapeHtml(tc.tool) + '</code>' +
+            '<pre>' + escapeHtml(JSON.stringify(tc.input, null, 2)) + '</pre>' +
+            '<b>Result:</b><pre>' + escapeHtml(JSON.stringify(tc.result, null, 2)) + '</pre>');
+        }
+      }
+      if (data.answer) {
+        addMessage('assistant', escapeHtml(data.answer));
+      }
+    })
+    .catch(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Send';
+      addMessage('error', 'Error: ' + escapeHtml(String(err)));
+    });
   };
 
   document.getElementById('prompt-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      window.handlePrompt();
-    }
+    if (e.key === 'Enter') { e.preventDefault(); window.sendPrompt(); }
   });
 
-  function matchTool(query) {
-    var lower = query.toLowerCase();
-    var idx;
-    // Exact name match first
-    for (idx = 0; idx < tools.length; idx++) {
-      if (tools[idx].name.toLowerCase() === lower) return tools[idx];
-    }
-    // Partial name match
-    for (idx = 0; idx < tools.length; idx++) {
-      if (tools[idx].name.toLowerCase().indexOf(lower) !== -1) return tools[idx];
-    }
-    // Description match
-    for (idx = 0; idx < tools.length; idx++) {
-      var desc = (tools[idx].description || '').toLowerCase();
-      var words = lower.split(/\s+/);
-      var matched = 0;
-      for (var w = 0; w < words.length; w++) {
-        if (desc.indexOf(words[w]) !== -1 || tools[idx].name.toLowerCase().indexOf(words[w]) !== -1) {
-          matched++;
-        }
-      }
-      if (matched >= Math.ceil(words.length / 2)) return tools[idx];
-    }
-    return null;
-  }
-
   function addMessage(type, html) {
-    var container = document.getElementById('chat-messages');
+    var container = document.getElementById('agent-messages');
     var div = document.createElement('div');
-    div.className = 'chat-msg ' + type;
-    div.innerHTML = html;
+    div.style.cssText = 'padding:0.8em 1em; border-radius:7px; margin-bottom:0.8em; line-height:1.6;';
+    if (type === 'user') {
+      div.style.background = '#f7f7f7';
+      div.style.border = '1px solid #eee';
+      div.innerHTML = '<b>You:</b> ' + html;
+    } else if (type === 'assistant' || type === 'answer') {
+      div.style.background = '#fff';
+      div.style.border = '1px solid #ddd';
+      div.innerHTML = '<b>Agent:</b> ' + html;
+    } else if (type === 'tool') {
+      div.style.background = '#fafafa';
+      div.style.border = '1px solid #e0e0e0';
+      div.style.fontSize = '0.95em';
+      div.innerHTML = html;
+    } else if (type === 'error') {
+      div.style.background = '#fff';
+      div.style.border = '1px solid #c00';
+      div.style.color = '#c00';
+      div.innerHTML = html;
+    }
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
   }
 
   function escapeHtml(str) {
-    var div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    var d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
   }
 })();
 </script>

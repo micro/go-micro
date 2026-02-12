@@ -498,6 +498,269 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		})
 	}))
 
+	// Agent settings endpoints
+	mux.HandleFunc("/api/agent/settings", wrap(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == "GET" {
+			recs, _ := storeInst.Read("agent/settings")
+			if len(recs) == 0 {
+				json.NewEncoder(w).Encode(map[string]string{})
+				return
+			}
+			var settings map[string]string
+			json.Unmarshal(recs[0].Value, &settings)
+			json.NewEncoder(w).Encode(settings)
+			return
+		}
+		if r.Method == "POST" {
+			var settings map[string]string
+			if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+				return
+			}
+			b, _ := json.Marshal(settings)
+			storeInst.Write(&store.Record{Key: "agent/settings", Value: b})
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			return
+		}
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+	}))
+
+	// Agent prompt endpoint — sends user prompt to LLM with tool definitions
+	mux.HandleFunc("/api/agent/prompt", wrap(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method != "POST" {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
+			return
+		}
+		var req struct {
+			Prompt string `json:"prompt"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		// Load settings
+		recs, _ := storeInst.Read("agent/settings")
+		var settings map[string]string
+		if len(recs) > 0 {
+			json.Unmarshal(recs[0].Value, &settings)
+		}
+		apiKey := ""
+		model := "gpt-4o"
+		baseURL := "https://api.openai.com"
+		if settings != nil {
+			if v := settings["api_key"]; v != "" {
+				apiKey = v
+			}
+			if v := settings["model"]; v != "" {
+				model = v
+			}
+			if v := settings["base_url"]; v != "" {
+				baseURL = v
+			}
+		}
+		if apiKey == "" {
+			json.NewEncoder(w).Encode(map[string]string{"error": "No API key configured. Go to Agent settings to add one."})
+			return
+		}
+
+		// Discover tools from registry
+		services, _ := registry.ListServices()
+		var llmTools []map[string]any
+		for _, svc := range services {
+			fullSvcs, err := registry.GetService(svc.Name)
+			if err != nil || len(fullSvcs) == 0 {
+				continue
+			}
+			for _, ep := range fullSvcs[0].Endpoints {
+				toolName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
+				description := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
+				if ep.Metadata != nil {
+					if desc, ok := ep.Metadata["description"]; ok && desc != "" {
+						description = desc
+					}
+				}
+				props := map[string]any{}
+				if ep.Request != nil {
+					for _, field := range ep.Request.Values {
+						props[field.Name] = map[string]any{
+							"type":        mapGoTypeToJSON(field.Type),
+							"description": field.Name + " field",
+						}
+					}
+				}
+				llmTools = append(llmTools, map[string]any{
+					"type": "function",
+					"function": map[string]any{
+						"name":        toolName,
+						"description": description,
+						"parameters": map[string]any{
+							"type":       "object",
+							"properties": props,
+						},
+					},
+				})
+			}
+		}
+
+		// Build chat completion request
+		messages := []map[string]any{
+			{"role": "system", "content": "You are an agent that helps users interact with microservices. Use the available tools to fulfill user requests. When you call a tool, explain what you are doing."},
+			{"role": "user", "content": req.Prompt},
+		}
+		chatReq := map[string]any{
+			"model":    model,
+			"messages": messages,
+		}
+		if len(llmTools) > 0 {
+			chatReq["tools"] = llmTools
+		}
+		chatBody, _ := json.Marshal(chatReq)
+
+		// Call LLM API
+		httpReq, err := http.NewRequestWithContext(r.Context(), "POST", strings.TrimRight(baseURL, "/")+"/v1/chat/completions", bytes.NewReader(chatBody))
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+
+		httpResp, err := http.DefaultClient.Do(httpReq)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]string{"error": "LLM API request failed: " + err.Error()})
+			return
+		}
+		defer httpResp.Body.Close()
+		respBody, _ := io.ReadAll(httpResp.Body)
+
+		if httpResp.StatusCode != 200 {
+			json.NewEncoder(w).Encode(map[string]string{"error": "LLM API error (" + httpResp.Status + "): " + string(respBody)})
+			return
+		}
+
+		var chatResp struct {
+			Choices []struct {
+				Message struct {
+					Content   string `json:"content"`
+					ToolCalls []struct {
+						ID       string `json:"id"`
+						Function struct {
+							Name      string `json:"name"`
+							Arguments string `json:"arguments"`
+						} `json:"function"`
+					} `json:"tool_calls"`
+				} `json:"message"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal(respBody, &chatResp); err != nil {
+			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
+			return
+		}
+		if len(chatResp.Choices) == 0 {
+			json.NewEncoder(w).Encode(map[string]string{"error": "No response from LLM"})
+			return
+		}
+
+		choice := chatResp.Choices[0]
+		result := map[string]any{}
+		if choice.Message.Content != "" {
+			result["reply"] = choice.Message.Content
+		}
+
+		// Execute any tool calls
+		if len(choice.Message.ToolCalls) > 0 {
+			var toolCalls []map[string]any
+			// Build tool results for follow-up
+			followUpMessages := append(messages, map[string]any{
+				"role":       "assistant",
+				"content":    choice.Message.Content,
+				"tool_calls": choice.Message.ToolCalls,
+			})
+
+			for _, tc := range choice.Message.ToolCalls {
+				var input map[string]any
+				json.Unmarshal([]byte(tc.Function.Arguments), &input)
+				if input == nil {
+					input = map[string]any{}
+				}
+
+				// Execute the tool call via RPC
+				parts := strings.SplitN(tc.Function.Name, ".", 2)
+				tcResult := map[string]any{
+					"tool":  tc.Function.Name,
+					"input": input,
+				}
+
+				if len(parts) == 2 {
+					inputBytes, _ := json.Marshal(input)
+					rpcReq := client.DefaultClient.NewRequest(parts[0], parts[1], &codecBytes.Frame{Data: inputBytes})
+					var rsp codecBytes.Frame
+					if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
+						tcResult["result"] = map[string]string{"error": err.Error()}
+						followUpMessages = append(followUpMessages, map[string]any{
+							"role":         "tool",
+							"tool_call_id": tc.ID,
+							"content":      fmt.Sprintf(`{"error":"%s"}`, err.Error()),
+						})
+					} else {
+						var rpcResult any
+						json.Unmarshal(rsp.Data, &rpcResult)
+						tcResult["result"] = rpcResult
+						followUpMessages = append(followUpMessages, map[string]any{
+							"role":         "tool",
+							"tool_call_id": tc.ID,
+							"content":      string(rsp.Data),
+						})
+					}
+				} else {
+					tcResult["result"] = map[string]string{"error": "invalid tool name"}
+					followUpMessages = append(followUpMessages, map[string]any{
+						"role":         "tool",
+						"tool_call_id": tc.ID,
+						"content":      `{"error":"invalid tool name"}`,
+					})
+				}
+				toolCalls = append(toolCalls, tcResult)
+			}
+			result["tool_calls"] = toolCalls
+
+			// Follow-up: send tool results back to LLM for a final answer
+			followUpReq := map[string]any{
+				"model":    model,
+				"messages": followUpMessages,
+			}
+			followUpBody, _ := json.Marshal(followUpReq)
+			followUpHTTP, err := http.NewRequestWithContext(r.Context(), "POST", strings.TrimRight(baseURL, "/")+"/v1/chat/completions", bytes.NewReader(followUpBody))
+			if err == nil {
+				followUpHTTP.Header.Set("Content-Type", "application/json")
+				followUpHTTP.Header.Set("Authorization", "Bearer "+apiKey)
+				if followUpResp, err := http.DefaultClient.Do(followUpHTTP); err == nil {
+					defer followUpResp.Body.Close()
+					followUpRespBody, _ := io.ReadAll(followUpResp.Body)
+					var followUpChat struct {
+						Choices []struct {
+							Message struct {
+								Content string `json:"content"`
+							} `json:"message"`
+						} `json:"choices"`
+					}
+					if json.Unmarshal(followUpRespBody, &followUpChat) == nil && len(followUpChat.Choices) > 0 {
+						result["answer"] = followUpChat.Choices[0].Message.Content
+					}
+				}
+			}
+		}
+
+		json.NewEncoder(w).Encode(result)
+	}))
+
 	mux.HandleFunc("/", wrap(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasPrefix(path, "/auth/") {
@@ -622,8 +885,8 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			_ = render(w, tmpls.service, map[string]any{"Title": "Services", "WebLink": "/", "Services": serviceNames, "User": user})
 			return
 		}
-		if path == "/playground" {
-			_ = render(w, tmpls.playground, map[string]any{"Title": "MCP Playground", "WebLink": "/", "User": user})
+		if path == "/agent" {
+			_ = render(w, tmpls.playground, map[string]any{"Title": "Agent", "WebLink": "/", "User": user})
 			return
 		}
 		if path == "/logs" || path == "/logs/" {
