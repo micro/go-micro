@@ -591,11 +591,14 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		// Discover tools from registry
 		services, _ := registry.ListServices()
 		type toolInfo struct {
-			Name        string
+			Name     string // original dotted name (e.g. "greeter.Greeter.Hello")
+			SafeName string // LLM-safe name (dots replaced with underscores)
 			Description string
 			Properties  map[string]any
 		}
 		var discoveredTools []toolInfo
+		// safeNameMap maps LLM-safe names back to original dotted names
+		safeNameMap := map[string]string{}
 		for _, svc := range services {
 			fullSvcs, err := registry.GetService(svc.Name)
 			if err != nil || len(fullSvcs) == 0 {
@@ -603,6 +606,8 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			}
 			for _, ep := range fullSvcs[0].Endpoints {
 				tName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
+				safeName := strings.ReplaceAll(tName, ".", "_")
+				safeNameMap[safeName] = tName
 				desc := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
 				if ep.Metadata != nil {
 					if d, ok := ep.Metadata["description"]; ok && d != "" {
@@ -620,14 +625,20 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 				}
 				discoveredTools = append(discoveredTools, toolInfo{
 					Name:        tName,
+					SafeName:    safeName,
 					Description: desc,
 					Properties:  props,
 				})
 			}
 		}
 
-		// executeToolCall runs an RPC tool call and returns the result
+		// executeToolCall runs an RPC tool call and returns the result.
+		// toolName can be either the original dotted name or the LLM-safe
+		// underscored name; the safe name is resolved first.
 		executeToolCall := func(toolName string, input map[string]any) (any, string) {
+			if orig, ok := safeNameMap[toolName]; ok {
+				toolName = orig
+			}
 			parts := strings.SplitN(toolName, ".", 2)
 			if len(parts) != 2 {
 				errMsg := `{"error":"invalid tool name"}`
@@ -679,7 +690,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			var anthropicTools []map[string]any
 			for _, t := range discoveredTools {
 				anthropicTools = append(anthropicTools, map[string]any{
-					"name":        t.Name,
+					"name":        t.SafeName,
 					"description": t.Description,
 					"input_schema": map[string]any{
 						"type":       "object",
@@ -815,7 +826,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 				openaiTools = append(openaiTools, map[string]any{
 					"type": "function",
 					"function": map[string]any{
-						"name":        t.Name,
+						"name":        t.SafeName,
 						"description": t.Description,
 						"parameters": map[string]any{
 							"type":       "object",
