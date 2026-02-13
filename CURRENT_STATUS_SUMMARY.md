@@ -202,6 +202,8 @@ handler := service.Server().NewHandler(
 | **Transports** | 2 (HTTP/SSE, Stdio) |
 | **Q1 Completion** | 100% |
 | **Q2 Completion** | 85% |
+| **Q3 Completion** | 40% |
+| **Q4 Completion** | 0% |
 | **Ahead of Schedule** | 3-4 months |
 
 ---

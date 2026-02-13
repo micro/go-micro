@@ -615,8 +615,6 @@ All features planned for Q4 2026.
 - Best practices for tool descriptions
 - MCP security guide
 - Video tutorials
-- gRPC (reflection-based)
-- HTTP/3 (performance)
 
 ---
 
