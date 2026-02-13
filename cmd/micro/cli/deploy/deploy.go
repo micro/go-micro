@@ -105,6 +105,21 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
 
 	fmt.Printf("Deploying to %s...\n\n", target)
 
+	// Early validation: Check if the requested service exists before SSH checks
+	filterService := c.String("service")
+	if filterService != "" && cfg != nil {
+		found := false
+		for _, svc := range cfg.Services {
+			if svc.Name == filterService {
+				found = true
+				break
+			}
+		}
+		if !found && len(cfg.Services) > 0 {
+			return fmt.Errorf("service '%s' not found in configuration", filterService)
+		}
+	}
+
 	// Step 1: Check SSH connectivity
 	fmt.Print("  Checking SSH connection... ")
 	if err := checkSSH(target); err != nil {
@@ -129,14 +144,23 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
 			return err
 		}
 		for _, svc := range sorted {
-			services = append(services, svc.Name)
+			// If --service flag is provided, only include that service
+			if filterService == "" || svc.Name == filterService {
+				services = append(services, svc.Name)
+			}
 		}
 	} else {
+		// Single service project
 		services = []string{filepath.Base(absDir)}
+
+		// If --service flag was provided for a single-service project, validate it matches
+		if filterService != "" && filterService != services[0] {
+			return fmt.Errorf("service '%s' not found (only '%s' available)", filterService, services[0])
+		}
 	}
 
 	fmt.Printf("  Building binaries...       ")
-	if err := buildBinaries(absDir, cfg, c.Bool("build")); err != nil {
+	if err := buildBinaries(absDir, cfg, c.Bool("build"), services); err != nil {
 		fmt.Println("\u2717")
 		return err
 	}
@@ -241,7 +265,7 @@ func checkServerInit(host, remotePath string) error {
 	return nil
 }
 
-func buildBinaries(absDir string, cfg *config.Config, forceBuild bool) error {
+func buildBinaries(absDir string, cfg *config.Config, forceBuild bool, servicesToBuild []string) error {
 	binDir := filepath.Join(absDir, "bin")
 
 	// Check if we already have binaries and don't need to rebuild
@@ -266,7 +290,19 @@ func buildBinaries(absDir string, cfg *config.Config, forceBuild bool) error {
 			return err
 		}
 
+		// Create a map for quick lookup of services to build
+		// This provides O(1) lookup time and makes the code more maintainable
+		shouldBuild := make(map[string]bool)
+		for _, svcName := range servicesToBuild {
+			shouldBuild[svcName] = true
+		}
+
 		for _, svc := range sorted {
+			// Only build services in the servicesToBuild list
+			if !shouldBuild[svc.Name] {
+				continue
+			}
+
 			svcDir := filepath.Join(absDir, svc.Path)
 			outPath := filepath.Join(binDir, svc.Name)
 
@@ -408,6 +444,9 @@ Before deploying, initialize the server:
 Then deploy:
   micro deploy user@server
 
+Deploy a specific service (multi-service projects):
+  micro deploy user@server --service users
+
 With a micro.mu config, you can define named targets:
   deploy prod
       ssh user@prod.example.com
@@ -441,6 +480,10 @@ The deploy process:
 			&cli.BoolFlag{
 				Name:  "build",
 				Usage: "Force rebuild of binaries",
+			},
+			&cli.StringFlag{
+				Name:  "service",
+				Usage: "Deploy only a specific service (for multi-service projects)",
 			},
 		},
 	})
