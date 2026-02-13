@@ -63,22 +63,22 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 func usersHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	// Return all users
 	userList := make([]*User, 0, len(users))
 	for _, user := range users {
 		userList = append(userList, user)
 	}
-	
+
 	json.NewEncoder(w).Encode(userList)
 }
 
 func userHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	// Extract user ID from path
 	id := r.URL.Path[len("/users/"):]
-	
+
 	user, exists := users[id]
 	if !exists {
 		w.WriteHeader(http.StatusNotFound)
@@ -87,7 +87,7 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	
+
 	json.NewEncoder(w).Encode(user)
 }
 

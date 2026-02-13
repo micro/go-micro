@@ -21,8 +21,8 @@ type mockAuth struct {
 	accounts map[string]*auth.Account // token -> account
 }
 
-func (m *mockAuth) Init(...auth.Option)                         {}
-func (m *mockAuth) Options() auth.Options                       { return auth.Options{} }
+func (m *mockAuth) Init(...auth.Option)   {}
+func (m *mockAuth) Options() auth.Options { return auth.Options{} }
 func (m *mockAuth) Generate(string, ...auth.GenerateOption) (*auth.Account, error) {
 	return nil, nil
 }
@@ -540,7 +540,7 @@ func TestScopesFromGatewayOptions(t *testing.T) {
 	s := newTestServer(Options{
 		Registry: reg,
 		Scopes: map[string][]string{
-			"blog.Blog.Create": {"blog:admin"},        // override service scope
+			"blog.Blog.Create": {"blog:admin"},         // override service scope
 			"blog.Blog.Delete": {"blog:admin", "sudo"}, // add scope to tool without service scope
 		},
 	})
