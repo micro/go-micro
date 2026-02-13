@@ -99,6 +99,8 @@ func init() {
 				}
 
 				// Create context with metadata if provided
+				// Note: This is for the direct 'micro call' command.
+				// Dynamic service calls (e.g., 'micro helloworld call') are handled in CallService.
 				callCtx := context.TODO()
 				callCtx = util.AddMetadataToContext(callCtx, ctx.StringSlice("metadata"))
 				callCtx = util.AddMetadataToContext(callCtx, ctx.StringSlice("header"))

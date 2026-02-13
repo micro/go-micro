@@ -157,6 +157,8 @@ func CallService(srv *registry.Service, args []string) error {
 	callCtx := context.TODO()
 
 	// parse out --header or --metadata flags before parsing request body
+	// Note: This is for dynamic service calls (e.g., 'micro helloworld call --header X:Y').
+	// Direct 'micro call' commands are handled in cli.go.
 	if headerFlags, ok := flags["header"]; ok {
 		callCtx = AddMetadataToContext(callCtx, headerFlags)
 		delete(flags, "header")
