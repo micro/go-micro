@@ -373,7 +373,9 @@ This was planned for Q3 2026 but has been fully implemented:
 | `micro mcp docs` command | ✅ COMPLETE | Low | Markdown and JSON formats supported |
 | `micro mcp export` commands | ✅ COMPLETE | Low | LangChain, OpenAPI, and JSON exports implemented |
 | Multi-protocol support (WebSocket, gRPC, HTTP/3) | ❌ Not Started | Medium | Next priority |
-| Agent SDKs (LangChain, LlamaIndex) | ❌ Not Started | High | High priority - Python SDK for LangChain |
+| Agent SDKs - LangChain | ✅ COMPLETE | High | Python package in contrib/langchain-go-micro |
+| Agent SDKs - LlamaIndex | ❌ Not Started | High | Similar to LangChain SDK |
+| Agent SDKs - AutoGPT | ❌ Not Started | Medium | Plugin format adapter |
 | Interactive Agent Playground | ❌ Not Started | High | Web UI for testing services with AI |
 
 
