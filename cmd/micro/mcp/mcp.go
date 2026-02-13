@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/urfave/cli/v2"
@@ -354,24 +355,5 @@ func testAction(ctx *cli.Context) error {
 
 // parseTool splits a tool name into service and endpoint parts
 func parseTool(toolName string) []string {
-	// Handle both formats: "service.endpoint" and "service.Handler.Method"
-	parts := make([]string, 0)
-	current := ""
-	
-	for _, ch := range toolName {
-		if ch == '.' {
-			if current != "" {
-				parts = append(parts, current)
-				current = ""
-			}
-		} else {
-			current += string(ch)
-		}
-	}
-	
-	if current != "" {
-		parts = append(parts, current)
-	}
-	
-	return parts
+	return strings.Split(toolName, ".")
 }

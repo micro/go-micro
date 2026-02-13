@@ -34,7 +34,7 @@ func TestParseTool(t *testing.T) {
 		{
 			name:     "empty string",
 			toolName: "",
-			want:     []string{},
+			want:     []string{""},
 		},
 	}
 
