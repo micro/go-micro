@@ -8,10 +8,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
+	"go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/gateway/mcp"
 	"go-micro.dev/v5/registry"
 )
@@ -247,10 +250,91 @@ func testAction(ctx *cli.Context) error {
 		inputJSON = ctx.Args().Get(1)
 	}
 
+	// Get registry
+	reg := registry.DefaultRegistry
+
+	// Parse tool name (format: service.endpoint or service.Handler.Method)
+	parts := splitToolName(toolName)
+	if len(parts) < 2 {
+		return fmt.Errorf("invalid tool name format: %s (expected format: service.Endpoint or service.Handler.Method)", toolName)
+	}
+
+	serviceName := parts[0]
+	var endpointName string
+	if len(parts) == 2 {
+		endpointName = parts[1]
+	} else {
+		// For format like greeter.Greeter.SayHello, endpoint is Greeter.SayHello
+		endpointName = strings.Join(parts[1:], ".")
+	}
+
+	// Verify service exists
+	services, err := reg.GetService(serviceName)
+	if err != nil || len(services) == 0 {
+		return fmt.Errorf("service not found: %s", serviceName)
+	}
+
+	// Verify endpoint exists
+	endpointFound := false
+	for _, ep := range services[0].Endpoints {
+		if ep.Name == endpointName {
+			endpointFound = true
+			break
+		}
+	}
+	if !endpointFound {
+		return fmt.Errorf("endpoint not found: %s on service %s", endpointName, serviceName)
+	}
+
 	fmt.Printf("Testing tool: %s\n", toolName)
-	fmt.Printf("Input: %s\n", inputJSON)
-	fmt.Println("\nResult:")
-	fmt.Println("(Not yet implemented - coming soon)")
+	fmt.Printf("Input: %s\n\n", inputJSON)
+
+	// Parse input JSON
+	var input map[string]interface{}
+	if err := json.Unmarshal([]byte(inputJSON), &input); err != nil {
+		return fmt.Errorf("invalid JSON input: %w", err)
+	}
+
+	// Create MCP server options for making the call
+	opts := mcp.Options{
+		Registry: reg,
+		Context:  context.Background(),
+		Logger:   log.New(os.Stderr, "", 0),
+	}
+
+	// Make RPC call using client
+	c := client.DefaultClient
+	inputBytes, err := json.Marshal(input)
+	if err != nil {
+		return fmt.Errorf("failed to marshal input: %w", err)
+	}
+
+	rpcReq := c.NewRequest(serviceName, endpointName, &bytes.Frame{Data: inputBytes})
+	var rsp bytes.Frame
+
+	if err := c.Call(opts.Context, rpcReq, &rsp); err != nil {
+		return fmt.Errorf("RPC call failed: %w", err)
+	}
+
+	// Parse and display response
+	var result interface{}
+	if err := json.Unmarshal(rsp.Data, &result); err != nil {
+		// If unmarshal fails, display raw data
+		fmt.Printf("Result (raw): %s\n", string(rsp.Data))
+	} else {
+		// Pretty print JSON result
+		prettyJSON, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			fmt.Printf("Result: %v\n", result)
+		} else {
+			fmt.Printf("Result:\n%s\n", string(prettyJSON))
+		}
+	}
 
 	return nil
+}
+
+// splitToolName splits a tool name like "greeter.Greeter.SayHello" into parts
+func splitToolName(name string) []string {
+	return strings.Split(name, ".")
 }
