@@ -105,6 +105,21 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
 
 	fmt.Printf("Deploying to %s...\n\n", target)
 
+	// Early validation: Check if the requested service exists before SSH checks
+	filterService := c.String("service")
+	if filterService != "" && cfg != nil {
+		found := false
+		for _, svc := range cfg.Services {
+			if svc.Name == filterService {
+				found = true
+				break
+			}
+		}
+		if !found && len(cfg.Services) > 0 {
+			return fmt.Errorf("service '%s' not found in configuration", filterService)
+		}
+	}
+
 	// Step 1: Check SSH connectivity
 	fmt.Print("  Checking SSH connection... ")
 	if err := checkSSH(target); err != nil {
@@ -123,8 +138,6 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
 
 	// Step 3: Build binaries
 	var services []string
-	filterService := c.String("service")
-	
 	if cfg != nil && len(cfg.Services) > 0 {
 		sorted, err := cfg.TopologicalSort()
 		if err != nil {
@@ -136,15 +149,10 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
 				services = append(services, svc.Name)
 			}
 		}
-		
-		// If a specific service was requested but not found
-		if filterService != "" && len(services) == 0 {
-			return fmt.Errorf("service '%s' not found in configuration", filterService)
-		}
 	} else {
 		// Single service project
 		services = []string{filepath.Base(absDir)}
-		
+
 		// If --service flag was provided for a single-service project, validate it matches
 		if filterService != "" && filterService != services[0] {
 			return fmt.Errorf("service '%s' not found (only '%s' available)", filterService, services[0])
@@ -283,6 +291,7 @@ func buildBinaries(absDir string, cfg *config.Config, forceBuild bool, servicesT
 		}
 
 		// Create a map for quick lookup of services to build
+		// This provides O(1) lookup time and makes the code more maintainable
 		shouldBuild := make(map[string]bool)
 		for _, svcName := range servicesToBuild {
 			shouldBuild[svcName] = true
@@ -293,7 +302,7 @@ func buildBinaries(absDir string, cfg *config.Config, forceBuild bool, servicesT
 			if !shouldBuild[svc.Name] {
 				continue
 			}
-			
+
 			svcDir := filepath.Join(absDir, svc.Path)
 			outPath := filepath.Join(binDir, svc.Name)
 
