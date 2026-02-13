@@ -127,11 +127,29 @@ Just write Go comments - documentation is extracted automatically:
 ### ✅ MCP Command Line
 
 ```bash
-micro mcp serve              # Start with stdio
-micro mcp serve --address :3000  # Start with HTTP
-micro mcp list               # List tools
-micro mcp test <tool-name>   # Test a tool
+# Start MCP server
+micro mcp serve              # Stdio (for Claude Code)
+micro mcp serve --address :3000  # HTTP/SSE (for web agents)
+
+# List available tools
+micro mcp list               # Human-readable list
+micro mcp list --json        # JSON output
+
+# Test a tool
+micro mcp test <tool-name> '{"key": "value"}'
+
+# Generate documentation
+micro mcp docs               # Markdown format
+micro mcp docs --format json # JSON format
+micro mcp docs --output tools.md  # Save to file
+
+# Export to different formats
+micro mcp export langchain   # Python LangChain tools
+micro mcp export openapi     # OpenAPI 3.0 spec
+micro mcp export json        # Raw JSON definitions
 ```
+
+For detailed examples, see [CLI Examples](../../cmd/micro/mcp/EXAMPLES.md).
 
 ### ✅ Zero Configuration
 
