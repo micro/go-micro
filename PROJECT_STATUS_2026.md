@@ -495,20 +495,24 @@ All planned features delivered:
 - Blog post ✅
 
 ### Q2 2026: Agent Developer Experience
-**Status:** 🟢 Ahead of Schedule (60% complete)
+**Status:** 🟢 Mostly Complete (85% complete)
 
-**Completed (ahead of schedule):**
+**Completed:**
 - ✅ Stdio transport for Claude Code
-- ✅ `micro mcp` command suite (partial)
+- ✅ `micro mcp` command suite (complete)
 - ✅ Tool descriptions from comments
 - ✅ `@example` tag support
 - ✅ Schema generation from struct tags
+- ✅ `micro mcp test` full implementation
+- ✅ `micro mcp docs` command
+- ✅ `micro mcp export` commands (langchain, openapi, json)
+- ✅ LangChain SDK (Python package)
 
 **Not Started:**
 - ❌ Multi-protocol support (WebSocket, gRPC)
-- ❌ Agent SDKs (LangChain, LlamaIndex)
+- ❌ Agent SDKs (LlamaIndex, AutoGPT)
 - ❌ Interactive Agent Playground
-- ❌ Export commands
+- ❌ Additional documentation guides
 
 ### Q3 2026: Production & Scale
 **Status:** 🟢 Ahead of Schedule (40% complete)

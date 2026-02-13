@@ -92,7 +92,7 @@ Go Micro's MCP integration means:
 
 ## Q2 2026: Agent Developer Experience
 
-**Status:** IN PROGRESS - Several features delivered early (Feb 2026)
+**Status:** MOSTLY COMPLETE - Most features delivered (Feb 2026)
 
 **Theme:** Make it trivial for any AI to call your services
 
@@ -157,10 +157,11 @@ Tools:
 
 Create official SDKs for popular agent frameworks:
 
-#### LangChain Integration
-- [ ] `go-micro-langchain` package
-- [ ] Auto-generate LangChain tools from registry
-- [ ] Example: Multi-agent workflow with go-micro services
+#### LangChain Integration ✅ COMPLETE
+- [x] `langchain-go-micro` Python package
+- [x] Auto-generate LangChain tools from registry
+- [x] Example: Multi-agent workflow with go-micro services
+- [x] Published to contrib/langchain-go-micro/
 
 #### LlamaIndex Integration
 - [ ] `go-micro-llamaindex` package
@@ -176,7 +177,7 @@ Create official SDKs for popular agent frameworks:
 
 ### Developer Experience
 
-#### `micro mcp` Command Suite ✅ PARTIALLY COMPLETE
+#### `micro mcp` Command Suite ✅ COMPLETE
 
 **Implemented:**
 ```bash
@@ -187,14 +188,12 @@ micro mcp serve --address :3000    # HTTP/SSE (for web agents) ✅
 # Development
 micro mcp list                     # List available tools ✅
 micro mcp list --json              # JSON output ✅
-```
-
-**Not Yet Implemented:**
-```bash
-micro mcp test users.Users.Get     # Test a tool (placeholder only)
-micro mcp docs                     # Generate MCP documentation
-micro mcp export langchain         # Export to LangChain format
-micro mcp export openapi           # Export as OpenAPI (for fallback)
+micro mcp test users.Users.Get     # Test a tool ✅
+micro mcp docs                     # Generate MCP documentation ✅
+micro mcp docs --format json       # JSON output ✅
+micro mcp export langchain         # Export to LangChain format ✅
+micro mcp export openapi           # Export as OpenAPI ✅
+micro mcp export json              # Export as JSON ✅
 ```
 
 #### Interactive Agent Playground
