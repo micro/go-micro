@@ -15,8 +15,29 @@ import (
 	"github.com/stretchr/objx"
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/metadata"
 	"go-micro.dev/v5/registry"
 )
+
+// AddMetadataToContext parses metadata strings in the format "Key:Value" and adds them to the context
+func AddMetadataToContext(ctx context.Context, metadataStrings []string) context.Context {
+	if len(metadataStrings) == 0 {
+		return ctx
+	}
+
+	md := make(metadata.Metadata)
+	for _, m := range metadataStrings {
+		parts := strings.SplitN(m, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		md[key] = value
+	}
+
+	return metadata.MergeContext(ctx, md, true)
+}
 
 // LookupService queries the service for a service with the given alias. If
 // no services are found for a given alias, the registry will return nil and
@@ -132,16 +153,24 @@ func CallService(srv *registry.Service, args []string) error {
 		return fmt.Errorf("Endpoint %v not found for service %v", endpoint, srv.Name)
 	}
 
-	// parse the flags
+	// create a context for the call
+	callCtx := context.TODO()
+
+	// parse out --header or --metadata flags before parsing request body
+	if headerFlags, ok := flags["header"]; ok {
+		callCtx = AddMetadataToContext(callCtx, headerFlags)
+		delete(flags, "header")
+	}
+	if metadataFlags, ok := flags["metadata"]; ok {
+		callCtx = AddMetadataToContext(callCtx, metadataFlags)
+		delete(flags, "metadata")
+	}
+
+	// parse the flags into request body
 	body, err := FlagsToRequest(flags, ep.Request)
 	if err != nil {
 		return err
 	}
-
-	// create a context for the call based on the cli context
-	callCtx := context.TODO()
-
-	// TODO: parse out --header or --metadata
 
 	// construct and execute the request using the json content type
 	req := client.DefaultClient.NewRequest(srv.Name, endpoint, body, client.WithContentType("application/json"))

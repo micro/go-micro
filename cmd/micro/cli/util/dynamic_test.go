@@ -1,11 +1,13 @@
 package util
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"go-micro.dev/v5/metadata"
 	goregistry "go-micro.dev/v5/registry"
 )
 
@@ -377,3 +379,76 @@ func TestDynamicFlagParsing(t *testing.T) {
 
 	}
 }
+
+func TestAddMetadataToContext(t *testing.T) {
+	tests := []struct {
+		name           string
+		metadataStrs   []string
+		expectedKeys   []string
+		expectedValues []string
+	}{
+		{
+			name:           "Single metadata",
+			metadataStrs:   []string{"Key1:Value1"},
+			expectedKeys:   []string{"Key1"},
+			expectedValues: []string{"Value1"},
+		},
+		{
+			name:           "Multiple metadata",
+			metadataStrs:   []string{"Key1:Value1", "Key2:Value2"},
+			expectedKeys:   []string{"Key1", "Key2"},
+			expectedValues: []string{"Value1", "Value2"},
+		},
+		{
+			name:           "Metadata with spaces",
+			metadataStrs:   []string{"Key1: Value1 ", " Key2 : Value2"},
+			expectedKeys:   []string{"Key1", "Key2"},
+			expectedValues: []string{"Value1", "Value2"},
+		},
+		{
+			name:           "Metadata with colon in value",
+			metadataStrs:   []string{"Authorization:Bearer token:123"},
+			expectedKeys:   []string{"Authorization"},
+			expectedValues: []string{"Bearer token:123"},
+		},
+		{
+			name:           "Empty metadata",
+			metadataStrs:   []string{},
+			expectedKeys:   []string{},
+			expectedValues: []string{},
+		},
+		{
+			name:           "Invalid metadata format",
+			metadataStrs:   []string{"InvalidFormat"},
+			expectedKeys:   []string{},
+			expectedValues: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			ctx = AddMetadataToContext(ctx, tt.metadataStrs)
+
+			md, ok := metadata.FromContext(ctx)
+			if len(tt.expectedKeys) == 0 && !ok {
+				return // Expected no metadata
+			}
+
+			if !ok && len(tt.expectedKeys) > 0 {
+				t.Fatal("Expected metadata in context but got none")
+			}
+
+			for i, key := range tt.expectedKeys {
+				value, found := md.Get(key)
+				if !found {
+					t.Fatalf("Expected key %s not found in metadata", key)
+				}
+				if value != tt.expectedValues[i] {
+					t.Fatalf("Expected value %s for key %s, got %s", tt.expectedValues[i], key, value)
+				}
+			}
+		})
+	}
+}
+
