@@ -468,10 +468,12 @@ This was planned for Q3 2026 but has been fully implemented:
 
 | Component | Status | Completeness |
 |-----------|--------|--------------|
-| `mcp.go` | ✅ Production | 90% |
+| `mcp.go` | ✅ Production | 100% |
 | `serve` command | ✅ Complete | 100% |
 | `list` command | ✅ Complete | 100% |
-| `test` command | 🟡 Placeholder | 20% |
+| `test` command | ✅ Complete | 100% |
+| `docs` command | ✅ Complete | 100% |
+| `export` command | ✅ Complete | 100% |
 
 ### Server Integration (`server/`)
 
