@@ -365,16 +365,19 @@ This was planned for Q3 2026 but has been fully implemented:
 | `@example` tag support | Planned Q2 | ✅ COMPLETE | Implemented in parser |
 | Schema from struct tags | Planned Q2 | ✅ COMPLETE | Type mapping implemented |
 
-### Q2 2026 Features - Not Yet Implemented
+### Q2 2026 Features - Status Update (February 2026)
 
-| Feature | Status | Priority |
-|---------|--------|----------|
-| `micro mcp test` full implementation | 🟡 Partial | Medium |
-| `micro mcp docs` command | ❌ Not Started | Low |
-| `micro mcp export` commands | ❌ Not Started | Low |
-| Multi-protocol support (WebSocket, gRPC, HTTP/3) | ❌ Not Started | Medium |
-| Agent SDKs (LangChain, LlamaIndex) | ❌ Not Started | High |
-| Interactive Agent Playground | ❌ Not Started | High |
+| Feature | Status | Priority | Notes |
+|---------|--------|----------|-------|
+| `micro mcp test` full implementation | ✅ COMPLETE | Medium | Fully functional with JSON validation and RPC calls |
+| `micro mcp docs` command | ✅ COMPLETE | Low | Markdown and JSON formats supported |
+| `micro mcp export` commands | ✅ COMPLETE | Low | LangChain, OpenAPI, and JSON exports implemented |
+| Multi-protocol support (WebSocket, gRPC, HTTP/3) | ❌ Not Started | Medium | Next priority |
+| Agent SDKs - LangChain | ✅ COMPLETE | High | Python package in contrib/langchain-go-micro |
+| Agent SDKs - LlamaIndex | ❌ Not Started | High | Similar to LangChain SDK |
+| Agent SDKs - AutoGPT | ❌ Not Started | Medium | Plugin format adapter |
+| Interactive Agent Playground | ❌ Not Started | High | Web UI for testing services with AI |
+
 
 ### Q3 2026 Features - Early Delivery
 

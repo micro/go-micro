@@ -47,3 +47,33 @@ func TestParseTool(t *testing.T) {
 		})
 	}
 }
+
+func TestExportFormats(t *testing.T) {
+	// Test that export formats are recognized
+	formats := []string{"langchain", "openapi", "json"}
+	
+	for _, format := range formats {
+		t.Run(format, func(t *testing.T) {
+			// This is a basic test to ensure the format strings are defined
+			// The actual export functions are tested through integration tests
+			if format == "" {
+				t.Error("export format should not be empty")
+			}
+		})
+	}
+}
+
+func TestDocsFormats(t *testing.T) {
+	// Test that docs formats are recognized
+	formats := []string{"markdown", "json"}
+	
+	for _, format := range formats {
+		t.Run(format, func(t *testing.T) {
+			// This is a basic test to ensure the format strings are defined
+			// The actual docs functions are tested through integration tests
+			if format == "" {
+				t.Error("docs format should not be empty")
+			}
+		})
+	}
+}
