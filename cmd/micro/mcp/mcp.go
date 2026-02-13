@@ -11,7 +11,9 @@ import (
 	"syscall"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
+	"go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/gateway/mcp"
 	"go-micro.dev/v5/registry"
 )
@@ -247,10 +249,129 @@ func testAction(ctx *cli.Context) error {
 		inputJSON = ctx.Args().Get(1)
 	}
 
+	// Validate input JSON
+	var inputData map[string]interface{}
+	if err := json.Unmarshal([]byte(inputJSON), &inputData); err != nil {
+		return fmt.Errorf("invalid JSON input: %w", err)
+	}
+
+	// Get registry
+	reg := registry.DefaultRegistry
+	if regName := ctx.String("registry"); regName != "" {
+		if regName != "mdns" {
+			return fmt.Errorf("registry %s not yet supported, use mdns", regName)
+		}
+	}
+
+	// Create MCP options
+	opts := mcp.Options{
+		Registry: reg,
+		Context:  context.Background(),
+		Logger:   log.New(os.Stderr, "", 0),
+	}
+
+	// Parse tool name (format: "service.endpoint" or "service.Handler.Method")
+	parts := parseTool(toolName)
+	if len(parts) < 2 {
+		return fmt.Errorf("invalid tool name format. Expected: service.endpoint or service.Handler.Method")
+	}
+
+	serviceName := parts[0]
+	endpointName := parts[1]
+	
+	// If tool name has 3 parts, combine last two for endpoint (e.g., Handler.Method)
+	if len(parts) == 3 {
+		endpointName = parts[1] + "." + parts[2]
+	}
+
+	// Discover the tool from registry
+	services, err := opts.Registry.GetService(serviceName)
+	if err != nil || len(services) == 0 {
+		return fmt.Errorf("service %s not found: %w", serviceName, err)
+	}
+
+	// Find the endpoint
+	var endpoint *registry.Endpoint
+	for _, ep := range services[0].Endpoints {
+		if ep.Name == endpointName {
+			endpoint = ep
+			break
+		}
+	}
+
+	if endpoint == nil {
+		return fmt.Errorf("endpoint %s not found in service %s", endpointName, serviceName)
+	}
+
+	// Display test info
 	fmt.Printf("Testing tool: %s\n", toolName)
-	fmt.Printf("Input: %s\n", inputJSON)
-	fmt.Println("\nResult:")
-	fmt.Println("(Not yet implemented - coming soon)")
+	fmt.Printf("Service: %s\n", serviceName)
+	fmt.Printf("Endpoint: %s\n", endpointName)
+	fmt.Printf("Input: %s\n\n", inputJSON)
+
+	// Convert input to JSON bytes for RPC call
+	inputBytes, err := json.Marshal(inputData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal input: %w", err)
+	}
+
+	// Make RPC call using bytes codec
+	c := opts.Client
+	if c == nil {
+		c = client.DefaultClient
+	}
+	
+	// Create request with bytes frame
+	req := c.NewRequest(serviceName, endpointName, &bytes.Frame{Data: inputBytes})
+	
+	// Make the call
+	var rsp bytes.Frame
+	if err := c.Call(opts.Context, req, &rsp); err != nil {
+		fmt.Printf("❌ Call failed: %v\n", err)
+		return err
+	}
+
+	// Parse and display response
+	fmt.Println("✅ Call successful!")
+	fmt.Println("\nResponse:")
+	
+	// Try to pretty-print JSON response
+	var result interface{}
+	if err := json.Unmarshal(rsp.Data, &result); err == nil {
+		prettyJSON, err := json.MarshalIndent(result, "", "  ")
+		if err == nil {
+			fmt.Println(string(prettyJSON))
+		} else {
+			fmt.Println(string(rsp.Data))
+		}
+	} else {
+		// Not JSON, print raw
+		fmt.Println(string(rsp.Data))
+	}
 
 	return nil
+}
+
+// parseTool splits a tool name into service and endpoint parts
+func parseTool(toolName string) []string {
+	// Handle both formats: "service.endpoint" and "service.Handler.Method"
+	parts := make([]string, 0)
+	current := ""
+	
+	for _, ch := range toolName {
+		if ch == '.' {
+			if current != "" {
+				parts = append(parts, current)
+				current = ""
+			}
+		} else {
+			current += string(ch)
+		}
+	}
+	
+	if current != "" {
+		parts = append(parts, current)
+	}
+	
+	return parts
 }
