@@ -71,6 +71,18 @@ func init() {
 		{
 			Name:  "call",
 			Usage: "Call a service",
+			Flags: []cli.Flag{
+				&cli.StringSliceFlag{
+					Name:    "header",
+					Aliases: []string{"H"},
+					Usage:   "Set request headers (can be used multiple times): --header 'Key:Value'",
+				},
+				&cli.StringSliceFlag{
+					Name:    "metadata",
+					Aliases: []string{"m"},
+					Usage:   "Set request metadata (can be used multiple times): --metadata 'Key:Value'",
+				},
+			},
 			Action: func(ctx *cli.Context) error {
 				args := ctx.Args()
 
@@ -86,9 +98,16 @@ func init() {
 					request = args.Get(2)
 				}
 
+				// Create context with metadata if provided
+				// Note: This is for the direct 'micro call' command.
+				// Dynamic service calls (e.g., 'micro helloworld call') are handled in CallService.
+				callCtx := context.TODO()
+				callCtx = util.AddMetadataToContext(callCtx, ctx.StringSlice("metadata"))
+				callCtx = util.AddMetadataToContext(callCtx, ctx.StringSlice("header"))
+
 				req := client.NewRequest(service, endpoint, &bytes.Frame{Data: []byte(request)})
 				var rsp bytes.Frame
-				err := client.Call(context.TODO(), req, &rsp)
+				err := client.Call(callCtx, req, &rsp)
 				if err != nil {
 					return err
 				}

@@ -58,7 +58,7 @@ type templates struct {
 	authLogin  *template.Template
 	authUsers  *template.Template
 	playground *template.Template
-	scopes *template.Template
+	scopes     *template.Template
 }
 type TemplateUser struct {
 	ID string
@@ -82,7 +82,7 @@ func parseTemplates() *templates {
 		authLogin:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")),
 		authUsers:  template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_users.html")),
 		playground: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/playground.html")),
-		scopes: template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/scopes.html")),
+		scopes:     template.Must(template.ParseFS(HTML, "web/templates/base.html", "web/templates/scopes.html")),
 	}
 }
 
@@ -657,8 +657,8 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		// Discover tools from registry
 		services, _ := registry.ListServices()
 		type toolInfo struct {
-			Name     string // original dotted name (e.g. "greeter.Greeter.Hello")
-			SafeName string // LLM-safe name (dots replaced with underscores)
+			Name        string // original dotted name (e.g. "greeter.Greeter.Hello")
+			SafeName    string // LLM-safe name (dots replaced with underscores)
 			Description string
 			Properties  map[string]any
 		}
@@ -897,9 +897,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						"result": rpcResult,
 					})
 					toolResultBlocks = append(toolResultBlocks, map[string]any{
-						"type":         "tool_result",
-						"tool_use_id":  tu.ID,
-						"content":      rpcContent,
+						"type":        "tool_result",
+						"tool_use_id": tu.ID,
+						"content":     rpcContent,
 					})
 				}
 				result["tool_calls"] = toolCalls
