@@ -254,7 +254,7 @@ func testAction(ctx *cli.Context) error {
 	reg := registry.DefaultRegistry
 
 	// Parse tool name (format: service.endpoint or service.Handler.Method)
-	parts := splitToolName(toolName)
+	parts := strings.Split(toolName, ".")
 	if len(parts) < 2 {
 		return fmt.Errorf("invalid tool name format: %s (expected format: service.Endpoint or service.Handler.Method)", toolName)
 	}
@@ -295,13 +295,6 @@ func testAction(ctx *cli.Context) error {
 		return fmt.Errorf("invalid JSON input: %w", err)
 	}
 
-	// Create MCP server options for making the call
-	opts := mcp.Options{
-		Registry: reg,
-		Context:  context.Background(),
-		Logger:   log.New(os.Stderr, "", 0),
-	}
-
 	// Make RPC call using client
 	c := client.DefaultClient
 	inputBytes, err := json.Marshal(input)
@@ -312,7 +305,7 @@ func testAction(ctx *cli.Context) error {
 	rpcReq := c.NewRequest(serviceName, endpointName, &bytes.Frame{Data: inputBytes})
 	var rsp bytes.Frame
 
-	if err := c.Call(opts.Context, rpcReq, &rsp); err != nil {
+	if err := c.Call(context.Background(), rpcReq, &rsp); err != nil {
 		return fmt.Errorf("RPC call failed: %w", err)
 	}
 
@@ -332,9 +325,4 @@ func testAction(ctx *cli.Context) error {
 	}
 
 	return nil
-}
-
-// splitToolName splits a tool name like "greeter.Greeter.SayHello" into parts
-func splitToolName(name string) []string {
-	return strings.Split(name, ".")
 }
