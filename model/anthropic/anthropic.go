@@ -2,50 +2,68 @@
 package anthropic
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	"go-micro.dev/v5/model"
 )
 
 func init() {
-	model.Register("anthropic", func(opts model.Options) model.Model {
-		return NewProvider(opts)
+	model.Register("anthropic", func(opts ...model.Option) model.Model {
+		return NewProvider(opts...)
 	})
 }
 
 // Provider implements the model.Model interface for Anthropic Claude
 type Provider struct {
-	options model.Options
+	opts model.Options
 }
 
 // NewProvider creates a new Anthropic provider
-func NewProvider(opts model.Options) *Provider {
+func NewProvider(opts ...model.Option) *Provider {
+	options := model.NewOptions(opts...)
+	
+	// Set defaults if not provided
+	if options.Model == "" {
+		options.Model = "claude-sonnet-4-20250514"
+	}
+	if options.BaseURL == "" {
+		options.BaseURL = "https://api.anthropic.com"
+	}
+	
 	return &Provider{
-		options: opts,
+		opts: options,
 	}
 }
 
-// Name returns the provider name
-func (p *Provider) Name() string {
+// Init initializes the provider with options
+func (p *Provider) Init(opts ...model.Option) error {
+	for _, o := range opts {
+		o(&p.opts)
+	}
+	return nil
+}
+
+// Options returns the provider options
+func (p *Provider) Options() model.Options {
+	return p.opts
+}
+
+// String returns the provider name
+func (p *Provider) String() string {
 	return "anthropic"
 }
 
-// DefaultModel returns the default model for Anthropic
-func (p *Provider) DefaultModel() string {
-	return "claude-sonnet-4-20250514"
-}
-
-// DefaultBaseURL returns the default API base URL for Anthropic
-func (p *Provider) DefaultBaseURL() string {
-	return "https://api.anthropic.com"
-}
-
-// BuildRequest constructs a request payload for Anthropic's Messages API
-func (p *Provider) BuildRequest(prompt string, systemPrompt string, tools []model.Tool, messages []model.Message) ([]byte, error) {
+// Generate generates a response from the model
+func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
 	// Build tools for Anthropic format
 	var anthropicTools []map[string]any
-	for _, t := range tools {
+	for _, t := range req.Tools {
 		anthropicTools = append(anthropicTools, map[string]any{
 			"name":        t.Name,
 			"description": t.Description,
@@ -56,25 +74,112 @@ func (p *Provider) BuildRequest(prompt string, systemPrompt string, tools []mode
 		})
 	}
 
-	// Build request
-	req := map[string]any{
-		"model":      p.DefaultModel(), // Will be overridden by caller if needed
+	// Build initial request
+	apiReq := map[string]any{
+		"model":      p.opts.Model,
 		"max_tokens": 4096,
-		"system":     systemPrompt,
+		"system":     req.SystemPrompt,
 		"messages": []map[string]any{
-			{"role": "user", "content": prompt},
+			{"role": "user", "content": req.Prompt},
 		},
 	}
 
 	if len(anthropicTools) > 0 {
-		req["tools"] = anthropicTools
+		apiReq["tools"] = anthropicTools
 	}
 
-	return json.Marshal(req)
+	// Make API call
+	resp, rawContent, err := p.callAPI(ctx, apiReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no tool calls, return response
+	if len(resp.ToolCalls) == 0 {
+		return resp, nil
+	}
+
+	// If tool handler is provided, execute tools and get final answer
+	if p.opts.ToolHandler != nil {
+		var toolResults []model.ToolResult
+		for _, tc := range resp.ToolCalls {
+			_, content := p.opts.ToolHandler(tc.Name, tc.Input)
+			toolResults = append(toolResults, model.ToolResult{
+				ID:      tc.ID,
+				Content: content,
+			})
+		}
+
+		// Build follow-up request with tool results
+		var toolResultBlocks []map[string]any
+		for _, tr := range toolResults {
+			toolResultBlocks = append(toolResultBlocks, map[string]any{
+				"type":        "tool_result",
+				"tool_use_id": tr.ID,
+				"content":     tr.Content,
+			})
+		}
+
+		followUpReq := map[string]any{
+			"model":      p.opts.Model,
+			"max_tokens": 4096,
+			"system":     req.SystemPrompt,
+			"messages": []map[string]any{
+				{"role": "user", "content": req.Prompt},
+				{"role": "assistant", "content": rawContent},
+				{"role": "user", "content": toolResultBlocks},
+			},
+		}
+
+		// Make follow-up API call
+		followUpResp, _, err := p.callAPI(ctx, followUpReq)
+		if err == nil && followUpResp.Reply != "" {
+			resp.Answer = followUpResp.Reply
+		}
+	}
+
+	return resp, nil
 }
 
-// ParseResponse parses the Anthropic API response
-func (p *Provider) ParseResponse(body []byte) (*model.Response, error) {
+// Stream generates a streaming response (not yet implemented)
+func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
+	return nil, fmt.Errorf("streaming not yet implemented for anthropic provider")
+}
+
+// callAPI makes an HTTP request to the Anthropic API
+func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, any, error) {
+	// Marshal request
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Build HTTP request
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/messages"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("x-api-key", p.opts.APIKey)
+	httpReq.Header.Set("anthropic-version", "2023-06-01")
+
+	// Make request
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	// Read response
+	respBody, _ := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode != 200 {
+		return nil, nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
+	}
+
+	// Parse response
 	var anthropicResp struct {
 		Content []struct {
 			Type  string          `json:"type"`
@@ -86,13 +191,11 @@ func (p *Provider) ParseResponse(body []byte) (*model.Response, error) {
 		StopReason string `json:"stop_reason"`
 	}
 
-	if err := json.Unmarshal(body, &anthropicResp); err != nil {
-		return nil, err
+	if err := json.Unmarshal(respBody, &anthropicResp); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	response := &model.Response{
-		RawContent: anthropicResp.Content,
-	}
+	response := &model.Response{}
 
 	// Extract text reply
 	var replyParts []string
@@ -120,66 +223,5 @@ func (p *Provider) ParseResponse(body []byte) (*model.Response, error) {
 		}
 	}
 
-	return response, nil
-}
-
-// BuildFollowUpRequest constructs a follow-up request with tool results
-func (p *Provider) BuildFollowUpRequest(prompt string, systemPrompt string, originalResponse *model.Response, toolResults []model.ToolResult) ([]byte, error) {
-	// Build tool result blocks
-	var toolResultBlocks []map[string]any
-	for _, tr := range toolResults {
-		toolResultBlocks = append(toolResultBlocks, map[string]any{
-			"type":        "tool_result",
-			"tool_use_id": tr.ID,
-			"content":     tr.Content,
-		})
-	}
-
-	// Build follow-up request
-	req := map[string]any{
-		"model":      p.DefaultModel(), // Will be overridden by caller if needed
-		"max_tokens": 4096,
-		"system":     systemPrompt,
-		"messages": []map[string]any{
-			{"role": "user", "content": prompt},
-			{"role": "assistant", "content": originalResponse.RawContent},
-			{"role": "user", "content": toolResultBlocks},
-		},
-	}
-
-	return json.Marshal(req)
-}
-
-// ParseFollowUpResponse parses the follow-up response
-func (p *Provider) ParseFollowUpResponse(body []byte) (string, error) {
-	var followUpResp struct {
-		Content []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"content"`
-	}
-
-	if err := json.Unmarshal(body, &followUpResp); err != nil {
-		return "", err
-	}
-
-	var answerParts []string
-	for _, block := range followUpResp.Content {
-		if block.Type == "text" && block.Text != "" {
-			answerParts = append(answerParts, block.Text)
-		}
-	}
-
-	return strings.Join(answerParts, "\n"), nil
-}
-
-// SetAuthHeaders sets the required authentication headers for Anthropic
-func (p *Provider) SetAuthHeaders(headers map[string]string, apiKey string) {
-	headers["x-api-key"] = apiKey
-	headers["anthropic-version"] = "2023-06-01"
-}
-
-// GetAPIEndpoint returns the full API endpoint URL for Anthropic
-func (p *Provider) GetAPIEndpoint(baseURL string) string {
-	return strings.TrimRight(baseURL, "/") + "/v1/messages"
+	return response, anthropicResp.Content, nil
 }

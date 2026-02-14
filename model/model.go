@@ -2,38 +2,42 @@
 package model
 
 import (
-	"encoding/json"
+	"context"
 	"strings"
 )
 
 // Model provides an interface for interacting with AI model providers
 type Model interface {
-	// Name returns the provider name (e.g., "anthropic", "openai")
-	Name() string
-	// DefaultModel returns the default model name for this provider
-	DefaultModel() string
-	// DefaultBaseURL returns the default API base URL for this provider
-	DefaultBaseURL() string
-	// BuildRequest constructs a request payload for the provider's API
-	BuildRequest(prompt string, systemPrompt string, tools []Tool, messages []Message) ([]byte, error)
-	// ParseResponse parses the provider's API response
-	ParseResponse(body []byte) (*Response, error)
-	// BuildFollowUpRequest constructs a follow-up request with tool results
-	BuildFollowUpRequest(prompt string, systemPrompt string, originalResponse *Response, toolResults []ToolResult) ([]byte, error)
-	// ParseFollowUpResponse parses the follow-up response
-	ParseFollowUpResponse(body []byte) (string, error)
-	// SetAuthHeaders sets the required authentication headers for the provider
-	SetAuthHeaders(headers map[string]string, apiKey string)
-	// GetAPIEndpoint returns the full API endpoint URL
-	GetAPIEndpoint(baseURL string) string
+	// Init initializes the model with options
+	Init(...Option) error
+	// Options returns the model options
+	Options() Options
+	// Generate generates a response from the model
+	Generate(ctx context.Context, req *Request, opts ...GenerateOption) (*Response, error)
+	// Stream generates a streaming response (for future implementation)
+	Stream(ctx context.Context, req *Request, opts ...GenerateOption) (Stream, error)
+	// String returns the name of the provider
+	String() string
 }
 
 // Tool represents a tool/function that can be called by the model
 type Tool struct {
-	Name        string         // LLM-safe name (e.g., "greeter_Greeter_Hello")
-	OriginalName string        // Original name (e.g., "greeter.Greeter.Hello")
-	Description string
-	Properties  map[string]any // JSON schema for tool parameters
+	Name         string         // LLM-safe name (e.g., "greeter_Greeter_Hello")
+	OriginalName string         // Original name (e.g., "greeter.Greeter.Hello")
+	Description  string
+	Properties   map[string]any // JSON schema for tool parameters
+}
+
+// Request represents a request to generate content from a model
+type Request struct {
+	// Prompt is the user's message/prompt
+	Prompt string
+	// SystemPrompt is the system instruction for the model
+	SystemPrompt string
+	// Tools available for the model to use
+	Tools []Tool
+	// Messages for continuing a conversation (optional)
+	Messages []Message
 }
 
 // Message represents a conversation message
@@ -42,11 +46,14 @@ type Message struct {
 	Content any    // Can be string or structured content
 }
 
-// Response represents the parsed response from a model
+// Response represents the response from a model
 type Response struct {
-	Reply     string      // Text reply from the model
-	ToolCalls []ToolCall  // Tool calls requested by the model
-	RawContent any        // Provider-specific raw content for follow-up requests
+	// Reply is the text response from the model
+	Reply string
+	// ToolCalls are tool calls requested by the model
+	ToolCalls []ToolCall
+	// Answer is the final answer after tool execution (if tools were used)
+	Answer string
 }
 
 // ToolCall represents a request to call a tool
@@ -62,40 +69,41 @@ type ToolResult struct {
 	Content string // Tool execution result (JSON string)
 }
 
-// Config holds configuration for a model provider
-type Config struct {
-	Provider string
-	Model    string
-	APIKey   string
-	BaseURL  string
+// Stream is the interface for streaming responses (future implementation)
+type Stream interface {
+	// Recv receives the next chunk of the response
+	Recv() (*Response, error)
+	// Close closes the stream
+	Close() error
 }
 
-// ProviderFactory is a function that creates a Model instance
-type ProviderFactory func(Options) Model
+// ToolHandler is a function that handles tool calls
+type ToolHandler func(name string, input map[string]any) (result any, content string)
 
-var providers = make(map[string]ProviderFactory)
+// NewFunc creates a new Model instance
+type NewFunc func(...Option) Model
 
-// Register registers a provider factory
-func Register(name string, factory ProviderFactory) {
-	providers[name] = factory
+var providers = make(map[string]NewFunc)
+
+// Register registers a model provider
+func Register(name string, fn NewFunc) {
+	providers[name] = fn
 }
 
 // New creates a new Model instance based on the provider name
-func New(provider string, opts ...Option) (Model, error) {
-	options := newOptions(opts...)
-	
-	if factory, ok := providers[provider]; ok {
-		return factory(options), nil
+func New(provider string, opts ...Option) Model {
+	if fn, ok := providers[provider]; ok {
+		return fn(opts...)
 	}
 	
-	// Default to first registered provider or nil
+	// Default to first registered provider
 	if len(providers) > 0 {
-		for _, factory := range providers {
-			return factory(options), nil
+		for _, fn := range providers {
+			return fn(opts...)
 		}
 	}
 	
-	return nil, nil
+	return nil
 }
 
 // AutoDetectProvider attempts to detect the provider from the base URL
@@ -110,28 +118,13 @@ func AutoDetectProvider(baseURL string) string {
 	return "openai"
 }
 
-// mapGoTypeToJSON is a helper to convert Go types to JSON schema types
-func mapGoTypeToJSON(goType string) string {
-	switch goType {
-	case "string":
-		return "string"
-	case "int", "int32", "int64", "uint", "uint32", "uint64":
-		return "integer"
-	case "float32", "float64":
-		return "number"
-	case "bool":
-		return "boolean"
-	default:
-		return "string"
+// DefaultModel is a default model instance
+var DefaultModel Model
+
+// Generate generates a response using the default model
+func Generate(ctx context.Context, req *Request, opts ...GenerateOption) (*Response, error) {
+	if DefaultModel == nil {
+		return nil, nil
 	}
-}
-
-// UnmarshalJSON is a helper for unmarshaling JSON
-func UnmarshalJSON(data []byte, v any) error {
-	return json.Unmarshal(data, v)
-}
-
-// MarshalJSON is a helper for marshaling JSON
-func MarshalJSON(v any) ([]byte, error) {
-	return json.Marshal(v)
+	return DefaultModel.Generate(ctx, req, opts...)
 }

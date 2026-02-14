@@ -2,50 +2,68 @@
 package openai
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	"go-micro.dev/v5/model"
 )
 
 func init() {
-	model.Register("openai", func(opts model.Options) model.Model {
-		return NewProvider(opts)
+	model.Register("openai", func(opts ...model.Option) model.Model {
+		return NewProvider(opts...)
 	})
 }
 
 // Provider implements the model.Model interface for OpenAI
 type Provider struct {
-	options model.Options
+	opts model.Options
 }
 
 // NewProvider creates a new OpenAI provider
-func NewProvider(opts model.Options) *Provider {
+func NewProvider(opts ...model.Option) *Provider {
+	options := model.NewOptions(opts...)
+	
+	// Set defaults if not provided
+	if options.Model == "" {
+		options.Model = "gpt-4o"
+	}
+	if options.BaseURL == "" {
+		options.BaseURL = "https://api.openai.com"
+	}
+	
 	return &Provider{
-		options: opts,
+		opts: options,
 	}
 }
 
-// Name returns the provider name
-func (p *Provider) Name() string {
+// Init initializes the provider with options
+func (p *Provider) Init(opts ...model.Option) error {
+	for _, o := range opts {
+		o(&p.opts)
+	}
+	return nil
+}
+
+// Options returns the provider options
+func (p *Provider) Options() model.Options {
+	return p.opts
+}
+
+// String returns the provider name
+func (p *Provider) String() string {
 	return "openai"
 }
 
-// DefaultModel returns the default model for OpenAI
-func (p *Provider) DefaultModel() string {
-	return "gpt-4o"
-}
-
-// DefaultBaseURL returns the default API base URL for OpenAI
-func (p *Provider) DefaultBaseURL() string {
-	return "https://api.openai.com"
-}
-
-// BuildRequest constructs a request payload for OpenAI's Chat Completions API
-func (p *Provider) BuildRequest(prompt string, systemPrompt string, tools []model.Tool, messages []model.Message) ([]byte, error) {
+// Generate generates a response from the model
+func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
 	// Build tools for OpenAI format
 	var openaiTools []map[string]any
-	for _, t := range tools {
+	for _, t := range req.Tools {
 		openaiTools = append(openaiTools, map[string]any{
 			"type": "function",
 			"function": map[string]any{
@@ -60,26 +78,103 @@ func (p *Provider) BuildRequest(prompt string, systemPrompt string, tools []mode
 	}
 
 	// Build messages
-	msgs := []map[string]any{
-		{"role": "system", "content": systemPrompt},
-		{"role": "user", "content": prompt},
+	messages := []map[string]any{
+		{"role": "system", "content": req.SystemPrompt},
+		{"role": "user", "content": req.Prompt},
 	}
 
-	// Build request
-	req := map[string]any{
-		"model":    p.DefaultModel(), // Will be overridden by caller if needed
-		"messages": msgs,
+	// Build initial request
+	apiReq := map[string]any{
+		"model":    p.opts.Model,
+		"messages": messages,
 	}
 
 	if len(openaiTools) > 0 {
-		req["tools"] = openaiTools
+		apiReq["tools"] = openaiTools
 	}
 
-	return json.Marshal(req)
+	// Make API call
+	resp, rawMessage, err := p.callAPI(ctx, apiReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no tool calls, return response
+	if len(resp.ToolCalls) == 0 {
+		return resp, nil
+	}
+
+	// If tool handler is provided, execute tools and get final answer
+	if p.opts.ToolHandler != nil {
+		// Build follow-up messages
+		followUpMessages := append(messages, map[string]any{
+			"role":       "assistant",
+			"content":    rawMessage["content"],
+			"tool_calls": rawMessage["tool_calls"],
+		})
+
+		for _, tc := range resp.ToolCalls {
+			_, content := p.opts.ToolHandler(tc.Name, tc.Input)
+			followUpMessages = append(followUpMessages, map[string]any{
+				"role":         "tool",
+				"tool_call_id": tc.ID,
+				"content":      content,
+			})
+		}
+
+		followUpReq := map[string]any{
+			"model":    p.opts.Model,
+			"messages": followUpMessages,
+		}
+
+		// Make follow-up API call
+		followUpResp, _, err := p.callAPI(ctx, followUpReq)
+		if err == nil && followUpResp.Reply != "" {
+			resp.Answer = followUpResp.Reply
+		}
+	}
+
+	return resp, nil
 }
 
-// ParseResponse parses the OpenAI API response
-func (p *Provider) ParseResponse(body []byte) (*model.Response, error) {
+// Stream generates a streaming response (not yet implemented)
+func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
+	return nil, fmt.Errorf("streaming not yet implemented for openai provider")
+}
+
+// callAPI makes an HTTP request to the OpenAI API
+func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, map[string]any, error) {
+	// Marshal request
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Build HTTP request
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/chat/completions"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	// Make request
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	// Read response
+	respBody, _ := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode != 200 {
+		return nil, nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
+	}
+
+	// Parse response
 	var chatResp struct {
 		Choices []struct {
 			Message struct {
@@ -95,18 +190,17 @@ func (p *Provider) ParseResponse(body []byte) (*model.Response, error) {
 		} `json:"choices"`
 	}
 
-	if err := json.Unmarshal(body, &chatResp); err != nil {
-		return nil, err
+	if err := json.Unmarshal(respBody, &chatResp); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
 	if len(chatResp.Choices) == 0 {
-		return &model.Response{}, nil
+		return nil, nil, fmt.Errorf("no response from API")
 	}
 
 	choice := chatResp.Choices[0]
 	response := &model.Response{
-		Reply:      choice.Message.Content,
-		RawContent: choice.Message,
+		Reply: choice.Message.Content,
 	}
 
 	// Extract tool calls
@@ -122,80 +216,11 @@ func (p *Provider) ParseResponse(body []byte) (*model.Response, error) {
 		})
 	}
 
-	return response, nil
-}
-
-// BuildFollowUpRequest constructs a follow-up request with tool results
-func (p *Provider) BuildFollowUpRequest(prompt string, systemPrompt string, originalResponse *model.Response, toolResults []model.ToolResult) ([]byte, error) {
-	// Build messages
-	messages := []map[string]any{
-		{"role": "system", "content": systemPrompt},
-		{"role": "user", "content": prompt},
+	// Return raw message for potential follow-up
+	rawMessage := map[string]any{
+		"content":    choice.Message.Content,
+		"tool_calls": choice.Message.ToolCalls,
 	}
 
-	// Add assistant message with original response
-	if rawMsg, ok := originalResponse.RawContent.(struct {
-		Content   string `json:"content"`
-		ToolCalls []struct {
-			ID       string `json:"id"`
-			Function struct {
-				Name      string `json:"name"`
-				Arguments string `json:"arguments"`
-			} `json:"function"`
-		} `json:"tool_calls"`
-	}); ok {
-		messages = append(messages, map[string]any{
-			"role":       "assistant",
-			"content":    rawMsg.Content,
-			"tool_calls": rawMsg.ToolCalls,
-		})
-	}
-
-	// Add tool results
-	for _, tr := range toolResults {
-		messages = append(messages, map[string]any{
-			"role":         "tool",
-			"tool_call_id": tr.ID,
-			"content":      tr.Content,
-		})
-	}
-
-	// Build request
-	req := map[string]any{
-		"model":    p.DefaultModel(), // Will be overridden by caller if needed
-		"messages": messages,
-	}
-
-	return json.Marshal(req)
-}
-
-// ParseFollowUpResponse parses the follow-up response
-func (p *Provider) ParseFollowUpResponse(body []byte) (string, error) {
-	var followUpChat struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
-	}
-
-	if err := json.Unmarshal(body, &followUpChat); err != nil {
-		return "", err
-	}
-
-	if len(followUpChat.Choices) > 0 {
-		return followUpChat.Choices[0].Message.Content, nil
-	}
-
-	return "", nil
-}
-
-// SetAuthHeaders sets the required authentication headers for OpenAI
-func (p *Provider) SetAuthHeaders(headers map[string]string, apiKey string) {
-	headers["Authorization"] = "Bearer " + apiKey
-}
-
-// GetAPIEndpoint returns the full API endpoint URL for OpenAI
-func (p *Provider) GetAPIEndpoint(baseURL string) string {
-	return strings.TrimRight(baseURL, "/") + "/v1/chat/completions"
+	return response, rawMessage, nil
 }
