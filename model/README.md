@@ -1,215 +1,268 @@
 # Model Package
 
-The `model` package provides an abstraction layer for AI model providers, allowing the micro server to interact with different LLM providers (Anthropic Claude, OpenAI GPT, etc.) through a common interface.
+The `model` package provides a simple, high-level interface for AI model providers like Anthropic Claude and OpenAI GPT.
 
-## Architecture
+## Interface
 
-The package uses a provider factory pattern with automatic registration:
+The Model interface follows the same patterns as other go-micro packages (Registry, Client, Broker):
 
-- **Model Interface**: Defines the contract for all model providers
-- **Provider Registration**: Providers register themselves via `init()` functions
-- **Auto-detection**: Automatically detects provider from base URL
-- **Extensibility**: New providers can be added without modifying existing code
+```go
+type Model interface {
+    Init(...Option) error
+    Options() Options
+    Generate(ctx context.Context, req *Request, opts ...GenerateOption) (*Response, error)
+    Stream(ctx context.Context, req *Request, opts ...GenerateOption) (Stream, error)
+    String() string
+}
+```
 
-## Usage
-
-### Basic Usage
+## Quick Start
 
 ```go
 import (
+    "context"
     "go-micro.dev/v5/model"
     _ "go-micro.dev/v5/model/anthropic"
     _ "go-micro.dev/v5/model/openai"
 )
 
-// Create a model provider
-provider, err := model.New("openai")
+// Create a model
+m := model.New("openai",
+    model.WithAPIKey("your-api-key"),
+    model.WithModel("gpt-4o"),
+)
+
+// Generate a response
+req := &model.Request{
+    Prompt:       "What is Go?",
+    SystemPrompt: "You are a helpful programming assistant",
+}
+
+resp, err := m.Generate(context.Background(), req)
 if err != nil {
     log.Fatal(err)
 }
 
-// Build a request
-tools := []model.Tool{
-    {
-        Name:        "get_user",
-        Description: "Get user information",
-        Properties: map[string]any{
-            "id": map[string]any{
-                "type": "string",
-                "description": "User ID",
+fmt.Println(resp.Reply)
+```
+
+## Options
+
+Configure the model using functional options:
+
+```go
+m := model.New("anthropic",
+    model.WithAPIKey("your-key"),              // Required
+    model.WithModel("claude-sonnet-4-20250514"), // Optional, uses provider default
+    model.WithBaseURL("https://api.anthropic.com"), // Optional, uses provider default
+)
+```
+
+You can also update options after creation:
+
+```go
+m.Init(
+    model.WithModel("gpt-4o-mini"),
+    model.WithAPIKey("new-key"),
+)
+```
+
+## Using Tools
+
+The model can automatically execute tool calls when provided with a tool handler:
+
+```go
+// Define a tool handler
+toolHandler := func(name string, input map[string]any) (result any, content string) {
+    // Execute the tool and return results
+    switch name {
+    case "get_weather":
+        return map[string]string{"temp": "72F"}, `{"temp": "72F"}`
+    default:
+        return nil, `{"error": "unknown tool"}`
+    }
+}
+
+// Create model with tool handler
+m := model.New("openai",
+    model.WithAPIKey("your-key"),
+    model.WithToolHandler(toolHandler),
+)
+
+// Provide tools in the request
+req := &model.Request{
+    Prompt: "What's the weather?",
+    SystemPrompt: "You are a helpful assistant",
+    Tools: []model.Tool{
+        {
+            Name:        "get_weather",
+            Description: "Get current weather",
+            Properties: map[string]any{
+                "location": map[string]any{
+                    "type": "string",
+                    "description": "City name",
+                },
             },
         },
     },
 }
 
-requestBody, err := provider.BuildRequest("Hello, world!", "You are a helpful assistant", tools, nil)
-if err != nil {
-    log.Fatal(err)
-}
-
-// Make API call and parse response
-// ... HTTP call logic ...
-response, err := provider.ParseResponse(responseBody)
-if err != nil {
-    log.Fatal(err)
-}
-
-fmt.Println("Reply:", response.Reply)
-fmt.Println("Tool calls:", len(response.ToolCalls))
+// Generate will automatically call tools and return final answer
+resp, err := m.Generate(context.Background(), req)
+fmt.Println(resp.Answer) // Final answer after tool execution
 ```
 
-### Auto-detection
+## Response Structure
 
 ```go
-// Automatically detect provider from URL
-provider := model.AutoDetectProvider("https://api.anthropic.com")
-// Returns "anthropic"
-
-provider = model.AutoDetectProvider("https://api.openai.com")
-// Returns "openai"
+type Response struct {
+    Reply     string      // Initial reply from model
+    ToolCalls []ToolCall  // Tools the model wants to call
+    Answer    string      // Final answer (after tool execution if handler provided)
+}
 ```
+
+- `Reply`: The model's first response
+- `ToolCalls`: List of tools the model requested (if any)
+- `Answer`: The final answer after tools are executed (only set if ToolHandler is provided)
 
 ## Supported Providers
 
 ### Anthropic Claude
 
-- **Provider Name**: `anthropic`
-- **Default Model**: `claude-sonnet-4-20250514`
-- **Default Base URL**: `https://api.anthropic.com`
-- **API Endpoint**: `/v1/messages`
-- **Authentication**: `x-api-key` header
+```go
+m := model.New("anthropic",
+    model.WithAPIKey("sk-ant-..."),
+    model.WithModel("claude-sonnet-4-20250514"), // default
+)
+```
+
+Default model: `claude-sonnet-4-20250514`  
+Default base URL: `https://api.anthropic.com`
 
 ### OpenAI GPT
 
-- **Provider Name**: `openai`
-- **Default Model**: `gpt-4o`
-- **Default Base URL**: `https://api.openai.com`
-- **API Endpoint**: `/v1/chat/completions`
-- **Authentication**: `Authorization: Bearer <token>` header
+```go
+m := model.New("openai",
+    model.WithAPIKey("sk-..."),
+    model.WithModel("gpt-4o"), // default
+)
+```
+
+Default model: `gpt-4o`  
+Default base URL: `https://api.openai.com`
+
+## Auto-Detection
+
+Use `AutoDetectProvider()` to detect the provider from a base URL:
+
+```go
+provider := model.AutoDetectProvider("https://api.anthropic.com")
+// Returns "anthropic"
+
+m := model.New(provider, model.WithAPIKey("..."))
+```
 
 ## Adding a New Provider
 
-To add a new model provider:
-
-1. Create a new directory under `model/` (e.g., `model/mymodel/`)
-2. Implement the `model.Model` interface
-3. Register your provider in an `init()` function:
+1. Create a new package under `model/`:
 
 ```go
-package mymodel
+package myprovider
 
 import "go-micro.dev/v5/model"
 
 func init() {
-    model.Register("mymodel", func(opts model.Options) model.Model {
-        return NewProvider(opts)
+    model.Register("myprovider", func(opts ...model.Option) model.Model {
+        return NewProvider(opts...)
     })
 }
 
 type Provider struct {
-    options model.Options
+    opts model.Options
 }
 
-func NewProvider(opts model.Options) *Provider {
-    return &Provider{options: opts}
+func NewProvider(opts ...model.Option) *Provider {
+    options := model.NewOptions(opts...)
+    // Set defaults
+    if options.Model == "" {
+        options.Model = "my-default-model"
+    }
+    if options.BaseURL == "" {
+        options.BaseURL = "https://api.myprovider.com"
+    }
+    return &Provider{opts: options}
 }
 
-// Implement all Model interface methods...
-func (p *Provider) Name() string { return "mymodel" }
-func (p *Provider) DefaultModel() string { return "my-model-v1" }
-// ... etc
+func (p *Provider) Init(opts ...model.Option) error {
+    for _, o := range opts {
+        o(&p.opts)
+    }
+    return nil
+}
+
+func (p *Provider) Options() model.Options {
+    return p.opts
+}
+
+func (p *Provider) String() string {
+    return "myprovider"
+}
+
+func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+    // Implement your provider logic
+    // - Build API request
+    // - Make HTTP call
+    // - Parse response
+    // - Handle tools if ToolHandler is set
+    return &model.Response{}, nil
+}
+
+func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
+    return nil, fmt.Errorf("streaming not implemented")
+}
 ```
 
-4. Import your provider in the server:
+2. Import your provider:
 
 ```go
-import _ "go-micro.dev/v5/model/mymodel"
+import _ "go-micro.dev/v5/model/myprovider"
 ```
 
-## Interface Methods
+## Comparison with Other Packages
 
-### Core Methods
+The model package follows the same patterns as other go-micro packages:
 
-- `Name()` - Returns the provider name
-- `DefaultModel()` - Returns the default model name
-- `DefaultBaseURL()` - Returns the default API base URL
-
-### Request Building
-
-- `BuildRequest(prompt, systemPrompt, tools, messages)` - Builds initial request
-- `BuildFollowUpRequest(prompt, systemPrompt, response, toolResults)` - Builds follow-up request with tool results
-
-### Response Parsing
-
-- `ParseResponse(body)` - Parses initial response
-- `ParseFollowUpResponse(body)` - Parses follow-up response
-
-### Configuration
-
-- `SetAuthHeaders(headers, apiKey)` - Sets provider-specific auth headers
-- `GetAPIEndpoint(baseURL)` - Returns full API endpoint URL
-
-## Types
-
-### Tool
-
-Represents a tool/function that can be called by the model:
-
+**Registry:**
 ```go
-type Tool struct {
-    Name         string         // LLM-safe name
-    OriginalName string         // Original name
-    Description  string         // Tool description
-    Properties   map[string]any // JSON schema for parameters
-}
+r := registry.NewRegistry(registry.Addrs("..."))
+r.Register(service)
 ```
 
-### Response
-
-Parsed response from a model:
-
+**Client:**
 ```go
-type Response struct {
-    Reply      string      // Text reply
-    ToolCalls  []ToolCall  // Tool calls requested
-    RawContent any         // Provider-specific raw content
-}
+c := client.NewClient(client.Retries(3))
+c.Call(ctx, req, rsp)
 ```
 
-### ToolCall
-
-Request to call a tool:
-
+**Model:**
 ```go
-type ToolCall struct {
-    ID    string         // Tool call ID
-    Name  string         // Tool name
-    Input map[string]any // Tool arguments
-}
+m := model.New("openai", model.WithAPIKey("..."))
+m.Generate(ctx, req)
 ```
 
-### ToolResult
-
-Result of a tool execution:
-
-```go
-type ToolResult struct {
-    ID      string // Tool call ID
-    Content string // Result (JSON string)
-}
-```
+All use:
+- `Init()` to update options
+- `Options()` to get current options
+- `String()` to get the implementation name
+- Functional options pattern
 
 ## Testing
-
-Run tests for all providers:
 
 ```bash
 go test ./model/...
 ```
 
-Run tests for a specific provider:
+## Examples
 
-```bash
-go test ./model/anthropic/
-go test ./model/openai/
-```
+See the [server implementation](../../cmd/micro/server/server.go) for a complete example of using the model package with tool execution.
