@@ -636,21 +636,6 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			provider = model.AutoDetectProvider(baseURL)
 		}
 
-		// Create model provider
-		modelProvider, err := model.New(provider)
-		if err != nil || modelProvider == nil {
-			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create model provider"})
-			return
-		}
-
-		// Set defaults based on provider
-		if modelName == "" {
-			modelName = modelProvider.DefaultModel()
-		}
-		if baseURL == "" {
-			baseURL = modelProvider.DefaultBaseURL()
-		}
-
 		// Discover tools from registry
 		services, _ := registry.ListServices()
 		var discoveredTools []model.Tool
@@ -767,107 +752,56 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			return rpcResult, string(rsp.Data)
 		}
 
-		// callLLMAPI makes an HTTP request to the LLM provider
-		callLLMAPI := func(url string, body []byte) ([]byte, error) {
-			httpReq, err := http.NewRequestWithContext(r.Context(), "POST", url, bytes.NewReader(body))
-			if err != nil {
-				return nil, err
-			}
-			httpReq.Header.Set("Content-Type", "application/json")
-			
-			// Set provider-specific auth headers
-			headers := make(map[string]string)
-			modelProvider.SetAuthHeaders(headers, apiKey)
-			for k, v := range headers {
-				httpReq.Header.Set(k, v)
-			}
-			
-			resp, err := http.DefaultClient.Do(httpReq)
-			if err != nil {
-				return nil, fmt.Errorf("LLM API request failed: %w", err)
-			}
-			defer resp.Body.Close()
-			respBody, _ := io.ReadAll(resp.Body)
-			if resp.StatusCode != 200 {
-				return nil, fmt.Errorf("LLM API error (%s): %s", resp.Status, string(respBody))
-			}
-			return respBody, nil
+		// Create model with options
+		var modelOpts []model.Option
+		modelOpts = append(modelOpts, model.WithAPIKey(apiKey))
+		if modelName != "" {
+			modelOpts = append(modelOpts, model.WithModel(modelName))
 		}
-
-		result := map[string]any{}
-
-		// Build request using model provider
-		chatBody, err := modelProvider.BuildRequest(req.Prompt, agentSystemPrompt, discoveredTools, nil)
-		if err != nil {
-			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to build request: " + err.Error()})
+		if baseURL != "" {
+			modelOpts = append(modelOpts, model.WithBaseURL(baseURL))
+		}
+		modelOpts = append(modelOpts, model.WithToolHandler(executeToolCall))
+		
+		m := model.New(provider, modelOpts...)
+		if m == nil {
+			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create model provider"})
 			return
 		}
 
-		// Override model in the request if specified
-		if modelName != "" {
-			var reqMap map[string]any
-			if err := json.Unmarshal(chatBody, &reqMap); err == nil {
-				reqMap["model"] = modelName
-				chatBody, _ = json.Marshal(reqMap)
-			}
+		// Build request
+		modelReq := &model.Request{
+			Prompt:       req.Prompt,
+			SystemPrompt: agentSystemPrompt,
+			Tools:        discoveredTools,
 		}
 
-		apiURL := modelProvider.GetAPIEndpoint(baseURL)
-		respBody, err := callLLMAPI(apiURL, chatBody)
+		// Generate response
+		response, err := m.Generate(r.Context(), modelReq)
 		if err != nil {
 			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 			return
 		}
 
-		// Parse response
-		response, err := modelProvider.ParseResponse(respBody)
-		if err != nil {
-			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
-			return
-		}
-
+		// Build result
+		result := map[string]any{}
 		if response.Reply != "" {
 			result["reply"] = response.Reply
 		}
-
-		// Execute any tool calls
 		if len(response.ToolCalls) > 0 {
 			var toolCalls []map[string]any
-			var toolResults []model.ToolResult
-
 			for _, tc := range response.ToolCalls {
-				rpcResult, rpcContent := executeToolCall(tc.Name, tc.Input)
 				toolCalls = append(toolCalls, map[string]any{
 					"tool":   tc.Name,
 					"input":  tc.Input,
-					"result": rpcResult,
-				})
-				toolResults = append(toolResults, model.ToolResult{
-					ID:      tc.ID,
-					Content: rpcContent,
 				})
 			}
 			result["tool_calls"] = toolCalls
-
-			// Follow-up: send tool results back to LLM
-			followUpBody, err := modelProvider.BuildFollowUpRequest(req.Prompt, agentSystemPrompt, response, toolResults)
-			if err == nil {
-				// Override model in follow-up request if specified
-				if modelName != "" {
-					var reqMap map[string]any
-					if err := json.Unmarshal(followUpBody, &reqMap); err == nil {
-						reqMap["model"] = modelName
-						followUpBody, _ = json.Marshal(reqMap)
-					}
-				}
-
-				if followUpRespBody, err := callLLMAPI(apiURL, followUpBody); err == nil {
-					if answer, err := modelProvider.ParseFollowUpResponse(followUpRespBody); err == nil && answer != "" {
-						result["answer"] = answer
-					}
-				}
-			}
 		}
+		if response.Answer != "" {
+			result["answer"] = response.Answer
+		}
+
 		json.NewEncoder(w).Encode(result)
 	}))
 
