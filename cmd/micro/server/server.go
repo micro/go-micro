@@ -28,6 +28,9 @@ import (
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
 	codecBytes "go-micro.dev/v5/codec/bytes"
+	"go-micro.dev/v5/model"
+	_ "go-micro.dev/v5/model/anthropic"
+	_ "go-micro.dev/v5/model/openai"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
 	"golang.org/x/crypto/bcrypt"
@@ -606,7 +609,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			}
 		}
 		apiKey := ""
-		model := ""
+		modelName := ""
 		baseURL := ""
 		provider := ""
 		if settings != nil {
@@ -614,7 +617,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 				apiKey = v
 			}
 			if v := settings["model"]; v != "" {
-				model = v
+				modelName = v
 			}
 			if v := settings["base_url"]; v != "" {
 				baseURL = v
@@ -630,39 +633,12 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 
 		// Auto-detect provider if not explicitly set
 		if provider == "" {
-			if strings.Contains(baseURL, "anthropic") {
-				provider = "anthropic"
-			} else {
-				provider = "openai"
-			}
-		}
-
-		// Set defaults based on provider
-		if provider == "anthropic" {
-			if model == "" {
-				model = "claude-sonnet-4-20250514"
-			}
-			if baseURL == "" {
-				baseURL = "https://api.anthropic.com"
-			}
-		} else {
-			if model == "" {
-				model = "gpt-4o"
-			}
-			if baseURL == "" {
-				baseURL = "https://api.openai.com"
-			}
+			provider = model.AutoDetectProvider(baseURL)
 		}
 
 		// Discover tools from registry
 		services, _ := registry.ListServices()
-		type toolInfo struct {
-			Name        string // original dotted name (e.g. "greeter.Greeter.Hello")
-			SafeName    string // LLM-safe name (dots replaced with underscores)
-			Description string
-			Properties  map[string]any
-		}
-		var discoveredTools []toolInfo
+		var discoveredTools []model.Tool
 		// safeNameMap maps LLM-safe names back to original dotted names
 		safeNameMap := map[string]string{}
 		for _, svc := range services {
@@ -689,11 +665,11 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						}
 					}
 				}
-				discoveredTools = append(discoveredTools, toolInfo{
-					Name:        tName,
-					SafeName:    safeName,
-					Description: desc,
-					Properties:  props,
+				discoveredTools = append(discoveredTools, model.Tool{
+					Name:         safeName,
+					OriginalName: tName,
+					Description:  desc,
+					Properties:   props,
 				})
 			}
 		}
@@ -776,282 +752,54 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			return rpcResult, string(rsp.Data)
 		}
 
-		// callLLMAPI makes an HTTP request to the LLM provider
-		callLLMAPI := func(url string, body []byte) ([]byte, error) {
-			httpReq, err := http.NewRequestWithContext(r.Context(), "POST", url, bytes.NewReader(body))
-			if err != nil {
-				return nil, err
-			}
-			httpReq.Header.Set("Content-Type", "application/json")
-			if provider == "anthropic" {
-				httpReq.Header.Set("x-api-key", apiKey)
-				httpReq.Header.Set("anthropic-version", "2023-06-01")
-			} else {
-				httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-			}
-			resp, err := http.DefaultClient.Do(httpReq)
-			if err != nil {
-				return nil, fmt.Errorf("LLM API request failed: %w", err)
-			}
-			defer resp.Body.Close()
-			respBody, _ := io.ReadAll(resp.Body)
-			if resp.StatusCode != 200 {
-				return nil, fmt.Errorf("LLM API error (%s): %s", resp.Status, string(respBody))
-			}
-			return respBody, nil
+		// Create model with options
+		var modelOpts []model.Option
+		modelOpts = append(modelOpts, model.WithAPIKey(apiKey))
+		if modelName != "" {
+			modelOpts = append(modelOpts, model.WithModel(modelName))
+		}
+		if baseURL != "" {
+			modelOpts = append(modelOpts, model.WithBaseURL(baseURL))
+		}
+		modelOpts = append(modelOpts, model.WithToolHandler(executeToolCall))
+		
+		m := model.New(provider, modelOpts...)
+		if m == nil {
+			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create model provider"})
+			return
 		}
 
+		// Build request
+		modelReq := &model.Request{
+			Prompt:       req.Prompt,
+			SystemPrompt: agentSystemPrompt,
+			Tools:        discoveredTools,
+		}
+
+		// Generate response
+		response, err := m.Generate(r.Context(), modelReq)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+			return
+		}
+
+		// Build result
 		result := map[string]any{}
-
-		if provider == "anthropic" {
-			// --- Anthropic Messages API ---
-			var anthropicTools []map[string]any
-			for _, t := range discoveredTools {
-				anthropicTools = append(anthropicTools, map[string]any{
-					"name":        t.SafeName,
-					"description": t.Description,
-					"input_schema": map[string]any{
-						"type":       "object",
-						"properties": t.Properties,
-					},
+		if response.Reply != "" {
+			result["reply"] = response.Reply
+		}
+		if len(response.ToolCalls) > 0 {
+			var toolCalls []map[string]any
+			for _, tc := range response.ToolCalls {
+				toolCalls = append(toolCalls, map[string]any{
+					"tool":   tc.Name,
+					"input":  tc.Input,
 				})
 			}
-
-			anthropicReq := map[string]any{
-				"model":      model,
-				"max_tokens": 4096,
-				"system":     agentSystemPrompt,
-				"messages": []map[string]any{
-					{"role": "user", "content": req.Prompt},
-				},
-			}
-			if len(anthropicTools) > 0 {
-				anthropicReq["tools"] = anthropicTools
-			}
-			chatBody, _ := json.Marshal(anthropicReq)
-
-			apiURL := strings.TrimRight(baseURL, "/") + "/v1/messages"
-			respBody, err := callLLMAPI(apiURL, chatBody)
-			if err != nil {
-				json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-				return
-			}
-
-			// Parse Anthropic response
-			var anthropicResp struct {
-				Content []struct {
-					Type  string          `json:"type"`
-					Text  string          `json:"text"`
-					ID    string          `json:"id"`
-					Name  string          `json:"name"`
-					Input json.RawMessage `json:"input"`
-				} `json:"content"`
-				StopReason string `json:"stop_reason"`
-			}
-			if err := json.Unmarshal(respBody, &anthropicResp); err != nil {
-				json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
-				return
-			}
-
-			// Extract text reply
-			var replyParts []string
-			for _, block := range anthropicResp.Content {
-				if block.Type == "text" && block.Text != "" {
-					replyParts = append(replyParts, block.Text)
-				}
-			}
-			if len(replyParts) > 0 {
-				result["reply"] = strings.Join(replyParts, "\n")
-			}
-
-			// Execute tool uses
-			var toolUseBlocks []struct {
-				ID    string
-				Name  string
-				Input map[string]any
-			}
-			for _, block := range anthropicResp.Content {
-				if block.Type == "tool_use" {
-					var input map[string]any
-					if err := json.Unmarshal(block.Input, &input); err != nil {
-						log.Printf("[agent] failed to parse tool input: %v", err)
-						input = map[string]any{}
-					}
-					toolUseBlocks = append(toolUseBlocks, struct {
-						ID    string
-						Name  string
-						Input map[string]any
-					}{ID: block.ID, Name: block.Name, Input: input})
-				}
-			}
-
-			if len(toolUseBlocks) > 0 {
-				var toolCalls []map[string]any
-				var toolResultBlocks []map[string]any
-
-				for _, tu := range toolUseBlocks {
-					rpcResult, rpcContent := executeToolCall(tu.Name, tu.Input)
-					toolCalls = append(toolCalls, map[string]any{
-						"tool":   tu.Name,
-						"input":  tu.Input,
-						"result": rpcResult,
-					})
-					toolResultBlocks = append(toolResultBlocks, map[string]any{
-						"type":        "tool_result",
-						"tool_use_id": tu.ID,
-						"content":     rpcContent,
-					})
-				}
-				result["tool_calls"] = toolCalls
-
-				// Follow-up: send tool results back to Anthropic
-				followUpReq := map[string]any{
-					"model":      model,
-					"max_tokens": 4096,
-					"system":     agentSystemPrompt,
-					"messages": []map[string]any{
-						{"role": "user", "content": req.Prompt},
-						{"role": "assistant", "content": anthropicResp.Content},
-						{"role": "user", "content": toolResultBlocks},
-					},
-				}
-
-				followUpBody, _ := json.Marshal(followUpReq)
-				if followUpRespBody, err := callLLMAPI(apiURL, followUpBody); err == nil {
-					var followUpResp struct {
-						Content []struct {
-							Type string `json:"type"`
-							Text string `json:"text"`
-						} `json:"content"`
-					}
-					if json.Unmarshal(followUpRespBody, &followUpResp) == nil {
-						var answerParts []string
-						for _, block := range followUpResp.Content {
-							if block.Type == "text" && block.Text != "" {
-								answerParts = append(answerParts, block.Text)
-							}
-						}
-						if len(answerParts) > 0 {
-							result["answer"] = strings.Join(answerParts, "\n")
-						}
-					}
-				}
-			}
-		} else {
-			// --- OpenAI Chat Completions API ---
-			var openaiTools []map[string]any
-			for _, t := range discoveredTools {
-				openaiTools = append(openaiTools, map[string]any{
-					"type": "function",
-					"function": map[string]any{
-						"name":        t.SafeName,
-						"description": t.Description,
-						"parameters": map[string]any{
-							"type":       "object",
-							"properties": t.Properties,
-						},
-					},
-				})
-			}
-
-			messages := []map[string]any{
-				{"role": "system", "content": agentSystemPrompt},
-				{"role": "user", "content": req.Prompt},
-			}
-			chatReq := map[string]any{
-				"model":    model,
-				"messages": messages,
-			}
-			if len(openaiTools) > 0 {
-				chatReq["tools"] = openaiTools
-			}
-			chatBody, _ := json.Marshal(chatReq)
-
-			apiURL := strings.TrimRight(baseURL, "/") + "/v1/chat/completions"
-			respBody, err := callLLMAPI(apiURL, chatBody)
-			if err != nil {
-				json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-				return
-			}
-
-			var chatResp struct {
-				Choices []struct {
-					Message struct {
-						Content   string `json:"content"`
-						ToolCalls []struct {
-							ID       string `json:"id"`
-							Function struct {
-								Name      string `json:"name"`
-								Arguments string `json:"arguments"`
-							} `json:"function"`
-						} `json:"tool_calls"`
-					} `json:"message"`
-				} `json:"choices"`
-			}
-			if err := json.Unmarshal(respBody, &chatResp); err != nil {
-				json.NewEncoder(w).Encode(map[string]string{"error": "Failed to parse LLM response: " + err.Error()})
-				return
-			}
-			if len(chatResp.Choices) == 0 {
-				json.NewEncoder(w).Encode(map[string]string{"error": "No response from LLM"})
-				return
-			}
-
-			choice := chatResp.Choices[0]
-			if choice.Message.Content != "" {
-				result["reply"] = choice.Message.Content
-			}
-
-			// Execute any tool calls
-			if len(choice.Message.ToolCalls) > 0 {
-				var toolCalls []map[string]any
-				followUpMessages := append(messages, map[string]any{
-					"role":       "assistant",
-					"content":    choice.Message.Content,
-					"tool_calls": choice.Message.ToolCalls,
-				})
-
-				for _, tc := range choice.Message.ToolCalls {
-					var input map[string]any
-					if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
-						log.Printf("[agent] failed to parse tool arguments: %v", err)
-					}
-					if input == nil {
-						input = map[string]any{}
-					}
-					rpcResult, rpcContent := executeToolCall(tc.Function.Name, input)
-					toolCalls = append(toolCalls, map[string]any{
-						"tool":   tc.Function.Name,
-						"input":  input,
-						"result": rpcResult,
-					})
-					followUpMessages = append(followUpMessages, map[string]any{
-						"role":         "tool",
-						"tool_call_id": tc.ID,
-						"content":      rpcContent,
-					})
-				}
-				result["tool_calls"] = toolCalls
-
-				// Follow-up: send tool results back to LLM for a final answer
-				followUpReq := map[string]any{
-					"model":    model,
-					"messages": followUpMessages,
-				}
-				followUpBody, _ := json.Marshal(followUpReq)
-				if followUpRespBody, err := callLLMAPI(apiURL, followUpBody); err == nil {
-					var followUpChat struct {
-						Choices []struct {
-							Message struct {
-								Content string `json:"content"`
-							} `json:"message"`
-						} `json:"choices"`
-					}
-					if json.Unmarshal(followUpRespBody, &followUpChat) == nil && len(followUpChat.Choices) > 0 {
-						result["answer"] = followUpChat.Choices[0].Message.Content
-					}
-				}
-			}
+			result["tool_calls"] = toolCalls
+		}
+		if response.Answer != "" {
+			result["answer"] = response.Answer
 		}
 
 		json.NewEncoder(w).Encode(result)
