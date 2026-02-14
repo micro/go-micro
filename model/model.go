@@ -3,6 +3,7 @@ package model
 
 import (
 	"encoding/json"
+	"strings"
 )
 
 // Model provides an interface for interacting with AI model providers
@@ -103,23 +104,10 @@ func AutoDetectProvider(baseURL string) string {
 		return "openai"
 	}
 	// Simple detection based on URL
-	if contains(baseURL, "anthropic") {
+	if strings.Contains(baseURL, "anthropic") {
 		return "anthropic"
 	}
 	return "openai"
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || findSubstring(s, substr))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
 
 // mapGoTypeToJSON is a helper to convert Go types to JSON schema types
