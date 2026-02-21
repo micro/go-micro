@@ -53,7 +53,7 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 To make use of Go Micro 
 
 ```bash
-go get go-micro.dev/v5@latest
+go get go-micro.dev/v5@v5.16.0
 ```
 
 Create a service and register a handler
