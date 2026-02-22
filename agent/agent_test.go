@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -268,6 +269,216 @@ func TestWatchServicesContextCancel(t *testing.T) {
 func TestWatchServicesNilRegistry(t *testing.T) {
 	err := WatchServices(context.Background(), nil, nil, func(string, *registry.Result) {})
 	assert.Error(t, err)
+}
+
+// TestPromptNoModel verifies Prompt closes the channel immediately when no model is set.
+func TestPromptNoModel(t *testing.T) {
+	a := New(WithName("no-model-agent"))
+
+	ch := a.Prompt("hello")
+	select {
+	case resp, ok := <-ch:
+		assert.False(t, ok, "channel should be closed with no value")
+		assert.Nil(t, resp)
+	case <-time.After(2 * time.Second):
+		t.Fatal("Prompt channel was not closed in time")
+	}
+}
+
+// TestPromptNonBlocking verifies Prompt returns immediately.
+func TestPromptNonBlocking(t *testing.T) {
+	// slow model — blocks for up to 5 s
+	slow := &slowMockModel{delay: 5 * time.Second}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	a := New(WithName("slow-agent"), WithModel(slow), WithContext(ctx))
+
+	start := time.Now()
+	ch := a.Prompt("are you there?")
+	elapsed := time.Since(start)
+
+	// Prompt must return without waiting for the model.
+	assert.Less(t, elapsed, 500*time.Millisecond, "Prompt should be non-blocking")
+
+	// Clean up: cancel context so the goroutine exits.
+	cancel()
+	// Drain channel.
+	select {
+	case <-ch:
+	case <-time.After(6 * time.Second):
+	}
+}
+
+// TestPromptWithModel verifies Prompt delivers the model response on the channel.
+func TestPromptWithModel(t *testing.T) {
+	expected := &model.Response{Reply: "all services healthy"}
+	mock := &mockModel{resp: expected}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	a := New(WithName("prompt-agent"), WithModel(mock), WithContext(ctx))
+
+	ch := a.Prompt("how are the services?")
+	select {
+	case resp := <-ch:
+		require.NotNil(t, resp)
+		assert.Equal(t, "all services healthy", resp.Reply)
+	case <-time.After(2 * time.Second):
+		t.Fatal("did not receive prompt response in time")
+	}
+
+	// Channel should be closed after the single response.
+	_, ok := <-ch
+	assert.False(t, ok, "channel should be closed after response")
+}
+
+// TestPromptRecordsActivity verifies that Prompt records ActivityPrompt and ActivityResponse.
+func TestPromptRecordsActivity(t *testing.T) {
+	mock := &mockModel{resp: &model.Response{Reply: "ok"}}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	a := New(WithName("activity-agent"), WithModel(mock), WithContext(ctx))
+
+	ch := a.Prompt("status check")
+	<-ch // wait for completion
+
+	acts := a.Activity()
+	require.NotEmpty(t, acts)
+
+	types := make(map[ActivityType]int)
+	for _, act := range acts {
+		types[act.Type]++
+		assert.False(t, act.Time.IsZero(), "activity should have a timestamp")
+	}
+
+	assert.GreaterOrEqual(t, types[ActivityPrompt], 1, "should have at least one ActivityPrompt")
+	assert.GreaterOrEqual(t, types[ActivityResponse], 1, "should have at least one ActivityResponse")
+}
+
+// TestPromptRecordsToolActivity verifies tool calls made during Prompt are recorded.
+func TestPromptRecordsToolActivity(t *testing.T) {
+	reg := registry.NewMemoryRegistry()
+	mock := &mockModel{
+		resp: &model.Response{
+			Reply: "checked",
+			ToolCalls: []model.ToolCall{
+				{Name: "list_services", Input: map[string]any{}},
+			},
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	a := New(
+		WithName("tool-activity-agent"),
+		WithModel(mock),
+		WithRegistry(reg),
+		WithContext(ctx),
+	)
+
+	ch := a.Prompt("list services please")
+	<-ch
+
+	acts := a.Activity()
+	types := make(map[ActivityType]int)
+	for _, act := range acts {
+		types[act.Type]++
+	}
+	assert.GreaterOrEqual(t, types[ActivityTool], 1, "should record at least one tool activity")
+}
+
+// TestActivityIsSnapshot verifies Activity returns an independent copy.
+func TestActivityIsSnapshot(t *testing.T) {
+	a := New(WithName("snapshot-agent"))
+
+	snap1 := a.Activity()
+	assert.Empty(t, snap1)
+
+	// Directly record something.
+	impl, ok := a.(*agent)
+	require.True(t, ok, "New() must return *agent")
+	impl.record(Activity{Type: ActivityEvaluate})
+
+	snap2 := a.Activity()
+	assert.Len(t, snap2, 1)
+
+	// The first snapshot is unchanged.
+	assert.Empty(t, snap1)
+}
+
+// TestEvaluateRecordsActivity verifies evaluate records evaluate/tool/response activities.
+func TestEvaluateRecordsActivity(t *testing.T) {
+	mock := &mockModel{
+		resp: &model.Response{
+			Reply: "evaluated",
+			ToolCalls: []model.ToolCall{
+				{Name: "list_services", Input: map[string]any{}},
+			},
+		},
+	}
+	reg := registry.NewMemoryRegistry()
+	a := &agent{
+		opts:       newOptions(WithModel(mock), WithRegistry(reg)),
+		stop:       make(chan struct{}),
+		activities: make([]Activity, 0, maxActivities),
+	}
+
+	tools := a.buildTools()
+	err := a.evaluate(tools)
+	require.NoError(t, err)
+
+	acts := a.Activity()
+	types := make(map[ActivityType]int)
+	for _, act := range acts {
+		types[act.Type]++
+	}
+	assert.GreaterOrEqual(t, types[ActivityEvaluate], 1)
+	assert.GreaterOrEqual(t, types[ActivityTool], 1)
+	assert.GreaterOrEqual(t, types[ActivityResponse], 1)
+}
+
+// TestPromptErrorRecorded verifies that a model error is recorded as ActivityError.
+func TestPromptErrorRecorded(t *testing.T) {
+	errModel := &mockModel{err: fmt.Errorf("model offline")}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	a := New(WithName("error-agent"), WithModel(errModel), WithContext(ctx))
+
+	ch := a.Prompt("hello")
+	<-ch // closed without a value on error
+
+	acts := a.Activity()
+	types := make(map[ActivityType]int)
+	for _, act := range acts {
+		types[act.Type]++
+		if act.Type == ActivityError {
+			assert.NotNil(t, act.Err)
+		}
+	}
+	assert.GreaterOrEqual(t, types[ActivityError], 1)
+}
+
+// slowMockModel is a model.Model that blocks until its context is cancelled.
+type slowMockModel struct {
+	delay time.Duration
+}
+
+func (m *slowMockModel) Init(...model.Option) error { return nil }
+func (m *slowMockModel) Options() model.Options     { return model.Options{} }
+func (m *slowMockModel) String() string             { return "slow" }
+func (m *slowMockModel) Stream(_ context.Context, _ *model.Request, _ ...model.GenerateOption) (model.Stream, error) {
+	return nil, nil
+}
+func (m *slowMockModel) Generate(ctx context.Context, _ *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-time.After(m.delay):
+		return &model.Response{Reply: "done"}, nil
+	}
 }
 
 // mockModel is a test double for model.Model.

@@ -17,6 +17,41 @@ import (
 	"go-micro.dev/v5/registry"
 )
 
+// ActivityType classifies the kind of action an agent has performed.
+type ActivityType string
+
+const (
+	// ActivityEvaluate marks a periodic evaluation cycle.
+	ActivityEvaluate ActivityType = "evaluate"
+	// ActivityPrompt marks an on-demand prompt submitted via Prompt.
+	ActivityPrompt ActivityType = "prompt"
+	// ActivityTool marks a tool invocation made by the model.
+	ActivityTool ActivityType = "tool"
+	// ActivityResponse marks a completed model response.
+	ActivityResponse ActivityType = "response"
+	// ActivityError marks an error that occurred during processing.
+	ActivityError ActivityType = "error"
+)
+
+// Activity records a single action performed by the agent.
+type Activity struct {
+	// Time is when the activity occurred.
+	Time time.Time
+	// Type classifies the activity.
+	Type ActivityType
+	// Prompt is the text of the prompt that triggered the activity (if any).
+	Prompt string
+	// Tool is the name of the tool invoked (for ActivityTool).
+	Tool string
+	// Result holds the output of a tool call or model response.
+	Result string
+	// Err holds any error that occurred (for ActivityError).
+	Err error
+}
+
+// maxActivities is the maximum number of Activity entries kept in memory.
+const maxActivities = 256
+
 // Agent manages the lifecycle of services using AI-driven tools.
 // Its interface mirrors the Service interface so agents can live alongside
 // services in the same runtime environment.
@@ -31,20 +66,32 @@ type Agent interface {
 	Stop() error
 	// String returns the agent name
 	String() string
+	// Prompt queues a user-provided prompt for the agent to process immediately.
+	// The call is non-blocking and returns a channel that will receive the model
+	// response once the prompt has been evaluated (and any requested tools have
+	// been executed). The channel is buffered and closed after the response is
+	// sent, so callers can range over it or select on it.
+	Prompt(text string) <-chan *model.Response
+	// Activity returns a chronological snapshot of recent agent activities
+	// (evaluations, prompts, tool calls, responses, and errors).
+	Activity() []Activity
 }
 
 // agent is the default Agent implementation.
 type agent struct {
-	opts Options
-	stop chan struct{}
-	once sync.Once
+	opts       Options
+	stop       chan struct{}
+	once       sync.Once
+	activities []Activity
+	actMu      sync.RWMutex
 }
 
 // New creates a new Agent with the given options.
 func New(opts ...Option) Agent {
 	return &agent{
-		opts: newOptions(opts...),
-		stop: make(chan struct{}),
+		opts:       newOptions(opts...),
+		stop:       make(chan struct{}),
+		activities: make([]Activity, 0, maxActivities),
 	}
 }
 
@@ -72,6 +119,69 @@ func (a *agent) Stop() error {
 		close(a.stop)
 	})
 	return nil
+}
+
+// record appends act to the agent's activity log.
+// Oldest entries are dropped once the log reaches maxActivities.
+func (a *agent) record(act Activity) {
+	if act.Time.IsZero() {
+		act.Time = time.Now()
+	}
+	a.actMu.Lock()
+	a.activities = append(a.activities, act)
+	if len(a.activities) > maxActivities {
+		a.activities = a.activities[len(a.activities)-maxActivities:]
+	}
+	a.actMu.Unlock()
+}
+
+// Activity returns a chronological snapshot of recent agent activities.
+func (a *agent) Activity() []Activity {
+	a.actMu.RLock()
+	defer a.actMu.RUnlock()
+	result := make([]Activity, len(a.activities))
+	copy(result, a.activities)
+	return result
+}
+
+// Prompt processes a user-provided prompt immediately.
+// It is non-blocking: it spawns a goroutine and returns a buffered channel
+// that will receive the model response (then be closed). If no model is
+// configured, the channel is closed immediately with no value.
+func (a *agent) Prompt(text string) <-chan *model.Response {
+	ch := make(chan *model.Response, 1)
+	a.record(Activity{Type: ActivityPrompt, Prompt: text})
+	go func() {
+		defer close(ch)
+		if a.opts.Model == nil {
+			return
+		}
+		tools := a.buildTools()
+		resp, err := a.opts.Model.Generate(a.opts.Context, &model.Request{
+			SystemPrompt: a.opts.Directive,
+			Prompt:       text,
+			Tools:        tools,
+		})
+		if err != nil {
+			a.record(Activity{Type: ActivityError, Prompt: text, Err: err})
+			return
+		}
+		for _, tc := range resp.ToolCalls {
+			_, content := a.executeTool(tc.Name, tc.Input)
+			if isErrorContent(content) {
+				a.record(Activity{Type: ActivityError, Tool: tc.Name, Result: content})
+			} else {
+				a.record(Activity{Type: ActivityTool, Tool: tc.Name, Result: content})
+			}
+		}
+		reply := resp.Reply
+		if reply == "" {
+			reply = resp.Answer
+		}
+		a.record(Activity{Type: ActivityResponse, Prompt: text, Result: reply})
+		ch <- resp
+	}()
+	return ch
 }
 
 // Run starts the agent loop. The agent watches the services it manages,
@@ -109,6 +219,8 @@ func (a *agent) evaluate(tools []model.Tool) error {
 		return nil
 	}
 
+	a.record(Activity{Type: ActivityEvaluate})
+
 	status, err := a.serviceStatus()
 	if err != nil {
 		return err
@@ -127,13 +239,27 @@ func (a *agent) evaluate(tools []model.Tool) error {
 
 	resp, err := a.opts.Model.Generate(a.opts.Context, req)
 	if err != nil {
+		a.record(Activity{Type: ActivityError, Err: err})
 		return fmt.Errorf("model generate: %w", err)
 	}
 
 	// Execute any tool calls requested by the model.
 	for _, tc := range resp.ToolCalls {
-		result, _ := a.executeTool(tc.Name, tc.Input)
+		result, content := a.executeTool(tc.Name, tc.Input)
+		if isErrorContent(content) {
+			a.record(Activity{Type: ActivityError, Tool: tc.Name, Result: content})
+		} else {
+			a.record(Activity{Type: ActivityTool, Tool: tc.Name, Result: content})
+		}
 		a.opts.Logger.Logf(log.DebugLevel, "[agent] %s tool %s result: %v", a.opts.Name, tc.Name, result)
+	}
+
+	reply := resp.Reply
+	if reply == "" {
+		reply = resp.Answer
+	}
+	if reply != "" {
+		a.record(Activity{Type: ActivityResponse, Result: reply})
 	}
 
 	return nil
@@ -283,6 +409,17 @@ func (a *agent) executeTool(name string, input map[string]any) (any, string) {
 		}
 		return nil, fmt.Sprintf(`{"error": "unknown tool %q"}`, name)
 	}
+}
+
+// isErrorContent reports whether the JSON content string returned by
+// executeTool represents a tool error (i.e. contains an "error" key).
+func isErrorContent(content string) bool {
+	var obj map[string]any
+	if err := json.Unmarshal([]byte(content), &obj); err != nil {
+		return false
+	}
+	_, hasErr := obj["error"]
+	return hasErr
 }
 
 // DefaultAgent is the package-level default Agent instance.
