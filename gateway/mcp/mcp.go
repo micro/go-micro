@@ -32,6 +32,8 @@ import (
 	"go-micro.dev/v5/registry"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Metadata keys for MCP tracing and auth propagated via context/metadata.
@@ -128,6 +130,20 @@ type Options struct {
 	//       "blog.Blog.Delete": {"blog:admin"},
 	//   }
 	Scopes map[string][]string
+
+	// TraceProvider enables OpenTelemetry tracing for MCP tool calls.
+	// When set, each tool call creates a span with attributes for the
+	// tool name, account ID, auth outcome, and transport type.
+	// Trace context is propagated to downstream RPC calls via metadata.
+	//
+	// Example:
+	//
+	//   tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter))
+	//   mcp.Serve(mcp.Options{
+	//       Registry:      reg,
+	//       TraceProvider: tp,
+	//   })
+	TraceProvider trace.TracerProvider
 }
 
 // Server represents a running MCP gateway
@@ -430,6 +446,10 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	// Generate trace ID for this call
 	traceID := uuid.New().String()
 
+	// Start OTel span (noop if TraceProvider is nil)
+	ctx, span := s.startToolSpan(r.Context(), req.Tool, "http", traceID)
+	defer span.End()
+
 	// Authenticate and authorise
 	var account *auth.Account
 	if s.opts.Auth != nil {
@@ -438,21 +458,29 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 			token = strings.TrimPrefix(token, "Bearer ")
 		}
 		if token == "" {
+			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
+			setSpanError(span, fmt.Errorf("missing token"))
 			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool, Allowed: false, DeniedReason: "missing token"})
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 		acc, err := s.opts.Auth.Inspect(token)
 		if err != nil {
+			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))
+			setSpanError(span, fmt.Errorf("invalid token"))
 			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool, Allowed: false, DeniedReason: "invalid token"})
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 		account = acc
+		span.SetAttributes(attribute.String(AttrAccountID, account.ID))
 
 		// Check per-tool scopes
 		if len(tool.Scopes) > 0 {
+			span.SetAttributes(attribute.StringSlice(AttrScopesRequired, tool.Scopes))
 			if !hasScope(account.Scopes, tool.Scopes) {
+				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "insufficient scopes"))
+				setSpanError(span, fmt.Errorf("insufficient scopes"))
 				s.audit(AuditRecord{
 					TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
 					AccountID: account.ID, ScopesRequired: tool.Scopes,
@@ -466,6 +494,8 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 
 	// Rate limit check
 	if err := s.allowRate(req.Tool); err != nil {
+		span.SetAttributes(attribute.Bool(AttrRateLimited, true))
+		setSpanError(span, err)
 		accountID := ""
 		if account != nil {
 			accountID = account.ID
@@ -478,15 +508,20 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	span.SetAttributes(attribute.Bool(AttrAuthAllowed, true))
+
 	// Build context with tracing metadata
-	ctx := r.Context()
-	md := metadata.Metadata{}
+	// OTel trace context was already injected by startToolSpan; add MCP metadata.
+	md, _ := metadata.FromContext(ctx)
+	if md == nil {
+		md = make(metadata.Metadata)
+	}
 	md.Set(TraceIDKey, traceID)
 	md.Set(ToolNameKey, req.Tool)
 	if account != nil {
 		md.Set(AccountIDKey, account.ID)
 	}
-	ctx = metadata.MergeContext(ctx, md, true)
+	ctx = metadata.NewContext(ctx, md)
 
 	// Convert input to JSON bytes for RPC call
 	inputBytes, err := json.Marshal(req.Input)
@@ -501,6 +536,7 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	var rsp bytes.Frame
 
 	if err := s.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
+		setSpanError(span, err)
 		s.opts.Logger.Printf("[mcp] RPC call failed: %v", err)
 		accountID := ""
 		if account != nil {
@@ -514,6 +550,8 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("RPC call failed: %v", err), http.StatusInternalServerError)
 		return
 	}
+
+	setSpanOK(span)
 
 	// Audit successful call
 	accountID := ""

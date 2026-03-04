@@ -16,6 +16,7 @@ import (
 	"go-micro.dev/v5/metadata"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // StdioTransport implements MCP JSON-RPC 2.0 over stdio
@@ -190,11 +191,17 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 	// Generate trace ID
 	traceID := uuid.New().String()
 
+	// Start OTel span (noop if TraceProvider is nil)
+	ctx, span := t.server.startToolSpan(t.ctx, params.Name, "stdio", traceID)
+	defer span.End()
+
 	// Authenticate and authorise (if Auth is configured)
 	var account *auth.Account
 	if t.server.opts.Auth != nil {
 		token := params.Token
 		if token == "" {
+			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
+			setSpanError(span, fmt.Errorf("missing token"))
 			t.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "missing token"})
 			t.sendError(req.ID, InvalidParams, "Unauthorized", "missing _token in params")
 			return
@@ -204,15 +211,21 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 		}
 		acc, err := t.server.opts.Auth.Inspect(token)
 		if err != nil {
+			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))
+			setSpanError(span, fmt.Errorf("invalid token"))
 			t.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "invalid token"})
 			t.sendError(req.ID, InvalidParams, "Unauthorized", "invalid token")
 			return
 		}
 		account = acc
+		span.SetAttributes(attribute.String(AttrAccountID, account.ID))
 
 		// Check per-tool scopes
 		if len(tool.Scopes) > 0 {
+			span.SetAttributes(attribute.StringSlice(AttrScopesRequired, tool.Scopes))
 			if !hasScope(account.Scopes, tool.Scopes) {
+				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "insufficient scopes"))
+				setSpanError(span, fmt.Errorf("insufficient scopes"))
 				t.server.audit(AuditRecord{
 					TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
 					AccountID: account.ID, ScopesRequired: tool.Scopes,
@@ -226,6 +239,8 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 
 	// Rate limit check
 	if err := t.server.allowRate(params.Name); err != nil {
+		span.SetAttributes(attribute.Bool(AttrRateLimited, true))
+		setSpanError(span, err)
 		accountID := ""
 		if account != nil {
 			accountID = account.ID
@@ -238,6 +253,8 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 		return
 	}
 
+	span.SetAttributes(attribute.Bool(AttrAuthAllowed, true))
+
 	// Convert arguments to JSON bytes for RPC call
 	inputBytes, err := json.Marshal(params.Arguments)
 	if err != nil {
@@ -246,14 +263,17 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 	}
 
 	// Build context with tracing metadata
-	ctx := t.ctx
-	md := metadata.Metadata{}
+	// OTel trace context was already injected by startToolSpan; add MCP metadata.
+	md, _ := metadata.FromContext(ctx)
+	if md == nil {
+		md = make(metadata.Metadata)
+	}
 	md.Set(TraceIDKey, traceID)
 	md.Set(ToolNameKey, params.Name)
 	if account != nil {
 		md.Set(AccountIDKey, account.ID)
 	}
-	ctx = metadata.MergeContext(ctx, md, true)
+	ctx = metadata.NewContext(ctx, md)
 
 	// Make RPC call
 	start := time.Now()
@@ -266,6 +286,7 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 	}
 
 	if err := t.server.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
+		setSpanError(span, err)
 		accountID := ""
 		if account != nil {
 			accountID = account.ID
@@ -278,6 +299,8 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 		t.sendError(req.ID, InternalError, "RPC call failed", err.Error())
 		return
 	}
+
+	setSpanOK(span)
 
 	// Audit successful call
 	accountID := ""
