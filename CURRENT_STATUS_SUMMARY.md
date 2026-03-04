@@ -186,8 +186,14 @@ Build compelling examples and demos that show agents interacting with go-micro s
 - **Kubernetes Operator** - CRD-based deployment
 
 ### Recently Completed (March 2026)
+- **`micro new` MCP Templates** - `micro new myservice` generates MCP-enabled services by default with doc comments, `@example` tags, and `WithMCP()` wired in. `--no-mcp` flag to opt out.
+- **CRUD Example** - Full contact book service showing Create, Get, Update, Delete, List, Search with rich agent documentation (`examples/mcp/crud/`)
+- **Migration Guide** - "Add MCP to Existing Services" — 3 approaches from one-liner to standalone gateway
+- **Troubleshooting Guide** - Common issues: agent can't find tools, WebSocket drops, Claude Code config, auth errors
+- **Error Handling Guide** - Patterns for writing services that give agents actionable error messages
+- **DX Cleanup** - Unified `micro.New("name")` API, `service.Handle()`, `micro.NewGroup()` for modular monoliths
 - **Multi-Service Binaries** - Run multiple services in a single binary with isolated state per service and shared lifecycle via `service.Group`. Modular monolith pattern: start together, split later.
-- **Documentation Guides** - All four guides complete: AI-native services, MCP security, tool descriptions, agent patterns
+- **Documentation Guides** - Six guides complete: AI-native services, MCP security, tool descriptions, agent patterns, error handling, troubleshooting
 - **WithMCP Convenience Option** - One-line MCP setup: `mcp.WithMCP(":3000")`
 - **Agent Playground Redesign** - Chat-focused UI with collapsible tool calls and real-time status
 - **Standalone Gateway Binary** - `micro-mcp-gateway` with Docker support
@@ -204,7 +210,7 @@ Build compelling examples and demos that show agents interacting with go-micro s
 | **Production Code** | 2,500+ lines (MCP gateway) |
 | **Test Code** | 1,000+ lines |
 | **Documentation Files** | 90+ markdown files |
-| **Working Examples** | 2 MCP + 3 other + 2 LlamaIndex |
+| **Working Examples** | 3 MCP + 1 agent-demo + 3 other + 2 LlamaIndex |
 | **CLI Commands** | 5 MCP (serve, list, test, docs, export) |
 | **Export Formats** | 3 (langchain, openapi, json) |
 | **Agent SDKs** | 2 (LangChain Python, LlamaIndex Python) |
