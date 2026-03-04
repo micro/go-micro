@@ -47,13 +47,27 @@ cd multi-service
 go run .
 ```
 
-## Coming Soon
+### [deployment](./deployment/)
+Docker Compose deployment with MCP gateway, Consul registry, and Jaeger tracing:
+- Production-like architecture in one `docker-compose up`
+- Standalone MCP gateway connected to service registry
+- Distributed tracing with OpenTelemetry + Jaeger
 
-The following examples are planned:
+### MCP Examples
+
+See the [mcp/](./mcp/) directory for AI agent integration examples:
+- **[hello](./mcp/hello/)** - Minimal MCP service (start here)
+- **[crud](./mcp/crud/)** - CRUD contact book with full agent documentation
+- **[workflow](./mcp/workflow/)** - Cross-service orchestration via AI agents
+- **[documented](./mcp/documented/)** - All MCP features with auth scopes
+
+### [agent-demo](./agent-demo/)
+Multi-service project management app (Projects, Tasks, Team) with seed data and agent playground integration.
+
+## Coming Soon
 
 - **pubsub-events** - Event-driven architecture with NATS
 - **grpc-integration** - Using go-micro with gRPC
-- **production-ready** - Complete production-grade service with observability
 
 ## Prerequisites
 
