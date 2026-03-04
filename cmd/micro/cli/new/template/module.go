@@ -3,7 +3,7 @@ package template
 var (
 	Module = `module {{.Dir}}
 
-go 1.18
+go 1.22
 
 require (
 	go-micro.dev/v5 latest

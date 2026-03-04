@@ -39,9 +39,16 @@ func genProtoHandler(c *cli.Context) error {
 func init() {
 	cmd.Register([]*cli.Command{
 		{
-			Name:   "new",
-			Usage:  "Create a new service",
-			Action: new.Run,
+			Name:      "new",
+			Usage:     "Create a new service",
+			ArgsUsage: "[name]",
+			Action:    new.Run,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "no-mcp",
+					Usage: "Disable MCP gateway integration in generated code",
+				},
+			},
 		},
 		{
 			Name:  "gen",

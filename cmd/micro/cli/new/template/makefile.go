@@ -27,6 +27,18 @@ test-coverage:
 	go test -v -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 
+# List MCP tools exposed by this service
+mcp-tools:
+	micro mcp list
+
+# Test an MCP tool interactively
+mcp-test:
+	micro mcp test
+
+# Start MCP server for Claude Code
+mcp-serve:
+	micro mcp serve
+
 # Clean build artifacts
 clean:
 	rm -rf bin/ coverage.out coverage.html
@@ -34,14 +46,6 @@ clean:
 # Build Docker image
 docker:
 	docker build -t {{.Alias}}:latest .
-
-# Run with Docker Compose
-docker-up:
-	docker-compose up -d
-
-# Stop Docker Compose
-docker-down:
-	docker-compose down
 
 # Lint code
 lint:
