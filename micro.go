@@ -27,11 +27,18 @@ type Service interface {
 	Client() client.Client
 	// Server is for handling requests and events
 	Server() server.Server
-	// Run the service
+	// Start the service
+	Start() error
+	// Stop the service
+	Stop() error
+	// Run the service (start, block on signal, then stop)
 	Run() error
 	// The service implementation
 	String() string
 }
+
+// Group is a set of services that share lifecycle management.
+type Group = service.Group
 
 type Option = service.Option
 
@@ -56,6 +63,18 @@ func New(name string) Service {
 // NewService creates and returns a new Service based on the packages within.
 func NewService(opts ...Option) Service {
 	return service.New(opts...)
+}
+
+// NewGroup creates a service group for running multiple services
+// in a single binary with shared lifecycle management.
+func NewGroup(svcs ...Service) *Group {
+	var ss []*service.ServiceImpl
+	for _, s := range svcs {
+		if si, ok := s.(*service.ServiceImpl); ok {
+			ss = append(ss, si)
+		}
+	}
+	return service.NewGroup(ss...)
 }
 
 // FromContext retrieves a Service from the Context.
