@@ -14,7 +14,7 @@ make test
 
 # Run tests for a specific package
 go test ./gateway/mcp/...
-go test ./model/...
+go test ./ai/...
 
 # Lint
 make lint
@@ -48,7 +48,7 @@ go-micro/
 ├── health/         # Health checking
 ├── logger/         # Logging
 ├── metadata/       # Context metadata
-├── model/          # AI model providers
+├── ai/             # AI model providers
 │   ├── anthropic/  # Claude provider
 │   └── openai/     # GPT provider
 ├── registry/       # Service discovery (mDNS, Consul, etcd)
@@ -113,7 +113,7 @@ Build compelling demos showing agents interacting with go-micro services in real
 |---------|------|
 | MCP Gateway | `gateway/mcp/mcp.go` |
 | MCP Docs | `gateway/mcp/DOCUMENTATION.md` |
-| Model Interface | `model/model.go` |
+| AI Interface | `ai/model.go` |
 | CLI Entry | `cmd/micro/main.go` |
 | MCP CLI | `cmd/micro/mcp/` |
 | Server (run/server) | `cmd/micro/server/server.go` |

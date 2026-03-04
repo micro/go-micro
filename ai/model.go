@@ -1,5 +1,5 @@
-// Package model provides abstraction for AI model providers
-package model
+// Package ai provides abstraction for AI model providers
+package ai
 
 import (
 	"context"

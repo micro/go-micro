@@ -3,7 +3,7 @@
 
 ## Executive Summary
 
-**Go Micro's MCP integration is 3-4 months ahead of schedule**, with Q1 2026 complete, most Q2 2026 features delivered, and core Q3 security features already in production. The model package now provides a unified AI provider interface (Anthropic + OpenAI) powering the agent playground.
+**Go Micro's MCP integration is 3-4 months ahead of schedule**, with Q1 2026 complete, most Q2 2026 features delivered, and core Q3 security features already in production. The ai package now provides a unified AI provider interface (Anthropic + OpenAI) powering the agent playground.
 
 ### Quick Status
 - **Q1 2026 (MCP Foundation):** COMPLETE (100%)
@@ -73,13 +73,13 @@
 - Struct tag parsing for parameter descriptions
 - Manual override via `WithEndpointDocs()`
 
-### Model Package (NEW - February 2026)
-- **`model.Model` interface** - Unified AI provider abstraction
+### AI Package (NEW - February 2026)
+- **`ai.Model` interface** - Unified AI provider abstraction
   - `Generate()` for request/response
   - `Stream()` for streaming responses
   - Tool execution with auto-calling support
-- **Anthropic Claude provider** (`model/anthropic`)
-- **OpenAI GPT provider** (`model/openai`)
+- **Anthropic Claude provider** (`ai/anthropic`)
+- **OpenAI GPT provider** (`ai/openai`)
 - Provider auto-detection from base URL
 - Powers the agent playground in `micro run`
 
@@ -238,7 +238,7 @@ Build compelling examples and demos that show agents interacting with go-micro s
 - WebSocket transport (bidirectional JSON-RPC 2.0)
 - LangChain SDK (Python package in contrib/)
 - LlamaIndex SDK (Python package in contrib/ with RAG examples)
-- Model package with Anthropic + OpenAI providers
+- AI package with Anthropic + OpenAI providers
 
 **REMAINING:**
 - Agent SDKs (AutoGPT)
@@ -275,7 +275,7 @@ Build compelling examples and demos that show agents interacting with go-micro s
 2. **[ROADMAP_2026.md](./ROADMAP_2026.md)** - AI-native roadmap with business model
 3. **[/gateway/mcp/DOCUMENTATION.md](./gateway/mcp/DOCUMENTATION.md)** - Complete MCP documentation
 4. **[/examples/mcp/README.md](./examples/mcp/README.md)** - Examples and usage guide
-5. **[/model/README.md](./model/README.md)** - Model package documentation
+5. **[/ai/README.md](./ai/README.md)** - AI package documentation
 
 ---
 
@@ -285,7 +285,7 @@ Build compelling examples and demos that show agents interacting with go-micro s
 2. **Security-First** - Auth, scopes, audit from day one
 3. **Developer-Friendly** - 3 lines of code to enable MCP
 4. **Claude Code Ready** - Works with Anthropic's flagship IDE
-5. **Unified AI Model Interface** - Anthropic + OpenAI with tool auto-calling
+5. **Unified AI Interface** - Anthropic + OpenAI with tool auto-calling
 6. **Comprehensive Testing** - 90%+ test coverage
 7. **Well-Documented** - 90+ docs, examples, and blog post
 

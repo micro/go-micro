@@ -10,24 +10,24 @@ import (
 	"net/http"
 	"strings"
 
-	"go-micro.dev/v5/model"
+	"go-micro.dev/v5/ai"
 )
 
 func init() {
-	model.Register("openai", func(opts ...model.Option) model.Model {
+	ai.Register("openai", func(opts ...ai.Option) ai.Model {
 		return NewProvider(opts...)
 	})
 }
 
-// Provider implements the model.Model interface for OpenAI
+// Provider implements the ai.Model interface for OpenAI
 type Provider struct {
-	opts model.Options
+	opts ai.Options
 }
 
 // NewProvider creates a new OpenAI provider
-func NewProvider(opts ...model.Option) *Provider {
-	options := model.NewOptions(opts...)
-	
+func NewProvider(opts ...ai.Option) *Provider {
+	options := ai.NewOptions(opts...)
+
 	// Set defaults if not provided
 	if options.Model == "" {
 		options.Model = "gpt-4o"
@@ -35,14 +35,14 @@ func NewProvider(opts ...model.Option) *Provider {
 	if options.BaseURL == "" {
 		options.BaseURL = "https://api.openai.com"
 	}
-	
+
 	return &Provider{
 		opts: options,
 	}
 }
 
 // Init initializes the provider with options
-func (p *Provider) Init(opts ...model.Option) error {
+func (p *Provider) Init(opts ...ai.Option) error {
 	for _, o := range opts {
 		o(&p.opts)
 	}
@@ -50,7 +50,7 @@ func (p *Provider) Init(opts ...model.Option) error {
 }
 
 // Options returns the provider options
-func (p *Provider) Options() model.Options {
+func (p *Provider) Options() ai.Options {
 	return p.opts
 }
 
@@ -60,7 +60,7 @@ func (p *Provider) String() string {
 }
 
 // Generate generates a response from the model
-func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
 	// Build tools for OpenAI format
 	var openaiTools []map[string]any
 	for _, t := range req.Tools {
@@ -138,12 +138,12 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 }
 
 // Stream generates a streaming response (not yet implemented)
-func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
+func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
 	return nil, fmt.Errorf("streaming not yet implemented for openai provider")
 }
 
 // callAPI makes an HTTP request to the OpenAI API
-func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, map[string]any, error) {
+func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Response, map[string]any, error) {
 	// Marshal request
 	reqBody, err := json.Marshal(req)
 	if err != nil {
@@ -199,7 +199,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	}
 
 	choice := chatResp.Choices[0]
-	response := &model.Response{
+	response := &ai.Response{
 		Reply: choice.Message.Content,
 	}
 
@@ -209,7 +209,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 		if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
 			input = map[string]any{}
 		}
-		response.ToolCalls = append(response.ToolCalls, model.ToolCall{
+		response.ToolCalls = append(response.ToolCalls, ai.ToolCall{
 			ID:    tc.ID,
 			Name:  tc.Function.Name,
 			Input: input,

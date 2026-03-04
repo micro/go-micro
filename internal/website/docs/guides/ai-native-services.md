@@ -359,21 +359,21 @@ Each tool call generates a span with attributes:
 
 Trace context is propagated downstream via metadata headers (`Mcp-Trace-Id`, `Mcp-Tool-Name`, `Mcp-Account-Id`), so you get full distributed traces from agent through gateway to service.
 
-## Step 8: Use the Model Package (Optional)
+## Step 8: Use the AI Package (Optional)
 
 If your service needs to call AI models directly:
 
 ```go
 import (
-    "go-micro.dev/v5/model"
-    _ "go-micro.dev/v5/model/anthropic"
+    "go-micro.dev/v5/ai"
+    _ "go-micro.dev/v5/ai/anthropic"
 )
 
-m := model.New("anthropic",
-    model.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
+m := ai.New("anthropic",
+    ai.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
 )
 
-resp, err := m.Generate(ctx, &model.Request{
+resp, err := m.Generate(ctx, &ai.Request{
     Prompt:       "Summarize these tasks: " + taskJSON,
     SystemPrompt: "You are a project manager assistant",
 })

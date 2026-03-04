@@ -1,4 +1,4 @@
-package model
+package ai
 
 import (
 	"context"

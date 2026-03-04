@@ -163,14 +163,14 @@ Create official SDKs for popular agent frameworks:
 - [x] Example: Multi-agent workflow with go-micro services
 - [x] Published to contrib/langchain-go-micro/
 
-#### Model Package ✅ COMPLETE
-- [x] `model.Model` interface with Generate and Stream
-- [x] Anthropic Claude provider (`model/anthropic`)
-- [x] OpenAI GPT provider (`model/openai`)
+#### AI Package ✅ COMPLETE
+- [x] `ai.Model` interface with Generate and Stream
+- [x] Anthropic Claude provider (`ai/anthropic`)
+- [x] OpenAI GPT provider (`ai/openai`)
 - [x] Tool execution with auto-calling support
 - [x] Provider auto-detection from base URL
 
-**Why:** The model package powers the agent playground and enables services to call AI models directly.
+**Why:** The ai package powers the agent playground and enables services to call AI models directly.
 
 #### LlamaIndex Integration ✅ COMPLETE
 - [x] `go-micro-llamaindex` package

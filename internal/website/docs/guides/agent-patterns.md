@@ -78,7 +78,7 @@ Then issue different tokens:
 
 ## Pattern 3: Agent as Service Consumer
 
-Your Go Micro service itself calls an AI model to process data, using the `model` package.
+Your Go Micro service itself calls an AI model to process data, using the `ai` package.
 
 ```
 User → API → Your Service → AI Model (Claude/GPT)
@@ -89,20 +89,20 @@ User → API → Your Service → AI Model (Claude/GPT)
 
 ```go
 import (
-    "go-micro.dev/v5/model"
-    _ "go-micro.dev/v5/model/anthropic"
+    "go-micro.dev/v5/ai"
+    _ "go-micro.dev/v5/ai/anthropic"
 )
 
 type SummaryService struct {
-    ai    model.Model
+    ai    ai.Model
     tasks *TaskClient
 }
 
 func NewSummaryService() *SummaryService {
     return &SummaryService{
-        ai: model.New("anthropic",
-            model.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
-            model.WithModel("claude-sonnet-4-20250514"),
+        ai: ai.New("anthropic",
+            ai.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
+            ai.WithModel("claude-sonnet-4-20250514"),
         ),
     }
 }
@@ -119,7 +119,7 @@ func (s *SummaryService) Summarize(ctx context.Context, req *SummarizeRequest, r
     }
 
     // Use AI to summarize
-    resp, err := s.ai.Generate(ctx, &model.Request{
+    resp, err := s.ai.Generate(ctx, &ai.Request{
         Prompt:       fmt.Sprintf("Summarize these tasks:\n%s", formatTasks(tasks)),
         SystemPrompt: "You are a concise project manager. Summarize task status in 2-3 sentences.",
     })
@@ -140,7 +140,7 @@ func (s *SummaryService) Summarize(ctx context.Context, req *SummarizeRequest, r
 
 ## Pattern 4: Agent with Tool Calling
 
-An AI model calls your services as tools, with automatic tool execution via the model package.
+An AI model calls your services as tools, with automatic tool execution via the ai package.
 
 ```
 User → Your App → AI Model ←→ MCP Tools (your services)
@@ -150,12 +150,12 @@ User → Your App → AI Model ←→ MCP Tools (your services)
 
 ```go
 import (
-    "go-micro.dev/v5/model"
-    _ "go-micro.dev/v5/model/anthropic"
+    "go-micro.dev/v5/ai"
+    _ "go-micro.dev/v5/ai/anthropic"
 )
 
 // Define tools from your service endpoints
-tools := []model.Tool{
+tools := []ai.Tool{
     {
         Name:        "create_task",
         Description: "Create a new task with title and assignee",
@@ -196,13 +196,13 @@ toolHandler := func(name string, input map[string]any) (any, string) {
     return nil, `{"error": "unknown tool"}`
 }
 
-m := model.New("anthropic",
-    model.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
-    model.WithToolHandler(toolHandler),
+m := ai.New("anthropic",
+    ai.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
+    ai.WithToolHandler(toolHandler),
 )
 
 // The model will automatically call tools and return the final answer
-resp, err := m.Generate(ctx, &model.Request{
+resp, err := m.Generate(ctx, &ai.Request{
     Prompt:       "Create a task for Alice to review the PR and tell me what tasks she has",
     SystemPrompt: "You are a helpful project management assistant",
     Tools:        tools,
@@ -240,7 +240,7 @@ broker.Subscribe("tasks.created", func(p broker.Event) error {
     json.Unmarshal(p.Message().Body, &task)
 
     // Use AI to auto-assign based on task content
-    resp, err := ai.Generate(ctx, &model.Request{
+    resp, err := aiModel.Generate(ctx, &ai.Request{
         Prompt: fmt.Sprintf("Who should handle this task? Title: %s, Description: %s. Team: alice (frontend), bob (backend), charlie (devops)", task.Title, task.Description),
         SystemPrompt: "Reply with just the username of the best person to handle this task.",
     })
@@ -439,4 +439,4 @@ Keep services as pure business logic. Let the agent (or the agent framework) han
 - [Building AI-Native Services](ai-native-services.md) - End-to-end tutorial
 - [MCP Security Guide](mcp-security.md) - Auth and scopes
 - [Tool Description Best Practices](tool-descriptions.md) - Better docs for agents
-- [Model Package](../../model/README.md) - AI provider interface
+- [AI Package](../../ai/README.md) - AI provider interface

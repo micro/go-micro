@@ -1,6 +1,6 @@
-# Model Package
+# AI Package
 
-The `model` package provides a simple, high-level interface for AI model providers like Anthropic Claude and OpenAI GPT.
+The `ai` package provides a simple, high-level interface for AI model providers like Anthropic Claude and OpenAI GPT.
 
 ## Interface
 
@@ -21,19 +21,19 @@ type Model interface {
 ```go
 import (
     "context"
-    "go-micro.dev/v5/model"
-    _ "go-micro.dev/v5/model/anthropic"
-    _ "go-micro.dev/v5/model/openai"
+    "go-micro.dev/v5/ai"
+    _ "go-micro.dev/v5/ai/anthropic"
+    _ "go-micro.dev/v5/ai/openai"
 )
 
 // Create a model
-m := model.New("openai",
-    model.WithAPIKey("your-api-key"),
-    model.WithModel("gpt-4o"),
+m := ai.New("openai",
+    ai.WithAPIKey("your-api-key"),
+    ai.WithModel("gpt-4o"),
 )
 
 // Generate a response
-req := &model.Request{
+req := &ai.Request{
     Prompt:       "What is Go?",
     SystemPrompt: "You are a helpful programming assistant",
 }
@@ -51,10 +51,10 @@ fmt.Println(resp.Reply)
 Configure the model using functional options:
 
 ```go
-m := model.New("anthropic",
-    model.WithAPIKey("your-key"),              // Required
-    model.WithModel("claude-sonnet-4-20250514"), // Optional, uses provider default
-    model.WithBaseURL("https://api.anthropic.com"), // Optional, uses provider default
+m := ai.New("anthropic",
+    ai.WithAPIKey("your-key"),              // Required
+    ai.WithModel("claude-sonnet-4-20250514"), // Optional, uses provider default
+    ai.WithBaseURL("https://api.anthropic.com"), // Optional, uses provider default
 )
 ```
 
@@ -62,8 +62,8 @@ You can also update options after creation:
 
 ```go
 m.Init(
-    model.WithModel("gpt-4o-mini"),
-    model.WithAPIKey("new-key"),
+    ai.WithModel("gpt-4o-mini"),
+    ai.WithAPIKey("new-key"),
 )
 ```
 
@@ -84,16 +84,16 @@ toolHandler := func(name string, input map[string]any) (result any, content stri
 }
 
 // Create model with tool handler
-m := model.New("openai",
-    model.WithAPIKey("your-key"),
-    model.WithToolHandler(toolHandler),
+m := ai.New("openai",
+    ai.WithAPIKey("your-key"),
+    ai.WithToolHandler(toolHandler),
 )
 
 // Provide tools in the request
-req := &model.Request{
+req := &ai.Request{
     Prompt: "What's the weather?",
     SystemPrompt: "You are a helpful assistant",
-    Tools: []model.Tool{
+    Tools: []ai.Tool{
         {
             Name:        "get_weather",
             Description: "Get current weather",
@@ -131,25 +131,25 @@ type Response struct {
 ### Anthropic Claude
 
 ```go
-m := model.New("anthropic",
-    model.WithAPIKey("sk-ant-..."),
-    model.WithModel("claude-sonnet-4-20250514"), // default
+m := ai.New("anthropic",
+    ai.WithAPIKey("sk-ant-..."),
+    ai.WithModel("claude-sonnet-4-20250514"), // default
 )
 ```
 
-Default model: `claude-sonnet-4-20250514`  
+Default model: `claude-sonnet-4-20250514`
 Default base URL: `https://api.anthropic.com`
 
 ### OpenAI GPT
 
 ```go
-m := model.New("openai",
-    model.WithAPIKey("sk-..."),
-    model.WithModel("gpt-4o"), // default
+m := ai.New("openai",
+    ai.WithAPIKey("sk-..."),
+    ai.WithModel("gpt-4o"), // default
 )
 ```
 
-Default model: `gpt-4o`  
+Default model: `gpt-4o`
 Default base URL: `https://api.openai.com`
 
 ## Auto-Detection
@@ -157,33 +157,33 @@ Default base URL: `https://api.openai.com`
 Use `AutoDetectProvider()` to detect the provider from a base URL:
 
 ```go
-provider := model.AutoDetectProvider("https://api.anthropic.com")
+provider := ai.AutoDetectProvider("https://api.anthropic.com")
 // Returns "anthropic"
 
-m := model.New(provider, model.WithAPIKey("..."))
+m := ai.New(provider, ai.WithAPIKey("..."))
 ```
 
 ## Adding a New Provider
 
-1. Create a new package under `model/`:
+1. Create a new package under `ai/`:
 
 ```go
 package myprovider
 
-import "go-micro.dev/v5/model"
+import "go-micro.dev/v5/ai"
 
 func init() {
-    model.Register("myprovider", func(opts ...model.Option) model.Model {
+    ai.Register("myprovider", func(opts ...ai.Option) ai.Model {
         return NewProvider(opts...)
     })
 }
 
 type Provider struct {
-    opts model.Options
+    opts ai.Options
 }
 
-func NewProvider(opts ...model.Option) *Provider {
-    options := model.NewOptions(opts...)
+func NewProvider(opts ...ai.Option) *Provider {
+    options := ai.NewOptions(opts...)
     // Set defaults
     if options.Model == "" {
         options.Model = "my-default-model"
@@ -194,14 +194,14 @@ func NewProvider(opts ...model.Option) *Provider {
     return &Provider{opts: options}
 }
 
-func (p *Provider) Init(opts ...model.Option) error {
+func (p *Provider) Init(opts ...ai.Option) error {
     for _, o := range opts {
         o(&p.opts)
     }
     return nil
 }
 
-func (p *Provider) Options() model.Options {
+func (p *Provider) Options() ai.Options {
     return p.opts
 }
 
@@ -209,16 +209,16 @@ func (p *Provider) String() string {
     return "myprovider"
 }
 
-func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
     // Implement your provider logic
     // - Build API request
     // - Make HTTP call
     // - Parse response
     // - Handle tools if ToolHandler is set
-    return &model.Response{}, nil
+    return &ai.Response{}, nil
 }
 
-func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
+func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
     return nil, fmt.Errorf("streaming not implemented")
 }
 ```
@@ -226,12 +226,12 @@ func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model
 2. Import your provider:
 
 ```go
-import _ "go-micro.dev/v5/model/myprovider"
+import _ "go-micro.dev/v5/ai/myprovider"
 ```
 
 ## Comparison with Other Packages
 
-The model package follows the same patterns as other go-micro packages:
+The ai package follows the same patterns as other go-micro packages:
 
 **Registry:**
 ```go
@@ -245,9 +245,9 @@ c := client.NewClient(client.Retries(3))
 c.Call(ctx, req, rsp)
 ```
 
-**Model:**
+**AI:**
 ```go
-m := model.New("openai", model.WithAPIKey("..."))
+m := ai.New("openai", ai.WithAPIKey("..."))
 m.Generate(ctx, req)
 ```
 
@@ -260,9 +260,9 @@ All use:
 ## Testing
 
 ```bash
-go test ./model/...
+go test ./ai/...
 ```
 
 ## Examples
 
-See the [server implementation](../../cmd/micro/server/server.go) for a complete example of using the model package with tool execution.
+See the [server implementation](../cmd/micro/server/server.go) for a complete example of using the ai package with tool execution.

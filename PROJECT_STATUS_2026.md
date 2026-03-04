@@ -21,7 +21,7 @@ The **Q1 2026: MCP Foundation** milestone is **COMPLETE** with significant progr
 | **CLI Integration** | ✅ COMPLETE | 100% |
 | **CLI Export Commands (Q2 Feature)** | ✅ COMPLETE | 100% |
 | **LangChain SDK (Q2 Feature)** | ✅ COMPLETE | 100% |
-| **Model Package (Q2 Feature)** | ✅ COMPLETE | 100% |
+| **AI Package (Q2 Feature)** | ✅ COMPLETE | 100% |
 | **Documentation Extraction** | ✅ COMPLETE | 100% |
 | **Tracing & Audit** | ✅ COMPLETE | 100% |
 | **Rate Limiting** | ✅ COMPLETE | 100% |
@@ -237,7 +237,7 @@ This was planned for Q2 2026 but has been fully implemented:
    })
    ```
 
-### ✅ Model Package (Q2 2026 Feature)
+### ✅ AI Package (Q2 2026 Feature)
 
 **Status:** COMPLETE (February 2026)
 
@@ -257,8 +257,8 @@ This was delivered as part of the agent integration push:
    ```
 
 2. **Providers:**
-   - Anthropic Claude (`model/anthropic`) - Default: claude-sonnet-4-20250514
-   - OpenAI GPT (`model/openai`) - Default: gpt-4o
+   - Anthropic Claude (`ai/anthropic`) - Default: claude-sonnet-4-20250514
+   - OpenAI GPT (`ai/openai`) - Default: gpt-4o
    - Provider auto-detection from base URL
 
 3. **Tool Execution:**
