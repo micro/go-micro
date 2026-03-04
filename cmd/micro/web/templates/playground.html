@@ -1,39 +1,140 @@
 {{define "content"}}
-<h2>Agent</h2>
-<p>Chat with your microservices using AI. Configure a model API key in settings, then use the prompt to interact with your services.</p>
+<style>
+  #agent-chat {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 160px);
+    max-height: 800px;
+  }
+  #agent-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1em 0;
+    scroll-behavior: smooth;
+  }
+  .msg { padding: 0.7em 1em; border-radius: 8px; margin-bottom: 0.6em; line-height: 1.6; }
+  .msg-user { background: #f0f4ff; border: 1px solid #d0d8f0; }
+  .msg-user b { color: #336; }
+  .msg-assistant { background: #fff; border: 1px solid #ddd; }
+  .msg-assistant b { color: #333; }
+  .msg-error { background: #fff5f5; border: 1px solid #e88; color: #a00; }
+  .msg-thinking { background: #fafafa; border: 1px solid #e5e5e5; color: #888; font-style: italic; }
+  .tool-call {
+    background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px;
+    margin-bottom: 0.6em; font-size: 0.93em; overflow: hidden;
+  }
+  .tool-header {
+    padding: 0.5em 1em; cursor: pointer; display: flex; align-items: center;
+    gap: 0.5em; user-select: none; font-weight: 600; color: #555;
+  }
+  .tool-header:hover { background: #f0f0f0; }
+  .tool-header .arrow { transition: transform 0.2s; display: inline-block; }
+  .tool-header .arrow.open { transform: rotate(90deg); }
+  .tool-body { padding: 0 1em 0.8em 1em; display: none; }
+  .tool-body.open { display: block; }
+  .tool-body pre {
+    background: #f5f5f5; padding: 0.6em; border-radius: 4px;
+    overflow-x: auto; font-size: 0.9em; margin: 0.4em 0;
+  }
+  .tool-body .tool-label { font-weight: 600; color: #666; font-size: 0.85em; margin-top: 0.5em; }
+  .tool-status { font-size: 0.8em; font-weight: normal; margin-left: auto; }
+  .tool-status.ok { color: #2a2; }
+  .tool-status.err { color: #c00; }
+  #prompt-bar {
+    display: flex; gap: 0.5em; align-items: center;
+    padding: 0.8em 0 0 0; border-top: 1px solid #eee;
+  }
+  #prompt-bar input {
+    flex: 1; margin-bottom: 0; padding: 0.6em 0.8em;
+    border: 1px solid #ccc; border-radius: 6px; font-size: 1em;
+  }
+  #prompt-bar button { padding: 0.6em 1.5em; border-radius: 6px; font-size: 1em; white-space: nowrap; }
+  #prompt-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .tools-bar {
+    display: flex; gap: 0.5em; align-items: center;
+    padding: 0.5em 0; font-size: 0.85em; color: #888;
+  }
+  .tools-bar .tool-count { font-weight: 600; color: #555; }
+  .settings-toggle {
+    background: none; border: 1px solid #ddd; border-radius: 6px;
+    padding: 0.3em 0.8em; font-size: 0.85em; cursor: pointer; color: #555;
+  }
+  .settings-toggle:hover { background: #f5f5f5; }
+  #settings-panel {
+    display: none; background: #fafafa; border: 1px solid #e5e5e5;
+    border-radius: 8px; padding: 1em 1.2em; margin-bottom: 1em;
+  }
+  #settings-panel.open { display: block; }
+  #settings-panel label { display: block; font-weight: 600; margin-top: 0.6em; font-size: 0.9em; }
+  #settings-panel input, #settings-panel select {
+    width: 100%; padding: 0.4em 0.6em; font-size: 0.9em;
+    border: 1px solid #ddd; border-radius: 4px; margin-top: 0.2em;
+  }
+  #settings-panel .settings-row { display: flex; gap: 1em; }
+  #settings-panel .settings-row > div { flex: 1; }
+  .clear-btn {
+    background: none; border: none; color: #999; cursor: pointer;
+    font-size: 0.85em; padding: 0.3em 0.5em;
+  }
+  .clear-btn:hover { color: #c00; }
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100%; color: #aaa; text-align: center;
+  }
+  .empty-state .icon { font-size: 3em; margin-bottom: 0.3em; }
+  .empty-state p { margin: 0.3em 0; max-width: 400px; }
+</style>
 
-<h3>Prompt</h3>
-<div id="agent-messages"></div>
-<form onsubmit="return false;" style="display:flex; gap:0.5em; align-items:flex-end;">
-  <input type="text" id="prompt-input" placeholder="e.g. List all users, Create a blog post..." style="flex:1; margin-bottom:0;">
-  <button id="prompt-btn" onclick="sendPrompt()">Send</button>
-</form>
+<div id="agent-chat">
+  <div class="tools-bar">
+    <span>Tools: <span class="tool-count" id="tool-count">...</span></span>
+    <button class="settings-toggle" onclick="toggleSettings()">Settings</button>
+    <button class="clear-btn" onclick="clearChat()">Clear chat</button>
+  </div>
 
-<h3>Settings</h3>
-<form id="settings-form" onsubmit="return false;">
-  <label style="display:block; font-weight:600;">Provider</label>
-  <select id="provider">
-    <option value="openai">OpenAI</option>
-    <option value="anthropic">Anthropic</option>
-  </select>
-  <label style="display:block; font-weight:600;">Model API Key</label>
-  <input type="password" id="api-key" placeholder="sk-... or API key for your model provider">
-  <label style="display:block; font-weight:600;">Model (optional)</label>
-  <input type="text" id="model-name" placeholder="e.g. gpt-4o or claude-sonnet-4-20250514">
-  <label style="display:block; font-weight:600;">Base URL (optional)</label>
-  <input type="text" id="base-url" placeholder="Leave blank for default">
-  <button onclick="saveSettings()">Save Settings</button>
-  <span id="settings-status" style="margin-left:0.5em; color:#888;"></span>
-</form>
+  <div id="settings-panel">
+    <div class="settings-row">
+      <div>
+        <label>Provider</label>
+        <select id="provider">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+        </select>
+      </div>
+      <div>
+        <label>Model (optional)</label>
+        <input type="text" id="model-name" placeholder="e.g. gpt-4o, claude-sonnet-4-20250514">
+      </div>
+    </div>
+    <label>API Key</label>
+    <input type="password" id="api-key" placeholder="sk-... or API key">
+    <label>Base URL (optional)</label>
+    <input type="text" id="base-url" placeholder="Leave blank for default">
+    <div style="margin-top:0.8em; display:flex; gap:0.5em; align-items:center;">
+      <button onclick="saveSettings()" style="padding:0.4em 1em; font-size:0.9em;">Save</button>
+      <span id="settings-status" style="color:#888; font-size:0.85em;"></span>
+    </div>
+  </div>
 
-<h3>Available Tools</h3>
-<div id="tools-list">
-  <p style="color:#888;">Loading tools...</p>
+  <div id="agent-messages">
+    <div class="empty-state" id="empty-state">
+      <div class="icon">&#129302;</div>
+      <p><b>Chat with your services</b></p>
+      <p>Ask the agent to interact with your microservices. It will discover and call the right tools automatically.</p>
+      <p id="empty-tools" style="font-size:0.85em; color:#bbb; margin-top:0.8em;"></p>
+    </div>
+  </div>
+
+  <div id="prompt-bar">
+    <input type="text" id="prompt-input" placeholder="Ask the agent to call your services..." autofocus>
+    <button id="prompt-btn" onclick="sendPrompt()">Send</button>
+  </div>
 </div>
 
 <script>
 (function() {
   var tools = [];
+  var toolCount = document.getElementById('tool-count');
 
   loadSettings();
   loadTools();
@@ -46,9 +147,19 @@
         if (data.api_key) document.getElementById('api-key').value = data.api_key;
         if (data.model) document.getElementById('model-name').value = data.model;
         if (data.base_url) document.getElementById('base-url').value = data.base_url;
+        // Auto-show settings if no API key configured
+        if (!data.api_key) {
+          document.getElementById('settings-panel').classList.add('open');
+        }
       })
-      .catch(function() {});
+      .catch(function() {
+        document.getElementById('settings-panel').classList.add('open');
+      });
   }
+
+  window.toggleSettings = function() {
+    document.getElementById('settings-panel').classList.toggle('open');
+  };
 
   window.saveSettings = function() {
     var status = document.getElementById('settings-status');
@@ -64,7 +175,10 @@
       })
     })
     .then(function(r) { return r.json(); })
-    .then(function() { status.textContent = 'Saved'; })
+    .then(function() {
+      status.textContent = 'Saved';
+      setTimeout(function() { status.textContent = ''; }, 2000);
+    })
     .catch(function(err) { status.textContent = 'Error: ' + err; });
   };
 
@@ -73,28 +187,30 @@
       .then(function(r) { return r.json(); })
       .then(function(data) {
         tools = data.tools || [];
-        renderTools();
+        toolCount.textContent = tools.length;
+        var emptyTools = document.getElementById('empty-tools');
+        if (tools.length > 0) {
+          var names = tools.slice(0, 5).map(function(t) { return t.name; });
+          var suffix = tools.length > 5 ? ' and ' + (tools.length - 5) + ' more' : '';
+          emptyTools.textContent = 'Available: ' + names.join(', ') + suffix;
+        } else {
+          emptyTools.textContent = 'No tools found. Start some services first.';
+        }
       })
-      .catch(function(err) {
-        document.getElementById('tools-list').innerHTML = '<p style="color:#c00;">Failed to load tools: ' + err + '</p>';
+      .catch(function() {
+        toolCount.textContent = '0';
       });
   }
 
-  function renderTools() {
-    var el = document.getElementById('tools-list');
-    if (tools.length === 0) {
-      el.innerHTML = '<p style="color:#888;">No tools available. Start some services and they will appear here.</p>';
-      return;
-    }
-    var html = '<table><thead><tr><th>Tool</th><th>Description</th></tr></thead><tbody>';
-    for (var i = 0; i < tools.length; i++) {
-      var t = tools[i];
-      html += '<tr><td><code>' + escapeHtml(t.name) + '</code></td>';
-      html += '<td>' + escapeHtml(t.description || '') + '</td></tr>';
-    }
-    html += '</tbody></table>';
-    el.innerHTML = html;
-  }
+  window.clearChat = function() {
+    var container = document.getElementById('agent-messages');
+    container.innerHTML = '';
+    var emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    emptyState.id = 'empty-state';
+    emptyState.innerHTML = '<div class="icon">&#129302;</div><p><b>Chat with your services</b></p><p>Ask the agent to interact with your microservices.</p>';
+    container.appendChild(emptyState);
+  };
 
   window.sendPrompt = function() {
     var input = document.getElementById('prompt-input');
@@ -102,11 +218,21 @@
     if (!text) return;
     input.value = '';
 
+    // Remove empty state on first message
+    var emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.remove();
+
     addMessage('user', escapeHtml(text));
+
+    // Show thinking indicator
+    var thinkingId = 'thinking-' + Date.now();
+    addMessage('thinking', 'Agent is thinking...', thinkingId);
 
     var btn = document.getElementById('prompt-btn');
     btn.disabled = true;
-    btn.textContent = '...';
+    btn.textContent = 'Sending...';
+
+    var startTime = Date.now();
 
     fetch('/api/agent/prompt', {
       method: 'POST',
@@ -115,8 +241,15 @@
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
+      var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       btn.disabled = false;
       btn.textContent = 'Send';
+      input.focus();
+
+      // Remove thinking indicator
+      var thinking = document.getElementById(thinkingId);
+      if (thinking) thinking.remove();
+
       if (data.error) {
         addMessage('error', escapeHtml(data.error));
         return;
@@ -127,9 +260,7 @@
       if (data.tool_calls && data.tool_calls.length > 0) {
         for (var i = 0; i < data.tool_calls.length; i++) {
           var tc = data.tool_calls[i];
-          addMessage('tool', '<b>Tool:</b> <code>' + escapeHtml(tc.tool) + '</code>' +
-            '<pre>' + escapeHtml(JSON.stringify(tc.input, null, 2)) + '</pre>' +
-            '<b>Result:</b><pre>' + escapeHtml(JSON.stringify(tc.result, null, 2)) + '</pre>');
+          addToolCall(tc, elapsed);
         }
       }
       if (data.answer) {
@@ -139,35 +270,58 @@
     .catch(function(err) {
       btn.disabled = false;
       btn.textContent = 'Send';
+      input.focus();
+      var thinking = document.getElementById(thinkingId);
+      if (thinking) thinking.remove();
       addMessage('error', 'Error: ' + escapeHtml(String(err)));
     });
   };
+
+  function addToolCall(tc, elapsed) {
+    var container = document.getElementById('agent-messages');
+    var div = document.createElement('div');
+    div.className = 'tool-call';
+
+    var hasError = tc.result && tc.result.error;
+    var statusClass = hasError ? 'err' : 'ok';
+    var statusText = hasError ? 'error' : elapsed + 's';
+
+    var inputJson = JSON.stringify(tc.input, null, 2);
+    var resultJson = JSON.stringify(tc.result, null, 2);
+
+    div.innerHTML =
+      '<div class="tool-header" onclick="this.querySelector(\'.arrow\').classList.toggle(\'open\'); this.nextElementSibling.classList.toggle(\'open\');">' +
+        '<span class="arrow">&#9654;</span> ' +
+        '<code>' + escapeHtml(tc.tool) + '</code>' +
+        '<span class="tool-status ' + statusClass + '">' + statusText + '</span>' +
+      '</div>' +
+      '<div class="tool-body">' +
+        '<div class="tool-label">Input</div>' +
+        '<pre>' + escapeHtml(inputJson) + '</pre>' +
+        '<div class="tool-label">Result</div>' +
+        '<pre>' + escapeHtml(resultJson) + '</pre>' +
+      '</div>';
+
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+  }
 
   document.getElementById('prompt-input').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') { e.preventDefault(); window.sendPrompt(); }
   });
 
-  function addMessage(type, html) {
+  function addMessage(type, html, id) {
     var container = document.getElementById('agent-messages');
     var div = document.createElement('div');
-    div.style.cssText = 'padding:0.8em 1em; border-radius:7px; margin-bottom:0.8em; line-height:1.6;';
+    div.className = 'msg msg-' + type;
+    if (id) div.id = id;
     if (type === 'user') {
-      div.style.background = '#f7f7f7';
-      div.style.border = '1px solid #eee';
-      div.innerHTML = '<b>You:</b> ' + html;
+      div.innerHTML = '<b>You</b><br>' + html;
     } else if (type === 'assistant' || type === 'answer') {
-      div.style.background = '#fff';
-      div.style.border = '1px solid #ddd';
-      div.innerHTML = '<b>Agent:</b> ' + html;
-    } else if (type === 'tool') {
-      div.style.background = '#fafafa';
-      div.style.border = '1px solid #e0e0e0';
-      div.style.fontSize = '0.95em';
+      div.innerHTML = '<b>Agent</b><br>' + html;
+    } else if (type === 'thinking') {
       div.innerHTML = html;
     } else if (type === 'error') {
-      div.style.background = '#fff';
-      div.style.border = '1px solid #c00';
-      div.style.color = '#c00';
       div.innerHTML = html;
     }
     container.appendChild(div);
