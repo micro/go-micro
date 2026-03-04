@@ -19,6 +19,16 @@ cd hello
 go run main.go
 ```
 
+### [crud](./crud/) - CRUD Contact Book
+
+A realistic service with create, read, update, delete, list, and search operations. Shows how to document a full API for agents with `@example` tags, `description` struct tags, validation errors, and partial updates.
+
+**Run it:**
+```bash
+cd crud
+go run main.go
+```
+
 ### [documented](./documented/) - Full-Featured Example
 
 Complete example showing all MCP features with a user service.
