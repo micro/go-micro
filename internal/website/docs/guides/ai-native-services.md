@@ -218,6 +218,10 @@ func main() {
 
 ## Step 5: Run with MCP
 
+There are three ways to run your service with MCP enabled.
+
+### Option A: `micro run` (Recommended for Development)
+
 ```bash
 micro run
 ```
@@ -226,12 +230,48 @@ Your service is now available at:
 - **Web Dashboard:** http://localhost:8080/
 - **Agent Playground:** http://localhost:8080/agent
 - **MCP Tools:** http://localhost:8080/api/mcp/tools
+- **WebSocket:** ws://localhost:3000/mcp/ws
 - **API Gateway:** http://localhost:8080/api/tasks/TaskService/Create
+
+### Option B: `WithMCP` (One-Liner for Library Users)
+
+Add MCP to your service with a single option:
+
+```go
+import "go-micro.dev/v5/gateway/mcp"
+
+func main() {
+    service := micro.NewService(
+        micro.Name("tasks"),
+        mcp.WithMCP(":3000"), // MCP gateway starts automatically
+    )
+    service.Init()
+    // register handlers...
+    service.Run()
+}
+```
+
+This starts the MCP gateway on port 3000 alongside your service. All registered handlers are automatically exposed as MCP tools.
+
+### Option C: Standalone MCP Gateway
+
+For production, run the MCP gateway as a separate process that discovers all services:
+
+```bash
+micro-mcp-gateway \
+  --registry consul \
+  --registry-address consul:8500 \
+  --address :3000 \
+  --auth jwt \
+  --rate-limit 10
+```
+
+See the [standalone gateway docs](../deployment.md) for more.
 
 ### Use with Claude Code
 
 ```bash
-# Start MCP server for Claude Code
+# Start MCP server for Claude Code (stdio transport)
 micro mcp serve
 ```
 
@@ -264,6 +304,24 @@ Claude: [calls tasks.TaskService.Update with {"id": "task-1", "status": "in_prog
         Updated task-1 to "in_progress".
 ```
 
+### Use with WebSocket Clients
+
+For real-time bidirectional communication (e.g., streaming agent frameworks):
+
+```javascript
+const ws = new WebSocket("ws://localhost:3000/mcp/ws", {
+  headers: { "Authorization": "Bearer <token>" }
+});
+
+// JSON-RPC 2.0 over WebSocket
+ws.send(JSON.stringify({
+  jsonrpc: "2.0",
+  id: 1,
+  method: "tools/list",
+  params: {}
+}));
+```
+
 ## Step 6: Test Your Tools
 
 Use the CLI to verify tools work:
@@ -282,7 +340,31 @@ micro mcp docs
 micro mcp export --format langchain
 ```
 
-## Step 7: Use the Model Package (Optional)
+## Step 7: Add Observability (Optional)
+
+Enable OpenTelemetry tracing to see every agent tool call as a distributed trace:
+
+```go
+import (
+    "go.opentelemetry.io/otel"
+    "go-micro.dev/v5/gateway/mcp"
+)
+
+go mcp.ListenAndServe(":3000", mcp.Options{
+    Registry:      service.Options().Registry,
+    TraceProvider: otel.GetTracerProvider(),
+})
+```
+
+Each tool call generates a span with attributes:
+- `mcp.tool.name` — which tool was called
+- `mcp.transport` — HTTP, WebSocket, or stdio
+- `mcp.account.id` — who called it
+- `mcp.auth.allowed` — whether it was permitted
+
+Trace context is propagated downstream via metadata headers (`Mcp-Trace-Id`, `Mcp-Tool-Name`, `Mcp-Account-Id`), so you get full distributed traces from agent through gateway to service.
+
+## Step 8: Use the Model Package (Optional)
 
 If your service needs to call AI models directly:
 

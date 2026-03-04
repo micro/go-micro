@@ -232,6 +232,43 @@ Test individual tools with specific inputs:
 micro mcp test tasks.TaskService.Create
 ```
 
+## Manual Overrides
+
+If you can't modify the source code (e.g., third-party services), override descriptions at handler registration:
+
+```go
+handler := service.Server().NewHandler(
+    new(LegacyService),
+    server.WithEndpointDocs("LegacyService.Process", server.EndpointDocs{
+        Description: "Process a payment transaction. Charges the specified amount to the customer's payment method on file.",
+        Example:     `{"customer_id": "cust-123", "amount_cents": 4999, "currency": "USD"}`,
+    }),
+)
+```
+
+Manual docs take precedence over auto-extracted comments. This is useful for:
+- Third-party or generated code where you can't add comments
+- Overriding auto-extracted descriptions that aren't agent-friendly
+- Adding examples to legacy endpoints
+
+## Export Formats
+
+You can export tool descriptions in different formats for use with agent frameworks:
+
+```bash
+# Human-readable documentation
+micro mcp docs
+
+# JSON for custom tooling
+micro mcp export --format json
+
+# LangChain Python format
+micro mcp export --format langchain
+
+# OpenAPI specification
+micro mcp export --format openapi
+```
+
 ## Common Mistakes
 
 1. **Placeholder examples** — Using `"string"` or `"test"` instead of realistic values

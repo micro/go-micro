@@ -305,6 +305,95 @@ Now in Claude Code:
 - Managing services during development
 - Testing and debugging with natural language
 
+## Pattern 7: LangChain / LlamaIndex Integration
+
+Use the official Python SDKs to connect agent frameworks directly to your services.
+
+### LangChain
+
+```python
+from langchain_go_micro import GoMicroToolkit
+
+# Connect to MCP gateway
+toolkit = GoMicroToolkit(
+    base_url="http://localhost:3000",
+    token="Bearer <token>",
+)
+
+# Get LangChain tools automatically
+tools = toolkit.get_tools()
+
+# Use with any LangChain agent
+from langchain.agents import AgentExecutor, create_tool_calling_agent
+agent = create_tool_calling_agent(llm, tools, prompt)
+executor = AgentExecutor(agent=agent, tools=tools)
+executor.invoke({"input": "Create a task for Alice"})
+```
+
+### LlamaIndex
+
+```python
+from go_micro_llamaindex import GoMicroToolkit
+
+toolkit = GoMicroToolkit(
+    base_url="http://localhost:3000",
+    token="Bearer <token>",
+)
+
+# Use as LlamaIndex tools
+tools = toolkit.to_tool_list()
+
+# Use with a LlamaIndex agent
+from llama_index.core.agent import ReActAgent
+agent = ReActAgent.from_tools(tools, llm=llm)
+agent.chat("What tasks are assigned to Bob?")
+```
+
+### When to Use
+
+- Python-based agent pipelines
+- RAG (Retrieval-Augmented Generation) workflows with LlamaIndex
+- Multi-step LangChain chains that orchestrate your services
+- Teams that prefer Python for AI/ML work
+
+## Pattern 8: Standalone Gateway for Production
+
+Run the MCP gateway as a separate, horizontally scalable process.
+
+```
+                    ┌──────────────────┐
+Claude/GPT/Agent ──→│ micro-mcp-gateway │──→ Service A (consul)
+                    │   (standalone)    │──→ Service B (consul)
+                    └──────────────────┘──→ Service C (consul)
+```
+
+### Setup
+
+```bash
+micro-mcp-gateway \
+  --registry consul \
+  --registry-address consul:8500 \
+  --address :3000 \
+  --auth jwt \
+  --rate-limit 10 \
+  --rate-burst 20 \
+  --audit
+```
+
+Or via Docker:
+
+```bash
+docker run -p 3000:3000 ghcr.io/micro/micro-mcp-gateway \
+  --registry consul \
+  --registry-address consul:8500
+```
+
+### When to Use
+
+- Production deployments where you want the gateway to scale independently
+- Multiple teams deploying services but sharing one MCP endpoint
+- Enterprise environments needing centralized auth and audit
+
 ## Choosing a Pattern
 
 | Pattern | Complexity | Best For |
@@ -315,6 +404,8 @@ Now in Claude Code:
 | Tool Calling | Medium | Chatbots, assistants |
 | Event-Driven | High | Automation, background processing |
 | Claude Code | Low | Developer workflows |
+| LangChain/LlamaIndex | Medium | Python agent pipelines, RAG |
+| Standalone Gateway | Medium | Production, enterprise |
 
 Start with **Pattern 1** (single agent) and add complexity as needed. Most applications don't need multi-agent architectures.
 
