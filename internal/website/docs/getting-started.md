@@ -138,13 +138,10 @@ curl -XPOST \
 
 ## Set a fixed address
 
-To set a fixed address by specifying it as an option to service, note the change from `New` to `NewService`
+To set a fixed address, pass it as an option:
 
 ```go
-service := micro.NewService(
-    micro.Name("helloworld"),
-    micro.Address(":8080"),
-)
+service := micro.New("helloworld", micro.Address(":8080"))
 ```
 
 Alternatively use `MICRO_SERVER_ADDRESS=:8080` as an env var

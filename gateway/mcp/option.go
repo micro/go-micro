@@ -12,8 +12,7 @@ import (
 //
 //	import "go-micro.dev/v5/gateway/mcp"
 //
-//	service := micro.NewService(
-//	    micro.Name("users"),
+//	service := micro.New("users",
 //	    mcp.WithMCP(":3000"),
 //	)
 func WithMCP(address string) service.Option {

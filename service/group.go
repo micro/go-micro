@@ -14,12 +14,12 @@ import (
 // lifecycle management. All services start together and stop
 // together on signal or context cancellation.
 type Group struct {
-	services []*ServiceImpl
+	services []Service
 	logger   log.Logger
 }
 
 // NewGroup creates a new service group.
-func NewGroup(svcs ...*ServiceImpl) *Group {
+func NewGroup(svcs ...Service) *Group {
 	return &Group{
 		services: svcs,
 		logger:   log.DefaultLogger,
@@ -27,7 +27,7 @@ func NewGroup(svcs ...*ServiceImpl) *Group {
 }
 
 // Add appends one or more services to the group.
-func (g *Group) Add(svcs ...*ServiceImpl) {
+func (g *Group) Add(svcs ...Service) {
 	g.services = append(g.services, svcs...)
 }
 
@@ -37,20 +37,19 @@ func (g *Group) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Initialize all services (parses flags, etc.)
+	// Initialize all services. Disable per-service signal handling
+	// since the group manages signals.
 	for _, svc := range g.services {
-		svc.opts.Signal = false // group handles signals
-		svc.Init()
+		svc.Init(HandleSignal(false))
 	}
 
 	g.logger.Logf(log.InfoLevel, "Starting service group with %d services", len(g.services))
 
-	// Start all services concurrently
+	// Start all services
 	errCh := make(chan error, len(g.services))
 	for _, svc := range g.services {
 		g.logger.Logf(log.InfoLevel, "Starting [service] %s", svc.Name())
 		if err := svc.Start(); err != nil {
-			// If any service fails to start, stop the ones that did start
 			cancel()
 			g.stopAll()
 			return err
@@ -83,7 +82,7 @@ func (g *Group) stopAll() error {
 	var wg sync.WaitGroup
 	for _, svc := range g.services {
 		wg.Add(1)
-		go func(s *ServiceImpl) {
+		go func(s Service) {
 			defer wg.Done()
 			g.logger.Logf(log.InfoLevel, "Stopping [service] %s", s.Name())
 			if err := s.Stop(); err != nil {

@@ -44,15 +44,11 @@ type HelloResponse struct {
 }
 
 func main() {
-    service := micro.NewService(
-        micro.Name("greeter"),
-    )
-
+    service := micro.New("greeter")
     service.Init()
 
     // Register handler - docs extracted automatically from comments!
-    handler := service.Server().NewHandler(new(GreeterService))
-    service.Server().Handle(handler)
+    service.Handle(new(GreeterService))
 
     service.Run()
 }

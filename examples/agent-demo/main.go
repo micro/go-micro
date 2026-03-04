@@ -346,8 +346,7 @@ func hasSkill(skills []string, target string) bool {
 
 func main() {
 	// Create the service
-	service := micro.NewService(
-		micro.Name("demo"),
+	service := micro.New("demo",
 		micro.Address(":9090"),
 		// Start MCP gateway alongside the service
 		mcp.WithMCP(":3000"),
@@ -355,34 +354,29 @@ func main() {
 	service.Init()
 
 	// Register all three handlers with scopes
-	srv := service.Server()
-
-	projectHandler := srv.NewHandler(
+	service.Handle(
 		&ProjectService{projects: make(map[string]*Project)},
 		server.WithEndpointScopes("ProjectService.Create", "projects:write"),
 		server.WithEndpointScopes("ProjectService.Get", "projects:read"),
 		server.WithEndpointScopes("ProjectService.List", "projects:read"),
 	)
-	srv.Handle(projectHandler)
 
-	taskHandler := srv.NewHandler(
+	service.Handle(
 		&TaskService{tasks: make(map[string]*Task)},
 		server.WithEndpointScopes("TaskService.Create", "tasks:write"),
 		server.WithEndpointScopes("TaskService.List", "tasks:read"),
 		server.WithEndpointScopes("TaskService.Update", "tasks:write"),
 	)
-	srv.Handle(taskHandler)
 
-	teamHandler := srv.NewHandler(
+	service.Handle(
 		&TeamService{members: make(map[string]*Member)},
 		server.WithEndpointScopes("TeamService.Add", "team:write"),
 		server.WithEndpointScopes("TeamService.List", "team:read"),
 		server.WithEndpointScopes("TeamService.Get", "team:read"),
 	)
-	srv.Handle(teamHandler)
 
 	// Seed some demo data
-	seedData(srv)
+	seedData(service.Server())
 
 	fmt.Println()
 	fmt.Println("  Agent Demo")
