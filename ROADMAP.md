@@ -2,17 +2,26 @@
 
 This roadmap outlines the planned features and improvements for Go Micro. Community feedback and contributions are welcome!
 
-> **🚀 NEW:** See [ROADMAP_2026.md](ROADMAP_2026.md) for the **AI-Native Era roadmap** focused on MCP integration, agent-first development, and business sustainability. This document covers general framework improvements.
+> **See [ROADMAP_2026.md](ROADMAP_2026.md) for the AI-Native Era roadmap** focused on MCP integration, agent-first development, and business sustainability. This document covers general framework improvements.
 
-## Current Focus (Q1 2026)
+## Current Focus (Q1 2026) - COMPLETE
 
 ### Documentation & Developer Experience
 - [x] Modernize documentation structure
 - [x] Add learn-by-example guides
 - [x] Update issue templates
+- [x] MCP integration documentation
+- [x] Agent playground and MCP tools registry
 - [ ] Create video tutorials
 - [ ] Interactive documentation site
 - [ ] Plugin discovery dashboard
+
+### AI & Model Integration
+- [x] Model package with provider abstraction (`model.Model` interface)
+- [x] Anthropic Claude provider (`model/anthropic`)
+- [x] OpenAI GPT provider (`model/openai`)
+- [x] Tool execution with auto-calling support
+- [x] Streaming support via `model.Stream`
 
 ### Observability
 - [ ] OpenTelemetry native support
@@ -22,7 +31,10 @@ This roadmap outlines the planned features and improvements for Go Micro. Commun
 - [ ] Integration with popular observability platforms
 
 ### Developer Tools
-- [ ] `micro dev` with hot reload
+- [x] `micro run` with hot reload and unified gateway
+- [x] `micro deploy` with SSH + systemd deployment
+- [x] `micro mcp` command suite (serve, list, test, docs, export)
+- [ ] `micro dev` with enhanced hot reload
 - [ ] Service templates (`micro new --template`)
 - [ ] Better error messages with suggestions
 - [ ] Debug tooling improvements
@@ -31,8 +43,8 @@ This roadmap outlines the planned features and improvements for Go Micro. Commun
 ## Q2 2026
 
 ### Production Readiness
-- [ ] Health check standardization
-- [ ] Graceful shutdown improvements
+- [x] Health check standardization
+- [x] Graceful shutdown improvements
 - [ ] Resource cleanup best practices
 - [ ] Load testing framework integration
 - [ ] Performance benchmarking suite
@@ -45,6 +57,10 @@ This roadmap outlines the planned features and improvements for Go Micro. Commun
 - [ ] Multi-cluster patterns
 
 ### Security
+- [x] Bearer token authentication for MCP
+- [x] Per-tool scope enforcement
+- [x] Audit logging
+- [x] Rate limiting
 - [ ] mTLS by default option
 - [ ] Secret management integration (Vault, AWS Secrets Manager)
 - [ ] RBAC improvements
@@ -62,7 +78,7 @@ This roadmap outlines the planned features and improvements for Go Micro. Commun
 
 ### Streaming & Async
 - [ ] Improved streaming support
-- [ ] Server-sent events (SSE) support
+- [x] Server-sent events (SSE) support (via MCP gateway)
 - [ ] WebSocket plugin
 - [ ] Event sourcing patterns
 - [ ] CQRS examples
@@ -116,6 +132,7 @@ This roadmap outlines the planned features and improvements for Go Micro. Commun
 ### Differentiation
 - **Batteries included, fully swappable** - Start simple, scale complex
 - **Zero-config local development** - No infrastructure required to start
+- **AI-native by default** - Every service is an MCP tool automatically
 - **Plugin ecosystem in-repo** - No version compatibility hell
 - **Progressive complexity** - Learn as you grow
 - **Cloud-native first** - Built for Kubernetes and containers
@@ -125,11 +142,11 @@ This roadmap outlines the planned features and improvements for Go Micro. Commun
 We welcome contributions to any roadmap items! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ### High Priority Areas
-1. Documentation improvements
-2. Real-world examples
-3. Plugin development
-4. Performance optimizations
-5. Testing infrastructure
+1. Documentation improvements (guides, tutorials)
+2. Multi-protocol MCP support (WebSocket, gRPC)
+3. Agent SDK integrations (LlamaIndex, AutoGPT)
+4. OpenTelemetry integration
+5. Kubernetes operator and Helm charts
 
 ### How to Contribute
 - Pick an item from the roadmap
@@ -139,7 +156,7 @@ We welcome contributions to any roadmap items! See [CONTRIBUTING.md](CONTRIBUTIN
 
 ## Feedback
 
-Have suggestions for the roadmap? 
+Have suggestions for the roadmap?
 
 - Open a [feature request](.github/ISSUE_TEMPLATE/feature_request.md)
 - Start a discussion in GitHub Discussions
@@ -160,6 +177,6 @@ We follow semantic versioning:
 
 ---
 
-Last updated: November 2025
+Last updated: March 2026
 
-This roadmap is subject to change based on community needs and priorities. Star the repo to stay updated! ⭐
+This roadmap is subject to change based on community needs and priorities.

@@ -1,6 +1,6 @@
 # Go Micro Roadmap 2026: The AI-Native Era
 
-**Last Updated:** February 2026
+**Last Updated:** March 2026
 
 ## Executive Summary
 
@@ -92,7 +92,7 @@ Go Micro's MCP integration means:
 
 ## Q2 2026: Agent Developer Experience
 
-**Status:** MOSTLY COMPLETE - Most features delivered (Feb 2026)
+**Status:** MOSTLY COMPLETE (85%) - Core features delivered, docs & SDKs remaining
 
 **Theme:** Make it trivial for any AI to call your services
 
@@ -162,6 +162,15 @@ Create official SDKs for popular agent frameworks:
 - [x] Auto-generate LangChain tools from registry
 - [x] Example: Multi-agent workflow with go-micro services
 - [x] Published to contrib/langchain-go-micro/
+
+#### Model Package ✅ COMPLETE
+- [x] `model.Model` interface with Generate and Stream
+- [x] Anthropic Claude provider (`model/anthropic`)
+- [x] OpenAI GPT provider (`model/openai`)
+- [x] Tool execution with auto-calling support
+- [x] Provider auto-detection from base URL
+
+**Why:** The model package powers the agent playground and enables services to call AI models directly.
 
 #### LlamaIndex Integration
 - [ ] `go-micro-llamaindex` package
@@ -233,7 +242,7 @@ Here are the 5 most recent orders for Alice Smith:
 
 ## Q3 2026: Production & Scale
 
-**Status:** IN PROGRESS - Core security features delivered early (Feb 2026)
+**Status:** IN PROGRESS (40%) - Core security features delivered early, infrastructure work remaining
 
 **Theme:** Run MCP gateways in production at scale
 
@@ -937,12 +946,12 @@ Let's make it Go Micro.
 
 ---
 
-**Next Steps:**
-1. Review this roadmap with community (GitHub Discussions)
-2. Prioritize Q2 2026 items based on feedback
-3. Start building (stdio MCP first)
-4. Launch Go Micro Cloud beta
-5. Ship fast, iterate faster
+**Next Steps (March 2026):**
+1. Complete remaining Q2 items: documentation guides, LlamaIndex SDK, playground polish
+2. Begin Q3 infrastructure: OpenTelemetry integration, standalone gateway binary
+3. Write "Building AI-Native Services" guide and MCP security guide
+4. Publish case studies and community content
+5. Plan Go Micro Cloud beta launch
 
 **Questions? Feedback?**
 - GitHub Discussions: https://github.com/micro/go-micro/discussions
@@ -950,4 +959,4 @@ Let's make it Go Micro.
 
 ---
 
-_This roadmap is a living document. It will evolve based on market feedback, technical discoveries, and community input. Last updated: February 2026._
+_This roadmap is a living document. It will evolve based on market feedback, technical discoveries, and community input. Last updated: March 2026._

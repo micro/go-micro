@@ -67,11 +67,12 @@ Go Micro is evolving from an API-first framework to an **AI-native platform** wh
 - Performance dashboards
 - Cost attribution
 
-**Security**
+**Security** (core features delivered early)
 - OAuth2 for agents
-- Scope-based permissions
-- Audit logging
-- Agent identity validation
+- Scope-based permissions ✅ (delivered)
+- Audit logging ✅ (delivered)
+- Agent identity validation ✅ (delivered)
+- Rate limiting ✅ (delivered)
 
 **Deployment**
 - Kubernetes operator
@@ -233,7 +234,7 @@ For the complete roadmap including business model details, risk mitigation, and 
 
 ---
 
-_Last updated: February 2026_
+_Last updated: March 2026_
 
 **Questions?**
 - GitHub Discussions

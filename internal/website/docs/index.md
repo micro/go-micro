@@ -45,6 +45,13 @@ about the framework.
 - [micro build & deploy](deployment.md) - Build binaries and deploy to production
 - [micro server](server.md) - Optional production web dashboard with auth
 
+## AI & Agents
+
+- [Building AI-Native Services](guides/ai-native-services.md) - End-to-end tutorial for MCP-enabled services
+- [MCP Security Guide](guides/mcp-security.md) - Auth, scopes, rate limiting, and audit logging
+- [Tool Description Best Practices](guides/tool-descriptions.md) - Writing docs that make agents effective
+- [Agent Integration Patterns](guides/agent-patterns.md) - Multi-agent workflows and architectures
+
 ## Advanced
 
 - [Framework Comparison](guides/comparison.md)
