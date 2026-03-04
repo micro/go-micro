@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"go-micro.dev/v5"
-	"go-micro.dev/v5/client"
 )
 
 // Request and Response types
@@ -30,11 +29,7 @@ func (g *Greeter) Hello(ctx context.Context, req *Request, rsp *Response) error 
 
 func main() {
 	// Create a new service
-	service := micro.New(
-		micro.Name("greeter"),
-		micro.Version("latest"),
-		micro.Address(":8080"),
-	)
+	service := micro.New("greeter", micro.Address(":8080"))
 
 	// Initialize the service
 	service.Init()
@@ -44,47 +39,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Run the service in a goroutine
-	go func() {
-		if err := service.Run(); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	fmt.Println("Starting greeter service on :8080")
+	fmt.Println()
+	fmt.Println("Test with:")
+	fmt.Println("  curl -XPOST \\")
+	fmt.Println("    -H 'Content-Type: application/json' \\")
+	fmt.Println("    -H 'Micro-Endpoint: Greeter.Hello' \\")
+	fmt.Println("    -d '{\"name\": \"Alice\"}' \\")
+	fmt.Println("    http://localhost:8080")
 
-	// Wait for service to start
-	fmt.Println("Service started on :8080")
-	fmt.Println("Testing the service...")
-
-	// Create a client to test the service
-	c := service.Client()
-
-	// Make a request
-	req := c.NewRequest("greeter", "Greeter.Hello", &Request{Name: "World"})
-	rsp := &Response{}
-
-	if err := c.Call(context.Background(), req, rsp); err != nil {
-		log.Printf("Error calling service: %v", err)
-	} else {
-		fmt.Printf("Response: %s\n", rsp.Message)
+	// Run the service
+	if err := service.Run(); err != nil {
+		log.Fatal(err)
 	}
-
-	// Make another request
-	req2 := c.NewRequest("greeter", "Greeter.Hello", &Request{Name: "Go Micro"})
-	rsp2 := &Response{}
-
-	if err := c.Call(context.Background(), req2, rsp2); err != nil {
-		log.Printf("Error calling service: %v", err)
-	} else {
-		fmt.Printf("Response: %s\n", rsp2.Message)
-	}
-
-	// Test with HTTP client
-	fmt.Println("\nYou can also test with curl:")
-	fmt.Println("curl -X POST http://localhost:8080 \\")
-	fmt.Println("  -H 'Content-Type: application/json' \\")
-	fmt.Println("  -H 'Micro-Endpoint: Greeter.Hello' \\")
-	fmt.Println("  -d '{\"name\": \"Alice\"}'")
-
-	// Keep service running
-	select {}
 }

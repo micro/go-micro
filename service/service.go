@@ -14,29 +14,51 @@ import (
 	signalutil "go-micro.dev/v5/util/signal"
 )
 
-// ServiceImpl is the concrete service implementation. It is exported
-// to allow the micro package to construct Groups, but users should
-// generally interact through the Service interface.
-type ServiceImpl struct {
+// Service is the interface for a go-micro service.
+type Service interface {
+	// Name returns the service name.
+	Name() string
+	// Init initializes options. Parses command line flags on first call.
+	Init(...Option)
+	// Options returns the current options.
+	Options() Options
+	// Handle registers a handler with optional server.HandlerOption args.
+	Handle(v interface{}, opts ...server.HandlerOption) error
+	// Client returns the RPC client.
+	Client() client.Client
+	// Server returns the RPC server.
+	Server() server.Server
+	// Start the service (non-blocking).
+	Start() error
+	// Stop the service.
+	Stop() error
+	// Run starts the service, blocks on signal/context, then stops.
+	Run() error
+	// String returns the implementation name.
+	String() string
+}
+
+type serviceImpl struct {
 	opts Options
 
 	once sync.Once
 }
 
-func New(opts ...Option) *ServiceImpl {
-	return &ServiceImpl{
+// New creates a new service with the given options.
+func New(opts ...Option) Service {
+	return &serviceImpl{
 		opts: newOptions(opts...),
 	}
 }
 
-func (s *ServiceImpl) Name() string {
+func (s *serviceImpl) Name() string {
 	return s.opts.Server.Options().Name
 }
 
 // Init initializes options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
-func (s *ServiceImpl) Init(opts ...Option) {
+func (s *serviceImpl) Init(opts ...Option) {
 	// process options
 	for _, o := range opts {
 		o(&s.opts)
@@ -63,32 +85,31 @@ func (s *ServiceImpl) Init(opts ...Option) {
 			s.opts.Logger.Log(log.FatalLevel, err)
 		}
 
-		// we might not want to do this
+		// Initialize the store with the service name as table
 		name := s.opts.Cmd.App().Name
-		err := s.opts.Store.Init(store.Table(name))
-		if err != nil {
-			s.opts.Logger.Log(log.FatalLevel, err)
+		if err := s.opts.Store.Init(store.Table(name)); err != nil {
+			s.opts.Logger.Logf(log.ErrorLevel, "error initializing store: %v", err)
 		}
 	})
 }
 
-func (s *ServiceImpl) Options() Options {
+func (s *serviceImpl) Options() Options {
 	return s.opts
 }
 
-func (s *ServiceImpl) Client() client.Client {
+func (s *serviceImpl) Client() client.Client {
 	return s.opts.Client
 }
 
-func (s *ServiceImpl) Server() server.Server {
+func (s *serviceImpl) Server() server.Server {
 	return s.opts.Server
 }
 
-func (s *ServiceImpl) String() string {
+func (s *serviceImpl) String() string {
 	return "micro"
 }
 
-func (s *ServiceImpl) Start() error {
+func (s *serviceImpl) Start() error {
 	for _, fn := range s.opts.BeforeStart {
 		if err := fn(); err != nil {
 			return err
@@ -108,11 +129,13 @@ func (s *ServiceImpl) Start() error {
 	return nil
 }
 
-func (s *ServiceImpl) Stop() error {
-	var err error
+func (s *serviceImpl) Stop() error {
+	var gerr error
 
 	for _, fn := range s.opts.BeforeStop {
-		err = fn()
+		if err := fn(); err != nil {
+			gerr = err
+		}
 	}
 
 	if err := s.opts.Server.Stop(); err != nil {
@@ -120,19 +143,21 @@ func (s *ServiceImpl) Stop() error {
 	}
 
 	for _, fn := range s.opts.AfterStop {
-		err = fn()
+		if err := fn(); err != nil {
+			gerr = err
+		}
 	}
 
-	return err
+	return gerr
 }
 
-func (s *ServiceImpl) Handle(v interface{}) error {
+func (s *serviceImpl) Handle(v interface{}, opts ...server.HandlerOption) error {
 	return s.opts.Server.Handle(
-		s.opts.Server.NewHandler(v),
+		s.opts.Server.NewHandler(v, opts...),
 	)
 }
 
-func (s *ServiceImpl) Run() (err error) {
+func (s *serviceImpl) Run() (err error) {
 	logger := s.opts.Logger
 
 	// exit when help flag is provided

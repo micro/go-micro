@@ -37,38 +37,25 @@ type HelloResponse struct {
 
 func main() {
 	// Create service
-	service := micro.NewService(
-		micro.Name("greeter"),
-		micro.Version("1.0.0"),
+	service := micro.New("greeter",
+		micro.Address(":9090"),
+		// Start MCP gateway alongside the service
+		mcp.WithMCP(":3000"),
 	)
 
 	service.Init()
 
-	// Register handler - documentation extracted automatically from comments!
-	handler := service.Server().NewHandler(new(Greeter))
-	if err := service.Server().Handle(handler); err != nil {
+	// Register handler — docs extracted automatically from comments
+	if err := service.Handle(new(Greeter)); err != nil {
 		log.Fatal(err)
 	}
 
-	// Start MCP gateway on port 3000
-	go func() {
-		log.Println("Starting MCP gateway on :3000")
-		if err := mcp.ListenAndServe(":3000", mcp.Options{
-			Registry: service.Options().Registry,
-		}); err != nil {
-			log.Printf("MCP gateway error: %v", err)
-		}
-	}()
-
 	log.Println("Greeter service starting...")
-	log.Println("Service: greeter")
-	log.Println("Endpoint: Greeter.SayHello")
+	log.Println("Service:     http://localhost:9090")
 	log.Println("MCP Gateway: http://localhost:3000")
-	log.Println("")
-	log.Println("Test with:")
-	log.Println("  curl http://localhost:3000/mcp/tools")
-	log.Println("")
-	log.Println("Or use with Claude Code:")
+	log.Println("MCP Tools:   http://localhost:3000/mcp/tools")
+	log.Println()
+	log.Println("Use with Claude Code:")
 	log.Println("  micro mcp serve")
 
 	// Run service

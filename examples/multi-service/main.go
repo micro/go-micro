@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 
-	"go-micro.dev/v5/service"
+	"go-micro.dev/v5"
 )
 
 // -- Users service --
@@ -56,15 +56,8 @@ func (o *Orders) Create(ctx context.Context, req *OrderRequest, rsp *OrderRespon
 func main() {
 	// Create two services — each gets isolated server, client,
 	// store, and cache instances automatically.
-	users := service.New(
-		service.Name("users"),
-		service.Address(":9001"),
-	)
-
-	orders := service.New(
-		service.Name("orders"),
-		service.Address(":9002"),
-	)
+	users := micro.New("users", micro.Address(":9001"))
+	orders := micro.New("orders", micro.Address(":9002"))
 
 	// Register handlers
 	if err := users.Handle(new(Users)); err != nil {
@@ -76,7 +69,7 @@ func main() {
 
 	// Run both services together. The group handles signals
 	// and stops all services when one exits.
-	g := service.NewGroup(users, orders)
+	g := micro.NewGroup(users, orders)
 
 	fmt.Println("Starting users (:9001) and orders (:9002) in a single binary")
 	if err := g.Run(); err != nil {

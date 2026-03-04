@@ -99,10 +99,7 @@ func main() {
 Set a fixed address
 
 ```go
-service := micro.NewService(
-    micro.Name("helloworld"),
-    micro.Address(":8080"),
-)
+service := micro.New("helloworld", micro.Address(":8080"))
 ```
 
 Call it via curl
@@ -153,14 +150,14 @@ See the [MCP guide](https://go-micro.dev/docs/mcp.html) for authentication, scop
 Run multiple services in a single binary — start as a modular monolith, split into separate deployments later when you actually need to.
 
 ```go
-users := service.New(service.Name("users"), service.Address(":9001"))
-orders := service.New(service.Name("orders"), service.Address(":9002"))
+users := micro.New("users", micro.Address(":9001"))
+orders := micro.New("orders", micro.Address(":9002"))
 
 users.Handle(new(Users))
 orders.Handle(new(Orders))
 
 // Run all services together with shared lifecycle
-g := service.NewGroup(users, orders)
+g := micro.NewGroup(users, orders)
 g.Run()
 ```
 

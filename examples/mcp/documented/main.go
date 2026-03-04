@@ -90,52 +90,29 @@ func (u *Users) CreateUser(ctx context.Context, req *CreateUserRequest, rsp *Cre
 
 func main() {
 	// Create service
-	service := micro.NewService(
-		micro.Name("users"),
-		micro.Version("1.0.0"),
+	service := micro.New("users",
+		micro.Address(":9090"),
+		// Start MCP gateway alongside the service
+		mcp.WithMCP(":3000"),
 	)
 
 	service.Init()
 
-	// Register handler with pre-populated test data
-	usersService := &Users{
-		users: map[string]*User{
-			"user-1": {
-				ID:    "user-1",
-				Name:  "John Doe",
-				Email: "john@example.com",
-				Age:   25,
-			},
-			"user-2": {
-				ID:    "user-2",
-				Name:  "Jane Smith",
-				Email: "jane@example.com",
-				Age:   30,
+	// Register handler with pre-populated test data.
+	// Documentation is automatically extracted from method comments.
+	// Use WithEndpointScopes to declare required auth scopes per endpoint.
+	if err := service.Handle(
+		&Users{
+			users: map[string]*User{
+				"user-1": {ID: "user-1", Name: "John Doe", Email: "john@example.com", Age: 25},
+				"user-2": {ID: "user-2", Name: "Jane Smith", Email: "jane@example.com", Age: 30},
 			},
 		},
-	}
-
-	// Register handler - documentation is automatically extracted from method comments.
-	// Use WithEndpointScopes to declare required auth scopes per endpoint.
-	handler := service.Server().NewHandler(
-		usersService,
 		server.WithEndpointScopes("Users.GetUser", "users:read"),
 		server.WithEndpointScopes("Users.CreateUser", "users:write"),
-	)
-
-	if err := service.Server().Handle(handler); err != nil {
+	); err != nil {
 		log.Fatal(err)
 	}
-
-	// Start MCP gateway on port 3000
-	go func() {
-		log.Println("Starting MCP gateway on :3000")
-		if err := mcp.ListenAndServe(":3000", mcp.Options{
-			Registry: service.Options().Registry,
-		}); err != nil {
-			log.Printf("MCP gateway error: %v", err)
-		}
-	}()
 
 	log.Println("Users service starting...")
 	log.Println("Service: users")

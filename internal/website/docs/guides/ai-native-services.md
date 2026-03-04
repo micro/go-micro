@@ -193,13 +193,10 @@ import (
 )
 
 func main() {
-    service := micro.NewService(
-        micro.Name("tasks"),
-        micro.Address(":8081"),
-    )
+    service := micro.New("tasks", micro.Address(":8081"))
     service.Init()
 
-    handler := service.Server().NewHandler(
+    service.Handle(
         &TaskService{tasks: make(map[string]*Task)},
         // Read operations: any authenticated agent
         server.WithEndpointScopes("TaskService.Get", "tasks:read"),
@@ -210,7 +207,6 @@ func main() {
         // Delete: admin only
         server.WithEndpointScopes("TaskService.Delete", "tasks:admin"),
     )
-    service.Server().Handle(handler)
 
     service.Run()
 }
@@ -241,8 +237,7 @@ Add MCP to your service with a single option:
 import "go-micro.dev/v5/gateway/mcp"
 
 func main() {
-    service := micro.NewService(
-        micro.Name("tasks"),
+    service := micro.New("tasks",
         mcp.WithMCP(":3000"), // MCP gateway starts automatically
     )
     service.Init()

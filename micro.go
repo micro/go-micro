@@ -11,31 +11,8 @@ import (
 
 type serviceKey struct{}
 
-// Service is an interface that wraps the lower level libraries
-// within go-micro. Its a convenience method for building
-// and initializing services.
-type Service interface {
-	// The service name
-	Name() string
-	// Init initializes options
-	Init(...Option)
-	// Options returns the current options
-	Options() Options
-	// Register the handler
-	Handle(v interface{}) error
-	// Client is used to call services
-	Client() client.Client
-	// Server is for handling requests and events
-	Server() server.Server
-	// Start the service
-	Start() error
-	// Stop the service
-	Stop() error
-	// Run the service (start, block on signal, then stop)
-	Run() error
-	// The service implementation
-	String() string
-}
+// Service is the interface for a go-micro service.
+type Service = service.Service
 
 // Group is a set of services that share lifecycle management.
 type Group = service.Group
@@ -53,14 +30,16 @@ type Event interface {
 // Type alias to satisfy the deprecation.
 type Publisher = Event
 
-// New represents the new service
-func New(name string) Service {
-	return NewService(
-		service.Name(name),
-	)
+// New creates a new service with the given name and options.
+//
+//	service := micro.New("greeter")
+//	service := micro.New("greeter", micro.Address(":8080"))
+func New(name string, opts ...Option) Service {
+	return service.New(append([]Option{service.Name(name)}, opts...)...)
 }
 
 // NewService creates and returns a new Service based on the packages within.
+// Deprecated: Use New(name, opts...) instead.
 func NewService(opts ...Option) Service {
 	return service.New(opts...)
 }
@@ -68,13 +47,7 @@ func NewService(opts ...Option) Service {
 // NewGroup creates a service group for running multiple services
 // in a single binary with shared lifecycle management.
 func NewGroup(svcs ...Service) *Group {
-	var ss []*service.ServiceImpl
-	for _, s := range svcs {
-		if si, ok := s.(*service.ServiceImpl); ok {
-			ss = append(ss, si)
-		}
-	}
-	return service.NewGroup(ss...)
+	return service.NewGroup(svcs...)
 }
 
 // FromContext retrieves a Service from the Context.
