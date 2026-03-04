@@ -186,6 +186,7 @@ Build compelling examples and demos that show agents interacting with go-micro s
 - **Kubernetes Operator** - CRD-based deployment
 
 ### Recently Completed (March 2026)
+- **Multi-Service Binaries** - Run multiple services in a single binary with isolated state per service and shared lifecycle via `service.Group`. Modular monolith pattern: start together, split later.
 - **Documentation Guides** - All four guides complete: AI-native services, MCP security, tool descriptions, agent patterns
 - **WithMCP Convenience Option** - One-line MCP setup: `mcp.WithMCP(":3000")`
 - **Agent Playground Redesign** - Chat-focused UI with collapsible tool calls and real-time status
