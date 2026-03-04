@@ -15,6 +15,7 @@ make test
 # Run tests for a specific package
 go test ./gateway/mcp/...
 go test ./ai/...
+go test ./model/...
 
 # Lint
 make lint
@@ -51,6 +52,10 @@ go-micro/
 ├── ai/             # AI model providers
 │   ├── anthropic/  # Claude provider
 │   └── openai/     # GPT provider
+├── model/          # Typed data models (CRUD, queries, schemas)
+│   ├── memory/     # In-memory backend (dev/testing)
+│   ├── sqlite/     # SQLite backend (dev/single-node)
+│   └── postgres/   # PostgreSQL backend (production)
 ├── registry/       # Service discovery (mDNS, Consul, etcd)
 ├── selector/       # Client-side load balancing
 ├── server/         # RPC server
@@ -114,6 +119,7 @@ Build compelling demos showing agents interacting with go-micro services in real
 | MCP Gateway | `gateway/mcp/mcp.go` |
 | MCP Docs | `gateway/mcp/DOCUMENTATION.md` |
 | AI Interface | `ai/model.go` |
+| Model Layer | `model/model.go` |
 | CLI Entry | `cmd/micro/main.go` |
 | MCP CLI | `cmd/micro/mcp/` |
 | Server (run/server) | `cmd/micro/server/server.go` |
