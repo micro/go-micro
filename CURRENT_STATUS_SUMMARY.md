@@ -7,8 +7,8 @@
 
 ### Quick Status
 - **Q1 2026 (MCP Foundation):** COMPLETE (100%)
-- **Q2 2026 (Agent DX):** 85% COMPLETE (ahead of schedule)
-- **Q3 2026 (Production):** 40% COMPLETE (ahead of schedule)
+- **Q2 2026 (Agent DX):** 95% COMPLETE (ahead of schedule)
+- **Q3 2026 (Production):** 50% COMPLETE (ahead of schedule)
 - **Q4 2026 (Ecosystem):** 0% COMPLETE (on track)
 
 ---
@@ -16,11 +16,13 @@
 ## What's Been Built
 
 ### Core MCP Integration (Q1 - COMPLETE)
-- **MCP Gateway Library** (`gateway/mcp/`) - 2,083 lines
+- **MCP Gateway Library** (`gateway/mcp/`) - 2,500+ lines
   - HTTP/SSE transport
   - Stdio JSON-RPC 2.0 transport
+  - WebSocket JSON-RPC 2.0 transport (bidirectional streaming)
   - Service discovery & tool generation
   - Schema generation from Go types
+  - OpenTelemetry span instrumentation
 
 - **CLI Commands** (`micro mcp`)
   - `micro mcp serve` - Start MCP server (stdio or HTTP)
@@ -44,6 +46,12 @@
   - Scope enforcement before RPC execution
 
 #### Observability
+- **OpenTelemetry Integration**
+  - Full OTel span instrumentation on HTTP, stdio, and WebSocket transports
+  - Rich span attributes: tool name, transport, account ID, auth status, rate limiting
+  - W3C trace context propagation via go-micro metadata
+  - Configurable via `Options.TraceProvider`
+  - Noop spans when no provider configured (backward compatible)
 - **Tracing**
   - UUID trace IDs per tool call
   - Metadata propagation (`Mcp-Trace-Id`, `Mcp-Tool-Name`, `Mcp-Account-Id`)
@@ -150,14 +158,17 @@ handler := service.Server().NewHandler(
 
 ## Test Coverage
 
-**568 lines** of comprehensive tests covering:
+**1,000+ lines** of comprehensive tests covering:
 - Scope validation & enforcement
 - Auth provider integration
 - Trace ID generation & propagation
 - Audit record creation
 - Rate limiting
-- HTTP & Stdio transports
+- HTTP, Stdio & WebSocket transports
 - Tool discovery & schema generation
+- OpenTelemetry span creation and attributes
+- WebSocket concurrent connections and persistence
+- LlamaIndex SDK toolkit and tool filtering
 
 ---
 
@@ -171,20 +182,17 @@ The biggest gap is documentation for the features already built. These guides wi
 3. **Best practices for tool descriptions** - Writing Go comments that make agents more effective
 4. **Agent integration patterns** - Common patterns for multi-agent workflows
 
-### Priority 2: Multi-Protocol MCP Support (High Impact)
-Currently only HTTP/SSE and stdio are supported. Adding more protocols unlocks new agent frameworks:
-
-- **WebSocket transport** - Bidirectional streaming for real-time agents
-- **gRPC reflection-based MCP** - For gRPC-native environments
-
-### Priority 3: LlamaIndex SDK (Medium Impact)
-With LangChain SDK complete, LlamaIndex is the next priority for RAG and data-focused agent integration.
-
-### Priority 4: OpenTelemetry Integration (Production Readiness)
-Trace IDs are already generated. Connecting them to OpenTelemetry enables production-grade observability with existing tools (Jaeger, Grafana, etc.).
-
-### Priority 5: Interactive Playground Polish
+### Priority 2: Interactive Playground Polish
 The agent playground exists at `/agent` in `micro run`. Refine the UX and add real-time tool call visualization.
+
+### Priority 3: Additional Protocol Support
+- **gRPC reflection-based MCP** - For gRPC-native environments
+- **HTTP/3 support** - Modern transport
+
+### Recently Completed (March 2026)
+- **WebSocket Transport** - Bidirectional streaming for real-time agents (JSON-RPC 2.0 over WebSocket)
+- **OpenTelemetry Integration** - Full span instrumentation across all transports with W3C trace context propagation
+- **LlamaIndex SDK** - `contrib/go-micro-llamaindex/` with RAG integration examples
 
 ---
 
@@ -192,18 +200,18 @@ The agent playground exists at `/agent` in `micro run`. Refine the UX and add re
 
 | Metric | Value |
 |--------|-------|
-| **Production Code** | 2,083+ lines (MCP gateway) |
-| **Test Code** | 568+ lines |
+| **Production Code** | 2,500+ lines (MCP gateway) |
+| **Test Code** | 1,000+ lines |
 | **Documentation Files** | 90+ markdown files |
-| **Working Examples** | 2 MCP + 3 other |
+| **Working Examples** | 2 MCP + 3 other + 2 LlamaIndex |
 | **CLI Commands** | 5 MCP (serve, list, test, docs, export) |
 | **Export Formats** | 3 (langchain, openapi, json) |
-| **Agent SDKs** | 1 (LangChain Python) |
+| **Agent SDKs** | 2 (LangChain Python, LlamaIndex Python) |
 | **Model Providers** | 2 (Anthropic, OpenAI) |
-| **Transports** | 2 (HTTP/SSE, Stdio) |
+| **Transports** | 3 (HTTP/SSE, Stdio, WebSocket) |
 | **Q1 Completion** | 100% |
-| **Q2 Completion** | 85% |
-| **Q3 Completion** | 40% |
+| **Q2 Completion** | 95% |
+| **Q3 Completion** | 50% |
 | **Q4 Completion** | 0% |
 | **Ahead of Schedule** | 3-4 months |
 
@@ -226,13 +234,15 @@ The agent playground exists at `/agent` in `micro run`. Refine the UX and add re
 - Tool descriptions from comments with `@example` support
 - Schema generation from struct tags
 - HTTP/SSE with auth
+- WebSocket transport (bidirectional JSON-RPC 2.0)
 - LangChain SDK (Python package in contrib/)
+- LlamaIndex SDK (Python package in contrib/ with RAG examples)
 - Model package with Anthropic + OpenAI providers
 
 **REMAINING:**
-- Agent SDKs (LlamaIndex, AutoGPT)
+- Agent SDKs (AutoGPT)
 - Interactive Agent Playground refinement
-- Multi-protocol (WebSocket, gRPC, HTTP/3)
+- Multi-protocol (gRPC, HTTP/3)
 - Documentation guides (4 guides planned)
 - Auto-generate examples from test cases
 
@@ -245,11 +255,11 @@ The agent playground exists at `/agent` in `micro run`. Refine the UX and add re
 - Rate limiting
 - Audit logging
 - Bearer token auth
+- OpenTelemetry integration (spans, attributes, W3C trace context)
 
 **REMAINING:**
 - Standalone MCP Gateway binary
 - Kubernetes Operator & Helm Charts
-- OpenTelemetry integration
 - Full observability dashboards
 - Circuit breakers, caching, multi-tenant support
 
@@ -288,7 +298,7 @@ The agent playground exists at `/agent` in `micro run`. Refine the UX and add re
 
 The Q1 2026 foundation is solid, with advanced Q2/Q3 features already delivered. The immediate focus should be on **documentation and developer guides** to drive adoption, followed by **multi-protocol support** and **additional agent SDKs** to broaden the ecosystem.
 
-**Next focus:** Documentation guides, multi-protocol MCP, and LlamaIndex SDK.
+**Next focus:** Documentation guides, interactive playground polish, and standalone gateway binary.
 
 ---
 
