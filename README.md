@@ -2,7 +2,7 @@
 
 Go Micro is a framework for distributed systems development.
 
-**[📖 Documentation](https://go-micro.dev/docs/)** | [Sponsor the project](https://github.com/sponsors/micro) | [Discord](https://discord.gg/jwTYuUVAGh)
+**[📖 Documentation](https://go-micro.dev/docs/)** | | [Sponsor by Claude](https://go-micro.dev/blog/3) | [Discord](https://discord.gg/jwTYuUVAGh)
 
 ## Overview
 
