@@ -14,26 +14,29 @@ import (
 	signalutil "go-micro.dev/v5/util/signal"
 )
 
-type service struct {
+// ServiceImpl is the concrete service implementation. It is exported
+// to allow the micro package to construct Groups, but users should
+// generally interact through the Service interface.
+type ServiceImpl struct {
 	opts Options
 
 	once sync.Once
 }
 
-func New(opts ...Option) *service {
-	return &service{
+func New(opts ...Option) *ServiceImpl {
+	return &ServiceImpl{
 		opts: newOptions(opts...),
 	}
 }
 
-func (s *service) Name() string {
+func (s *ServiceImpl) Name() string {
 	return s.opts.Server.Options().Name
 }
 
 // Init initializes options. Additionally it calls cmd.Init
 // which parses command line flags. cmd.Init is only called
 // on first Init.
-func (s *service) Init(opts ...Option) {
+func (s *ServiceImpl) Init(opts ...Option) {
 	// process options
 	for _, o := range opts {
 		o(&s.opts)
@@ -69,23 +72,23 @@ func (s *service) Init(opts ...Option) {
 	})
 }
 
-func (s *service) Options() Options {
+func (s *ServiceImpl) Options() Options {
 	return s.opts
 }
 
-func (s *service) Client() client.Client {
+func (s *ServiceImpl) Client() client.Client {
 	return s.opts.Client
 }
 
-func (s *service) Server() server.Server {
+func (s *ServiceImpl) Server() server.Server {
 	return s.opts.Server
 }
 
-func (s *service) String() string {
+func (s *ServiceImpl) String() string {
 	return "micro"
 }
 
-func (s *service) Start() error {
+func (s *ServiceImpl) Start() error {
 	for _, fn := range s.opts.BeforeStart {
 		if err := fn(); err != nil {
 			return err
@@ -105,7 +108,7 @@ func (s *service) Start() error {
 	return nil
 }
 
-func (s *service) Stop() error {
+func (s *ServiceImpl) Stop() error {
 	var err error
 
 	for _, fn := range s.opts.BeforeStop {
@@ -123,13 +126,13 @@ func (s *service) Stop() error {
 	return err
 }
 
-func (s *service) Handle(v interface{}) error {
+func (s *ServiceImpl) Handle(v interface{}) error {
 	return s.opts.Server.Handle(
 		s.opts.Server.NewHandler(v),
 	)
 }
 
-func (s *service) Run() (err error) {
+func (s *ServiceImpl) Run() (err error) {
 	logger := s.opts.Logger
 
 	// exit when help flag is provided

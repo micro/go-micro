@@ -34,6 +34,19 @@ cd web-service
 go run .
 ```
 
+### [multi-service](./multi-service/)
+Multiple services in a single binary — the modular monolith pattern:
+- Isolated server, client, store, and cache per service
+- Shared registry and broker for inter-service communication
+- Coordinated lifecycle with `service.Group`
+- Start monolith, split later when you need to scale independently
+
+**Run it:**
+```bash
+cd multi-service
+go run .
+```
+
 ## Coming Soon
 
 The following examples are planned:

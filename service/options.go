@@ -54,14 +54,16 @@ type Option func(*Options)
 
 func newOptions(opts ...Option) Options {
 	opt := Options{
-		Auth:      auth.DefaultAuth,
-		Broker:    broker.DefaultBroker,
-		Cache:     cache.DefaultCache,
-		Cmd:       cmd.DefaultCmd,
-		Config:    config.DefaultConfig,
-		Client:    client.DefaultClient,
-		Server:    server.DefaultServer,
-		Store:     store.DefaultStore,
+		Auth:   auth.DefaultAuth,
+		Broker: broker.DefaultBroker,
+		Cmd:    cmd.NewCmd(),
+		Config: config.DefaultConfig,
+		// Per-service instances: each service gets its own server, client,
+		// store, and cache to allow multiple services in a single binary.
+		Client:    client.NewClient(),
+		Server:    server.NewRPCServer(),
+		Store:     store.NewStore(),
+		Cache:     cache.NewCache(),
 		Registry:  registry.DefaultRegistry,
 		Transport: transport.DefaultTransport,
 		Context:   context.Background(),
@@ -83,14 +85,12 @@ func Broker(b broker.Broker) Option {
 		// Update Client and Server
 		o.Client.Init(client.Broker(b))
 		o.Server.Init(server.Broker(b))
-		broker.DefaultBroker = b
 	}
 }
 
 func Cache(c cache.Cache) Option {
 	return func(o *Options) {
 		o.Cache = c
-		cache.DefaultCache = c
 	}
 }
 
@@ -104,7 +104,6 @@ func Cmd(c cmd.Cmd) Option {
 func Client(c client.Client) Option {
 	return func(o *Options) {
 		o.Client = c
-		client.DefaultClient = c
 	}
 }
 
@@ -138,7 +137,6 @@ func HandleSignal(b bool) Option {
 func Profile(p profile.Profile) Option {
 	return func(o *Options) {
 		o.Profile = p
-		profile.DefaultProfile = p
 	}
 }
 
@@ -146,7 +144,6 @@ func Profile(p profile.Profile) Option {
 func Server(s server.Server) Option {
 	return func(o *Options) {
 		o.Server = s
-		server.DefaultServer = s
 	}
 }
 
@@ -154,7 +151,6 @@ func Server(s server.Server) Option {
 func Store(s store.Store) Option {
 	return func(o *Options) {
 		o.Store = s
-		store.DefaultStore = s
 	}
 }
 
@@ -168,7 +164,6 @@ func Registry(r registry.Registry) Option {
 		o.Server.Init(server.Registry(r))
 		// Update Broker
 		o.Broker.Init(broker.Registry(r))
-		broker.DefaultBroker = o.Broker
 	}
 }
 
@@ -184,8 +179,6 @@ func Tracer(t trace.Tracer) Option {
 func Auth(a auth.Auth) Option {
 	return func(o *Options) {
 		o.Auth = a
-		auth.DefaultAuth = a
-
 	}
 }
 
@@ -193,7 +186,6 @@ func Auth(a auth.Auth) Option {
 func Config(c config.Config) Option {
 	return func(o *Options) {
 		o.Config = c
-		config.DefaultConfig = c
 	}
 }
 
@@ -201,7 +193,6 @@ func Config(c config.Config) Option {
 func Selector(s selector.Selector) Option {
 	return func(o *Options) {
 		o.Client.Init(client.Selector(s))
-		selector.DefaultSelector = s
 	}
 }
 
@@ -213,7 +204,6 @@ func Transport(t transport.Transport) Option {
 		// Update Client and Server
 		o.Client.Init(client.Transport(t))
 		o.Server.Init(server.Transport(t))
-		transport.DefaultTransport = t
 	}
 }
 

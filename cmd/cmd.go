@@ -299,20 +299,37 @@ func init() {
 }
 
 func newCmd(opts ...Option) Cmd {
+	// Create local copies so each cmd instance is isolated.
+	// This allows multiple services in a single binary without
+	// conflicting through shared global pointers.
+	localAuth := auth.DefaultAuth
+	localBroker := broker.DefaultBroker
+	localClient := client.DefaultClient
+	localRegistry := registry.DefaultRegistry
+	localServer := server.DefaultServer
+	localSelector := selector.DefaultSelector
+	localTransport := transport.DefaultTransport
+	localStore := store.DefaultStore
+	localTracer := trace.DefaultTracer
+	localProfile := profile.DefaultProfile
+	localConfig := config.DefaultConfig
+	localCache := cache.DefaultCache
+	localStream := events.DefaultStream
+
 	options := Options{
-		Auth:         &auth.DefaultAuth,
-		Broker:       &broker.DefaultBroker,
-		Client:       &client.DefaultClient,
-		Registry:     &registry.DefaultRegistry,
-		Server:       &server.DefaultServer,
-		Selector:     &selector.DefaultSelector,
-		Transport:    &transport.DefaultTransport,
-		Store:        &store.DefaultStore,
-		Tracer:       &trace.DefaultTracer,
-		DebugProfile: &profile.DefaultProfile,
-		Config:       &config.DefaultConfig,
-		Cache:        &cache.DefaultCache,
-		Stream:       &events.DefaultStream,
+		Auth:         &localAuth,
+		Broker:       &localBroker,
+		Client:       &localClient,
+		Registry:     &localRegistry,
+		Server:       &localServer,
+		Selector:     &localSelector,
+		Transport:    &localTransport,
+		Store:        &localStore,
+		Tracer:       &localTracer,
+		DebugProfile: &localProfile,
+		Config:       &localConfig,
+		Cache:        &localCache,
+		Stream:       &localStream,
 
 		Brokers:       DefaultBrokers,
 		Clients:       DefaultClients,
@@ -381,13 +398,9 @@ func (c *cmd) Before(ctx *cli.Context) error {
 				return fmt.Errorf("failed to load local profile: %v", ierr)
 			}
 			*c.opts.Registry = imported.Registry
-			registry.DefaultRegistry = imported.Registry
 			*c.opts.Broker = imported.Broker
-			broker.DefaultBroker = imported.Broker
 			*c.opts.Store = imported.Store
-			store.DefaultStore = imported.Store
 			*c.opts.Transport = imported.Transport
-			transport.DefaultTransport = imported.Transport
 		case "nats":
 			imported, ierr := mprofile.NatsProfile()
 			if ierr != nil {
@@ -428,7 +441,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		// only change if we have the client and type differs
 		if cl, ok := c.opts.Clients[name]; ok && (*c.opts.Client).String() != name {
 			*c.opts.Client = cl()
-			client.DefaultClient = *c.opts.Client
 		}
 	}
 
@@ -437,7 +449,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		// only change if we have the server and type differs
 		if s, ok := c.opts.Servers[name]; ok && (*c.opts.Server).String() != name {
 			*c.opts.Server = s()
-			server.DefaultServer = *c.opts.Server
 		}
 	}
 
@@ -449,7 +460,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Store = s(store.WithClient(*c.opts.Client))
-		store.DefaultStore = *c.opts.Store
 	}
 
 	// Set the tracer
@@ -460,7 +470,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Tracer = r()
-		trace.DefaultTracer = *c.opts.Tracer
 	}
 
 	// Setup auth
@@ -487,7 +496,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 		}
 
 		*c.opts.Auth = r(authOpts...)
-		auth.DefaultAuth = *c.opts.Auth
 	}
 
 	// Set the registry
@@ -509,7 +517,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("unsupported profile: %s", name)
 		}
 		*c.opts.DebugProfile = p()
-		profile.DefaultProfile = *c.opts.DebugProfile
 	}
 
 	// Set the broker
@@ -534,7 +541,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 
 		// No server option here. Should there be?
 		clientOpts = append(clientOpts, client.Selector(*c.opts.Selector))
-		selector.DefaultSelector = *c.opts.Selector
 	}
 
 	// Set the transport
@@ -687,7 +693,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 				logger.Fatalf("Error configuring config: %v", err)
 			}
 			*c.opts.Config = rc
-			config.DefaultConfig = *c.opts.Config
 		}
 	}
 	return nil
@@ -709,7 +714,6 @@ func (c *cmd) setRegistry(r registry.Registry) ([]server.Option, []client.Option
 	if err := (*c.opts.Broker).Init(broker.Registry(*c.opts.Registry)); err != nil {
 		logger.Fatalf("Error configuring broker: %v", err)
 	}
-	registry.DefaultRegistry = *c.opts.Registry
 	return serverOpts, clientOpts
 }
 func (c *cmd) setStream(s events.Stream) ([]server.Option, []client.Option) {
@@ -720,7 +724,6 @@ func (c *cmd) setStream(s events.Stream) ([]server.Option, []client.Option) {
 	// serverOpts = append(serverOpts, server.Registry(*c.opts.Registry))
 	// clientOpts = append(clientOpts, client.Registry(*c.opts.Registry))
 
-	events.DefaultStream = *c.opts.Stream
 	return serverOpts, clientOpts
 }
 
@@ -730,7 +733,6 @@ func (c *cmd) setBroker(b broker.Broker) ([]server.Option, []client.Option) {
 	*c.opts.Broker = b
 	serverOpts = append(serverOpts, server.Broker(*c.opts.Broker))
 	clientOpts = append(clientOpts, client.Broker(*c.opts.Broker))
-	broker.DefaultBroker = *c.opts.Broker
 	return serverOpts, clientOpts
 }
 
@@ -738,7 +740,6 @@ func (c *cmd) setStore(s store.Store) ([]server.Option, []client.Option) {
 	var serverOpts []server.Option
 	var clientOpts []client.Option
 	*c.opts.Store = s
-	store.DefaultStore = *c.opts.Store
 	return serverOpts, clientOpts
 }
 
@@ -748,7 +749,6 @@ func (c *cmd) setTransport(t transport.Transport) ([]server.Option, []client.Opt
 	*c.opts.Transport = t
 	serverOpts = append(serverOpts, server.Transport(*c.opts.Transport))
 	clientOpts = append(clientOpts, client.Transport(*c.opts.Transport))
-	transport.DefaultTransport = *c.opts.Transport
 	return serverOpts, clientOpts
 }
 

@@ -45,6 +45,10 @@ in the plugins repo. State and persistence becomes a core requirement beyond pro
 - **MCP Integration** - An MCP gateway you can integrate as a library, server or CLI command which automatically exposes services
   as tools for agents or other AI applications. Every service/endpoint get's converted into a callable tool.
 
+- **Multi-Service Binaries** - Run multiple services in a single process with isolated state per service. Start as a modular monolith,
+  split into separate deployments when you need independent scaling. Each service gets its own server, client, and store while sharing
+  the registry and broker for inter-service communication.
+
 - **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces
   are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology.
 
@@ -144,11 +148,32 @@ Use `micro mcp serve` for local AI tools like Claude Code, or connect any MCP-co
 
 See the [MCP guide](https://go-micro.dev/docs/mcp.html) for authentication, scopes, and advanced usage.
 
+## Multi-Service Binaries
+
+Run multiple services in a single binary — start as a modular monolith, split into separate deployments later when you actually need to.
+
+```go
+users := service.New(service.Name("users"), service.Address(":9001"))
+orders := service.New(service.Name("orders"), service.Address(":9002"))
+
+users.Handle(new(Users))
+orders.Handle(new(Orders))
+
+// Run all services together with shared lifecycle
+g := service.NewGroup(users, orders)
+g.Run()
+```
+
+Each service gets its own server, client, store, and cache while sharing the registry, broker, and transport — so they can discover and call each other within the same process.
+
+See the [multi-service example](examples/multi-service/) for a working demo.
+
 ## Examples
 
 Check out [/examples](examples/) for runnable code:
 - [hello-world](examples/hello-world/) - Basic RPC service
 - [web-service](examples/web-service/) - HTTP REST API
+- [multi-service](examples/multi-service/) - Multiple services in one binary
 - [mcp](examples/mcp/) - MCP integration with AI agents
 
 See [all examples](examples/README.md) for more.
