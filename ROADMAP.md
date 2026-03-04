@@ -17,11 +17,11 @@ This roadmap outlines the planned features and improvements for Go Micro. Commun
 - [ ] Plugin discovery dashboard
 
 ### AI & Model Integration
-- [x] Model package with provider abstraction (`model.Model` interface)
-- [x] Anthropic Claude provider (`model/anthropic`)
-- [x] OpenAI GPT provider (`model/openai`)
+- [x] AI package with provider abstraction (`ai.Model` interface)
+- [x] Anthropic Claude provider (`ai/anthropic`)
+- [x] OpenAI GPT provider (`ai/openai`)
 - [x] Tool execution with auto-calling support
-- [x] Streaming support via `model.Stream`
+- [x] Streaming support via `ai.Stream`
 
 ### Observability
 - [ ] OpenTelemetry native support

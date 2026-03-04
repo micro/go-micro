@@ -14,6 +14,7 @@ var HandleSignal = service.HandleSignal
 var Profile = service.Profile
 var Server = service.Server
 var Store = service.Store
+var Model = service.Model
 var Registry = service.Registry
 var Tracer = service.Tracer
 var Auth = service.Auth

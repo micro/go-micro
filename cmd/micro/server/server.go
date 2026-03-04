@@ -28,9 +28,9 @@ import (
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
 	codecBytes "go-micro.dev/v5/codec/bytes"
-	"go-micro.dev/v5/model"
-	_ "go-micro.dev/v5/model/anthropic"
-	_ "go-micro.dev/v5/model/openai"
+	"go-micro.dev/v5/ai"
+	_ "go-micro.dev/v5/ai/anthropic"
+	_ "go-micro.dev/v5/ai/openai"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
 	"golang.org/x/crypto/bcrypt"
@@ -633,12 +633,12 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 
 		// Auto-detect provider if not explicitly set
 		if provider == "" {
-			provider = model.AutoDetectProvider(baseURL)
+			provider = ai.AutoDetectProvider(baseURL)
 		}
 
 		// Discover tools from registry
 		services, _ := registry.ListServices()
-		var discoveredTools []model.Tool
+		var discoveredTools []ai.Tool
 		// safeNameMap maps LLM-safe names back to original dotted names
 		safeNameMap := map[string]string{}
 		for _, svc := range services {
@@ -665,7 +665,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						}
 					}
 				}
-				discoveredTools = append(discoveredTools, model.Tool{
+				discoveredTools = append(discoveredTools, ai.Tool{
 					Name:         safeName,
 					OriginalName: tName,
 					Description:  desc,
@@ -753,24 +753,24 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		}
 
 		// Create model with options
-		var modelOpts []model.Option
-		modelOpts = append(modelOpts, model.WithAPIKey(apiKey))
+		var modelOpts []ai.Option
+		modelOpts = append(modelOpts, ai.WithAPIKey(apiKey))
 		if modelName != "" {
-			modelOpts = append(modelOpts, model.WithModel(modelName))
+			modelOpts = append(modelOpts, ai.WithModel(modelName))
 		}
 		if baseURL != "" {
-			modelOpts = append(modelOpts, model.WithBaseURL(baseURL))
+			modelOpts = append(modelOpts, ai.WithBaseURL(baseURL))
 		}
-		modelOpts = append(modelOpts, model.WithToolHandler(executeToolCall))
-		
-		m := model.New(provider, modelOpts...)
+		modelOpts = append(modelOpts, ai.WithToolHandler(executeToolCall))
+
+		m := ai.New(provider, modelOpts...)
 		if m == nil {
 			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create model provider"})
 			return
 		}
 
 		// Build request
-		modelReq := &model.Request{
+		modelReq := &ai.Request{
 			Prompt:       req.Prompt,
 			SystemPrompt: agentSystemPrompt,
 			Tools:        discoveredTools,

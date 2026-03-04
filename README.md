@@ -24,6 +24,10 @@ Go Micro abstracts away the details of distributed systems. Here are the main fe
 - **Data Storage** - A simple data store interface to read, write and delete records. It includes support for many storage backends
 in the plugins repo. State and persistence becomes a core requirement beyond prototyping and Micro looks to build that into the framework.
 
+- **Data Model** - A typed data model layer with CRUD operations, queries, and multiple backends (memory, SQLite, Postgres). Define Go
+  structs with tags and get type-safe Create/Read/Update/Delete/List/Count operations. Accessible via `service.Model()` alongside
+  `service.Client()` and `service.Server()` for a complete service experience: call services, handle requests, save and query data.
+
 - **Service Discovery** - Automatic service registration and name resolution. Service discovery is at the core of micro service
   development. When service A needs to speak to service B it needs the location of that service. The default discovery mechanism is
   multicast DNS (mdns), a zeroconf system.
@@ -165,6 +169,74 @@ Each service gets its own server, client, store, and cache while sharing the reg
 
 See the [multi-service example](examples/multi-service/) for a working demo.
 
+## Data Model
+
+Go Micro includes a typed data model layer for persistence. Define a struct, tag a key field, and get type-safe CRUD and query operations backed by memory, SQLite, or Postgres.
+
+```go
+import (
+        "go-micro.dev/v5/model"
+        "go-micro.dev/v5/model/sqlite"
+)
+
+// Define your data type
+type User struct {
+        ID    string `json:"id" model:"key"`
+        Name  string `json:"name"`
+        Email string `json:"email" model:"index"`
+        Age   int    `json:"age"`
+}
+```
+
+Create a model from the service's database and use it:
+
+```go
+service := micro.New("users")
+
+// Create a typed model using the service's database
+users := model.New[User](service.Model())
+
+// CRUD operations
+users.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@example.com", Age: 30})
+
+user, _ := users.Read(ctx, "1")
+
+user.Name = "Alice Smith"
+users.Update(ctx, user)
+
+users.Delete(ctx, "1")
+```
+
+Query with filters, ordering, and pagination:
+
+```go
+// Find users by field
+results, _ := users.List(ctx, model.Where("email", "alice@example.com"))
+
+// Complex queries
+results, _ = users.List(ctx,
+        model.WhereOp("age", ">=", 18),
+        model.OrderDesc("name"),
+        model.Limit(10),
+        model.Offset(20),
+)
+
+count, _ := users.Count(ctx, model.Where("age", 30))
+```
+
+Swap backends with an option:
+
+```go
+// Development: in-memory (default)
+service := micro.New("users")
+
+// Production: SQLite or Postgres
+db, _ := sqlite.New(model.WithDSN("file:app.db"))
+service := micro.New("users", micro.Model(db))
+```
+
+Every service gets `Client()`, `Server()`, and `Model()` — call services, handle requests, and save data all from the same interface.
+
 ## Examples
 
 Check out [/examples](examples/) for runnable code:
@@ -296,6 +368,7 @@ Package reference: https://pkg.go.dev/go-micro.dev/v5
 
 **User Guides:**
 - [Getting Started](internal/website/docs/getting-started.md)
+- [Data Model](internal/website/docs/model.md)
 - [MCP & AI Agents](internal/website/docs/mcp.md)
 - [Plugins Overview](internal/website/docs/plugins.md)
 - [Learn by Example](internal/website/docs/examples/index.md)

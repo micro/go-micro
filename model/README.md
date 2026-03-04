@@ -1,20 +1,8 @@
 # Model Package
 
-The `model` package provides a simple, high-level interface for AI model providers like Anthropic Claude and OpenAI GPT.
+The `model` package provides a typed data model layer with CRUD operations, query filtering, and multiple database backends. It uses Go generics for type-safe access.
 
-## Interface
-
-The Model interface follows the same patterns as other go-micro packages (Registry, Client, Broker):
-
-```go
-type Model interface {
-    Init(...Option) error
-    Options() Options
-    Generate(ctx context.Context, req *Request, opts ...GenerateOption) (*Response, error)
-    Stream(ctx context.Context, req *Request, opts ...GenerateOption) (Stream, error)
-    String() string
-}
-```
+Unlike the `store` package (which is a raw KV abstraction), `model` provides structured data access with schema awareness, WHERE queries, ordering, pagination, and indexes.
 
 ## Quick Start
 
@@ -22,247 +10,153 @@ type Model interface {
 import (
     "context"
     "go-micro.dev/v5/model"
-    _ "go-micro.dev/v5/model/anthropic"
-    _ "go-micro.dev/v5/model/openai"
+    "go-micro.dev/v5/model/memory"
 )
 
-// Create a model
-m := model.New("openai",
-    model.WithAPIKey("your-api-key"),
-    model.WithModel("gpt-4o"),
+// Define your model with struct tags
+type User struct {
+    ID    string `json:"id" model:"key"`
+    Name  string `json:"name" model:"index"`
+    Email string `json:"email"`
+    Age   int    `json:"age"`
+}
+
+// Create a database and model
+db := memory.New()
+users := model.New[User](db)
+
+ctx := context.Background()
+
+// Create
+users.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@example.com", Age: 30})
+
+// Read
+user, _ := users.Read(ctx, "1")
+fmt.Println(user.Name) // "Alice"
+
+// Update
+user.Name = "Alice Smith"
+users.Update(ctx, user)
+
+// Delete
+users.Delete(ctx, "1")
+```
+
+## Struct Tags
+
+| Tag | Description | Example |
+|-----|-------------|---------|
+| `model:"key"` | Primary key field | `ID string \`model:"key"\`` |
+| `model:"index"` | Create an index on this field | `Name string \`model:"index"\`` |
+| `json:"name"` | Column name in the database | `Name string \`json:"name"\`` |
+
+If no `model:"key"` tag is found, the package defaults to a field with `json:"id"` or column name `id`.
+
+## Querying
+
+```go
+// Filter by field value
+users.List(ctx, model.Where("name", "Alice"))
+
+// Comparison operators
+users.List(ctx, model.WhereOp("age", ">", 25))
+users.List(ctx, model.WhereOp("name", "LIKE", "Ali%"))
+
+// Ordering
+users.List(ctx, model.OrderAsc("name"))
+users.List(ctx, model.OrderDesc("age"))
+
+// Pagination
+users.List(ctx, model.Limit(10), model.Offset(20))
+
+// Combine
+users.List(ctx,
+    model.Where("status", "active"),
+    model.WhereOp("age", ">=", 18),
+    model.OrderDesc("created_at"),
+    model.Limit(25),
 )
 
-// Generate a response
-req := &model.Request{
-    Prompt:       "What is Go?",
-    SystemPrompt: "You are a helpful programming assistant",
-}
-
-resp, err := m.Generate(context.Background(), req)
-if err != nil {
-    log.Fatal(err)
-}
-
-fmt.Println(resp.Reply)
+// Count
+total, _ := users.Count(ctx)
+active, _ := users.Count(ctx, model.Where("status", "active"))
 ```
 
-## Options
+## Backends
 
-Configure the model using functional options:
+### Memory (Development & Testing)
 
 ```go
-m := model.New("anthropic",
-    model.WithAPIKey("your-key"),              // Required
-    model.WithModel("claude-sonnet-4-20250514"), // Optional, uses provider default
-    model.WithBaseURL("https://api.anthropic.com"), // Optional, uses provider default
-)
+import "go-micro.dev/v5/model/memory"
+
+db := memory.New()
 ```
 
-You can also update options after creation:
+In-memory storage. No persistence. Fast. Good for tests and prototyping.
+
+### SQLite (Development & Single-Node Production)
 
 ```go
-m.Init(
-    model.WithModel("gpt-4o-mini"),
-    model.WithAPIKey("new-key"),
-)
+import "go-micro.dev/v5/model/sqlite"
+
+db := sqlite.New("app.db")       // File-based
+db := sqlite.New(":memory:")     // In-memory (testing)
 ```
 
-## Using Tools
+Embedded SQL database. Zero external dependencies. Supports WHERE, indexes, ordering natively.
 
-The model can automatically execute tool calls when provided with a tool handler:
+### Postgres (Production)
 
 ```go
-// Define a tool handler
-toolHandler := func(name string, input map[string]any) (result any, content string) {
-    // Execute the tool and return results
-    switch name {
-    case "get_weather":
-        return map[string]string{"temp": "72F"}, `{"temp": "72F"}`
-    default:
-        return nil, `{"error": "unknown tool"}`
-    }
-}
+import "go-micro.dev/v5/model/postgres"
 
-// Create model with tool handler
-m := model.New("openai",
-    model.WithAPIKey("your-key"),
-    model.WithToolHandler(toolHandler),
-)
-
-// Provide tools in the request
-req := &model.Request{
-    Prompt: "What's the weather?",
-    SystemPrompt: "You are a helpful assistant",
-    Tools: []model.Tool{
-        {
-            Name:        "get_weather",
-            Description: "Get current weather",
-            Properties: map[string]any{
-                "location": map[string]any{
-                    "type": "string",
-                    "description": "City name",
-                },
-            },
-        },
-    },
-}
-
-// Generate will automatically call tools and return final answer
-resp, err := m.Generate(context.Background(), req)
-fmt.Println(resp.Answer) // Final answer after tool execution
+db := postgres.New("postgres://user:pass@localhost/mydb?sslmode=disable")
 ```
 
-## Response Structure
+Full PostgreSQL support. Best for production with rich query capabilities.
+
+## Table Names
+
+By default, the table name is the lowercase struct name + "s" (e.g., `User` → `users`). Override with `WithTable`:
 
 ```go
-type Response struct {
-    Reply     string      // Initial reply from model
-    ToolCalls []ToolCall  // Tools the model wants to call
-    Answer    string      // Final answer (after tool execution if handler provided)
+users := model.New[User](db, model.WithTable("app_users"))
+```
+
+## Database Interface
+
+All backends implement the `model.Database` interface:
+
+```go
+type Database interface {
+    Init(...Option) error
+    NewTable(schema *Schema) error
+    Create(ctx context.Context, schema *Schema, key string, fields map[string]any) error
+    Read(ctx context.Context, schema *Schema, key string) (map[string]any, error)
+    Update(ctx context.Context, schema *Schema, key string, fields map[string]any) error
+    Delete(ctx context.Context, schema *Schema, key string) error
+    List(ctx context.Context, schema *Schema, opts ...QueryOption) ([]map[string]any, error)
+    Count(ctx context.Context, schema *Schema, opts ...QueryOption) (int64, error)
+    Close() error
+    String() string
 }
 ```
 
-- `Reply`: The model's first response
-- `ToolCalls`: List of tools the model requested (if any)
-- `Answer`: The final answer after tools are executed (only set if ToolHandler is provided)
+## Model vs Store
 
-## Supported Providers
-
-### Anthropic Claude
-
-```go
-m := model.New("anthropic",
-    model.WithAPIKey("sk-ant-..."),
-    model.WithModel("claude-sonnet-4-20250514"), // default
-)
-```
-
-Default model: `claude-sonnet-4-20250514`  
-Default base URL: `https://api.anthropic.com`
-
-### OpenAI GPT
-
-```go
-m := model.New("openai",
-    model.WithAPIKey("sk-..."),
-    model.WithModel("gpt-4o"), // default
-)
-```
-
-Default model: `gpt-4o`  
-Default base URL: `https://api.openai.com`
-
-## Auto-Detection
-
-Use `AutoDetectProvider()` to detect the provider from a base URL:
-
-```go
-provider := model.AutoDetectProvider("https://api.anthropic.com")
-// Returns "anthropic"
-
-m := model.New(provider, model.WithAPIKey("..."))
-```
-
-## Adding a New Provider
-
-1. Create a new package under `model/`:
-
-```go
-package myprovider
-
-import "go-micro.dev/v5/model"
-
-func init() {
-    model.Register("myprovider", func(opts ...model.Option) model.Model {
-        return NewProvider(opts...)
-    })
-}
-
-type Provider struct {
-    opts model.Options
-}
-
-func NewProvider(opts ...model.Option) *Provider {
-    options := model.NewOptions(opts...)
-    // Set defaults
-    if options.Model == "" {
-        options.Model = "my-default-model"
-    }
-    if options.BaseURL == "" {
-        options.BaseURL = "https://api.myprovider.com"
-    }
-    return &Provider{opts: options}
-}
-
-func (p *Provider) Init(opts ...model.Option) error {
-    for _, o := range opts {
-        o(&p.opts)
-    }
-    return nil
-}
-
-func (p *Provider) Options() model.Options {
-    return p.opts
-}
-
-func (p *Provider) String() string {
-    return "myprovider"
-}
-
-func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-    // Implement your provider logic
-    // - Build API request
-    // - Make HTTP call
-    // - Parse response
-    // - Handle tools if ToolHandler is set
-    return &model.Response{}, nil
-}
-
-func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
-    return nil, fmt.Errorf("streaming not implemented")
-}
-```
-
-2. Import your provider:
-
-```go
-import _ "go-micro.dev/v5/model/myprovider"
-```
-
-## Comparison with Other Packages
-
-The model package follows the same patterns as other go-micro packages:
-
-**Registry:**
-```go
-r := registry.NewRegistry(registry.Addrs("..."))
-r.Register(service)
-```
-
-**Client:**
-```go
-c := client.NewClient(client.Retries(3))
-c.Call(ctx, req, rsp)
-```
-
-**Model:**
-```go
-m := model.New("openai", model.WithAPIKey("..."))
-m.Generate(ctx, req)
-```
-
-All use:
-- `Init()` to update options
-- `Options()` to get current options
-- `String()` to get the implementation name
-- Functional options pattern
+| Feature | `store` | `model` |
+|---------|---------|---------|
+| Data format | Raw `[]byte` | Typed Go structs |
+| Queries | Key prefix/suffix only | WHERE, operators, LIKE |
+| Ordering | None | ORDER BY field ASC/DESC |
+| Pagination | Limit/Offset on keys | Limit/Offset on results |
+| Indexes | None | Via `model:"index"` tag |
+| Schema | None (schemaless KV) | Auto-created from struct |
+| Backends | Memory, File, MySQL, Postgres, NATS | Memory, SQLite, Postgres |
+| Use case | Config, sessions, cache | Application data, entities |
 
 ## Testing
 
 ```bash
 go test ./model/...
 ```
-
-## Examples
-
-See the [server implementation](../../cmd/micro/server/server.go) for a complete example of using the model package with tool execution.

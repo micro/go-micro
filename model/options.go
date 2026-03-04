@@ -1,77 +1,36 @@
 package model
 
-import (
-	"context"
-)
+// Option configures a Database.
+type Option func(*DatabaseOptions)
 
-// Options for model configuration
-type Options struct {
-	// Context for the model
-	Context context.Context
-	// Model name (e.g., "gpt-4o", "claude-sonnet-4-20250514")
-	Model string
-	// APIKey for authentication
-	APIKey string
-	// BaseURL for the API endpoint
-	BaseURL string
-	// ToolHandler handles tool calls (optional, for automatic tool execution)
-	ToolHandler ToolHandler
+// DatabaseOptions holds configuration for a Database backend.
+type DatabaseOptions struct {
+	// DSN is the data source name / connection string.
+	DSN string
 }
 
-// GenerateOptions for generate call
-type GenerateOptions struct {
-	// Context for this specific generate call
-	Context context.Context
-}
-
-// Option is a function that modifies Options
-type Option func(*Options)
-
-// GenerateOption is a function that modifies GenerateOptions
-type GenerateOption func(*GenerateOptions)
-
-// NewOptions creates new Options with defaults
-func NewOptions(opts ...Option) Options {
-	options := Options{
-		Context: context.Background(),
-	}
-	for _, o := range opts {
-		o(&options)
-	}
-	return options
-}
-
-// WithModel sets the model name
-func WithModel(m string) Option {
-	return func(o *Options) {
-		o.Model = m
+// WithDSN sets the data source name for the database connection.
+func WithDSN(dsn string) Option {
+	return func(o *DatabaseOptions) {
+		o.DSN = dsn
 	}
 }
 
-// WithAPIKey sets the API key
-func WithAPIKey(key string) Option {
-	return func(o *Options) {
-		o.APIKey = key
+// NewDatabaseOptions creates DatabaseOptions with defaults applied.
+func NewDatabaseOptions(opts ...Option) DatabaseOptions {
+	o := DatabaseOptions{}
+	for _, opt := range opts {
+		opt(&o)
 	}
+	return o
 }
 
-// WithBaseURL sets the base URL
-func WithBaseURL(url string) Option {
-	return func(o *Options) {
-		o.BaseURL = url
-	}
-}
+// ModelOption configures a Model instance.
+type ModelOption func(*Schema)
 
-// WithContext sets the context
-func WithContext(ctx context.Context) Option {
-	return func(o *Options) {
-		o.Context = ctx
-	}
-}
-
-// WithToolHandler sets the tool handler
-func WithToolHandler(handler ToolHandler) Option {
-	return func(o *Options) {
-		o.ToolHandler = handler
+// WithTable overrides the auto-derived table name.
+func WithTable(name string) ModelOption {
+	return func(s *Schema) {
+		s.Table = name
 	}
 }
