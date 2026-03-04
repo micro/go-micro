@@ -124,6 +124,7 @@ Build compelling demos showing agents interacting with go-micro services in real
 | Server (run/server) | `cmd/micro/server/server.go` |
 | Roadmap | `ROADMAP_2026.md` |
 | Status | `CURRENT_STATUS_SUMMARY.md` |
+| Changelog | `CHANGELOG.md` |
 | Docs Site | `internal/website/docs/` |
 
 ## Roadmap Documents
@@ -132,6 +133,7 @@ Build compelling demos showing agents interacting with go-micro services in real
 - **[ROADMAP_2026.md](ROADMAP_2026.md)** - AI-native era roadmap with business model
 - **[CURRENT_STATUS_SUMMARY.md](CURRENT_STATUS_SUMMARY.md)** - Quick status overview
 - **[PROJECT_STATUS_2026.md](PROJECT_STATUS_2026.md)** - Detailed technical status
+- **[CHANGELOG.md](CHANGELOG.md)** - What changed and when
 
 ## Contributing
 
