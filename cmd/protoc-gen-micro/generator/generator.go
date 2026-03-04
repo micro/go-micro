@@ -1193,6 +1193,15 @@ func (g *Generator) PrintComments(path string) bool {
 	return false
 }
 
+// GetComments returns the raw leading comment text for the given path, if any.
+func (g *Generator) GetComments(path string) (string, bool) {
+	loc, ok := g.file.comments[path]
+	if !ok {
+		return "", false
+	}
+	return loc.GetLeadingComments(), true
+}
+
 // makeComments generates the comment string for the field, no "\n" at the end
 func (g *Generator) makeComments(path string) (string, bool) {
 	loc, ok := g.file.comments[path]
