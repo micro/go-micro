@@ -29,6 +29,16 @@ cd crud
 go run main.go
 ```
 
+### [workflow](./workflow/) - Cross-Service Orchestration
+
+Three services (Inventory, Orders, Notifications) showing how an AI agent orchestrates multi-step workflows: search products, check stock, reserve inventory, place order, send confirmation — all from a single natural language request.
+
+**Run it:**
+```bash
+cd workflow
+go run main.go
+```
+
 ### [documented](./documented/) - Full-Featured Example
 
 Complete example showing all MCP features with a user service.
