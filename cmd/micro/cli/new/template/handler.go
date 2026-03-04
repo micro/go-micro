@@ -13,19 +13,24 @@ import (
 
 type {{title .Alias}} struct{}
 
-// Return a new handler
+// Return a new handler.
 func New() *{{title .Alias}} {
 	return &{{title .Alias}}{}
 }
 
-// Call is a single request handler called via client.Call or the generated client code
+// Call greets a person by name and returns a welcome message.
+//
+// @example {"name": "Alice"}
 func (e *{{title .Alias}}) Call(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
 	log.Info("Received {{title .Alias}}.Call request")
 	rsp.Msg = "Hello " + req.Name
 	return nil
 }
 
-// Stream is a server side stream handler called via client.Stream or the generated client code
+// Stream sends a sequence of numbered responses back to the caller.
+// Use this for streaming large result sets or real-time updates.
+//
+// @example {"count": 5}
 func (e *{{title .Alias}}) Stream(ctx context.Context, req *pb.StreamingRequest, stream pb.{{title .Alias}}_StreamStream) error {
 	log.Infof("Received {{title .Alias}}.Stream request with count: %d", req.Count)
 

@@ -174,15 +174,23 @@ func Run(ctx *cli.Context) error {
 	}
 	goDir = filepath.Join(goPath, "src", path.Clean(dir))
 
+	noMCP := ctx.Bool("no-mcp")
+
+	// Select main.go template based on MCP flag
+	mainTmpl := tmpl.MainSRV
+	if noMCP {
+		mainTmpl = tmpl.MainSRVNoMCP
+	}
+
 	c := config{
 		Alias:     dir,
-		Comments:  nil, // Remove redundant protoComments
+		Comments:  nil,
 		Dir:       dir,
 		GoDir:     goDir,
 		GoPath:    goPath,
 		UseGoPath: false,
 		Files: []file{
-			{"main.go", tmpl.MainSRV},
+			{"main.go", mainTmpl},
 			{"handler/" + dir + ".go", tmpl.HandlerSRV},
 			{"proto/" + dir + ".proto", tmpl.ProtoSRV},
 			{"Makefile", tmpl.Makefile},
@@ -214,7 +222,18 @@ func Run(ctx *cli.Context) error {
 	fmt.Println("\nProject structure after 'make proto':")
 	printTree(dir)
 
-	fmt.Println("\nService created successfully! Start coding in your new service directory.")
+	fmt.Println()
+	fmt.Printf("Service %s created successfully!\n\n", dir)
+	fmt.Println("Next steps:")
+	fmt.Printf("  cd %s\n", dir)
+	fmt.Println("  go run .")
+	if !noMCP {
+		fmt.Println()
+		fmt.Println("Your service is MCP-enabled. Once running:")
+		fmt.Println("  MCP tools:   http://localhost:3001/mcp/tools")
+		fmt.Println("  Claude Code: micro mcp serve")
+	}
+	fmt.Println()
 	return nil
 }
 
