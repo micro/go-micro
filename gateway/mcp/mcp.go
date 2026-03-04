@@ -368,7 +368,7 @@ func (s *Server) watchServices() {
 	}
 }
 
-// serveHTTP starts an HTTP server with SSE transport
+// serveHTTP starts an HTTP server with SSE and WebSocket transports
 func (s *Server) serveHTTP() error {
 	mux := http.NewServeMux()
 
@@ -377,12 +377,16 @@ func (s *Server) serveHTTP() error {
 	mux.HandleFunc("/mcp/call", s.handleCallTool)
 	mux.HandleFunc("/health", s.handleHealth)
 
+	// WebSocket endpoint for bidirectional streaming
+	ws := NewWebSocketTransport(s)
+	mux.Handle("/mcp/ws", ws)
+
 	s.server = &http.Server{
 		Addr:    s.opts.Address,
 		Handler: mux,
 	}
 
-	s.opts.Logger.Printf("[mcp] MCP gateway listening on %s", s.opts.Address)
+	s.opts.Logger.Printf("[mcp] MCP gateway listening on %s (HTTP + WebSocket)", s.opts.Address)
 	return s.server.ListenAndServe()
 }
 
