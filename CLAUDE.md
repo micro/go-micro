@@ -104,7 +104,12 @@ Build compelling demos showing agents interacting with go-micro services in real
 - Kubernetes Operator with CRDs
 
 ### Recently Completed
-- **Documentation Guides** - All four guides: AI-native services, MCP security, tool descriptions, agent patterns
+- **`micro new` MCP Templates** - Scaffolds MCP-enabled services with doc comments, `@example` tags, `WithMCP()`. `--no-mcp` to opt out.
+- **CRUD Example** - Contact book service with 6 operations, rich agent docs (`examples/mcp/crud/`)
+- **Migration Guide** - "Add MCP to Existing Services" guide with 3 approaches
+- **Troubleshooting Guide** - Common MCP issues and solutions
+- **Error Handling Guide** - Patterns for agent-friendly error responses
+- **Documentation Guides** - Six guides: AI-native services, MCP security, tool descriptions, agent patterns, error handling, troubleshooting
 - **WithMCP Option** - One-line MCP setup (`gateway/mcp/option.go`)
 - **Agent Playground Redesign** - Chat-focused UI with collapsible tool calls
 - **Standalone Gateway Binary** - `micro-mcp-gateway` with Docker support
@@ -123,16 +128,30 @@ Build compelling demos showing agents interacting with go-micro services in real
 | CLI Entry | `cmd/micro/main.go` |
 | MCP CLI | `cmd/micro/mcp/` |
 | Server (run/server) | `cmd/micro/server/server.go` |
+<<<<<<< claude/changelog-fZd2J
 | Roadmap | `ROADMAP_2026.md` |
 | Status | `CURRENT_STATUS_SUMMARY.md` |
+=======
+| Roadmap | `internal/docs/ROADMAP_2026.md` |
+| Status | `internal/docs/CURRENT_STATUS_SUMMARY.md` |
+>>>>>>> master
+| Changelog | `CHANGELOG.md` |
 | Docs Site | `internal/website/docs/` |
 
-## Roadmap Documents
+## Roadmap & Status Documents
 
 - **[ROADMAP.md](ROADMAP.md)** - General framework roadmap
+<<<<<<< claude/changelog-fZd2J
 - **[ROADMAP_2026.md](ROADMAP_2026.md)** - AI-native era roadmap with business model
 - **[CURRENT_STATUS_SUMMARY.md](CURRENT_STATUS_SUMMARY.md)** - Quick status overview
 - **[PROJECT_STATUS_2026.md](PROJECT_STATUS_2026.md)** - Detailed technical status
+=======
+- **[internal/docs/ROADMAP_2026.md](internal/docs/ROADMAP_2026.md)** - AI-native era roadmap with business model
+- **[internal/docs/CURRENT_STATUS_SUMMARY.md](internal/docs/CURRENT_STATUS_SUMMARY.md)** - Quick status overview
+- **[internal/docs/PROJECT_STATUS_2026.md](internal/docs/PROJECT_STATUS_2026.md)** - Detailed technical status
+- **[internal/docs/IMPLEMENTATION_SUMMARY.md](internal/docs/IMPLEMENTATION_SUMMARY.md)** - Implementation notes
+>>>>>>> master
+- **[CHANGELOG.md](CHANGELOG.md)** - What changed and when
 
 ## Contributing
 

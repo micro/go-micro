@@ -112,6 +112,7 @@ func (s *serviceImpl) Model() model.Database {
 	return s.opts.Model
 }
 
+
 func (s *serviceImpl) String() string {
 	return "micro"
 }

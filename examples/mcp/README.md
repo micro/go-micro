@@ -19,6 +19,26 @@ cd hello
 go run main.go
 ```
 
+### [crud](./crud/) - CRUD Contact Book
+
+A realistic service with create, read, update, delete, list, and search operations. Shows how to document a full API for agents with `@example` tags, `description` struct tags, validation errors, and partial updates.
+
+**Run it:**
+```bash
+cd crud
+go run main.go
+```
+
+### [workflow](./workflow/) - Cross-Service Orchestration
+
+Three services (Inventory, Orders, Notifications) showing how an AI agent orchestrates multi-step workflows: search products, check stock, reserve inventory, place order, send confirmation — all from a single natural language request.
+
+**Run it:**
+```bash
+cd workflow
+go run main.go
+```
+
 ### [documented](./documented/) - Full-Featured Example
 
 Complete example showing all MCP features with a user service.

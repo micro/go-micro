@@ -2,7 +2,7 @@
 
 This roadmap outlines the planned features and improvements for Go Micro. Community feedback and contributions are welcome!
 
-> **See [ROADMAP_2026.md](ROADMAP_2026.md) for the AI-Native Era roadmap** focused on MCP integration, agent-first development, and business sustainability. This document covers general framework improvements.
+> **See [internal/docs/ROADMAP_2026.md](internal/docs/ROADMAP_2026.md) for the AI-Native Era roadmap** focused on MCP integration, agent-first development, and business sustainability. This document covers general framework improvements.
 
 ## Current Focus (Q1 2026) - COMPLETE
 
