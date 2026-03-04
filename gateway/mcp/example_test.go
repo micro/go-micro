@@ -11,7 +11,19 @@ import (
 	"go-micro.dev/v5/registry"
 )
 
+// Example_withMCP shows the simplest way to add MCP to a service using WithMCP
+func Example_withMCP() {
+	// One line to make your service AI-accessible
+	service := micro.NewService(
+		micro.Name("myservice"),
+		WithMCP(":3000"),
+	)
+	service.Init()
+	service.Run()
+}
+
 // Example_inlineGateway shows how to add MCP gateway to an existing service
+// with full control over options
 func Example_inlineGateway() {
 	service := micro.NewService(micro.Name("myservice"))
 	service.Init()

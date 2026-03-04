@@ -358,7 +358,7 @@ func Run(c *cli.Context) error {
 	}
 
 	// Print startup banner
-	printBanner(services, gw, !c.Bool("no-watch"))
+	printBanner(services, gw, !c.Bool("no-watch"), c.String("mcp-address"))
 
 	// Setup signal handling
 	sigCh := make(chan os.Signal, 1)
@@ -427,21 +427,25 @@ func processRunning(pidStr string) bool {
 	return proc.Signal(syscall.Signal(0)) == nil
 }
 
-func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool) {
+func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, mcpAddr string) {
 	fmt.Println()
-	fmt.Println("  ┌─────────────────────────────────────────────────────────────┐")
-	fmt.Println("  │                                                             │")
-	fmt.Println("  │   \033[1mMicro\033[0m                                                    │")
-	fmt.Println("  │                                                             │")
+	fmt.Println("  \033[1mMicro\033[0m")
+	fmt.Println()
 
 	if gw != nil {
-		fmt.Printf("  │   Web:     \033[36mhttp://localhost%s\033[0m                       │\n", gw.Addr())
-		fmt.Printf("  │   API:     \033[36mhttp://localhost%s/api/{service}/{method}\033[0m  │\n", gw.Addr())
-		fmt.Printf("  │   Health:  \033[36mhttp://localhost%s/health\033[0m                 │\n", gw.Addr())
+		fmt.Printf("  Dashboard   \033[36mhttp://localhost%s\033[0m\n", gw.Addr())
+		fmt.Printf("  API         \033[36mhttp://localhost%s/api/{service}/{method}\033[0m\n", gw.Addr())
+		fmt.Printf("  Agent       \033[36mhttp://localhost%s/agent\033[0m\n", gw.Addr())
+		fmt.Printf("  Health      \033[36mhttp://localhost%s/health\033[0m\n", gw.Addr())
+		if mcpAddr != "" {
+			fmt.Printf("  MCP         \033[36mhttp://localhost%s\033[0m\n", mcpAddr)
+			fmt.Printf("  MCP Tools   \033[36mhttp://localhost%s/mcp/tools\033[0m\n", mcpAddr)
+			fmt.Printf("  WebSocket   \033[36mws://localhost%s/mcp/ws\033[0m\n", mcpAddr)
+		}
 	}
 
-	fmt.Println("  │                                                             │")
-	fmt.Println("  │   Services:                                                 │")
+	fmt.Println()
+	fmt.Println("  Services:")
 
 	for _, svc := range services {
 		status := "\033[32m●\033[0m" // green dot
@@ -449,30 +453,19 @@ func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool) 
 			status = "\033[31m●\033[0m" // red dot
 		}
 		name := svc.name
-		if len(name) > 20 {
-			name = name[:17] + "..."
+		if len(name) > 40 {
+			name = name[:37] + "..."
 		}
-		fmt.Printf("  │     %s %-20s                                │\n", status, name)
+		fmt.Printf("    %s %s\n", status, name)
 	}
 
-	fmt.Println("  │                                                             │")
+	fmt.Println()
+	fmt.Println("  Auth: \033[32menabled\033[0m (admin / micro)")
 
 	if watching {
-		fmt.Println("  │   \033[33mWatching for changes...\033[0m                                │")
-		fmt.Println("  │                                                             │")
+		fmt.Println("  \033[33mWatching for changes...\033[0m")
 	}
 
-	fmt.Println("  │   Auth:    \033[32menabled\033[0m (admin / micro)                        │")
-	fmt.Println("  │                                                             │")
-
-	if gw != nil && len(services) > 0 {
-		svc := services[0]
-		fmt.Println("  │   Try:                                                     │")
-		fmt.Printf("  │   \033[90mcurl -X POST http://localhost%s/api/%s/...\033[0m   │\n", gw.Addr(), svc.name)
-		fmt.Println("  │                                                             │")
-	}
-
-	fmt.Println("  └─────────────────────────────────────────────────────────────┘")
 	fmt.Println()
 }
 

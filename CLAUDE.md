@@ -84,8 +84,8 @@ go-micro/
 
 ### Status
 - **Q1 2026 (MCP Foundation):** COMPLETE
-- **Q2 2026 (Agent DX):** 85% complete (ahead of schedule)
-- **Q3 2026 (Production):** 40% complete (ahead of schedule)
+- **Q2 2026 (Agent DX):** 95% complete (ahead of schedule)
+- **Q3 2026 (Production):** 50% complete (ahead of schedule)
 
 ### Priority 1: Documentation Guides (HIGHEST ROI)
 The framework has features that are under-documented. These guides drive adoption:
@@ -94,17 +94,16 @@ The framework has features that are under-documented. These guides drive adoptio
 3. `docs/guides/tool-descriptions.md` - Writing comments that make agents effective
 4. `docs/guides/agent-patterns.md` - Multi-agent workflows and integration patterns
 
-### Priority 2: Multi-Protocol MCP (WebSocket)
-Only HTTP/SSE and stdio exist. WebSocket enables bidirectional streaming for real-time agents.
-
-### Priority 3: OpenTelemetry Integration
-Trace IDs exist (`Mcp-Trace-Id`) but aren't connected to OTel. This blocks enterprise adoption.
-
-### Priority 4: LlamaIndex SDK
-Follow the `contrib/langchain-go-micro/` pattern to build a LlamaIndex integration for RAG.
-
-### Priority 5: Agent Playground Polish
+### Priority 2: Agent Playground Polish
 The `/agent` UI in `micro run` needs refinement for demos and onboarding.
+
+### Priority 3: Standalone Gateway Binary
+Production-grade standalone `micro-mcp-gateway` binary for enterprise deployment.
+
+### Recently Completed
+- **WebSocket Transport** - Bidirectional JSON-RPC 2.0 streaming (`gateway/mcp/websocket.go`)
+- **OpenTelemetry Integration** - Full span instrumentation with W3C trace context (`gateway/mcp/otel.go`)
+- **LlamaIndex SDK** - Python package with RAG examples (`contrib/go-micro-llamaindex/`)
 
 ## Key Files
 
