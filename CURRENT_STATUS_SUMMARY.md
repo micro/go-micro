@@ -7,7 +7,7 @@
 
 ### Quick Status
 - **Q1 2026 (MCP Foundation):** COMPLETE (100%)
-- **Q2 2026 (Agent DX):** 95% COMPLETE (ahead of schedule)
+- **Q2 2026 (Agent DX):** 100% COMPLETE
 - **Q3 2026 (Production):** 50% COMPLETE (ahead of schedule)
 - **Q4 2026 (Ecosystem):** 0% COMPLETE (on track)
 
@@ -174,22 +174,22 @@ handler := service.Server().NewHandler(
 
 ## Where to Focus Next (March 2026 Priorities)
 
-### Priority 1: Documentation Guides (High Impact, Low Effort)
-The biggest gap is documentation for the features already built. These guides will drive adoption:
+### Priority 1: Agent Showcase & Examples
+Build compelling examples and demos that show agents interacting with go-micro services in realistic scenarios.
 
-1. **"Building AI-Native Services" guide** - End-to-end tutorial showing how to build a service that's AI-ready from the start
-2. **MCP security guide** - How to configure auth, scopes, rate limiting, and audit logging for production
-3. **Best practices for tool descriptions** - Writing Go comments that make agents more effective
-4. **Agent integration patterns** - Common patterns for multi-agent workflows
-
-### Priority 2: Interactive Playground Polish
-The agent playground exists at `/agent` in `micro run`. Refine the UX and add real-time tool call visualization.
-
-### Priority 3: Additional Protocol Support
+### Priority 2: Additional Protocol Support
 - **gRPC reflection-based MCP** - For gRPC-native environments
 - **HTTP/3 support** - Modern transport
 
+### Priority 3: Kubernetes & Deployment
+- **Helm Charts** - Official charts for MCP gateway
+- **Kubernetes Operator** - CRD-based deployment
+
 ### Recently Completed (March 2026)
+- **Documentation Guides** - All four guides complete: AI-native services, MCP security, tool descriptions, agent patterns
+- **WithMCP Convenience Option** - One-line MCP setup: `mcp.WithMCP(":3000")`
+- **Agent Playground Redesign** - Chat-focused UI with collapsible tool calls and real-time status
+- **Standalone Gateway Binary** - `micro-mcp-gateway` with Docker support
 - **WebSocket Transport** - Bidirectional streaming for real-time agents (JSON-RPC 2.0 over WebSocket)
 - **OpenTelemetry Integration** - Full span instrumentation across all transports with W3C trace context propagation
 - **LlamaIndex SDK** - `contrib/go-micro-llamaindex/` with RAG integration examples
@@ -226,7 +226,7 @@ The agent playground exists at `/agent` in `micro run`. Refine the UX and add re
 - Comprehensive documentation
 
 ### Q2 2026: Agent Developer Experience
-**Status:** MOSTLY COMPLETE (85%)
+**Status:** COMPLETE (100%)
 
 **COMPLETED:**
 - Stdio transport for Claude Code
@@ -241,9 +241,7 @@ The agent playground exists at `/agent` in `micro run`. Refine the UX and add re
 
 **REMAINING:**
 - Agent SDKs (AutoGPT)
-- Interactive Agent Playground refinement
 - Multi-protocol (gRPC, HTTP/3)
-- Documentation guides (4 guides planned)
 - Auto-generate examples from test cases
 
 ### Q3 2026: Production & Scale

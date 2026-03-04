@@ -177,6 +177,7 @@ mcp.ListenAndServe(":3000", mcp.Options{
 | `Duration` | `time.Duration` | How long the call took |
 | `Error` | `error` | Error if the call failed |
 | `TraceID` | `string` | UUID trace ID for correlation |
+| `DeniedReason` | `string` | Why the call was denied (empty if allowed) |
 
 ### Production Audit Logging
 
@@ -223,6 +224,72 @@ func (t *TaskService) Create(ctx context.Context, req *CreateRequest, rsp *Creat
     // ...
 }
 ```
+
+### OpenTelemetry Integration
+
+For full distributed tracing, plug in an OpenTelemetry trace provider:
+
+```go
+import (
+    "go.opentelemetry.io/otel"
+    "go-micro.dev/v5/gateway/mcp"
+)
+
+mcp.ListenAndServe(":3000", mcp.Options{
+    Registry:      reg,
+    TraceProvider: otel.GetTracerProvider(),
+})
+```
+
+Each tool call creates a span (`mcp.tool.call`) with these attributes:
+
+| Attribute | Example |
+|-----------|---------|
+| `mcp.tool.name` | `tasks.TaskService.Create` |
+| `mcp.transport` | `http`, `websocket`, `stdio` |
+| `mcp.account.id` | `user-123` |
+| `mcp.trace.id` | `a1b2c3d4-...` |
+| `mcp.auth.allowed` | `true` |
+| `mcp.auth.denied_reason` | `insufficient_scope` |
+| `mcp.scopes.required` | `tasks:write` |
+| `mcp.rate_limited` | `false` |
+
+The gateway propagates W3C trace context downstream, so you get end-to-end traces from agent → gateway → service in Jaeger, Zipkin, or any OTel-compatible backend.
+
+## WebSocket Authentication
+
+The WebSocket transport supports two authentication methods:
+
+### Connection-Level Auth (Recommended)
+
+Pass the token in the WebSocket upgrade request:
+
+```javascript
+const ws = new WebSocket("ws://localhost:3000/mcp/ws", {
+  headers: { "Authorization": "Bearer <token>" }
+});
+```
+
+The token is validated once on connection and applies to all messages on that connection.
+
+### Per-Message Auth
+
+For stateless connections, pass a `_token` parameter with each tool call:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "tasks.TaskService.Create",
+    "arguments": {"title": "New task"},
+    "_token": "Bearer <token>"
+  }
+}
+```
+
+Connection-level auth takes precedence over per-message auth.
 
 ## Production Checklist
 

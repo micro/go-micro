@@ -84,23 +84,25 @@ go-micro/
 
 ### Status
 - **Q1 2026 (MCP Foundation):** COMPLETE
-- **Q2 2026 (Agent DX):** 95% complete (ahead of schedule)
+- **Q2 2026 (Agent DX):** COMPLETE (100%)
 - **Q3 2026 (Production):** 50% complete (ahead of schedule)
 
-### Priority 1: Documentation Guides (HIGHEST ROI)
-The framework has features that are under-documented. These guides drive adoption:
-1. `docs/guides/ai-native-services.md` - End-to-end tutorial
-2. `docs/guides/mcp-security.md` - Auth, scopes, rate limiting for production
-3. `docs/guides/tool-descriptions.md` - Writing comments that make agents effective
-4. `docs/guides/agent-patterns.md` - Multi-agent workflows and integration patterns
+### Priority 1: Agent Showcase & Examples
+Build compelling demos showing agents interacting with go-micro services in realistic scenarios.
 
-### Priority 2: Agent Playground Polish
-The `/agent` UI in `micro run` needs refinement for demos and onboarding.
+### Priority 2: Additional Protocol Support
+- gRPC reflection-based MCP
+- HTTP/3 support
 
-### Priority 3: Standalone Gateway Binary
-Production-grade standalone `micro-mcp-gateway` binary for enterprise deployment.
+### Priority 3: Kubernetes & Deployment
+- Helm Charts for MCP gateway
+- Kubernetes Operator with CRDs
 
 ### Recently Completed
+- **Documentation Guides** - All four guides: AI-native services, MCP security, tool descriptions, agent patterns
+- **WithMCP Option** - One-line MCP setup (`gateway/mcp/option.go`)
+- **Agent Playground Redesign** - Chat-focused UI with collapsible tool calls
+- **Standalone Gateway Binary** - `micro-mcp-gateway` with Docker support
 - **WebSocket Transport** - Bidirectional JSON-RPC 2.0 streaming (`gateway/mcp/websocket.go`)
 - **OpenTelemetry Integration** - Full span instrumentation with W3C trace context (`gateway/mcp/otel.go`)
 - **LlamaIndex SDK** - Python package with RAG examples (`contrib/go-micro-llamaindex/`)
