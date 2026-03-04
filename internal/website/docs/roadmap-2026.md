@@ -223,7 +223,7 @@ AI Agents → Go Micro (MCP) → Microservices
 
 For the complete roadmap including business model details, risk mitigation, and technical specifications:
 
-**[View Full Roadmap](https://github.com/micro/go-micro/blob/master/ROADMAP_2026.md)**
+**[View Full Roadmap](https://github.com/micro/go-micro/blob/master/internal/docs/ROADMAP_2026.md)**
 
 ## Resources
 
