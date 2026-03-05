@@ -63,8 +63,8 @@ service := micro.New("platform",
     mcp.WithMCP(":3001"),  // This one line makes everything AI-accessible
 )
 
-service.Handle(users)
-service.Handle(posts)
+service.Handle(&Users{})
+service.Handle(&Posts{})
 service.Handle(&Comments{})
 service.Handle(&Mail{})
 ```
