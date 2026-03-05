@@ -174,8 +174,8 @@ handler := service.Server().NewHandler(
 
 ## Where to Focus Next (March 2026 Priorities)
 
-### Priority 1: Agent Showcase & Examples
-Build compelling examples and demos that show agents interacting with go-micro services in realistic scenarios.
+### Priority 1: Agent Showcase & Examples ✅ DELIVERED
+Platform showcase example mirroring micro/blog with Users, Posts, Comments, Mail services. Blog post: "Your Microservices Are Already an AI Platform."
 
 ### Priority 2: Additional Protocol Support
 - **gRPC reflection-based MCP** - For gRPC-native environments
@@ -186,6 +186,8 @@ Build compelling examples and demos that show agents interacting with go-micro s
 - **Kubernetes Operator** - CRD-based deployment
 
 ### Recently Completed (March 2026)
+- **Agent Platform Showcase** - Full platform example (Users, Posts, Comments, Mail) mirroring micro/blog, showing agents interacting with real microservices (`examples/mcp/platform/`)
+- **Blog Post: "Your Microservices Are Already an AI Platform"** - Walkthrough of agent-service interaction patterns
 - **`micro new` MCP Templates** - `micro new myservice` generates MCP-enabled services by default with doc comments, `@example` tags, and `WithMCP()` wired in. `--no-mcp` flag to opt out.
 - **CRUD Example** - Full contact book service showing Create, Get, Update, Delete, List, Search with rich agent documentation (`examples/mcp/crud/`)
 - **Migration Guide** - "Add MCP to Existing Services" — 3 approaches from one-liner to standalone gateway
@@ -210,7 +212,7 @@ Build compelling examples and demos that show agents interacting with go-micro s
 | **Production Code** | 2,500+ lines (MCP gateway) |
 | **Test Code** | 1,000+ lines |
 | **Documentation Files** | 90+ markdown files |
-| **Working Examples** | 3 MCP + 1 agent-demo + 3 other + 2 LlamaIndex |
+| **Working Examples** | 4 MCP + 1 agent-demo + 3 other + 2 LlamaIndex |
 | **CLI Commands** | 5 MCP (serve, list, test, docs, export) |
 | **Export Formats** | 3 (langchain, openapi, json) |
 | **Agent SDKs** | 2 (LangChain Python, LlamaIndex Python) |
