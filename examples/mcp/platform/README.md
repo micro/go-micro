@@ -65,8 +65,8 @@ service := micro.New("platform",
 
 service.Handle(users)
 service.Handle(posts)
-service.Handle(&CommentService{})
-service.Handle(&MailService{})
+service.Handle(&Comments{})
+service.Handle(&Mail{})
 ```
 
 Each handler method becomes an MCP tool. The `@example` tags in doc comments give agents sample inputs to learn from.
