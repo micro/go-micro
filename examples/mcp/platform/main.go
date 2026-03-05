@@ -28,7 +28,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"sort"
@@ -90,7 +89,7 @@ type ListUsersResponse struct {
 	Users []*User `json:"users" description:"All registered users"`
 }
 
-type UserService struct {
+type Users struct {
 	mu        sync.RWMutex
 	users     map[string]*User
 	passwords map[string]string // name -> password (plaintext for demo only)
@@ -98,8 +97,8 @@ type UserService struct {
 	nextID    int
 }
 
-func NewUserService() *UserService {
-	return &UserService{
+func NewUsers() *Users {
+	return &Users{
 		users:     make(map[string]*User),
 		passwords: make(map[string]string),
 		tokens:    make(map[string]string),
@@ -110,7 +109,7 @@ func NewUserService() *UserService {
 // The username must be unique. Use the returned token for authenticated operations.
 //
 // @example {"name": "alice", "password": "secret123"}
-func (s *UserService) Signup(ctx context.Context, req *SignupRequest, rsp *SignupResponse) error {
+func (s *Users) Signup(ctx context.Context, req *SignupRequest, rsp *SignupResponse) error {
 	if req.Name == "" || len(req.Name) < 3 {
 		return fmt.Errorf("name must be at least 3 characters")
 	}
@@ -149,7 +148,7 @@ func (s *UserService) Signup(ctx context.Context, req *SignupRequest, rsp *Signu
 // Returns an error if the credentials are invalid.
 //
 // @example {"name": "alice", "password": "secret123"}
-func (s *UserService) Login(ctx context.Context, req *LoginRequest, rsp *LoginResponse) error {
+func (s *Users) Login(ctx context.Context, req *LoginRequest, rsp *LoginResponse) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -174,7 +173,7 @@ func (s *UserService) Login(ctx context.Context, req *LoginRequest, rsp *LoginRe
 // GetProfile retrieves a user's public profile by ID.
 //
 // @example {"id": "user-1"}
-func (s *UserService) GetProfile(ctx context.Context, req *GetProfileRequest, rsp *GetProfileResponse) error {
+func (s *Users) GetProfile(ctx context.Context, req *GetProfileRequest, rsp *GetProfileResponse) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -189,7 +188,7 @@ func (s *UserService) GetProfile(ctx context.Context, req *GetProfileRequest, rs
 // UpdateStatus sets a user's bio or status message.
 //
 // @example {"id": "user-1", "status": "Writing about Go and microservices"}
-func (s *UserService) UpdateStatus(ctx context.Context, req *UpdateStatusRequest, rsp *UpdateStatusResponse) error {
+func (s *Users) UpdateStatus(ctx context.Context, req *UpdateStatusRequest, rsp *UpdateStatusResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -205,7 +204,7 @@ func (s *UserService) UpdateStatus(ctx context.Context, req *UpdateStatusRequest
 // List returns all registered users on the platform.
 //
 // @example {}
-func (s *UserService) List(ctx context.Context, req *ListUsersRequest, rsp *ListUsersResponse) error {
+func (s *Users) List(ctx context.Context, req *ListUsersRequest, rsp *ListUsersResponse) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -292,21 +291,21 @@ type ListTagsResponse struct {
 	Tags []string `json:"tags" description:"All tags in use, sorted alphabetically"`
 }
 
-type PostService struct {
+type Posts struct {
 	mu     sync.RWMutex
 	posts  map[string]*Post
 	nextID int
 }
 
-func NewPostService() *PostService {
-	return &PostService{posts: make(map[string]*Post)}
+func NewPosts() *Posts {
+	return &Posts{posts: make(map[string]*Post)}
 }
 
 // Create publishes a new blog post. Title, content, author_id, and author_name
 // are required. Content supports markdown formatting.
 //
 // @example {"title": "Getting Started with Go Micro", "content": "Go Micro makes it easy to build microservices...", "author_id": "user-1", "author_name": "alice"}
-func (s *PostService) Create(ctx context.Context, req *CreatePostRequest, rsp *CreatePostResponse) error {
+func (s *Posts) Create(ctx context.Context, req *CreatePostRequest, rsp *CreatePostResponse) error {
 	if req.Title == "" {
 		return fmt.Errorf("title is required")
 	}
@@ -339,7 +338,7 @@ func (s *PostService) Create(ctx context.Context, req *CreatePostRequest, rsp *C
 // Read retrieves a single blog post by ID.
 //
 // @example {"id": "post-1"}
-func (s *PostService) Read(ctx context.Context, req *ReadPostRequest, rsp *ReadPostResponse) error {
+func (s *Posts) Read(ctx context.Context, req *ReadPostRequest, rsp *ReadPostResponse) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -355,7 +354,7 @@ func (s *PostService) Read(ctx context.Context, req *ReadPostRequest, rsp *ReadP
 // Only non-empty fields are updated.
 //
 // @example {"id": "post-1", "title": "Updated Title", "content": "New content here..."}
-func (s *PostService) Update(ctx context.Context, req *UpdatePostRequest, rsp *UpdatePostResponse) error {
+func (s *Posts) Update(ctx context.Context, req *UpdatePostRequest, rsp *UpdatePostResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -377,7 +376,7 @@ func (s *PostService) Update(ctx context.Context, req *UpdatePostRequest, rsp *U
 // Delete removes a blog post permanently.
 //
 // @example {"id": "post-1"}
-func (s *PostService) Delete(ctx context.Context, req *DeletePostRequest, rsp *DeletePostResponse) error {
+func (s *Posts) Delete(ctx context.Context, req *DeletePostRequest, rsp *DeletePostResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -393,7 +392,7 @@ func (s *PostService) Delete(ctx context.Context, req *DeletePostRequest, rsp *D
 // Optionally filter by author_id to see a specific user's posts.
 //
 // @example {"author_id": "user-1"}
-func (s *PostService) List(ctx context.Context, req *ListPostsRequest, rsp *ListPostsResponse) error {
+func (s *Posts) List(ctx context.Context, req *ListPostsRequest, rsp *ListPostsResponse) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -414,7 +413,7 @@ func (s *PostService) List(ctx context.Context, req *ListPostsRequest, rsp *List
 // and discovery. Duplicate tags are ignored.
 //
 // @example {"post_id": "post-1", "tag": "golang"}
-func (s *PostService) TagPost(ctx context.Context, req *TagPostRequest, rsp *TagPostResponse) error {
+func (s *Posts) TagPost(ctx context.Context, req *TagPostRequest, rsp *TagPostResponse) error {
 	if req.PostID == "" || req.Tag == "" {
 		return fmt.Errorf("post_id and tag are required")
 	}
@@ -443,7 +442,7 @@ func (s *PostService) TagPost(ctx context.Context, req *TagPostRequest, rsp *Tag
 // UntagPost removes a tag from a post.
 //
 // @example {"post_id": "post-1", "tag": "golang"}
-func (s *PostService) UntagPost(ctx context.Context, req *UntagPostRequest, rsp *UntagPostResponse) error {
+func (s *Posts) UntagPost(ctx context.Context, req *UntagPostRequest, rsp *UntagPostResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -467,7 +466,7 @@ func (s *PostService) UntagPost(ctx context.Context, req *UntagPostRequest, rsp 
 // ListTags returns all tags currently in use across all posts.
 //
 // @example {}
-func (s *PostService) ListTags(ctx context.Context, req *ListTagsRequest, rsp *ListTagsResponse) error {
+func (s *Posts) ListTags(ctx context.Context, req *ListTagsRequest, rsp *ListTagsResponse) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -522,7 +521,7 @@ type DeleteCommentResponse struct {
 	Message string `json:"message" description:"Confirmation message"`
 }
 
-type CommentService struct {
+type Comments struct {
 	mu       sync.RWMutex
 	comments []*Comment
 	nextID   int
@@ -532,7 +531,7 @@ type CommentService struct {
 // and author_name are all required.
 //
 // @example {"post_id": "post-1", "content": "Great article! Very helpful.", "author_id": "user-2", "author_name": "bob"}
-func (s *CommentService) Create(ctx context.Context, req *CreateCommentRequest, rsp *CreateCommentResponse) error {
+func (s *Comments) Create(ctx context.Context, req *CreateCommentRequest, rsp *CreateCommentResponse) error {
 	if req.PostID == "" {
 		return fmt.Errorf("post_id is required")
 	}
@@ -564,7 +563,7 @@ func (s *CommentService) Create(ctx context.Context, req *CreateCommentRequest, 
 // Use post_id to get all comments on a specific post.
 //
 // @example {"post_id": "post-1"}
-func (s *CommentService) List(ctx context.Context, req *ListCommentsRequest, rsp *ListCommentsResponse) error {
+func (s *Comments) List(ctx context.Context, req *ListCommentsRequest, rsp *ListCommentsResponse) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -583,7 +582,7 @@ func (s *CommentService) List(ctx context.Context, req *ListCommentsRequest, rsp
 // Delete removes a comment by ID.
 //
 // @example {"id": "comment-1"}
-func (s *CommentService) Delete(ctx context.Context, req *DeleteCommentRequest, rsp *DeleteCommentResponse) error {
+func (s *Comments) Delete(ctx context.Context, req *DeleteCommentRequest, rsp *DeleteCommentResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -628,7 +627,7 @@ type ReadMailResponse struct {
 	Messages []*MailMessage `json:"messages" description:"Inbox messages, newest first"`
 }
 
-type MailService struct {
+type Mail struct {
 	mu       sync.RWMutex
 	messages []*MailMessage
 	nextID   int
@@ -638,7 +637,7 @@ type MailService struct {
 // Both sender and recipient are identified by username.
 //
 // @example {"from": "alice", "to": "bob", "subject": "Welcome!", "body": "Hey Bob, welcome to the platform!"}
-func (s *MailService) Send(ctx context.Context, req *SendMailRequest, rsp *SendMailResponse) error {
+func (s *Mail) Send(ctx context.Context, req *SendMailRequest, rsp *SendMailResponse) error {
 	if req.From == "" || req.To == "" {
 		return fmt.Errorf("from and to are required")
 	}
@@ -666,7 +665,7 @@ func (s *MailService) Send(ctx context.Context, req *SendMailRequest, rsp *SendM
 // Read returns all messages in a user's inbox, newest first.
 //
 // @example {"user": "alice"}
-func (s *MailService) Read(ctx context.Context, req *ReadMailRequest, rsp *ReadMailResponse) error {
+func (s *Mail) Read(ctx context.Context, req *ReadMailRequest, rsp *ReadMailResponse) error {
 	if req.User == "" {
 		return fmt.Errorf("user is required")
 	}
@@ -694,18 +693,18 @@ func main() {
 	)
 	service.Init()
 
-	users := NewUserService()
-	posts := NewPostService()
+	users := NewUsers()
+	posts := NewPosts()
 
 	// Seed some demo data so agents have something to work with
 	seedData(users, posts)
 
 	service.Handle(users)
 	service.Handle(posts)
-	service.Handle(&CommentService{})
-	service.Handle(&MailService{},
-		server.WithEndpointScopes("MailService.Send", "mail:write"),
-		server.WithEndpointScopes("MailService.Read", "mail:read"),
+	service.Handle(&Comments{})
+	service.Handle(&Mail{},
+		server.WithEndpointScopes("Mail.Send", "mail:write"),
+		server.WithEndpointScopes("Mail.Read", "mail:read"),
 	)
 
 	printBanner()
@@ -715,7 +714,7 @@ func main() {
 	}
 }
 
-func seedData(users *UserService, posts *PostService) {
+func seedData(users *Users, posts *Posts) {
 	// Create demo users
 	var aliceRsp SignupResponse
 	users.Signup(context.Background(), &SignupRequest{
@@ -773,6 +772,3 @@ func generateToken() string {
 	rand.Read(b)
 	return hex.EncodeToString(b)
 }
-
-// ensure json import is used (for seed data marshaling in tests)
-var _ = json.Marshal
