@@ -29,6 +29,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"go-micro.dev/v5/auth"
 	"go-micro.dev/v5/auth/jwt"
@@ -90,6 +91,17 @@ func main() {
 				Name:  "scope",
 				Usage: "Tool scope requirement (format: tool=scope1,scope2)",
 			},
+			&cli.IntFlag{
+				Name:    "circuit-breaker",
+				Usage:   "Circuit breaker max failures before opening (0 = disabled)",
+				EnvVars: []string{"MCP_CIRCUIT_BREAKER"},
+			},
+			&cli.DurationFlag{
+				Name:    "circuit-breaker-timeout",
+				Usage:   "Circuit breaker open-state timeout before half-open probe",
+				Value:   30 * time.Second,
+				EnvVars: []string{"MCP_CIRCUIT_BREAKER_TIMEOUT"},
+			},
 		},
 		Action: run,
 	}
@@ -140,6 +152,15 @@ func run(c *cli.Context) error {
 		for tool, s := range opts.Scopes {
 			logger.Printf("Scope: %s requires [%s]", tool, strings.Join(s, ", "))
 		}
+	}
+
+	// Circuit breaker
+	if maxFail := c.Int("circuit-breaker"); maxFail > 0 {
+		opts.CircuitBreaker = &mcp.CircuitBreakerConfig{
+			MaxFailures: maxFail,
+			Timeout:     c.Duration("circuit-breaker-timeout"),
+		}
+		logger.Printf("Circuit breaker: max %d failures, timeout %s", maxFail, c.Duration("circuit-breaker-timeout"))
 	}
 
 	// Audit

@@ -256,7 +256,7 @@ Create a production-grade standalone MCP gateway:
 - [x] Rate limiting per agent/token ✅ (delivered early)
 - [ ] Usage tracking and analytics
 - [x] Cost attribution (track which agent called what) ✅ (audit logging)
-- [ ] Circuit breakers for service protection
+- [x] Circuit breakers for service protection ✅ (per-tool, configurable thresholds)
 - [ ] Request/response caching
 - [ ] Multi-tenant support (isolate services by namespace)
 
