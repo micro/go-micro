@@ -12,7 +12,7 @@ import (
 	"go-micro.dev/v5/model"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
-	signalutil "go-micro.dev/v5/util/signal"
+	signalutil "go-micro.dev/v5/internal/util/signal"
 )
 
 // Service is the interface for a go-micro service.

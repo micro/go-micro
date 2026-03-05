@@ -12,7 +12,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go-micro.dev/v5/logger"
-	mtls "go-micro.dev/v5/util/tls"
+	mtls "go-micro.dev/v5/internal/util/tls"
 )
 
 type MQExchangeType string

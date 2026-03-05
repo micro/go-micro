@@ -19,7 +19,7 @@ import (
 	"go-micro.dev/v5/metadata"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/selector"
-	pnet "go-micro.dev/v5/util/net"
+	pnet "go-micro.dev/v5/internal/util/net"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/encoding"

@@ -20,10 +20,10 @@ import (
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/transport"
 	"go-micro.dev/v5/transport/headers"
-	"go-micro.dev/v5/util/addr"
-	"go-micro.dev/v5/util/backoff"
-	mnet "go-micro.dev/v5/util/net"
-	"go-micro.dev/v5/util/socket"
+	"go-micro.dev/v5/internal/util/addr"
+	"go-micro.dev/v5/internal/util/backoff"
+	mnet "go-micro.dev/v5/internal/util/net"
+	"go-micro.dev/v5/internal/util/socket"
 )
 
 type rpcServer struct {

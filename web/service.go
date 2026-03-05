@@ -16,12 +16,12 @@ import (
 	"go-micro.dev/v5"
 	log "go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
-	maddr "go-micro.dev/v5/util/addr"
-	"go-micro.dev/v5/util/backoff"
-	mhttp "go-micro.dev/v5/util/http"
-	mnet "go-micro.dev/v5/util/net"
-	signalutil "go-micro.dev/v5/util/signal"
-	mls "go-micro.dev/v5/util/tls"
+	maddr "go-micro.dev/v5/internal/util/addr"
+	"go-micro.dev/v5/internal/util/backoff"
+	mhttp "go-micro.dev/v5/internal/util/http"
+	mnet "go-micro.dev/v5/internal/util/net"
+	signalutil "go-micro.dev/v5/internal/util/signal"
+	mls "go-micro.dev/v5/internal/util/tls"
 )
 
 type service struct {

@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"go-micro.dev/v5/logger"
-	maddr "go-micro.dev/v5/util/addr"
-	mnet "go-micro.dev/v5/util/net"
-	mls "go-micro.dev/v5/util/tls"
+	maddr "go-micro.dev/v5/internal/util/addr"
+	mnet "go-micro.dev/v5/internal/util/net"
+	mls "go-micro.dev/v5/internal/util/tls"
 )
 
 type httpTransport struct {
