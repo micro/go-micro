@@ -263,12 +263,13 @@ Build compelling examples and demos that show agents interacting with go-micro s
 - OpenTelemetry integration (spans, attributes, W3C trace context)
 
 **RECENTLY COMPLETED:**
+- Circuit breakers for service protection (`gateway/mcp/circuitbreaker.go`)
 - Helm chart for MCP gateway (`deploy/helm/mcp-gateway/`)
 
 **REMAINING:**
 - Kubernetes Operator (CRDs, auto-scaling)
 - Full observability dashboards
-- Circuit breakers, caching, multi-tenant support
+- Request/response caching, multi-tenant support
 
 ### Q4 2026: Ecosystem & Monetization
 **Status:** PLANNING (0%)

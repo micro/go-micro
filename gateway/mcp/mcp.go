@@ -117,6 +117,11 @@ type Options struct {
 	// When set, each tool is limited to the configured requests per second.
 	RateLimit *RateLimitConfig
 
+	// CircuitBreaker configures per-tool circuit breaking.
+	// When set, tools that fail repeatedly are temporarily blocked to
+	// protect downstream services from cascading failures.
+	CircuitBreaker *CircuitBreakerConfig
+
 	// Scopes lets the gateway operator define or override per-tool
 	// scope requirements without changing the services themselves.
 	// Keys are tool names (e.g. "blog.Blog.Create") and values are the
@@ -157,6 +162,10 @@ type Server struct {
 	// limiters holds per-tool rate limiters (nil if rate limiting is disabled).
 	limiters   map[string]*rateLimiter
 	limitersMu sync.RWMutex
+
+	// breakers holds per-tool circuit breakers (nil if circuit breaking is disabled).
+	breakers   map[string]*circuitBreaker
+	breakersMu sync.RWMutex
 }
 
 // Tool represents an MCP tool (exposed service endpoint)
@@ -193,6 +202,7 @@ func Serve(opts Options) error {
 		opts:     opts,
 		tools:    make(map[string]*Tool),
 		limiters: make(map[string]*rateLimiter),
+		breakers: make(map[string]*circuitBreaker),
 	}
 
 	// Discover services and build tool list
@@ -289,6 +299,15 @@ func (s *Server) discoverServices() error {
 					)
 				}
 				s.limitersMu.Unlock()
+			}
+
+			// Create circuit breaker for this tool if configured
+			if s.opts.CircuitBreaker != nil {
+				s.breakersMu.Lock()
+				if _, exists := s.breakers[toolName]; !exists {
+					s.breakers[toolName] = newCircuitBreaker(*s.opts.CircuitBreaker)
+				}
+				s.breakersMu.Unlock()
 			}
 		}
 	}
@@ -514,6 +533,22 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 
 	span.SetAttributes(attribute.Bool(AttrAuthAllowed, true))
 
+	// Circuit breaker check
+	if err := s.allowCircuit(req.Tool); err != nil {
+		span.SetAttributes(attribute.String("mcp.circuit_breaker", "open"))
+		setSpanError(span, err)
+		accountID := ""
+		if account != nil {
+			accountID = account.ID
+		}
+		s.audit(AuditRecord{
+			TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+			AccountID: accountID, Allowed: false, DeniedReason: "circuit breaker open",
+		})
+		http.Error(w, "Service unavailable: circuit breaker open", http.StatusServiceUnavailable)
+		return
+	}
+
 	// Build context with tracing metadata
 	// OTel trace context was already injected by startToolSpan; add MCP metadata.
 	md, _ := metadata.FromContext(ctx)
@@ -540,6 +575,7 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	var rsp bytes.Frame
 
 	if err := s.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
+		s.recordCircuit(req.Tool, false)
 		setSpanError(span, err)
 		s.opts.Logger.Printf("[mcp] RPC call failed: %v", err)
 		accountID := ""
@@ -555,6 +591,7 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.recordCircuit(req.Tool, true)
 	setSpanOK(span)
 
 	// Audit successful call
@@ -635,6 +672,39 @@ func (s *Server) allowRate(toolName string) error {
 		return fmt.Errorf("rate limit exceeded for tool %s", toolName)
 	}
 	return nil
+}
+
+// allowCircuit checks if the tool call is allowed by the circuit breaker.
+// Returns nil if allowed, non-nil error if the circuit is open.
+func (s *Server) allowCircuit(toolName string) error {
+	if s.opts.CircuitBreaker == nil {
+		return nil
+	}
+	s.breakersMu.RLock()
+	cb, ok := s.breakers[toolName]
+	s.breakersMu.RUnlock()
+	if !ok {
+		return nil
+	}
+	return cb.Allow()
+}
+
+// recordCircuit records a success or failure for the tool's circuit breaker.
+func (s *Server) recordCircuit(toolName string, success bool) {
+	if s.opts.CircuitBreaker == nil {
+		return
+	}
+	s.breakersMu.RLock()
+	cb, ok := s.breakers[toolName]
+	s.breakersMu.RUnlock()
+	if !ok {
+		return
+	}
+	if success {
+		cb.RecordSuccess()
+	} else {
+		cb.RecordFailure()
+	}
 }
 
 // hasScope checks if the account has at least one of the required scopes.
