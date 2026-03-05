@@ -708,7 +708,7 @@ func (g *micro) generateModel(msg *pb.DescriptorProto, msgIndex int) {
 	// Generate model struct
 	g.P()
 	g.P("// ", modelName, " is a model struct generated from ", msgName, ".")
-	g.P("// Use New", modelName, " to create a typed model backed by any model.Database.")
+	g.P("// Use New", modelName, " to create a typed table backed by any model.Model.")
 	g.P("type ", modelName, " struct {")
 	for _, f := range fields {
 		tags := fmt.Sprintf("`json:%q", f.jsonName)
@@ -721,10 +721,10 @@ func (g *micro) generateModel(msg *pb.DescriptorProto, msgIndex int) {
 	g.P("}")
 	g.P()
 
-	// Generate factory: NewXModel(db) *model.Model[XModel]
-	g.P("// New", modelName, " creates a typed model for ", msgName, " backed by the given database.")
-	g.P("func New", modelName, "(db ", modelPkg, ".Database) *", modelPkg, ".Model[", modelName, "] {")
-	g.P("return ", modelPkg, ".New[", modelName, "](db, ", modelPkg, `.WithTable("`, tableName, `"))`)
+	// Generate Register helper: RegisterXModel(db) registers the model with the given backend.
+	g.P("// Register", modelName, " registers the ", modelName, " table with the given model backend.")
+	g.P("func Register", modelName, "(db ", modelPkg, ".Model) error {")
+	g.P("return db.Register(&", modelName, "{}, ", modelPkg, `.WithTable("`, tableName, `"))`)
 	g.P("}")
 	g.P()
 

@@ -32,7 +32,7 @@ type Options struct {
 	Config   config.Config
 	Client   client.Client
 	Server   server.Server
-	Model    model.Database
+	Model    model.Model
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -158,10 +158,10 @@ func Store(s store.Store) Option {
 	}
 }
 
-// Model sets the model database to use.
-func Model(db model.Database) Option {
+// Model sets the model backend to use.
+func Model(m model.Model) Option {
 	return func(o *Options) {
-		o.Model = db
+		o.Model = m
 	}
 }
 

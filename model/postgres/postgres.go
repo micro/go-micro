@@ -1,4 +1,4 @@
-// Package postgres provides a PostgreSQL Database implementation for the model package.
+// Package postgres provides a PostgreSQL model.Model implementation.
 // Uses lib/pq driver. Best for production deployments with rich query support.
 package postgres
 
@@ -8,32 +8,47 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 
 	_ "github.com/lib/pq"
 
 	"go-micro.dev/v5/model"
 )
 
-// Database is a PostgreSQL model.Database implementation.
-type Database struct {
-	db *sql.DB
+type postgresModel struct {
+	db      *sql.DB
+	mu      sync.RWMutex
+	schemas map[string]*model.Schema
+	types   map[reflect.Type]*model.Schema
 }
 
-// New creates a new Postgres database. DSN is a connection string
+// New creates a new Postgres model. DSN is a connection string
 // (e.g., "postgres://user:pass@localhost/dbname?sslmode=disable").
-func New(dsn string) *Database {
+func New(dsn string) model.Model {
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
 		panic(fmt.Sprintf("model/postgres: failed to open: %v", err))
 	}
-	return &Database{db: db}
+	return &postgresModel{
+		db:      db,
+		schemas: make(map[string]*model.Schema),
+		types:   make(map[reflect.Type]*model.Schema),
+	}
 }
 
-func (d *Database) Init(opts ...model.Option) error {
+func (d *postgresModel) Init(opts ...model.Option) error {
 	return d.db.Ping()
 }
 
-func (d *Database) NewTable(schema *model.Schema) error {
+func (d *postgresModel) Register(v interface{}, opts ...model.RegisterOption) error {
+	schema := model.BuildSchema(v, opts...)
+	t := model.ResolveType(v)
+
+	d.mu.Lock()
+	d.schemas[schema.Table] = schema
+	d.types[t] = schema
+	d.mu.Unlock()
+
 	var cols []string
 	for _, f := range schema.Fields {
 		colType := goTypeToPostgres(f.Type)
@@ -49,7 +64,6 @@ func (d *Database) NewTable(schema *model.Schema) error {
 		return fmt.Errorf("model/postgres: create table: %w", err)
 	}
 
-	// Create indexes
 	for _, f := range schema.Fields {
 		if f.Index && !f.IsKey {
 			idx := fmt.Sprintf("CREATE INDEX IF NOT EXISTS %s ON %s (%s)",
@@ -65,10 +79,26 @@ func (d *Database) NewTable(schema *model.Schema) error {
 	return nil
 }
 
-func (d *Database) Create(ctx context.Context, schema *model.Schema, key string, fields map[string]any) error {
+func (d *postgresModel) schema(v interface{}) (*model.Schema, error) {
+	t := model.ResolveType(v)
+	d.mu.RLock()
+	s, ok := d.types[t]
+	d.mu.RUnlock()
+	if !ok {
+		return nil, model.ErrNotRegistered
+	}
+	return s, nil
+}
+
+func (d *postgresModel) Create(ctx context.Context, v interface{}) error {
+	schema, err := d.schema(v)
+	if err != nil {
+		return err
+	}
+	fields := model.StructToMap(schema, v)
 	cols, placeholders, values := buildInsert(schema, fields)
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", quoteIdent(schema.Table), cols, placeholders)
-	_, err := d.db.ExecContext(ctx, query, values...)
+	_, err = d.db.ExecContext(ctx, query, values...)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "unique constraint") {
 			return model.ErrDuplicateKey
@@ -78,14 +108,29 @@ func (d *Database) Create(ctx context.Context, schema *model.Schema, key string,
 	return nil
 }
 
-func (d *Database) Read(ctx context.Context, schema *model.Schema, key string) (map[string]any, error) {
+func (d *postgresModel) Read(ctx context.Context, key string, v interface{}) error {
+	schema, err := d.schema(v)
+	if err != nil {
+		return err
+	}
 	cols := columnList(schema)
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $1", cols, quoteIdent(schema.Table), quoteIdent(schema.Key))
 	row := d.db.QueryRowContext(ctx, query, key)
-	return scanRow(schema, row)
+	fields, err := scanRow(schema, row)
+	if err != nil {
+		return err
+	}
+	model.MapToStruct(schema, fields, v)
+	return nil
 }
 
-func (d *Database) Update(ctx context.Context, schema *model.Schema, key string, fields map[string]any) error {
+func (d *postgresModel) Update(ctx context.Context, v interface{}) error {
+	schema, err := d.schema(v)
+	if err != nil {
+		return err
+	}
+	fields := model.StructToMap(schema, v)
+	key := model.KeyValue(schema, v)
 	setClauses, values := buildUpdate(schema, fields)
 	values = append(values, key)
 	paramIdx := len(values)
@@ -102,7 +147,11 @@ func (d *Database) Update(ctx context.Context, schema *model.Schema, key string,
 	return nil
 }
 
-func (d *Database) Delete(ctx context.Context, schema *model.Schema, key string) error {
+func (d *postgresModel) Delete(ctx context.Context, key string, v interface{}) error {
+	schema, err := d.schema(v)
+	if err != nil {
+		return err
+	}
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s = $1", quoteIdent(schema.Table), quoteIdent(schema.Key))
 	result, err := d.db.ExecContext(ctx, query, key)
 	if err != nil {
@@ -115,7 +164,25 @@ func (d *Database) Delete(ctx context.Context, schema *model.Schema, key string)
 	return nil
 }
 
-func (d *Database) List(ctx context.Context, schema *model.Schema, opts ...model.QueryOption) ([]map[string]any, error) {
+func (d *postgresModel) List(ctx context.Context, result interface{}, opts ...model.QueryOption) error {
+	rv := reflect.ValueOf(result)
+	if rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.Slice {
+		return fmt.Errorf("model/postgres: result must be a pointer to a slice")
+	}
+	sliceVal := rv.Elem()
+	elemType := sliceVal.Type().Elem()
+	structType := elemType
+	if structType.Kind() == reflect.Ptr {
+		structType = structType.Elem()
+	}
+
+	d.mu.RLock()
+	schema, ok := d.types[structType]
+	d.mu.RUnlock()
+	if !ok {
+		return model.ErrNotRegistered
+	}
+
 	q := model.ApplyQueryOptions(opts...)
 	cols := columnList(schema)
 
@@ -147,14 +214,34 @@ func (d *Database) List(ctx context.Context, schema *model.Schema, opts ...model
 
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("model/postgres: list: %w", err)
+		return fmt.Errorf("model/postgres: list: %w", err)
 	}
 	defer rows.Close()
 
-	return scanRows(schema, rows)
+	fieldMaps, err := scanRows(schema, rows)
+	if err != nil {
+		return err
+	}
+
+	results := reflect.MakeSlice(sliceVal.Type(), len(fieldMaps), len(fieldMaps))
+	for i, fields := range fieldMaps {
+		vp := reflect.New(structType)
+		model.MapToStruct(schema, fields, vp.Interface())
+		if elemType.Kind() == reflect.Ptr {
+			results.Index(i).Set(vp)
+		} else {
+			results.Index(i).Set(vp.Elem())
+		}
+	}
+	sliceVal.Set(results)
+	return nil
 }
 
-func (d *Database) Count(ctx context.Context, schema *model.Schema, opts ...model.QueryOption) (int64, error) {
+func (d *postgresModel) Count(ctx context.Context, v interface{}, opts ...model.QueryOption) (int64, error) {
+	schema, err := d.schema(v)
+	if err != nil {
+		return 0, err
+	}
 	q := model.ApplyQueryOptions(opts...)
 
 	query := fmt.Sprintf("SELECT COUNT(*) FROM %s", quoteIdent(schema.Table))
@@ -168,18 +255,18 @@ func (d *Database) Count(ctx context.Context, schema *model.Schema, opts ...mode
 	}
 
 	var count int64
-	err := d.db.QueryRowContext(ctx, query, args...).Scan(&count)
+	err = d.db.QueryRowContext(ctx, query, args...).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("model/postgres: count: %w", err)
 	}
 	return count, nil
 }
 
-func (d *Database) Close() error {
+func (d *postgresModel) Close() error {
 	return d.db.Close()
 }
 
-func (d *Database) String() string {
+func (d *postgresModel) String() string {
 	return "postgres"
 }
 

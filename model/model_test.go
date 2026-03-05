@@ -1,7 +1,6 @@
 package model
 
 import (
-	"reflect"
 	"testing"
 )
 
@@ -13,7 +12,7 @@ type TestUser struct {
 }
 
 func TestBuildSchema(t *testing.T) {
-	schema := buildSchema(reflect.TypeOf(TestUser{}))
+	schema := BuildSchema(TestUser{})
 
 	if schema.Table != "testusers" {
 		t.Errorf("expected table 'testusers', got %q", schema.Table)
@@ -25,7 +24,6 @@ func TestBuildSchema(t *testing.T) {
 		t.Fatalf("expected 4 fields, got %d", len(schema.Fields))
 	}
 
-	// Check key field
 	var keyField Field
 	var indexField Field
 	for _, f := range schema.Fields {
@@ -50,15 +48,14 @@ func TestBuildSchema_DefaultKey(t *testing.T) {
 		Name string `json:"name"`
 	}
 
-	schema := buildSchema(reflect.TypeOf(Item{}))
+	schema := BuildSchema(Item{})
 	if schema.Key != "id" {
 		t.Errorf("expected default key 'id', got %q", schema.Key)
 	}
 }
 
 func TestBuildSchema_WithTable(t *testing.T) {
-	schema := buildSchema(reflect.TypeOf(TestUser{}))
-	WithTable("my_users")(schema)
+	schema := BuildSchema(TestUser{}, WithTable("my_users"))
 
 	if schema.Table != "my_users" {
 		t.Errorf("expected table 'my_users', got %q", schema.Table)
@@ -66,10 +63,10 @@ func TestBuildSchema_WithTable(t *testing.T) {
 }
 
 func TestStructToMap(t *testing.T) {
-	schema := buildSchema(reflect.TypeOf(TestUser{}))
+	schema := BuildSchema(TestUser{})
 	u := &TestUser{ID: "1", Name: "Alice", Email: "alice@example.com", Age: 30}
 
-	m := structToMap(schema, u)
+	m := StructToMap(schema, u)
 
 	if m["id"] != "1" {
 		t.Errorf("expected id '1', got %v", m["id"])
@@ -86,7 +83,7 @@ func TestStructToMap(t *testing.T) {
 }
 
 func TestMapToStruct(t *testing.T) {
-	schema := buildSchema(reflect.TypeOf(TestUser{}))
+	schema := BuildSchema(TestUser{})
 	m := map[string]any{
 		"id":    "1",
 		"name":  "Bob",
@@ -94,7 +91,8 @@ func TestMapToStruct(t *testing.T) {
 		"age":   25,
 	}
 
-	u := mapToStruct[TestUser](schema, m)
+	u := &TestUser{}
+	MapToStruct(schema, m, u)
 
 	if u.ID != "1" {
 		t.Errorf("expected ID '1', got %q", u.ID)

@@ -2,12 +2,12 @@
 layout: doc
 title: Data Model
 permalink: /docs/model.html
-description: "Typed data model layer with CRUD operations, queries, and pluggable backends"
+description: "Structured data model layer with CRUD operations, queries, and pluggable backends"
 ---
 
 # Data Model
 
-The `model` package provides a typed data model layer for Go Micro services. Define Go structs, tag your fields, and get type-safe CRUD operations with queries, filtering, ordering, and pagination.
+The `model` package provides a structured data model layer for Go Micro services. Define Go structs, tag your fields, and get CRUD operations with queries, filtering, ordering, and pagination.
 
 ## Quick Start
 
@@ -31,26 +31,29 @@ type Task struct {
 func main() {
     service := micro.New("tasks")
 
-    // Create a typed model backed by the service's database
-    tasks := model.New[Task](service.Model())
+    // Register your type with the service's model backend
+    db := service.Model()
+    db.Register(&Task{})
 
     ctx := context.Background()
 
     // Create a record
-    tasks.Create(ctx, &Task{ID: "1", Title: "Ship it", Owner: "alice"})
+    db.Create(ctx, &Task{ID: "1", Title: "Ship it", Owner: "alice"})
 
     // Read by key
-    task, _ := tasks.Read(ctx, "1")
+    task := &Task{}
+    db.Read(ctx, "1", task)
 
     // Update
     task.Done = true
-    tasks.Update(ctx, task)
+    db.Update(ctx, task)
 
     // List with filters
-    aliceTasks, _ := tasks.List(ctx, model.Where("owner", "alice"))
+    var aliceTasks []*Task
+    db.List(ctx, &aliceTasks, model.Where("owner", "alice"))
 
     // Delete
-    tasks.Delete(ctx, "1")
+    db.Delete(ctx, "1", &Task{})
 }
 ```
 
@@ -77,28 +80,29 @@ type User struct {
     CreatedAt string `json:"created_at"`
 }
 
-// Auto-derived table: "users"
-users := model.New[User](db)
+// Register with auto-derived table: "users"
+db.Register(&User{})
 
 // Custom table name
-users := model.New[User](db, model.WithTable("app_users"))
+db.Register(&User{}, model.WithTable("app_users"))
 ```
 
 ## CRUD Operations
 
 ```go
 // Create — inserts a new record (returns ErrDuplicateKey if key exists)
-err := users.Create(ctx, &User{ID: "1", Name: "Alice"})
+err := db.Create(ctx, &User{ID: "1", Name: "Alice"})
 
 // Read — retrieves by primary key (returns ErrNotFound if missing)
-user, err := users.Read(ctx, "1")
+user := &User{}
+err = db.Read(ctx, "1", user)
 
 // Update — modifies an existing record (returns ErrNotFound if missing)
 user.Name = "Alice Smith"
-err = users.Update(ctx, user)
+err = db.Update(ctx, user)
 
 // Delete — removes by primary key (returns ErrNotFound if missing)
-err = users.Delete(ctx, "1")
+err = db.Delete(ctx, "1", &User{})
 ```
 
 ## Queries
@@ -108,15 +112,17 @@ Use query options to filter, order, and paginate results:
 ### Filters
 
 ```go
+var results []*User
+
 // Equality
-results, _ := users.List(ctx, model.Where("email", "alice@example.com"))
+db.List(ctx, &results, model.Where("email", "alice@example.com"))
 
 // Operators: =, !=, <, >, <=, >=, LIKE
-results, _ = users.List(ctx, model.WhereOp("age", ">=", 18))
-results, _ = users.List(ctx, model.WhereOp("name", "LIKE", "Ali%"))
+db.List(ctx, &results, model.WhereOp("age", ">=", 18))
+db.List(ctx, &results, model.WhereOp("name", "LIKE", "Ali%"))
 
 // Multiple filters (AND)
-results, _ = users.List(ctx,
+db.List(ctx, &results,
     model.Where("owner", "alice"),
     model.WhereOp("age", ">", 25),
 )
@@ -125,14 +131,14 @@ results, _ = users.List(ctx,
 ### Ordering
 
 ```go
-results, _ := users.List(ctx, model.OrderAsc("name"))
-results, _ = users.List(ctx, model.OrderDesc("created_at"))
+db.List(ctx, &results, model.OrderAsc("name"))
+db.List(ctx, &results, model.OrderDesc("created_at"))
 ```
 
 ### Pagination
 
 ```go
-results, _ := users.List(ctx,
+db.List(ctx, &results,
     model.Limit(10),
     model.Offset(20),
 )
@@ -141,13 +147,13 @@ results, _ := users.List(ctx,
 ### Counting
 
 ```go
-total, _ := users.Count(ctx)
-active, _ := users.Count(ctx, model.Where("active", true))
+total, _ := db.Count(ctx, &User{})
+active, _ := db.Count(ctx, &User{}, model.Where("active", true))
 ```
 
 ## Backends
 
-The model layer uses Go Micro's pluggable interface pattern. All backends implement `model.Database`.
+The model layer uses Go Micro's pluggable interface pattern. All backends implement `model.Model`.
 
 ### Memory (Default)
 
@@ -155,16 +161,17 @@ Zero-config, in-memory storage. Data doesn't persist across restarts. Ideal for 
 
 ```go
 service := micro.New("myservice")
-tasks := model.New[Task](service.Model()) // memory backend by default
+db := service.Model() // memory backend by default
+db.Register(&Task{})
 ```
 
 Or create directly:
 
 ```go
-import "go-micro.dev/v5/model/memory"
+import "go-micro.dev/v5/model"
 
-db := memory.New()
-tasks := model.New[Task](db)
+db := model.NewModel()
+db.Register(&Task{})
 ```
 
 ### SQLite
@@ -174,7 +181,7 @@ File-based database. Good for local development or single-node production.
 ```go
 import "go-micro.dev/v5/model/sqlite"
 
-db, err := sqlite.New(model.WithDSN("file:app.db"))
+db := sqlite.New("app.db")
 service := micro.New("myservice", micro.Model(db))
 ```
 
@@ -185,7 +192,7 @@ Production-grade with connection pooling.
 ```go
 import "go-micro.dev/v5/model/postgres"
 
-db, err := postgres.New(model.WithDSN("postgres://user:pass@localhost/myapp?sslmode=disable"))
+db := postgres.New("postgres://user:pass@localhost/myapp?sslmode=disable")
 service := micro.New("myservice", micro.Model(db))
 ```
 
@@ -201,12 +208,12 @@ client := service.Client()  // Call other services
 server := service.Server()  // Handle requests
 db     := service.Model()   // Data persistence
 
-// Create typed models from the shared database
-users := model.New[User](db)
-posts := model.New[Post](db)
+// Register your types
+db.Register(&User{})
+db.Register(&Post{})
 
 // Use in your handler
-service.Handle(&UserHandler{users: users, posts: posts})
+service.Handle(&UserHandler{db: db})
 service.Run()
 ```
 
@@ -214,15 +221,15 @@ A handler that uses all three:
 
 ```go
 type OrderHandler struct {
-    orders  *model.Model[Order]
-    client  client.Client
+    db     model.Model
+    client client.Client
 }
 
 // CreateOrder saves an order and notifies the shipping service
 func (h *OrderHandler) CreateOrder(ctx context.Context, req *CreateReq, rsp *CreateRsp) error {
     // Save to database via Model
     order := &Order{ID: req.ID, Item: req.Item, Status: "pending"}
-    if err := h.orders.Create(ctx, order); err != nil {
+    if err := h.db.Create(ctx, order); err != nil {
         return err
     }
 
@@ -236,20 +243,20 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *CreateReq, rsp *Cre
 
 ## Error Handling
 
-The model package returns two sentinel errors:
+The model package returns sentinel errors:
 
 ```go
 import "go-micro.dev/v5/model"
 
 // Check for not found
-user, err := users.Read(ctx, "missing")
+err := db.Read(ctx, "missing", &User{})
 if errors.Is(err, model.ErrNotFound) {
     // record doesn't exist
 }
 
 // Check for duplicate key
-err = users.Create(ctx, &User{ID: "1", Name: "Alice"})
-err = users.Create(ctx, &User{ID: "1", Name: "Bob"})
+err = db.Create(ctx, &User{ID: "1", Name: "Alice"})
+err = db.Create(ctx, &User{ID: "1", Name: "Bob"})
 if errors.Is(err, model.ErrDuplicateKey) {
     // key "1" already exists
 }
@@ -261,12 +268,12 @@ Follow the standard Go Micro pattern — use in-memory for development, swap to 
 
 ```go
 func main() {
-    var db model.Database
+    var db model.Model
 
     if os.Getenv("ENV") == "production" {
-        db, _ = postgres.New(model.WithDSN(os.Getenv("DATABASE_URL")))
+        db = postgres.New(os.Getenv("DATABASE_URL"))
     } else {
-        db = memory.New()
+        db = model.NewModel()
     }
 
     service := micro.New("myservice", micro.Model(db))

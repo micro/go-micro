@@ -29,8 +29,8 @@ type Service interface {
 	Client() client.Client
 	// Server returns the RPC server.
 	Server() server.Server
-	// Model returns the data model database.
-	Model() model.Database
+	// Model returns the data model backend.
+	Model() model.Model
 	// Start the service (non-blocking).
 	Start() error
 	// Stop the service.
@@ -108,7 +108,7 @@ func (s *serviceImpl) Server() server.Server {
 	return s.opts.Server
 }
 
-func (s *serviceImpl) Model() model.Database {
+func (s *serviceImpl) Model() model.Model {
 	return s.opts.Model
 }
 

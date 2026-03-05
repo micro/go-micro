@@ -25,7 +25,7 @@ var _ = math.Inf
 var _ context.Context
 var _ client.Option
 var _ server.Option
-var _ model.Database
+var _ model.Model
 
 // Client API for UserService service
 
@@ -115,7 +115,7 @@ func (h *userServiceHandler) Delete(ctx context.Context, in *DeleteUserRequest, 
 }
 
 // UserModel is a model struct generated from User.
-// Use NewUserModel to create a typed model backed by any model.Database.
+// Use NewUserModel to create a typed table backed by any model.Model.
 type UserModel struct {
 	Id     string `json:"id" model:"key"`
 	Name   string `json:"name"`
@@ -124,9 +124,9 @@ type UserModel struct {
 	Status string `json:"status"`
 }
 
-// NewUserModel creates a typed model for User backed by the given database.
-func NewUserModel(db model.Database) *model.Model[UserModel] {
-	return model.New[UserModel](db, model.WithTable("users"))
+// RegisterUserModel registers the UserModel table with the given model backend.
+func RegisterUserModel(db model.Model) error {
+	return db.Register(&UserModel{}, model.WithTable("users"))
 }
 
 // UserModelFromProto converts a User proto message to a UserModel.
