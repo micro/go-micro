@@ -1,0 +1,112 @@
+# MCP Gateway Helm chart values
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/micro/mcp-gateway
+  pullPolicy: IfNotPresent
+  tag: "" # Defaults to appVersion
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# MCP Gateway configuration
+gateway:
+  # Listen address (port inside the container)
+  address: ":3000"
+
+  # Service registry backend: mdns, consul, etcd
+  registry: consul
+
+  # Registry address (e.g., consul:8500, etcd:2379)
+  registryAddress: "consul:8500"
+
+  # Rate limiting (0 = unlimited)
+  rateLimit: 0
+  rateBurst: 20
+
+  # Enable JWT authentication
+  auth: false
+
+  # Enable audit logging to stdout
+  audit: false
+
+  # Per-tool scope requirements (format: tool=scope1,scope2)
+  scopes: []
+  # - "blog.Blog.Create=blog:write"
+  # - "blog.Blog.Delete=blog:admin"
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext: {}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 65534
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: mcp-gateway.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: mcp-gateway-tls
+  #    hosts:
+  #      - mcp-gateway.local
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 128Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Liveness and readiness probes
+probes:
+  liveness:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    httpGet:
+      path: /healthz
+      port: http
+    initialDelaySeconds: 3
+    periodSeconds: 5

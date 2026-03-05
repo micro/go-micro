@@ -385,10 +385,11 @@ spec:
     traces: jaeger:14268
 ```
 
-#### Helm Charts
-- [ ] Official Helm chart for MCP gateway
-- [ ] Support for major registries (Consul, etcd, Kubernetes)
-- [ ] Ingress/service mesh configuration
+#### Helm Charts ✅ COMPLETE
+- [x] Official Helm chart for MCP gateway (`deploy/helm/mcp-gateway/`)
+- [x] Support for major registries (Consul, etcd, mDNS)
+- [x] Ingress configuration with TLS support
+- [x] HPA auto-scaling support
 - [ ] Secrets management
 
 **Business value:** Easy deployment = faster adoption.

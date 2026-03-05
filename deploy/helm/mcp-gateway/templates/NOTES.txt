@@ -1,0 +1,31 @@
+MCP Gateway has been deployed.
+
+1. Get the gateway URL:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}
+{{- end }}
+{{- else if contains "NodePort" .Values.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "mcp-gateway.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.service.type }}
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "mcp-gateway.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else }}
+  kubectl port-forward --namespace {{ .Release.Namespace }} svc/{{ include "mcp-gateway.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  echo http://127.0.0.1:{{ .Values.service.port }}
+{{- end }}
+
+2. List available MCP tools:
+  curl http://<GATEWAY_URL>/mcp/tools | jq
+
+3. Connect Claude Code:
+  Add to your MCP settings:
+  {
+    "mcpServers": {
+      "my-services": {
+        "url": "http://<GATEWAY_URL>/mcp"
+      }
+    }
+  }
