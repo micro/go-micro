@@ -1,4 +1,4 @@
-// Package sqlite provides a SQLite Database implementation for the model package.
+// Package sqlite provides a SQLite model.Model implementation.
 // Uses mattn/go-sqlite3 for broad compatibility.
 // Good for development, testing, and single-node production.
 package sqlite
@@ -9,19 +9,22 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 
 	_ "github.com/mattn/go-sqlite3"
 
 	"go-micro.dev/v5/model"
 )
 
-// Database is a SQLite model.Database implementation.
-type Database struct {
-	db *sql.DB
+type sqliteModel struct {
+	db      *sql.DB
+	mu      sync.RWMutex
+	schemas map[string]*model.Schema
+	types   map[reflect.Type]*model.Schema
 }
 
-// New creates a new SQLite database. DSN is the file path (e.g., "data.db" or ":memory:").
-func New(dsn string) *Database {
+// New creates a new SQLite model. DSN is the file path (e.g., "data.db" or ":memory:").
+func New(dsn string) model.Model {
 	if dsn == "" {
 		dsn = ":memory:"
 	}
@@ -29,16 +32,27 @@ func New(dsn string) *Database {
 	if err != nil {
 		panic(fmt.Sprintf("model/sqlite: failed to open %q: %v", dsn, err))
 	}
-	// Enable WAL mode for better concurrent read performance
 	db.Exec("PRAGMA journal_mode=WAL")
-	return &Database{db: db}
+	return &sqliteModel{
+		db:      db,
+		schemas: make(map[string]*model.Schema),
+		types:   make(map[reflect.Type]*model.Schema),
+	}
 }
 
-func (d *Database) Init(opts ...model.Option) error {
+func (d *sqliteModel) Init(opts ...model.Option) error {
 	return d.db.Ping()
 }
 
-func (d *Database) NewTable(schema *model.Schema) error {
+func (d *sqliteModel) Register(v interface{}, opts ...model.RegisterOption) error {
+	schema := model.BuildSchema(v, opts...)
+	t := model.ResolveType(v)
+
+	d.mu.Lock()
+	d.schemas[schema.Table] = schema
+	d.types[t] = schema
+	d.mu.Unlock()
+
 	var cols []string
 	for _, f := range schema.Fields {
 		colType := goTypeToSQLite(f.Type)
@@ -54,7 +68,6 @@ func (d *Database) NewTable(schema *model.Schema) error {
 		return fmt.Errorf("model/sqlite: create table: %w", err)
 	}
 
-	// Create indexes
 	for _, f := range schema.Fields {
 		if f.Index && !f.IsKey {
 			idx := fmt.Sprintf("CREATE INDEX IF NOT EXISTS %q ON %q (%q)",
@@ -68,10 +81,26 @@ func (d *Database) NewTable(schema *model.Schema) error {
 	return nil
 }
 
-func (d *Database) Create(ctx context.Context, schema *model.Schema, key string, fields map[string]any) error {
+func (d *sqliteModel) schema(v interface{}) (*model.Schema, error) {
+	t := model.ResolveType(v)
+	d.mu.RLock()
+	s, ok := d.types[t]
+	d.mu.RUnlock()
+	if !ok {
+		return nil, model.ErrNotRegistered
+	}
+	return s, nil
+}
+
+func (d *sqliteModel) Create(ctx context.Context, v interface{}) error {
+	schema, err := d.schema(v)
+	if err != nil {
+		return err
+	}
+	fields := model.StructToMap(schema, v)
 	cols, placeholders, values := buildInsert(schema, fields)
 	query := fmt.Sprintf("INSERT INTO %q (%s) VALUES (%s)", schema.Table, cols, placeholders)
-	_, err := d.db.ExecContext(ctx, query, values...)
+	_, err = d.db.ExecContext(ctx, query, values...)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint") || strings.Contains(err.Error(), "PRIMARY KEY") {
 			return model.ErrDuplicateKey
@@ -81,14 +110,29 @@ func (d *Database) Create(ctx context.Context, schema *model.Schema, key string,
 	return nil
 }
 
-func (d *Database) Read(ctx context.Context, schema *model.Schema, key string) (map[string]any, error) {
+func (d *sqliteModel) Read(ctx context.Context, key string, v interface{}) error {
+	schema, err := d.schema(v)
+	if err != nil {
+		return err
+	}
 	cols := columnList(schema)
 	query := fmt.Sprintf("SELECT %s FROM %q WHERE %q = ?", cols, schema.Table, schema.Key)
 	row := d.db.QueryRowContext(ctx, query, key)
-	return scanRow(schema, row)
+	fields, err := scanRow(schema, row)
+	if err != nil {
+		return err
+	}
+	model.MapToStruct(schema, fields, v)
+	return nil
 }
 
-func (d *Database) Update(ctx context.Context, schema *model.Schema, key string, fields map[string]any) error {
+func (d *sqliteModel) Update(ctx context.Context, v interface{}) error {
+	schema, err := d.schema(v)
+	if err != nil {
+		return err
+	}
+	fields := model.StructToMap(schema, v)
+	key := model.KeyValue(schema, v)
 	setClauses, values := buildUpdate(schema, fields)
 	values = append(values, key)
 	query := fmt.Sprintf("UPDATE %q SET %s WHERE %q = ?", schema.Table, setClauses, schema.Key)
@@ -103,7 +147,11 @@ func (d *Database) Update(ctx context.Context, schema *model.Schema, key string,
 	return nil
 }
 
-func (d *Database) Delete(ctx context.Context, schema *model.Schema, key string) error {
+func (d *sqliteModel) Delete(ctx context.Context, key string, v interface{}) error {
+	schema, err := d.schema(v)
+	if err != nil {
+		return err
+	}
 	query := fmt.Sprintf("DELETE FROM %q WHERE %q = ?", schema.Table, schema.Key)
 	result, err := d.db.ExecContext(ctx, query, key)
 	if err != nil {
@@ -116,7 +164,26 @@ func (d *Database) Delete(ctx context.Context, schema *model.Schema, key string)
 	return nil
 }
 
-func (d *Database) List(ctx context.Context, schema *model.Schema, opts ...model.QueryOption) ([]map[string]any, error) {
+func (d *sqliteModel) List(ctx context.Context, result interface{}, opts ...model.QueryOption) error {
+	// result must be *[]*T
+	rv := reflect.ValueOf(result)
+	if rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.Slice {
+		return fmt.Errorf("model/sqlite: result must be a pointer to a slice")
+	}
+	sliceVal := rv.Elem()
+	elemType := sliceVal.Type().Elem()
+	structType := elemType
+	if structType.Kind() == reflect.Ptr {
+		structType = structType.Elem()
+	}
+
+	d.mu.RLock()
+	schema, ok := d.types[structType]
+	d.mu.RUnlock()
+	if !ok {
+		return model.ErrNotRegistered
+	}
+
 	q := model.ApplyQueryOptions(opts...)
 	cols := columnList(schema)
 
@@ -146,14 +213,34 @@ func (d *Database) List(ctx context.Context, schema *model.Schema, opts ...model
 
 	rows, err := d.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("model/sqlite: list: %w", err)
+		return fmt.Errorf("model/sqlite: list: %w", err)
 	}
 	defer rows.Close()
 
-	return scanRows(schema, rows)
+	fieldMaps, err := scanRows(schema, rows)
+	if err != nil {
+		return err
+	}
+
+	results := reflect.MakeSlice(sliceVal.Type(), len(fieldMaps), len(fieldMaps))
+	for i, fields := range fieldMaps {
+		vp := reflect.New(structType)
+		model.MapToStruct(schema, fields, vp.Interface())
+		if elemType.Kind() == reflect.Ptr {
+			results.Index(i).Set(vp)
+		} else {
+			results.Index(i).Set(vp.Elem())
+		}
+	}
+	sliceVal.Set(results)
+	return nil
 }
 
-func (d *Database) Count(ctx context.Context, schema *model.Schema, opts ...model.QueryOption) (int64, error) {
+func (d *sqliteModel) Count(ctx context.Context, v interface{}, opts ...model.QueryOption) (int64, error) {
+	schema, err := d.schema(v)
+	if err != nil {
+		return 0, err
+	}
 	q := model.ApplyQueryOptions(opts...)
 
 	query := fmt.Sprintf("SELECT COUNT(*) FROM %q", schema.Table)
@@ -166,18 +253,18 @@ func (d *Database) Count(ctx context.Context, schema *model.Schema, opts ...mode
 	}
 
 	var count int64
-	err := d.db.QueryRowContext(ctx, query, args...).Scan(&count)
+	err = d.db.QueryRowContext(ctx, query, args...).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("model/sqlite: count: %w", err)
 	}
 	return count, nil
 }
 
-func (d *Database) Close() error {
+func (d *sqliteModel) Close() error {
 	return d.db.Close()
 }
 
-func (d *Database) String() string {
+func (d *sqliteModel) String() string {
 	return "sqlite"
 }
 
@@ -281,7 +368,6 @@ func scanRows(schema *model.Schema, rows *sql.Rows) ([]map[string]any, error) {
 	return results, rows.Err()
 }
 
-// newScanPtr returns a pointer suitable for sql.Scan based on the Go type.
 func newScanPtr(t reflect.Type) any {
 	switch t.Kind() {
 	case reflect.String:
@@ -301,7 +387,6 @@ func newScanPtr(t reflect.Type) any {
 	}
 }
 
-// derefScanPtr extracts the scanned value and converts to the target Go type.
 func derefScanPtr(ptr any, t reflect.Type) any {
 	rv := reflect.ValueOf(ptr).Elem()
 	if rv.Type().ConvertibleTo(t) {

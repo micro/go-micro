@@ -188,33 +188,37 @@ type User struct {
 }
 ```
 
-Create a model from the service's database and use it:
+Register your types and use the model:
 
 ```go
 service := micro.New("users")
 
-// Create a typed model using the service's database
-users := model.New[User](service.Model())
+// Register and use the service's model backend
+db := service.Model()
+db.Register(&User{})
 
 // CRUD operations
-users.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@example.com", Age: 30})
+db.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@example.com", Age: 30})
 
-user, _ := users.Read(ctx, "1")
+user := &User{}
+db.Read(ctx, "1", user)
 
 user.Name = "Alice Smith"
-users.Update(ctx, user)
+db.Update(ctx, user)
 
-users.Delete(ctx, "1")
+db.Delete(ctx, "1", &User{})
 ```
 
 Query with filters, ordering, and pagination:
 
 ```go
+var results []*User
+
 // Find users by field
-results, _ := users.List(ctx, model.Where("email", "alice@example.com"))
+db.List(ctx, &results, model.Where("email", "alice@example.com"))
 
 // Complex queries
-results, _ = users.List(ctx,
+db.List(ctx, &results,
         model.WhereOp("age", ">=", 18),
         model.OrderDesc("name"),
         model.Limit(10),

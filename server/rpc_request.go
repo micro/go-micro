@@ -5,7 +5,7 @@ import (
 
 	"go-micro.dev/v5/codec"
 	"go-micro.dev/v5/transport"
-	"go-micro.dev/v5/util/buf"
+	"go-micro.dev/v5/internal/util/buf"
 )
 
 type rpcRequest struct {

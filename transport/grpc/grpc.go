@@ -8,9 +8,9 @@ import (
 
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/transport"
-	maddr "go-micro.dev/v5/util/addr"
-	mnet "go-micro.dev/v5/util/net"
-	mtls "go-micro.dev/v5/util/tls"
+	maddr "go-micro.dev/v5/internal/util/addr"
+	mnet "go-micro.dev/v5/internal/util/net"
+	mtls "go-micro.dev/v5/internal/util/tls"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 

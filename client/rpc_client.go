@@ -20,9 +20,9 @@ import (
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/transport"
 	"go-micro.dev/v5/transport/headers"
-	"go-micro.dev/v5/util/buf"
-	"go-micro.dev/v5/util/net"
-	"go-micro.dev/v5/util/pool"
+	"go-micro.dev/v5/internal/util/buf"
+	"go-micro.dev/v5/internal/util/net"
+	"go-micro.dev/v5/internal/util/pool"
 )
 
 const (

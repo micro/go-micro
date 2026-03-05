@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"go-micro.dev/v5/registry"
-	mnet "go-micro.dev/v5/util/net"
-	regutil "go-micro.dev/v5/util/registry"
+	mnet "go-micro.dev/v5/internal/util/net"
+	regutil "go-micro.dev/v5/internal/util/registry"
 )
 
 type consulWatcher struct {

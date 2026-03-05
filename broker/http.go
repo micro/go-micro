@@ -20,9 +20,9 @@ import (
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/cache"
 	"go-micro.dev/v5/transport/headers"
-	maddr "go-micro.dev/v5/util/addr"
-	mnet "go-micro.dev/v5/util/net"
-	mls "go-micro.dev/v5/util/tls"
+	maddr "go-micro.dev/v5/internal/util/addr"
+	mnet "go-micro.dev/v5/internal/util/net"
+	mls "go-micro.dev/v5/internal/util/tls"
 	"golang.org/x/net/http2"
 )
 

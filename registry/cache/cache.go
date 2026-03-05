@@ -11,7 +11,7 @@ import (
 
 	log "go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
-	util "go-micro.dev/v5/util/registry"
+	util "go-micro.dev/v5/internal/util/registry"
 )
 
 // Cache is the registry cache interface.

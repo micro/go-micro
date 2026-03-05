@@ -1,6 +1,6 @@
 # Model Package
 
-The `model` package provides a typed data model layer with CRUD operations, query filtering, and multiple database backends. It uses Go generics for type-safe access.
+The `model` package provides a structured data storage interface with CRUD operations, query filtering, and multiple database backends.
 
 Unlike the `store` package (which is a raw KV abstraction), `model` provides structured data access with schema awareness, WHERE queries, ordering, pagination, and indexes.
 
@@ -10,7 +10,6 @@ Unlike the `store` package (which is a raw KV abstraction), `model` provides str
 import (
     "context"
     "go-micro.dev/v5/model"
-    "go-micro.dev/v5/model/memory"
 )
 
 // Define your model with struct tags
@@ -21,25 +20,26 @@ type User struct {
     Age   int    `json:"age"`
 }
 
-// Create a database and model
-db := memory.New()
-users := model.New[User](db)
+// Create a model and register your type
+db := model.NewModel()
+db.Register(&User{})
 
 ctx := context.Background()
 
 // Create
-users.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@example.com", Age: 30})
+db.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@example.com", Age: 30})
 
 // Read
-user, _ := users.Read(ctx, "1")
+user := &User{}
+db.Read(ctx, "1", user)
 fmt.Println(user.Name) // "Alice"
 
 // Update
 user.Name = "Alice Smith"
-users.Update(ctx, user)
+db.Update(ctx, user)
 
 // Delete
-users.Delete(ctx, "1")
+db.Delete(ctx, "1", &User{})
 ```
 
 ## Struct Tags
@@ -56,21 +56,22 @@ If no `model:"key"` tag is found, the package defaults to a field with `json:"id
 
 ```go
 // Filter by field value
-users.List(ctx, model.Where("name", "Alice"))
+var users []*User
+db.List(ctx, &users, model.Where("name", "Alice"))
 
 // Comparison operators
-users.List(ctx, model.WhereOp("age", ">", 25))
-users.List(ctx, model.WhereOp("name", "LIKE", "Ali%"))
+db.List(ctx, &users, model.WhereOp("age", ">", 25))
+db.List(ctx, &users, model.WhereOp("name", "LIKE", "Ali%"))
 
 // Ordering
-users.List(ctx, model.OrderAsc("name"))
-users.List(ctx, model.OrderDesc("age"))
+db.List(ctx, &users, model.OrderAsc("name"))
+db.List(ctx, &users, model.OrderDesc("age"))
 
 // Pagination
-users.List(ctx, model.Limit(10), model.Offset(20))
+db.List(ctx, &users, model.Limit(10), model.Offset(20))
 
 // Combine
-users.List(ctx,
+db.List(ctx, &users,
     model.Where("status", "active"),
     model.WhereOp("age", ">=", 18),
     model.OrderDesc("created_at"),
@@ -78,8 +79,8 @@ users.List(ctx,
 )
 
 // Count
-total, _ := users.Count(ctx)
-active, _ := users.Count(ctx, model.Where("status", "active"))
+total, _ := db.Count(ctx, &User{})
+active, _ := db.Count(ctx, &User{}, model.Where("status", "active"))
 ```
 
 ## Backends
@@ -87,9 +88,9 @@ active, _ := users.Count(ctx, model.Where("status", "active"))
 ### Memory (Development & Testing)
 
 ```go
-import "go-micro.dev/v5/model/memory"
+import "go-micro.dev/v5/model"
 
-db := memory.New()
+db := model.NewModel()
 ```
 
 In-memory storage. No persistence. Fast. Good for tests and prototyping.
@@ -117,26 +118,26 @@ Full PostgreSQL support. Best for production with rich query capabilities.
 
 ## Table Names
 
-By default, the table name is the lowercase struct name + "s" (e.g., `User` → `users`). Override with `WithTable`:
+By default, the table name is the lowercase struct name + "s" (e.g., `User` → `users`). Override with `model.WithTable`:
 
 ```go
-users := model.New[User](db, model.WithTable("app_users"))
+db.Register(&User{}, model.WithTable("app_users"))
 ```
 
-## Database Interface
+## Model Interface
 
-All backends implement the `model.Database` interface:
+All backends implement the `model.Model` interface:
 
 ```go
-type Database interface {
+type Model interface {
     Init(...Option) error
-    NewTable(schema *Schema) error
-    Create(ctx context.Context, schema *Schema, key string, fields map[string]any) error
-    Read(ctx context.Context, schema *Schema, key string) (map[string]any, error)
-    Update(ctx context.Context, schema *Schema, key string, fields map[string]any) error
-    Delete(ctx context.Context, schema *Schema, key string) error
-    List(ctx context.Context, schema *Schema, opts ...QueryOption) ([]map[string]any, error)
-    Count(ctx context.Context, schema *Schema, opts ...QueryOption) (int64, error)
+    Register(v interface{}, opts ...RegisterOption) error
+    Create(ctx context.Context, v interface{}) error
+    Read(ctx context.Context, key string, v interface{}) error
+    Update(ctx context.Context, v interface{}) error
+    Delete(ctx context.Context, key string, v interface{}) error
+    List(ctx context.Context, result interface{}, opts ...QueryOption) error
+    Count(ctx context.Context, v interface{}, opts ...QueryOption) (int64, error)
     Close() error
     String() string
 }
@@ -146,7 +147,7 @@ type Database interface {
 
 | Feature | `store` | `model` |
 |---------|---------|---------|
-| Data format | Raw `[]byte` | Typed Go structs |
+| Data format | Raw `[]byte` | Go structs |
 | Queries | Key prefix/suffix only | WHERE, operators, LIKE |
 | Ordering | None | ORDER BY field ASC/DESC |
 | Pagination | Limit/Offset on keys | Limit/Offset on results |

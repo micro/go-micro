@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	log "go-micro.dev/v5/logger"
-	"go-micro.dev/v5/util/buf"
+	"go-micro.dev/v5/internal/util/buf"
 )
 
 type httpTransportClient struct {

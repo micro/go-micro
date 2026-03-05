@@ -14,24 +14,28 @@ type User struct {
 	Age   int    `json:"age"`
 }
 
-func setup(t *testing.T) *model.Model[User] {
+func setup(t *testing.T) model.Model {
 	t.Helper()
 	db := New(":memory:")
-	return model.New[User](db)
+	if err := db.Register(&User{}); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	return db
 }
 
 func TestCRUD(t *testing.T) {
-	users := setup(t)
+	db := setup(t)
 	ctx := context.Background()
 
 	// Create
-	err := users.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@test.com", Age: 30})
+	err := db.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@test.com", Age: 30})
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
 
 	// Read
-	u, err := users.Read(ctx, "1")
+	u := &User{}
+	err = db.Read(ctx, "1", u)
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
@@ -45,12 +49,13 @@ func TestCRUD(t *testing.T) {
 	// Update
 	u.Name = "Alice Updated"
 	u.Age = 31
-	err = users.Update(ctx, u)
+	err = db.Update(ctx, u)
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}
 
-	u2, _ := users.Read(ctx, "1")
+	u2 := &User{}
+	db.Read(ctx, "1", u2)
 	if u2.Name != "Alice Updated" {
 		t.Errorf("expected 'Alice Updated', got %s", u2.Name)
 	}
@@ -59,57 +64,58 @@ func TestCRUD(t *testing.T) {
 	}
 
 	// Delete
-	err = users.Delete(ctx, "1")
+	err = db.Delete(ctx, "1", &User{})
 	if err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 
-	_, err = users.Read(ctx, "1")
+	err = db.Read(ctx, "1", &User{})
 	if err != model.ErrNotFound {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 }
 
 func TestDuplicateKey(t *testing.T) {
-	users := setup(t)
+	db := setup(t)
 	ctx := context.Background()
 
-	users.Create(ctx, &User{ID: "1", Name: "Alice"})
-	err := users.Create(ctx, &User{ID: "1", Name: "Bob"})
+	db.Create(ctx, &User{ID: "1", Name: "Alice"})
+	err := db.Create(ctx, &User{ID: "1", Name: "Bob"})
 	if err != model.ErrDuplicateKey {
 		t.Errorf("expected ErrDuplicateKey, got %v", err)
 	}
 }
 
 func TestNotFound(t *testing.T) {
-	users := setup(t)
+	db := setup(t)
 	ctx := context.Background()
 
-	_, err := users.Read(ctx, "nonexistent")
+	err := db.Read(ctx, "nonexistent", &User{})
 	if err != model.ErrNotFound {
 		t.Errorf("expected ErrNotFound, got %v", err)
 	}
 
-	err = users.Update(ctx, &User{ID: "nonexistent"})
+	err = db.Update(ctx, &User{ID: "nonexistent"})
 	if err != model.ErrNotFound {
 		t.Errorf("expected ErrNotFound on update, got %v", err)
 	}
 
-	err = users.Delete(ctx, "nonexistent")
+	err = db.Delete(ctx, "nonexistent", &User{})
 	if err != model.ErrNotFound {
 		t.Errorf("expected ErrNotFound on delete, got %v", err)
 	}
 }
 
 func TestListWithFilter(t *testing.T) {
-	users := setup(t)
+	db := setup(t)
 	ctx := context.Background()
 
-	users.Create(ctx, &User{ID: "1", Name: "Alice", Age: 30})
-	users.Create(ctx, &User{ID: "2", Name: "Bob", Age: 25})
-	users.Create(ctx, &User{ID: "3", Name: "Alice", Age: 35})
+	db.Create(ctx, &User{ID: "1", Name: "Alice", Age: 30})
+	db.Create(ctx, &User{ID: "2", Name: "Bob", Age: 25})
+	db.Create(ctx, &User{ID: "3", Name: "Alice", Age: 35})
 
-	results, err := users.List(ctx, model.Where("name", "Alice"))
+	var results []*User
+	err := db.List(ctx, &results, model.Where("name", "Alice"))
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -119,14 +125,15 @@ func TestListWithFilter(t *testing.T) {
 }
 
 func TestListWithOrder(t *testing.T) {
-	users := setup(t)
+	db := setup(t)
 	ctx := context.Background()
 
-	users.Create(ctx, &User{ID: "1", Name: "Charlie", Age: 35})
-	users.Create(ctx, &User{ID: "2", Name: "Alice", Age: 30})
-	users.Create(ctx, &User{ID: "3", Name: "Bob", Age: 25})
+	db.Create(ctx, &User{ID: "1", Name: "Charlie", Age: 35})
+	db.Create(ctx, &User{ID: "2", Name: "Alice", Age: 30})
+	db.Create(ctx, &User{ID: "3", Name: "Bob", Age: 25})
 
-	results, err := users.List(ctx, model.OrderAsc("name"))
+	var results []*User
+	err := db.List(ctx, &results, model.OrderAsc("name"))
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -142,15 +149,16 @@ func TestListWithOrder(t *testing.T) {
 }
 
 func TestListWithLimitOffset(t *testing.T) {
-	users := setup(t)
+	db := setup(t)
 	ctx := context.Background()
 
-	users.Create(ctx, &User{ID: "1", Name: "A", Age: 1})
-	users.Create(ctx, &User{ID: "2", Name: "B", Age: 2})
-	users.Create(ctx, &User{ID: "3", Name: "C", Age: 3})
-	users.Create(ctx, &User{ID: "4", Name: "D", Age: 4})
+	db.Create(ctx, &User{ID: "1", Name: "A", Age: 1})
+	db.Create(ctx, &User{ID: "2", Name: "B", Age: 2})
+	db.Create(ctx, &User{ID: "3", Name: "C", Age: 3})
+	db.Create(ctx, &User{ID: "4", Name: "D", Age: 4})
 
-	results, err := users.List(ctx,
+	var results []*User
+	err := db.List(ctx, &results,
 		model.OrderAsc("name"),
 		model.Limit(2),
 		model.Offset(1),
@@ -170,14 +178,14 @@ func TestListWithLimitOffset(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	users := setup(t)
+	db := setup(t)
 	ctx := context.Background()
 
-	users.Create(ctx, &User{ID: "1", Name: "Alice", Age: 30})
-	users.Create(ctx, &User{ID: "2", Name: "Bob", Age: 25})
-	users.Create(ctx, &User{ID: "3", Name: "Alice", Age: 35})
+	db.Create(ctx, &User{ID: "1", Name: "Alice", Age: 30})
+	db.Create(ctx, &User{ID: "2", Name: "Bob", Age: 25})
+	db.Create(ctx, &User{ID: "3", Name: "Alice", Age: 35})
 
-	count, err := users.Count(ctx)
+	count, err := db.Count(ctx, &User{})
 	if err != nil {
 		t.Fatalf("count: %v", err)
 	}
@@ -185,7 +193,7 @@ func TestCount(t *testing.T) {
 		t.Errorf("expected 3, got %d", count)
 	}
 
-	count, err = users.Count(ctx, model.Where("name", "Alice"))
+	count, err = db.Count(ctx, &User{}, model.Where("name", "Alice"))
 	if err != nil {
 		t.Fatalf("count with filter: %v", err)
 	}
@@ -195,30 +203,19 @@ func TestCount(t *testing.T) {
 }
 
 func TestWhereOp(t *testing.T) {
-	users := setup(t)
+	db := setup(t)
 	ctx := context.Background()
 
-	users.Create(ctx, &User{ID: "1", Name: "Alice", Age: 30})
-	users.Create(ctx, &User{ID: "2", Name: "Bob", Age: 25})
-	users.Create(ctx, &User{ID: "3", Name: "Charlie", Age: 35})
+	db.Create(ctx, &User{ID: "1", Name: "Alice", Age: 30})
+	db.Create(ctx, &User{ID: "2", Name: "Bob", Age: 25})
+	db.Create(ctx, &User{ID: "3", Name: "Charlie", Age: 35})
 
-	results, err := users.List(ctx, model.WhereOp("age", ">", 28))
+	var results []*User
+	err := db.List(ctx, &results, model.WhereOp("age", ">", 28))
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
 	if len(results) != 2 {
 		t.Errorf("expected 2 (age > 28), got %d", len(results))
-	}
-}
-
-func TestSchema(t *testing.T) {
-	users := setup(t)
-	schema := users.Schema()
-
-	if schema.Table != "users" {
-		t.Errorf("expected table 'users', got %q", schema.Table)
-	}
-	if schema.Key != "id" {
-		t.Errorf("expected key 'id', got %q", schema.Key)
 	}
 }

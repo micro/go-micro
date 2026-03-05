@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"go-micro.dev/v5/debug/log"
-	"go-micro.dev/v5/util/ring"
+	"go-micro.dev/v5/internal/util/ring"
 )
 
 var (

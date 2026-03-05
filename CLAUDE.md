@@ -34,6 +34,7 @@ micro run
 
 ```
 go-micro/
+├── ai/             # AI model providers (Anthropic, OpenAI)
 ├── auth/           # Authentication (JWT, no-op)
 ├── broker/         # Message broker (NATS, RabbitMQ)
 ├── cache/          # Caching (Redis)
@@ -46,27 +47,20 @@ go-micro/
 ├── gateway/
 │   ├── api/        # REST API gateway
 │   └── mcp/        # MCP gateway (core AI integration)
+│       └── deploy/ # Helm charts for MCP gateway
 ├── health/         # Health checking
 ├── logger/         # Logging
 ├── metadata/       # Context metadata
-├── ai/             # AI model providers
-│   ├── anthropic/  # Claude provider
-│   └── openai/     # GPT provider
 ├── model/          # Typed data models (CRUD, queries, schemas)
-│   ├── memory/     # In-memory backend (dev/testing)
-│   ├── sqlite/     # SQLite backend (dev/single-node)
-│   └── postgres/   # PostgreSQL backend (production)
 ├── registry/       # Service discovery (mDNS, Consul, etcd)
 ├── selector/       # Client-side load balancing
 ├── server/         # RPC server
-├── service/        # Service interface
+├── service/        # Service interface + profiles
 ├── store/          # Data persistence (Postgres, NATS KV)
 ├── transport/      # Network transport
 ├── wrapper/        # Middleware (auth, trace, metrics)
-├── contrib/        # Community packages
-│   └── langchain-go-micro/  # LangChain Python SDK
 ├── examples/       # Working examples
-└── internal/website/docs/   # Documentation site source
+└── internal/       # Non-public: docs, utils, test harness
 ```
 
 ## Key Architectural Decisions
@@ -128,29 +122,18 @@ Build compelling demos showing agents interacting with go-micro services in real
 | CLI Entry | `cmd/micro/main.go` |
 | MCP CLI | `cmd/micro/mcp/` |
 | Server (run/server) | `cmd/micro/server/server.go` |
-<<<<<<< claude/changelog-fZd2J
-| Roadmap | `ROADMAP_2026.md` |
-| Status | `CURRENT_STATUS_SUMMARY.md` |
-=======
 | Roadmap | `internal/docs/ROADMAP_2026.md` |
 | Status | `internal/docs/CURRENT_STATUS_SUMMARY.md` |
->>>>>>> master
 | Changelog | `CHANGELOG.md` |
 | Docs Site | `internal/website/docs/` |
 
 ## Roadmap & Status Documents
 
 - **[ROADMAP.md](ROADMAP.md)** - General framework roadmap
-<<<<<<< claude/changelog-fZd2J
-- **[ROADMAP_2026.md](ROADMAP_2026.md)** - AI-native era roadmap with business model
-- **[CURRENT_STATUS_SUMMARY.md](CURRENT_STATUS_SUMMARY.md)** - Quick status overview
-- **[PROJECT_STATUS_2026.md](PROJECT_STATUS_2026.md)** - Detailed technical status
-=======
 - **[internal/docs/ROADMAP_2026.md](internal/docs/ROADMAP_2026.md)** - AI-native era roadmap with business model
 - **[internal/docs/CURRENT_STATUS_SUMMARY.md](internal/docs/CURRENT_STATUS_SUMMARY.md)** - Quick status overview
 - **[internal/docs/PROJECT_STATUS_2026.md](internal/docs/PROJECT_STATUS_2026.md)** - Detailed technical status
 - **[internal/docs/IMPLEMENTATION_SUMMARY.md](internal/docs/IMPLEMENTATION_SUMMARY.md)** - Implementation notes
->>>>>>> master
 - **[CHANGELOG.md](CHANGELOG.md)** - What changed and when
 
 ## Contributing

@@ -23,7 +23,7 @@ import (
 	"go-micro.dev/v5/debug/trace"
 	"go-micro.dev/v5/events"
 	"go-micro.dev/v5/logger"
-	mprofile "go-micro.dev/v5/profile"
+	mprofile "go-micro.dev/v5/service/profile"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/consul"
 	"go-micro.dev/v5/registry/etcd"

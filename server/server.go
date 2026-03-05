@@ -12,7 +12,7 @@ import (
 	"go-micro.dev/v5/codec"
 	log "go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
-	signalutil "go-micro.dev/v5/util/signal"
+	signalutil "go-micro.dev/v5/internal/util/signal"
 )
 
 // Server is a simple micro server abstraction.

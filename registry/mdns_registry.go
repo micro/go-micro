@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/uuid"
 	log "go-micro.dev/v5/logger"
-	"go-micro.dev/v5/util/mdns"
+	"go-micro.dev/v5/internal/util/mdns"
 )
 
 var (
