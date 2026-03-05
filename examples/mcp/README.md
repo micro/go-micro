@@ -39,6 +39,16 @@ cd workflow
 go run main.go
 ```
 
+### [platform](./platform/) - Agent Platform Showcase
+
+A complete platform (Users, Posts, Comments, Mail) mirroring [micro/blog](https://github.com/micro/blog). Shows how existing microservices become agent-accessible with zero code changes — agents can sign up, write posts, comment, tag, and send mail through natural language.
+
+**Run it:**
+```bash
+cd platform
+go run main.go
+```
+
 ### [documented](./documented/) - Full-Featured Example
 
 Complete example showing all MCP features with a user service.
