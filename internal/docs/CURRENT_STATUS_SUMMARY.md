@@ -262,9 +262,11 @@ Build compelling examples and demos that show agents interacting with go-micro s
 - Bearer token auth
 - OpenTelemetry integration (spans, attributes, W3C trace context)
 
+**RECENTLY COMPLETED:**
+- Helm chart for MCP gateway (`deploy/helm/mcp-gateway/`)
+
 **REMAINING:**
-- Standalone MCP Gateway binary
-- Kubernetes Operator & Helm Charts
+- Kubernetes Operator (CRDs, auto-scaling)
 - Full observability dashboards
 - Circuit breakers, caching, multi-tenant support
 
