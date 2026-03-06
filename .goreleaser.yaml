@@ -1,0 +1,136 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - main: ./cmd/micro
+    id: micro
+    binary: micro
+    env:
+      - CGO_ENABLED=0
+      - >-
+        {{- if eq .Os "darwin" }}
+          {{- if eq .Arch "amd64"}}CC=o64-clang{{- end }}
+          {{- if eq .Arch "arm64"}}CC=aarch64-apple-darwin20.2-clang{{- end }}
+        {{- end }}
+        {{- if eq .Os "windows" }}
+          {{- if eq .Arch "amd64" }}CC=x86_64-w64-mingw32-gcc{{- end }}
+        {{- end }}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 7
+    ignore:
+      - goos: windows
+        goarch: arm
+
+  - main: ./cmd/protoc-gen-micro
+    id: protoc-gen-micro
+    binary: protoc-gen-micro
+    env:
+      - CGO_ENABLED=0
+      - >-
+        {{- if eq .Os "darwin" }}
+          {{- if eq .Arch "amd64"}}CC=o64-clang{{- end }}
+          {{- if eq .Arch "arm64"}}CC=aarch64-apple-darwin20.2-clang{{- end }}
+        {{- end }}
+        {{- if eq .Os "windows" }}
+          {{- if eq .Arch "amd64" }}CC=x86_64-w64-mingw32-gcc{{- end }}
+        {{- end }}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - 7
+    ignore:
+      - goos: windows
+        goarch: arm
+
+archives:
+  - id: micro
+    ids:
+      - micro
+    formats: [tar.gz]
+    name_template: >-
+      {{ .Binary }}_
+      {{- .Os }}_
+      {{- .Arch }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - none*
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+  - id: protoc-gen-micro
+    ids:
+      - protoc-gen-micro
+    formats: [tar.gz]
+    name_template: >-
+      {{ .Binary }}_
+      {{- .Os }}_
+      {{- .Arch }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - none*
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+report_sizes: true
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+dockers_v2:
+  -
+    ids:
+      - micro
+      - protoc-gen-micro
+    images:
+      - "micro/micro"
+      - "ghcr.io/go-micro/micro"
+    tags:
+      - "v{{ .Version }}"
+      - "{{ if .IsNightly }}nightly{{ end }}"
+      - "{{ if not .IsNightly }}latest{{ end }}"
+    labels:
+      "io.artifacthub.package.readme-url": "https://raw.githubusercontent.com/micro/go-micro/refs/heads/master/README.md"
+      "io.artifacthub.package.logo-url": "https://www.gravatar.com/avatar/09d1da3ea9ee61753219a19016d6a672?s=120&r=g&d=404"
+      "org.opencontainers.image.description": "A Go Platform built for Developers"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.title": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.url": "{{.GitURL}}"
+      "org.opencontainers.image.licenses": "MIT"
+
+    platforms:
+      - linux/amd64
+      - linux/arm64
+
+    retry:
+      attempts: 5
+      delay: 5s
+      max_delay: 2m
