@@ -69,8 +69,8 @@ archives:
     formats: [tar.gz]
     name_template: >-
       {{ .Binary }}_
-      {{- title .Os }}_
-      {{ .Arch }}
+      {{- .Os }}_
+      {{- .Arch }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     files:
       - none*
@@ -84,8 +84,8 @@ archives:
     formats: [tar.gz]
     name_template: >-
       {{ .Binary }}_
-      {{- title .Os }}_
-      {{ .Arch }}
+      {{- .Os }}_
+      {{- .Arch }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     files:
       - none*

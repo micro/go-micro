@@ -18,8 +18,8 @@ esac
 
 # Normalize OS
 case $OS in
-    darwin) OS="Darwin" ;;
-    linux) OS="Linux" ;;
+    darwin) OS="darwin" ;;
+    linux) OS="linux" ;;
     *) echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
