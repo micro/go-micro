@@ -109,7 +109,7 @@ dockers_v2:
       - protoc-gen-micro
     images:
       - "micro/micro"
-      - "ghcr.io/go-micro/micro"
+      - "ghcr.io/micro/go-micro"
     tags:
       - "v{{ .Version }}"
       - "{{ if .IsNightly }}nightly{{ end }}"
