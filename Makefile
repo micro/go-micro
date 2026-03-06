@@ -1,4 +1,14 @@
-.PHONY: test test-race test-coverage lint fmt install-tools proto clean help
+NAME = micro
+GIT_COMMIT = $(shell git rev-parse --short HEAD)
+GIT_TAG = $(shell git describe --abbrev=0 --tags --always --match "v*")
+GIT_IMPORT = go-micro.dev/v5/cmd/micro
+BUILD_DATE = $(shell date +%s)
+LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT) -X $(GIT_IMPORT).GitTag=$(GIT_TAG)
+
+# GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
+GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
+
+.PHONY: test test-race test-coverage lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -12,6 +22,9 @@ help:
 	@echo "  make install-tools - Install development tools"
 	@echo "  make proto         - Generate protobuf code"
 	@echo "  make clean         - Clean build artifacts"
+
+$(NAME):
+	CGO_ENABLED=0 go build -ldflags "-s -w ${LDFLAGS}" -o $(NAME) cmd/micro/main.go
 
 # Run tests
 test:
@@ -55,4 +68,15 @@ clean:
 	rm -f coverage.out coverage.html
 	find . -name "*.test" -type f -delete
 	go clean -cache -testcache
+
+# Try binary release
+gorelease-dry-run:
+	docker run \
+		--rm \
+		-e CGO_ENABLED=0 \
+		-v $(CURDIR):/$(NAME) \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-w /$(NAME) \
+		$(GORELEASER_DOCKER_IMAGE) \
+		--clean --verbose --skip=publish,validate --snapshot
 
