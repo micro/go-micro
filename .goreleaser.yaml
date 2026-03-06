@@ -108,8 +108,8 @@ dockers_v2:
       - micro
       - protoc-gen-micro
     images:
-      - "dnat4/micro"
-      - "ghcr.io/alex-dna-tech/micro"
+      - "micro/micro"
+      - "ghcr.io/go-micro/micro"
     tags:
       - "v{{ .Version }}"
       - "{{ if .IsNightly }}nightly{{ end }}"
