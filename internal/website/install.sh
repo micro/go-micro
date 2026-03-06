@@ -12,14 +12,14 @@ ARCH=$(uname -m)
 case $ARCH in
     x86_64|amd64) ARCH="amd64" ;;
     aarch64|arm64) ARCH="arm64" ;;
-    armv7l) ARCH="arm" ;;
+    armv7l) ARCH="armv7" ;;
     *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
 esac
 
 # Normalize OS
 case $OS in
-    darwin) OS="darwin" ;;
-    linux) OS="linux" ;;
+    darwin) OS="Darwin" ;;
+    linux) OS="Linux" ;;
     *) echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
