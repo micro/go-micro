@@ -64,10 +64,30 @@ See the [mcp/](./mcp/) directory for AI agent integration examples:
 ### [agent-demo](./agent-demo/)
 Multi-service project management app (Projects, Tasks, Team) with seed data and agent playground integration.
 
-## Coming Soon
+### [pubsub-events](./pubsub-events/)
+Event-driven architecture with two patterns:
+- **Broker** — fire-and-forget messaging with queue groups
+- **Events** — durable streaming with replay, ack/nack, and consumer groups
+- Service integration with event publishing
 
-- **pubsub-events** - Event-driven architecture with NATS
-- **grpc-integration** - Using go-micro with gRPC
+**Run it:**
+```bash
+cd pubsub-events
+go run .
+```
+
+### [grpc-integration](./grpc-integration/)
+Using go-micro with gRPC transport:
+- gRPC server with reflection-based registration (no protobuf required)
+- gRPC client with retries and JSON codec
+- Raw bytes codec for dynamic payloads
+- Same handler code — just swap the transport
+
+**Run it:**
+```bash
+cd grpc-integration
+go run .
+```
 
 ## Prerequisites
 

@@ -148,13 +148,6 @@ func Run(ctx *cli.Context) error {
 		return nil
 	}
 
-	// Check for protoc
-	if _, err := exec.LookPath("protoc"); err != nil {
-		fmt.Println("WARNING: protoc is not installed or not in your PATH.")
-		fmt.Println("Please install protoc from https://github.com/protocolbuffers/protobuf/releases")
-		fmt.Println("After installing, re-run 'make proto' in your service directory if needed.")
-	}
-
 	var goPath string
 	var goDir string
 
@@ -175,8 +168,82 @@ func Run(ctx *cli.Context) error {
 	goDir = filepath.Join(goPath, "src", path.Clean(dir))
 
 	noMCP := ctx.Bool("no-mcp")
+	useProto := ctx.Bool("proto")
 
-	// Select main.go template based on MCP flag
+	if useProto {
+		return runProto(ctx, dir, goDir, goPath, noMCP)
+	}
+
+	return runSimple(dir, goDir, goPath, noMCP)
+}
+
+// runSimple generates a service using plain Go structs and JSON encoding.
+// No protobuf, no external tools — just Go.
+func runSimple(dir, goDir, goPath string, noMCP bool) error {
+	mainTmpl := tmpl.SimpleMainMCP
+	readmeTmpl := tmpl.SimpleReadmeMCP
+	moduleTmpl := tmpl.SimpleModule
+	if noMCP {
+		mainTmpl = tmpl.SimpleMain
+		readmeTmpl = tmpl.SimpleReadme
+		moduleTmpl = tmpl.SimpleModule
+	}
+
+	c := config{
+		Alias:     dir,
+		Dir:       dir,
+		GoDir:     goDir,
+		GoPath:    goPath,
+		UseGoPath: false,
+		Files: []file{
+			{"main.go", mainTmpl},
+			{"Makefile", tmpl.SimpleMakefile},
+			{"README.md", readmeTmpl},
+			{".gitignore", tmpl.GitIgnore},
+		},
+	}
+
+	if os.Getenv("GO111MODULE") != "off" {
+		c.Files = append(c.Files, file{"go.mod", moduleTmpl})
+	}
+
+	if err := create(c); err != nil {
+		return err
+	}
+
+	// Run go mod tidy
+	fmt.Println("\nRunning 'go mod tidy'...")
+	if err := runInDir(dir, "go mod tidy"); err != nil {
+		fmt.Printf("Error running 'go mod tidy': %v\n", err)
+	}
+
+	fmt.Println()
+	fmt.Printf("Service %s created successfully!\n\n", dir)
+	fmt.Println("Next steps:")
+	fmt.Printf("  cd %s\n", dir)
+	fmt.Println("  go run .")
+	if !noMCP {
+		fmt.Println()
+		fmt.Println("Your service is MCP-enabled. Once running:")
+		fmt.Println("  MCP tools:   http://localhost:3001/mcp/tools")
+		fmt.Println("  Claude Code: micro mcp serve")
+	}
+	fmt.Println()
+	fmt.Println("To generate a protobuf service instead, use:")
+	fmt.Printf("  micro new --proto %s\n", dir)
+	fmt.Println()
+	return nil
+}
+
+// runProto generates a protobuf-based service with code generation.
+func runProto(ctx *cli.Context, dir, goDir, goPath string, noMCP bool) error {
+	// Check for protoc
+	if _, err := exec.LookPath("protoc"); err != nil {
+		fmt.Println("WARNING: protoc is not installed or not in your PATH.")
+		fmt.Println("Please install protoc from https://github.com/protocolbuffers/protobuf/releases")
+		fmt.Println("After installing, re-run 'make proto' in your service directory if needed.")
+	}
+
 	mainTmpl := tmpl.MainSRV
 	if noMCP {
 		mainTmpl = tmpl.MainSRVNoMCP
