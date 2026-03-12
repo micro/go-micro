@@ -19,6 +19,7 @@ import (
 	// Import packages that register commands via init()
 	_ "go-micro.dev/v5/cmd/micro/cli/build"
 	_ "go-micro.dev/v5/cmd/micro/cli/deploy"
+	_ "go-micro.dev/v5/cmd/micro/cli/doctor"
 	_ "go-micro.dev/v5/cmd/micro/cli/init"
 	_ "go-micro.dev/v5/cmd/micro/cli/remote"
 )

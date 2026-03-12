@@ -18,7 +18,34 @@ import (
 	"go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/gateway/mcp"
 	"go-micro.dev/v5/registry"
+	consulreg "go-micro.dev/v5/registry/consul"
+	etcdreg "go-micro.dev/v5/registry/etcd"
 )
+
+// getRegistry returns the appropriate registry based on CLI flags.
+func getRegistry(ctx *cli.Context) (registry.Registry, error) {
+	regName := ctx.String("registry")
+	regAddr := ctx.String("registry_address")
+
+	switch regName {
+	case "", "mdns":
+		return registry.DefaultRegistry, nil
+	case "consul":
+		opts := []registry.Option{}
+		if regAddr != "" {
+			opts = append(opts, registry.Addrs(regAddr))
+		}
+		return consulreg.NewConsulRegistry(opts...), nil
+	case "etcd":
+		opts := []registry.Option{}
+		if regAddr != "" {
+			opts = append(opts, registry.Addrs(regAddr))
+		}
+		return etcdreg.NewEtcdRegistry(opts...), nil
+	default:
+		return nil, fmt.Errorf("unsupported registry %q (supported: mdns, consul, etcd)", regName)
+	}
+}
 
 func init() {
 	cmd.Register(&cli.Command{
@@ -217,12 +244,9 @@ Examples:
 // serveAction starts the MCP server
 func serveAction(ctx *cli.Context) error {
 	// Get registry
-	reg := registry.DefaultRegistry
-	if regName := ctx.String("registry"); regName != "" {
-		// TODO: Support other registries (consul, etcd)
-		if regName != "mdns" {
-			return fmt.Errorf("registry %s not yet supported, use mdns", regName)
-		}
+	reg, err := getRegistry(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Create MCP server options
@@ -335,11 +359,9 @@ func testAction(ctx *cli.Context) error {
 	}
 
 	// Get registry
-	reg := registry.DefaultRegistry
-	if regName := ctx.String("registry"); regName != "" {
-		if regName != "mdns" {
-			return fmt.Errorf("registry %s not yet supported, use mdns", regName)
-		}
+	reg, err := getRegistry(ctx)
+	if err != nil {
+		return err
 	}
 
 	// Create MCP options
