@@ -42,8 +42,23 @@ func init() {
 			Name:      "new",
 			Usage:     "Create a new service",
 			ArgsUsage: "[name]",
-			Action:    new.Run,
+			Description: `Creates a new Go Micro service from a template.
+
+By default, generates a simple service using plain Go structs and JSON encoding.
+No protobuf or external tools required — just Go.
+
+Use --proto for a protobuf-based service with code generation.
+
+Examples:
+  micro new helloworld              # Simple service (recommended)
+  micro new helloworld --proto      # Protobuf service with codegen
+  micro new helloworld --no-mcp     # Without MCP integration`,
+			Action: new.Run,
 			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "proto",
+					Usage: "Generate a protobuf-based service with code generation",
+				},
 				&cli.BoolFlag{
 					Name:  "no-mcp",
 					Usage: "Disable MCP gateway integration in generated code",
