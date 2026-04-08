@@ -4,6 +4,8 @@ Go Micro is a framework for distributed systems development.
 
 **[📖 Documentation](https://go-micro.dev/docs/)** | [Sponsored by Anthropic](https://go-micro.dev/blog/3)
 
+Try [Mu.xyz](https://mu.xyz) - a new app platform by the creator of Go Micro
+
 ## Overview
 
 Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication.
