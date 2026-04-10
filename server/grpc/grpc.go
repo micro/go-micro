@@ -18,14 +18,14 @@ import (
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/errors"
-	"go-micro.dev/v5/logger"
-	meta "go-micro.dev/v5/metadata"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/internal/util/addr"
 	"go-micro.dev/v5/internal/util/backoff"
 	mgrpc "go-micro.dev/v5/internal/util/grpc"
 	mnet "go-micro.dev/v5/internal/util/net"
+	"go-micro.dev/v5/logger"
+	meta "go-micro.dev/v5/metadata"
+	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/server"
 	"golang.org/x/net/netutil"
 
 	"google.golang.org/grpc"
@@ -211,6 +211,19 @@ func (g *grpcServer) getGrpcServer() *grpc.Server {
 	}
 
 	return nil
+}
+
+func (g *grpcServer) getGracefulStopTimeout() time.Duration {
+	if g.opts.Context == nil {
+		return time.Second
+	}
+
+	timeout, ok := g.opts.Context.Value(gracefulStopTimeoutKey{}).(time.Duration)
+	if !ok || timeout <= 0 {
+		return time.Second
+	}
+
+	return timeout
 }
 
 func (g *grpcServer) handler(srv interface{}, stream grpc.ServerStream) error {
@@ -970,23 +983,27 @@ func (g *grpcServer) Start() error {
 			log.Log(logger.ErrorLevel, "Server deregister error: ", err)
 		}
 
-		// wait for waitgroup
-		if g.wg != nil {
-			g.wg.Wait()
-		}
-
-		// stop the grpc server
-		exit := make(chan bool)
+		gracefulStopTimeout := g.getGracefulStopTimeout()
+		exit := make(chan struct{})
 
 		go func() {
 			g.srv.GracefulStop()
 			close(exit)
 		}()
 
+		timer := time.NewTimer(gracefulStopTimeout)
+		defer timer.Stop()
+
 		select {
 		case <-exit:
-		case <-time.After(time.Second):
+		case <-timer.C:
+			log.Logf(logger.ErrorLevel, "gRPC Server graceful stop timed out after %s, forcing stop", gracefulStopTimeout)
 			g.srv.Stop()
+			<-exit
+		}
+
+		if g.wg != nil {
+			g.wg.Wait()
 		}
 
 		log.Logf(logger.InfoLevel, "Broker [%s] Disconnected from %s", config.Broker.String(), config.Broker.Address())
