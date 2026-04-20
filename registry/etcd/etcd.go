@@ -14,9 +14,9 @@ import (
 	"time"
 
 	hash "github.com/mitchellh/hashstructure"
+	mtls "go-micro.dev/v5/internal/util/tls"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
-	mtls "go-micro.dev/v5/internal/util/tls"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
@@ -468,13 +468,7 @@ func (e *etcdRegistry) startKeepAlive(key string, leaseID clientv3.LeaseID) erro
 			case ka, ok := <-ch:
 				if !ok {
 					log.Logf(logger.DebugLevel, "Keepalive channel closed for %s", key)
-					e.Lock()
-					// Only delete if still present (avoid race with stopKeepAlive)
-					if _, exists := e.keepaliveChs[key]; exists {
-						delete(e.keepaliveChs, key)
-						delete(e.keepaliveStop, key)
-					}
-					e.Unlock()
+					e.handleKeepAliveClosed(key)
 					return
 				}
 				if ka == nil {
@@ -487,6 +481,26 @@ func (e *etcdRegistry) startKeepAlive(key string, leaseID clientv3.LeaseID) erro
 	}()
 
 	return nil
+}
+
+// handleKeepAliveClosed is invoked by the keepalive goroutine when the
+// etcd client closes the KeepAlive channel (for example because the lease
+// expired on the server side during a network partition). In addition to
+// removing the channel bookkeeping, it drops the cached lease and
+// registration hash so the next registerNode() performs a full
+// Grant+Put re-registration instead of being short-circuited by the
+// "unchanged" check at the top of registerNode.
+func (e *etcdRegistry) handleKeepAliveClosed(key string) {
+	e.Lock()
+	defer e.Unlock()
+
+	// Only delete if still present to avoid racing with stopKeepAlive.
+	if _, exists := e.keepaliveChs[key]; exists {
+		delete(e.keepaliveChs, key)
+		delete(e.keepaliveStop, key)
+	}
+	delete(e.leases, key)
+	delete(e.register, key)
 }
 
 // stopKeepAlive stops the keepalive goroutine for the given key

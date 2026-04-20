@@ -269,3 +269,54 @@ func TestKeepAliveChannelReconnection(t *testing.T) {
 		t.Error("Stop channel should have been cleaned up after closure")
 	}
 }
+
+// TestHandleKeepAliveClosedClearsLease is a regression test for the bug
+// where a closed KeepAlive channel (e.g. because the lease expired on
+// the etcd server during a network partition) left the `leases` and
+// `register` caches populated, causing the next registerNode() to
+// short-circuit on the "unchanged" check and never re-register the
+// service. handleKeepAliveClosed must clear all four maps so that the
+// next heartbeat performs a full Grant+Put re-registration.
+func TestHandleKeepAliveClosedClearsLease(t *testing.T) {
+	reg := &etcdRegistry{
+		options:       registry.Options{Logger: logger.DefaultLogger},
+		register:      map[string]uint64{"svckey": 0xdeadbeef},
+		leases:        map[string]clientv3.LeaseID{"svckey": 42},
+		keepaliveChs:  map[string]<-chan *clientv3.LeaseKeepAliveResponse{"svckey": make(chan *clientv3.LeaseKeepAliveResponse)},
+		keepaliveStop: map[string]chan bool{"svckey": make(chan bool, 1)},
+	}
+
+	reg.handleKeepAliveClosed("svckey")
+
+	reg.RLock()
+	defer reg.RUnlock()
+
+	if _, ok := reg.keepaliveChs["svckey"]; ok {
+		t.Error("keepaliveChs not cleared")
+	}
+	if _, ok := reg.keepaliveStop["svckey"]; ok {
+		t.Error("keepaliveStop not cleared")
+	}
+	if _, ok := reg.leases["svckey"]; ok {
+		t.Error("leases not cleared — next heartbeat will skip re-registration")
+	}
+	if _, ok := reg.register["svckey"]; ok {
+		t.Error("register hash not cleared — next heartbeat will skip re-registration")
+	}
+}
+
+// TestHandleKeepAliveClosedIdempotent verifies that handleKeepAliveClosed
+// does not panic when called with a key that was already removed (which
+// can happen if stopKeepAlive/Deregister ran concurrently).
+func TestHandleKeepAliveClosedIdempotent(t *testing.T) {
+	reg := &etcdRegistry{
+		options:       registry.Options{Logger: logger.DefaultLogger},
+		register:      map[string]uint64{},
+		leases:        map[string]clientv3.LeaseID{},
+		keepaliveChs:  map[string]<-chan *clientv3.LeaseKeepAliveResponse{},
+		keepaliveStop: map[string]chan bool{},
+	}
+
+	// Should be a no-op; no panic.
+	reg.handleKeepAliveClosed("missing")
+}
