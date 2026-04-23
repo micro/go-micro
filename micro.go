@@ -4,6 +4,7 @@ package micro
 import (
 	"context"
 
+	"go-micro.dev/v5/agent"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/service"
@@ -78,4 +79,16 @@ func RegisterHandler(s server.Server, h interface{}, opts ...server.HandlerOptio
 // RegisterSubscriber is syntactic sugar for registering a subscriber.
 func RegisterSubscriber(topic string, s server.Server, h interface{}, opts ...server.SubscriberOption) error {
 	return s.Subscribe(s.NewSubscriber(topic, h, opts...))
+}
+
+// Agent is an AI-driven entity that manages the lifecycle of one or more services.
+// It uses tools to observe and control services based on a directive.
+type Agent = agent.Agent
+
+// AgentOption is a functional option for configuring an Agent.
+type AgentOption = agent.Option
+
+// NewAgent creates and returns a new Agent.
+func NewAgent(opts ...AgentOption) Agent {
+	return agent.New(opts...)
 }
