@@ -376,6 +376,7 @@ Package reference: https://pkg.go.dev/go-micro.dev/v5
 - [Getting Started](internal/website/docs/getting-started.md)
 - [Data Model](internal/website/docs/model.md)
 - [MCP & AI Agents](internal/website/docs/mcp.md)
+- [AI Provider Integration](internal/website/docs/guides/ai-provider-guide.md)
 - [Plugins Overview](internal/website/docs/plugins.md)
 - [Learn by Example](internal/website/docs/examples/index.md)
 - [Deployment Guide](internal/website/docs/deployment.md)
@@ -387,6 +388,26 @@ Package reference: https://pkg.go.dev/go-micro.dev/v5
 **Security:**
 - [TLS Security Migration](internal/website/docs/TLS_SECURITY_UPDATE.md)
 - [Security Migration Guide](internal/website/docs/SECURITY_MIGRATION.md)
+
+## Supported AI Providers
+
+Go Micro’s `ai` package gives every provider the same interface: `Init`, `Generate`, `Stream`, and functional options. Swap providers with a single import.
+
+| Provider | Import | Default Model |
+|----------|--------|---------------|
+| **Anthropic** | `go-micro.dev/v5/ai/anthropic` | `claude-sonnet-4-20250514` |
+| **OpenAI** | `go-micro.dev/v5/ai/openai` | `gpt-4o` |
+
+Any provider that exposes an OpenAI-compatible API can also be used directly:
+
+```go
+m := ai.New("openai",
+    ai.WithAPIKey("your-key"),
+    ai.WithBaseURL("https://api.yourprovider.com"),
+)
+```
+
+**Want to add your platform?** See the [AI Provider Integration Guide](internal/website/docs/guides/ai-provider-guide.md) for how to implement `ai.Model` and submit a PR. We welcome both code contributions and sponsorships from AI infrastructure companies — reach out via a [GitHub issue](https://github.com/micro/go-micro/issues).
 
 ## Adopters
 

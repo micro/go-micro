@@ -165,69 +165,20 @@ m := ai.New(provider, ai.WithAPIKey("..."))
 
 ## Adding a New Provider
 
-1. Create a new package under `ai/`:
+See the full **[AI Provider Integration Guide](../internal/website/docs/guides/ai-provider-guide.md)** for a step-by-step walkthrough, checklist, and design notes.
+
+Quick summary:
+
+1. Create `ai/yourprovider/yourprovider.go` implementing `ai.Model`.
+2. Call `ai.Register("yourprovider", ...)` in `init()`.
+3. Add tests in `ai/yourprovider/yourprovider_test.go`.
+4. Users enable the provider with a blank import:
 
 ```go
-package myprovider
-
-import "go-micro.dev/v5/ai"
-
-func init() {
-    ai.Register("myprovider", func(opts ...ai.Option) ai.Model {
-        return NewProvider(opts...)
-    })
-}
-
-type Provider struct {
-    opts ai.Options
-}
-
-func NewProvider(opts ...ai.Option) *Provider {
-    options := ai.NewOptions(opts...)
-    // Set defaults
-    if options.Model == "" {
-        options.Model = "my-default-model"
-    }
-    if options.BaseURL == "" {
-        options.BaseURL = "https://api.myprovider.com"
-    }
-    return &Provider{opts: options}
-}
-
-func (p *Provider) Init(opts ...ai.Option) error {
-    for _, o := range opts {
-        o(&p.opts)
-    }
-    return nil
-}
-
-func (p *Provider) Options() ai.Options {
-    return p.opts
-}
-
-func (p *Provider) String() string {
-    return "myprovider"
-}
-
-func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
-    // Implement your provider logic
-    // - Build API request
-    // - Make HTTP call
-    // - Parse response
-    // - Handle tools if ToolHandler is set
-    return &ai.Response{}, nil
-}
-
-func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
-    return nil, fmt.Errorf("streaming not implemented")
-}
+import _ "go-micro.dev/v5/ai/yourprovider"
 ```
 
-2. Import your provider:
-
-```go
-import _ "go-micro.dev/v5/ai/myprovider"
-```
+We welcome contributions and sponsorships from AI infrastructure companies — see the guide for details.
 
 ## Comparison with Other Packages
 
