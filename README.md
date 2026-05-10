@@ -407,7 +407,7 @@ m := ai.New("openai",
 )
 ```
 
-**Want to add your platform?** See the [AI Provider Integration Guide](internal/website/docs/guides/ai-provider-guide.md) for how to implement `ai.Model` and submit a PR. We welcome both code contributions and sponsorships from AI infrastructure companies — reach out via a [GitHub issue](https://github.com/micro/go-micro/issues).
+**Want to add your platform?** See the [AI Provider Integration Guide](internal/website/docs/guides/ai-provider-guide.md) for how to implement `ai.Model` and submit a PR. We welcome both code contributions and sponsorships from AI infrastructure companies — reach out via a [GitHub issue](https://github.com/micro/go-micro/issues) or [Discord](https://discord.gg/jwTYuUVAGh).
 
 ## Adopters
 
