@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+// Default file extensions to watch
+var defaultExtensions = []string{".go"}
+
+// Default directories to skip
+var defaultExcludes = []string{"vendor", "node_modules", "testdata"}
+
 // Event represents a file change event
 type Event struct {
 	Path string
@@ -17,11 +23,13 @@ type Event struct {
 
 // Watcher watches directories for file changes
 type Watcher struct {
-	dirs     []string
-	events   chan Event
-	done     chan struct{}
-	interval time.Duration
-	debounce time.Duration
+	dirs       []string
+	events     chan Event
+	done       chan struct{}
+	interval   time.Duration
+	debounce   time.Duration
+	extensions []string
+	excludes   []string
 
 	mu       sync.Mutex
 	modTimes map[string]time.Time
@@ -44,15 +52,33 @@ func WithDebounce(d time.Duration) Option {
 	}
 }
 
+// WithExtensions sets the file extensions to watch (e.g., ".go", ".mod", ".proto").
+// Replaces the default list. Each extension must include the leading dot.
+func WithExtensions(exts ...string) Option {
+	return func(w *Watcher) {
+		w.extensions = exts
+	}
+}
+
+// WithExcludes sets additional directory names to skip during scanning.
+// These are added to the default excludes (vendor, node_modules, testdata).
+func WithExcludes(dirs ...string) Option {
+	return func(w *Watcher) {
+		w.excludes = append(w.excludes, dirs...)
+	}
+}
+
 // New creates a new file watcher for the given directories
 func New(dirs []string, opts ...Option) *Watcher {
 	w := &Watcher{
-		dirs:     dirs,
-		events:   make(chan Event, 100),
-		done:     make(chan struct{}),
-		interval: 500 * time.Millisecond,
-		debounce: 300 * time.Millisecond,
-		modTimes: make(map[string]time.Time),
+		dirs:       dirs,
+		events:     make(chan Event, 100),
+		done:       make(chan struct{}),
+		interval:   500 * time.Millisecond,
+		debounce:   300 * time.Millisecond,
+		extensions: append([]string{}, defaultExtensions...),
+		excludes:   append([]string{}, defaultExcludes...),
+		modTimes:   make(map[string]time.Time),
 	}
 
 	for _, opt := range opts {
@@ -124,6 +150,12 @@ func (w *Watcher) scan(notify bool) []string {
 	var changed []string
 	changedDirs := make(map[string]bool)
 
+	// Build exclude set for O(1) lookup
+	excludeSet := make(map[string]bool, len(w.excludes))
+	for _, e := range w.excludes {
+		excludeSet[e] = true
+	}
+
 	for _, dir := range w.dirs {
 		absDir, err := filepath.Abs(dir)
 		if err != nil {
@@ -135,17 +167,17 @@ func (w *Watcher) scan(notify bool) []string {
 				return nil
 			}
 
-			// Skip hidden directories and vendor
+			// Skip hidden directories and excluded dirs
 			if info.IsDir() {
 				name := info.Name()
-				if strings.HasPrefix(name, ".") || name == "vendor" || name == "node_modules" {
+				if strings.HasPrefix(name, ".") || excludeSet[name] {
 					return filepath.SkipDir
 				}
 				return nil
 			}
 
-			// Only watch .go files
-			if !strings.HasSuffix(path, ".go") {
+			// Check if file matches any watched extension
+			if !w.matchesExtension(path) {
 				return nil
 			}
 
@@ -165,4 +197,20 @@ func (w *Watcher) scan(notify bool) []string {
 	}
 
 	return changed
+}
+
+// matchesExtension checks if a file path has one of the watched extensions.
+// Special case: "go.mod" and "go.sum" are always matched when ".mod" is in the extensions list.
+func (w *Watcher) matchesExtension(path string) bool {
+	base := filepath.Base(path)
+	for _, ext := range w.extensions {
+		if strings.HasSuffix(base, ext) {
+			return true
+		}
+		// Special case: watch go.mod and go.sum when .mod extension is listed
+		if ext == ".mod" && (base == "go.mod" || base == "go.sum") {
+			return true
+		}
+	}
+	return false
 }

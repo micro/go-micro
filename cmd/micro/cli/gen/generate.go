@@ -16,9 +16,24 @@ var handlerTemplate = `package handler
 
 import (
 	"context"
+	"fmt"
 
 	log "go-micro.dev/v5/logger"
 )
+
+{{range .Methods}}
+// {{.RequestType}} is the input for {{$.Name}}.{{.Name}}
+type {{.RequestType}} struct {
+	ID   string ` + "`json:\"id\"`" + `
+	Name string ` + "`json:\"name,omitempty\"`" + `
+}
+
+// {{.ResponseType}} is the output for {{$.Name}}.{{.Name}}
+type {{.ResponseType}} struct {
+	ID      string ` + "`json:\"id\"`" + `
+	Message string ` + "`json:\"message\"`" + `
+}
+{{end}}
 
 type {{.Name}} struct{}
 
@@ -27,10 +42,18 @@ func New{{.Name}}() *{{.Name}} {
 }
 
 {{range .Methods}}
-// {{.Name}} handles {{.Name}} requests
+// {{.Name}} handles {{$.Name}}.{{.Name}} requests.
+//
+// @example {"id": "1", "name": "test"}
 func (h *{{$.Name}}) {{.Name}}(ctx context.Context, req *{{.RequestType}}, rsp *{{.ResponseType}}) error {
-	log.Infof("Received {{$.Name}}.{{.Name}} request")
-	// TODO: implement
+	log.Infof("Received {{$.Name}}.{{.Name}} request: id=%s", req.ID)
+
+	if req.ID == "" {
+		return fmt.Errorf("id is required")
+	}
+
+	rsp.ID = req.ID
+	rsp.Message = fmt.Sprintf("{{.Name}} processed: %s", req.Name)
 	return nil
 }
 {{end}}
@@ -39,7 +62,6 @@ func (h *{{$.Name}}) {{.Name}}(ctx context.Context, req *{{.RequestType}}, rsp *
 var endpointTemplate = `package handler
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 
@@ -48,32 +70,43 @@ import (
 
 // {{.Name}}Request is the request for {{.Name}}
 type {{.Name}}Request struct {
-	// Add request fields here
+	ID   string ` + "`json:\"id\"`" + `
+	Name string ` + "`json:\"name,omitempty\"`" + `
 }
 
 // {{.Name}}Response is the response for {{.Name}}
 type {{.Name}}Response struct {
-	// Add response fields here
+	ID      string ` + "`json:\"id\"`" + `
+	Message string ` + "`json:\"message\"`" + `
+	OK      bool   ` + "`json:\"ok\"`" + `
 }
 
 // {{.Name}} handles HTTP {{.Method}} requests to /{{.Path}}
 func {{.Name}}(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	log.Infof("Received {{.Name}} request")
+	log.Infof("Received {{.Name}} %s request", r.Method)
 
 	var req {{.Name}}Request
-	if r.Method != http.MethodGet {
+	if r.Method == http.MethodGet {
+		req.ID = r.URL.Query().Get("id")
+		req.Name = r.URL.Query().Get("name")
+	} else {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, ` + "`" + `{"error":"invalid request body"}` + "`" + `, http.StatusBadRequest)
 			return
 		}
 	}
 
-	// TODO: implement handler logic
-	_ = ctx
-	_ = req
+	if req.ID == "" {
+		http.Error(w, ` + "`" + `{"error":"id is required"}` + "`" + `, http.StatusBadRequest)
+		return
+	}
 
-	rsp := {{.Name}}Response{}
+	rsp := {{.Name}}Response{
+		ID:      req.ID,
+		Message: "processed",
+		OK:      true,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(rsp)
 }
@@ -83,15 +116,17 @@ var modelTemplate = `package model
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 )
 
 // {{.Name}} represents a {{lower .Name}} in the system
 type {{.Name}} struct {
 	ID        string    ` + "`json:\"id\"`" + `
+	Name      string    ` + "`json:\"name\"`" + `
 	CreatedAt time.Time ` + "`json:\"created_at\"`" + `
 	UpdatedAt time.Time ` + "`json:\"updated_at\"`" + `
-	// Add your fields here
 }
 
 // {{.Name}}Repository defines the interface for {{lower .Name}} storage
@@ -101,6 +136,79 @@ type {{.Name}}Repository interface {
 	Update(ctx context.Context, m *{{.Name}}) error
 	Delete(ctx context.Context, id string) error
 	List(ctx context.Context, offset, limit int) ([]*{{.Name}}, error)
+}
+
+// Memory{{.Name}}Repository is an in-memory implementation of {{.Name}}Repository.
+// Replace with a database-backed implementation for production.
+type Memory{{.Name}}Repository struct {
+	mu    sync.RWMutex
+	items map[string]*{{.Name}}
+	seq   int
+}
+
+func NewMemory{{.Name}}Repository() *Memory{{.Name}}Repository {
+	return &Memory{{.Name}}Repository{items: make(map[string]*{{.Name}})}
+}
+
+func (r *Memory{{.Name}}Repository) Create(ctx context.Context, m *{{.Name}}) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.seq++
+	m.ID = fmt.Sprintf("%d", r.seq)
+	m.CreatedAt = time.Now()
+	m.UpdatedAt = m.CreatedAt
+	r.items[m.ID] = m
+	return nil
+}
+
+func (r *Memory{{.Name}}Repository) Get(ctx context.Context, id string) (*{{.Name}}, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	m, ok := r.items[id]
+	if !ok {
+		return nil, fmt.Errorf("{{lower .Name}} %s not found", id)
+	}
+	return m, nil
+}
+
+func (r *Memory{{.Name}}Repository) Update(ctx context.Context, m *{{.Name}}) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.items[m.ID]; !ok {
+		return fmt.Errorf("{{lower .Name}} %s not found", m.ID)
+	}
+	m.UpdatedAt = time.Now()
+	r.items[m.ID] = m
+	return nil
+}
+
+func (r *Memory{{.Name}}Repository) Delete(ctx context.Context, id string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.items[id]; !ok {
+		return fmt.Errorf("{{lower .Name}} %s not found", id)
+	}
+	delete(r.items, id)
+	return nil
+}
+
+func (r *Memory{{.Name}}Repository) List(ctx context.Context, offset, limit int) ([]*{{.Name}}, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var result []*{{.Name}}
+	i := 0
+	for _, m := range r.items {
+		if i < offset {
+			i++
+			continue
+		}
+		if limit > 0 && len(result) >= limit {
+			break
+		}
+		result = append(result, m)
+		i++
+	}
+	return result, nil
 }
 `
 
