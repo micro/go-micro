@@ -149,6 +149,34 @@ micro run
 
 Use `micro mcp serve` for local AI tools like Claude Code, or connect any MCP-compatible agent to the HTTP endpoint.
 
+### micro chat
+
+For an interactive terminal session that lets you talk to your services through an LLM:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
+> list all users
+> create an order for product 42
+```
+
+`micro chat` discovers every service in the registry, exposes each endpoint as a tool, and lets the model orchestrate calls. The same building blocks (`ai/tools`) work from your own services:
+
+```go
+import "go-micro.dev/v5/ai/tools"
+
+set := tools.New(service.Registry())
+discovered, _ := set.Discover()
+
+m := ai.New("anthropic",
+    ai.WithAPIKey(key),
+    ai.WithToolHandler(set.Handler(service.Client())),
+)
+resp, _ := m.Generate(ctx, &ai.Request{
+    Prompt: userInput,
+    Tools:  discovered,
+})
+```
+
 See the [MCP guide](https://go-micro.dev/docs/mcp.html) for authentication, scopes, and advanced usage.
 
 ## Multi-Service Binaries
@@ -247,6 +275,7 @@ Every service gets `Client()`, `Server()`, and `Model()` — call services, hand
 
 Check out [/examples](examples/) for runnable code:
 - [hello-world](examples/hello-world/) - Basic RPC service
+- [grpc-interop](examples/grpc-interop/) - Call go-micro from any gRPC client
 - [web-service](examples/web-service/) - HTTP REST API
 - [multi-service](examples/multi-service/) - Multiple services in one binary
 - [mcp](examples/mcp/) - MCP integration with AI agents
@@ -396,7 +425,11 @@ Go Micro’s `ai` package gives every provider the same interface: `Init`, `Gene
 | Provider | Import | Default Model |
 |----------|--------|---------------|
 | **Anthropic** | `go-micro.dev/v5/ai/anthropic` | `claude-sonnet-4-20250514` |
+| **Google Gemini** | `go-micro.dev/v5/ai/gemini` | `gemini-2.5-flash` |
+| **Groq** | `go-micro.dev/v5/ai/groq` | `llama-3.3-70b-versatile` |
+| **Mistral** | `go-micro.dev/v5/ai/mistral` | `mistral-large-latest` |
 | **OpenAI** | `go-micro.dev/v5/ai/openai` | `gpt-4o` |
+| **Together AI** | `go-micro.dev/v5/ai/together` | `Llama-3.3-70B-Instruct-Turbo` |
 | **Atlas Cloud** | `go-micro.dev/v5/ai/atlascloud` | `llama-3.3-70b` |
 
 Any provider that exposes an OpenAI-compatible API can also be used directly:

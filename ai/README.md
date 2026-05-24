@@ -152,6 +152,62 @@ m := ai.New("openai",
 Default model: `gpt-4o`
 Default base URL: `https://api.openai.com`
 
+### Google Gemini
+
+```go
+m := ai.New("gemini",
+    ai.WithAPIKey("your-key"),
+    ai.WithModel("gemini-2.5-flash"), // default
+)
+```
+
+Default model: `gemini-2.5-flash`
+Default base URL: `https://generativelanguage.googleapis.com`
+
+Google Gemini uses its own API format with `system_instruction`, `contents` (not `messages`), and `functionDeclarations` for tool calling. The provider handles the translation automatically.
+
+### Groq
+
+```go
+m := ai.New("groq",
+    ai.WithAPIKey("your-key"),
+    ai.WithModel("llama-3.3-70b-versatile"), // default
+)
+```
+
+Default model: `llama-3.3-70b-versatile`
+Default base URL: `https://api.groq.com/openai`
+
+Groq provides ultra-fast inference for open-weight models via an OpenAI-compatible endpoint.
+
+### Mistral
+
+```go
+m := ai.New("mistral",
+    ai.WithAPIKey("your-key"),
+    ai.WithModel("mistral-large-latest"), // default
+)
+```
+
+Default model: `mistral-large-latest`
+Default base URL: `https://api.mistral.ai`
+
+Mistral AI is a European AI company offering high-performance models via an OpenAI-compatible endpoint.
+
+### Together AI
+
+```go
+m := ai.New("together",
+    ai.WithAPIKey("your-key"),
+    ai.WithModel("meta-llama/Llama-3.3-70B-Instruct-Turbo"), // default
+)
+```
+
+Default model: `meta-llama/Llama-3.3-70B-Instruct-Turbo`
+Default base URL: `https://api.together.xyz`
+
+Together AI provides fast inference for open-weight models via an OpenAI-compatible endpoint.
+
 ### Atlas Cloud
 
 ```go
