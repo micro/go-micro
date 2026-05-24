@@ -4,6 +4,7 @@ import (
 	"embed"
 	"go-micro.dev/v5/cmd"
 
+	_ "go-micro.dev/v5/cmd/micro/chat"
 	_ "go-micro.dev/v5/cmd/micro/cli"
 	_ "go-micro.dev/v5/cmd/micro/cli/build"
 	_ "go-micro.dev/v5/cmd/micro/cli/deploy"

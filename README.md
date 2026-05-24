@@ -149,6 +149,34 @@ micro run
 
 Use `micro mcp serve` for local AI tools like Claude Code, or connect any MCP-compatible agent to the HTTP endpoint.
 
+### micro chat
+
+For an interactive terminal session that lets you talk to your services through an LLM:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
+> list all users
+> create an order for product 42
+```
+
+`micro chat` discovers every service in the registry, exposes each endpoint as a tool, and lets the model orchestrate calls. The same building blocks (`ai/tools`) work from your own services:
+
+```go
+import "go-micro.dev/v5/ai/tools"
+
+set := tools.New(service.Registry())
+discovered, _ := set.Discover()
+
+m := ai.New("anthropic",
+    ai.WithAPIKey(key),
+    ai.WithToolHandler(set.Handler(service.Client())),
+)
+resp, _ := m.Generate(ctx, &ai.Request{
+    Prompt: userInput,
+    Tools:  discovered,
+})
+```
+
 See the [MCP guide](https://go-micro.dev/docs/mcp.html) for authentication, scopes, and advanced usage.
 
 ## Multi-Service Binaries
