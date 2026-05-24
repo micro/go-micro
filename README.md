@@ -275,6 +275,7 @@ Every service gets `Client()`, `Server()`, and `Model()` — call services, hand
 
 Check out [/examples](examples/) for runnable code:
 - [hello-world](examples/hello-world/) - Basic RPC service
+- [grpc-interop](examples/grpc-interop/) - Call go-micro from any gRPC client
 - [web-service](examples/web-service/) - HTTP REST API
 - [multi-service](examples/multi-service/) - Multiple services in one binary
 - [mcp](examples/mcp/) - MCP integration with AI agents
