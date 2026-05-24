@@ -152,6 +152,20 @@ m := ai.New("openai",
 Default model: `gpt-4o`
 Default base URL: `https://api.openai.com`
 
+### Google Gemini
+
+```go
+m := ai.New("gemini",
+    ai.WithAPIKey("your-key"),
+    ai.WithModel("gemini-2.5-flash"), // default
+)
+```
+
+Default model: `gemini-2.5-flash`
+Default base URL: `https://generativelanguage.googleapis.com`
+
+Google Gemini uses its own API format with `system_instruction`, `contents` (not `messages`), and `functionDeclarations` for tool calling. The provider handles the translation automatically.
+
 ### Atlas Cloud
 
 ```go

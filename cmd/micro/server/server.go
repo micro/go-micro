@@ -31,6 +31,7 @@ import (
 	"go-micro.dev/v5/ai"
 	_ "go-micro.dev/v5/ai/anthropic"
 	_ "go-micro.dev/v5/ai/atlascloud"
+	_ "go-micro.dev/v5/ai/gemini"
 	_ "go-micro.dev/v5/ai/openai"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"

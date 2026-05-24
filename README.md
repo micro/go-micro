@@ -396,6 +396,7 @@ Go Micro’s `ai` package gives every provider the same interface: `Init`, `Gene
 | Provider | Import | Default Model |
 |----------|--------|---------------|
 | **Anthropic** | `go-micro.dev/v5/ai/anthropic` | `claude-sonnet-4-20250514` |
+| **Google Gemini** | `go-micro.dev/v5/ai/gemini` | `gemini-2.5-flash` |
 | **OpenAI** | `go-micro.dev/v5/ai/openai` | `gpt-4o` |
 | **Atlas Cloud** | `go-micro.dev/v5/ai/atlascloud` | `llama-3.3-70b` |
 

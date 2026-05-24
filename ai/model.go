@@ -116,6 +116,8 @@ func AutoDetectProvider(baseURL string) string {
 		return "anthropic"
 	case strings.Contains(baseURL, "atlascloud"):
 		return "atlascloud"
+	case strings.Contains(baseURL, "googleapis.com"), strings.Contains(baseURL, "google"):
+		return "gemini"
 	default:
 		return "openai"
 	}
