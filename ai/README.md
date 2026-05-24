@@ -152,6 +152,20 @@ m := ai.New("openai",
 Default model: `gpt-4o`
 Default base URL: `https://api.openai.com`
 
+### Atlas Cloud
+
+```go
+m := ai.New("atlascloud",
+    ai.WithAPIKey("your-key"),
+    ai.WithModel("llama-3.3-70b"), // default
+)
+```
+
+Default model: `llama-3.3-70b`
+Default base URL: `https://api.atlascloud.ai`
+
+Atlas Cloud is an enterprise AI infrastructure platform offering high-performance LLM APIs. It exposes an OpenAI-compatible chat completions endpoint with tool calling support.
+
 ## Auto-Detection
 
 Use `AutoDetectProvider()` to detect the provider from a base URL:

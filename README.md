@@ -397,6 +397,7 @@ Go Micro’s `ai` package gives every provider the same interface: `Init`, `Gene
 |----------|--------|---------------|
 | **Anthropic** | `go-micro.dev/v5/ai/anthropic` | `claude-sonnet-4-20250514` |
 | **OpenAI** | `go-micro.dev/v5/ai/openai` | `gpt-4o` |
+| **Atlas Cloud** | `go-micro.dev/v5/ai/atlascloud` | `llama-3.3-70b` |
 
 Any provider that exposes an OpenAI-compatible API can also be used directly:
 
