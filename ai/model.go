@@ -111,11 +111,14 @@ func AutoDetectProvider(baseURL string) string {
 	if baseURL == "" {
 		return "openai"
 	}
-	// Simple detection based on URL
-	if strings.Contains(baseURL, "anthropic") {
+	switch {
+	case strings.Contains(baseURL, "anthropic"):
 		return "anthropic"
+	case strings.Contains(baseURL, "atlascloud"):
+		return "atlascloud"
+	default:
+		return "openai"
 	}
-	return "openai"
 }
 
 // DefaultModel is a default model instance

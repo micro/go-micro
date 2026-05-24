@@ -30,6 +30,7 @@ import (
 	codecBytes "go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/ai"
 	_ "go-micro.dev/v5/ai/anthropic"
+	_ "go-micro.dev/v5/ai/atlascloud"
 	_ "go-micro.dev/v5/ai/openai"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
