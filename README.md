@@ -397,7 +397,10 @@ Go Micro’s `ai` package gives every provider the same interface: `Init`, `Gene
 |----------|--------|---------------|
 | **Anthropic** | `go-micro.dev/v5/ai/anthropic` | `claude-sonnet-4-20250514` |
 | **Google Gemini** | `go-micro.dev/v5/ai/gemini` | `gemini-2.5-flash` |
+| **Groq** | `go-micro.dev/v5/ai/groq` | `llama-3.3-70b-versatile` |
+| **Mistral** | `go-micro.dev/v5/ai/mistral` | `mistral-large-latest` |
 | **OpenAI** | `go-micro.dev/v5/ai/openai` | `gpt-4o` |
+| **Together AI** | `go-micro.dev/v5/ai/together` | `Llama-3.3-70B-Instruct-Turbo` |
 | **Atlas Cloud** | `go-micro.dev/v5/ai/atlascloud` | `llama-3.3-70b` |
 
 Any provider that exposes an OpenAI-compatible API can also be used directly:
