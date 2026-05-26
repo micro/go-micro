@@ -123,7 +123,7 @@ curl -XPOST \
 Go Micro is designed for an **agent-first** workflow. Every service you build automatically becomes a tool that AI agents can discover and use via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/).
 
 - **[🤖 Agent Playground](https://go-micro.dev/docs/mcp.html)** — Chat with your services through an interactive AI agent at `/agent`
-- **[🔧 MCP Tools Registry](https://go-micro.dev/docs/mcp.html)** — Browse all services exposed as AI-callable tools at `/api/mcp/tools`
+- **[🔧 MCP Tools Registry](https://go-micro.dev/docs/mcp.html)** — Browse all services exposed as AI-callable tools at `/mcp/tools`
 - **[📖 MCP Documentation](https://go-micro.dev/docs/mcp.html)** — Full guide to MCP integration, auth, and scopes
 
 ### Services as Tools
@@ -144,7 +144,7 @@ Run with `micro run` and the agent playground and MCP tools registry are ready:
 ```bash
 micro run
 # Agent Playground:  http://localhost:8080/agent
-# MCP Tools:         http://localhost:8080/api/mcp/tools
+# MCP Tools:         http://localhost:8080/mcp/tools
 ```
 
 Use `micro mcp serve` for local AI tools like Claude Code, or connect any MCP-compatible agent to the HTTP endpoint.
@@ -330,7 +330,7 @@ Then open http://localhost:8080 to see your service and call it from the browser
 - **Agent Playground** - AI chat with MCP tools at `/agent`
 - **API Explorer** - Browse endpoints and schemas at `/api`
 - **API Gateway** - HTTP to RPC proxy at `/api/{service}/{method}` (no auth in dev mode)
-- **MCP Tools** - Services as AI tools at `/api/mcp/tools`
+- **MCP Tools** - Services as AI tools at `/mcp/tools`
 - **Health Checks** - Aggregated health at `/health`
 - **Hot Reload** - Auto-rebuild on file changes
 

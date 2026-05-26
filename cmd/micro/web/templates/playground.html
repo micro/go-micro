@@ -183,7 +183,7 @@
   };
 
   function loadTools() {
-    fetch('/api/mcp/tools')
+    fetch('/mcp/tools')
       .then(function(r) { return r.json(); })
       .then(function(data) {
         tools = data.tools || [];

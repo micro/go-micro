@@ -433,7 +433,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 	})
 
 	// MCP API endpoints - list tools and call tools through the web server
-	mux.HandleFunc("/api/mcp/tools", wrap(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/mcp/tools", wrap(func(w http.ResponseWriter, r *http.Request) {
 		services, err := registry.ListServices()
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
@@ -493,7 +493,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		json.NewEncoder(w).Encode(map[string]any{"tools": tools})
 	}))
 
-	mux.HandleFunc("/api/mcp/call", wrap(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/mcp/call", wrap(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusMethodNotAllowed)

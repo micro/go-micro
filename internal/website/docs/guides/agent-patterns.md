@@ -28,7 +28,7 @@ g := micro.NewGroup(users, tasks, notifications)
 g.Run()
 ```
 
-With `micro run`, all services are discovered automatically via the registry, and the MCP tools endpoint at `/api/mcp/tools` exposes every endpoint from every service.
+With `micro run`, all services are discovered automatically via the registry, and the MCP tools endpoint at `/mcp/tools` exposes every endpoint from every service.
 
 ### When to Use
 
