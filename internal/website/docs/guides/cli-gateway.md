@@ -222,7 +222,7 @@ Scopes provide fine-grained access control over which tokens can call which endp
 **Scopes are enforced on all call paths:**
 
 - Direct API calls (`/api/{service}/{endpoint}`)
-- MCP tool calls (`/api/mcp/call`)
+- MCP tool calls (`/mcp/call`)
 - Agent playground tool invocations
 
 The gateway uses `auth.Account` from the go-micro framework. The account's `Scopes` field carries the same `[]string` used by the framework's `wrapper/auth` package for service-level auth.

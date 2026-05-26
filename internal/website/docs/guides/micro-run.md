@@ -28,7 +28,7 @@ When you run `micro run`, you get:
 | http://localhost:8080/agent | Agent playground - AI chat with MCP tools |
 | http://localhost:8080/api | API explorer - browse endpoints and schemas |
 | http://localhost:8080/api/{service}/{method} | API gateway - HTTP to RPC proxy |
-| http://localhost:8080/api/mcp/tools | MCP tools - list all services as AI tools |
+| http://localhost:8080/mcp/tools | MCP tools - list all services as AI tools |
 | http://localhost:8080/auth/tokens | Token management - create and manage API tokens |
 | http://localhost:8080/auth/scopes | Scope management - restrict endpoint access |
 | http://localhost:8080/auth/users | User management - create and manage users |
@@ -70,8 +70,8 @@ The agent playground at `/agent` lets you interact with your services using AI. 
 3. Chat with the AI agent — it can discover and call your services as tools
 
 The MCP tools API is available at:
-- `/api/mcp/tools` — list all services as AI-callable tools
-- `/api/mcp/call` — invoke a tool (service endpoint) by name
+- `/mcp/tools` — list all services as AI-callable tools
+- `/mcp/call` — invoke a tool (service endpoint) by name
 
 For a dedicated MCP protocol listener (for external AI clients), use:
 

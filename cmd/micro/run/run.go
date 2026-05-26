@@ -480,7 +480,7 @@ Starts an HTTP gateway on :8080 providing:
   - Agent playground at /agent (AI chat with MCP tools)
   - API explorer at /api
   - API proxy at /api/{service}/{endpoint}
-  - MCP tools at /api/mcp/tools
+  - MCP tools at /mcp/tools
   - Health checks at /health
 
 With a micro.mu or micro.json config file, services start in dependency order.

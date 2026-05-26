@@ -38,7 +38,7 @@ This starts:
 - **Web Dashboard** at http://localhost:8080
 - **Agent Playground** at http://localhost:8080/agent
 - **API Explorer** at http://localhost:8080/api
-- **MCP Tools** at http://localhost:8080/api/mcp/tools
+- **MCP Tools** at http://localhost:8080/mcp/tools
 - **Hot Reload** watching for file changes
 - **Services** in dependency order
 
@@ -426,7 +426,7 @@ Both commands provide:
 - **Hot Service Updates**: Gateway automatically picks up new service registrations
 - **JWT Authentication**: Tokens, user management, login at `/auth/login`, `/auth/tokens`, `/auth/users`
 - **Endpoint Scopes**: Restrict which tokens can call which endpoints via `/auth/scopes`
-- **MCP Integration**: AI tools at `/api/mcp/tools`, agent playground at `/agent`
+- **MCP Integration**: AI tools at `/mcp/tools`, agent playground at `/agent`
 
 ### Authentication & Scopes
 
@@ -437,7 +437,7 @@ Both `micro run` and `micro server` use the same `auth.Account` type from the go
 | Path | Description |
 |------|-------------|
 | `POST /api/{service}/{endpoint}` | HTTP API calls |
-| `POST /api/mcp/call` | MCP tool invocations |
+| `POST /mcp/call` | MCP tool invocations |
 | Agent playground | Tool calls made by the AI agent |
 
 Scopes are configured via the web UI at `/auth/scopes`. Each endpoint can require one or more scopes. A token must carry at least one matching scope to call a protected endpoint. The `*` scope on a token bypasses all checks. Endpoints with no scopes set are open to any authenticated token.

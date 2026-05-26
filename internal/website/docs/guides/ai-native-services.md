@@ -225,7 +225,7 @@ micro run
 Your service is now available at:
 - **Web Dashboard:** http://localhost:8080/
 - **Agent Playground:** http://localhost:8080/agent
-- **MCP Tools:** http://localhost:8080/api/mcp/tools
+- **MCP Tools:** http://localhost:8080/mcp/tools
 - **WebSocket:** ws://localhost:3000/mcp/ws
 - **API Gateway:** http://localhost:8080/api/tasks/TaskService/Create
 

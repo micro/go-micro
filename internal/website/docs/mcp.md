@@ -127,11 +127,11 @@ MCP tool calls go through the same authentication and scope enforcement as regul
 
 ```bash
 # List available MCP tools (requires valid token)
-curl http://localhost:8080/api/mcp/tools \
+curl http://localhost:8080/mcp/tools \
   -H "Authorization: Bearer <token>"
 
 # Call a specific tool (scope-checked)
-curl -X POST http://localhost:8080/api/mcp/call \
+curl -X POST http://localhost:8080/mcp/call \
   -H "Authorization: Bearer <token>" \
   -d '{"tool":"greeter.GreeterService.SayHello","input":{"name":"World"}}'
 ```
