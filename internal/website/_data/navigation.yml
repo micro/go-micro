@@ -30,6 +30,10 @@ examples:
   - title: Real-World Examples
     url: /docs/examples/realworld/
 guides:
+  - title: Atlas Cloud Integration
+    url: /docs/guides/atlascloud-integration.html
+  - title: AI Provider Guide
+    url: /docs/guides/ai-provider-guide.html
   - title: Comparison
     url: /docs/guides/comparison.html
   - title: Migration Guides
