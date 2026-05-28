@@ -8,6 +8,14 @@ Go Micro is a framework for distributed systems development.
 &nbsp;&nbsp;&nbsp;&nbsp;
 <a href="https://go-micro.dev/blog/8"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
 
+<details>
+<summary>About Atlas Cloud</summary>
+<br>
+Atlas Cloud is a full-modal AI inference platform that gives developers a single AI API to access video generation, image generation, and LLM APIs. Instead of managing multiple vendor integrations, you connect once and get unified access to 300+ curated models across all modalities.
+
+Check out Atlas Cloud's <a href="https://www.atlascloud.ai/console/coding-plan">coding plan promotion</a> for budget-friendly API access.
+</details>
+
 ## Overview
 
 Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication.
