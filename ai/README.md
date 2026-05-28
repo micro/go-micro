@@ -1,8 +1,10 @@
 # AI Package
 
-The `ai` package provides a simple, high-level interface for AI model providers like Anthropic Claude and OpenAI GPT.
+The `ai` package provides simple, high-level interfaces for AI model providers. It supports text generation (`Model`) and image generation (`ImageModel`), with more modalities planned.
 
-## Interface
+## Interfaces
+
+### Text Generation (Model)
 
 The Model interface follows the same patterns as other go-micro packages (Registry, Client, Broker):
 
@@ -45,6 +47,35 @@ if err != nil {
 
 fmt.Println(resp.Reply)
 ```
+
+### Image Generation (ImageModel)
+
+```go
+type ImageModel interface {
+    GenerateImage(ctx context.Context, req *ImageRequest, opts ...GenerateOption) (*ImageResponse, error)
+    String() string
+}
+```
+
+```go
+import (
+    "go-micro.dev/v5/ai"
+    _ "go-micro.dev/v5/ai/atlascloud"
+)
+
+ig := ai.NewImage("atlascloud",
+    ai.WithAPIKey("your-api-key"),
+)
+
+resp, err := ig.GenerateImage(context.Background(), &ai.ImageRequest{
+    Prompt: "A Go gopher in space",
+    Size:   "1024x1024",
+})
+
+fmt.Println(resp.Images[0].URL)
+```
+
+Providers that support image generation: **Atlas Cloud**, **OpenAI**.
 
 ## Options
 

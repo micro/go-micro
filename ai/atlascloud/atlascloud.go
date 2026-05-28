@@ -1,14 +1,20 @@
 // Package atlascloud implements the Atlas Cloud model provider.
 //
 // Atlas Cloud is an enterprise AI infrastructure platform offering
-// high-performance LLM APIs. It exposes an OpenAI-compatible
-// chat completions endpoint.
+// high-performance LLM, image, and video APIs. It exposes
+// OpenAI-compatible endpoints for chat completions and image
+// generation.
 //
 // Usage:
 //
 //	import _ "go-micro.dev/v5/ai/atlascloud"
 //
 //	m := ai.New("atlascloud",
+//	    ai.WithAPIKey("your-api-key"),
+//	)
+//
+//	// Image generation
+//	ig := ai.NewImage("atlascloud",
 //	    ai.WithAPIKey("your-api-key"),
 //	)
 package atlascloud
@@ -27,6 +33,9 @@ import (
 
 func init() {
 	ai.Register("atlascloud", func(opts ...ai.Option) ai.Model {
+		return NewProvider(opts...)
+	})
+	ai.RegisterImage("atlascloud", func(opts ...ai.Option) ai.ImageModel {
 		return NewProvider(opts...)
 	})
 }
@@ -205,4 +214,72 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 	}
 
 	return response, rawMessage, nil
+}
+
+const defaultImageModel = "gpt-image-1"
+
+func (p *Provider) GenerateImage(ctx context.Context, req *ai.ImageRequest, opts ...ai.GenerateOption) (*ai.ImageResponse, error) {
+	model := req.Model
+	if model == "" {
+		model = defaultImageModel
+	}
+	n := req.N
+	if n <= 0 {
+		n = 1
+	}
+
+	apiReq := map[string]any{
+		"model":  model,
+		"prompt": req.Prompt,
+		"n":      n,
+	}
+	if req.Size != "" {
+		apiReq["size"] = req.Size
+	}
+
+	reqBody, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/images/generations"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	respBody, _ := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode != 200 {
+		return nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
+	}
+
+	var imgResp struct {
+		Data []struct {
+			URL     string `json:"url"`
+			B64JSON string `json:"b64_json"`
+		} `json:"data"`
+	}
+
+	if err := json.Unmarshal(respBody, &imgResp); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	response := &ai.ImageResponse{}
+	for _, d := range imgResp.Data {
+		response.Images = append(response.Images, ai.Image{
+			URL:    d.URL,
+			Base64: d.B64JSON,
+		})
+	}
+
+	return response, nil
 }

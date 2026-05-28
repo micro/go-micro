@@ -102,3 +102,25 @@ func TestProvider_Registration(t *testing.T) {
 		t.Errorf("Expected 'atlascloud', got '%s'", m.String())
 	}
 }
+
+func TestProvider_ImageRegistration(t *testing.T) {
+	ig := ai.NewImage("atlascloud", ai.WithAPIKey("test"))
+	if ig == nil {
+		t.Fatal("ai.NewImage('atlascloud') returned nil — image provider not registered")
+	}
+	if ig.String() != "atlascloud" {
+		t.Errorf("Expected 'atlascloud', got '%s'", ig.String())
+	}
+}
+
+func TestProvider_GenerateImage_NoAPIKey(t *testing.T) {
+	p := NewProvider()
+	_, err := p.GenerateImage(context.Background(), &ai.ImageRequest{Prompt: "a cat"})
+	if err == nil {
+		t.Error("Expected error when API key is missing, got nil")
+	}
+}
+
+func TestProvider_ImplementsImageModel(t *testing.T) {
+	var _ ai.ImageModel = (*Provider)(nil)
+}

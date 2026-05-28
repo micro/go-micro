@@ -103,6 +103,61 @@ m := ai.New("atlascloud",
 )
 ```
 
+## Image Generation
+
+Atlas Cloud supports text-to-image generation through the `ai.ImageModel` interface. This uses the same OpenAI-compatible `/v1/images/generations` endpoint.
+
+```go
+import (
+    "context"
+    "fmt"
+
+    "go-micro.dev/v5/ai"
+    _ "go-micro.dev/v5/ai/atlascloud"
+)
+
+func main() {
+    ig := ai.NewImage("atlascloud",
+        ai.WithAPIKey("your-key"),
+    )
+
+    resp, err := ig.GenerateImage(context.Background(), &ai.ImageRequest{
+        Prompt: "A Go gopher building microservices, digital art",
+        Size:   "1024x1024",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Image returned as URL or base64, depending on the model
+    fmt.Println(resp.Images[0].URL)
+}
+```
+
+### ImageRequest Options
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `Prompt` | *required* | Text description of the image |
+| `Model` | `gpt-image-1` | Image model to use |
+| `Size` | provider default | Image dimensions (e.g. `"1024x1024"`) |
+| `N` | `1` | Number of images to generate |
+
+### Available Image Models
+
+Atlas Cloud offers image models including `gpt-image-1`, `flux-2`, `nano-banana-pro`, and more. Check [atlascloud.ai](https://www.atlascloud.ai/) for the full catalog.
+
+```go
+ig.GenerateImage(ctx, &ai.ImageRequest{
+    Prompt: "A mountain landscape",
+    Model:  "flux-2",
+    Size:   "1024x1024",
+    N:      2,
+})
+```
+
+The `ai.ImageModel` interface is also implemented by the OpenAI provider, so switching between providers is a one-line change.
+
 ## Using with Services (Tool Calling)
 
 Atlas Cloud supports OpenAI-compatible function calling. Combined with Go Micro's `ai/tools` package, your services become tools that the model can call:

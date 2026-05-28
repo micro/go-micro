@@ -22,8 +22,8 @@ type Model interface {
 
 // Tool represents a tool/function that can be called by the model
 type Tool struct {
-	Name         string         // LLM-safe name (e.g., "greeter_Greeter_Hello")
-	OriginalName string         // Original name (e.g., "greeter.Greeter.Hello")
+	Name         string // LLM-safe name (e.g., "greeter_Greeter_Hello")
+	OriginalName string // Original name (e.g., "greeter.Greeter.Hello")
 	Description  string
 	Properties   map[string]any // JSON schema for tool parameters
 }
@@ -95,14 +95,14 @@ func New(provider string, opts ...Option) Model {
 	if fn, ok := providers[provider]; ok {
 		return fn(opts...)
 	}
-	
+
 	// Default to first registered provider
 	if len(providers) > 0 {
 		for _, fn := range providers {
 			return fn(opts...)
 		}
 	}
-	
+
 	return nil
 }
 

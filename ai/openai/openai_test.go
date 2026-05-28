@@ -92,3 +92,25 @@ func TestProvider_Stream_NotImplemented(t *testing.T) {
 		t.Error("Expected error for unimplemented streaming, got nil")
 	}
 }
+
+func TestProvider_ImageRegistration(t *testing.T) {
+	ig := ai.NewImage("openai", ai.WithAPIKey("test"))
+	if ig == nil {
+		t.Fatal("ai.NewImage('openai') returned nil — image provider not registered")
+	}
+	if ig.String() != "openai" {
+		t.Errorf("Expected 'openai', got '%s'", ig.String())
+	}
+}
+
+func TestProvider_GenerateImage_NoAPIKey(t *testing.T) {
+	p := NewProvider()
+	_, err := p.GenerateImage(context.Background(), &ai.ImageRequest{Prompt: "a cat"})
+	if err == nil {
+		t.Error("Expected error when API key is missing, got nil")
+	}
+}
+
+func TestProvider_ImplementsImageModel(t *testing.T) {
+	var _ ai.ImageModel = (*Provider)(nil)
+}
