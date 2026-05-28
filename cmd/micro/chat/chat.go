@@ -118,8 +118,10 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("unknown provider: %s", provider)
 	}
 
+	hist := ai.NewHistory(systemPrompt, 50)
+
 	if singlePrompt != "" {
-		return ask(c.Context, m, discovered, singlePrompt)
+		return ask(c.Context, m, hist, discovered, singlePrompt)
 	}
 
 	fmt.Printf("micro chat — provider=%s, model=%s, %d tools discovered\n",
@@ -142,19 +144,21 @@ func run(c *cli.Context) error {
 		if line == "exit" || line == "quit" {
 			return nil
 		}
-		if err := ask(c.Context, m, discovered, line); err != nil {
+		if line == "reset" {
+			hist.Reset()
+			fmt.Println("(history cleared)")
+			fmt.Println()
+			continue
+		}
+		if err := ask(c.Context, m, hist, discovered, line); err != nil {
 			fmt.Printf("error: %v\n", err)
 		}
 		fmt.Println()
 	}
 }
 
-func ask(ctx context.Context, m ai.Model, toolList []ai.Tool, prompt string) error {
-	resp, err := m.Generate(ctx, &ai.Request{
-		Prompt:       prompt,
-		SystemPrompt: systemPrompt,
-		Tools:        toolList,
-	})
+func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, prompt string) error {
+	resp, err := hist.Generate(ctx, m, prompt, toolList)
 	if err != nil {
 		return err
 	}
