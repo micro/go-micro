@@ -58,8 +58,8 @@ func TestProvider_Defaults(t *testing.T) {
 	p := NewProvider()
 
 	opts := p.Options()
-	if opts.Model != "llama-3.3-70b" {
-		t.Errorf("Expected default model 'llama-3.3-70b', got '%s'", opts.Model)
+	if opts.Model != "deepseek-ai/DeepSeek-V3-0324" {
+		t.Errorf("Expected default model 'deepseek-ai/DeepSeek-V3-0324', got '%s'", opts.Model)
 	}
 	if opts.BaseURL != "https://api.atlascloud.ai" {
 		t.Errorf("Expected default base URL 'https://api.atlascloud.ai', got '%s'", opts.BaseURL)
