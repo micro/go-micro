@@ -12,17 +12,17 @@ Go Micro is an AI-native microservices framework. Every service you build is aut
 ## The Stack
 
 ```
-Your Services          →  write Go handlers, register with the framework
+Your Services           →  write Go handlers, register with the framework
     ↓
-Registry               →  automatic service discovery (mDNS, Consul, etcd)
+Registry                →  automatic service discovery (mDNS, Consul, etcd)
     ↓
-MCP Gateway            →  exposes every endpoint as an AI-callable tool
+Gateways                →  micro api (HTTP→RPC) / micro mcp (MCP tools)
     ↓
-ai/tools               →  discovers services + executes RPCs programmatically
+ai/tools                →  discovers services + executes RPCs programmatically
     ↓
-ai.Model               →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Cloud, ...)
+ai.Model                →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Cloud, ...)
     ↓
-micro chat / your app  →  orchestrates services through natural language
+micro chat / ai/flow    →  interactive or event-driven orchestration
 ```
 
 Every layer is optional. You can use go-micro without AI. You can use the `ai` package without MCP. But when you stack them, you get services that AI agents can discover and orchestrate automatically.
@@ -129,19 +129,42 @@ ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
 
 Multi-turn conversation with `ai.History` — the model remembers context across turns. Type `reset` to clear history.
 
-### 7. Your app (programmatic use)
+### 7. micro flow (event-driven orchestration)
 
-Use the same building blocks in your own services:
+Subscribe to broker events and let an LLM orchestrate the response:
 
 ```go
-// Subscribe to events and let an LLM decide what to do
-broker.Subscribe("user.created", func(e broker.Event) error {
-    prompt := fmt.Sprintf("New user: %s. Send welcome email and create workspace.", 
-        string(e.Message().Body))
-    resp, _ := hist.Generate(ctx, m, prompt, discovered)
-    log.Info(resp.Answer)
-    return nil
-})
+import "go-micro.dev/v5/ai/flow"
+
+f := flow.New("onboard",
+    flow.Trigger("events.user.created"),
+    flow.Prompt("New user: {{.Data}}. Send welcome email and create workspace."),
+    flow.Provider("anthropic"),
+    flow.APIKey(key),
+)
+f.Register(service.Registry(), service.Options().Broker, service.Client())
+```
+
+Or from the CLI:
+
+```bash
+micro flow run --trigger events.user.created \
+  --prompt "New user: {{.Data}}. Send welcome email." \
+  --provider anthropic
+
+micro flow exec --prompt "List all users" --provider anthropic
+```
+
+### 8. micro api (HTTP gateway)
+
+A standalone HTTP-to-RPC gateway for exposing services over HTTP without the full dashboard:
+
+```bash
+micro api                    # listen on :8080
+micro api --address :3000    # custom port
+
+# Call services through the gateway
+curl -XPOST -d '{"name":"Alice"}' http://localhost:8080/greeter/Greeter.Hello
 ```
 
 ## What You Don't Need

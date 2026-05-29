@@ -14,10 +14,14 @@ Go Micro has a clear lifecycle for development through deployment:
 
 | Stage | Command | Purpose |
 |-------|---------|--------|
+| **Create** | `micro new myservice` | Scaffold a service (`--template crud/pubsub/api`) |
 | **Develop** | `micro run` | Local dev with hot reload and API gateway |
+| **Test** | `micro call` | Call a service endpoint from the CLI |
+| **Chat** | `micro chat` | Talk to your services through an LLM |
+| **Gateway** | `micro api` | Standalone HTTP-to-RPC gateway |
 | **Build** | `micro build` | Compile production binaries |
 | **Deploy** | `micro deploy` | Push to a remote Linux server via SSH + systemd |
-| **Dashboard** | `micro server` | Optional production web UI with auth |
+| **Dashboard** | `micro server` | Production web UI with auth |
 
 ## Quick Start (CLI)
 
@@ -34,6 +38,14 @@ Create and run a service:
 ```bash
 micro new helloworld
 cd helloworld
+micro run
+```
+
+Or scaffold a CRUD service with a ready-made template:
+
+```bash
+micro new contacts --template crud
+cd contacts
 micro run
 ```
 
@@ -296,7 +308,9 @@ micro helloworld say hello --name="John"
 
 ## Next Steps
 
+- **[AI Integration](ai-integration.html)** — How services, MCP, tools, and LLM providers fit together
 - **[micro run guide](guides/micro-run.md)** — Local development with hot reload
+- **[MCP & AI Agents](mcp.html)** — Expose services as AI-callable tools
 - **[Deployment guide](deployment.md)** — Deploy to production with systemd
-- **[micro server](server.md)** — Optional production web dashboard with auth
+- **[gRPC Interop](https://github.com/micro/go-micro/tree/master/examples/grpc-interop)** — Call go-micro from any standard gRPC client
 - **[Examples](examples/)** — More code examples
