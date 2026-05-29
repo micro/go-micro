@@ -4,6 +4,8 @@ layout: default
 
 # Observability
 
+<img src="/images/generated/observability.png" alt="Observability" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
+
 Observability in Go Micro spans logs, metrics, and traces. The goal is rapid insight into service behavior with minimal configuration.
 
 ## Core Principles

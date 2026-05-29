@@ -4,7 +4,9 @@ layout: default
 
 ## Architecture
 
-An overview of the Go Micro architecture
+<img src="/images/generated/architecture.png" alt="Go Micro architecture" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
+
+An overview of the Go Micro architecture.
 
 ## Overview
 
