@@ -2,6 +2,8 @@
 
 Go Micro provides built-in support for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/), enabling AI agents like Claude to discover and interact with your microservices as tools.
 
+<img src="/images/generated/mcp-agent.png" alt="AI agent calling microservices via MCP" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
+
 ## Overview
 
 MCP gateway automatically exposes your microservices as AI-accessible tools through:
