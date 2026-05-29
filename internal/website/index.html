@@ -162,7 +162,7 @@
 
     <nav class="nav">
       <a class="nav-brand" href="/">
-        <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" alt="Go Micro" />
+        <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" alt="Go Micro" style="border-radius: 8px;" />
         Go Micro
       </a>
       <div class="nav-links">
@@ -245,13 +245,8 @@
           </div>
           <div class="two-col-text">
             <h2>AI-Native by Default</h2>
-            <p>Every service you build is automatically discoverable by AI agents via the Model Context Protocol. Add doc comments to your handlers and they become tool descriptions. No extra code, no configuration.</p>
-            <pre>// SayHello greets a person by name.
-// @example {"name": "Alice"}
-<span class="kw">func</span> (g *Greeter) <span class="fn">SayHello</span>(ctx, req, rsp) <span class="kw">error</span> {
-    rsp.Message = <span class="str">"Hello "</span> + req.Name
-    <span class="kw">return nil</span>
-}</pre>
+            <p>Every service is automatically an AI-callable tool via MCP. Call LLMs from your services with 7 providers. Generate images and video. Orchestrate services through natural language with <code>micro chat</code>.</p>
+            <p><a href="/docs/ai-integration.html" class="btn btn-primary" style="margin-top: 0.75rem; display: inline-block;">How It All Fits Together</a></p>
           </div>
         </div>
       </div>

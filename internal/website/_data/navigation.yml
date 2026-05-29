@@ -3,6 +3,8 @@ core:
     url: /docs/
   - title: Getting Started
     url: /docs/getting-started.html
+  - title: AI Integration
+    url: /docs/ai-integration.html
   - title: MCP & AI Agents
     url: /docs/mcp.html
   - title: Deployment
