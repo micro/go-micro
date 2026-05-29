@@ -124,3 +124,25 @@ func TestProvider_GenerateImage_NoAPIKey(t *testing.T) {
 func TestProvider_ImplementsImageModel(t *testing.T) {
 	var _ ai.ImageModel = (*Provider)(nil)
 }
+
+func TestProvider_VideoRegistration(t *testing.T) {
+	vg := ai.NewVideo("atlascloud", ai.WithAPIKey("test"))
+	if vg == nil {
+		t.Fatal("ai.NewVideo('atlascloud') returned nil — video provider not registered")
+	}
+	if vg.String() != "atlascloud" {
+		t.Errorf("Expected 'atlascloud', got '%s'", vg.String())
+	}
+}
+
+func TestProvider_GenerateVideo_NoAPIKey(t *testing.T) {
+	p := NewProvider()
+	_, err := p.GenerateVideo(context.Background(), &ai.VideoRequest{Prompt: "a cat"})
+	if err == nil {
+		t.Error("Expected error when API key is missing, got nil")
+	}
+}
+
+func TestProvider_ImplementsVideoModel(t *testing.T) {
+	var _ ai.VideoModel = (*Provider)(nil)
+}
