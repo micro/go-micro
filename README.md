@@ -313,9 +313,10 @@ go install go-micro.dev/v5/cmd/micro@v5.16.0
 ### Quick Start
 
 ```bash
-micro new helloworld   # Create a new service
+micro new helloworld              # Create a new service
+micro new contacts --template crud # Or use a template (crud, pubsub, api)
 cd helloworld
-micro run              # Run with API gateway and hot reload
+micro run                          # Run with API gateway and hot reload
 ```
 
 Then open http://localhost:8080 to see your service and call it from the browser.
@@ -324,10 +325,14 @@ Then open http://localhost:8080 to see your service and call it from the browser
 
 | Stage | Command | Purpose |
 |-------|---------|---------|
-| **Develop** | `micro run` | Local dev with hot reload and API gateway |
+| **Create** | `micro new myservice` | Scaffold a service (`--template crud/pubsub/api`) |
+| **Develop** | `micro run` | Dev mode with hot reload and API gateway |
+| **Test** | `micro call` | Call a service endpoint from the CLI |
+| **Chat** | `micro chat` | Talk to your services through an LLM |
+| **Gateway** | `micro api` | Standalone HTTP-to-RPC gateway |
 | **Build** | `micro build` | Compile production binaries |
 | **Deploy** | `micro deploy` | Push to a remote Linux server via SSH + systemd |
-| **Dashboard** | `micro server` | Optional production web UI with JWT auth |
+| **Dashboard** | `micro server` | Production web UI with auth |
 
 ### micro run
 
@@ -409,12 +414,12 @@ Package reference: https://pkg.go.dev/go-micro.dev/v5
 
 **User Guides:**
 - [Getting Started](internal/website/docs/getting-started.md)
-- [Data Model](internal/website/docs/model.md)
+- [AI Integration](internal/website/docs/ai-integration.md) — how services, MCP, tools, and LLMs fit together
 - [MCP & AI Agents](internal/website/docs/mcp.md)
-- [AI Provider Integration](internal/website/docs/guides/ai-provider-guide.md)
+- [Data Model](internal/website/docs/model.md)
 - [Plugins Overview](internal/website/docs/plugins.md)
-- [Learn by Example](internal/website/docs/examples/index.md)
 - [Deployment Guide](internal/website/docs/deployment.md)
+- [Learn by Example](internal/website/docs/examples/index.md)
 
 **Architecture & Performance:**
 - [Performance Considerations](internal/website/docs/performance.md)
