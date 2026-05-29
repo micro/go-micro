@@ -1656,7 +1656,7 @@ func parseStartTime(s string) (time.Time, error) {
 func init() {
 	cmd.Register(&cli.Command{
 		Name:   "server",
-		Usage:  "Run the micro server",
+		Usage:  "Production mode: run the micro server with dashboard and auth",
 		Action: Run,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
