@@ -48,6 +48,10 @@ func init() {
 					Name:  "no-mcp",
 					Usage: "Disable MCP gateway integration in generated code",
 				},
+				&cli.StringFlag{
+					Name:  "template",
+					Usage: "Service template: default, crud, pubsub, api",
+				},
 			},
 		},
 		{
