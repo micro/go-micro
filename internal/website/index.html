@@ -9,11 +9,13 @@
     <title>Go Micro - Pluggable Go Microservices Framework</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { overflow-x: hidden; }
       body {
         font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
         line-height: 1.6;
         color: #1a1a1a;
         background: #fff;
+        overflow-x: hidden;
       }
       a { color: #0366d6; text-decoration: none; }
       a:hover { text-decoration: underline; }
@@ -59,6 +61,8 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 0.95rem;
         margin-bottom: 1.5rem;
+        max-width: 100%;
+        overflow-x: auto;
       }
       .hero-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
       .btn {
@@ -82,6 +86,8 @@
       .section .subtitle { color: #555; font-size: 1.05rem; margin-bottom: 2rem; }
       .section img {
         width: 100%;
+        max-width: 100%;
+        height: auto;
         border-radius: 12px;
         box-shadow: 0 4px 24px rgba(0,0,0,0.08);
       }
@@ -105,7 +111,8 @@
       .feature p { font-size: 0.85rem; color: #555; }
 
       /* Two-column layout */
-      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; overflow: hidden; }
+      .two-col img { width: 100%; max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
       .two-col-text h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
       .two-col-text p { color: #555; line-height: 1.7; }
       .two-col-text pre {
@@ -140,8 +147,12 @@
       /* Responsive */
       @media (max-width: 768px) {
         .hero h1 { font-size: 1.75rem; }
+        .hero .tagline { font-size: 1rem; }
+        .hero pre { font-size: 0.8rem; padding: 0.6rem 1rem; }
+        .section { padding: 2.5rem 1rem; }
         .features { grid-template-columns: 1fr; }
         .two-col { grid-template-columns: 1fr; gap: 1.5rem; }
+        .two-col-text pre { font-size: 0.75rem; }
         .nav-links { gap: 0.75rem; font-size: 0.8rem; }
         .footer { flex-direction: column; text-align: center; }
       }
