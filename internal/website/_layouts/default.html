@@ -8,56 +8,75 @@
     :root {
       --bg: #ffffff;
       --border: #e5e5e5;
-      --sidebar-width: 230px;
+      --sidebar-width: 240px;
+      --accent: #0366d6;
     }
     * { box-sizing: border-box; }
-    body { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; margin:0; background: var(--bg); color:#222; }
-    a { color:#0366d6; text-decoration:none; }
+    body { font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; margin:0; background: var(--bg); color:#1a1a1a; line-height: 1.6; }
+    a { color: var(--accent); text-decoration:none; }
     a:hover { text-decoration:underline; }
-    header { display:flex; align-items:center; justify-content:space-between; padding:.75rem 1.5rem; background:#fff; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:20; flex-wrap:wrap; }
-    .right-tools { display:flex; align-items:center; gap:.75rem; }
-    .search-inline { position:relative; }
-    .search-inline input { padding:.4rem .6rem; border:1px solid #d0d7de; border-radius:4px; font-size:.85rem; width:160px; }
-    .search-inline input:focus { outline:none; border-color:#0366d6; }
-    .dark-toggle { cursor:pointer; background:#f6f8fa; border:1px solid #d0d7de; padding:.35rem .6rem; border-radius:4px; font-size:.75rem; }
-    .dark body, body.dark { --bg:#0d1117; --border:#30363d; color:#e6edf3; background:#0d1117; }
-    body.dark header, body.dark .sidebar, body.dark .content, body.dark footer { background:#0d1117; }
-    body.dark a { color:#58a6ff; }
-    body.dark pre { background:#161b22; border-color:#30363d; }
-    body.dark .sidebar a:hover { background:#161b22; }
-    .logo-link { display:flex; align-items:center; gap:.5rem; font-weight:600; color:#222; white-space:nowrap; }
-    .logo-link img { height:36px; }
-    header nav { display:flex; align-items:center; flex-wrap:wrap; }
-    header nav a { margin-left:1rem; font-weight:500; white-space:nowrap; }
+
+    /* Nav — matches landing page */
+    .site-nav { display:flex; align-items:center; justify-content:space-between; max-width: 1100px; margin:0 auto; padding:.75rem 1.5rem; border-bottom: 1px solid var(--border); position:sticky; top:0; z-index:20; background:#fff; }
+    .nav-brand { display:flex; align-items:center; gap:.5rem; font-weight:700; font-size:1.1rem; color:#1a1a1a; text-decoration:none; }
+    .nav-brand img { height:32px; }
+    .nav-brand:hover { text-decoration: none; }
+    .nav-links { display:flex; align-items:center; gap:1.25rem; font-size:.9rem; }
+    .nav-links a { color:#555; font-weight:500; }
+    .nav-links a:hover { color: var(--accent); text-decoration:none; }
+    .menu-toggle { display:none; background: var(--accent); color:#fff; border:none; padding:.4rem .7rem; border-radius:4px; cursor:pointer; font-size:.85rem; }
+
+    /* Layout */
     .layout { display:flex; align-items:flex-start; max-width: 1100px; margin:0 auto; padding:0 1.25rem 4rem; }
-    .sidebar { width:var(--sidebar-width); padding:1.25rem .75rem 2rem; border-right:1px solid var(--border); position:sticky; top:60px; max-height:calc(100vh - 60px); overflow:auto; font-size:.9rem; }
-    .sidebar h4 { margin:1.2rem 0 .5rem; font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:#555; }
+    .sidebar { width:var(--sidebar-width); padding:1.5rem .75rem 2rem; border-right:1px solid var(--border); position:sticky; top:55px; max-height:calc(100vh - 55px); overflow:auto; font-size:.88rem; flex-shrink: 0; }
+    .sidebar h4 { margin:1.4rem 0 .5rem; font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:#888; font-weight: 600; }
     .sidebar ul { list-style:none; margin:0; padding:0; }
-    .sidebar li { margin:.35rem 0; }
-    .sidebar a { color:#222; display:block; padding:.25rem .4rem; border-radius:4px; }
-    .sidebar a:hover { background:#f2f5f8; }
+    .sidebar li { margin:.3rem 0; }
+    .sidebar a { color:#444; display:block; padding:.3rem .5rem; border-radius:5px; transition: background .15s; }
+    .sidebar a:hover { background:#f0f4ff; color: var(--accent); text-decoration: none; }
     .content { flex:1; min-width:0; padding:2rem 2.5rem; }
     .content .markdown-body { max-width: 100%; }
+    .content h1 { font-size: 2rem; margin-bottom: 0.5rem; color: #0d1117; }
+    .content h2 { font-size: 1.4rem; margin-top: 2.5rem; color: #0d1117; }
+    .content h3 { font-size: 1.15rem; margin-top: 2rem; }
+    .content p { margin: 1rem 0; }
+    .content img { border-radius: 8px; }
+
+    /* Code */
     pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
-    pre { background:#f6f8fa; border:1px solid #d0d7de; padding:.9rem 1rem; border-radius:6px; overflow-x:auto; max-width:100%; }
-    code { word-wrap: break-word; }
-    pre code { word-wrap: normal; }
+    pre { background:#f6f8fa; border:1px solid #d0d7de; padding:.9rem 1rem; border-radius:6px; overflow-x:auto; max-width:100%; font-size: 0.88rem; }
+    code { word-wrap: break-word; background: #f6f8fa; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
+    pre code { word-wrap: normal; background: none; padding: 0; }
+
+    /* Tables */
     table { border-collapse:collapse; width:100%; overflow-x:auto; display:block; }
     th, td { border:1px solid #d0d7de; padding:.5rem .6rem; text-align:left; }
-    th { background:#f2f5f8; }
+    th { background:#f6f8fa; font-weight: 600; }
     img { max-width:100%; height:auto; }
-    footer { max-width:1100px; margin:0 auto; padding:2rem 1.5rem; border-top:1px solid var(--border); font-size:.8rem; color:#555; }
-    .menu-toggle { display:none; background:#0366d6; color:#fff; border:none; padding:.5rem .75rem; border-radius:4px; cursor:pointer; font-size:.85rem; margin-left:auto; }
+
+    /* Footer — matches landing page */
+    .site-footer { max-width:1100px; margin:0 auto; padding:2rem 1.5rem; border-top:1px solid var(--border); font-size:.85rem; color:#666; display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
+    .site-footer a { color: var(--accent); }
+
+    /* Dark mode */
+    body.dark { --bg:#0d1117; --border:#30363d; color:#e6edf3; background:#0d1117; }
+    body.dark .site-nav, body.dark .sidebar, body.dark .content, body.dark .site-footer { background:#0d1117; }
+    body.dark .nav-brand, body.dark .sidebar a { color: #e6edf3; }
+    body.dark a { color:#58a6ff; }
+    body.dark pre { background:#161b22; border-color:#30363d; }
+    body.dark code { background:#161b22; }
+    body.dark .sidebar a:hover { background:#161b22; }
+    body.dark th { background:#161b22; }
+
     .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:25; }
     .sidebar-overlay.active { display:block; }
+
     @media (max-width: 900px) {
-      header { padding:.5rem 1rem; }
-      header nav a { margin-left:.5rem; font-size:.85rem; }
-      .logo-link { font-size:1.1rem !important; }
-      .logo-link img { height:28px; }
+      .site-nav { padding:.5rem 1rem; }
+      .nav-links { gap:.75rem; font-size:.8rem; }
       .menu-toggle { display:block; }
       .layout { padding:0; }
-      .sidebar { position:fixed; left:-100%; top:60px; bottom:0; width:280px; max-width:85vw; background:var(--bg); border-right:1px solid var(--border); border-bottom:none; z-index:30; transition:left 0.3s ease; overflow-y:auto; padding:1rem; }
+      .sidebar { position:fixed; left:-100%; top:55px; bottom:0; width:280px; max-width:85vw; background:var(--bg); border-right:1px solid var(--border); z-index:30; transition:left 0.3s ease; overflow-y:auto; padding:1rem; }
       .sidebar.active { left:0; }
       .content { width:100%; padding:1.5rem 1rem; }
       .content h1 { font-size:1.75rem; margin-top:0; }
@@ -65,11 +84,10 @@
       .content h3 { font-size:1.15rem; }
       pre { padding:.6rem; font-size:.8rem; overflow-x:auto; white-space:pre; }
       table { font-size:.85rem; }
-      footer { padding:1.5rem 1rem; font-size:.75rem; }
+      .site-footer { flex-direction: column; text-align: center; padding:1.5rem 1rem; font-size:.75rem; }
     }
     @media (max-width: 480px) {
-      header nav a { font-size:.75rem; margin-left:.4rem; }
-      .logo-link span { font-size:1rem !important; }
+      .nav-links { gap:.5rem; font-size:.75rem; }
       .content { padding:1rem .75rem; }
       .content h1 { font-size:1.5rem; }
       .content h2 { font-size:1.25rem; }
@@ -79,19 +97,20 @@
   </style>
 </head>
 <body>
-  <header>
-    <a class="logo-link" href="/">
-      <img src="/images/logo.png" alt="Go Micro Logo">
-      <span style="font-size: 1.3rem; font-weight: bold; color: #222;">Go Micro</span>
+  <nav class="site-nav">
+    <a class="nav-brand" href="/">
+      <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" alt="Go Micro">
+      Go Micro
     </a>
-    <button class="menu-toggle" id="menuToggle">☰ Menu</button>
-    <nav>
+    <button class="menu-toggle" id="menuToggle">Menu</button>
+    <div class="nav-links">
       <a href="/docs/">Docs</a>
-      <a href="/docs/search.html">Search</a>
-      <a href="https://github.com/micro/go-micro" target="_blank" rel="noopener">GitHub</a>
+      <a href="/blog/">Blog</a>
+      <a href="https://github.com/micro/go-micro">GitHub</a>
+      <a href="https://pkg.go.dev/go-micro.dev/v5">Reference</a>
       <a href="/">Home</a>
-    </nav>
-  </header>
+    </div>
+  </nav>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="layout">
     <aside class="sidebar">
@@ -101,7 +120,7 @@
         <h4>{{ section[0] | capitalize }}</h4>
         <ul>
           {% for item in section[1] %}
-            <li><a href="{{ item.url }}" {% if item.url == page.url %}style="font-weight:600"{% endif %}>{{ item.title }}</a></li>
+            <li><a href="{{ item.url }}" {% if item.url == page.url %}style="font-weight:600; color: var(--accent);"{% endif %}>{{ item.title }}</a></li>
           {% endfor %}
         </ul>
         {% endunless %}
@@ -111,7 +130,7 @@
       {% assign crumbs = page.url | split:'/' %}
       {% assign docs_root = site.baseurl | append: '/' %}
       {% if page.url != docs_root and page.url contains docs_root %}
-        <nav style="font-size:.75rem; margin-bottom:1rem;">
+        <nav style="font-size:.75rem; margin-bottom:1rem; color: #888;">
           <a href="/docs/">Docs</a>
           {% capture path_acc %}/docs{% endcapture %}
           {% for c in crumbs %}
@@ -135,14 +154,14 @@
             <div>
               {% if current_index > 0 %}
                 {% assign prev_url = order[current_index | minus: 1] %}
-                <a href="{{ prev_url }}">← Previous</a>
+                <a href="{{ prev_url }}">&larr; Previous</a>
               {% endif %}
             </div>
             <div>
               {% assign next_index = current_index | plus: 1 %}
               {% if next_index < order.size %}
                 {% assign next_url = order[next_index] %}
-                  <a href="{{ next_url }}">Next →</a>
+                  <a href="{{ next_url }}">Next &rarr;</a>
               {% endif %}
             </div>
           </div>
@@ -150,47 +169,35 @@
       {% endif %}
     </main>
   </div>
-  <footer>
-    © {{ site.time | date: '%Y' }} Go Micro. Apache 2.0 Licensed. <a href="/blog/">Blog</a> · <a href="/docs/">Docs</a> · <a href="/docs/search.html">Search</a> · <a href="https://github.com/micro/go-micro">GitHub</a> · <a href="https://github.com/micro/go-micro/issues/new?labels=question&template=question.md" style="opacity:0.7">Support</a>
+  <footer class="site-footer">
+    <div>&copy; {{ site.time | date: '%Y' }} Go Micro. Apache 2.0 Licensed.</div>
+    <div>
+      <a href="/docs/">Docs</a> &middot;
+      <a href="/blog/">Blog</a> &middot;
+      <a href="https://github.com/micro/go-micro">GitHub</a> &middot;
+      <a href="https://github.com/micro/go-micro/issues/new?labels=question&template=question.md">Support</a>
+    </div>
   </footer>
   <script>
   (function(){
     const key='gm.dark';
     function apply(){
-      if(localStorage.getItem(key)==='1'){
-        document.body.classList.add('dark');
-      } else {
-        document.body.classList.remove('dark');
-      }
+      if(localStorage.getItem(key)==='1') document.body.classList.add('dark');
+      else document.body.classList.remove('dark');
     }
     apply();
-    const btn=document.getElementById('dark-toggle');
-    if(btn){
-      btn.addEventListener('click', function(){
-        localStorage.setItem(key, localStorage.getItem(key)==='1' ? '0' : '1');
-        apply();
-      });
-    }
-    // Mobile menu toggle
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
+    var btn=document.getElementById('dark-toggle');
+    if(btn) btn.addEventListener('click', function(){
+      localStorage.setItem(key, localStorage.getItem(key)==='1' ? '0' : '1');
+      apply();
+    });
+    var menuToggle = document.getElementById('menuToggle');
+    var sidebar = document.querySelector('.sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
     if(menuToggle && sidebar && overlay){
-      menuToggle.addEventListener('click', function(){
-        sidebar.classList.toggle('active');
-        overlay.classList.toggle('active');
-      });
-      overlay.addEventListener('click', function(){
-        sidebar.classList.remove('active');
-        overlay.classList.remove('active');
-      });
-      // Close sidebar when clicking a link
-      sidebar.querySelectorAll('a').forEach(function(link){
-        link.addEventListener('click', function(){
-          sidebar.classList.remove('active');
-          overlay.classList.remove('active');
-        });
-      });
+      menuToggle.addEventListener('click', function(){ sidebar.classList.toggle('active'); overlay.classList.toggle('active'); });
+      overlay.addEventListener('click', function(){ sidebar.classList.remove('active'); overlay.classList.remove('active'); });
+      sidebar.querySelectorAll('a').forEach(function(link){ link.addEventListener('click', function(){ sidebar.classList.remove('active'); overlay.classList.remove('active'); }); });
     }
   })();
   </script>
