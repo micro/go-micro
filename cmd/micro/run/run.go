@@ -472,8 +472,8 @@ func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, 
 func init() {
 	cmd.Register(&cli.Command{
 		Name:  "run",
-		Usage: "Run services with API gateway and hot reload",
-		Description: `Run discovers and runs services in a directory.
+		Usage: "Development mode: run services with hot reload and API gateway",
+		Description: `Run discovers and runs services in a directory (development mode).
 
 Starts an HTTP gateway on :8080 providing:
   - Web dashboard at /
