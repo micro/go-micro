@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"go-micro.dev/v5/ai"
 )
@@ -50,7 +51,7 @@ func NewProvider(opts ...ai.Option) *Provider {
 	options := ai.NewOptions(opts...)
 
 	if options.Model == "" {
-		options.Model = "llama-3.3-70b"
+		options.Model = "deepseek-ai/DeepSeek-V3-0324"
 	}
 	if options.BaseURL == "" {
 		options.BaseURL = "https://api.atlascloud.ai"
@@ -216,25 +217,37 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 	return response, rawMessage, nil
 }
 
-const defaultImageModel = "gpt-image-1"
+const defaultImageModel = "openai/gpt-image-2/text-to-image"
 
+// GenerateImage creates an image using Atlas Cloud's async image API.
+// It submits the job and polls until completion or context cancellation.
 func (p *Provider) GenerateImage(ctx context.Context, req *ai.ImageRequest, opts ...ai.GenerateOption) (*ai.ImageResponse, error) {
 	model := req.Model
 	if model == "" {
 		model = defaultImageModel
 	}
-	n := req.N
-	if n <= 0 {
-		n = 1
+	quality := req.Quality
+	if quality == "" {
+		quality = "medium"
+	}
+	outputFmt := req.OutputFormat
+	if outputFmt == "" {
+		outputFmt = "png"
+	}
+	size := req.Size
+	if size == "" {
+		size = "1024x1024"
 	}
 
 	apiReq := map[string]any{
-		"model":  model,
-		"prompt": req.Prompt,
-		"n":      n,
-	}
-	if req.Size != "" {
-		apiReq["size"] = req.Size
+		"model":                model,
+		"prompt":               req.Prompt,
+		"quality":              quality,
+		"output_format":        outputFmt,
+		"size":                 size,
+		"enable_sync_mode":     false,
+		"enable_base64_output": false,
+		"moderation":           "low",
 	}
 
 	reqBody, err := json.Marshal(apiReq)
@@ -242,12 +255,11 @@ func (p *Provider) GenerateImage(ctx context.Context, req *ai.ImageRequest, opts
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/images/generations"
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/generateImage"
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
 
@@ -262,24 +274,79 @@ func (p *Provider) GenerateImage(ctx context.Context, req *ai.ImageRequest, opts
 		return nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
 	}
 
-	var imgResp struct {
-		Data []struct {
-			URL     string `json:"url"`
-			B64JSON string `json:"b64_json"`
+	var submitResp struct {
+		Code int    `json:"code"`
+		Msg  string `json:"message"`
+		Data struct {
+			ID     string `json:"id"`
+			Status string `json:"status"`
 		} `json:"data"`
 	}
-
-	if err := json.Unmarshal(respBody, &imgResp); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
+	if err := json.Unmarshal(respBody, &submitResp); err != nil {
+		return nil, fmt.Errorf("failed to parse submit response: %w", err)
+	}
+	if submitResp.Code != 200 {
+		return nil, fmt.Errorf("API error: %s", submitResp.Msg)
 	}
 
-	response := &ai.ImageResponse{}
-	for _, d := range imgResp.Data {
-		response.Images = append(response.Images, ai.Image{
-			URL:    d.URL,
-			Base64: d.B64JSON,
-		})
+	predictionID := submitResp.Data.ID
+	pollURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/prediction/" + predictionID
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			result, err := p.pollPrediction(ctx, pollURL)
+			if err != nil {
+				return nil, err
+			}
+			if result != nil {
+				return result, nil
+			}
+		}
+	}
+}
+
+func (p *Provider) pollPrediction(ctx context.Context, url string) (*ai.ImageResponse, error) {
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("poll request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	body, _ := io.ReadAll(httpResp.Body)
+
+	var pollResp struct {
+		Data struct {
+			Status  string   `json:"status"`
+			Outputs []string `json:"outputs"`
+			Error   string   `json:"error"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &pollResp); err != nil {
+		return nil, fmt.Errorf("failed to parse poll response: %w", err)
 	}
 
-	return response, nil
+	switch pollResp.Data.Status {
+	case "completed":
+		resp := &ai.ImageResponse{}
+		for _, output := range pollResp.Data.Outputs {
+			resp.Images = append(resp.Images, ai.Image{URL: output})
+		}
+		return resp, nil
+	case "failed":
+		return nil, fmt.Errorf("image generation failed: %s", pollResp.Data.Error)
+	default:
+		return nil, nil
+	}
 }

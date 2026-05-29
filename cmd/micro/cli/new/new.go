@@ -175,12 +175,10 @@ func Run(ctx *cli.Context) error {
 	goDir = filepath.Join(goPath, "src", path.Clean(dir))
 
 	noMCP := ctx.Bool("no-mcp")
+	templateName := ctx.String("template")
 
-	// Select main.go template based on MCP flag
-	mainTmpl := tmpl.MainSRV
-	if noMCP {
-		mainTmpl = tmpl.MainSRVNoMCP
-	}
+	// Select templates based on --template flag
+	mainTmpl, handlerTmpl, protoTmpl := selectTemplates(templateName, noMCP)
 
 	c := config{
 		Alias:     dir,
@@ -191,8 +189,8 @@ func Run(ctx *cli.Context) error {
 		UseGoPath: false,
 		Files: []file{
 			{"main.go", mainTmpl},
-			{"handler/" + dir + ".go", tmpl.HandlerSRV},
-			{"proto/" + dir + ".proto", tmpl.ProtoSRV},
+			{"handler/" + dir + ".go", handlerTmpl},
+			{"proto/" + dir + ".proto", protoTmpl},
 			{"Makefile", tmpl.Makefile},
 			{"README.md", tmpl.Readme},
 			{".gitignore", tmpl.GitIgnore},
@@ -235,6 +233,39 @@ func Run(ctx *cli.Context) error {
 	}
 	fmt.Println()
 	return nil
+}
+
+func selectTemplates(name string, noMCP bool) (mainTmpl, handlerTmpl, protoTmpl string) {
+	switch name {
+	case "crud":
+		if noMCP {
+			mainTmpl = tmpl.MainSRVNoMCP
+		} else {
+			mainTmpl = tmpl.MainSRV
+		}
+		return mainTmpl, tmpl.CrudHandlerSRV, tmpl.CrudProtoSRV
+	case "pubsub":
+		if noMCP {
+			mainTmpl = tmpl.PubsubMainSRVNoMCP
+		} else {
+			mainTmpl = tmpl.PubsubMainSRV
+		}
+		return mainTmpl, tmpl.PubsubHandlerSRV, tmpl.PubsubProtoSRV
+	case "api":
+		if noMCP {
+			mainTmpl = tmpl.MainSRVNoMCP
+		} else {
+			mainTmpl = tmpl.MainSRV
+		}
+		return mainTmpl, tmpl.ApiHandlerSRV, tmpl.ApiProtoSRV
+	default:
+		if noMCP {
+			mainTmpl = tmpl.MainSRVNoMCP
+		} else {
+			mainTmpl = tmpl.MainSRV
+		}
+		return mainTmpl, tmpl.HandlerSRV, tmpl.ProtoSRV
+	}
 }
 
 func runInDir(dir, cmd string) error {

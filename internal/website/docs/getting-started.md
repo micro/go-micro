@@ -4,6 +4,8 @@ layout: default
 
 # Getting Started
 
+<img src="/images/generated/getting-started.png" alt="Getting started with Go Micro" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />
+
 Go Micro provides two ways to get started: the CLI (recommended) or manual setup.
 
 ## Development Workflow

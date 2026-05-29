@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Go Micro - A Go microservices framework" />
+    <meta name="description" content="Go Micro - A pluggable Go framework for distributed systems and microservices" />
     <meta name="go-import" content="go-micro.dev/v5 git https://github.com/micro/go-micro">
     <meta name="go-source" content="go-micro.dev/5 https://github.com/micro/go-micro https://github.com/micro/go-micro/tree/master{/dir} https://github.com/micro/go-micro/blob/master{/dir}/{file}#L{line}">
     <title>Go Micro - Pluggable Go Microservices Framework</title>
@@ -12,252 +12,270 @@
       body {
         font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
         line-height: 1.6;
-        color: #333;
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        min-height: 100vh;
+        color: #1a1a1a;
+        background: #fff;
+      }
+      a { color: #0366d6; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      /* Nav */
+      .nav {
         display: flex;
         align-items: center;
-        justify-content: center;
-        padding: 1rem;
+        justify-content: space-between;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem;
       }
-      .container {
-        max-width: 900px;
-        background: white;
-        padding: 3rem 2.5rem;
-        border-radius: 16px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #1a1a1a;
+        text-decoration: none;
+      }
+      .nav-brand img { height: 32px; }
+      .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; }
+      .nav-links a { color: #555; font-weight: 500; }
+      .nav-links a:hover { color: #0366d6; text-decoration: none; }
+
+      /* Hero */
+      .hero {
+        background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+        padding: 4rem 1.5rem;
         text-align: center;
       }
-      .logo-wrapper {
-        margin-bottom: 1.5rem;
-      }
-      .logo-wrapper img {
-        max-width: 280px;
-        width: 100%;
-        height: auto;
-      }
-      h1 {
-        font-size: 1.75rem;
-        margin-bottom: 0.75rem;
-        color: #1a1a1a;
-      }
-      .tagline {
-        font-size: 1.15rem;
-        color: #555;
-        margin-bottom: 2rem;
-        font-weight: 400;
-      }
-      .install-section {
-        background: #f6f8fa;
-        border: 1px solid #d0d7de;
+      .hero-inner { max-width: 800px; margin: 0 auto; }
+      .hero h1 { font-size: 2.5rem; margin-bottom: 0.75rem; color: #0d1117; }
+      .hero .tagline { font-size: 1.2rem; color: #555; margin-bottom: 2rem; }
+      .hero pre {
+        display: inline-block;
+        background: #0d1117;
+        color: #58a6ff;
+        padding: 0.75rem 1.5rem;
         border-radius: 8px;
-        padding: 1.25rem;
-        margin-bottom: 2rem;
-      }
-      .install-section label {
-        display: block;
-        font-size: 0.85rem;
-        color: #666;
-        margin-bottom: 0.5rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        font-weight: 600;
-      }
-      pre {
-        background: #fff;
-        border: 1px solid #d0d7de;
-        padding: 0.75rem 1rem;
-        border-radius: 6px;
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 0.95rem;
-        color: #0366d6;
-        overflow-x: auto;
+        margin-bottom: 1.5rem;
       }
+      .hero-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+      .btn {
+        display: inline-block;
+        padding: 0.7rem 1.5rem;
+        font-weight: 600;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.2s;
+        text-decoration: none;
+      }
+      .btn-primary { background: #0366d6; color: #fff; }
+      .btn-primary:hover { background: #0256c5; text-decoration: none; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(3,102,214,0.3); }
+      .btn-secondary { background: #fff; color: #0366d6; border: 1px solid #d0d7de; }
+      .btn-secondary:hover { background: #f6f8fa; border-color: #0366d6; text-decoration: none; }
+
+      /* Sections */
+      .section { max-width: 1100px; margin: 0 auto; padding: 4rem 1.5rem; }
+      .section-alt { background: #f8f9fa; }
+      .section h2 { font-size: 1.75rem; margin-bottom: 0.5rem; color: #0d1117; }
+      .section .subtitle { color: #555; font-size: 1.05rem; margin-bottom: 2rem; }
+      .section img {
+        width: 100%;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      }
+
+      /* Features grid */
       .features {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 1rem;
-        margin-bottom: 2rem;
-        text-align: left;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-top: 2rem;
       }
       .feature {
-        background: #f8f9fa;
+        background: #fff;
+        border: 1px solid #e5e5e5;
+        padding: 1.25rem;
+        border-radius: 10px;
+        transition: border-color 0.2s;
+      }
+      .feature:hover { border-color: #0366d6; }
+      .feature strong { display: block; color: #0366d6; margin-bottom: 0.25rem; font-size: 0.95rem; }
+      .feature p { font-size: 0.85rem; color: #555; }
+
+      /* Two-column layout */
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; }
+      .two-col-text h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+      .two-col-text p { color: #555; line-height: 1.7; }
+      .two-col-text pre {
+        background: #0d1117;
+        color: #e6edf3;
         padding: 1rem;
         border-radius: 8px;
         font-size: 0.85rem;
+        margin-top: 1rem;
+        overflow-x: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
-      .feature strong {
-        display: block;
-        color: #0366d6;
-        margin-bottom: 0.25rem;
-        font-size: 0.9rem;
-      }
-      .links {
-        display: flex;
-        gap: 0.75rem;
-        justify-content: center;
-        flex-wrap: wrap;
-      }
-      .links a {
-        display: inline-block;
-        padding: 0.7rem 1.5rem;
-        text-decoration: none;
-        font-weight: 600;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        transition: all 0.2s;
-      }
-      .links a.primary {
-        background: #0366d6;
-        color: white;
-      }
-      .links a.primary:hover {
-        background: #0256c5;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(3,102,214,0.3);
-      }
-      .links a.secondary {
-        background: #f6f8fa;
-        color: #0366d6;
-        border: 1px solid #d0d7de;
-      }
-      .links a.secondary:hover {
-        background: #e9ecef;
-        border-color: #0366d6;
-      }
-      .stats {
-        margin-top: 2rem;
-        padding-top: 1.5rem;
+      .two-col-text pre .kw { color: #ff7b72; }
+      .two-col-text pre .str { color: #a5d6ff; }
+      .two-col-text pre .fn { color: #d2a8ff; }
+
+      /* Footer */
+      .footer {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
         border-top: 1px solid #e5e5e5;
         font-size: 0.85rem;
         color: #666;
-      }
-      .stats a {
-        color: #0366d6;
-        text-decoration: none;
-        font-weight: 500;
-      }
-      .stats a:hover {
-        text-decoration: underline;
-      }
-      .showcase {
-        margin: 2.5rem 0 1.5rem;
-        text-align: left;
-      }
-      .showcase h2 {
-        font-size: 1.35rem;
-        margin-bottom: 1.25rem;
-        color: #1a1a1a;
-        text-align: center;
-      }
-      .showcase-grid {
-        display: grid;
-        grid-template-columns: 1fr;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
         gap: 1rem;
       }
-      .showcase-item {
-        background: #f8f9fa;
-        border: 1px solid #e5e5e5;
-        border-radius: 8px;
-        padding: 1.25rem;
-        transition: all 0.2s;
-      }
-      .showcase-item:hover {
-        border-color: #0366d6;
-        box-shadow: 0 4px 12px rgba(3,102,214,0.1);
-        transform: translateY(-2px);
-      }
-      .showcase-item h3 {
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
-        color: #0366d6;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      .showcase-item h3 a {
-        color: #0366d6;
-        text-decoration: none;
-      }
-      .showcase-item h3 a:hover {
-        text-decoration: underline;
-      }
-      .showcase-item p {
-        font-size: 0.9rem;
-        color: #555;
-        margin-bottom: 0.75rem;
-        line-height: 1.5;
-      }
-      .showcase-tags {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-      .showcase-tag {
-        font-size: 0.75rem;
-        background: white;
-        color: #666;
-        padding: 0.25rem 0.6rem;
-        border-radius: 4px;
-        border: 1px solid #d0d7de;
-      }
-      @media (max-width: 600px) {
-        .container { padding: 2rem 1.5rem; }
-        h1 { font-size: 1.5rem; }
+      .footer a { color: #0366d6; }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .hero h1 { font-size: 1.75rem; }
         .features { grid-template-columns: 1fr; }
+        .two-col { grid-template-columns: 1fr; gap: 1.5rem; }
+        .nav-links { gap: 0.75rem; font-size: 0.8rem; }
+        .footer { flex-direction: column; text-align: center; }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="logo-wrapper">
-        <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" alt="Go Micro Logo" />
+
+    <nav class="nav">
+      <a class="nav-brand" href="/">
+        <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" alt="Go Micro" />
+        Go Micro
+      </a>
+      <div class="nav-links">
+        <a href="/docs/">Docs</a>
+        <a href="/blog/">Blog</a>
+        <a href="https://github.com/micro/go-micro">GitHub</a>
+        <a href="https://pkg.go.dev/go-micro.dev/v5">Reference</a>
       </div>
-      
-      <h1>Go Micro</h1>
-      <p class="tagline">A Go microservices framework</p>
-      
-      <div class="install-section">
-        <label>Get Started</label>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <h1>Build Microservices in Go</h1>
+        <p class="tagline">A pluggable framework for distributed systems with built-in service discovery, RPC, pub/sub, and AI agent integration.</p>
         <pre>go get go-micro.dev/v5</pre>
-      </div>
-      
-      <div class="features">
-        <div class="feature">
-          <strong>🔌 Pluggable</strong>
-          Swap components without changing code
-        </div>
-        <div class="feature">
-          <strong>⚡ Zero Config</strong>
-          Works out of the box with sensible defaults
-        </div>
-        <div class="feature">
-          <strong>🎯 RPC First</strong>
-          Built-in service discovery and load balancing
-        </div>
-        <div class="feature">
-          <strong>📡 Pub/Sub</strong>
-          Event-driven architecture support
-        </div>
-        <div class="feature">
-          <strong>🗄️ State Management</strong>
-          Unified store interface for persistence
-        </div>
-        <div class="feature">
-          <strong>🌐 Multi-Transport</strong>
-          HTTP, gRPC, NATS, and more
+        <div class="hero-buttons">
+          <a href="/docs/getting-started.html" class="btn btn-primary">Get Started</a>
+          <a href="https://github.com/micro/go-micro" class="btn btn-secondary">View on GitHub</a>
         </div>
       </div>
-      
-      <div class="links">
-        <a href="docs/" class="secondary">Docs</a>
-        <a href="https://github.com/micro/go-micro" class="secondary">GitHub</a>
-        <a href="https://pkg.go.dev/go-micro.dev/v5" class="secondary">Reference</a>
+    </section>
+
+    <section class="section">
+      <img src="/images/generated/hero.png" alt="Go Micro microservices architecture" />
+    </section>
+
+    <section class="section-alt">
+      <div class="section">
+        <h2>Everything You Need</h2>
+        <p class="subtitle">Sane defaults out of the box. Every abstraction is swappable.</p>
+        <div class="features">
+          <div class="feature">
+            <strong>Service Discovery</strong>
+            <p>Automatic registration and name resolution via mDNS, Consul, or etcd.</p>
+          </div>
+          <div class="feature">
+            <strong>RPC Client/Server</strong>
+            <p>Request/response and bidirectional streaming with load balancing built in.</p>
+          </div>
+          <div class="feature">
+            <strong>Pub/Sub Events</strong>
+            <p>Async messaging with NATS, RabbitMQ, or the built-in HTTP broker.</p>
+          </div>
+          <div class="feature">
+            <strong>Data Model</strong>
+            <p>Typed CRUD and queries backed by memory, SQLite, or Postgres.</p>
+          </div>
+          <div class="feature">
+            <strong>gRPC Native</strong>
+            <p>Use gRPC transport with any standard gRPC client. No lock-in.</p>
+          </div>
+          <div class="feature">
+            <strong>MCP &amp; AI Agents</strong>
+            <p>Every service is automatically an AI-callable tool via Model Context Protocol.</p>
+          </div>
+        </div>
       </div>
-      
-      <div class="stats">
-        23K+ stars on <a href="https://github.com/micro/go-micro">GitHub</a> · Production ready · Apache 2.0 Licensed
+    </section>
+
+    <section class="section">
+      <div class="two-col">
+        <div class="two-col-text">
+          <h2>Pluggable Architecture</h2>
+          <p>Services connect through a registry for discovery and a broker for events. Swap any component without changing your service code — go from mDNS to Consul, or HTTP to gRPC, with a single option.</p>
+        </div>
+        <div>
+          <img src="/images/generated/architecture.png" alt="Go Micro architecture diagram" />
+        </div>
       </div>
-    </div>
+    </section>
+
+    <section class="section-alt">
+      <div class="section">
+        <div class="two-col">
+          <div>
+            <img src="/images/generated/mcp-agent.png" alt="AI agent calling microservices via MCP" />
+          </div>
+          <div class="two-col-text">
+            <h2>AI-Native by Default</h2>
+            <p>Every service you build is automatically discoverable by AI agents via the Model Context Protocol. Add doc comments to your handlers and they become tool descriptions. No extra code, no configuration.</p>
+            <pre>// SayHello greets a person by name.
+// @example {"name": "Alice"}
+<span class="kw">func</span> (g *Greeter) <span class="fn">SayHello</span>(ctx, req, rsp) <span class="kw">error</span> {
+    rsp.Message = <span class="str">"Hello "</span> + req.Name
+    <span class="kw">return nil</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="two-col">
+        <div class="two-col-text">
+          <h2>Developer Experience</h2>
+          <p><code>micro run</code> starts your services with hot reload, an API gateway, and an agent playground. <code>micro chat</code> lets you talk to your services through any LLM. <code>micro new --template crud</code> scaffolds a production-ready service in seconds.</p>
+        </div>
+        <div>
+          <img src="/images/generated/developer-experience.png" alt="Terminal showing micro run and micro chat" />
+        </div>
+      </div>
+    </section>
+
+    <section class="section-alt">
+      <div class="section" style="text-align: center;">
+        <h2>Trusted by Developers</h2>
+        <p class="subtitle">23,000+ stars on GitHub. Production-ready. Apache 2.0 licensed.</p>
+        <div class="hero-buttons">
+          <a href="/docs/getting-started.html" class="btn btn-primary">Get Started</a>
+          <a href="/docs/" class="btn btn-secondary">Read the Docs</a>
+          <a href="/blog/" class="btn btn-secondary">Blog</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>&copy; 2026 Go Micro. Apache 2.0 Licensed.</div>
+      <div>
+        <a href="/docs/">Docs</a> &middot;
+        <a href="/blog/">Blog</a> &middot;
+        <a href="https://github.com/micro/go-micro">GitHub</a> &middot;
+        <a href="https://github.com/micro/go-micro/issues/new?labels=question&template=question.md">Support</a>
+      </div>
+    </footer>
+
   </body>
 </html>

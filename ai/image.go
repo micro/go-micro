@@ -26,6 +26,10 @@ type ImageRequest struct {
 	Size string
 	// N is the number of images to generate. Defaults to 1.
 	N int
+	// Quality controls generation quality. Provider-specific (e.g. "low", "medium", "high").
+	Quality string
+	// OutputFormat sets the image format (e.g. "png", "jpeg"). Provider-specific.
+	OutputFormat string
 }
 
 // ImageResponse holds the generated images.
