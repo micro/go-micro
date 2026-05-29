@@ -10,6 +10,8 @@ Go Micro is a framework for distributed systems development.
 
 ## Overview
 
+<img src="internal/website/images/generated/hero.png" alt="Go Micro microservices architecture" width="100%" />
+
 Go Micro provides the core requirements for distributed systems development including RPC and Event driven communication.
 The Go Micro philosophy is sane defaults with a pluggable architecture. We provide defaults to get you started quickly
 but everything can be easily swapped out.
@@ -121,6 +123,8 @@ curl -XPOST \
 ```
 
 ## MCP & AI Agents
+
+<img src="internal/website/images/generated/mcp-agent.png" alt="AI agent calling microservices via MCP" width="100%" />
 
 Go Micro is designed for an **agent-first** workflow. Every service you build automatically becomes a tool that AI agents can discover and use via the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/).
 

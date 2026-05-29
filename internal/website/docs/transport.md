@@ -4,6 +4,8 @@ layout: default
 
 # Transport
 
+<img src="/images/generated/transport.png" alt="Transport" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
+
 The transport layer is responsible for communication between services.
 
 ## Features

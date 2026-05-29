@@ -39,6 +39,9 @@ func init() {
 	ai.RegisterImage("atlascloud", func(opts ...ai.Option) ai.ImageModel {
 		return NewProvider(opts...)
 	})
+	ai.RegisterVideo("atlascloud", func(opts ...ai.Option) ai.VideoModel {
+		return NewProvider(opts...)
+	})
 }
 
 // Provider implements the ai.Model interface for Atlas Cloud.
@@ -346,6 +349,140 @@ func (p *Provider) pollPrediction(ctx context.Context, url string) (*ai.ImageRes
 		return resp, nil
 	case "failed":
 		return nil, fmt.Errorf("image generation failed: %s", pollResp.Data.Error)
+	default:
+		return nil, nil
+	}
+}
+
+const defaultVideoModel = "google/gemini-omni-flash/image-to-video-developer"
+
+// GenerateVideo creates a video using Atlas Cloud's async video API.
+// Supports text-to-video and image-to-video depending on whether
+// Images are provided in the request.
+func (p *Provider) GenerateVideo(ctx context.Context, req *ai.VideoRequest, opts ...ai.GenerateOption) (*ai.VideoResponse, error) {
+	model := req.Model
+	if model == "" {
+		model = defaultVideoModel
+	}
+	duration := req.Duration
+	if duration <= 0 {
+		duration = 6
+	}
+	aspect := req.AspectRatio
+	if aspect == "" {
+		aspect = "16:9"
+	}
+	resolution := req.Resolution
+	if resolution == "" {
+		resolution = "720p"
+	}
+
+	apiReq := map[string]any{
+		"model":        model,
+		"prompt":       req.Prompt,
+		"duration":     duration,
+		"aspect_ratio": aspect,
+		"resolution":   resolution,
+		"seed":         -1,
+	}
+	if len(req.Images) > 0 {
+		apiReq["images"] = req.Images
+	}
+
+	reqBody, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/generateVideo"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	respBody, _ := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode != 200 {
+		return nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
+	}
+
+	var submitResp struct {
+		Code int    `json:"code"`
+		Msg  string `json:"message"`
+		Data struct {
+			ID     string `json:"id"`
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &submitResp); err != nil {
+		return nil, fmt.Errorf("failed to parse submit response: %w", err)
+	}
+	if submitResp.Code != 200 {
+		return nil, fmt.Errorf("API error: %s", submitResp.Msg)
+	}
+
+	pollURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/prediction/" + submitResp.Data.ID
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			result, err := p.pollVideo(ctx, pollURL)
+			if err != nil {
+				return nil, err
+			}
+			if result != nil {
+				return result, nil
+			}
+		}
+	}
+}
+
+func (p *Provider) pollVideo(ctx context.Context, url string) (*ai.VideoResponse, error) {
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("poll request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	body, _ := io.ReadAll(httpResp.Body)
+
+	var pollResp struct {
+		Data struct {
+			Status  string   `json:"status"`
+			Outputs []string `json:"outputs"`
+			Error   string   `json:"error"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &pollResp); err != nil {
+		return nil, fmt.Errorf("failed to parse poll response: %w", err)
+	}
+
+	switch pollResp.Data.Status {
+	case "completed", "succeeded":
+		if len(pollResp.Data.Outputs) == 0 {
+			return nil, fmt.Errorf("video completed but no outputs returned")
+		}
+		return &ai.VideoResponse{URL: pollResp.Data.Outputs[0]}, nil
+	case "failed":
+		return nil, fmt.Errorf("video generation failed: %s", pollResp.Data.Error)
 	default:
 		return nil, nil
 	}

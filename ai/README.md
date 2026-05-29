@@ -1,6 +1,6 @@
 # AI Package
 
-The `ai` package provides simple, high-level interfaces for AI model providers. It supports text generation (`Model`) and image generation (`ImageModel`), with more modalities planned.
+The `ai` package provides simple, high-level interfaces for AI model providers. It supports text generation (`Model`), image generation (`ImageModel`), and video generation (`VideoModel`).
 
 ## Interfaces
 
@@ -76,6 +76,36 @@ fmt.Println(resp.Images[0].URL)
 ```
 
 Providers that support image generation: **Atlas Cloud**, **OpenAI**.
+
+### Video Generation (VideoModel)
+
+```go
+type VideoModel interface {
+    GenerateVideo(ctx context.Context, req *VideoRequest, opts ...GenerateOption) (*VideoResponse, error)
+    String() string
+}
+```
+
+```go
+import (
+    "go-micro.dev/v5/ai"
+    _ "go-micro.dev/v5/ai/atlascloud"
+)
+
+vg := ai.NewVideo("atlascloud",
+    ai.WithAPIKey("your-api-key"),
+)
+
+resp, err := vg.GenerateVideo(context.Background(), &ai.VideoRequest{
+    Prompt:   "Microservices nodes animating with data flowing between them",
+    Images:   []string{"https://example.com/diagram.png"}, // optional: image-to-video
+    Duration: 6,
+})
+
+fmt.Println(resp.URL)
+```
+
+Providers that support video generation: **Atlas Cloud**.
 
 ## Options
 
