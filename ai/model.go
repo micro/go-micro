@@ -36,7 +36,8 @@ type Request struct {
 	SystemPrompt string
 	// Tools available for the model to use
 	Tools []Tool
-	// Messages for continuing a conversation (optional)
+	// Messages for continuing a conversation (optional).
+	// Use ai.History to accumulate these across turns.
 	Messages []Message
 }
 
@@ -132,7 +133,7 @@ func AutoDetectProvider(baseURL string) string {
 // DefaultModel is a default model instance
 var DefaultModel Model
 
-// Generate generates a response using the default model
+// Generate generates a response using the default model.
 func Generate(ctx context.Context, req *Request, opts ...GenerateOption) (*Response, error) {
 	if DefaultModel == nil {
 		return nil, nil

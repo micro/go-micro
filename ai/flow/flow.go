@@ -153,8 +153,11 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		prompt = buf.String()
 	}
 
-	hist := ai.NewHistory(f.opts.SystemPrompt, f.opts.HistoryLimit)
-	resp, err := hist.Generate(ctx, f.model, prompt, discovered)
+	resp, err := f.model.Generate(ctx, &ai.Request{
+		Prompt:       prompt,
+		SystemPrompt: f.opts.SystemPrompt,
+		Tools:        discovered,
+	})
 
 	result := Result{
 		FlowName:  f.name,
