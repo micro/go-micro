@@ -75,3 +75,19 @@ func WithToolHandler(handler ToolHandler) Option {
 		o.ToolHandler = handler
 	}
 }
+
+// WithTools wires a Tools instance into the model, setting the tool
+// handler so the model can execute discovered service endpoints. The
+// tool list itself is passed per-request via Request.Tools.
+//
+//	tools := ai.NewTools(service.Registry())
+//	list, _ := tools.Discover()
+//	m := ai.New("anthropic", ai.WithAPIKey(key), ai.WithTools(tools))
+//	resp, _ := m.Generate(ctx, &ai.Request{Prompt: input, Tools: list})
+func WithTools(t *Tools) Option {
+	return func(o *Options) {
+		if t != nil {
+			o.ToolHandler = t.Handler()
+		}
+	}
+}
