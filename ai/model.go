@@ -38,6 +38,10 @@ type Request struct {
 	Tools []Tool
 	// Messages for continuing a conversation (optional)
 	Messages []Message
+	// History tracks multi-turn conversation state. When set, the
+	// prompt and response are recorded automatically so subsequent
+	// calls carry context. Use ai.NewHistory to create one.
+	History *History
 }
 
 // Message represents a conversation message
@@ -132,10 +136,48 @@ func AutoDetectProvider(baseURL string) string {
 // DefaultModel is a default model instance
 var DefaultModel Model
 
-// Generate generates a response using the default model
-func Generate(ctx context.Context, req *Request, opts ...GenerateOption) (*Response, error) {
-	if DefaultModel == nil {
+// Generate generates a response using the given model (or DefaultModel
+// if m is nil). When req.History is set, the prompt and response are
+// recorded automatically for multi-turn conversation.
+//
+//	m := ai.New("anthropic", ai.WithAPIKey(key))
+//	hist := ai.NewHistory(50)
+//	resp, _ := m.Generate(ctx, &ai.Request{
+//	    Prompt:       "list users",
+//	    SystemPrompt: "You are helpful.",
+//	    History:      hist,
+//	})
+func Generate(ctx context.Context, m Model, req *Request, opts ...GenerateOption) (*Response, error) {
+	if m == nil {
+		m = DefaultModel
+	}
+	if m == nil {
 		return nil, nil
 	}
-	return DefaultModel.Generate(ctx, req, opts...)
+
+	// If history is attached, inject accumulated messages and record
+	// the exchange after the call.
+	if req.History != nil {
+		req.History.add("user", req.Prompt)
+		req.Messages = req.History.snapshot()
+	}
+
+	resp, err := m.Generate(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.History != nil {
+		if resp.Reply != "" {
+			req.History.add("assistant", resp.Reply)
+		}
+		for _, tc := range resp.ToolCalls {
+			req.History.add("assistant", tc)
+		}
+		if resp.Answer != "" {
+			req.History.add("assistant", resp.Answer)
+		}
+	}
+
+	return resp, nil
 }

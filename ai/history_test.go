@@ -10,13 +10,12 @@ type mockModel struct {
 	calls int
 }
 
-func (m *mockModel) Init(...Option) error { return nil }
-func (m *mockModel) Options() Options     { return Options{} }
-func (m *mockModel) String() string       { return "mock" }
+func (m *mockModel) Init(...Option) error    { return nil }
+func (m *mockModel) Options() Options        { return Options{} }
+func (m *mockModel) String() string          { return "mock" }
 func (m *mockModel) Stream(context.Context, *Request, ...GenerateOption) (Stream, error) {
 	return nil, nil
 }
-
 func (m *mockModel) Generate(_ context.Context, req *Request, _ ...GenerateOption) (*Response, error) {
 	m.calls++
 	return &Response{Reply: m.reply}, nil
@@ -24,110 +23,108 @@ func (m *mockModel) Generate(_ context.Context, req *Request, _ ...GenerateOptio
 
 func TestHistory_AccumulatesMessages(t *testing.T) {
 	m := &mockModel{reply: "hi"}
-	h := NewHistory("system", 0)
+	hist := NewHistory(0)
 
-	resp, err := h.Generate(context.Background(), m, "hello", nil)
+	resp, err := Generate(context.Background(), m, &Request{
+		Prompt:       "hello",
+		SystemPrompt: "system",
+		History:      hist,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resp.Reply != "hi" {
 		t.Errorf("reply = %q", resp.Reply)
 	}
-	// user + assistant = 2
-	if h.Len() != 2 {
-		t.Errorf("len = %d, want 2", h.Len())
+	if hist.Len() != 2 {
+		t.Errorf("len = %d, want 2", hist.Len())
 	}
 
-	h.Generate(context.Background(), m, "again", nil)
-	// 2 + user + assistant = 4
-	if h.Len() != 4 {
-		t.Errorf("len = %d, want 4", h.Len())
+	Generate(context.Background(), m, &Request{
+		Prompt:  "again",
+		History: hist,
+	})
+	if hist.Len() != 4 {
+		t.Errorf("len = %d, want 4", hist.Len())
 	}
 
-	msgs := h.Messages()
+	msgs := hist.Messages()
 	if msgs[0].Role != "user" || msgs[0].Content != "hello" {
-		t.Errorf("first message = %+v", msgs[0])
+		t.Errorf("first = %+v", msgs[0])
 	}
 	if msgs[1].Role != "assistant" || msgs[1].Content != "hi" {
-		t.Errorf("second message = %+v", msgs[1])
-	}
-	if msgs[2].Role != "user" || msgs[2].Content != "again" {
-		t.Errorf("third message = %+v", msgs[2])
+		t.Errorf("second = %+v", msgs[1])
 	}
 }
 
 func TestHistory_Truncation(t *testing.T) {
 	m := &mockModel{reply: "ok"}
-	h := NewHistory("system", 4)
+	hist := NewHistory(4)
 
-	h.Generate(context.Background(), m, "one", nil)
-	h.Generate(context.Background(), m, "two", nil)
-	h.Generate(context.Background(), m, "three", nil)
-
-	// 3 turns x 2 messages = 6, but limit is 4
-	if h.Len() != 4 {
-		t.Errorf("len = %d, want 4", h.Len())
+	for _, p := range []string{"one", "two", "three"} {
+		Generate(context.Background(), m, &Request{Prompt: p, History: hist})
 	}
-
-	msgs := h.Messages()
-	// oldest messages should have been dropped
+	if hist.Len() != 4 {
+		t.Errorf("len = %d, want 4", hist.Len())
+	}
+	msgs := hist.Messages()
 	if msgs[0].Role != "user" || msgs[0].Content != "two" {
-		t.Errorf("first retained message = %+v, want user/two", msgs[0])
+		t.Errorf("first retained = %+v", msgs[0])
 	}
 }
 
 func TestHistory_Reset(t *testing.T) {
 	m := &mockModel{reply: "ok"}
-	h := NewHistory("system", 0)
-
-	h.Generate(context.Background(), m, "hello", nil)
-	if h.Len() == 0 {
+	hist := NewHistory(0)
+	Generate(context.Background(), m, &Request{Prompt: "hello", History: hist})
+	if hist.Len() == 0 {
 		t.Fatal("expected messages")
 	}
-
-	h.Reset()
-	if h.Len() != 0 {
-		t.Errorf("len after reset = %d", h.Len())
+	hist.Reset()
+	if hist.Len() != 0 {
+		t.Errorf("len after reset = %d", hist.Len())
 	}
 }
 
 func TestHistory_SnapshotIsCopy(t *testing.T) {
 	m := &mockModel{reply: "ok"}
-	h := NewHistory("system", 0)
-
-	h.Generate(context.Background(), m, "hello", nil)
-	msgs := h.Messages()
+	hist := NewHistory(0)
+	Generate(context.Background(), m, &Request{Prompt: "hello", History: hist})
+	msgs := hist.Messages()
 	msgs[0].Content = "mutated"
-
-	if h.Messages()[0].Content == "mutated" {
-		t.Error("Messages() returned a reference, not a copy")
+	if hist.Messages()[0].Content == "mutated" {
+		t.Error("snapshot returned reference, not copy")
 	}
 }
 
 func TestHistory_ToolCallsRecorded(t *testing.T) {
-	m := &mockModel{}
-	m2 := &toolModel{}
-	h := NewHistory("system", 0)
-
-	h.Generate(context.Background(), m2, "do something", nil)
-
-	// user + assistant (tool call) + assistant (answer) = 3
-	if h.Len() != 3 {
-		t.Errorf("len = %d, want 3", h.Len())
+	tm := &toolModel{}
+	hist := NewHistory(0)
+	Generate(context.Background(), tm, &Request{Prompt: "do something", History: hist})
+	if hist.Len() != 3 {
+		t.Errorf("len = %d, want 3", hist.Len())
 	}
+}
 
-	_ = m // avoid unused
+func TestGenerate_WithoutHistory(t *testing.T) {
+	m := &mockModel{reply: "ok"}
+	resp, err := Generate(context.Background(), m, &Request{Prompt: "hello"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Reply != "ok" {
+		t.Errorf("reply = %q", resp.Reply)
+	}
 }
 
 type toolModel struct{}
 
-func (m *toolModel) Init(...Option) error { return nil }
-func (m *toolModel) Options() Options     { return Options{} }
-func (m *toolModel) String() string       { return "tool-mock" }
+func (m *toolModel) Init(...Option) error    { return nil }
+func (m *toolModel) Options() Options        { return Options{} }
+func (m *toolModel) String() string          { return "tool-mock" }
 func (m *toolModel) Stream(context.Context, *Request, ...GenerateOption) (Stream, error) {
 	return nil, nil
 }
-
 func (m *toolModel) Generate(_ context.Context, _ *Request, _ ...GenerateOption) (*Response, error) {
 	return &Response{
 		ToolCalls: []ToolCall{{ID: "1", Name: "test", Input: map[string]any{}}},

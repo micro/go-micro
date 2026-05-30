@@ -117,7 +117,7 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("unknown provider: %s", provider)
 	}
 
-	hist := ai.NewHistory(systemPrompt, 50)
+	hist := ai.NewHistory(50)
 
 	if singlePrompt != "" {
 		return ask(c.Context, m, hist, discovered, singlePrompt)
@@ -157,7 +157,12 @@ func run(c *cli.Context) error {
 }
 
 func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, prompt string) error {
-	resp, err := hist.Generate(ctx, m, prompt, toolList)
+	resp, err := ai.Generate(ctx, m, &ai.Request{
+		Prompt:       prompt,
+		SystemPrompt: systemPrompt,
+		Tools:        toolList,
+		History:      hist,
+	})
 	if err != nil {
 		return err
 	}
