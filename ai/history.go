@@ -1,11 +1,13 @@
 package ai
 
-// History accumulates conversation messages for multi-turn use.
-// Pass it via Request.History and the Generate function handles
-// the bookkeeping automatically.
+// History is a convenience for accumulating conversation messages
+// with automatic truncation. Use it to build Request.Messages for
+// multi-turn conversations.
 //
-// When the message count exceeds the limit, the oldest messages
-// are dropped. Set limit to 0 for unlimited.
+//	hist := ai.NewHistory(50)
+//	hist.Add("user", "hello")
+//	resp, _ := m.Generate(ctx, &ai.Request{Messages: hist.Messages(), Prompt: "next"})
+//	hist.Add("assistant", resp.Reply)
 type History struct {
 	messages []Message
 	limit    int
@@ -17,12 +19,22 @@ func NewHistory(limit int) *History {
 	return &History{limit: limit}
 }
 
-// Messages returns a copy of the current message history.
-func (h *History) Messages() []Message {
-	return h.snapshot()
+// Add appends a message and truncates if over limit.
+func (h *History) Add(role string, content any) {
+	h.messages = append(h.messages, Message{Role: role, Content: content})
+	if h.limit > 0 && len(h.messages) > h.limit {
+		h.messages = h.messages[len(h.messages)-h.limit:]
+	}
 }
 
-// Len returns the number of messages in the history.
+// Messages returns a copy of the accumulated messages.
+func (h *History) Messages() []Message {
+	out := make([]Message, len(h.messages))
+	copy(out, h.messages)
+	return out
+}
+
+// Len returns the number of messages.
 func (h *History) Len() int {
 	return len(h.messages)
 }
@@ -30,23 +42,4 @@ func (h *History) Len() int {
 // Reset clears all messages.
 func (h *History) Reset() {
 	h.messages = nil
-}
-
-func (h *History) add(role string, content any) {
-	h.messages = append(h.messages, Message{Role: role, Content: content})
-	h.truncate()
-}
-
-func (h *History) truncate() {
-	if h.limit <= 0 || len(h.messages) <= h.limit {
-		return
-	}
-	drop := len(h.messages) - h.limit
-	h.messages = h.messages[drop:]
-}
-
-func (h *History) snapshot() []Message {
-	out := make([]Message, len(h.messages))
-	copy(out, h.messages)
-	return out
 }

@@ -153,11 +153,10 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		prompt = buf.String()
 	}
 
-	resp, err := ai.Generate(ctx, f.model, &ai.Request{
+	resp, err := f.model.Generate(ctx, &ai.Request{
 		Prompt:       prompt,
 		SystemPrompt: f.opts.SystemPrompt,
 		Tools:        discovered,
-		History:      ai.NewHistory(f.opts.HistoryLimit),
 	})
 
 	result := Result{

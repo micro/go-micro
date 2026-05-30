@@ -157,14 +157,23 @@ func run(c *cli.Context) error {
 }
 
 func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, prompt string) error {
-	resp, err := ai.Generate(ctx, m, &ai.Request{
+	hist.Add("user", prompt)
+
+	resp, err := m.Generate(ctx, &ai.Request{
 		Prompt:       prompt,
 		SystemPrompt: systemPrompt,
 		Tools:        toolList,
-		History:      hist,
+		Messages:     hist.Messages(),
 	})
 	if err != nil {
 		return err
+	}
+
+	if resp.Reply != "" {
+		hist.Add("assistant", resp.Reply)
+	}
+	if resp.Answer != "" {
+		hist.Add("assistant", resp.Answer)
 	}
 
 	if resp.Reply != "" {
