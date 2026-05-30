@@ -5,9 +5,7 @@ Go Micro is a framework for distributed systems development.
 ## Sponsors
 
 <a href="https://go-micro.dev/blog/3"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Anthropic_logo.svg" height="26" /></a>
-
-&nbsp;&nbsp;&nbsp;&nbsp;
-
+<br>
 <a href="https://go-micro.dev/blog/8"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
 
 ## Overview
