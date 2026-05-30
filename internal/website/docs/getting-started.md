@@ -306,6 +306,33 @@ Alternative using the dynamic CLI commands:
 micro helloworld say hello --name="John"
 ```
 
+### Inspecting the framework
+
+Every core interface has a matching command, so you can inspect and manipulate the registry, broker, store, and config from the terminal:
+
+```bash
+# Registry — service discovery
+micro registry list                  # list services
+micro registry get helloworld        # nodes + endpoints
+micro registry watch                 # stream registration events
+
+# Broker — pub/sub
+micro broker subscribe events        # stream messages from a topic
+micro broker publish events 'hello'  # publish a message
+
+# Store — persistence
+micro store list                     # list keys
+micro store write greeting hello     # write a record
+micro store read greeting            # read it back
+micro store delete greeting          # delete it
+
+# Config — dynamic configuration (from environment)
+micro config get database.host       # reads DATABASE_HOST
+micro config dump                    # print all config
+```
+
+These mirror the `registry`, `broker`, `store`, and `config` packages — the same interfaces your services use, exposed on the CLI.
+
 ## Next Steps
 
 - **[AI Integration](ai-integration.html)** — How services, MCP, tools, and LLM providers fit together

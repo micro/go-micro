@@ -334,6 +334,21 @@ Then open http://localhost:8080 to see your service and call it from the browser
 | **Deploy** | `micro deploy` | Push to a remote Linux server via SSH + systemd |
 | **Dashboard** | `micro server` | Production web UI with auth |
 
+### Inspecting the Framework
+
+Every core interface has a matching command — inspect the registry, broker, store, and config from the terminal:
+
+```bash
+micro registry list                  # list services
+micro broker subscribe events        # stream a topic
+micro broker publish events 'hello'  # publish a message
+micro store write greeting hello     # write a record
+micro store read greeting            # read it back
+micro config get database.host       # read config (from DATABASE_HOST)
+```
+
+These mirror the `registry`, `broker`, `store`, and `config` packages.
+
 ### micro run
 
 `micro run` starts your services with:
