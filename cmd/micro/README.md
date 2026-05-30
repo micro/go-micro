@@ -19,6 +19,14 @@ Create your service (all setup is now automatic!):
 micro new helloworld
 ```
 
+Or use a template for common service patterns:
+
+```
+micro new contacts --template crud      # CRUD with Create/Read/Update/Delete/List
+micro new events --template pubsub      # Pub/sub with broker integration
+micro new gateway --template api        # API gateway with health check
+```
+
 This will:
 - Create a new service in the `helloworld` directory
 - Automatically run `go mod tidy` and `make proto` for you
@@ -342,6 +350,103 @@ micro stop myservice --remote user@server
 ```
 
 See [internal/website/docs/deployment.md](../../internal/website/docs/deployment.md) for the full deployment guide.
+
+## API Gateway
+
+Run a standalone HTTP-to-RPC gateway (no dashboard, no auth, no hot reload):
+
+```bash
+micro api                    # listen on :8080
+micro api --address :3000    # custom port
+```
+
+Routes:
+- `POST /{service}/{endpoint}` — proxies to an RPC call
+- `GET /` — lists all services and endpoints
+- `GET /{service}` — describes a service
+- `GET /health` — health check
+
+```bash
+curl -XPOST -d '{"name":"Alice"}' http://localhost:8080/greeter/Greeter.Hello
+```
+
+## Inspecting the Framework
+
+Every core interface has a matching CLI command:
+
+### Registry
+
+```bash
+micro registry list              # list all registered services (JSON)
+micro registry get <name>        # show nodes and endpoints for a service
+micro registry watch             # stream registration events
+```
+
+### Broker
+
+```bash
+micro broker publish <topic> <message>   # publish a message
+micro broker subscribe <topic>           # stream messages from a topic
+```
+
+### Store
+
+```bash
+micro store list [prefix]        # list keys (optionally by prefix)
+micro store read <key>           # read a record
+micro store write <key> <value>  # write a record
+micro store delete <key>         # delete a record
+```
+
+### Config
+
+```bash
+micro config get <key>           # read a config value (dot notation → env var)
+micro config dump                # print all configuration
+```
+
+Keys use dot notation: `database.host` reads from `DATABASE_HOST`.
+
+## AI & Agents
+
+### micro chat
+
+Interactive LLM agent that discovers services and orchestrates them through natural language:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
+> list all users
+> send a welcome email to Alice
+```
+
+Supports: `--provider` (anthropic, openai, gemini, atlascloud, groq, mistral, together), `--prompt` for single-shot mode, `--model` and `--base_url` for overrides.
+
+Environment variables: `MICRO_AI_PROVIDER`, `MICRO_AI_API_KEY`, or provider-specific keys like `ANTHROPIC_API_KEY`.
+
+### micro flow
+
+Event-driven LLM orchestration:
+
+```bash
+# Subscribe to events and react
+micro flow run --trigger events.user.created \
+  --prompt "New user: {{.Data}}. Send welcome email." \
+  --provider anthropic
+
+# One-shot execution
+micro flow exec --prompt "List all users" --provider anthropic
+```
+
+### micro mcp
+
+Expose services as MCP tools for AI agents:
+
+```bash
+micro mcp serve              # stdio transport (for Claude Code)
+micro mcp serve --address :3000  # HTTP/SSE transport
+micro mcp list               # list available tools
+micro mcp test <tool>        # test a tool
+```
 
 ## Protobuf 
 
