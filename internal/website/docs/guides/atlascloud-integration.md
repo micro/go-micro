@@ -160,7 +160,7 @@ The `ai.ImageModel` interface is also implemented by the OpenAI provider, so swi
 
 ## Using with Services (Tool Calling)
 
-Atlas Cloud supports OpenAI-compatible function calling. Combined with Go Micro's `ai/tools` package, your services become tools that the model can call:
+Atlas Cloud supports OpenAI-compatible function calling. Combined with Go Micro's `ai.Tools`, your services become tools that the model can call:
 
 ```go
 package main
@@ -172,7 +172,7 @@ import (
 
     "go-micro.dev/v5"
     "go-micro.dev/v5/ai"
-    "go-micro.dev/v5/ai/tools"
+    
     _ "go-micro.dev/v5/ai/atlascloud"
 )
 
@@ -181,8 +181,8 @@ func main() {
     service.Init()
 
     // Discover all services as tools
-    set := tools.New(service.Registry())
-    discovered, err := set.Discover()
+    tools := ai.NewTools(service.Registry())
+    discovered, err := tools.Discover()
     if err != nil {
         log.Fatal(err)
     }
@@ -190,7 +190,7 @@ func main() {
     // Create a model with tool execution
     m := ai.New("atlascloud",
         ai.WithAPIKey("your-key"),
-        ai.WithToolHandler(set.Handler(service.Client())),
+        ai.WithTools(tools),
     )
 
     // The model can now call your services
@@ -209,10 +209,10 @@ func main() {
 
 ### How it works
 
-1. `tools.New(registry)` creates a tool set bound to the service registry
-2. `set.Discover()` walks the registry and returns every endpoint as an `ai.Tool`
-3. `set.Handler(client)` returns an `ai.ToolHandler` that executes tool calls via RPC
-4. When the model decides to call a tool, the handler routes to the correct service
+1. `ai.NewTools(registry)` creates a tool set bound to the service registry
+2. `tools.Discover()` walks the registry and returns every endpoint as an `ai.Tool`
+3. `ai.WithTools(tools)` wires execution into the model — tool calls are routed via RPC
+4. When the model decides to call a tool, it routes to the correct service
 
 This works identically across all providers. Swap `"atlascloud"` for `"anthropic"` or `"openai"` and the same services, tools, and handlers work without changes.
 
@@ -299,5 +299,5 @@ The dedicated `atlascloud` provider simply sets these defaults for you.
 
 - [Atlas Cloud](https://www.atlascloud.ai/) — Sign up and get an API key
 - [AI Provider Integration Guide](/docs/guides/ai-provider-guide) — How providers are built
-- [ai/tools package](https://pkg.go.dev/go-micro.dev/v5/ai/tools) — Service-to-tool discovery
+- [ai.Tools](https://pkg.go.dev/go-micro.dev/v5/ai.Tools) — Service-to-tool discovery
 - [Blog: Atlas Cloud Sponsors Go Micro](/blog/8) — Announcement post

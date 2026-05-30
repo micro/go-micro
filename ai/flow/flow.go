@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/ai/tools"
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/logger"
@@ -48,7 +47,7 @@ type Flow struct {
 	name    string
 	opts    Options
 	model   ai.Model
-	toolSet *tools.Set
+	toolSet *ai.Tools
 	tmpl    *template.Template
 	log     logger.Logger
 	mu      sync.Mutex
@@ -100,7 +99,7 @@ func New(name string, opts ...Option) *Flow {
 // model, discovers tools from the registry, and subscribes to the
 // trigger topic on the broker. Call this before service.Run().
 func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Client) error {
-	f.toolSet = tools.New(reg)
+	f.toolSet = ai.NewTools(reg, ai.ToolClient(cl))
 
 	var modelOpts []ai.Option
 	if f.opts.APIKey != "" {
@@ -112,7 +111,7 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 	if f.opts.BaseURL != "" {
 		modelOpts = append(modelOpts, ai.WithBaseURL(f.opts.BaseURL))
 	}
-	modelOpts = append(modelOpts, ai.WithToolHandler(f.toolSet.Handler(cl)))
+	modelOpts = append(modelOpts, ai.WithTools(f.toolSet))
 
 	f.model = ai.New(f.opts.Provider, modelOpts...)
 	if f.model == nil {

@@ -16,7 +16,6 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/ai/tools"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/registry"
@@ -96,15 +95,15 @@ func run(c *cli.Context) error {
 	reg := registry.DefaultRegistry
 	cli := client.DefaultClient
 
-	toolSet := tools.New(reg)
-	discovered, err := toolSet.Discover()
+	tools := ai.NewTools(reg, ai.ToolClient(cli))
+	discovered, err := tools.Discover()
 	if err != nil {
 		return fmt.Errorf("discover tools: %w", err)
 	}
 
 	opts := []ai.Option{
 		ai.WithAPIKey(apiKey),
-		ai.WithToolHandler(toolSet.Handler(cli)),
+		ai.WithTools(tools),
 	}
 	if model != "" {
 		opts = append(opts, ai.WithModel(model))

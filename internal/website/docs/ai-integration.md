@@ -18,7 +18,7 @@ Registry                →  automatic service discovery (mDNS, Consul, etcd)
     ↓
 Gateways                →  micro api (HTTP→RPC) / micro mcp (MCP tools)
     ↓
-ai/tools                →  discovers services + executes RPCs programmatically
+ai.Tools                →  discovers services + executes RPCs programmatically
     ↓
 ai.Model                →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Cloud, ...)
     ↓
@@ -73,16 +73,16 @@ micro mcp serve --address :3000  # HTTP for web agents
 
 Any MCP-compatible agent (Claude Code, ChatGPT, custom agents) can discover and call your services.
 
-### 4. ai/tools (discover + execute)
+### 4. ai.Tools (discover + execute)
 
-The `ai/tools` package extracts the MCP gateway's logic into a reusable building block:
+`ai.Tools` turns registered services into LLM-callable tools — discovery plus RPC execution in one type:
 
 ```go
-import "go-micro.dev/v5/ai/tools"
+tools := ai.NewTools(service.Registry())
+discovered, _ := tools.Discover()  // []ai.Tool from all registered services
 
-set := tools.New(service.Registry())
-discovered, _ := set.Discover()    // []ai.Tool from all registered services
-handler := set.Handler(service.Client()) // executes tool calls via RPC
+// Wire execution into a model with one option:
+m := ai.New("anthropic", ai.WithAPIKey(key), ai.WithTools(tools))
 ```
 
 This is what powers `micro chat` and the agent playground. You can use it directly in your own services to build agentic workflows.
@@ -100,7 +100,7 @@ import (
 m := ai.New("anthropic", ai.WithAPIKey(key))
 resp, _ := m.Generate(ctx, &ai.Request{
     Prompt: "What users are in the system?",
-    Tools:  discovered,  // from ai/tools
+    Tools:  discovered,  // from ai.Tools
 })
 ```
 

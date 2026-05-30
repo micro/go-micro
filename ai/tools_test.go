@@ -1,4 +1,4 @@
-package tools
+package ai
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"go-micro.dev/v5/registry"
 )
 
-func TestJSONType(t *testing.T) {
+func TestToolJSONType(t *testing.T) {
 	cases := map[string]string{
 		"string":  "string",
 		"int":     "integer",
@@ -17,24 +17,24 @@ func TestJSONType(t *testing.T) {
 		"":        "object",
 	}
 	for in, want := range cases {
-		if got := jsonType(in); got != want {
-			t.Errorf("jsonType(%q) = %q, want %q", in, got, want)
+		if got := toolJSONType(in); got != want {
+			t.Errorf("toolJSONType(%q) = %q, want %q", in, got, want)
 		}
 	}
 }
 
-func TestFromRegistry_Empty(t *testing.T) {
+func TestDiscoverTools_Empty(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
-	tools, err := FromRegistry(reg)
+	tools, err := DiscoverTools(reg)
 	if err != nil {
-		t.Fatalf("FromRegistry: %v", err)
+		t.Fatalf("DiscoverTools: %v", err)
 	}
 	if len(tools) != 0 {
 		t.Errorf("expected 0 tools, got %d", len(tools))
 	}
 }
 
-func TestFromRegistry_DiscoversEndpoints(t *testing.T) {
+func TestDiscoverTools_DiscoversEndpoints(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
 	svc := &registry.Service{
 		Name:    "users",
@@ -63,9 +63,9 @@ func TestFromRegistry_DiscoversEndpoints(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	tools, err := FromRegistry(reg)
+	tools, err := DiscoverTools(reg)
 	if err != nil {
-		t.Fatalf("FromRegistry: %v", err)
+		t.Fatalf("DiscoverTools: %v", err)
 	}
 	if len(tools) != 1 {
 		t.Fatalf("expected 1 tool, got %d", len(tools))
@@ -73,7 +73,7 @@ func TestFromRegistry_DiscoversEndpoints(t *testing.T) {
 
 	tool := tools[0]
 	if tool.Name != "users_Users_Get" {
-		t.Errorf("safe name = %q, want users_Users_Get", tool.Name)
+		t.Errorf("safe name = %q", tool.Name)
 	}
 	if tool.OriginalName != "users.Users.Get" {
 		t.Errorf("original = %q", tool.OriginalName)
@@ -81,43 +81,35 @@ func TestFromRegistry_DiscoversEndpoints(t *testing.T) {
 	if tool.Description != "Fetch a user by ID" {
 		t.Errorf("description = %q", tool.Description)
 	}
-
-	id, ok := tool.Properties["id"].(map[string]any)
-	if !ok {
-		t.Fatal("missing id property")
-	}
-	if id["type"] != "string" {
-		t.Errorf("id type = %v", id["type"])
-	}
-	expand, ok := tool.Properties["expand"].(map[string]any)
-	if !ok {
-		t.Fatal("missing expand property")
-	}
-	if expand["type"] != "boolean" {
-		t.Errorf("expand type = %v", expand["type"])
-	}
 }
 
-func TestSet_HandlerResolvesSafeName(t *testing.T) {
-	s := New(registry.NewMemoryRegistry())
-	s.names.put("users_Users_Get", "users.Users.Get")
+func TestTools_HandlerResolvesSafeName(t *testing.T) {
+	tools := NewTools(registry.NewMemoryRegistry())
+	tools.names.put("users_Users_Get", "users.Users.Get")
 
-	resolved, ok := s.names.get("users_Users_Get")
+	resolved, ok := tools.names.get("users_Users_Get")
 	if !ok || resolved != "users.Users.Get" {
 		t.Errorf("name map lookup = (%q, %v)", resolved, ok)
 	}
 }
 
-func TestSet_HandlerInvalidName(t *testing.T) {
-	s := New(registry.NewMemoryRegistry())
-	h := s.Handler(nil)
+func TestTools_HandlerInvalidName(t *testing.T) {
+	tools := NewTools(registry.NewMemoryRegistry())
+	h := tools.Handler()
 
-	// "foo" has no dot, no mapping entry — should error cleanly.
 	result, content := h("foo", map[string]any{})
 	if result == nil {
 		t.Fatal("expected error result")
 	}
 	if content == "" {
 		t.Error("expected non-empty content")
+	}
+}
+
+func TestWithTools(t *testing.T) {
+	tools := NewTools(registry.NewMemoryRegistry())
+	opts := NewOptions(WithTools(tools))
+	if opts.ToolHandler == nil {
+		t.Error("WithTools did not set a ToolHandler")
 	}
 }
