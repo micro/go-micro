@@ -11,6 +11,7 @@ import (
 	_ "go-micro.dev/v5/cmd/micro/cli/deploy"
 	_ "go-micro.dev/v5/cmd/micro/flow"
 	_ "go-micro.dev/v5/cmd/micro/mcp"
+	_ "go-micro.dev/v5/cmd/micro/resource"
 	_ "go-micro.dev/v5/cmd/micro/run"
 	"go-micro.dev/v5/cmd/micro/server"
 )
