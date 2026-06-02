@@ -295,7 +295,9 @@ func listAction(ctx *cli.Context) error {
 	}
 
 	// Human-readable output
-	fmt.Printf("Available MCP Tools:\n\n")
+	fmt.Println()
+	fmt.Println("  \033[1mmicro mcp tools\033[0m")
+	fmt.Println()
 	toolCount := 0
 	for _, svc := range services {
 		fullSvcs, err := opts.Registry.GetService(svc.Name)
@@ -303,16 +305,16 @@ func listAction(ctx *cli.Context) error {
 			continue
 		}
 
-		fmt.Printf("Service: %s\n", svc.Name)
+		fmt.Printf("  \033[1m%s\033[0m\n", svc.Name)
 		for _, ep := range fullSvcs[0].Endpoints {
 			toolName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
-			fmt.Printf("  • %s\n", toolName)
+			fmt.Printf("    \033[32m●\033[0m %s\n", toolName)
 			toolCount++
 		}
 		fmt.Println()
 	}
 
-	fmt.Printf("Total: %d tools\n", toolCount)
+	fmt.Printf("  \033[2m%d tools\033[0m\n\n", toolCount)
 	return nil
 }
 

@@ -130,13 +130,16 @@ func run(c *cli.Context) error {
 		w.Write(rsp.Data)
 	})
 
-	fmt.Printf("API gateway listening on %s\n", addr)
 	fmt.Println()
-	fmt.Println("Routes:")
-	fmt.Println("  GET  /                    List services")
-	fmt.Println("  GET  /{service}           Describe a service")
-	fmt.Println("  POST /{service}/{endpoint} Call an endpoint")
-	fmt.Println("  GET  /health              Health check")
+	fmt.Println("  \033[1mmicro api\033[0m")
+	fmt.Println()
+	fmt.Printf("  Listening    \033[36m%s\033[0m\n", addr)
+	fmt.Println()
+	fmt.Println("  Routes:")
+	fmt.Println("    \033[32mGET\033[0m  /                     List services")
+	fmt.Println("    \033[32mGET\033[0m  /{service}            Describe a service")
+	fmt.Println("    \033[33mPOST\033[0m /{service}/{endpoint} Call an endpoint")
+	fmt.Println("    \033[32mGET\033[0m  /health               Health check")
 	fmt.Println()
 
 	server := &http.Server{Addr: addr, Handler: mux}
