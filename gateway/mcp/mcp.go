@@ -26,10 +26,12 @@ import (
 	"time"
 
 	"go-micro.dev/v5/auth"
+	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/metadata"
 	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/store"
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -178,6 +180,10 @@ type Tool struct {
 	Scopes   []string `json:"scopes,omitempty"`
 	Service  string   `json:"-"`
 	Endpoint string   `json:"-"`
+	// Handler is an optional direct handler for framework tools that don't
+	// go through RPC. When set, handleCallTool calls this instead of making
+	// an RPC request.
+	Handler func(input map[string]interface{}) (interface{}, error) `json:"-"`
 }
 
 // Serve starts an MCP gateway with the given options.
@@ -312,8 +318,159 @@ func (s *Server) discoverServices() error {
 		}
 	}
 
-	s.opts.Logger.Printf("[mcp] Discovered %d tools from %d services", len(s.tools), len(services))
+	// Register framework primitives as tools
+	s.registerFrameworkTools()
+
+	s.opts.Logger.Printf("[mcp] Discovered %d tools from %d services (incl. framework)", len(s.tools), len(services))
 	return nil
+}
+
+// registerFrameworkTools adds registry, broker, store, and config as MCP tools.
+func (s *Server) registerFrameworkTools() {
+	addFramework := func(tool *Tool) {
+		s.tools[tool.Name] = tool
+		if s.opts.RateLimit != nil && s.opts.RateLimit.RequestsPerSecond > 0 {
+			s.limitersMu.Lock()
+			if _, exists := s.limiters[tool.Name]; !exists {
+				s.limiters[tool.Name] = newRateLimiter(s.opts.RateLimit.RequestsPerSecond, s.opts.RateLimit.Burst)
+			}
+			s.limitersMu.Unlock()
+		}
+		if s.opts.CircuitBreaker != nil {
+			s.breakersMu.Lock()
+			if _, exists := s.breakers[tool.Name]; !exists {
+				s.breakers[tool.Name] = newCircuitBreaker(*s.opts.CircuitBreaker)
+			}
+			s.breakersMu.Unlock()
+		}
+	}
+
+	addFramework(&Tool{
+		Name:        "micro_registry_list",
+		Description: "List all registered services in the service registry",
+		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		Handler: func(input map[string]interface{}) (interface{}, error) {
+			services, err := s.opts.Registry.ListServices()
+			if err != nil {
+				return nil, err
+			}
+			var names []string
+			for _, svc := range services {
+				names = append(names, svc.Name)
+			}
+			return map[string]interface{}{"services": names}, nil
+		},
+	})
+
+	addFramework(&Tool{
+		Name:        "micro_registry_get",
+		Description: "Get details for a registered service including nodes and endpoints",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{"type": "string", "description": "Service name"},
+			},
+		},
+		Handler: func(input map[string]interface{}) (interface{}, error) {
+			name, _ := input["name"].(string)
+			if name == "" {
+				return nil, fmt.Errorf("name is required")
+			}
+			services, err := s.opts.Registry.GetService(name)
+			if err != nil {
+				return nil, err
+			}
+			return services, nil
+		},
+	})
+
+	addFramework(&Tool{
+		Name:        "micro_store_list",
+		Description: "List keys in the data store",
+		InputSchema: map[string]interface{}{"type": "object", "properties": map[string]interface{}{}},
+		Handler: func(input map[string]interface{}) (interface{}, error) {
+			keys, err := store.List()
+			if err != nil {
+				return nil, err
+			}
+			return map[string]interface{}{"keys": keys}, nil
+		},
+	})
+
+	addFramework(&Tool{
+		Name:        "micro_store_read",
+		Description: "Read a record from the data store by key",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"key": map[string]interface{}{"type": "string", "description": "Record key"},
+			},
+		},
+		Handler: func(input map[string]interface{}) (interface{}, error) {
+			key, _ := input["key"].(string)
+			if key == "" {
+				return nil, fmt.Errorf("key is required")
+			}
+			records, err := store.Read(key)
+			if err != nil {
+				return nil, err
+			}
+			if len(records) == 0 {
+				return map[string]interface{}{"error": "not found"}, nil
+			}
+			return map[string]interface{}{"key": key, "value": string(records[0].Value)}, nil
+		},
+	})
+
+	addFramework(&Tool{
+		Name:        "micro_store_write",
+		Description: "Write a record to the data store",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"key":   map[string]interface{}{"type": "string", "description": "Record key"},
+				"value": map[string]interface{}{"type": "string", "description": "Record value"},
+			},
+		},
+		Handler: func(input map[string]interface{}) (interface{}, error) {
+			key, _ := input["key"].(string)
+			value, _ := input["value"].(string)
+			if key == "" {
+				return nil, fmt.Errorf("key is required")
+			}
+			if err := store.Write(&store.Record{Key: key, Value: []byte(value)}); err != nil {
+				return nil, err
+			}
+			return map[string]interface{}{"status": "ok", "key": key}, nil
+		},
+	})
+
+	addFramework(&Tool{
+		Name:        "micro_broker_publish",
+		Description: "Publish a message to a broker topic",
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"topic":   map[string]interface{}{"type": "string", "description": "Topic name"},
+				"message": map[string]interface{}{"type": "string", "description": "Message body"},
+			},
+		},
+		Handler: func(input map[string]interface{}) (interface{}, error) {
+			topic, _ := input["topic"].(string)
+			message, _ := input["message"].(string)
+			if topic == "" {
+				return nil, fmt.Errorf("topic is required")
+			}
+			b := broker.DefaultBroker
+			if err := b.Connect(); err != nil {
+				return nil, err
+			}
+			if err := b.Publish(topic, &broker.Message{Body: []byte(message)}); err != nil {
+				return nil, err
+			}
+			return map[string]interface{}{"status": "ok", "topic": topic}, nil
+		},
+	})
 }
 
 // buildInputSchema converts registry value type information to JSON schema
@@ -562,6 +719,21 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx = metadata.NewContext(ctx, md)
 
+	start := time.Now()
+
+	// Framework tools have a direct handler; service tools go through RPC.
+	if tool.Handler != nil {
+		result, err := tool.Handler(req.Input)
+		if err != nil {
+			setSpanError(span, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(result)
+		return
+	}
+
 	// Convert input to JSON bytes for RPC call
 	inputBytes, err := json.Marshal(req.Input)
 	if err != nil {
@@ -570,7 +742,6 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make RPC call
-	start := time.Now()
 	rpcReq := s.opts.Client.NewRequest(tool.Service, tool.Endpoint, &bytes.Frame{Data: inputBytes})
 	var rsp bytes.Frame
 
