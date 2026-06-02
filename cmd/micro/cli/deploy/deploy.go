@@ -103,7 +103,10 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
 		remotePath = defaultRemotePath
 	}
 
-	fmt.Printf("Deploying to %s...\n\n", target)
+	fmt.Println()
+	fmt.Println("  \033[1mmicro deploy\033[0m")
+	fmt.Println()
+	fmt.Printf("  Target     \033[36m%s\033[0m\n\n", target)
 
 	// Early validation: Check if the requested service exists before SSH checks
 	filterService := c.String("service")

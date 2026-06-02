@@ -84,7 +84,10 @@ func create(c config) error {
 		return fmt.Errorf("%s already exists", c.Dir)
 	}
 
-	fmt.Printf("Creating service %s\n\n", c.Alias)
+	fmt.Println()
+	fmt.Println("  \033[1mmicro new\033[0m")
+	fmt.Println()
+	fmt.Printf("  Creating \033[36m%s\033[0m\n\n", c.Alias)
 
 	t := treeprint.New()
 
@@ -221,15 +224,14 @@ func Run(ctx *cli.Context) error {
 	printTree(dir)
 
 	fmt.Println()
-	fmt.Printf("Service %s created successfully!\n\n", dir)
-	fmt.Println("Next steps:")
-	fmt.Printf("  cd %s\n", dir)
-	fmt.Println("  go run .")
+	fmt.Printf("  \033[32m✓\033[0m Service \033[36m%s\033[0m created\n\n", dir)
+	fmt.Println("  Next steps:")
+	fmt.Printf("    cd %s\n", dir)
+	fmt.Println("    go run .")
 	if !noMCP {
 		fmt.Println()
-		fmt.Println("Your service is MCP-enabled. Once running:")
-		fmt.Println("  MCP tools:   http://localhost:3001/mcp/tools")
-		fmt.Println("  Claude Code: micro mcp serve")
+		fmt.Printf("    MCP tools   \033[36mhttp://localhost:3001/mcp/tools\033[0m\n")
+		fmt.Println("    Claude Code \033[2mmicro mcp serve\033[0m")
 	}
 	fmt.Println()
 	return nil

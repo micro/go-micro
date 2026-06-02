@@ -72,7 +72,7 @@ func Build(c *cli.Context) error {
 		}
 	}
 
-	fmt.Printf("\n✓ Built to %s\n", outDir)
+	fmt.Printf("\n  \033[32m✓\033[0m Built to \033[36m%s\033[0m\n", outDir)
 	return nil
 }
 
@@ -83,7 +83,7 @@ func buildService(name, dir, outDir, targetOS, targetArch string) error {
 	}
 	outPath := filepath.Join(outDir, binName)
 
-	fmt.Printf("Building %s (%s/%s)...\n", name, targetOS, targetArch)
+	fmt.Printf("  Building \033[36m%s (%s/%s)...\n", name, targetOS, targetArch)
 
 	// Build command
 	buildCmd := exec.Command("go", "build", "-o", outPath, ".")
@@ -100,7 +100,7 @@ func buildService(name, dir, outDir, targetOS, targetArch string) error {
 		return fmt.Errorf("go build failed: %w", err)
 	}
 
-	fmt.Printf("✓ %s\n", outPath)
+	fmt.Printf("  \033[32m✓\033[0m %s\n", outPath)
 	return nil
 }
 
@@ -179,7 +179,7 @@ func buildDockerImage(name, dir string, port int, tag, registry string, push boo
 		imageName = registry + "/" + imageName
 	}
 
-	fmt.Printf("Building %s...\n", imageName)
+	fmt.Printf("  Building \033[36m%s...\n", imageName)
 
 	buildCmd := exec.Command("docker", "build", "-t", imageName, dir)
 	buildCmd.Stdout = os.Stdout
@@ -188,7 +188,7 @@ func buildDockerImage(name, dir string, port int, tag, registry string, push boo
 		return fmt.Errorf("docker build failed: %w", err)
 	}
 
-	fmt.Printf("✓ Built %s\n", imageName)
+	fmt.Printf("  \033[32m✓\033[0m Built %s\n", imageName)
 
 	if push {
 		fmt.Printf("Pushing %s...\n", imageName)
@@ -198,7 +198,7 @@ func buildDockerImage(name, dir string, port int, tag, registry string, push boo
 		if err := pushCmd.Run(); err != nil {
 			return fmt.Errorf("docker push failed: %w", err)
 		}
-		fmt.Printf("✓ Pushed %s\n", imageName)
+		fmt.Printf("  \033[32m✓\033[0m Pushed %s\n", imageName)
 	}
 
 	return nil
@@ -268,7 +268,7 @@ func Compose(c *cli.Context) error {
 		return fmt.Errorf("failed to write docker-compose.yml: %w", err)
 	}
 
-	fmt.Printf("✓ Generated %s\n", output)
+	fmt.Printf("  \033[32m✓\033[0m Generated %s\n", output)
 	return nil
 }
 

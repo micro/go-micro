@@ -135,8 +135,15 @@ func runFlow(c *cli.Context, oneShot bool) error {
 		return fmt.Errorf("--trigger is required for 'flow run' (use 'flow exec' for one-shot)")
 	}
 
-	fmt.Printf("Flow %q listening on topic %q (provider=%s)\n", f.Name(), c.String("trigger"), provider)
-	fmt.Println("Press Ctrl-C to stop.")
+	fmt.Println()
+	fmt.Println("  \033[1mmicro flow\033[0m")
+	fmt.Println()
+	fmt.Printf("  Flow       \033[36m%s\033[0m\n", f.Name())
+	fmt.Printf("  Topic      \033[36m%s\033[0m\n", c.String("trigger"))
+	fmt.Printf("  Provider   \033[36m%s\033[0m\n", provider)
+	fmt.Println()
+	fmt.Println("  \033[2mListening for events. Ctrl-C to stop.\033[0m")
+	fmt.Println()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
