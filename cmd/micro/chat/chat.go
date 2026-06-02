@@ -123,15 +123,28 @@ func run(c *cli.Context) error {
 		return ask(c.Context, m, hist, discovered, singlePrompt)
 	}
 
-	fmt.Printf("micro chat — provider=%s, model=%s, %d tools discovered\n",
-		provider, m.Options().Model, len(discovered))
-	fmt.Println("Type a prompt and press enter. Ctrl-D or 'exit' to quit.")
+	// Startup banner
+	fmt.Println()
+	fmt.Println("  \033[1mmicro chat\033[0m")
+	fmt.Println()
+	fmt.Printf("  Provider    \033[36m%s\033[0m\n", provider)
+	fmt.Printf("  Model       \033[36m%s\033[0m\n", m.Options().Model)
+	fmt.Println()
+	fmt.Println("  Tools:")
+	for _, t := range discovered {
+		fmt.Printf("    \033[32m●\033[0m %s\n", t.OriginalName)
+	}
+	if len(discovered) == 0 {
+		fmt.Println("    \033[33m(no services found)\033[0m")
+	}
+	fmt.Println()
+	fmt.Println("  Type a prompt and press enter. \033[2mCtrl-D or 'exit' to quit.\033[0m")
 	fmt.Println()
 
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 0, 4096), 1024*1024)
 	for {
-		fmt.Print("> ")
+		fmt.Print("\033[1;36m>\033[0m ")
 		if !scanner.Scan() {
 			fmt.Println()
 			return nil
@@ -145,12 +158,12 @@ func run(c *cli.Context) error {
 		}
 		if line == "reset" {
 			hist.Reset()
-			fmt.Println("(history cleared)")
+			fmt.Println("\033[2m(history cleared)\033[0m")
 			fmt.Println()
 			continue
 		}
 		if err := ask(c.Context, m, hist, discovered, line); err != nil {
-			fmt.Printf("error: %v\n", err)
+			fmt.Printf("\033[31merror:\033[0m %v\n", err)
 		}
 		fmt.Println()
 	}
@@ -181,7 +194,7 @@ func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, 
 	}
 	for _, tc := range resp.ToolCalls {
 		args, _ := json.Marshal(tc.Input)
-		fmt.Printf("  → called %s(%s)\n", tc.Name, args)
+		fmt.Printf("  \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
 	}
 	if resp.Answer != "" {
 		fmt.Println()
