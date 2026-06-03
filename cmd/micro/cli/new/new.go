@@ -2,14 +2,20 @@
 package new
 
 import (
+	"bufio"
+	"context"
 	"fmt"
 	"go/build"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
+
+	"go-micro.dev/v5/cmd/micro/cli/generate"
 	"text/template"
 	"time"
 
@@ -138,6 +144,11 @@ func addFileToTree(root treeprint.Tree, file string) {
 }
 
 func Run(ctx *cli.Context) error {
+	// Handle --prompt: design services with AI, then generate each one
+	if prompt := ctx.String("prompt"); prompt != "" {
+		return runPrompt(ctx, prompt)
+	}
+
 	dir := ctx.Args().First()
 	if len(dir) == 0 {
 		fmt.Println("specify service name")
@@ -306,4 +317,77 @@ func printTree(dir string) {
 	}
 	filepath.Walk(dir, walk)
 	fmt.Println(t.String())
+}
+
+func runPrompt(cliCtx *cli.Context, prompt string) error {
+	provider := cliCtx.String("provider")
+	apiKey := cliCtx.String("api_key")
+	if apiKey == "" {
+		// Try provider-specific env vars
+		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY", "MICRO_AI_API_KEY"} {
+			if v := os.Getenv(env); v != "" {
+				apiKey = v
+				break
+			}
+		}
+	}
+	if apiKey == "" {
+		return fmt.Errorf("--api_key or a provider API key env var is required for --prompt")
+	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	fmt.Println()
+	fmt.Println("  \033[1mmicro new --prompt\033[0m")
+	fmt.Println()
+	fmt.Printf("  \033[2mDesigning services for:\033[0m %s\n\n", prompt)
+
+	design, err := generate.Design(ctx, provider, apiKey, "", ".", prompt)
+	if err != nil {
+		return fmt.Errorf("design failed: %w", err)
+	}
+
+	fmt.Println("  Services:")
+	for _, svc := range design.Services {
+		fmt.Printf("    \033[32m●\033[0m \033[36m%s\033[0m — %s\n", svc.Name, svc.Description)
+		for _, ep := range svc.Endpoints {
+			fmt.Printf("      %s: %s\n", ep.Name, ep.Description)
+		}
+	}
+	fmt.Println()
+
+	if !confirmGenerate() {
+		fmt.Println("  Cancelled.")
+		return nil
+	}
+
+	fmt.Println("  Generating code...")
+	if err := generate.Generate(ctx, ".", design, provider, apiKey, ""); err != nil {
+		return fmt.Errorf("generate failed: %w", err)
+	}
+
+	for _, svc := range design.Services {
+		fmt.Printf("    \033[32m✓\033[0m %s/\n", svc.Name)
+	}
+	fmt.Println()
+
+	fmt.Println("  \033[32m✓\033[0m All services generated")
+	fmt.Println()
+	fmt.Println("  Next steps:")
+	fmt.Println("    micro run                          \033[2m# start all services\033[0m")
+	fmt.Println("    micro chat --provider anthropic    \033[2m# talk to them\033[0m")
+	fmt.Println()
+	return nil
+}
+
+func confirmGenerate() bool {
+	fmt.Print("  Generate? [Y/n] ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return false
+	}
+	answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	return answer == "" || answer == "y" || answer == "yes"
 }

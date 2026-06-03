@@ -42,7 +42,10 @@ func init() {
 			Name:      "new",
 			Usage:     "Create a new service",
 			ArgsUsage: "[name]",
-			Action:    new.Run,
+			UsageText: `  micro new helloworld                          # scaffold a single service
+  micro new --prompt "a todo list with tasks"    # AI-design multiple services
+  micro new --prompt "add tags to the task service"  # extend existing services`,
+			Action: new.Run,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:  "no-mcp",
@@ -51,6 +54,21 @@ func init() {
 				&cli.StringFlag{
 					Name:  "template",
 					Usage: "Service template: default, crud, pubsub, api",
+				},
+				&cli.StringFlag{
+					Name:    "prompt",
+					Usage:   "Describe the system to generate (uses AI to design & build services with real business logic)",
+					EnvVars: []string{"MICRO_NEW_PROMPT"},
+				},
+				&cli.StringFlag{
+					Name:    "provider",
+					Usage:   "AI provider for --prompt (anthropic, openai, gemini, atlascloud, groq, mistral, together)",
+					EnvVars: []string{"MICRO_AI_PROVIDER"},
+				},
+				&cli.StringFlag{
+					Name:    "api_key",
+					Usage:   "API key for --prompt (or set ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)",
+					EnvVars: []string{"MICRO_AI_API_KEY"},
 				},
 			},
 		},

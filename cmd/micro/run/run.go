@@ -19,6 +19,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/cmd"
+	"go-micro.dev/v5/cmd/micro/cli/generate"
 	"go-micro.dev/v5/cmd/micro/run/config"
 	"go-micro.dev/v5/cmd/micro/run/watcher"
 	"go-micro.dev/v5/cmd/micro/server"
@@ -175,6 +176,11 @@ func waitForHealth(port int, timeout time.Duration) bool {
 }
 
 func Run(c *cli.Context) error {
+	// Handle --prompt: generate services first, then run them
+	if prompt := c.String("prompt"); prompt != "" {
+		return runWithPrompt(c, prompt)
+	}
+
 	dir := c.Args().Get(0)
 	if dir == "" {
 		dir = "."
@@ -387,6 +393,30 @@ func Run(c *cli.Context) error {
 				}
 			}
 		}()
+
+		// Scan for new services added by micro chat or micro new
+		go func() {
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-sigCh:
+					return
+				case <-ticker.C:
+					newSvcs := discoverNewServices(absDir, servicesByDir, binDir, runDir, logsDir, envVars, len(services))
+					for _, sp := range newSvcs {
+						services = append(services, sp)
+						servicesByDir[sp.dir] = sp
+						watch.AddDir(sp.dir)
+						if err := sp.start(logsDir); err != nil {
+							fmt.Fprintf(os.Stderr, "[%s] %v\n", sp.name, err)
+							continue
+						}
+						fmt.Printf("\n  \033[32m●\033[0m %s \033[2m(new)\033[0m\n", sp.name)
+					}
+				}
+			}
+		}()
 	}
 
 	// Wait for signal
@@ -425,6 +455,41 @@ func processRunning(pidStr string) bool {
 		return false
 	}
 	return proc.Signal(syscall.Signal(0)) == nil
+}
+
+func discoverNewServices(baseDir string, known map[string]*serviceProcess, binDir, runDir, logsDir string, envVars []string, colorOffset int) []*serviceProcess {
+	var newSvcs []*serviceProcess
+	entries, err := os.ReadDir(baseDir)
+	if err != nil {
+		return nil
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		svcDir := filepath.Join(baseDir, e.Name())
+		absSvcDir, _ := filepath.Abs(svcDir)
+		if _, exists := known[absSvcDir]; exists {
+			continue
+		}
+		mainFile := filepath.Join(svcDir, "main.go")
+		if _, err := os.Stat(mainFile); err != nil {
+			continue
+		}
+		name := e.Name()
+		hash := fmt.Sprintf("%x", md5.Sum([]byte(absSvcDir)))[:8]
+		sp := &serviceProcess{
+			name:    name,
+			dir:     absSvcDir,
+			binPath: filepath.Join(binDir, name+"-"+hash),
+			pidFile: filepath.Join(runDir, name+"-"+hash+".pid"),
+			logFile: filepath.Join(logsDir, name+"-"+hash+".log"),
+			color:   colorFor(colorOffset + len(newSvcs)),
+			env:     envVars,
+		}
+		newSvcs = append(newSvcs, sp)
+	}
+	return newSvcs
 }
 
 func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, mcpAddr string) {
@@ -467,6 +532,9 @@ func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, 
 	}
 
 	fmt.Println()
+	fmt.Println("  \033[2mmicro chat --provider anthropic    # talk to your services\033[0m")
+
+	fmt.Println()
 }
 
 func init() {
@@ -492,7 +560,8 @@ Examples:
   micro run --no-gateway       # Services only, no HTTP gateway
   micro run --no-watch         # Disable hot reload
   micro run --env production   # Use production environment
-  micro run --mcp-address :3000  # Enable MCP protocol gateway`,
+  micro run --mcp-address :3000  # Enable MCP protocol gateway
+  micro run --prompt "an order system for dropshipping"  # Generate and run`,
 		Action: Run,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -520,6 +589,96 @@ Examples:
 				Usage:   "MCP gateway address (e.g., :3000). Enables MCP protocol for AI tools.",
 				EnvVars: []string{"MICRO_MCP_ADDRESS"},
 			},
+			&cli.StringFlag{
+				Name:    "prompt",
+				Usage:   "Describe a system to generate and run (AI designs, builds, and starts services)",
+				EnvVars: []string{"MICRO_RUN_PROMPT"},
+			},
+			&cli.StringFlag{
+				Name:    "provider",
+				Usage:   "AI provider for --prompt (anthropic, openai, gemini, atlascloud, groq, mistral, together)",
+				EnvVars: []string{"MICRO_AI_PROVIDER"},
+			},
+			&cli.StringFlag{
+				Name:    "api_key",
+				Usage:   "API key for --prompt (or set ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)",
+				EnvVars: []string{"MICRO_AI_API_KEY"},
+			},
 		},
 	})
+}
+
+func runWithPrompt(c *cli.Context, prompt string) error {
+	provider := c.String("provider")
+	apiKey := c.String("api_key")
+	if apiKey == "" {
+		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY", "MICRO_AI_API_KEY"} {
+			if v := os.Getenv(env); v != "" {
+				apiKey = v
+				break
+			}
+		}
+	}
+	if apiKey == "" {
+		return fmt.Errorf("--api_key or a provider API key env var is required for --prompt")
+	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	fmt.Println()
+	fmt.Println("  \033[1mmicro run --prompt\033[0m")
+	fmt.Println()
+	fmt.Printf("  \033[2mDesigning services for:\033[0m %s\n\n", prompt)
+
+	design, err := generate.Design(ctx, provider, apiKey, "", ".", prompt)
+	if err != nil {
+		return fmt.Errorf("design failed: %w", err)
+	}
+
+	fmt.Println("  Services:")
+	for _, svc := range design.Services {
+		fmt.Printf("    \033[32m●\033[0m \033[36m%s\033[0m — %s\n", svc.Name, svc.Description)
+		for _, ep := range svc.Endpoints {
+			fmt.Printf("      %s: %s\n", ep.Name, ep.Description)
+		}
+	}
+	fmt.Println()
+
+	if !confirmGenerate() {
+		fmt.Println("  Cancelled.")
+		return nil
+	}
+
+	fmt.Println("  Generating code...")
+	if err := generate.Generate(ctx, ".", design, provider, apiKey, ""); err != nil {
+		return fmt.Errorf("generate failed: %w", err)
+	}
+	for _, svc := range design.Services {
+		fmt.Printf("    \033[32m✓\033[0m %s/\n", svc.Name)
+	}
+	fmt.Println()
+
+	// Now run normally — micro run discovers the generated services
+	fmt.Println("  Starting services...")
+	fmt.Println()
+
+	// Cancel signal context before handing off to Run (which manages its own signals)
+	cancel()
+
+	// Run normally from current directory (services are now generated)
+	// Set the prompt to empty via a new context so Run doesn't recurse
+	c.Set("prompt", "")
+	return Run(c)
+}
+
+func confirmGenerate() bool {
+	fmt.Print("  Generate? [Y/n] ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return false
+	}
+	answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	return answer == "" || answer == "y" || answer == "yes"
 }

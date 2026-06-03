@@ -75,6 +75,25 @@ func (w *Watcher) Start() {
 	go w.watch()
 }
 
+// AddDir adds a new directory to watch
+func (w *Watcher) AddDir(dir string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	for _, d := range w.dirs {
+		if d == dir {
+			return
+		}
+	}
+	w.dirs = append(w.dirs, dir)
+}
+
+// Dirs returns the currently watched directories
+func (w *Watcher) Dirs() []string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return append([]string{}, w.dirs...)
+}
+
 // Stop stops the watcher
 func (w *Watcher) Stop() {
 	close(w.done)
