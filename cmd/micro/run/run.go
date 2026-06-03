@@ -587,6 +587,11 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 	}
 	fmt.Println()
 
+	if !confirmGenerate() {
+		fmt.Println("  Cancelled.")
+		return nil
+	}
+
 	fmt.Println("  Generating code...")
 	if err := generate.Generate(ctx, ".", design, provider, apiKey, ""); err != nil {
 		return fmt.Errorf("generate failed: %w", err)
@@ -607,4 +612,14 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 	// Set the prompt to empty via a new context so Run doesn't recurse
 	c.Set("prompt", "")
 	return Run(c)
+}
+
+func confirmGenerate() bool {
+	fmt.Print("  Generate? [Y/n] ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return false
+	}
+	answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	return answer == "" || answer == "y" || answer == "yes"
 }

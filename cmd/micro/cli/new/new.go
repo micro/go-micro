@@ -2,6 +2,7 @@
 package new
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"go/build"
@@ -357,6 +358,11 @@ func runPrompt(cliCtx *cli.Context, prompt string) error {
 	}
 	fmt.Println()
 
+	if !confirmGenerate() {
+		fmt.Println("  Cancelled.")
+		return nil
+	}
+
 	fmt.Println("  Generating code...")
 	if err := generate.Generate(ctx, ".", design, provider, apiKey, ""); err != nil {
 		return fmt.Errorf("generate failed: %w", err)
@@ -374,4 +380,14 @@ func runPrompt(cliCtx *cli.Context, prompt string) error {
 	fmt.Println("    micro chat --provider anthropic    \033[2m# talk to them\033[0m")
 	fmt.Println()
 	return nil
+}
+
+func confirmGenerate() bool {
+	fmt.Print("  Generate? [Y/n] ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return false
+	}
+	answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	return answer == "" || answer == "y" || answer == "yes"
 }
