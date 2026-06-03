@@ -473,6 +473,9 @@ func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, 
 	}
 
 	fmt.Println()
+	fmt.Println("  \033[2mmicro chat --provider anthropic    # talk to your services\033[0m")
+
+	fmt.Println()
 }
 
 func init() {
@@ -578,6 +581,9 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 	fmt.Println("  Services:")
 	for _, svc := range design.Services {
 		fmt.Printf("    \033[32m●\033[0m \033[36m%s\033[0m — %s\n", svc.Name, svc.Description)
+		for _, ep := range svc.Endpoints {
+			fmt.Printf("      %s: %s\n", ep.Name, ep.Description)
+		}
 	}
 	fmt.Println()
 
