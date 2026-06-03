@@ -5,6 +5,8 @@ package generate
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -160,6 +162,9 @@ func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provid
 		} else {
 			fmt.Printf("    \033[32m✓\033[0m %s\n", svc.Name)
 		}
+
+		// Record final handler hash (after any compile fixes)
+		recordHandlerHash(svcDir, filepath.Join(svcDir, "handler", svc.Name+".go"))
 	}
 	return nil
 }
@@ -198,15 +203,25 @@ func generateStructure(dir string, svc ServiceSpec) error {
 	if _, err := os.Stat(handlerPath); os.IsNotExist(err) {
 		writeFile(handlerPath,
 			fmt.Sprintf("package handler\n\ntype %s struct{}\n\nfunc New() *%s { return &%s{} }\n", titleName, titleName, titleName))
+		recordHandlerHash(dir, handlerPath)
 	}
 
 	return nil
 }
 
 // generateHandler asks the LLM to write the handler with business logic.
+// If the handler exists and the user has modified it since generation,
+// it is left untouched.
 func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpec, proto string) error {
 	if m == nil {
 		return nil // no LLM — keep the placeholder
+	}
+
+	handlerFile := filepath.Join(dir, "handler", svc.Name+".go")
+
+	if handlerModified(dir, handlerFile) {
+		fmt.Printf("    \033[2mkeeping %s handler (modified)\033[0m\n", svc.Name)
+		return nil
 	}
 
 	titleName := toTitle(svc.Name)
@@ -235,7 +250,8 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 		return fmt.Errorf("LLM did not return valid Go code")
 	}
 
-	writeFile(filepath.Join(dir, "handler", svc.Name+".go"), code)
+	writeFile(handlerFile, code)
+	recordHandlerHash(dir, handlerFile)
 	return nil
 }
 
@@ -484,4 +500,47 @@ func runIn(dir string, name string, args ...string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func fileHash(path string) string {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+
+func metaPath(svcDir string) string {
+	return filepath.Join(svcDir, ".micro")
+}
+
+func readMeta(svcDir string) map[string]string {
+	m := make(map[string]string)
+	b, err := os.ReadFile(metaPath(svcDir))
+	if err != nil {
+		return m
+	}
+	json.Unmarshal(b, &m)
+	return m
+}
+
+func writeMeta(svcDir string, m map[string]string) {
+	b, _ := json.MarshalIndent(m, "", "  ")
+	os.WriteFile(metaPath(svcDir), b, 0644)
+}
+
+func handlerModified(svcDir, handlerFile string) bool {
+	meta := readMeta(svcDir)
+	savedHash, ok := meta["handler_hash"]
+	if !ok {
+		return false // no hash recorded — treat as unmodified (first run or pre-tracking)
+	}
+	return fileHash(handlerFile) != savedHash
+}
+
+func recordHandlerHash(svcDir, handlerFile string) {
+	meta := readMeta(svcDir)
+	meta["handler_hash"] = fileHash(handlerFile)
+	writeMeta(svcDir, meta)
 }
