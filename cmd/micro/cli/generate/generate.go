@@ -49,12 +49,14 @@ Return ONLY valid JSON:
 Rules:
 - Service names are lowercase, hyphenated
 - Each service MUST have CRUD endpoints: Create, Read, Update, Delete, List
-- Add custom endpoints for real business logic (e.g. PlaceOrder, CheckInventory, CalculateShipping)
+- Add 1-3 custom endpoints for real business logic (e.g. PlaceOrder, CheckInventory)
 - Field types: string, int64, bool, float64
 - Every service needs id (string), created (int64), updated (int64) fields
 - Endpoint names are PascalCase
 - Examples should be realistic JSON
-- 2-5 services max, focused on the domain`
+- 2-4 services max, focused on the domain
+- Keep services small and focused — one concern per service, max 5-8 fields
+- Services don't call each other; an AI agent orchestrates across them`
 
 const designPromptWithExisting = `You are a Go microservices architect using the go-micro framework.
 The user has an EXISTING system with services already running. They want to extend or modify it.
@@ -105,6 +107,7 @@ The handler must:
 7. Every exported method must have a doc comment explaining what it does
 8. Every method must have an @example tag with realistic JSON input
 9. Handle edge cases, validation, and return meaningful errors
+10. Keep the file under 200 lines — be concise, no boilerplate
 
 The struct name is %s.
 The constructor is func New() *%s.
@@ -162,7 +165,9 @@ func Design(ctx context.Context, provider, apiKey, model, baseDir, prompt string
 	}
 
 	sp := startSpinner("designing services...")
-	resp, err := m.Generate(ctx, &ai.Request{
+	designCtx, designCancel := context.WithTimeout(ctx, 60*time.Second)
+	defer designCancel()
+	resp, err := m.Generate(designCtx, &ai.Request{
 		Prompt:       userPrompt,
 		SystemPrompt: sysPrompt,
 	})
@@ -349,7 +354,9 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 		svc.Name, titleName, titleName, proto, strings.Join(epDescs, "\n"))
 
 	sp := startSpinner(fmt.Sprintf("writing %s handler...", svc.Name))
-	resp, err := m.Generate(ctx, &ai.Request{
+	genCtx, genCancel := context.WithTimeout(ctx, 90*time.Second)
+	defer genCancel()
+	resp, err := m.Generate(genCtx, &ai.Request{
 		Prompt:       fmt.Sprintf("Generate the handler for the %s service with real business logic.", svc.Name),
 		SystemPrompt: prompt,
 	})
@@ -368,8 +375,10 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 	if isTruncated(code) {
 		fmt.Printf("    \033[33m→\033[0m response truncated, retrying...\n")
 		sp = startSpinner(fmt.Sprintf("rewriting %s handler...", svc.Name))
-		resp, err = m.Generate(ctx, &ai.Request{
-			Prompt:       fmt.Sprintf("Generate the handler for the %s service with real business logic. Keep it concise — no more than 300 lines.", svc.Name),
+		retryCtx, retryCancel := context.WithTimeout(ctx, 90*time.Second)
+		defer retryCancel()
+		resp, err = m.Generate(retryCtx, &ai.Request{
+			Prompt:       fmt.Sprintf("Generate the handler for the %s service with real business logic. Keep it concise — no more than 200 lines.", svc.Name),
 			SystemPrompt: prompt,
 		})
 		sp.Stop()
@@ -409,11 +418,13 @@ func compileFix(ctx context.Context, m ai.Model, dir, name string, maxAttempts i
 		currentCode := readFile(handlerPath)
 
 		sp := startSpinner(fmt.Sprintf("fixing compile errors (attempt %d/%d)...", attempt+1, maxAttempts))
-		resp, fixErr := m.Generate(ctx, &ai.Request{
+		fixCtx, fixCancel := context.WithTimeout(ctx, 60*time.Second)
+		resp, fixErr := m.Generate(fixCtx, &ai.Request{
 			Prompt: fmt.Sprintf("This Go code has compile errors. Fix ALL of them and return the COMPLETE corrected file.\n\nErrors:\n%s\n\nCode:\n%s",
 				string(out), currentCode),
 			SystemPrompt: "You are a Go expert. Return ONLY the corrected Go code. No markdown, no explanation. Start with 'package handler'.",
 		})
+		fixCancel()
 		sp.Stop()
 		if fixErr != nil {
 			return fmt.Errorf("fix attempt failed: %w", fixErr)
@@ -665,8 +676,20 @@ type spinner struct {
 	done sync.WaitGroup
 }
 
+func isTTY() bool {
+	fi, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
+}
+
 func startSpinner(msg string) *spinner {
 	s := &spinner{msg: msg, stop: make(chan struct{})}
+	if !isTTY() {
+		fmt.Printf("    %s\n", msg)
+		return s
+	}
 	s.done.Add(1)
 	go func() {
 		defer s.done.Done()

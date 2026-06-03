@@ -77,7 +77,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	// Build initial request
 	apiReq := map[string]any{
 		"model":      p.opts.Model,
-		"max_tokens": 4096,
+		"max_tokens": 8192,
 		"system":     req.SystemPrompt,
 		"messages": []map[string]any{
 			{"role": "user", "content": req.Prompt},
@@ -127,7 +127,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 		followUpReq := map[string]any{
 			"model":      p.opts.Model,
-			"max_tokens": 4096,
+			"max_tokens": 8192,
 			"system":     req.SystemPrompt,
 			"messages":   messages,
 		}
