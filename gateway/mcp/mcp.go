@@ -151,6 +151,10 @@ type Options struct {
 	//       TraceProvider: tp,
 	//   })
 	TraceProvider trace.TracerProvider
+
+	// Internal exposes framework primitives (registry, broker, store)
+	// as MCP tools alongside user services. Off by default.
+	Internal bool
 }
 
 // Server represents a running MCP gateway
@@ -318,8 +322,10 @@ func (s *Server) discoverServices() error {
 		}
 	}
 
-	// Register framework primitives as tools
-	s.registerFrameworkTools()
+	// Register framework primitives as tools (opt-in)
+	if s.opts.Internal {
+		s.registerFrameworkTools()
+	}
 
 	s.opts.Logger.Printf("[mcp] Discovered %d tools from %d services (incl. framework)", len(s.tools), len(services))
 	return nil

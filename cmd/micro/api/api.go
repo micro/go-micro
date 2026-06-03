@@ -65,6 +65,11 @@ Examples:
 				Value:   ":8080",
 				EnvVars: []string{"MICRO_API_ADDRESS"},
 			},
+			&cli.BoolFlag{
+				Name:    "internal",
+				Usage:   "Expose framework internals (registry, broker, store) under /micro/*",
+				EnvVars: []string{"MICRO_API_INTERNAL"},
+			},
 		},
 		Action: run,
 	})
@@ -72,6 +77,7 @@ Examples:
 
 func run(c *cli.Context) error {
 	addr := c.String("address")
+	internal := c.Bool("internal")
 
 	mux := http.NewServeMux()
 
@@ -80,8 +86,10 @@ func run(c *cli.Context) error {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	// Framework primitives under /micro/
-	registerFrameworkRoutes(mux)
+	// Framework primitives under /micro/ (opt-in)
+	if internal {
+		registerFrameworkRoutes(mux)
+	}
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -146,14 +154,16 @@ func run(c *cli.Context) error {
 	fmt.Println("    \033[33mPOST\033[0m /{service}/{endpoint}       Call an endpoint")
 	fmt.Println("    \033[32mGET\033[0m  /health                     Health check")
 	fmt.Println()
-	fmt.Println("  Framework:")
-	fmt.Println("    \033[32mGET\033[0m  /micro/registry             List registered services")
-	fmt.Println("    \033[32mGET\033[0m  /micro/registry/{name}      Describe a service")
-	fmt.Println("    \033[32mGET\033[0m  /micro/store                List store keys")
-	fmt.Println("    \033[32mGET\033[0m  /micro/store/{key}          Read a record")
-	fmt.Println("    \033[33mPOST\033[0m /micro/store/{key}          Write a record")
-	fmt.Println("    \033[33mPOST\033[0m /micro/broker/{topic}       Publish a message")
-	fmt.Println()
+	if internal {
+		fmt.Println("  Framework:")
+		fmt.Println("    \033[32mGET\033[0m  /micro/registry             List registered services")
+		fmt.Println("    \033[32mGET\033[0m  /micro/registry/{name}      Describe a service")
+		fmt.Println("    \033[32mGET\033[0m  /micro/store                List store keys")
+		fmt.Println("    \033[32mGET\033[0m  /micro/store/{key}          Read a record")
+		fmt.Println("    \033[33mPOST\033[0m /micro/store/{key}          Write a record")
+		fmt.Println("    \033[33mPOST\033[0m /micro/broker/{topic}       Publish a message")
+		fmt.Println()
+	}
 
 	server := &http.Server{Addr: addr, Handler: mux}
 
