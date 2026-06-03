@@ -369,11 +369,11 @@ This gives you:
 
 The server discovers services via the registry automatically. Default login: `admin` / `micro`.
 
-See the [micro server documentation](server.md) for details.
+See the [micro server documentation](server.html) for details.
 
 ## Next Steps
 
-- [micro run](guides/micro-run.md) - Local development
-- [micro server](server.md) - Production web dashboard with auth
+- [micro run](guides/micro-run.html) - Local development
+- [micro server](server.html) - Production web dashboard with auth
 - [micro.mu configuration](guides/micro-run.md#configuration-file) - Configuration file format
-- [Health checks](guides/health.md) - Service health endpoints
+- [Health checks](guides/health.html) - Service health endpoints

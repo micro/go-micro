@@ -117,7 +117,7 @@ func main() {
 }
 ```
 
-See [Native gRPC Compatibility](guides/grpc-compatibility.md) for a complete guide.
+See [Native gRPC Compatibility](guides/grpc-compatibility.html) for a complete guide.
 
 ## Store Examples
 

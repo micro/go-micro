@@ -99,6 +99,11 @@
         <select id="provider">
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="atlascloud">Atlas Cloud</option>
+          <option value="groq">Groq</option>
+          <option value="mistral">Mistral</option>
+          <option value="together">Together AI</option>
         </select>
       </div>
       <div>
@@ -122,6 +127,13 @@
       <p><b>Chat with your services</b></p>
       <p>Ask the agent to interact with your microservices. It will discover and call the right tools automatically.</p>
       <p id="empty-tools" style="font-size:0.85em; color:#bbb; margin-top:0.8em;"></p>
+      <div id="setup-hint" style="margin-top:1.2em; padding:1em; background:#f8f9fa; border-radius:8px; border:1px solid #e5e5e5; text-align:left; font-size:0.88em; max-width:400px; margin-left:auto; margin-right:auto;">
+        <p style="margin:0 0 0.5em; font-weight:600;">Getting started:</p>
+        <p style="margin:0 0 0.3em;">1. Click <b>Settings</b> above</p>
+        <p style="margin:0 0 0.3em;">2. Choose a provider and enter your API key</p>
+        <p style="margin:0 0 0.3em;">3. Type a prompt like <em>"list all services"</em></p>
+        <p style="margin:0.6em 0 0; color:#888; font-size:0.9em;">Or use the CLI: <code style="background:#e9ecef; padding:2px 5px; border-radius:3px;">micro chat --provider anthropic</code></p>
+      </div>
     </div>
   </div>
 
@@ -147,6 +159,11 @@
         if (data.api_key) document.getElementById('api-key').value = data.api_key;
         if (data.model) document.getElementById('model-name').value = data.model;
         if (data.base_url) document.getElementById('base-url').value = data.base_url;
+        // Hide setup hint if API key is configured
+        if (data.api_key) {
+          var hint = document.getElementById('setup-hint');
+          if (hint) hint.style.display = 'none';
+        }
         // Auto-show settings if no API key configured
         if (!data.api_key) {
           document.getElementById('settings-panel').classList.add('open');

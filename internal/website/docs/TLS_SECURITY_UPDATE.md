@@ -52,7 +52,7 @@ This addresses the concerns raised about:
 
 ## Documentation
 
-See [SECURITY_MIGRATION.md](./SECURITY_MIGRATION.md) for detailed migration guide.
+See [SECURITY_MIGRATION.md](SECURITY_MIGRATION.html) for detailed migration guide.
 
 ## Security Recommendation
 

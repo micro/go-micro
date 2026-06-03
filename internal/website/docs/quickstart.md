@@ -31,10 +31,10 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
 
 ## Next Steps
 
-- **[Full Tutorial](getting-started.md)** - In-depth guide
+- **[Full Tutorial](getting-started.html)** - In-depth guide
 - **[Examples](examples/)** - Learn by example
 - **[API Reference](https://pkg.go.dev/go-micro.dev/v5)** - Complete API docs
-- **[Deployment](deployment.md)** - Deploy to production
+- **[Deployment](deployment.html)** - Deploy to production
 
 ## Common Patterns
 

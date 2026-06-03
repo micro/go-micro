@@ -20,39 +20,39 @@ about the framework.
 
 ## Contents
 
-- [Getting Started](getting-started.md)
-- [MCP & AI Agents](mcp.md) - Turn services into AI-callable tools with the Model Context Protocol
-- [CLI & Gateway Guide](guides/cli-gateway.md) - Development vs Production modes
-- [Quick Start](quickstart.md)
-- [Architecture](architecture.md)
-- [Configuration](config.md)
-- [Registry](registry.md)
-- [Broker](broker.md)
-- [Client/Server](client-server.md)
-- [Transport](transport.md)
-- [Store](store.md)
-- [Plugins](plugins.md)
+- [Getting Started](getting-started.html)
+- [MCP & AI Agents](mcp.html) - Turn services into AI-callable tools with the Model Context Protocol
+- [CLI & Gateway Guide](guides/cli-gateway.html) - Development vs Production modes
+- [Quick Start](quickstart.html)
+- [Architecture](architecture.html)
+- [Configuration](config.html)
+- [Registry](registry.html)
+- [Broker](broker.html)
+- [Client/Server](client-server.html)
+- [Transport](transport.html)
+- [Store](store.html)
+- [Plugins](plugins.html)
 - [Examples](examples/index.md)
 
 ## Development & Deployment
 
-- [micro run](guides/micro-run.md) - Local development with hot reload, API gateway, and agent playground
-- [micro build & deploy](deployment.md) - Build binaries and deploy to production
-- [micro server](server.md) - Optional production web dashboard with auth
+- [micro run](guides/micro-run.html) - Local development with hot reload, API gateway, and agent playground
+- [micro build & deploy](deployment.html) - Build binaries and deploy to production
+- [micro server](server.html) - Optional production web dashboard with auth
 
 ## AI & Agents
 
-- [Building AI-Native Services](guides/ai-native-services.md) - End-to-end tutorial for MCP-enabled services
-- [MCP Security Guide](guides/mcp-security.md) - Auth, scopes, rate limiting, and audit logging
-- [Tool Description Best Practices](guides/tool-descriptions.md) - Writing docs that make agents effective
-- [Agent Integration Patterns](guides/agent-patterns.md) - Multi-agent workflows and architectures
+- [Building AI-Native Services](guides/ai-native-services.html) - End-to-end tutorial for MCP-enabled services
+- [MCP Security Guide](guides/mcp-security.html) - Auth, scopes, rate limiting, and audit logging
+- [Tool Description Best Practices](guides/tool-descriptions.html) - Writing docs that make agents effective
+- [Agent Integration Patterns](guides/agent-patterns.html) - Multi-agent workflows and architectures
 
 ## Advanced
 
-- [Framework Comparison](guides/comparison.md)
+- [Framework Comparison](guides/comparison.html)
 - [Architecture Decisions](architecture/index.md)
 - [Real-World Examples](examples/realworld/index.md)
 - [Migration Guides](guides/migration/index.md)
-- [Observability](observability.md)
-- [Contributing](contributing.md)
-- [Roadmap](roadmap.md)
+- [Observability](observability.html)
+- [Contributing](contributing.html)
+- [Roadmap](roadmap.html)

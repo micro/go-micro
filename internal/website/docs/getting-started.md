@@ -68,7 +68,7 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
 - **Hot Reload** — auto-rebuild on file changes
 - **Health Checks** at `http://localhost:8080/health`
 
-See the [micro run guide](guides/micro-run.md) for configuration, multi-service projects, and more.
+See the [micro run guide](guides/micro-run.html) for configuration, multi-service projects, and more.
 
 ## Manual Setup (Framework Only)
 
@@ -336,8 +336,8 @@ These mirror the `registry`, `broker`, `store`, and `config` packages — the sa
 ## Next Steps
 
 - **[AI Integration](ai-integration.html)** — How services, MCP, tools, and LLM providers fit together
-- **[micro run guide](guides/micro-run.md)** — Local development with hot reload
+- **[micro run guide](guides/micro-run.html)** — Local development with hot reload
 - **[MCP & AI Agents](mcp.html)** — Expose services as AI-callable tools
-- **[Deployment guide](deployment.md)** — Deploy to production with systemd
+- **[Deployment guide](deployment.html)** — Deploy to production with systemd
 - **[gRPC Interop](https://github.com/micro/go-micro/tree/master/examples/grpc-interop)** — Call go-micro from any standard gRPC client
 - **[Examples](examples/)** — More code examples
