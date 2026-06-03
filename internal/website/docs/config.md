@@ -126,5 +126,5 @@ Load with your process manager or container orchestrator.
 ## Related
 
 - [ADR-009: Progressive Configuration](architecture/adr-009-progressive-configuration.md)
-- [Getting Started](getting-started.md)
-- [Plugins](plugins.md)
+- [Getting Started](getting-started.html)
+- [Plugins](plugins.html)

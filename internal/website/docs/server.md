@@ -21,7 +21,7 @@ The Micro server is an optional web dashboard and authenticated API gateway for 
 | **Dashboard** | Full gateway UI with auth, scopes, agent | Full dashboard with API explorer, logs, user/token management |
 | **When to use** | Day-to-day development | Deployed environments, shared servers |
 
-For local development, use [`micro run`](guides/micro-run.md) instead.
+For local development, use [`micro run`](guides/micro-run.html) instead.
 
 ## Install
 
@@ -56,7 +56,7 @@ Then open http://localhost:8080 and log in with the default admin account (`admi
 
 ## Typical Production Setup
 
-After deploying services with [`micro deploy`](deployment.md):
+After deploying services with [`micro deploy`](deployment.html):
 
 ```bash
 # On your server, start the dashboard

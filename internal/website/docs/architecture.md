@@ -50,8 +50,8 @@ We will share more on architecture soon
 ## Related
 
 - [ADR Index](architecture/index.md)
-- [Configuration](config.md)
-- [Plugins](plugins.md)
+- [Configuration](config.html)
+- [Plugins](plugins.html)
 
 ## Example Usage
 

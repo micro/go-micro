@@ -15,7 +15,7 @@ Go Micro services are compiled Go binaries that communicate via RPC and event-dr
 
 ### Single VPS or Bare Metal
 
-The simplest approach. Deploy compiled binaries to a Linux server and manage them with systemd. This is the model described in the [Deployment Guide](deployment.md).
+The simplest approach. Deploy compiled binaries to a Linux server and manage them with systemd. This is the model described in the [Deployment Guide](deployment.html).
 
 **Good for:** Small teams, early-stage projects, predictable workloads.
 
@@ -127,7 +127,7 @@ The platform should monitor service health and provide visibility into behavior.
 - **Metrics** (request rates, latencies, error rates) scraped or pushed
 - **Distributed tracing** across service boundaries
 
-See [Observability](observability.md) for details on logs, metrics, and traces.
+See [Observability](observability.html) for details on logs, metrics, and traces.
 
 ### Security
 
@@ -210,8 +210,8 @@ micro deploy prod     ─────▶   Place on compute
 
 ## Related
 
-- [Deployment](deployment.md) — Deploy services to a Linux server with systemd
-- [Registry](registry.md) — Service discovery backends
-- [Architecture](architecture.md) — Go Micro design and components
-- [Observability](observability.md) — Logs, metrics, and tracing
-- [Performance](performance.md) — Performance characteristics and tuning
+- [Deployment](deployment.html) — Deploy services to a Linux server with systemd
+- [Registry](registry.html) — Service discovery backends
+- [Architecture](architecture.html) — Go Micro design and components
+- [Observability](observability.html) — Logs, metrics, and tracing
+- [Performance](performance.html) — Performance characteristics and tuning
