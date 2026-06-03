@@ -94,49 +94,66 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		return nil, err
 	}
 
-	// If no tool calls, return response
-	if len(resp.ToolCalls) == 0 {
+	// If no tool calls or no handler, return as-is
+	if len(resp.ToolCalls) == 0 || p.opts.ToolHandler == nil {
 		return resp, nil
 	}
 
-	// If tool handler is provided, execute tools and get final answer
-	if p.opts.ToolHandler != nil {
-		var toolResults []ai.ToolResult
-		for i, tc := range resp.ToolCalls {
-			_, content := p.opts.ToolHandler(tc.Name, tc.Input)
-			resp.ToolCalls[i].Result = content
-			toolResults = append(toolResults, ai.ToolResult{
-				ID:      tc.ID,
-				Content: content,
+	// Tool execution loop: execute tools, send results back, repeat
+	// until the model responds with text only (no more tool calls)
+	messages := []map[string]any{
+		{"role": "user", "content": req.Prompt},
+		{"role": "assistant", "content": cleanContent(rawContent)},
+	}
+
+	pendingCalls := resp.ToolCalls
+
+	for rounds := 0; rounds < 10; rounds++ {
+		var toolResultBlocks []map[string]any
+		for i := range pendingCalls {
+			_, content := p.opts.ToolHandler(pendingCalls[i].Name, pendingCalls[i].Input)
+			pendingCalls[i].Result = content
+			toolResultBlocks = append(toolResultBlocks, map[string]any{
+				"type":        "tool_result",
+				"tool_use_id": pendingCalls[i].ID,
+				"content":     content,
 			})
 		}
 
-		// Build follow-up request with tool results
-		var toolResultBlocks []map[string]any
-		for _, tr := range toolResults {
-			toolResultBlocks = append(toolResultBlocks, map[string]any{
-				"type":        "tool_result",
-				"tool_use_id": tr.ID,
-				"content":     tr.Content,
-			})
-		}
+		messages = append(messages, map[string]any{
+			"role":    "user",
+			"content": toolResultBlocks,
+		})
 
 		followUpReq := map[string]any{
 			"model":      p.opts.Model,
 			"max_tokens": 4096,
 			"system":     req.SystemPrompt,
-			"messages": []map[string]any{
-				{"role": "user", "content": req.Prompt},
-				{"role": "assistant", "content": rawContent},
-				{"role": "user", "content": toolResultBlocks},
-			},
+			"messages":   messages,
+		}
+		if len(anthropicTools) > 0 {
+			followUpReq["tools"] = anthropicTools
 		}
 
-		// Make follow-up API call
-		followUpResp, _, err := p.callAPI(ctx, followUpReq)
-		if err == nil && followUpResp.Reply != "" {
+		followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
+		if err != nil {
+			break
+		}
+
+		if len(followUpResp.ToolCalls) > 0 {
+			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
+			pendingCalls = followUpResp.ToolCalls
+			messages = append(messages, map[string]any{
+				"role":    "assistant",
+				"content": cleanContent(followUpRaw),
+			})
+			continue
+		}
+
+		if followUpResp.Reply != "" {
 			resp.Answer = followUpResp.Reply
 		}
+		break
 	}
 
 	return resp, nil
@@ -225,4 +242,31 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 	}
 
 	return response, anthropicResp.Content, nil
+}
+
+// cleanContent strips fields from response content blocks that Anthropic
+// rejects when sent back as assistant message content (e.g. "id" on text blocks).
+func cleanContent(raw any) any {
+	blocks, ok := raw.([]struct {
+		Type  string          `json:"type"`
+		Text  string          `json:"text"`
+		ID    string          `json:"id"`
+		Name  string          `json:"name"`
+		Input json.RawMessage `json:"input"`
+	})
+	if !ok {
+		return raw
+	}
+	var cleaned []map[string]any
+	for _, b := range blocks {
+		switch b.Type {
+		case "text":
+			cleaned = append(cleaned, map[string]any{"type": "text", "text": b.Text})
+		case "tool_use":
+			var input any
+			json.Unmarshal(b.Input, &input)
+			cleaned = append(cleaned, map[string]any{"type": "tool_use", "id": b.ID, "name": b.Name, "input": input})
+		}
+	}
+	return cleaned
 }

@@ -183,7 +183,7 @@ func TestBuildMain(t *testing.T) {
 	checks := []string{
 		`"order-service/handler"`,
 		`pb "order-service/proto"`,
-		`micro.New("orderservice"`,
+		`micro.New("order"`,
 		`pb.RegisterOrderServiceHandler`,
 		`handler.New()`,
 	}

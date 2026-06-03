@@ -513,6 +513,7 @@ func buildProto(dehyphen, titleName string, svc ServiceSpec) string {
 }
 
 func buildMain(name, titleName string) string {
+	svcName := strings.TrimSuffix(name, "-service")
 	return fmt.Sprintf(`package main
 
 import (
@@ -531,7 +532,7 @@ func main() {
 	pb.Register%sHandler(service.Server(), handler.New())
 	service.Run()
 }
-`, name, name, strings.ReplaceAll(name, "-", ""), titleName)
+`, name, name, svcName, titleName)
 }
 
 func extractJSON(s string) string {
