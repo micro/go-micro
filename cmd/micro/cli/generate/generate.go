@@ -228,6 +228,12 @@ func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provid
 			return ctx.Err()
 		}
 		svcDir := filepath.Join(baseDir, svc.Name)
+		handlerFile := filepath.Join(svcDir, "handler", svc.Name+".go")
+		protoFile := filepath.Join(svcDir, "proto", svc.Name+".proto")
+
+		// Snapshot proto hash before structure generation
+		protoBefore := fileHash(protoFile)
+
 		fmt.Printf("    \033[2m[%d/%d]\033[0m generating \033[36m%s\033[0m...\n", i+1, len(design.Services), svc.Name)
 
 		// Step 1: Generate proto (deterministic — from design spec)
@@ -235,12 +241,21 @@ func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provid
 			return fmt.Errorf("structure %s: %w", svc.Name, err)
 		}
 
+		protoAfter := fileHash(protoFile)
+		protoChanged := protoBefore != protoAfter
+
+		// If proto unchanged and handler unmodified, nothing to do
+		if !protoChanged && protoBefore != "" && !handlerModified(svcDir, handlerFile) {
+			fmt.Printf("    \033[32m✓\033[0m %s \033[2m(unchanged)\033[0m\n", svc.Name)
+			continue
+		}
+
 		// Step 2: Run go mod tidy + make proto to get compiled proto
 		runIn(svcDir, "go", "mod", "tidy")
 		runIn(svcDir, "make", "proto")
 
 		// Step 3: Generate handler with business logic (LLM)
-		proto := readFile(filepath.Join(svcDir, "proto", svc.Name+".proto"))
+		proto := readFile(protoFile)
 		if err := generateHandler(ctx, m, svcDir, svc, proto); err != nil {
 			return fmt.Errorf("handler %s: %w", svc.Name, err)
 		}
@@ -253,7 +268,7 @@ func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provid
 		}
 
 		// Record final handler hash (after any compile fixes)
-		recordHandlerHash(svcDir, filepath.Join(svcDir, "handler", svc.Name+".go"))
+		recordHandlerHash(svcDir, handlerFile)
 	}
 	return nil
 }
