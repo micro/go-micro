@@ -353,7 +353,7 @@ func runPrompt(ctx *cli.Context, prompt string) error {
 	fmt.Println()
 
 	fmt.Println("  Generating code...")
-	if err := generate.Generate(".", design); err != nil {
+	if err := generate.Generate(context.Background(), ".", design, provider, apiKey, ""); err != nil {
 		return fmt.Errorf("generate failed: %w", err)
 	}
 
