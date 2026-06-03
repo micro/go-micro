@@ -393,6 +393,30 @@ func Run(c *cli.Context) error {
 				}
 			}
 		}()
+
+		// Scan for new services added by micro chat or micro new
+		go func() {
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-sigCh:
+					return
+				case <-ticker.C:
+					newSvcs := discoverNewServices(absDir, servicesByDir, binDir, runDir, logsDir, envVars, len(services))
+					for _, sp := range newSvcs {
+						services = append(services, sp)
+						servicesByDir[sp.dir] = sp
+						watch.AddDir(sp.dir)
+						if err := sp.start(logsDir); err != nil {
+							fmt.Fprintf(os.Stderr, "[%s] %v\n", sp.name, err)
+							continue
+						}
+						fmt.Printf("\n  \033[32m●\033[0m %s \033[2m(new)\033[0m\n", sp.name)
+					}
+				}
+			}
+		}()
 	}
 
 	// Wait for signal
@@ -431,6 +455,41 @@ func processRunning(pidStr string) bool {
 		return false
 	}
 	return proc.Signal(syscall.Signal(0)) == nil
+}
+
+func discoverNewServices(baseDir string, known map[string]*serviceProcess, binDir, runDir, logsDir string, envVars []string, colorOffset int) []*serviceProcess {
+	var newSvcs []*serviceProcess
+	entries, err := os.ReadDir(baseDir)
+	if err != nil {
+		return nil
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		svcDir := filepath.Join(baseDir, e.Name())
+		absSvcDir, _ := filepath.Abs(svcDir)
+		if _, exists := known[absSvcDir]; exists {
+			continue
+		}
+		mainFile := filepath.Join(svcDir, "main.go")
+		if _, err := os.Stat(mainFile); err != nil {
+			continue
+		}
+		name := e.Name()
+		hash := fmt.Sprintf("%x", md5.Sum([]byte(absSvcDir)))[:8]
+		sp := &serviceProcess{
+			name:    name,
+			dir:     absSvcDir,
+			binPath: filepath.Join(binDir, name+"-"+hash),
+			pidFile: filepath.Join(runDir, name+"-"+hash+".pid"),
+			logFile: filepath.Join(logsDir, name+"-"+hash+".log"),
+			color:   colorFor(colorOffset + len(newSvcs)),
+			env:     envVars,
+		}
+		newSvcs = append(newSvcs, sp)
+	}
+	return newSvcs
 }
 
 func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, mcpAddr string) {

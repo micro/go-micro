@@ -314,12 +314,28 @@ go install go-micro.dev/v5/cmd/micro@v5.16.0
 
 ```bash
 micro new helloworld              # Create a new service
-micro new contacts --template crud # Or use a template (crud, pubsub, api)
 cd helloworld
 micro run                          # Run with API gateway and hot reload
 ```
 
 Then open http://localhost:8080 to see your service and call it from the browser.
+
+### Generate From a Prompt
+
+Describe what you need in plain English. The AI designs services, writes handlers with real business logic, compiles them, and starts them:
+
+```bash
+micro run --prompt "a task management system with categories" --provider anthropic
+```
+
+Then talk to your services through an agent:
+
+```bash
+micro chat --provider anthropic
+> Create a Work category, then add a task called 'Finish report' to it
+```
+
+The agent orchestrates across services automatically. When you need a capability that doesn't exist, the agent generates a new service mid-conversation. [Read more](https://go-micro.dev/blog/13).
 
 ### Development Workflow
 

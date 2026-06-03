@@ -102,12 +102,38 @@ The handler must:
 2. Import the proto package as: pb "%s/proto"
 3. Import go-micro logger as: log "go-micro.dev/v5/logger"
 4. Import "github.com/google/uuid" for ID generation
-5. Use sync.RWMutex for thread-safe in-memory storage
-6. Include REAL business logic — not just CRUD map operations
+5. Use "go-micro.dev/v5/store" for persistent storage (NOT in-memory maps)
+6. Include REAL business logic — not just CRUD store operations
 7. Every exported method must have a doc comment explaining what it does
 8. Every method must have an @example tag with realistic JSON input
 9. Handle edge cases, validation, and return meaningful errors
 10. Keep the file under 200 lines — be concise, no boilerplate
+
+For storage, use the go-micro store package:
+  import "go-micro.dev/v5/store"
+  import "encoding/json"
+
+  // In the struct:
+  store store.Store
+
+  // In the constructor:
+  func New() *%s { return &%s{store: store.DefaultStore} }
+
+  // Write a record:
+  data, _ := json.Marshal(record)
+  store.Write(&store.Record{Key: "prefix/" + id, Value: data})
+
+  // Read a record:
+  recs, err := store.Read("prefix/" + id)
+  json.Unmarshal(recs[0].Value, &record)
+
+  // List keys:
+  keys, _ := store.List(store.ListPrefix("prefix/"))
+
+  // Delete:
+  store.Delete("prefix/" + id)
+
+Do NOT use sync.Mutex or in-memory maps. Use store for all data.
 
 The struct name is %s.
 The constructor is func New() *%s.
@@ -351,7 +377,7 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 	}
 
 	prompt := fmt.Sprintf(handlerPrompt,
-		svc.Name, titleName, titleName, proto, strings.Join(epDescs, "\n"))
+		svc.Name, titleName, titleName, titleName, titleName, proto, strings.Join(epDescs, "\n"))
 
 	sp := startSpinner(fmt.Sprintf("writing %s handler...", svc.Name))
 	genCtx, genCancel := context.WithTimeout(ctx, 90*time.Second)
