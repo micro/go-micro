@@ -52,6 +52,21 @@ func init() {
 					Name:  "template",
 					Usage: "Service template: default, crud, pubsub, api",
 				},
+				&cli.StringFlag{
+					Name:    "prompt",
+					Usage:   "Describe the system to generate (uses AI to design services)",
+					EnvVars: []string{"MICRO_NEW_PROMPT"},
+				},
+				&cli.StringFlag{
+					Name:    "provider",
+					Usage:   "AI provider for --prompt (anthropic, openai, gemini, etc.)",
+					EnvVars: []string{"MICRO_AI_PROVIDER"},
+				},
+				&cli.StringFlag{
+					Name:    "api_key",
+					Usage:   "API key for --prompt",
+					EnvVars: []string{"MICRO_AI_API_KEY"},
+				},
 			},
 		},
 		{

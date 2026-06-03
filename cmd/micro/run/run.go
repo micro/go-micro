@@ -19,6 +19,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/cmd"
+	"go-micro.dev/v5/cmd/micro/cli/generate"
 	"go-micro.dev/v5/cmd/micro/run/config"
 	"go-micro.dev/v5/cmd/micro/run/watcher"
 	"go-micro.dev/v5/cmd/micro/server"
@@ -175,6 +176,11 @@ func waitForHealth(port int, timeout time.Duration) bool {
 }
 
 func Run(c *cli.Context) error {
+	// Handle --prompt: generate services first, then run them
+	if prompt := c.String("prompt"); prompt != "" {
+		return runWithPrompt(c, prompt)
+	}
+
 	dir := c.Args().Get(0)
 	if dir == "" {
 		dir = "."
@@ -520,6 +526,72 @@ Examples:
 				Usage:   "MCP gateway address (e.g., :3000). Enables MCP protocol for AI tools.",
 				EnvVars: []string{"MICRO_MCP_ADDRESS"},
 			},
+			&cli.StringFlag{
+				Name:    "prompt",
+				Usage:   "Describe a system to generate and run (uses AI to design services)",
+				EnvVars: []string{"MICRO_RUN_PROMPT"},
+			},
+			&cli.StringFlag{
+				Name:    "provider",
+				Usage:   "AI provider for --prompt",
+				EnvVars: []string{"MICRO_AI_PROVIDER"},
+			},
+			&cli.StringFlag{
+				Name:    "api_key",
+				Usage:   "API key for --prompt",
+				EnvVars: []string{"MICRO_AI_API_KEY"},
+			},
 		},
 	})
+}
+
+func runWithPrompt(c *cli.Context, prompt string) error {
+	provider := c.String("provider")
+	apiKey := c.String("api_key")
+	if apiKey == "" {
+		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY", "MICRO_AI_API_KEY"} {
+			if v := os.Getenv(env); v != "" {
+				apiKey = v
+				break
+			}
+		}
+	}
+	if apiKey == "" {
+		return fmt.Errorf("--api_key or a provider API key env var is required for --prompt")
+	}
+
+	fmt.Println()
+	fmt.Println("  \033[1mmicro run --prompt\033[0m")
+	fmt.Println()
+	fmt.Printf("  \033[2mDesigning services for:\033[0m %s\n\n", prompt)
+
+	design, err := generate.Design(context.Background(), provider, apiKey, "", prompt)
+	if err != nil {
+		return fmt.Errorf("design failed: %w", err)
+	}
+
+	fmt.Println("  Services:")
+	for _, svc := range design.Services {
+		fmt.Printf("    \033[32m●\033[0m \033[36m%s\033[0m — %s\n", svc.Name, svc.Description)
+	}
+	fmt.Println()
+
+	fmt.Println("  Generating code...")
+	if err := generate.Generate(".", design); err != nil {
+		return fmt.Errorf("generate failed: %w", err)
+	}
+	for _, svc := range design.Services {
+		fmt.Printf("    \033[32m✓\033[0m %s/\n", svc.Name)
+	}
+	fmt.Println()
+
+	// Now run normally — micro run discovers the generated services
+	fmt.Println("  Starting services...")
+	fmt.Println()
+
+	// Run normally from current directory (services are now generated)
+	// Set the prompt to empty via a new context so Run doesn't recurse
+	c.Set("prompt", "")
+	return Run(c)
 }
