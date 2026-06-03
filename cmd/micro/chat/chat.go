@@ -30,9 +30,13 @@ import (
 	_ "go-micro.dev/v5/ai/together"
 )
 
-const systemPrompt = "You are an agent that helps users interact with microservices. " +
-	"Use the available tools to fulfill user requests. " +
-	"When you call a tool, explain what you are doing."
+const systemPromptTmpl = `You are an agent that orchestrates microservices. Use the available tools to fulfill user requests. When you call a tool, explain what you are doing.
+
+Available services: %s
+
+If a user asks for something that no existing service can handle, tell them which service they need and suggest the command to create it. For example: "You don't have a shipping service yet. Run: micro new --prompt 'add a shipping service' to create one."
+
+Do NOT make up capabilities. Only use the tools that are available.`
 
 func init() {
 	cmd.Register(&cli.Command{
@@ -119,8 +123,22 @@ func run(c *cli.Context) error {
 
 	hist := ai.NewHistory(50)
 
+	// Build service list for system prompt
+	serviceNames := make(map[string]bool)
+	for _, t := range discovered {
+		parts := strings.SplitN(t.OriginalName, ".", 2)
+		if len(parts) == 2 {
+			serviceNames[parts[0]] = true
+		}
+	}
+	var svcList []string
+	for name := range serviceNames {
+		svcList = append(svcList, name)
+	}
+	sysPrompt := fmt.Sprintf(systemPromptTmpl, strings.Join(svcList, ", "))
+
 	if singlePrompt != "" {
-		return ask(c.Context, m, hist, discovered, singlePrompt)
+		return ask(c.Context, m, hist, discovered, sysPrompt, singlePrompt)
 	}
 
 	// Startup banner
@@ -162,19 +180,19 @@ func run(c *cli.Context) error {
 			fmt.Println()
 			continue
 		}
-		if err := ask(c.Context, m, hist, discovered, line); err != nil {
+		if err := ask(c.Context, m, hist, discovered, sysPrompt, line); err != nil {
 			fmt.Printf("\033[31merror:\033[0m %v\n", err)
 		}
 		fmt.Println()
 	}
 }
 
-func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, prompt string) error {
+func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, sysPrompt, prompt string) error {
 	hist.Add("user", prompt)
 
 	resp, err := m.Generate(ctx, &ai.Request{
 		Prompt:       prompt,
-		SystemPrompt: systemPrompt,
+		SystemPrompt: sysPrompt,
 		Tools:        toolList,
 		Messages:     hist.Messages(),
 	})
