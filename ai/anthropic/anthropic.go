@@ -102,8 +102,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	// If tool handler is provided, execute tools and get final answer
 	if p.opts.ToolHandler != nil {
 		var toolResults []ai.ToolResult
-		for _, tc := range resp.ToolCalls {
+		for i, tc := range resp.ToolCalls {
 			_, content := p.opts.ToolHandler(tc.Name, tc.Input)
+			resp.ToolCalls[i].Result = content
 			toolResults = append(toolResults, ai.ToolResult{
 				ID:      tc.ID,
 				Content: content,

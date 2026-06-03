@@ -57,11 +57,13 @@ type Response struct {
 	Answer string
 }
 
-// ToolCall represents a request to call a tool
+// ToolCall represents a request to call a tool and its result
 type ToolCall struct {
-	ID    string         // Tool call ID (for correlation)
-	Name  string         // Tool name
-	Input map[string]any // Tool input arguments
+	ID     string         // Tool call ID (for correlation)
+	Name   string         // Tool name
+	Input  map[string]any // Tool input arguments
+	Result string         // Tool execution result (populated after execution)
+	Error  string         // Tool execution error (populated after execution)
 }
 
 // ToolResult represents the result of a tool execution

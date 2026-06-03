@@ -365,6 +365,25 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 		return fmt.Errorf("LLM did not return valid Go code")
 	}
 
+	if isTruncated(code) {
+		fmt.Printf("    \033[33m→\033[0m response truncated, retrying...\n")
+		sp = startSpinner(fmt.Sprintf("rewriting %s handler...", svc.Name))
+		resp, err = m.Generate(ctx, &ai.Request{
+			Prompt:       fmt.Sprintf("Generate the handler for the %s service with real business logic. Keep it concise — no more than 300 lines.", svc.Name),
+			SystemPrompt: prompt,
+		})
+		sp.Stop()
+		if err != nil {
+			return err
+		}
+		code = firstNonEmpty(resp.Answer, resp.Reply)
+		code = extractCode(code)
+	}
+
+	if !strings.HasPrefix(strings.TrimSpace(code), "package") {
+		return fmt.Errorf("LLM did not return valid Go code")
+	}
+
 	writeFile(handlerFile, code)
 	recordHandlerHash(dir, handlerFile)
 	return nil
@@ -402,7 +421,7 @@ func compileFix(ctx context.Context, m ai.Model, dir, name string, maxAttempts i
 
 		fixed := firstNonEmpty(resp.Answer, resp.Reply)
 		fixed = extractCode(fixed)
-		if strings.HasPrefix(strings.TrimSpace(fixed), "package") {
+		if strings.HasPrefix(strings.TrimSpace(fixed), "package") && !isTruncated(fixed) {
 			writeFile(handlerPath, fixed)
 		}
 	}
@@ -563,6 +582,28 @@ func extractCode(s string) string {
 		return strings.TrimSpace(s[i:])
 	}
 	return strings.TrimSpace(s)
+}
+
+func isTruncated(code string) bool {
+	trimmed := strings.TrimSpace(code)
+	if len(trimmed) == 0 {
+		return true
+	}
+	// Valid Go files end with a closing brace
+	if trimmed[len(trimmed)-1] != '}' {
+		return true
+	}
+	// Check balanced braces
+	depth := 0
+	for _, c := range trimmed {
+		switch c {
+		case '{':
+			depth++
+		case '}':
+			depth--
+		}
+	}
+	return depth != 0
 }
 
 func protoType(t string) string {

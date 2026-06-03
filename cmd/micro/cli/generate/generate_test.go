@@ -381,3 +381,26 @@ func TestDiscoverExisting(t *testing.T) {
 		t.Errorf("expected both services, got %q", got)
 	}
 }
+
+func TestIsTruncated(t *testing.T) {
+	tests := []struct {
+		name string
+		code string
+		want bool
+	}{
+		{"complete", "package handler\n\nfunc New() *H { return &H{} }\n", false},
+		{"empty", "", true},
+		{"no closing brace", "package handler\n\nfunc Foo() {", true},
+		{"unbalanced", "package handler\n\nfunc Foo() {\n\tif true {", true},
+		{"balanced", "package handler\n\nfunc Foo() {\n\tif true {\n\t}\n}", false},
+		{"trailing whitespace ok", "package handler\n\ntype X struct{}\n\n", false},
+		{"mid-expression", "package handler\n\nfunc F() {\n\tx := 1 +", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := isTruncated(tt.code); got != tt.want {
+				t.Errorf("isTruncated() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

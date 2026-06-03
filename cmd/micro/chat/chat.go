@@ -195,6 +195,12 @@ func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, 
 	for _, tc := range resp.ToolCalls {
 		args, _ := json.Marshal(tc.Input)
 		fmt.Printf("  \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
+		if tc.Result != "" {
+			fmt.Printf("  \033[32m←\033[0m \033[2m%s\033[0m\n", truncateResult(tc.Result))
+		}
+		if tc.Error != "" {
+			fmt.Printf("  \033[31m✗\033[0m %s\n", tc.Error)
+		}
 	}
 	if resp.Answer != "" {
 		fmt.Println()
@@ -233,4 +239,11 @@ func envVarForProvider(provider string) string {
 	default:
 		return "MICRO_AI_API_KEY"
 	}
+}
+
+func truncateResult(s string) string {
+	if len(s) <= 200 {
+		return s
+	}
+	return s[:200] + "..."
 }
