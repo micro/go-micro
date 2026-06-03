@@ -13,6 +13,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"go-micro.dev/v5/ai"
 
@@ -110,10 +112,12 @@ func Design(ctx context.Context, provider, apiKey, model, prompt string) (*Servi
 		return nil, fmt.Errorf("unknown provider: %s", provider)
 	}
 
+	sp := startSpinner("designing services...")
 	resp, err := m.Generate(ctx, &ai.Request{
 		Prompt:       fmt.Sprintf("Design a microservices system for: %s", prompt),
 		SystemPrompt: designPrompt,
 	})
+	sp.Stop()
 	if err != nil {
 		return nil, fmt.Errorf("design failed: %w", err)
 	}
@@ -184,8 +188,14 @@ func generateStructure(dir string, svc ServiceSpec) error {
 	titleName := toTitle(name)
 	dehyphen := strings.ReplaceAll(name, "-", "")
 
-	// Always regenerate proto (design may have changed)
-	writeFile(filepath.Join(dir, "proto", name+".proto"), buildProto(dehyphen, titleName, svc))
+	// Regenerate proto unless user has modified it
+	protoPath := filepath.Join(dir, "proto", name+".proto")
+	if !fileModified(dir, "proto_hash", protoPath) {
+		writeFile(protoPath, buildProto(dehyphen, titleName, svc))
+		recordFileHash(dir, "proto_hash", protoPath)
+	} else {
+		fmt.Printf("    \033[2mkeeping %s proto (modified)\033[0m\n", name)
+	}
 
 	// Only write structural files if directory is new
 	if !exists {
@@ -195,7 +205,10 @@ func generateStructure(dir string, svc ServiceSpec) error {
 			"GOPATH:=$(shell go env GOPATH)\n\n.PHONY: proto\nproto:\n\tprotoc --proto_path=. --micro_out=. --go_out=. proto/*.proto\n")
 
 		writeFile(filepath.Join(dir, "go.mod"),
-			fmt.Sprintf("module %s\n\ngo 1.22\n\nrequire (\n\tgo-micro.dev/v5 latest\n\tgithub.com/golang/protobuf latest\n\tgoogle.golang.org/protobuf latest\n)\n", name))
+			fmt.Sprintf("module %s\n\ngo 1.22\n", name))
+
+		writeFile(filepath.Join(dir, ".gitignore"),
+			fmt.Sprintf("%s\n.micro\n", name))
 	}
 
 	// Placeholder handler so go mod tidy works (will be overwritten by LLM)
@@ -235,10 +248,12 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 	prompt := fmt.Sprintf(handlerPrompt,
 		svc.Name, titleName, titleName, proto, strings.Join(epDescs, "\n"))
 
+	sp := startSpinner(fmt.Sprintf("writing %s handler...", svc.Name))
 	resp, err := m.Generate(ctx, &ai.Request{
 		Prompt:       fmt.Sprintf("Generate the handler for the %s service with real business logic.", svc.Name),
 		SystemPrompt: prompt,
 	})
+	sp.Stop()
 	if err != nil {
 		return err
 	}
@@ -274,13 +289,13 @@ func compileFix(ctx context.Context, m ai.Model, dir, name string, maxAttempts i
 		handlerPath := filepath.Join(dir, "handler", name+".go")
 		currentCode := readFile(handlerPath)
 
-		fmt.Printf("    \033[33m→\033[0m compile error, fixing (attempt %d/%d)...\n", attempt+1, maxAttempts)
-
+		sp := startSpinner(fmt.Sprintf("fixing compile errors (attempt %d/%d)...", attempt+1, maxAttempts))
 		resp, fixErr := m.Generate(ctx, &ai.Request{
 			Prompt: fmt.Sprintf("This Go code has compile errors. Fix ALL of them and return the COMPLETE corrected file.\n\nErrors:\n%s\n\nCode:\n%s",
 				string(out), currentCode),
 			SystemPrompt: "You are a Go expert. Return ONLY the corrected Go code. No markdown, no explanation. Start with 'package handler'.",
 		})
+		sp.Stop()
 		if fixErr != nil {
 			return fmt.Errorf("fix attempt failed: %w", fixErr)
 		}
@@ -502,6 +517,40 @@ func runIn(dir string, name string, args ...string) error {
 	return cmd.Run()
 }
 
+type spinner struct {
+	msg  string
+	stop chan struct{}
+	done sync.WaitGroup
+}
+
+func startSpinner(msg string) *spinner {
+	s := &spinner{msg: msg, stop: make(chan struct{})}
+	s.done.Add(1)
+	go func() {
+		defer s.done.Done()
+		frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+		i := 0
+		t := time.NewTicker(100 * time.Millisecond)
+		defer t.Stop()
+		for {
+			select {
+			case <-s.stop:
+				fmt.Printf("\r\033[K")
+				return
+			case <-t.C:
+				fmt.Printf("\r    %s %s", frames[i%len(frames)], msg)
+				i++
+			}
+		}
+	}()
+	return s
+}
+
+func (s *spinner) Stop() {
+	close(s.stop)
+	s.done.Wait()
+}
+
 func fileHash(path string) string {
 	b, err := os.ReadFile(path)
 	if err != nil {
@@ -530,17 +579,25 @@ func writeMeta(svcDir string, m map[string]string) {
 	os.WriteFile(metaPath(svcDir), b, 0644)
 }
 
-func handlerModified(svcDir, handlerFile string) bool {
+func fileModified(svcDir, key, path string) bool {
 	meta := readMeta(svcDir)
-	savedHash, ok := meta["handler_hash"]
+	savedHash, ok := meta[key]
 	if !ok {
-		return false // no hash recorded — treat as unmodified (first run or pre-tracking)
+		return false
 	}
-	return fileHash(handlerFile) != savedHash
+	return fileHash(path) != savedHash
+}
+
+func recordFileHash(svcDir, key, path string) {
+	meta := readMeta(svcDir)
+	meta[key] = fileHash(path)
+	writeMeta(svcDir, meta)
+}
+
+func handlerModified(svcDir, handlerFile string) bool {
+	return fileModified(svcDir, "handler_hash", handlerFile)
 }
 
 func recordHandlerHash(svcDir, handlerFile string) {
-	meta := readMeta(svcDir)
-	meta["handler_hash"] = fileHash(handlerFile)
-	writeMeta(svcDir, meta)
+	recordFileHash(svcDir, "handler_hash", handlerFile)
 }
