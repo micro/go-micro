@@ -290,7 +290,7 @@ func generateStructure(dir string, svc ServiceSpec) error {
 			"GOPATH:=$(shell go env GOPATH)\n\n.PHONY: proto\nproto:\n\tprotoc --proto_path=. --micro_out=. --go_out=. proto/*.proto\n")
 
 		writeFile(filepath.Join(dir, "go.mod"),
-			fmt.Sprintf("module %s\n\ngo 1.22\n", name))
+			fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v5 v5.24.0\n", name))
 
 		writeFile(filepath.Join(dir, ".gitignore"),
 			fmt.Sprintf("%s\n.micro\n", name))
