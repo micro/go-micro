@@ -498,7 +498,8 @@ Examples:
   micro run --no-gateway       # Services only, no HTTP gateway
   micro run --no-watch         # Disable hot reload
   micro run --env production   # Use production environment
-  micro run --mcp-address :3000  # Enable MCP protocol gateway`,
+  micro run --mcp-address :3000  # Enable MCP protocol gateway
+  micro run --prompt "an order system for dropshipping"  # Generate and run`,
 		Action: Run,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -528,17 +529,17 @@ Examples:
 			},
 			&cli.StringFlag{
 				Name:    "prompt",
-				Usage:   "Describe a system to generate and run (uses AI to design services)",
+				Usage:   "Describe a system to generate and run (AI designs, builds, and starts services)",
 				EnvVars: []string{"MICRO_RUN_PROMPT"},
 			},
 			&cli.StringFlag{
 				Name:    "provider",
-				Usage:   "AI provider for --prompt",
+				Usage:   "AI provider for --prompt (anthropic, openai, gemini, atlascloud, groq, mistral, together)",
 				EnvVars: []string{"MICRO_AI_PROVIDER"},
 			},
 			&cli.StringFlag{
 				Name:    "api_key",
-				Usage:   "API key for --prompt",
+				Usage:   "API key for --prompt (or set ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)",
 				EnvVars: []string{"MICRO_AI_API_KEY"},
 			},
 		},
@@ -561,12 +562,15 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 		return fmt.Errorf("--api_key or a provider API key env var is required for --prompt")
 	}
 
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
 	fmt.Println()
 	fmt.Println("  \033[1mmicro run --prompt\033[0m")
 	fmt.Println()
 	fmt.Printf("  \033[2mDesigning services for:\033[0m %s\n\n", prompt)
 
-	design, err := generate.Design(context.Background(), provider, apiKey, "", prompt)
+	design, err := generate.Design(ctx, provider, apiKey, "", ".", prompt)
 	if err != nil {
 		return fmt.Errorf("design failed: %w", err)
 	}
@@ -578,7 +582,7 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 	fmt.Println()
 
 	fmt.Println("  Generating code...")
-	if err := generate.Generate(context.Background(), ".", design, provider, apiKey, ""); err != nil {
+	if err := generate.Generate(ctx, ".", design, provider, apiKey, ""); err != nil {
 		return fmt.Errorf("generate failed: %w", err)
 	}
 	for _, svc := range design.Services {
@@ -589,6 +593,9 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 	// Now run normally — micro run discovers the generated services
 	fmt.Println("  Starting services...")
 	fmt.Println()
+
+	// Cancel signal context before handing off to Run (which manages its own signals)
+	cancel()
 
 	// Run normally from current directory (services are now generated)
 	// Set the prompt to empty via a new context so Run doesn't recurse

@@ -341,3 +341,43 @@ func TestFileModified(t *testing.T) {
 		t.Error("expected modified after content change")
 	}
 }
+
+func TestDiscoverExisting(t *testing.T) {
+	dir := t.TempDir()
+
+	// Empty directory → empty string
+	if got := discoverExisting(dir); got != "" {
+		t.Errorf("expected empty for empty dir, got %q", got)
+	}
+
+	// Non-service directory (no proto) → empty
+	os.MkdirAll(filepath.Join(dir, "not-a-service"), 0755)
+	if got := discoverExisting(dir); got != "" {
+		t.Errorf("expected empty for dir without proto, got %q", got)
+	}
+
+	// Create a real service directory with proto
+	svcDir := filepath.Join(dir, "order-service")
+	os.MkdirAll(filepath.Join(svcDir, "proto"), 0755)
+	os.WriteFile(filepath.Join(svcDir, "proto", "order-service.proto"),
+		[]byte("syntax = \"proto3\";\nservice OrderService {}"), 0644)
+
+	got := discoverExisting(dir)
+	if !strings.Contains(got, "order-service") {
+		t.Errorf("expected to find order-service, got %q", got)
+	}
+	if !strings.Contains(got, "OrderService") {
+		t.Errorf("expected to find proto content, got %q", got)
+	}
+
+	// Add a second service
+	svc2Dir := filepath.Join(dir, "user-service")
+	os.MkdirAll(filepath.Join(svc2Dir, "proto"), 0755)
+	os.WriteFile(filepath.Join(svc2Dir, "proto", "user-service.proto"),
+		[]byte("syntax = \"proto3\";\nservice UserService {}"), 0644)
+
+	got = discoverExisting(dir)
+	if !strings.Contains(got, "order-service") || !strings.Contains(got, "user-service") {
+		t.Errorf("expected both services, got %q", got)
+	}
+}

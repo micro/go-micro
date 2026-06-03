@@ -56,6 +56,42 @@ Rules:
 - Examples should be realistic JSON
 - 2-5 services max, focused on the domain`
 
+const designPromptWithExisting = `You are a Go microservices architect using the go-micro framework.
+The user has an EXISTING system with services already running. They want to extend or modify it.
+
+Existing services:
+%s
+
+Given the user's request, return the COMPLETE set of services (existing + new/modified).
+For existing services the user hasn't asked to change, return them as-is.
+For new or modified services, include the full specification.
+
+Return ONLY valid JSON:
+{
+  "services": [
+    {
+      "name": "service-name",
+      "description": "What this service does",
+      "fields": [
+        {"name": "field_name", "type": "string", "description": "What this field is"}
+      ],
+      "endpoints": [
+        {"name": "EndpointName", "description": "What this endpoint does", "example": "{\"key\": \"value\"}"}
+      ]
+    }
+  ]
+}
+
+Rules:
+- Service names are lowercase, hyphenated
+- Each service MUST have CRUD endpoints: Create, Read, Update, Delete, List
+- Add custom endpoints for real business logic
+- Field types: string, int64, bool, float64
+- Every service needs id (string), created (int64), updated (int64) fields
+- Endpoint names are PascalCase
+- Examples should be realistic JSON
+- Keep existing services unless the user explicitly asks to change them`
+
 const handlerPrompt = `You are a Go developer writing a handler for a go-micro service.
 Generate a COMPLETE, COMPILABLE Go handler file.
 
@@ -106,16 +142,29 @@ type EndpointSpec struct {
 }
 
 // Design calls an LLM to design services from a prompt.
-func Design(ctx context.Context, provider, apiKey, model, prompt string) (*ServiceDesign, error) {
+// If baseDir contains existing services, they are included as context
+// so the LLM extends the system rather than redesigning from scratch.
+func Design(ctx context.Context, provider, apiKey, model, baseDir, prompt string) (*ServiceDesign, error) {
 	m := newModel(provider, apiKey, model)
 	if m == nil {
 		return nil, fmt.Errorf("unknown provider: %s", provider)
 	}
 
+	existing := discoverExisting(baseDir)
+
+	var sysPrompt, userPrompt string
+	if len(existing) > 0 {
+		sysPrompt = fmt.Sprintf(designPromptWithExisting, existing)
+		userPrompt = fmt.Sprintf("Extend or modify the system: %s", prompt)
+	} else {
+		sysPrompt = designPrompt
+		userPrompt = fmt.Sprintf("Design a microservices system for: %s", prompt)
+	}
+
 	sp := startSpinner("designing services...")
 	resp, err := m.Generate(ctx, &ai.Request{
-		Prompt:       fmt.Sprintf("Design a microservices system for: %s", prompt),
-		SystemPrompt: designPrompt,
+		Prompt:       userPrompt,
+		SystemPrompt: sysPrompt,
 	})
 	sp.Stop()
 	if err != nil {
@@ -135,6 +184,39 @@ func Design(ctx context.Context, provider, apiKey, model, prompt string) (*Servi
 	return &design, nil
 }
 
+// discoverExisting scans a directory for existing go-micro services
+// and returns a summary string for inclusion in the design prompt.
+func discoverExisting(baseDir string) string {
+	entries, err := os.ReadDir(baseDir)
+	if err != nil {
+		return ""
+	}
+
+	var summaries []string
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		svcDir := filepath.Join(baseDir, e.Name())
+
+		// Look for proto files as indicator of a go-micro service
+		protoDir := filepath.Join(svcDir, "proto")
+		protos, err := filepath.Glob(filepath.Join(protoDir, "*.proto"))
+		if err != nil || len(protos) == 0 {
+			continue
+		}
+
+		proto := readFile(protos[0])
+		if proto == "" {
+			continue
+		}
+
+		summaries = append(summaries, fmt.Sprintf("### %s\nProto:\n```\n%s\n```", e.Name(), proto))
+	}
+
+	return strings.Join(summaries, "\n\n")
+}
+
 // Generate creates go-micro service directories from a design.
 // If a service directory already exists, it skips structure generation
 // but regenerates the handler (allowing iterative improvement).
@@ -142,6 +224,9 @@ func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provid
 	m := newModel(provider, apiKey, model)
 
 	for i, svc := range design.Services {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		svcDir := filepath.Join(baseDir, svc.Name)
 		fmt.Printf("    \033[2m[%d/%d]\033[0m generating \033[36m%s\033[0m...\n", i+1, len(design.Services), svc.Name)
 

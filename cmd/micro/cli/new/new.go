@@ -7,10 +7,12 @@ import (
 	"go/build"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 
 	"go-micro.dev/v5/cmd/micro/cli/generate"
 	"text/template"
@@ -316,9 +318,9 @@ func printTree(dir string) {
 	fmt.Println(t.String())
 }
 
-func runPrompt(ctx *cli.Context, prompt string) error {
-	provider := ctx.String("provider")
-	apiKey := ctx.String("api_key")
+func runPrompt(cliCtx *cli.Context, prompt string) error {
+	provider := cliCtx.String("provider")
+	apiKey := cliCtx.String("api_key")
 	if apiKey == "" {
 		// Try provider-specific env vars
 		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
@@ -333,12 +335,15 @@ func runPrompt(ctx *cli.Context, prompt string) error {
 		return fmt.Errorf("--api_key or a provider API key env var is required for --prompt")
 	}
 
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
 	fmt.Println()
 	fmt.Println("  \033[1mmicro new --prompt\033[0m")
 	fmt.Println()
 	fmt.Printf("  \033[2mDesigning services for:\033[0m %s\n\n", prompt)
 
-	design, err := generate.Design(context.Background(), provider, apiKey, "", prompt)
+	design, err := generate.Design(ctx, provider, apiKey, "", ".", prompt)
 	if err != nil {
 		return fmt.Errorf("design failed: %w", err)
 	}
@@ -353,7 +358,7 @@ func runPrompt(ctx *cli.Context, prompt string) error {
 	fmt.Println()
 
 	fmt.Println("  Generating code...")
-	if err := generate.Generate(context.Background(), ".", design, provider, apiKey, ""); err != nil {
+	if err := generate.Generate(ctx, ".", design, provider, apiKey, ""); err != nil {
 		return fmt.Errorf("generate failed: %w", err)
 	}
 
