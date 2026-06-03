@@ -130,6 +130,8 @@ func Design(ctx context.Context, provider, apiKey, model, prompt string) (*Servi
 }
 
 // Generate creates go-micro service directories from a design.
+// If a service directory already exists, it skips structure generation
+// but regenerates the handler (allowing iterative improvement).
 func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provider, apiKey, model string) error {
 	m := newModel(provider, apiKey, model)
 
@@ -163,7 +165,13 @@ func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provid
 }
 
 // generateStructure creates the proto, main.go, go.mod, Makefile.
+// If the directory already exists, only regenerates the proto
+// (handler will be regenerated separately by the LLM).
 func generateStructure(dir string, svc ServiceSpec) error {
+	exists := false
+	if _, err := os.Stat(dir); err == nil {
+		exists = true
+	}
 	os.MkdirAll(filepath.Join(dir, "handler"), 0755)
 	os.MkdirAll(filepath.Join(dir, "proto"), 0755)
 
@@ -171,23 +179,26 @@ func generateStructure(dir string, svc ServiceSpec) error {
 	titleName := toTitle(name)
 	dehyphen := strings.ReplaceAll(name, "-", "")
 
-	// Proto
+	// Always regenerate proto (design may have changed)
 	writeFile(filepath.Join(dir, "proto", name+".proto"), buildProto(dehyphen, titleName, svc))
 
-	// Main
-	writeFile(filepath.Join(dir, "main.go"), buildMain(name, titleName))
+	// Only write structural files if directory is new
+	if !exists {
+		writeFile(filepath.Join(dir, "main.go"), buildMain(name, titleName))
 
-	// Makefile
-	writeFile(filepath.Join(dir, "Makefile"),
-		"GOPATH:=$(shell go env GOPATH)\n\n.PHONY: proto\nproto:\n\tprotoc --proto_path=. --micro_out=. --go_out=. proto/*.proto\n")
+		writeFile(filepath.Join(dir, "Makefile"),
+			"GOPATH:=$(shell go env GOPATH)\n\n.PHONY: proto\nproto:\n\tprotoc --proto_path=. --micro_out=. --go_out=. proto/*.proto\n")
 
-	// go.mod
-	writeFile(filepath.Join(dir, "go.mod"),
-		fmt.Sprintf("module %s\n\ngo 1.22\n\nrequire (\n\tgo-micro.dev/v5 latest\n\tgithub.com/golang/protobuf latest\n\tgoogle.golang.org/protobuf latest\n)\n", name))
+		writeFile(filepath.Join(dir, "go.mod"),
+			fmt.Sprintf("module %s\n\ngo 1.22\n\nrequire (\n\tgo-micro.dev/v5 latest\n\tgithub.com/golang/protobuf latest\n\tgoogle.golang.org/protobuf latest\n)\n", name))
+	}
 
-	// Placeholder handler so go mod tidy works
-	writeFile(filepath.Join(dir, "handler", name+".go"),
-		fmt.Sprintf("package handler\n\ntype %s struct{}\n\nfunc New() *%s { return &%s{} }\n", titleName, titleName, titleName))
+	// Placeholder handler so go mod tidy works (will be overwritten by LLM)
+	handlerPath := filepath.Join(dir, "handler", name+".go")
+	if _, err := os.Stat(handlerPath); os.IsNotExist(err) {
+		writeFile(handlerPath,
+			fmt.Sprintf("package handler\n\ntype %s struct{}\n\nfunc New() *%s { return &%s{} }\n", titleName, titleName, titleName))
+	}
 
 	return nil
 }
@@ -469,6 +480,7 @@ func writeFile(path, content string) {
 func runIn(dir string, name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "PATH="+os.Getenv("PATH")+":"+os.Getenv("GOPATH")+"/bin:"+os.Getenv("HOME")+"/go/bin")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
