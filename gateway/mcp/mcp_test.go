@@ -497,7 +497,6 @@ func TestDiscoverServices_RateLimiters(t *testing.T) {
 	s := newTestServer(Options{
 		Registry:  reg,
 		RateLimit: &RateLimitConfig{RequestsPerSecond: 10, Burst: 5},
-		Internal:  true,
 	})
 	if err := s.discoverServices(); err != nil {
 		t.Fatal(err)
