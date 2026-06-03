@@ -506,7 +506,7 @@ import (
 
 func main() {
 	service := micro.New("%s",
-		mcp.WithMCP(":3001"),
+		mcp.WithMCP(":0"),
 	)
 	service.Init()
 	pb.Register%sHandler(service.Server(), handler.New())
