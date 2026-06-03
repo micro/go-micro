@@ -502,8 +502,8 @@ func TestDiscoverServices_RateLimiters(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if len(s.limiters) != 2 {
-		t.Errorf("expected 2 limiters, got %d", len(s.limiters))
+	if len(s.limiters) != len(s.tools) {
+		t.Errorf("expected %d limiters (one per tool), got %d", len(s.tools), len(s.limiters))
 	}
 	for name := range s.tools {
 		if _, ok := s.limiters[name]; !ok {

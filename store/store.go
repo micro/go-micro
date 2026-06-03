@@ -12,7 +12,7 @@ import (
 var (
 	// ErrNotFound is returned when a key doesn't exist.
 	ErrNotFound = errors.New("not found")
-	// DefaultStore is the memory store.
+	// DefaultStore is the file store (persists to ~/micro/store/).
 	DefaultStore Store = NewStore()
 )
 

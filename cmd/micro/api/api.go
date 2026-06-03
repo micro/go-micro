@@ -27,10 +27,12 @@ import (
 	"syscall"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
 	codecBytes "go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/store"
 )
 
 func init() {
@@ -77,6 +79,9 @@ func run(c *cli.Context) error {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
+
+	// Framework primitives under /micro/
+	registerFrameworkRoutes(mux)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -136,10 +141,18 @@ func run(c *cli.Context) error {
 	fmt.Printf("  Listening    \033[36m%s\033[0m\n", addr)
 	fmt.Println()
 	fmt.Println("  Routes:")
-	fmt.Println("    \033[32mGET\033[0m  /                     List services")
-	fmt.Println("    \033[32mGET\033[0m  /{service}            Describe a service")
-	fmt.Println("    \033[33mPOST\033[0m /{service}/{endpoint} Call an endpoint")
-	fmt.Println("    \033[32mGET\033[0m  /health               Health check")
+	fmt.Println("    \033[32mGET\033[0m  /                           List services")
+	fmt.Println("    \033[32mGET\033[0m  /{service}                  Describe a service")
+	fmt.Println("    \033[33mPOST\033[0m /{service}/{endpoint}       Call an endpoint")
+	fmt.Println("    \033[32mGET\033[0m  /health                     Health check")
+	fmt.Println()
+	fmt.Println("  Framework:")
+	fmt.Println("    \033[32mGET\033[0m  /micro/registry             List registered services")
+	fmt.Println("    \033[32mGET\033[0m  /micro/registry/{name}      Describe a service")
+	fmt.Println("    \033[32mGET\033[0m  /micro/store                List store keys")
+	fmt.Println("    \033[32mGET\033[0m  /micro/store/{key}          Read a record")
+	fmt.Println("    \033[33mPOST\033[0m /micro/store/{key}          Write a record")
+	fmt.Println("    \033[33mPOST\033[0m /micro/broker/{topic}       Publish a message")
 	fmt.Println()
 
 	server := &http.Server{Addr: addr, Handler: mux}
@@ -223,4 +236,90 @@ func writeError(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
+// registerFrameworkRoutes adds /micro/* routes for registry, broker, and store.
+func registerFrameworkRoutes(mux *http.ServeMux) {
+	// Registry
+	mux.HandleFunc("/micro/registry", func(w http.ResponseWriter, r *http.Request) {
+		listServices(w)
+	})
+	mux.HandleFunc("/micro/registry/", func(w http.ResponseWriter, r *http.Request) {
+		name := strings.TrimPrefix(r.URL.Path, "/micro/registry/")
+		if name == "" {
+			listServices(w)
+			return
+		}
+		describeService(w, name)
+	})
+
+	// Store
+	mux.HandleFunc("/micro/store", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		keys, err := store.List()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		json.NewEncoder(w).Encode(keys)
+	})
+	mux.HandleFunc("/micro/store/", func(w http.ResponseWriter, r *http.Request) {
+		key := strings.TrimPrefix(r.URL.Path, "/micro/store/")
+		if key == "" {
+			w.Header().Set("Content-Type", "application/json")
+			keys, _ := store.List()
+			json.NewEncoder(w).Encode(keys)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.Method {
+		case http.MethodGet:
+			records, err := store.Read(key)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			if len(records) == 0 {
+				writeError(w, http.StatusNotFound, "key not found")
+				return
+			}
+			w.Write(records[0].Value)
+		case http.MethodPost:
+			body, _ := io.ReadAll(r.Body)
+			if err := store.Write(&store.Record{Key: key, Value: body}); err != nil {
+				writeError(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok", "key": key})
+		default:
+			writeError(w, http.StatusMethodNotAllowed, "use GET or POST")
+		}
+	})
+
+	// Broker
+	mux.HandleFunc("/micro/broker/", func(w http.ResponseWriter, r *http.Request) {
+		topic := strings.TrimPrefix(r.URL.Path, "/micro/broker/")
+		if topic == "" {
+			writeError(w, http.StatusBadRequest, "topic required: /micro/broker/{topic}")
+			return
+		}
+		if r.Method != http.MethodPost {
+			writeError(w, http.StatusMethodNotAllowed, "use POST to publish")
+			return
+		}
+		body, _ := io.ReadAll(r.Body)
+		b := broker.DefaultBroker
+		if err := b.Connect(); err != nil {
+			writeError(w, http.StatusInternalServerError, "broker connect: "+err.Error())
+			return
+		}
+		if err := b.Publish(topic, &broker.Message{Body: body}); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "topic": topic})
+	})
 }
