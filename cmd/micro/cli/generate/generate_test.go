@@ -178,9 +178,24 @@ func TestBuildProto(t *testing.T) {
 }
 
 func TestBuildMain(t *testing.T) {
-	main := buildMain("order-service", "OrderService")
-
+	// New naming: no -service suffix
+	main := buildMain("order", "Order")
 	checks := []string{
+		`"order/handler"`,
+		`pb "order/proto"`,
+		`micro.New("order"`,
+		`pb.RegisterOrderHandler`,
+		`handler.New()`,
+	}
+	for _, c := range checks {
+		if !strings.Contains(main, c) {
+			t.Errorf("buildMain(order) missing %q", c)
+		}
+	}
+
+	// Legacy naming: -service suffix stripped
+	main = buildMain("order-service", "OrderService")
+	checks = []string{
 		`"order-service/handler"`,
 		`pb "order-service/proto"`,
 		`micro.New("order"`,

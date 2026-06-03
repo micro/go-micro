@@ -47,7 +47,7 @@ Return ONLY valid JSON:
 }
 
 Rules:
-- Service names are lowercase, hyphenated
+- Service names are lowercase, hyphenated, WITHOUT a "-service" suffix (e.g. "task" not "task-service", "shipping" not "shipping-service")
 - Each service MUST have CRUD endpoints: Create, Read, Update, Delete, List
 - Add 1-3 custom endpoints for real business logic (e.g. PlaceOrder, CheckInventory)
 - Field types: string, int64, bool, float64
@@ -85,7 +85,7 @@ Return ONLY valid JSON:
 }
 
 Rules:
-- Service names are lowercase, hyphenated
+- Service names are lowercase, hyphenated, WITHOUT a "-service" suffix (e.g. "task" not "task-service", "shipping" not "shipping-service")
 - Each service MUST have CRUD endpoints: Create, Read, Update, Delete, List
 - Add custom endpoints for real business logic
 - Field types: string, int64, bool, float64

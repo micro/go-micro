@@ -12,15 +12,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/client"
+	clt "go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
+	"go-micro.dev/v5/cmd/micro/cli/generate"
 	"go-micro.dev/v5/registry"
 
-	// Side-effect imports register the AI providers.
 	_ "go-micro.dev/v5/ai/anthropic"
 	_ "go-micro.dev/v5/ai/atlascloud"
 	_ "go-micro.dev/v5/ai/gemini"
@@ -34,9 +37,21 @@ const systemPromptTmpl = `You are an agent that orchestrates microservices. Use 
 
 Available services: %s
 
-If a user asks for something that no existing service can handle, tell them which service they need and suggest the command to create it. For example: "You don't have a shipping service yet. Run: micro new --prompt 'add a shipping service' to create one."
+If a user asks for something that no existing service can handle, use the micro_generate_service tool to create it. Pass a short description of what the service should do. After it's created, the new service's endpoints will be available as tools and you can use them immediately.
 
-Do NOT make up capabilities. Only use the tools that are available.`
+Do NOT make up capabilities. Only use the tools that are available. If generation fails, tell the user.`
+
+var generateTool = ai.Tool{
+	Name:         "micro_generate_service",
+	OriginalName: "micro.generate_service",
+	Description:  "Generate a new microservice from a description. Use when the user needs a capability that no existing service provides. The service will be created, compiled, and started automatically.",
+	Properties: map[string]any{
+		"description": map[string]any{
+			"type":        "string",
+			"description": "What the service should do, e.g. 'a shipping service that tracks parcels and calculates rates'",
+		},
+	},
+}
 
 func init() {
 	cmd.Register(&cli.Command{
@@ -49,24 +64,12 @@ tool, and lets you ask natural-language questions like "list all users" or
 "create an order for product 42". The model decides which tool to call and
 issues RPCs to the right service.
 
+If you ask for something no existing service handles, the agent will generate
+a new service automatically and start using it.
+
 Examples:
-  # Chat with Anthropic Claude (uses ANTHROPIC_API_KEY)
   ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
-
-  # Use a single prompt and exit
-  micro chat --provider openai --prompt "list all users"
-
-  # Use a custom provider via base URL (auto-detected)
-  micro chat --api_key $KEY --base_url https://api.groq.com/openai
-
-Environment variables:
-  MICRO_AI_PROVIDER      Provider name (anthropic, openai, gemini, groq, ...)
-  MICRO_AI_API_KEY       API key for the provider
-  MICRO_AI_MODEL         Model name override
-  MICRO_AI_BASE_URL      Base URL override
-  ANTHROPIC_API_KEY      Fallback API key for the anthropic provider
-  OPENAI_API_KEY         Fallback API key for the openai provider
-  GEMINI_API_KEY         Fallback API key for the gemini provider`,
+  micro chat --provider openai --prompt "list all users"`,
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "provider", Usage: "AI provider (anthropic, openai, gemini, groq, mistral, together, atlascloud)", EnvVars: []string{"MICRO_AI_PROVIDER"}},
 			&cli.StringFlag{Name: "api_key", Usage: "API key for the provider", EnvVars: []string{"MICRO_AI_API_KEY"}},
@@ -78,10 +81,123 @@ Environment variables:
 	})
 }
 
+type session struct {
+	provider  string
+	apiKey    string
+	model     ai.Model
+	tools     *ai.Tools
+	reg       registry.Registry
+	hist      *ai.History
+	toolList  []ai.Tool
+	sysPrompt string
+	procs     []*exec.Cmd
+}
+
+func (s *session) refreshTools() {
+	discovered, err := s.tools.Discover()
+	if err != nil {
+		return
+	}
+	s.toolList = append(discovered, generateTool)
+
+	serviceNames := make(map[string]bool)
+	for _, t := range discovered {
+		parts := strings.SplitN(t.OriginalName, ".", 2)
+		if len(parts) == 2 {
+			serviceNames[parts[0]] = true
+		}
+	}
+	var svcList []string
+	for name := range serviceNames {
+		svcList = append(svcList, name)
+	}
+	if len(svcList) == 0 {
+		s.sysPrompt = fmt.Sprintf(systemPromptTmpl, "(none yet)")
+	} else {
+		s.sysPrompt = fmt.Sprintf(systemPromptTmpl, strings.Join(svcList, ", "))
+	}
+}
+
+func (s *session) handleGenerate(input map[string]any) (any, string) {
+	desc, _ := input["description"].(string)
+	if desc == "" {
+		return map[string]string{"error": "description is required"}, `{"error":"description is required"}`
+	}
+
+	fmt.Printf("\n  \033[36m⚡\033[0m generating service: %s\n", desc)
+
+	design, err := generate.Design(context.Background(), s.provider, s.apiKey, "", ".", desc)
+	if err != nil {
+		msg := fmt.Sprintf(`{"error":"design failed: %s"}`, err)
+		return map[string]string{"error": err.Error()}, msg
+	}
+
+	if err := generate.Generate(context.Background(), ".", design, s.provider, s.apiKey, ""); err != nil {
+		msg := fmt.Sprintf(`{"error":"generate failed: %s"}`, err)
+		return map[string]string{"error": err.Error()}, msg
+	}
+
+	// Find which services are new (not already in registry)
+	existing := make(map[string]bool)
+	if svcs, err := s.reg.ListServices(); err == nil {
+		for _, svc := range svcs {
+			existing[svc.Name] = true
+		}
+	}
+
+	var created []string
+	for _, svc := range design.Services {
+		name := strings.TrimSuffix(svc.Name, "-service")
+		if existing[name] {
+			continue
+		}
+		created = append(created, svc.Name)
+
+		// Build and start the new service
+		svcDir, _ := filepath.Abs(svc.Name)
+		fmt.Printf("  \033[36m⚡\033[0m starting %s...\n", svc.Name)
+
+		buildCmd := exec.Command("go", "build", "-o", svc.Name, ".")
+		buildCmd.Dir = svcDir
+		if out, err := buildCmd.CombinedOutput(); err != nil {
+			fmt.Printf("  \033[33m⚠\033[0m build failed: %s\n", string(out))
+			continue
+		}
+
+		runCmd := exec.Command(filepath.Join(svcDir, svc.Name))
+		runCmd.Dir = svcDir
+		if err := runCmd.Start(); err != nil {
+			fmt.Printf("  \033[33m⚠\033[0m start failed: %v\n", err)
+			continue
+		}
+		s.procs = append(s.procs, runCmd)
+	}
+
+	if len(created) == 0 {
+		result := map[string]any{"message": "No new services needed — all already exist."}
+		b, _ := json.Marshal(result)
+		return result, string(b)
+	}
+
+	// Wait for services to register
+	fmt.Printf("  \033[36m⚡\033[0m waiting for services to register...\n")
+	time.Sleep(5 * time.Second)
+
+	s.refreshTools()
+	fmt.Printf("  \033[32m✓\033[0m %d tools available\n\n", len(s.toolList)-1)
+
+	result := map[string]any{
+		"created": created,
+		"message": fmt.Sprintf("Created and started: %s. Their endpoints are now available as tools.", strings.Join(created, ", ")),
+	}
+	b, _ := json.Marshal(result)
+	return result, string(b)
+}
+
 func run(c *cli.Context) error {
 	provider := c.String("provider")
 	apiKey := c.String("api_key")
-	model := c.String("model")
+	modelName := c.String("model")
 	baseURL := c.String("base_url")
 	singlePrompt := c.String("prompt")
 
@@ -95,64 +211,62 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("no API key configured; set --api_key or %s", envVarForProvider(provider))
 	}
 
-	// Discover tools and wire up a handler that routes to the right RPC.
 	reg := registry.DefaultRegistry
-	cli := client.DefaultClient
+	cl := clt.DefaultClient
 
-	tools := ai.NewTools(reg, ai.ToolClient(cli))
-	discovered, err := tools.Discover()
-	if err != nil {
-		return fmt.Errorf("discover tools: %w", err)
+	tools := ai.NewTools(reg, ai.ToolClient(cl))
+
+	s := &session{
+		provider: provider,
+		apiKey:   apiKey,
+		tools:    tools,
+		reg:      reg,
+		hist:     ai.NewHistory(50),
+	}
+	s.refreshTools()
+
+	// Wrap the tool handler to intercept generate calls
+	baseHandler := tools.Handler()
+	wrappedHandler := func(name string, input map[string]any) (any, string) {
+		if name == "micro_generate_service" {
+			return s.handleGenerate(input)
+		}
+		return baseHandler(name, input)
 	}
 
 	opts := []ai.Option{
 		ai.WithAPIKey(apiKey),
-		ai.WithTools(tools),
+		ai.WithToolHandler(wrappedHandler),
 	}
-	if model != "" {
-		opts = append(opts, ai.WithModel(model))
+	if modelName != "" {
+		opts = append(opts, ai.WithModel(modelName))
 	}
 	if baseURL != "" {
 		opts = append(opts, ai.WithBaseURL(baseURL))
 	}
 
-	m := ai.New(provider, opts...)
-	if m == nil {
+	s.model = ai.New(provider, opts...)
+	if s.model == nil {
 		return fmt.Errorf("unknown provider: %s", provider)
 	}
 
-	hist := ai.NewHistory(50)
-
-	// Build service list for system prompt
-	serviceNames := make(map[string]bool)
-	for _, t := range discovered {
-		parts := strings.SplitN(t.OriginalName, ".", 2)
-		if len(parts) == 2 {
-			serviceNames[parts[0]] = true
-		}
-	}
-	var svcList []string
-	for name := range serviceNames {
-		svcList = append(svcList, name)
-	}
-	sysPrompt := fmt.Sprintf(systemPromptTmpl, strings.Join(svcList, ", "))
+	defer s.cleanup()
 
 	if singlePrompt != "" {
-		return ask(c.Context, m, hist, discovered, sysPrompt, singlePrompt)
+		return s.ask(c.Context, singlePrompt)
 	}
 
-	// Startup banner
 	fmt.Println()
 	fmt.Println("  \033[1mmicro chat\033[0m")
 	fmt.Println()
 	fmt.Printf("  Provider    \033[36m%s\033[0m\n", provider)
-	fmt.Printf("  Model       \033[36m%s\033[0m\n", m.Options().Model)
+	fmt.Printf("  Model       \033[36m%s\033[0m\n", s.model.Options().Model)
 	fmt.Println()
 	fmt.Println("  Tools:")
-	for _, t := range discovered {
+	for _, t := range s.toolList {
 		fmt.Printf("    \033[32m●\033[0m %s\n", t.OriginalName)
 	}
-	if len(discovered) == 0 {
+	if len(s.toolList) == 0 {
 		fmt.Println("    \033[33m(no services found)\033[0m")
 	}
 	fmt.Println()
@@ -175,42 +289,45 @@ func run(c *cli.Context) error {
 			return nil
 		}
 		if line == "reset" {
-			hist.Reset()
+			s.hist.Reset()
 			fmt.Println("\033[2m(history cleared)\033[0m")
 			fmt.Println()
 			continue
 		}
-		if err := ask(c.Context, m, hist, discovered, sysPrompt, line); err != nil {
+		if err := s.ask(c.Context, line); err != nil {
 			fmt.Printf("\033[31merror:\033[0m %v\n", err)
 		}
 		fmt.Println()
 	}
 }
 
-func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, sysPrompt, prompt string) error {
-	hist.Add("user", prompt)
+func (s *session) ask(ctx context.Context, prompt string) error {
+	s.hist.Add("user", prompt)
 
-	resp, err := m.Generate(ctx, &ai.Request{
+	resp, err := s.model.Generate(ctx, &ai.Request{
 		Prompt:       prompt,
-		SystemPrompt: sysPrompt,
-		Tools:        toolList,
-		Messages:     hist.Messages(),
+		SystemPrompt: s.sysPrompt,
+		Tools:        s.toolList,
+		Messages:     s.hist.Messages(),
 	})
 	if err != nil {
 		return err
 	}
 
 	if resp.Reply != "" {
-		hist.Add("assistant", resp.Reply)
+		s.hist.Add("assistant", resp.Reply)
 	}
 	if resp.Answer != "" {
-		hist.Add("assistant", resp.Answer)
+		s.hist.Add("assistant", resp.Answer)
 	}
 
 	if resp.Reply != "" {
 		fmt.Println(resp.Reply)
 	}
 	for _, tc := range resp.ToolCalls {
+		if tc.Name == "micro_generate_service" {
+			continue // output handled by handleGenerate
+		}
 		args, _ := json.Marshal(tc.Input)
 		fmt.Printf("  \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
 		if tc.Result != "" {
@@ -227,10 +344,14 @@ func ask(ctx context.Context, m ai.Model, hist *ai.History, toolList []ai.Tool, 
 	return nil
 }
 
-// fallbackAPIKey returns the provider-specific environment variable when
-// neither --api_key nor MICRO_AI_API_KEY is set. This lets users keep
-// existing ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY vars
-// without re-exporting them.
+func (s *session) cleanup() {
+	for _, p := range s.procs {
+		if p.Process != nil {
+			p.Process.Kill()
+		}
+	}
+}
+
 func fallbackAPIKey(provider string) string {
 	if v := os.Getenv(envVarForProvider(provider)); v != "" {
 		return v
