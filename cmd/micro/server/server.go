@@ -1413,7 +1413,11 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 				if del := r.FormValue("delete"); del != "" {
 					// Delete user
 					storeInst.Delete("auth/" + del)
-					deleteUserTokens(storeInst, del) // Delete all JWT tokens for this user
+					deleteUserTokens(storeInst, del)
+					// Mark default admin as deleted so it won't be recreated on restart
+					if del == "admin" {
+						storeInst.Write(&store.Record{Key: "auth/.admin-deleted", Value: []byte("true")})
+					}
 					http.Redirect(w, r, "/auth/users", http.StatusSeeOther)
 					return
 				}
@@ -1627,11 +1631,15 @@ func initAuth() error {
 	_, _ = os.ReadFile(privPath)
 	_, _ = os.ReadFile(pubPath)
 	storeInst := store.DefaultStore
-	// --- Ensure default admin account exists ---
+	// --- Ensure default admin account exists on first run ---
+	// If the admin was explicitly deleted (marker key exists), don't recreate.
 	adminID := "admin"
 	adminPass := "micro"
 	adminKey := "auth/" + adminID
-	if recs, _ := storeInst.Read(adminKey); len(recs) == 0 {
+	adminDeletedKey := "auth/.admin-deleted"
+	if recs, _ := storeInst.Read(adminDeletedKey); len(recs) > 0 {
+		// Admin was explicitly deleted — don't recreate
+	} else if recs, _ := storeInst.Read(adminKey); len(recs) == 0 {
 		// Hash the admin password with bcrypt
 		hash, err := bcrypt.GenerateFromPassword([]byte(adminPass), bcrypt.DefaultCost)
 		if err != nil {
