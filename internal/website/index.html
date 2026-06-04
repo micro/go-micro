@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Go Micro - A pluggable Go framework for distributed systems and microservices" />
+    <meta name="description" content="Go Micro - A Go framework for building microservices that AI agents can use" />
     <meta name="go-import" content="go-micro.dev/v5 git https://github.com/micro/go-micro">
     <meta name="go-source" content="go-micro.dev/5 https://github.com/micro/go-micro https://github.com/micro/go-micro/tree/master{/dir} https://github.com/micro/go-micro/blob/master{/dir}/{file}#L{line}">
-    <title>Go Micro - Pluggable Go Microservices Framework</title>
+    <title>Go Micro - Microservices That AI Agents Can Use</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html { overflow-x: hidden; }
@@ -174,9 +174,9 @@
 
     <section class="hero">
       <div class="hero-inner">
-        <h1>Build Microservices in Go</h1>
-        <p class="tagline">A pluggable framework for distributed systems with built-in service discovery, RPC, pub/sub, and AI agent integration.</p>
-        <pre>go get go-micro.dev/v5</pre>
+        <h1>Microservices That AI Agents Can Use</h1>
+        <p class="tagline">Write services in Go. Every endpoint is automatically an AI-callable tool. An agent orchestrates across them.</p>
+        <pre>micro run --prompt "a task management system" --provider anthropic</pre>
         <div class="hero-buttons">
           <a href="/docs/getting-started.html" class="btn btn-primary">Get Started</a>
           <a href="https://github.com/micro/go-micro" class="btn btn-secondary">View on GitHub</a>
@@ -197,28 +197,28 @@
         <p class="subtitle">Sane defaults out of the box. Every abstraction is swappable.</p>
         <div class="features">
           <div class="feature">
+            <strong>Services as AI Tools</strong>
+            <p>Every endpoint is automatically callable by AI agents via Model Context Protocol.</p>
+          </div>
+          <div class="feature">
+            <strong>Agent Orchestration</strong>
+            <p><code>micro chat</code> discovers services and lets an LLM coordinate across them.</p>
+          </div>
+          <div class="feature">
+            <strong>Generate from a Prompt</strong>
+            <p><code>micro run --prompt</code> designs, generates, and starts services from plain English.</p>
+          </div>
+          <div class="feature">
             <strong>Service Discovery</strong>
             <p>Automatic registration and name resolution via mDNS, Consul, or etcd.</p>
           </div>
           <div class="feature">
-            <strong>RPC Client/Server</strong>
-            <p>Request/response and bidirectional streaming with load balancing built in.</p>
+            <strong>RPC &amp; Pub/Sub</strong>
+            <p>Request/response, streaming, and async events. gRPC, NATS, RabbitMQ built in.</p>
           </div>
           <div class="feature">
-            <strong>Pub/Sub Events</strong>
-            <p>Async messaging with NATS, RabbitMQ, or the built-in HTTP broker.</p>
-          </div>
-          <div class="feature">
-            <strong>Data Model</strong>
-            <p>Typed CRUD and queries backed by memory, SQLite, or Postgres.</p>
-          </div>
-          <div class="feature">
-            <strong>gRPC Native</strong>
-            <p>Use gRPC transport with any standard gRPC client. No lock-in.</p>
-          </div>
-          <div class="feature">
-            <strong>MCP &amp; AI Agents</strong>
-            <p>Every service is automatically an AI-callable tool via Model Context Protocol.</p>
+            <strong>Pluggable Everything</strong>
+            <p>All abstractions are Go interfaces. Swap any component without changing service code.</p>
           </div>
         </div>
       </div>
@@ -226,12 +226,16 @@
 
     <section class="section">
       <div class="two-col">
-        <div class="two-col-text">
-          <h2>Pluggable Architecture</h2>
-          <p>Services connect through a registry for discovery and a broker for events. Swap any component without changing your service code — go from mDNS to Consul, or HTTP to gRPC, with a single option.</p>
-        </div>
         <div>
-          <img src="/images/generated/architecture.png" alt="Go Micro architecture diagram" />
+          <img src="/images/generated/mcp-agent.png" alt="AI agent calling microservices via MCP" />
+        </div>
+        <div class="two-col-text">
+          <h2>Describe, Generate, Run, Chat</h2>
+          <p>Tell it what you need. The AI designs services, writes handlers with real business logic, compiles them, and starts them. Then talk to them through an agent that orchestrates across services automatically.</p>
+          <pre><span class="kw">$</span> <span class="fn">micro run</span> <span class="str">--prompt "an order system"</span>
+<span class="kw">$</span> <span class="fn">micro chat</span> <span class="str">--provider anthropic</span>
+<span class="kw">&gt;</span> Place an order for SKU-123 to London</pre>
+          <p><a href="/blog/13" class="btn btn-primary" style="margin-top: 0.75rem; display: inline-block;">See How It Works</a></p>
         </div>
       </div>
     </section>
@@ -239,13 +243,12 @@
     <section class="section-alt">
       <div class="section">
         <div class="two-col">
-          <div>
-            <img src="/images/generated/mcp-agent.png" alt="AI agent calling microservices via MCP" />
-          </div>
           <div class="two-col-text">
-            <h2>AI-Native by Default</h2>
-            <p>Every service is automatically an AI-callable tool via MCP. Call LLMs from your services with 7 providers. Generate images and video. Orchestrate services through natural language with <code>micro chat</code>.</p>
-            <p><a href="/docs/ai-integration.html" class="btn btn-primary" style="margin-top: 0.75rem; display: inline-block;">How It All Fits Together</a></p>
+            <h2>Pluggable Architecture</h2>
+            <p>Services connect through a registry for discovery and a broker for events. Swap any component without changing your service code — go from mDNS to Consul, or HTTP to gRPC, with a single option.</p>
+          </div>
+          <div>
+            <img src="/images/generated/architecture.png" alt="Go Micro architecture diagram" />
           </div>
         </div>
       </div>
@@ -255,7 +258,7 @@
       <div class="two-col">
         <div class="two-col-text">
           <h2>Developer Experience</h2>
-          <p><code>micro run</code> starts your services with hot reload, an API gateway, and an agent playground. <code>micro chat</code> lets you talk to your services through any LLM. <code>micro new --template crud</code> scaffolds a production-ready service in seconds.</p>
+          <p><code>micro run</code> starts your services with hot reload, an API gateway, and an agent playground. <code>micro chat</code> lets you talk to your services through any LLM. <code>micro deploy</code> pushes to production via SSH.</p>
         </div>
         <div>
           <img src="/images/generated/developer-experience.png" alt="Terminal showing micro run and micro chat" />
