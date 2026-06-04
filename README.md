@@ -4,6 +4,12 @@ Go Micro is a framework for building microservices that AI agents can use.
 
 Write services in Go. They register, discover each other, and communicate via RPC and events. Every endpoint is automatically an AI-callable tool via [MCP](https://modelcontextprotocol.io/). An agent orchestrates across services so they don't have to call each other.
 
+## Sponsors
+
+<a href="https://go-micro.dev/blog/3"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Anthropic_logo.svg" height="26" /></a>
+&nbsp;&nbsp;
+<a href="https://go-micro.dev/blog/8"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
+
 ## Quick Start
 
 Install the CLI:
@@ -13,7 +19,7 @@ Install the CLI:
 curl -fsSL https://go-micro.dev/install.sh | sh
 
 # Or with Go
-go install go-micro.dev/v5/cmd/micro@latest
+go install go-micro.dev/v5/cmd/micro@v5.25.0
 ```
 
 Generate services from a description, start them, and talk to them:
@@ -33,12 +39,6 @@ micro run
 ```
 
 Open http://localhost:8080 to see the dashboard, call endpoints, and chat with your services.
-
-## Sponsors
-
-<a href="https://go-micro.dev/blog/3"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Anthropic_logo.svg" height="26" /></a>
-&nbsp;&nbsp;
-<a href="https://go-micro.dev/blog/8"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
 
 ## How It Works
 
