@@ -4,6 +4,7 @@ package micro
 import (
 	"context"
 
+	"go-micro.dev/v5/agent"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/service"
@@ -13,6 +14,12 @@ type serviceKey struct{}
 
 // Service is the interface for a go-micro service.
 type Service = service.Service
+
+// Agent is the interface for an AI agent that manages services.
+type Agent = agent.Agent
+
+// AgentOption configures an Agent.
+type AgentOption = agent.Option
 
 // Group is a set of services that share lifecycle management.
 type Group = service.Group
@@ -43,6 +50,33 @@ func New(name string, opts ...Option) Service {
 func NewService(opts ...Option) Service {
 	return service.New(opts...)
 }
+
+// NewAgent creates a new AI agent that manages the given services.
+//
+//	agent := micro.NewAgent("task-mgr",
+//	    micro.AgentServices("task"),
+//	    micro.AgentPrompt("You manage tasks."),
+//	    micro.AgentProvider("anthropic"),
+//	)
+//	agent.Run()
+func NewAgent(name string, opts ...AgentOption) Agent {
+	return agent.New(append([]AgentOption{agent.Name(name)}, opts...)...)
+}
+
+// AgentServices sets which services the agent manages.
+func AgentServices(names ...string) AgentOption { return agent.Services(names...) }
+
+// AgentPrompt sets the agent's system prompt.
+func AgentPrompt(p string) AgentOption { return agent.Prompt(p) }
+
+// AgentProvider sets the LLM provider.
+func AgentProvider(p string) AgentOption { return agent.Provider(p) }
+
+// AgentModel sets the LLM model.
+func AgentModel(m string) AgentOption { return agent.Model(m) }
+
+// AgentAPIKey sets the API key for the LLM provider.
+func AgentAPIKey(k string) AgentOption { return agent.APIKey(k) }
 
 // NewGroup creates a service group for running multiple services
 // in a single binary with shared lifecycle management.
