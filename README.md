@@ -22,29 +22,70 @@ curl -fsSL https://go-micro.dev/install.sh | sh
 go install go-micro.dev/v5/cmd/micro@v5.25.0
 ```
 
-Generate services from a description, start them, and talk to them:
+Generate services from a description and start them:
 
 ```bash
 micro run --prompt "a task management system with categories" --provider anthropic
+```
+
+The AI designs the architecture, you review it, then it generates handlers with real business logic, compiles them, and starts them:
+
+```
+Services:
+  ● category — Manages task categories
+  ● task — Task management with status tracking
+
+Generate? [Y/n]
+```
+
+```
+Micro
+
+  Dashboard   http://localhost:8080
+  API         http://localhost:8080/api/{service}/{method}
+  Agent       http://localhost:8080/agent
+
+  Services:
+    ● category
+    ● task
+```
+
+Talk to your services through an agent:
+
+```bash
 micro chat --provider anthropic
 > Create a Work category, then add a task called 'Finish report' to it
 ```
 
-Or scaffold a single service by hand:
+The agent discovers services from the registry, sees every endpoint as a tool, and orchestrates across them:
 
-```bash
-micro new helloworld
-cd helloworld
-micro run
+```
+→ category_Category_Create({"name":"Work","user_id":"user1"})
+← {"record":{"id":"f633...","name":"Work"},"success":true}
+→ task_Task_Create({"title":"Finish report","category_id":"f633..."})
+← {"record":{"id":"a1b2...","title":"Finish report","status":"pending"}}
+
+Created Work category and added 'Finish report' task to it.
 ```
 
-Open http://localhost:8080 to see the dashboard, call endpoints, and chat with your services.
+When you need a capability that doesn't exist, the agent generates a new service mid-conversation:
 
-## How It Works
+```
+> I need to track shipping. Create a shipment for order 123 to London.
 
-### 1. Write a Service
+  ⚡ generating shipping service...
+  ✓ shipping
+  → shipping_Shipping_Create({"order_id":"123","destination":"London"})
+  ← {"record":{"id":"xyz...","status":"pending"}}
 
-A service is a struct with methods. Doc comments and `@example` tags become tool descriptions for AI agents.
+  Created shipment for order 123 going to London.
+```
+
+Edit the generated code by hand at any time — re-running preserves your changes. [Read more](https://go-micro.dev/blog/13).
+
+## Writing Services
+
+Under the hood, a service is a struct with methods. Doc comments and `@example` tags become tool descriptions for AI agents automatically.
 
 ```go
 package main
@@ -77,9 +118,7 @@ func main() {
 }
 ```
 
-### 2. Run It
-
-`micro run` starts your service with an API gateway, agent playground, and hot reload:
+Run it and everything is accessible — REST, gRPC, MCP, agent playground:
 
 ```bash
 micro run
@@ -89,46 +128,40 @@ micro run
 # MCP Tools:   http://localhost:8080/mcp/tools
 ```
 
-### 3. Talk to It
-
-`micro chat` discovers services from the registry, exposes every endpoint as a tool, and lets an LLM orchestrate:
+You can also scaffold a service from a template:
 
 ```bash
-micro chat --provider anthropic
-> Say hello to Alice
-→ greeter_Say_Hello({"name":"Alice"})
-← {"message":"Hello Alice"}
+micro new helloworld
+micro new contacts --template crud
 ```
-
-When you need a capability that doesn't exist, the agent generates a new service mid-conversation, compiles it, starts it, and uses it immediately. [Read more](https://go-micro.dev/blog/13).
 
 ## Features
 
 | Category | What | Details |
 |----------|------|---------|
+| **AI** | MCP gateway | Every endpoint is an AI tool automatically |
+| **AI** | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
+| **AI** | Agent orchestration | `micro chat` — LLM calls services as tools |
+| **AI** | Service generation | `micro run --prompt` — describe a system, get running services |
 | **Discovery** | Service registry | mDNS (default), Consul, etcd |
 | **Communication** | RPC client/server | gRPC transport, load balancing, streaming |
 | **Messaging** | Pub/sub events | NATS, RabbitMQ, HTTP broker |
 | **Storage** | Key-value store | File (bbolt), Postgres, NATS KV |
 | **Data** | Typed model layer | CRUD + queries, SQLite/Postgres backends |
-| **AI** | MCP gateway | Every endpoint is an AI tool automatically |
-| **AI** | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
-| **AI** | Agent orchestration | `micro chat` — LLM calls services as tools |
-| **AI** | Service generation | `micro run --prompt` — describe a system, get running services |
 | **DX** | Hot reload | `micro run` watches files, rebuilds on change |
 | **DX** | Templates | `micro new --template crud/pubsub/api` |
 | **Deploy** | One-command deploy | `micro deploy user@server` — SSH + systemd, no Docker |
 | **Plugins** | Everything swappable | All abstractions are Go interfaces |
 
-## CLI Workflow
+## CLI
 
 | Command | Purpose |
 |---------|---------|
+| `micro run --prompt "..."` | Generate services from a description and run them |
+| `micro chat --provider anthropic` | Talk to services through an LLM |
 | `micro new myservice` | Scaffold a service |
 | `micro run` | Dev mode: hot reload, gateway, agent playground |
-| `micro run --prompt "..."` | Generate services from a description and run them |
-| `micro call service endpoint '{"key":"val"}'` | Call a service from the CLI |
-| `micro chat --provider anthropic` | Talk to services through an LLM |
+| `micro call service endpoint '{}'` | Call a service from the CLI |
 | `micro build` | Compile production binaries |
 | `micro deploy user@server` | Deploy via SSH + systemd |
 
