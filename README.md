@@ -6,10 +6,14 @@ Write services in Go. They register, discover each other, and communicate via RP
 
 ## Quick Start
 
-Install Micro
+Install the CLI:
 
 ```bash
-go install go-micro.dev/v5/cmd/micro@v5.25.0
+# Binary (no Go required)
+curl -fsSL https://go-micro.dev/install.sh | sh
+
+# Or with Go
+go install go-micro.dev/v5/cmd/micro@latest
 ```
 
 Generate services from a description, start them, and talk to them:
