@@ -6,11 +6,15 @@ Write services in Go. They register, discover each other, and communicate via RP
 
 ## Quick Start
 
+Install Micro
+
+```bash
+go install go-micro.dev/v5/cmd/micro@v5.25.0
+```
+
 Generate services from a description, start them, and talk to them:
 
 ```bash
-go install go-micro.dev/v5/cmd/micro@latest
-
 micro run --prompt "a task management system with categories" --provider anthropic
 micro chat --provider anthropic
 > Create a Work category, then add a task called 'Finish report' to it
