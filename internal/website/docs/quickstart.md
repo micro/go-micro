@@ -87,7 +87,7 @@ publisher.Publish(ctx, &UserCreatedEvent{
 
 ## Get Help
 
-- **[Discord Community](https://discord.gg/jwTYuUVAGh)** - Chat with other users
+- **[Discord Community](https://discord.gg/WeMU5AGxD)** - Chat with other users
 - **[GitHub Issues](https://github.com/micro/go-micro/issues)** - Report bugs or request features
 - **[Documentation](https://go-micro.dev/docs/)** - Complete docs
 
