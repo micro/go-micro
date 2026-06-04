@@ -957,7 +957,7 @@ Let's make it Go Micro.
 
 **Questions? Feedback?**
 - GitHub Discussions: https://github.com/micro/go-micro/discussions
-- Discord: https://discord.gg/jwTYuUVAGh
+- Discord: https://discord.gg/WeMU5AGxD
 
 ---
 

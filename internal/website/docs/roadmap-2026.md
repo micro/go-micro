@@ -230,7 +230,7 @@ For the complete roadmap including business model details, risk mitigation, and 
 - [MCP Integration Guide](/docs/mcp)
 - [Blog: AI-Native Microservices](/blog/2)
 - [Examples](/examples)
-- [Discord Community](https://discord.gg/jwTYuUVAGh)
+- [Discord Community](https://discord.gg/WeMU5AGxD)
 
 ---
 
