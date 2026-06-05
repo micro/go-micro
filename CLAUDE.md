@@ -34,7 +34,8 @@ micro run
 
 ```
 go-micro/
-├── ai/             # AI model providers (Anthropic, OpenAI)
+├── agent/          # Agent abstraction (intelligent service management)
+├── ai/             # AI model providers (Anthropic, OpenAI, Gemini, etc.)
 ├── auth/           # Authentication (JWT, no-op)
 ├── broker/         # Message broker (NATS, RabbitMQ)
 ├── cache/          # Caching (Redis)
@@ -44,6 +45,7 @@ go-micro/
 ├── config/         # Dynamic config (env, file, etcd, NATS)
 ├── errors/         # Error handling
 ├── events/         # Event system (NATS JetStream)
+├── flow/           # Event-driven LLM orchestration
 ├── gateway/
 │   ├── api/        # REST API gateway
 │   └── mcp/        # MCP gateway (core AI integration)

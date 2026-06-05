@@ -135,13 +135,43 @@ micro new helloworld
 micro new contacts --template crud
 ```
 
+## Building Agents
+
+An Agent is the intelligence layer that manages services. It's a first-class abstraction alongside Service:
+
+```go
+agent := micro.NewAgent("task-mgr",
+    micro.AgentServices("task", "project"),
+    micro.AgentPrompt("You manage tasks and projects. You understand deadlines and priorities."),
+    micro.AgentProvider("anthropic"),
+)
+agent.Run()
+```
+
+The agent discovers its services from the registry, scopes its tools to their endpoints, and maintains conversation memory in the store. It registers itself so `micro chat` and other agents can find it.
+
+```go
+// Programmatic interaction
+resp, _ := agent.Chat(ctx, "What tasks are overdue?")
+fmt.Println(resp.Reply)
+```
+
+Multiple agents coordinate through the broker — each manages its domain, `micro chat` routes to the right one.
+
+```bash
+micro agent list                    # list registered agents
+micro agent chat task-mgr           # talk to a specific agent
+```
+
 ## Features
 
 | Category | What | Details |
 |----------|------|---------|
+| **AI** | Agents | `micro.NewAgent()` — intelligent layer that manages services |
+| **AI** | Flows | `micro.NewFlow()` — event-driven LLM orchestration |
 | **AI** | MCP gateway | Every endpoint is an AI tool automatically |
 | **AI** | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
-| **AI** | Agent orchestration | `micro chat` — LLM calls services as tools |
+| **AI** | Chat router | `micro chat` routes to agents or calls services directly |
 | **AI** | Service generation | `micro run --prompt` — describe a system, get running services |
 | **Discovery** | Service registry | mDNS (default), Consul, etcd |
 | **Communication** | RPC client/server | gRPC transport, load balancing, streaming |
@@ -158,7 +188,9 @@ micro new contacts --template crud
 | Command | Purpose |
 |---------|---------|
 | `micro run --prompt "..."` | Generate services from a description and run them |
-| `micro chat --provider anthropic` | Talk to services through an LLM |
+| `micro chat` | Route messages to agents or call services directly |
+| `micro agent list` | List registered agents |
+| `micro agent describe <name>` | Show agent details |
 | `micro new myservice` | Scaffold a service |
 | `micro run` | Dev mode: hot reload, gateway, agent playground |
 | `micro call service endpoint '{}'` | Call a service from the CLI |
@@ -244,6 +276,7 @@ See [all examples](examples/README.md).
 
 - [Getting Started](internal/website/docs/getting-started.md)
 - [AI Integration](internal/website/docs/ai-integration.md)
+- [Agent Design](internal/docs/AGENT_DESIGN.md)
 - [MCP & AI Agents](internal/website/docs/mcp.md)
 - [Data Model](internal/website/docs/model.md)
 - [Deployment](internal/website/docs/deployment.md)
