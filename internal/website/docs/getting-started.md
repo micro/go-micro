@@ -32,7 +32,7 @@ Describe what you need. The AI designs services, writes handlers, compiles, and 
 micro run --prompt "task management system"
 ```
 
-You'll see the design, confirm, and services start:
+You'll see the design, confirm, and services + agent start:
 
 ```text
 Services:
@@ -42,20 +42,21 @@ Services:
 Generate? [Y/n]
 
 Micro
-  Dashboard   http://localhost:8080
   Services:
     ● task
     ● project
+  Agents:
+    ◆ agent
 ```
 
-Talk to your services through an agent:
+Talk to your services through the agent:
 
 ```bash
-micro chat --provider anthropic
+micro chat
 > Create a project called Launch, then add a task called 'Write docs'
 ```
 
-The agent discovers services, calls the right endpoints, and orchestrates across them.
+`micro chat` discovers the agent from the registry and routes to it. The agent knows which services it manages and calls the right endpoints.
 
 ## Quick Start: Write a Service
 

@@ -32,38 +32,35 @@ The AI designs the architecture, you review it, then it generates handlers with 
 
 ```
 Services:
-  ● category — Manages task categories
   ● task — Task management with status tracking
+  ● project — Project organization
 
 Generate? [Y/n]
-```
 
-```
 Micro
-
-  Dashboard   http://localhost:8080
-  API         http://localhost:8080/api/{service}/{method}
-  Agent       http://localhost:8080/agent
-
   Services:
-    ● category
     ● task
+    ● project
+  Agents:
+    ◆ agent
 ```
 
-Talk to your services through an agent:
+Talk to your services through the agent:
 
 ```bash
-micro chat --provider anthropic
-> Create a Work category, then add a task called 'Finish report' to it
+micro chat
+> Create a project called Launch, then add three tasks to it
 ```
 
-The agent discovers services from the registry, sees every endpoint as a tool, and orchestrates across them:
+`micro chat` routes to the agent. The agent orchestrates across its services:
 
 ```
-→ category_Category_Create({"name":"Work","user_id":"user1"})
-← {"record":{"id":"f633...","name":"Work"},"success":true}
-→ task_Task_Create({"title":"Finish report","category_id":"f633..."})
-← {"record":{"id":"a1b2...","title":"Finish report","status":"pending"}}
+◆ agent
+  → project_Project_Create({"name":"Launch"})
+  ← {"record":{"id":"p1..."},"success":true}
+  → task_Task_Create({"title":"Design specs","project_id":"p1..."})
+  → task_Task_Create({"title":"Write code","project_id":"p1..."})
+  → task_Task_Create({"title":"Ship it","project_id":"p1..."})
 
 Created Work category and added 'Finish report' task to it.
 ```
