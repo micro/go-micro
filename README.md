@@ -1,8 +1,8 @@
 # Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v5?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro)
 
-Go Micro is a framework for building microservices that AI agents can use.
+Go Micro is a framework for building services and agents in Go.
 
-Write services in Go. They register, discover each other, and communicate via RPC and events. Every endpoint is automatically an AI-callable tool via [MCP](https://modelcontextprotocol.io/). An agent orchestrates across services so they don't have to call each other.
+Write services — they register, discover each other, and communicate via RPC and events. Every endpoint is automatically an AI-callable tool via [MCP](https://modelcontextprotocol.io/). Build agents to manage them intelligently. Both are Go code, both use the same primitives, both deploy the same way.
 
 ## Sponsors
 
