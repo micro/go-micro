@@ -31,7 +31,12 @@ func init() {
 						}
 						meta := records[0].Metadata
 						if meta == nil || meta["type"] != "agent" {
-							continue
+							if len(records[0].Nodes) > 0 {
+								meta = records[0].Nodes[0].Metadata
+							}
+							if meta == nil || meta["type"] != "agent" {
+								continue
+							}
 						}
 						found = true
 						services := meta["services"]

@@ -167,11 +167,22 @@ func (a *agentImpl) Run() error {
 	}
 
 	// Register agent in the registry
+	nodeID := a.opts.Name + "-" + fmt.Sprintf("%d", os.Getpid())
 	svc := &registry.Service{
 		Name: a.opts.Name,
 		Metadata: map[string]string{
 			"type":     "agent",
 			"services": strings.Join(a.opts.Services, ","),
+		},
+		Nodes: []*registry.Node{
+			{
+				Id:      nodeID,
+				Address: fmt.Sprintf("127.0.0.1:%d", 40000+os.Getpid()%10000),
+				Metadata: map[string]string{
+					"type":     "agent",
+					"services": strings.Join(a.opts.Services, ","),
+				},
+			},
 		},
 	}
 
@@ -180,7 +191,10 @@ func (a *agentImpl) Run() error {
 	}
 	defer a.opts.Registry.Deregister(svc)
 
-	// Subscribe to agent messages on the broker
+	fmt.Printf("Agent %s registered (manages: %s)\n", a.opts.Name, strings.Join(a.opts.Services, ", "))
+
+	// Try to subscribe to agent messages on the broker
+	a.opts.Broker.Connect()
 	sub, err := a.opts.Broker.Subscribe("agent."+a.opts.Name, func(p broker.Event) error {
 		msg := p.Message()
 		if msg == nil || len(msg.Body) == 0 {
@@ -198,10 +212,9 @@ func (a *agentImpl) Run() error {
 		}
 		return nil
 	})
-	if err != nil {
-		return fmt.Errorf("failed to subscribe: %w", err)
+	if err == nil {
+		defer sub.Unsubscribe()
 	}
-	defer sub.Unsubscribe()
 
 	// Block until signal
 	sigCh := make(chan os.Signal, 1)
