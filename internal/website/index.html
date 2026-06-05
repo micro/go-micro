@@ -194,24 +194,24 @@
         <p class="subtitle">AI generation and orchestration on top of a production microservices framework.</p>
         <div class="features">
           <div class="feature">
-            <strong>Services as AI Tools</strong>
-            <p>Every endpoint is automatically callable by AI agents via Model Context Protocol.</p>
+            <strong>Services</strong>
+            <p>Write Go handlers. They register, discover each other, and communicate via RPC and events.</p>
           </div>
           <div class="feature">
-            <strong>Agent Orchestration</strong>
-            <p><code>micro chat</code> discovers services and lets an LLM coordinate across them.</p>
+            <strong>Agents</strong>
+            <p><code>micro.NewAgent()</code> — intelligent layer that manages services with scoped tools and memory.</p>
+          </div>
+          <div class="feature">
+            <strong>Flows</strong>
+            <p><code>micro.NewFlow()</code> — event-driven LLM orchestration triggered by broker events.</p>
           </div>
           <div class="feature">
             <strong>Generate from a Prompt</strong>
             <p><code>micro run --prompt</code> designs, generates, and starts services from plain English.</p>
           </div>
           <div class="feature">
-            <strong>Service Discovery</strong>
-            <p>Automatic registration and name resolution via mDNS, Consul, or etcd.</p>
-          </div>
-          <div class="feature">
-            <strong>RPC &amp; Pub/Sub</strong>
-            <p>Request/response, streaming, and async events. gRPC, NATS, RabbitMQ built in.</p>
+            <strong>MCP Gateway</strong>
+            <p>Every endpoint is automatically an AI-callable tool via Model Context Protocol.</p>
           </div>
           <div class="feature">
             <strong>Pluggable Everything</strong>
@@ -228,7 +228,7 @@
         </div>
         <div class="two-col-text">
           <h2>Describe, Generate, Run, Chat</h2>
-          <p>Tell it what you need. The AI designs services, writes handlers with real business logic, compiles them, and starts them. Then talk to them through an agent that orchestrates across services automatically.</p>
+          <p>Tell it what you need. The AI designs services with real business logic, generates an agent to manage them, and starts everything. Then talk to the agent — it orchestrates across services automatically.</p>
           <pre><span class="kw">$</span> <span class="fn">micro run</span> <span class="str">--prompt "task management system"</span>
 <span class="kw">$</span> <span class="fn">micro chat</span>
 <span class="kw">&gt;</span> Create a project called Launch, add tasks, assign to Alice</pre>

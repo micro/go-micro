@@ -509,19 +509,35 @@ func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, 
 		}
 	}
 
+	var agents, svcs []*serviceProcess
+	for _, s := range services {
+		if s.name == "agent" {
+			agents = append(agents, s)
+		} else {
+			svcs = append(svcs, s)
+		}
+	}
+
 	fmt.Println()
 	fmt.Println("  Services:")
-
-	for _, svc := range services {
-		status := "\033[32m●\033[0m" // green dot
+	for _, svc := range svcs {
+		status := "\033[32m●\033[0m"
 		if !svc.running {
-			status = "\033[31m●\033[0m" // red dot
+			status = "\033[31m●\033[0m"
 		}
-		name := svc.name
-		if len(name) > 40 {
-			name = name[:37] + "..."
+		fmt.Printf("    %s %s\n", status, svc.name)
+	}
+
+	if len(agents) > 0 {
+		fmt.Println()
+		fmt.Println("  Agents:")
+		for _, a := range agents {
+			status := "\033[35m◆\033[0m"
+			if !a.running {
+				status = "\033[31m◆\033[0m"
+			}
+			fmt.Printf("    %s %s\n", status, a.name)
 		}
-		fmt.Printf("    %s %s\n", status, name)
 	}
 
 	fmt.Println()
@@ -660,15 +676,17 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 	}
 	fmt.Println()
 
-	// Now run normally — micro run discovers the generated services
+	// Set env vars so the agent process can pick them up
+	if provider != "" {
+		os.Setenv("MICRO_AI_PROVIDER", provider)
+	}
+	os.Setenv("MICRO_AI_API_KEY", apiKey)
+
+	// Now run normally — micro run discovers the generated services + agent
 	fmt.Println("  Starting services...")
 	fmt.Println()
 
-	// Cancel signal context before handing off to Run (which manages its own signals)
 	cancel()
-
-	// Run normally from current directory (services are now generated)
-	// Set the prompt to empty via a new context so Run doesn't recurse
 	c.Set("prompt", "")
 	return Run(c)
 }

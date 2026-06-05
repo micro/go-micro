@@ -301,6 +301,16 @@ func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provid
 		// Record final handler hash (after any compile fixes)
 		recordHandlerHash(svcDir, handlerFile)
 	}
+
+	// Generate an agent that manages all the services
+	var svcNames []string
+	for _, svc := range design.Services {
+		svcNames = append(svcNames, svc.Name)
+	}
+	if err := generateAgent(baseDir, design, svcNames); err != nil {
+		fmt.Printf("    \033[33m⚠\033[0m agent generation failed: %v\n", err)
+	}
+
 	return nil
 }
 
@@ -570,6 +580,58 @@ func main() {
 	service.Run()
 }
 `, name, name, svcName, titleName)
+}
+
+func generateAgent(baseDir string, design *ServiceDesign, svcNames []string) error {
+	agentName := "agent"
+	agentDir := filepath.Join(baseDir, agentName)
+
+	if _, err := os.Stat(agentDir); err == nil {
+		return nil // already exists
+	}
+
+	os.MkdirAll(agentDir, 0755)
+
+	// Build a description of all services for the agent prompt
+	var svcDescs []string
+	for _, svc := range design.Services {
+		var eps []string
+		for _, ep := range svc.Endpoints {
+			eps = append(eps, ep.Name)
+		}
+		svcDescs = append(svcDescs, fmt.Sprintf("- %s: %s (%s)", svc.Name, svc.Description, strings.Join(eps, ", ")))
+	}
+
+	prompt := fmt.Sprintf("You manage these services:\\n%s\\nUse the available tools to fulfill requests. Be helpful and concise.", strings.Join(svcDescs, "\\n"))
+	quoted := strings.Join(svcNames, `", "`)
+
+	writeFile(filepath.Join(agentDir, "main.go"), fmt.Sprintf(`package main
+
+import (
+	"os"
+
+	"go-micro.dev/v5"
+)
+
+func main() {
+	agent := micro.NewAgent("agent",
+		micro.AgentServices("%s"),
+		micro.AgentPrompt("%s"),
+		micro.AgentProvider(os.Getenv("MICRO_AI_PROVIDER")),
+		micro.AgentAPIKey(os.Getenv("MICRO_AI_API_KEY")),
+	)
+	agent.Init()
+	agent.Run()
+}
+`, quoted, prompt))
+
+	writeFile(filepath.Join(agentDir, "go.mod"),
+		fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v5 v5.25.0\n", agentName))
+
+	runIn(agentDir, "go", "mod", "tidy")
+
+	fmt.Printf("    \033[35m◆\033[0m agent \033[2m(manages: %s)\033[0m\n", strings.Join(svcNames, ", "))
+	return nil
 }
 
 func extractJSON(s string) string {

@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package agent;
+
+option go_package = "./proto;agent";
+
+// Agent is the RPC interface for an AI agent.
+service Agent {
+	rpc Chat(ChatRequest) returns (ChatResponse) {}
+}
+
+message ChatRequest {
+	string message = 1;
+}
+
+message ChatResponse {
+	string reply = 1;
+	string agent = 2;
+	repeated ToolCall tool_calls = 3;
+}
+
+message ToolCall {
+	string id = 1;
+	string name = 2;
+	string input = 3;
+	string result = 4;
+}
