@@ -134,7 +134,7 @@ micro new contacts --template crud
 
 ## Building Agents
 
-An Agent is the intelligence layer that manages services. It's a first-class abstraction alongside Service:
+An Agent is a service with an LLM inside it. It has a proto-defined `Agent.Chat` RPC endpoint, registers in the registry, and is callable like any service:
 
 ```go
 agent := micro.NewAgent("task-mgr",
@@ -149,15 +149,15 @@ The agent discovers its services from the registry, scopes its tools to their en
 
 ```go
 // Programmatic interaction
-resp, _ := agent.Chat(ctx, "What tasks are overdue?")
+resp, _ := agent.Ask(ctx, "What tasks are overdue?")
 fmt.Println(resp.Reply)
 ```
 
-Multiple agents coordinate through the broker — each manages its domain, `micro chat` routes to the right one.
+Multiple agents coordinate via RPC — each is a service with an `Agent.Chat` endpoint. `micro chat` routes to the right one.
 
 ```bash
 micro agent list                    # list registered agents
-micro agent chat task-mgr           # talk to a specific agent
+micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
 ```
 
 ## Features

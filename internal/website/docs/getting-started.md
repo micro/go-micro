@@ -136,16 +136,16 @@ func main() {
 }
 ```
 
-The agent:
+An agent is a service — it has a proto-defined `Agent.Chat` RPC endpoint and registers in the registry like everything else. It:
 - Discovers its services from the registry
 - Only sees endpoints from its assigned services (scoped tools)
 - Maintains conversation memory in the store (persists across restarts)
-- Registers itself so `micro chat` can route to it
+- Is callable via `micro call`, `micro chat`, or any go-micro client
 
 Use it programmatically:
 
 ```go
-resp, _ := agent.Chat(ctx, "What tasks are overdue for Alice?")
+resp, _ := agent.Ask(ctx, "What tasks are overdue for Alice?")
 fmt.Println(resp.Reply)
 ```
 
@@ -153,23 +153,32 @@ Or via the CLI:
 
 ```bash
 micro agent list                    # list registered agents
-micro agent describe task-mgr       # show agent details
+micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
 ```
 
-When multiple agents are registered, `micro chat` becomes a router — it classifies intent and dispatches to the right agent automatically.
+When multiple agents are registered, `micro chat` becomes a router — it dispatches to the right agent via RPC.
 
 ## Event-Driven Flows
 
-A Flow subscribes to a broker topic and triggers an LLM when events arrive:
+A Flow subscribes to a broker topic and triggers an LLM when events arrive. You can define flows in code or run them from the CLI.
+
+**In code:**
 
 ```go
 f := micro.NewFlow("onboard-user",
     micro.FlowTrigger("events.user.created"),
     micro.FlowPrompt("New user created: {{.Data}}. Send welcome email and create workspace."),
     micro.FlowProvider("anthropic"),
-    micro.FlowAPIKey("sk-ant-..."),
+    micro.FlowAPIKey(os.Getenv("MICRO_AI_API_KEY")),
 )
 f.Register(service.Options().Registry, service.Options().Broker, service.Client())
+```
+
+**From the CLI:**
+
+```bash
+micro flow run --trigger events.user.created --prompt "New user: {{.Data}}. Send welcome email."
+micro flow exec --prompt "Summarize all open tickets and email the report."
 ```
 
 The flow discovers all services as tools and lets the LLM decide which RPCs to call in response to the event.
@@ -178,12 +187,15 @@ The flow discovers all services as tools and lets the LLM decide which RPCs to c
 
 | Command | Purpose |
 |---------|---------|
-| `micro run --prompt "..."` | Generate services from a description and run them |
+| `micro run --prompt "..."` | Generate services + agent and run them |
 | `micro chat` | Route messages to agents or call services directly |
 | `micro agent list` | List registered agents |
+| `micro agent describe <name>` | Show agent details |
+| `micro flow run --trigger <topic>` | Run an event-driven flow |
+| `micro flow exec --prompt "..."` | Execute a one-shot flow |
 | `micro new myservice` | Scaffold a service |
 | `micro run` | Dev mode: hot reload, gateway, agent playground |
-| `micro call service endpoint '{}'` | Call a service from the CLI |
+| `micro call service endpoint '{}'` | Call a service or agent from the CLI |
 | `micro build` | Compile production binaries |
 | `micro deploy user@server` | Deploy via SSH + systemd |
 
