@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,11 +19,22 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v5/ai"
+	clt "go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/cmd/micro/cli/generate"
 	"go-micro.dev/v5/cmd/micro/run/config"
 	"go-micro.dev/v5/cmd/micro/run/watcher"
+	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/cmd/micro/server"
+
+	_ "go-micro.dev/v5/ai/anthropic"
+	_ "go-micro.dev/v5/ai/atlascloud"
+	_ "go-micro.dev/v5/ai/gemini"
+	_ "go-micro.dev/v5/ai/groq"
+	_ "go-micro.dev/v5/ai/mistral"
+	_ "go-micro.dev/v5/ai/openai"
+	_ "go-micro.dev/v5/ai/together"
 )
 
 // Color codes for log output
@@ -419,8 +431,12 @@ func Run(c *cli.Context) error {
 		}()
 	}
 
-	// Wait for signal
-	<-sigCh
+	// Interactive console or wait for signal
+	if c.Bool("detach") {
+		<-sigCh
+	} else {
+		runConsole(sigCh)
+	}
 	fmt.Println("\nShutting down...")
 
 	if watch != nil {
@@ -548,9 +564,127 @@ func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, 
 	}
 
 	fmt.Println()
-	fmt.Println("  \033[2mmicro chat --provider anthropic    # talk to your services\033[0m")
+}
 
-	fmt.Println()
+func runConsole(sigCh chan os.Signal) {
+	// Detect provider and API key from environment
+	provider := os.Getenv("MICRO_AI_PROVIDER")
+	apiKey := os.Getenv("MICRO_AI_API_KEY")
+	if apiKey == "" {
+		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY"} {
+			if v := os.Getenv(env); v != "" {
+				apiKey = v
+				break
+			}
+		}
+	}
+	if provider == "" {
+		provider = ai.AutoDetectProvider("")
+	}
+
+	if apiKey == "" {
+		fmt.Println("  \033[2mSet MICRO_AI_API_KEY to enable the interactive console.\033[0m")
+		fmt.Println("  \033[2mCtrl-C to stop.\033[0m")
+		fmt.Println()
+		<-sigCh
+		return
+	}
+
+	// Wait a moment for services to register
+	time.Sleep(2 * time.Second)
+
+	// Set up tools and model
+	reg := registry.DefaultRegistry
+	cl := clt.DefaultClient
+	tools := ai.NewTools(reg, ai.ToolClient(cl))
+
+	var modelOpts []ai.Option
+	modelOpts = append(modelOpts, ai.WithAPIKey(apiKey))
+	modelOpts = append(modelOpts, ai.WithToolHandler(tools.Handler()))
+	m := ai.New(provider, modelOpts...)
+
+	hist := ai.NewHistory(50)
+
+	// Build system prompt with service list
+	discovered, _ := tools.Discover()
+	serviceNames := make(map[string]bool)
+	for _, t := range discovered {
+		parts := strings.SplitN(t.OriginalName, ".", 2)
+		if len(parts) == 2 {
+			serviceNames[parts[0]] = true
+		}
+	}
+	var svcList []string
+	for name := range serviceNames {
+		svcList = append(svcList, name)
+	}
+
+	sysPrompt := fmt.Sprintf("You are an agent that orchestrates microservices. Available services: %s. "+
+		"Use the available tools to fulfill requests. When you call a tool, explain what you are doing. "+
+		"If a capability doesn't exist, say so.",
+		strings.Join(svcList, ", "))
+
+	fmt.Printf("  \033[2m%d tools from %d services. Type a message or Ctrl-C to stop.\033[0m\n\n",
+		len(discovered), len(serviceNames))
+
+	// Interactive REPL
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Buffer(make([]byte, 0, 4096), 1024*1024)
+
+	done := make(chan struct{})
+	go func() {
+		for {
+			fmt.Print("\033[1;36m>\033[0m ")
+			if !scanner.Scan() {
+				close(done)
+				return
+			}
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" {
+				continue
+			}
+
+			hist.Add("user", line)
+			resp, err := m.Generate(context.Background(), &ai.Request{
+				Prompt:       line,
+				SystemPrompt: sysPrompt,
+				Tools:        discovered,
+				Messages:     hist.Messages(),
+			})
+			if err != nil {
+				fmt.Printf("\033[31merror:\033[0m %v\n\n", err)
+				continue
+			}
+
+			if resp.Reply != "" {
+				hist.Add("assistant", resp.Reply)
+				fmt.Println(resp.Reply)
+			}
+			for _, tc := range resp.ToolCalls {
+				args, _ := json.Marshal(tc.Input)
+				fmt.Printf("  \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
+				if tc.Result != "" {
+					result := tc.Result
+					if len(result) > 200 {
+						result = result[:200] + "..."
+					}
+					fmt.Printf("  \033[32m←\033[0m \033[2m%s\033[0m\n", result)
+				}
+			}
+			if resp.Answer != "" {
+				hist.Add("assistant", resp.Answer)
+				fmt.Println()
+				fmt.Println(resp.Answer)
+			}
+			fmt.Println()
+		}
+	}()
+
+	select {
+	case <-sigCh:
+	case <-done:
+	}
 }
 
 func init() {
@@ -593,6 +727,11 @@ Examples:
 			&cli.BoolFlag{
 				Name:  "no-watch",
 				Usage: "Disable hot reload (file watching)",
+			},
+			&cli.BoolFlag{
+				Name:    "detach",
+				Aliases: []string{"d"},
+				Usage:   "Run without interactive console (background mode)",
 			},
 			&cli.StringFlag{
 				Name:    "env",

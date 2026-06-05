@@ -49,14 +49,19 @@ Micro
     ◆ agent
 ```
 
-Talk to your services through the agent:
+The interactive console lets you talk to your services immediately:
 
-```bash
-micro chat
+```text
 > Create a project called Launch, then add a task called 'Write docs'
+
+→ project_Project_Create({"name":"Launch"})
+← {"record":{"id":"p1..."},"success":true}
+→ task_Task_Create({"title":"Write docs","project_id":"p1..."})
+
+Created project Launch and added task 'Write docs' to it.
 ```
 
-`micro chat` discovers the agent from the registry and routes to it. The agent knows which services it manages and calls the right endpoints.
+The console discovers services from the registry and orchestrates across them via the agent. Use `micro run -d` for detached mode without the console, or `micro chat` as a standalone command.
 
 ## Quick Start: Write a Service
 
@@ -140,7 +145,7 @@ An agent is a service — it has a proto-defined `Agent.Chat` RPC endpoint and r
 - Discovers its services from the registry
 - Only sees endpoints from its assigned services (scoped tools)
 - Maintains conversation memory in the store (persists across restarts)
-- Is callable via `micro call`, `micro chat`, or any go-micro client
+- Is callable via `micro call`, the interactive console, or any go-micro client
 
 Use it programmatically:
 
@@ -156,7 +161,7 @@ micro agent list                    # list registered agents
 micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
 ```
 
-When multiple agents are registered, `micro chat` becomes a router — it dispatches to the right agent via RPC.
+When multiple agents are registered, the console routes to the right agent automatically.
 
 ## Event-Driven Flows
 
@@ -187,15 +192,15 @@ The flow discovers all services as tools and lets the LLM decide which RPCs to c
 
 | Command | Purpose |
 |---------|---------|
-| `micro run --prompt "..."` | Generate services + agent and run them |
-| `micro chat` | Route messages to agents or call services directly |
+| `micro run --prompt "..."` | Generate services + agent, start with interactive console |
+| `micro run` | Dev mode: hot reload, gateway, interactive console |
+| `micro run -d` | Detached mode (no console) |
+| `micro chat` | Standalone chat (when not using micro run) |
 | `micro agent list` | List registered agents |
-| `micro agent describe <name>` | Show agent details |
 | `micro flow run --trigger <topic>` | Run an event-driven flow |
 | `micro flow exec --prompt "..."` | Execute a one-shot flow |
 | `micro new myservice` | Scaffold a service |
-| `micro run` | Dev mode: hot reload, gateway, agent playground |
-| `micro call service endpoint '{}'` | Call a service or agent from the CLI |
+| `micro call service endpoint '{}'` | Call a service or agent |
 | `micro build` | Compile production binaries |
 | `micro deploy user@server` | Deploy via SSH + systemd |
 
