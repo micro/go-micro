@@ -72,9 +72,6 @@ func TestDefaults(t *testing.T) {
 	if opts.Store == nil {
 		t.Error("Store should default to DefaultStore")
 	}
-	if opts.Broker == nil {
-		t.Error("Broker should default to DefaultBroker")
-	}
 }
 
 func contains(s, sub string) bool {

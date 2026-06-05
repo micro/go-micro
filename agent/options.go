@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
@@ -21,7 +20,6 @@ type Options struct {
 	Registry     registry.Registry
 	Client       client.Client
 	Store        store.Store
-	Broker       broker.Broker
 	HistoryLimit int
 }
 
@@ -30,7 +28,6 @@ func newOptions(opts ...Option) Options {
 		Registry:     registry.DefaultRegistry,
 		Client:       client.DefaultClient,
 		Store:        store.DefaultStore,
-		Broker:       broker.DefaultBroker,
 		HistoryLimit: 50,
 	}
 	for _, opt := range opts {
@@ -49,12 +46,12 @@ func Services(names ...string) Option {
 	return func(o *Options) { o.Services = names }
 }
 
-// Prompt sets the system prompt — the agent's identity and domain knowledge.
+// Prompt sets the system prompt.
 func Prompt(p string) Option {
 	return func(o *Options) { o.Prompt = p }
 }
 
-// Provider sets the LLM provider (anthropic, openai, etc.).
+// Provider sets the LLM provider.
 func Provider(p string) Option {
 	return func(o *Options) { o.Provider = p }
 }
@@ -82,11 +79,6 @@ func WithClient(c client.Client) Option {
 // WithStore sets the store for agent memory.
 func WithStore(s store.Store) Option {
 	return func(o *Options) { o.Store = s }
-}
-
-// WithBroker sets the broker for agent-to-agent communication.
-func WithBroker(b broker.Broker) Option {
-	return func(o *Options) { o.Broker = b }
 }
 
 // HistoryLimit sets the max conversation messages to retain.

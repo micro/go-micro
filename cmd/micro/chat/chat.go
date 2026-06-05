@@ -22,6 +22,7 @@ import (
 	"go-micro.dev/v5/agent"
 	"go-micro.dev/v5/ai"
 	clt "go-micro.dev/v5/client"
+	"go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/cmd/micro/cli/generate"
 	"go-micro.dev/v5/registry"
@@ -83,31 +84,36 @@ Examples:
 	})
 }
 
+// agentInfo holds metadata about a discovered agent.
+type agentInfo struct {
+	Name     string
+	Services []string
+}
+
 type session struct {
 	provider  string
 	apiKey    string
 	model     ai.Model
 	tools     *ai.Tools
 	reg       registry.Registry
+	cl        clt.Client
 	hist      *ai.History
 	toolList  []ai.Tool
 	sysPrompt string
 	procs     []*exec.Cmd
-	agents    map[string]agent.Agent // discovered agents
+	agents    map[string]agentInfo
 }
 
-// discoverAgents finds agents registered in the registry and creates
-// Agent instances for each. Returns true if any agents were found.
+// discoverAgents finds agents registered in the registry.
 func (s *session) discoverAgents() bool {
 	svcs, err := s.reg.ListServices()
 	if err != nil {
 		return false
 	}
 
-	s.agents = make(map[string]agent.Agent)
+	s.agents = make(map[string]agentInfo)
 
 	for _, svc := range svcs {
-		// Get full service info with metadata
 		records, err := s.reg.GetService(svc.Name)
 		if err != nil || len(records) == 0 {
 			continue
@@ -127,25 +133,37 @@ func (s *session) discoverAgents() bool {
 			services = strings.Split(svcsStr, ",")
 		}
 
-		a := agent.New(
-			agent.Name(svc.Name),
-			agent.Services(services...),
-			agent.Provider(s.provider),
-			agent.APIKey(s.apiKey),
-		)
-		a.Init()
-		s.agents[svc.Name] = a
+		s.agents[svc.Name] = agentInfo{Name: svc.Name, Services: services}
 	}
 
 	return len(s.agents) > 0
+}
+
+// callAgent calls an agent's Chat endpoint via RPC.
+func (s *session) callAgent(ctx context.Context, name, message string) (*agent.Response, error) {
+	reqBody, _ := json.Marshal(&agent.ChatRequest{Message: message})
+	req := s.cl.NewRequest(name, "Agent.Chat", &bytes.Frame{Data: reqBody})
+	var rsp bytes.Frame
+	if err := s.cl.Call(ctx, req, &rsp); err != nil {
+		return nil, err
+	}
+	var resp agent.ChatResponse
+	if err := json.Unmarshal(rsp.Data, &resp); err != nil {
+		return nil, err
+	}
+	return &agent.Response{
+		Reply:     resp.Reply,
+		ToolCalls: resp.ToolCalls,
+		Agent:     resp.Agent,
+	}, nil
 }
 
 // buildRouterPrompt creates a system prompt for the router that
 // knows about all available agents and can dispatch to them.
 func (s *session) buildRouterPrompt() string {
 	var agentDescs []string
-	for name, a := range s.agents {
-		svcs := strings.Join(a.Options().Services, ", ")
+	for name, info := range s.agents {
+		svcs := strings.Join(info.Services, ", ")
 		agentDescs = append(agentDescs, fmt.Sprintf("- %s (manages: %s)", name, svcs))
 	}
 	sort.Strings(agentDescs)
@@ -288,6 +306,7 @@ func run(c *cli.Context) error {
 		apiKey:   apiKey,
 		tools:    tools,
 		reg:      reg,
+		cl:       cl,
 		hist:     ai.NewHistory(50),
 	}
 	s.refreshTools()
@@ -334,8 +353,8 @@ func run(c *cli.Context) error {
 	fmt.Println()
 	if hasAgents {
 		fmt.Println("  Agents:")
-		for name, a := range s.agents {
-			fmt.Printf("    \033[35m◆\033[0m %s \033[2m(%s)\033[0m\n", name, strings.Join(a.Options().Services, ", "))
+		for name, info := range s.agents {
+			fmt.Printf("    \033[35m◆\033[0m %s \033[2m(%s)\033[0m\n", name, strings.Join(info.Services, ", "))
 		}
 		fmt.Println()
 	}
@@ -431,11 +450,11 @@ func (s *session) ask(ctx context.Context, prompt string) error {
 // If there's only one agent, sends directly. Otherwise uses the
 // LLM to classify intent and route.
 func (s *session) routeToAgent(ctx context.Context, prompt string) error {
-	// Single agent — no routing needed
+	// Single agent — call directly via RPC
 	if len(s.agents) == 1 {
-		for name, a := range s.agents {
+		for name := range s.agents {
 			fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", name)
-			resp, err := a.Chat(ctx, prompt)
+			resp, err := s.callAgent(ctx, name, prompt)
 			if err != nil {
 				return err
 			}
@@ -468,13 +487,12 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 			message = prompt
 		}
 
-		a, ok := s.agents[agentName]
-		if !ok {
+		if _, ok := s.agents[agentName]; !ok {
 			return map[string]string{"error": "unknown agent: " + agentName}, `{"error":"unknown agent"}`
 		}
 
 		fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", agentName)
-		resp, err := a.Chat(ctx, message)
+		resp, err := s.callAgent(ctx, agentName, message)
 		if err != nil {
 			return map[string]string{"error": err.Error()}, `{"error":"` + err.Error() + `"}`
 		}

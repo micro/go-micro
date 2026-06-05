@@ -1,29 +1,26 @@
 // Package agent provides the Agent abstraction for Go Micro.
 //
-// An Agent is an intelligent layer that manages one or more services.
-// It sits alongside Service as a top-level abstraction:
+// An Agent is a service with an LLM inside it. It registers a Chat
+// endpoint via RPC, discovers its assigned services' tools, and
+// orchestrates them intelligently.
 //
-//	service := micro.New("task")          // capability
-//	agent := micro.NewAgent("task-mgr")   // intelligence
-//
-// The service doesn't know about its agent. The agent discovers its
-// services from the registry, scopes its tools to their endpoints,
-// and maintains conversation memory in the store.
+//	agent := micro.NewAgent("task-mgr",
+//	    micro.AgentServices("task"),
+//	    micro.AgentPrompt("You manage tasks."),
+//	    micro.AgentProvider("anthropic"),
+//	)
+//	agent.Run()
 package agent
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 
 	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/broker"
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
 
 	_ "go-micro.dev/v5/ai/anthropic"
@@ -48,27 +45,37 @@ type Agent interface {
 
 // Response is what an agent returns from Chat.
 type Response struct {
-	Reply     string
-	ToolCalls []ai.ToolCall
-	Agent     string
+	Reply     string        `json:"reply"`
+	ToolCalls []ai.ToolCall `json:"tool_calls,omitempty"`
+	Agent     string        `json:"agent"`
+}
+
+// ChatRequest is the RPC request for Agent.Chat.
+type ChatRequest struct {
+	Message string `json:"message"`
+}
+
+// ChatResponse is the RPC response for Agent.Chat.
+type ChatResponse struct {
+	Reply     string        `json:"reply"`
+	ToolCalls []ai.ToolCall `json:"tool_calls,omitempty"`
+	Agent     string        `json:"agent"`
 }
 
 type agentImpl struct {
-	opts  Options
-	model ai.Model
-	tools *ai.Tools
-	hist  *ai.History
-	mu    sync.Mutex
-	stop  chan struct{}
+	opts   Options
+	model  ai.Model
+	tools  *ai.Tools
+	hist   *ai.History
+	server server.Server
+	mu     sync.Mutex
 }
 
 // New creates a new Agent.
 func New(opts ...Option) Agent {
-	a := &agentImpl{
+	return &agentImpl{
 		opts: newOptions(opts...),
-		stop: make(chan struct{}),
 	}
-	return a
 }
 
 func (a *agentImpl) Name() string {
@@ -91,26 +98,21 @@ func (a *agentImpl) String() string {
 }
 
 func (a *agentImpl) setup() {
-	// Create LLM model
 	var modelOpts []ai.Option
 	modelOpts = append(modelOpts, ai.WithAPIKey(a.opts.APIKey))
 	if a.opts.Model != "" {
 		modelOpts = append(modelOpts, ai.WithModel(a.opts.Model))
 	}
 
-	// Create tools for service discovery + RPC
 	a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
-
-	// Wrap the tool handler so the model can execute calls
 	modelOpts = append(modelOpts, ai.WithToolHandler(a.tools.Handler()))
-
 	a.model = ai.New(a.opts.Provider, modelOpts...)
 
-	// Load history from store or start fresh
 	a.hist = ai.NewHistory(a.opts.HistoryLimit)
 	a.loadHistory()
 }
 
+// Chat sends a message and returns the agent's response.
 func (a *agentImpl) Chat(ctx context.Context, message string) (*Response, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -119,7 +121,6 @@ func (a *agentImpl) Chat(ctx context.Context, message string) (*Response, error)
 		a.setup()
 	}
 
-	// Discover and scope tools to assigned services
 	toolList, err := a.discoverTools()
 	if err != nil {
 		return nil, fmt.Errorf("discover tools: %w", err)
@@ -161,96 +162,91 @@ func (a *agentImpl) Chat(ctx context.Context, message string) (*Response, error)
 	}, nil
 }
 
+// handleChat is the RPC handler that external callers use.
+func (a *agentImpl) handleChat(ctx context.Context, req *ChatRequest, rsp *ChatResponse) error {
+	resp, err := a.Chat(ctx, req.Message)
+	if err != nil {
+		return err
+	}
+	rsp.Reply = resp.Reply
+	rsp.ToolCalls = resp.ToolCalls
+	rsp.Agent = resp.Agent
+	return nil
+}
+
+// Run starts the agent as a service with a Chat RPC endpoint.
 func (a *agentImpl) Run() error {
 	if a.model == nil {
 		a.setup()
 	}
 
-	// Register agent in the registry
-	nodeID := a.opts.Name + "-" + fmt.Sprintf("%d", os.Getpid())
-	svc := &registry.Service{
-		Name: a.opts.Name,
-		Metadata: map[string]string{
+	// Create a real server with the agent's name
+	a.server = server.NewServer(
+		server.Name(a.opts.Name),
+		server.Registry(a.opts.Registry),
+		server.Metadata(map[string]string{
 			"type":     "agent",
 			"services": strings.Join(a.opts.Services, ","),
-		},
-		Nodes: []*registry.Node{
-			{
-				Id:      nodeID,
-				Address: fmt.Sprintf("127.0.0.1:%d", 40000+os.Getpid()%10000),
-				Metadata: map[string]string{
-					"type":     "agent",
-					"services": strings.Join(a.opts.Services, ","),
-				},
-			},
-		},
+		}),
+	)
+
+	// Register the Chat handler
+	handler := a.server.NewHandler(&agentHandler{agent: a})
+	if err := a.server.Handle(handler); err != nil {
+		return fmt.Errorf("failed to register handler: %w", err)
 	}
 
-	if err := a.opts.Registry.Register(svc); err != nil {
-		return fmt.Errorf("failed to register agent: %w", err)
+	// Start the server (registers in registry, listens for RPC)
+	if err := a.server.Start(); err != nil {
+		return fmt.Errorf("failed to start agent server: %w", err)
 	}
-	defer a.opts.Registry.Deregister(svc)
 
 	fmt.Printf("Agent %s registered (manages: %s)\n", a.opts.Name, strings.Join(a.opts.Services, ", "))
 
-	// Try to subscribe to agent messages on the broker
-	a.opts.Broker.Connect()
-	sub, err := a.opts.Broker.Subscribe("agent."+a.opts.Name, func(p broker.Event) error {
-		msg := p.Message()
-		if msg == nil || len(msg.Body) == 0 {
-			return nil
-		}
-		ctx := context.Background()
-		resp, err := a.Chat(ctx, string(msg.Body))
-		if err != nil {
-			return err
-		}
-		// If there's a reply-to, publish the response
-		if replyTo := msg.Header["reply-to"]; replyTo != "" {
-			body, _ := json.Marshal(resp)
-			a.opts.Broker.Publish(replyTo, &broker.Message{Body: body})
-		}
-		return nil
-	})
-	if err == nil {
-		defer sub.Unsubscribe()
-	}
-
-	// Block until signal
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case <-sigCh:
-	case <-a.stop:
-	}
+	// Block until stopped
+	ch := make(chan struct{})
+	<-ch
 
 	return nil
 }
 
 func (a *agentImpl) Stop() error {
-	select {
-	case <-a.stop:
-	default:
-		close(a.stop)
+	if a.server != nil {
+		return a.server.Stop()
 	}
 	return nil
 }
 
-// discoverTools finds endpoints from the agent's assigned services.
+// agentHandler wraps the agent to expose it as an RPC service.
+// The RPC endpoint is Agent.Chat.
+type agentHandler struct {
+	agent *agentImpl
+}
+
+// Chat handles RPC calls to Agent.Chat.
+// @example {"message": "What tasks are overdue?"}
+func (h *agentHandler) Chat(ctx context.Context, req *ChatRequest, rsp *ChatResponse) error {
+	return h.agent.handleChat(ctx, req, rsp)
+}
+
+// discoverTools finds endpoints from the agent's assigned services,
+// excluding the agent's own endpoints.
 func (a *agentImpl) discoverTools() ([]ai.Tool, error) {
 	all, err := a.tools.Discover()
 	if err != nil {
 		return nil, err
 	}
 
-	// If no services specified, return all (unscoped agent)
-	if len(a.opts.Services) == 0 {
-		return all, nil
-	}
-
 	var scoped []ai.Tool
 	for _, t := range all {
+		// Skip our own endpoints
+		if strings.HasPrefix(t.OriginalName, a.opts.Name+".") {
+			continue
+		}
+		if len(a.opts.Services) == 0 {
+			scoped = append(scoped, t)
+			continue
+		}
 		for _, svc := range a.opts.Services {
 			if strings.HasPrefix(t.OriginalName, svc+".") {
 				scoped = append(scoped, t)
@@ -271,8 +267,6 @@ func (a *agentImpl) buildPrompt() string {
 	}
 	return fmt.Sprintf("You are the %s agent. Use the available tools to fulfill requests.", a.opts.Name)
 }
-
-// Memory persistence
 
 func (a *agentImpl) historyKey() string {
 	return "agent/" + a.opts.Name + "/history"
