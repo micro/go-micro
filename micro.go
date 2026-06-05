@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"go-micro.dev/v5/agent"
+	"go-micro.dev/v5/ai/flow"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/service"
@@ -20,6 +21,12 @@ type Agent = agent.Agent
 
 // AgentOption configures an Agent.
 type AgentOption = agent.Option
+
+// Flow is an event-driven LLM orchestration unit.
+type Flow = flow.Flow
+
+// FlowOption configures a Flow.
+type FlowOption = flow.Option
 
 // Group is a set of services that share lifecycle management.
 type Group = service.Group
@@ -77,6 +84,30 @@ func AgentModel(m string) AgentOption { return agent.Model(m) }
 
 // AgentAPIKey sets the API key for the LLM provider.
 func AgentAPIKey(k string) AgentOption { return agent.APIKey(k) }
+
+// NewFlow creates an event-driven LLM orchestration unit.
+//
+//	f := micro.NewFlow("onboard-user",
+//	    micro.FlowTrigger("events.user.created"),
+//	    micro.FlowPrompt("New user: {{.Data}}. Send welcome email."),
+//	    micro.FlowProvider("anthropic"),
+//	)
+//	f.Register(service.Options().Registry, service.Options().Broker, service.Client())
+func NewFlow(name string, opts ...FlowOption) *Flow {
+	return flow.New(name, opts...)
+}
+
+// FlowTrigger sets the broker topic that triggers the flow.
+func FlowTrigger(topic string) FlowOption { return flow.Trigger(topic) }
+
+// FlowPrompt sets the prompt template. Use {{.Data}} for the event payload.
+func FlowPrompt(p string) FlowOption { return flow.Prompt(p) }
+
+// FlowProvider sets the LLM provider.
+func FlowProvider(p string) FlowOption { return flow.Provider(p) }
+
+// FlowAPIKey sets the API key for the LLM provider.
+func FlowAPIKey(k string) FlowOption { return flow.APIKey(k) }
 
 // NewGroup creates a service group for running multiple services
 // in a single binary with shared lifecycle management.

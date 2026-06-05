@@ -17,6 +17,7 @@ import (
 	"go-micro.dev/v5/cmd/micro/cli/util"
 
 	// Import packages that register commands via init()
+	_ "go-micro.dev/v5/cmd/micro/cli/agent"
 	_ "go-micro.dev/v5/cmd/micro/cli/build"
 	_ "go-micro.dev/v5/cmd/micro/cli/deploy"
 	_ "go-micro.dev/v5/cmd/micro/cli/init"

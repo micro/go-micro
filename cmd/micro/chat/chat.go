@@ -14,10 +14,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v5/agent"
 	"go-micro.dev/v5/ai"
 	clt "go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
@@ -91,6 +93,66 @@ type session struct {
 	toolList  []ai.Tool
 	sysPrompt string
 	procs     []*exec.Cmd
+	agents    map[string]agent.Agent // discovered agents
+}
+
+// discoverAgents finds agents registered in the registry and creates
+// Agent instances for each. Returns true if any agents were found.
+func (s *session) discoverAgents() bool {
+	svcs, err := s.reg.ListServices()
+	if err != nil {
+		return false
+	}
+
+	s.agents = make(map[string]agent.Agent)
+
+	for _, svc := range svcs {
+		// Get full service info with metadata
+		records, err := s.reg.GetService(svc.Name)
+		if err != nil || len(records) == 0 {
+			continue
+		}
+		meta := records[0].Metadata
+		if meta == nil || meta["type"] != "agent" {
+			continue
+		}
+
+		var services []string
+		if svcsStr := meta["services"]; svcsStr != "" {
+			services = strings.Split(svcsStr, ",")
+		}
+
+		a := agent.New(
+			agent.Name(svc.Name),
+			agent.Services(services...),
+			agent.Provider(s.provider),
+			agent.APIKey(s.apiKey),
+		)
+		a.Init()
+		s.agents[svc.Name] = a
+	}
+
+	return len(s.agents) > 0
+}
+
+// buildRouterPrompt creates a system prompt for the router that
+// knows about all available agents and can dispatch to them.
+func (s *session) buildRouterPrompt() string {
+	var agentDescs []string
+	for name, a := range s.agents {
+		svcs := strings.Join(a.Options().Services, ", ")
+		agentDescs = append(agentDescs, fmt.Sprintf("- %s (manages: %s)", name, svcs))
+	}
+	sort.Strings(agentDescs)
+
+	return fmt.Sprintf(`You are a router that dispatches user requests to the right agent.
+
+Available agents:
+%s
+
+For each user message, decide which agent should handle it and call the route_to_agent tool with the agent name and the message. If the request spans multiple agents, call route_to_agent multiple times.
+
+If no agent can handle the request, say so.`, strings.Join(agentDescs, "\n"))
 }
 
 func (s *session) refreshTools() {
@@ -252,6 +314,9 @@ func run(c *cli.Context) error {
 
 	defer s.cleanup()
 
+	// Discover registered agents
+	hasAgents := s.discoverAgents()
+
 	if singlePrompt != "" {
 		return s.ask(c.Context, singlePrompt)
 	}
@@ -262,11 +327,18 @@ func run(c *cli.Context) error {
 	fmt.Printf("  Provider    \033[36m%s\033[0m\n", provider)
 	fmt.Printf("  Model       \033[36m%s\033[0m\n", s.model.Options().Model)
 	fmt.Println()
+	if hasAgents {
+		fmt.Println("  Agents:")
+		for name, a := range s.agents {
+			fmt.Printf("    \033[35m◆\033[0m %s \033[2m(%s)\033[0m\n", name, strings.Join(a.Options().Services, ", "))
+		}
+		fmt.Println()
+	}
 	fmt.Println("  Tools:")
 	for _, t := range s.toolList {
 		fmt.Printf("    \033[32m●\033[0m %s\n", t.OriginalName)
 	}
-	if len(s.toolList) == 0 {
+	if len(s.toolList) == 0 && !hasAgents {
 		fmt.Println("    \033[33m(no services found)\033[0m")
 	}
 	fmt.Println()
@@ -302,6 +374,12 @@ func run(c *cli.Context) error {
 }
 
 func (s *session) ask(ctx context.Context, prompt string) error {
+	// If agents are registered, route to them
+	if len(s.agents) > 0 {
+		return s.routeToAgent(ctx, prompt)
+	}
+
+	// Fallback: direct service access (no agents)
 	s.hist.Add("user", prompt)
 
 	resp, err := s.model.Generate(ctx, &ai.Request{
@@ -326,7 +404,7 @@ func (s *session) ask(ctx context.Context, prompt string) error {
 	}
 	for _, tc := range resp.ToolCalls {
 		if tc.Name == "micro_generate_service" {
-			continue // output handled by handleGenerate
+			continue
 		}
 		args, _ := json.Marshal(tc.Input)
 		fmt.Printf("  \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
@@ -342,6 +420,101 @@ func (s *session) ask(ctx context.Context, prompt string) error {
 		fmt.Println(resp.Answer)
 	}
 	return nil
+}
+
+// routeToAgent dispatches a message to the right agent.
+// If there's only one agent, sends directly. Otherwise uses the
+// LLM to classify intent and route.
+func (s *session) routeToAgent(ctx context.Context, prompt string) error {
+	// Single agent — no routing needed
+	if len(s.agents) == 1 {
+		for name, a := range s.agents {
+			fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", name)
+			resp, err := a.Chat(ctx, prompt)
+			if err != nil {
+				return err
+			}
+			s.printAgentResponse(resp)
+			return nil
+		}
+	}
+
+	// Multiple agents — use LLM to route
+	routeTool := ai.Tool{
+		Name:         "route_to_agent",
+		OriginalName: "route_to_agent",
+		Description:  "Route a message to a specific agent for handling.",
+		Properties: map[string]any{
+			"agent": map[string]any{
+				"type":        "string",
+				"description": "The agent name to route to",
+			},
+			"message": map[string]any{
+				"type":        "string",
+				"description": "The message to send to the agent",
+			},
+		},
+	}
+
+	routerHandler := func(name string, input map[string]any) (any, string) {
+		agentName, _ := input["agent"].(string)
+		message, _ := input["message"].(string)
+		if message == "" {
+			message = prompt
+		}
+
+		a, ok := s.agents[agentName]
+		if !ok {
+			return map[string]string{"error": "unknown agent: " + agentName}, `{"error":"unknown agent"}`
+		}
+
+		fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", agentName)
+		resp, err := a.Chat(ctx, message)
+		if err != nil {
+			return map[string]string{"error": err.Error()}, `{"error":"` + err.Error() + `"}`
+		}
+
+		s.printAgentResponse(resp)
+
+		result := map[string]any{"agent": agentName, "reply": resp.Reply}
+		b, _ := json.Marshal(result)
+		return result, string(b)
+	}
+
+	routerModel := ai.New(s.provider,
+		ai.WithAPIKey(s.apiKey),
+		ai.WithToolHandler(routerHandler),
+	)
+
+	resp, err := routerModel.Generate(ctx, &ai.Request{
+		Prompt:       prompt,
+		SystemPrompt: s.buildRouterPrompt(),
+		Tools:        []ai.Tool{routeTool},
+	})
+	if err != nil {
+		return err
+	}
+
+	if resp.Answer != "" {
+		fmt.Println()
+		fmt.Println(resp.Answer)
+	}
+
+	return nil
+}
+
+func (s *session) printAgentResponse(resp *agent.Response) {
+	for _, tc := range resp.ToolCalls {
+		args, _ := json.Marshal(tc.Input)
+		fmt.Printf("    \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
+		if tc.Result != "" {
+			fmt.Printf("    \033[32m←\033[0m \033[2m%s\033[0m\n", truncateResult(tc.Result))
+		}
+	}
+	if resp.Reply != "" {
+		fmt.Println()
+		fmt.Println(resp.Reply)
+	}
 }
 
 func (s *session) cleanup() {
