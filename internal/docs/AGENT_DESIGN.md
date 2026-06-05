@@ -2,14 +2,14 @@
 
 ## Principle
 
-Service = capability. Agent = intelligence. They're separate. The service doesn't know about its agent. The agent is created to manage the service.
+Service = capability. Agent = intelligence. An agent IS a service — it has a real RPC server, a proto-defined `Agent.Chat` endpoint, and registers in the registry like everything else.
 
 ```
 micro.New("task")           // creates a service
-micro.NewAgent("task-mgr")  // creates an agent
+micro.NewAgent("task-mgr")  // creates an agent (which is also a service)
 ```
 
-Same package. Same level. Same patterns. Different responsibilities.
+Same package. Same level. Same communication (RPC). Different responsibilities.
 
 ## Interface
 
@@ -18,22 +18,40 @@ type Agent interface {
     Name() string
     Init(...AgentOption)
     Options() AgentOptions
-    Chat(ctx context.Context, message string) (*AgentResponse, error)
+    Ask(ctx context.Context, message string) (*Response, error)
     Run() error
     Stop() error
     String() string
 }
+```
 
-type AgentResponse struct {
-    Reply     string       // the agent's text response
-    ToolCalls []ai.ToolCall // tools the agent called
-    Agent     string       // which agent handled it
+**Ask** is the programmatic API. Send a message, get a response.
+
+**Run** starts a real RPC server, registers the `Agent.Chat` endpoint in the registry, and blocks.
+
+## Proto Definition
+
+```protobuf
+service Agent {
+    rpc Chat(ChatRequest) returns (ChatResponse) {}
+}
+
+message ChatRequest {
+    string message = 1;
+}
+
+message ChatResponse {
+    string reply = 1;
+    string agent = 2;
+    repeated ToolCall tool_calls = 3;
 }
 ```
 
-**Chat** is the core method. Send a message, get a response. The agent figures out which of its services to call, in what order, and returns a coherent answer.
+The agent is callable by any go-micro client:
 
-**Run** registers the agent in the registry and blocks. The router and other agents can discover it.
+```bash
+micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
+```
 
 ## Options
 
@@ -46,14 +64,13 @@ type AgentOptions struct {
     Model        string            // LLM model (optional)
     APIKey       string
     Registry     registry.Registry // discover services and other agents
-    Client       client.Client     // call service endpoints
+    Client       client.Client     // call service endpoints and other agents
     Store        store.Store       // agent memory (persists across restarts)
-    Broker       broker.Broker     // agent-to-agent communication
     HistoryLimit int               // max conversation turns to retain
 }
 ```
 
-Functional options follow the same pattern as Service:
+Functional options:
 
 ```go
 agent := micro.NewAgent("task-mgr",
@@ -65,116 +82,47 @@ agent := micro.NewAgent("task-mgr",
 
 ## Scoped Tools
 
-An agent only sees the endpoints of its assigned services. A task agent doesn't see notification endpoints. This is different from today's `micro chat` which sees everything.
-
-```go
-// Inside the agent implementation:
-tools := ai.NewTools(opts.Registry, ai.ToolClient(opts.Client))
-discovered, _ := tools.Discover()
-
-// Filter to only this agent's services
-var scoped []ai.Tool
-for _, t := range discovered {
-    for _, svc := range opts.Services {
-        if strings.HasPrefix(t.OriginalName, svc+".") {
-            scoped = append(scoped, t)
-        }
-    }
-}
-```
+An agent only sees the endpoints of its assigned services (plus excludes its own endpoints so it doesn't call itself).
 
 ## Memory
 
-Agents persist conversation history and learned context in the store. Memory survives restarts.
-
-```go
-// On Chat(), before calling the LLM:
-recs, _ := store.Read("agent/task-mgr/history")
-// Deserialize into []ai.Message, append new message
-
-// After response:
-// Serialize updated history, write back
-store.Write(&store.Record{Key: "agent/task-mgr/history", Value: data})
-```
-
-Memory is scoped per agent, per user (when auth is present):
+Agents persist conversation history in the store. Memory survives restarts.
 
 ```
-agent/{name}/history              — conversation history
-agent/{name}/context              — learned facts and preferences
-agent/{name}/user/{id}/history    — per-user conversation history
+agent/{name}/history    — conversation history
 ```
-
-The store backend determines durability. File store (default) persists locally. Postgres persists across machines.
 
 ## Registration
 
-Agents register in the registry alongside services. Metadata distinguishes them:
+Agents register as real services via `server.NewServer` with metadata:
 
 ```go
-registry.Register(&registry.Service{
-    Name: "task-mgr",
-    Metadata: map[string]string{
-        "type":     "agent",
-        "services": "task",
-    },
+server.Metadata(map[string]string{
+    "type":     "agent",
+    "services": "task,project",
 })
 ```
 
+The server has a real address, real transport, real endpoints. `micro agent list` discovers agents by checking server metadata for `type=agent`.
+
 ## The Router (micro chat)
 
-`micro chat` is not an agent. It's a router. The single entry point that dispatches to agents.
+`micro chat` is a router. It discovers agents from the registry and dispatches to them via RPC.
 
-When a message comes in, the router:
-1. Discovers all agents from the registry
-2. Uses an LLM to classify which agent(s) should handle the message
-3. Calls `agent.Chat()` on the selected agent
-4. Returns the response to the user
+- One agent → routes directly via `client.Call(agentName, "Agent.Chat", ...)`
+- Multiple agents → LLM classifies intent, calls `route_to_agent` tool
+- No agents → falls back to direct service access (current behaviour)
 
-If a message spans multiple agents, the router coordinates:
+## Agent-to-Agent Communication
 
-```
-> Reschedule Alice's tasks to next week and notify her
-
-  Router → task-mgr:  "Reschedule Alice's tasks to next week"
-  Router → comms-mgr: "Notify Alice her tasks were rescheduled"
-```
-
-The router is lightweight — it doesn't have domain knowledge. It reads agent descriptions from the registry and routes based on intent. Like Claude spawning sub-agents, you talk to one interface and it delegates to specialists.
-
-If no agents are registered, the router falls back to the current behaviour — discovers all services, sees all endpoints, acts as a single general-purpose agent. This preserves backward compatibility.
-
-```bash
-# Full system: router dispatches to agents
-micro chat
-> What tasks are overdue?
-  [task-mgr] You have 3 overdue tasks...
-
-# No agents registered: fallback to direct service access
-micro chat
-> What tasks are overdue?
-  → task_Task_ListOverdue(...)
-```
-
-## Hot Reload
-
-Agents can be reloaded without restart when their prompt or service assignments change.
-
-The `micro run` watcher detects changes to agent files the same way it detects changes to service files. When an agent's source changes, it rebuilds and restarts the agent binary.
-
-For prompt-only changes (no code change), the agent watches its prompt source (file, config, or store) and reinitializes its LLM context without restarting.
+Agents call each other via standard RPC. An agent is a service — it has an `Agent.Chat` endpoint. Any agent can call any other agent the same way it calls a service.
 
 ```go
-// Agent watches its own prompt key in the config/store
-// and re-initializes when it changes:
-go func() {
-    watcher, _ := config.Watch("agent", "task-mgr", "prompt")
-    for {
-        v, _ := watcher.Next()
-        agent.updatePrompt(v.String(""))
-    }
-}()
+// From inside an agent's logic, call another agent:
+client.Call("comms-mgr", "Agent.Chat", &ChatRequest{Message: "Notify Alice"})
 ```
+
+No special protocol. No broker topics. Just RPC.
 
 ## Usage Patterns
 
@@ -183,7 +131,7 @@ go func() {
 ```go
 agent := micro.NewAgent("task-mgr",
     micro.AgentServices("task"),
-    micro.AgentPrompt("You manage tasks. You understand deadlines, priorities, and assignments."),
+    micro.AgentPrompt("You manage tasks."),
     micro.AgentProvider("anthropic"),
 )
 agent.Run()
@@ -194,22 +142,21 @@ agent.Run()
 ```go
 agent := micro.NewAgent("project-mgr",
     micro.AgentServices("task", "project", "milestone"),
-    micro.AgentPrompt("You manage the project system. Tasks belong to projects. Milestones track progress."),
+    micro.AgentPrompt("You manage the project system."),
     micro.AgentProvider("anthropic"),
 )
 agent.Run()
 ```
 
-### Programmatic chat
+### Programmatic
 
 ```go
 agent := micro.NewAgent("support", ...)
 agent.Init()
-resp, _ := agent.Chat(ctx, "What tickets are open for Alice?")
-fmt.Println(resp.Reply)
+resp, _ := agent.Ask(ctx, "What tickets are open?")
 ```
 
-### Agent alongside service in the same binary
+### Agent alongside service
 
 ```go
 func main() {
@@ -218,13 +165,11 @@ func main() {
 
     agent := micro.NewAgent("task-mgr",
         micro.AgentServices("task"),
-        micro.AgentPrompt("You manage the task service."),
+        micro.AgentPrompt("You manage tasks."),
         micro.AgentProvider("anthropic"),
     )
 
-    // Run both
-    g := micro.NewGroup(svc)
-    go g.Run()
+    go svc.Run()
     agent.Run()
 }
 ```
@@ -232,74 +177,31 @@ func main() {
 ## CLI
 
 ```bash
-# List agents
-micro agent list
-  task-mgr       manages: task
-  project-mgr    manages: task, project, milestone
-
-# Chat with a specific agent directly
-micro agent chat task-mgr
-> What tasks are overdue?
-
-# micro chat routes automatically
-micro chat
-> What tasks are overdue?
-  [task-mgr] You have 3 overdue tasks...
-
-# micro chat with no agents falls back to current behaviour
-micro chat
-> What tasks are overdue?
-  → task_Task_ListOverdue(...)
+micro agent list                    # list registered agents
+micro agent describe task-mgr       # show agent details
+micro chat                          # routes to agents automatically
+micro call task-mgr Agent.Chat '{"message": "..."}'  # direct RPC
 ```
-
-## Agent-to-Agent Communication
-
-Agents talk through the broker, not by calling each other's services:
-
-```
-> Reschedule Alice's tasks and notify her
-
-  [task-mgr] Rescheduling 3 tasks...
-  [task-mgr] Publishing to agent.comms-mgr: "Alice's tasks rescheduled"
-  [comms-mgr] Sending notification to Alice...
-```
-
-The broker topic convention: `agent.{name}` for direct messages, `agent.broadcast` for announcements.
 
 ## Generation
 
-`micro run --prompt` creates services AND their agent:
+`micro run --prompt` creates services AND an agent:
 
 ```
 micro run --prompt "task management system"
 
   Generated:
-    task/           ← service
-    project/        ← service
-    task-mgr/       ← agent (manages task, project)
+    task/       ← service
+    project/    ← service
+    agent/      ← agent (manages task, project)
 ```
 
-The agent is a separate binary with its own `main.go`:
-
-```go
-package main
-
-import "go-micro.dev/v5"
-
-func main() {
-    agent := micro.NewAgent("task-mgr",
-        micro.AgentServices("task", "project"),
-        micro.AgentPrompt("You manage tasks and projects..."),
-        micro.AgentProvider("anthropic"),
-    )
-    agent.Run()
-}
-```
+The agent reads `MICRO_AI_PROVIDER` and `MICRO_AI_API_KEY` from the environment.
 
 ## What Doesn't Change
 
 - Services are still services — same interface, same code, same deployment
 - You can run services without agents
 - You can call services directly via `micro call`, the API, or MCP
-- The framework interfaces (registry, broker, store, client, server) are unchanged
+- The framework interfaces (registry, client, server, store) are unchanged
 - `micro run`, `micro deploy`, `micro build` work the same way
