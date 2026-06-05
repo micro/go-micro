@@ -45,22 +45,16 @@ Micro
     ◆ agent
 ```
 
-Talk to your services through the agent:
+Then talk to your services from the console:
 
-```bash
-micro chat
+```
 > Create a project called Launch, then add three tasks to it
-```
 
-`micro chat` routes to the agent. The agent orchestrates across its services:
-
-```
-◆ agent
-  → project_Project_Create({"name":"Launch"})
-  ← {"record":{"id":"p1..."},"success":true}
-  → task_Task_Create({"title":"Design specs","project_id":"p1..."})
-  → task_Task_Create({"title":"Write code","project_id":"p1..."})
-  → task_Task_Create({"title":"Ship it","project_id":"p1..."})
+→ project_Project_Create({"name":"Launch"})
+← {"record":{"id":"p1..."},"success":true}
+→ task_Task_Create({"title":"Design specs","project_id":"p1..."})
+→ task_Task_Create({"title":"Write code","project_id":"p1..."})
+→ task_Task_Create({"title":"Ship it","project_id":"p1..."})
 
 Created Work category and added 'Finish report' task to it.
 ```
@@ -168,7 +162,7 @@ micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
 | **AI** | Flows | `micro.NewFlow()` — event-driven LLM orchestration |
 | **AI** | MCP gateway | Every endpoint is an AI tool automatically |
 | **AI** | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
-| **AI** | Chat router | `micro chat` routes to agents or calls services directly |
+| **AI** | Interactive console | `micro run` includes a chat console for talking to services |
 | **AI** | Service generation | `micro run --prompt` — describe a system, get running services |
 | **Discovery** | Service registry | mDNS (default), Consul, etcd |
 | **Communication** | RPC client/server | gRPC transport, load balancing, streaming |
@@ -184,13 +178,13 @@ micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
 
 | Command | Purpose |
 |---------|---------|
-| `micro run --prompt "..."` | Generate services from a description and run them |
-| `micro chat` | Route messages to agents or call services directly |
+| `micro run --prompt "..."` | Generate services + agent, start with interactive console |
+| `micro run` | Dev mode: hot reload, gateway, interactive console |
+| `micro run -d` | Detached mode (no console) |
+| `micro chat` | Standalone chat (when not using micro run) |
 | `micro agent list` | List registered agents |
-| `micro agent describe <name>` | Show agent details |
 | `micro new myservice` | Scaffold a service |
-| `micro run` | Dev mode: hot reload, gateway, agent playground |
-| `micro call service endpoint '{}'` | Call a service from the CLI |
+| `micro call service endpoint '{}'` | Call a service or agent from the CLI |
 | `micro build` | Compile production binaries |
 | `micro deploy user@server` | Deploy via SSH + systemd |
 
@@ -280,7 +274,3 @@ See [all examples](examples/README.md).
 - [Plugins](internal/website/docs/plugins.md)
 
 Package reference: https://pkg.go.dev/go-micro.dev/v5
-
-## Adopters
-
-- [Sourse](https://sourse.eu) — Earth observation platform with embedded Kubernetes and SaaS built on Go Micro.
