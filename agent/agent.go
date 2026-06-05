@@ -1,7 +1,7 @@
 // Package agent provides the Agent abstraction for Go Micro.
 //
 // An Agent is a service with an LLM inside it. It registers a Chat
-// endpoint via RPC, discovers its assigned services' tools, and
+// RPC endpoint, discovers its assigned services' tools, and
 // orchestrates them intelligently.
 //
 //	agent := micro.NewAgent("task-mgr",
@@ -20,6 +20,7 @@ import (
 	"sync"
 
 	"go-micro.dev/v5/ai"
+	pb "go-micro.dev/v5/agent/proto"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
 
@@ -37,7 +38,7 @@ type Agent interface {
 	Name() string
 	Init(...Option)
 	Options() Options
-	Chat(ctx context.Context, message string) (*Response, error)
+	Ask(ctx context.Context, message string) (*Response, error)
 	Run() error
 	Stop() error
 	String() string
@@ -45,21 +46,9 @@ type Agent interface {
 
 // Response is what an agent returns from Chat.
 type Response struct {
-	Reply     string        `json:"reply"`
-	ToolCalls []ai.ToolCall `json:"tool_calls,omitempty"`
-	Agent     string        `json:"agent"`
-}
-
-// ChatRequest is the RPC request for Agent.Chat.
-type ChatRequest struct {
-	Message string `json:"message"`
-}
-
-// ChatResponse is the RPC response for Agent.Chat.
-type ChatResponse struct {
-	Reply     string        `json:"reply"`
-	ToolCalls []ai.ToolCall `json:"tool_calls,omitempty"`
-	Agent     string        `json:"agent"`
+	Reply     string
+	ToolCalls []ai.ToolCall
+	Agent     string
 }
 
 type agentImpl struct {
@@ -112,8 +101,9 @@ func (a *agentImpl) setup() {
 	a.loadHistory()
 }
 
-// Chat sends a message and returns the agent's response.
-func (a *agentImpl) Chat(ctx context.Context, message string) (*Response, error) {
+// Ask sends a message and returns the agent's response.
+// This is the programmatic API for direct use.
+func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -162,15 +152,24 @@ func (a *agentImpl) Chat(ctx context.Context, message string) (*Response, error)
 	}, nil
 }
 
-// handleChat is the RPC handler that external callers use.
-func (a *agentImpl) handleChat(ctx context.Context, req *ChatRequest, rsp *ChatResponse) error {
-	resp, err := a.Chat(ctx, req.Message)
+// Chat implements the proto AgentHandler interface for RPC.
+// @example {"message": "What tasks are overdue?"}
+func (a *agentImpl) Chat(ctx context.Context, req *pb.ChatRequest, rsp *pb.ChatResponse) error {
+	resp, err := a.Ask(ctx, req.Message)
 	if err != nil {
 		return err
 	}
 	rsp.Reply = resp.Reply
-	rsp.ToolCalls = resp.ToolCalls
 	rsp.Agent = resp.Agent
+	for _, tc := range resp.ToolCalls {
+		input, _ := json.Marshal(tc.Input)
+		rsp.ToolCalls = append(rsp.ToolCalls, &pb.ToolCall{
+			Id:     tc.ID,
+			Name:   tc.Name,
+			Input:  string(input),
+			Result: tc.Result,
+		})
+	}
 	return nil
 }
 
@@ -180,7 +179,6 @@ func (a *agentImpl) Run() error {
 		a.setup()
 	}
 
-	// Create a real server with the agent's name
 	a.server = server.NewServer(
 		server.Name(a.opts.Name),
 		server.Registry(a.opts.Registry),
@@ -190,23 +188,16 @@ func (a *agentImpl) Run() error {
 		}),
 	)
 
-	// Register the Chat handler
-	handler := a.server.NewHandler(&agentHandler{agent: a})
-	if err := a.server.Handle(handler); err != nil {
-		return fmt.Errorf("failed to register handler: %w", err)
-	}
+	pb.RegisterAgentHandler(a.server, a)
 
-	// Start the server (registers in registry, listens for RPC)
 	if err := a.server.Start(); err != nil {
-		return fmt.Errorf("failed to start agent server: %w", err)
+		return fmt.Errorf("failed to start agent: %w", err)
 	}
 
 	fmt.Printf("Agent %s registered (manages: %s)\n", a.opts.Name, strings.Join(a.opts.Services, ", "))
 
-	// Block until stopped
 	ch := make(chan struct{})
 	<-ch
-
 	return nil
 }
 
@@ -217,20 +208,6 @@ func (a *agentImpl) Stop() error {
 	return nil
 }
 
-// agentHandler wraps the agent to expose it as an RPC service.
-// The RPC endpoint is Agent.Chat.
-type agentHandler struct {
-	agent *agentImpl
-}
-
-// Chat handles RPC calls to Agent.Chat.
-// @example {"message": "What tasks are overdue?"}
-func (h *agentHandler) Chat(ctx context.Context, req *ChatRequest, rsp *ChatResponse) error {
-	return h.agent.handleChat(ctx, req, rsp)
-}
-
-// discoverTools finds endpoints from the agent's assigned services,
-// excluding the agent's own endpoints.
 func (a *agentImpl) discoverTools() ([]ai.Tool, error) {
 	all, err := a.tools.Discover()
 	if err != nil {
@@ -239,7 +216,6 @@ func (a *agentImpl) discoverTools() ([]ai.Tool, error) {
 
 	var scoped []ai.Tool
 	for _, t := range all {
-		// Skip our own endpoints
 		if strings.HasPrefix(t.OriginalName, a.opts.Name+".") {
 			continue
 		}

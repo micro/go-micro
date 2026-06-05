@@ -141,21 +141,40 @@ func (s *session) discoverAgents() bool {
 
 // callAgent calls an agent's Chat endpoint via RPC.
 func (s *session) callAgent(ctx context.Context, name, message string) (*agent.Response, error) {
-	reqBody, _ := json.Marshal(&agent.ChatRequest{Message: message})
+	reqBody, _ := json.Marshal(map[string]string{"message": message})
 	req := s.cl.NewRequest(name, "Agent.Chat", &bytes.Frame{Data: reqBody})
 	var rsp bytes.Frame
 	if err := s.cl.Call(ctx, req, &rsp); err != nil {
 		return nil, err
 	}
-	var resp agent.ChatResponse
+	var resp struct {
+		Reply     string `json:"reply"`
+		Agent     string `json:"agent"`
+		ToolCalls []struct {
+			ID     string `json:"id"`
+			Name   string `json:"name"`
+			Input  string `json:"input"`
+			Result string `json:"result"`
+		} `json:"tool_calls"`
+	}
 	if err := json.Unmarshal(rsp.Data, &resp); err != nil {
 		return nil, err
 	}
-	return &agent.Response{
-		Reply:     resp.Reply,
-		ToolCalls: resp.ToolCalls,
-		Agent:     resp.Agent,
-	}, nil
+	r := &agent.Response{
+		Reply: resp.Reply,
+		Agent: resp.Agent,
+	}
+	for _, tc := range resp.ToolCalls {
+		var input map[string]any
+		json.Unmarshal([]byte(tc.Input), &input)
+		r.ToolCalls = append(r.ToolCalls, ai.ToolCall{
+			ID:     tc.ID,
+			Name:   tc.Name,
+			Input:  input,
+			Result: tc.Result,
+		})
+	}
+	return r, nil
 }
 
 // buildRouterPrompt creates a system prompt for the router that
