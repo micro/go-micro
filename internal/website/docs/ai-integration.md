@@ -22,7 +22,7 @@ ai.Tools                →  discovers services + executes RPCs programmatically
     ↓
 ai.Model                →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Cloud, ...)
     ↓
-micro chat / ai/flow    →  interactive or event-driven orchestration
+agent / flow / micro chat  →  agent-managed, event-driven, or interactive orchestration
 ```
 
 Every layer is optional. You can use go-micro without AI. You can use the `ai` package without MCP. But when you stack them, you get services that AI agents can discover and orchestrate automatically.
@@ -134,7 +134,7 @@ Multi-turn conversation with `ai.History` — the model remembers context across
 Subscribe to broker events and let an LLM orchestrate the response:
 
 ```go
-import "go-micro.dev/v5/ai/flow"
+import "go-micro.dev/v5/flow"
 
 f := flow.New("onboard",
     flow.Trigger("events.user.created"),
