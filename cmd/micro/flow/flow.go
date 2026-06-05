@@ -11,7 +11,7 @@ import (
 	"syscall"
 
 	"github.com/urfave/cli/v2"
-	aiflow "go-micro.dev/v5/ai/flow"
+	aiflow "go-micro.dev/v5/flow"
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
