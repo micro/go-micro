@@ -64,6 +64,11 @@ See the [mcp/](./mcp/) directory for AI agent integration examples:
 ### [agent-demo](./agent-demo/)
 Multi-service project management app (Projects, Tasks, Team) with seed data and agent playground integration.
 
+### [agent-plan-delegate](./agent-plan-delegate/)
+The two built-in agent capabilities in a small multi-agent system:
+- **plan** — an agent records an ordered plan in its store-backed memory before doing multi-step work
+- **delegate** — an agent hands a subtask to another agent (over RPC if it's registered, else to an ephemeral sub-agent)
+
 ## Coming Soon
 
 - **pubsub-events** - Event-driven architecture with NATS

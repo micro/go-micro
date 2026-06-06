@@ -154,11 +154,27 @@ micro agent list                    # list registered agents
 micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
 ```
 
+### Plan & Delegate
+
+Every agent gets two built-in capabilities, exposed as tools — no extra setup, no harness:
+
+- **`plan`** — for multi-step work, the agent records an ordered plan in its store-backed memory and stays oriented across turns.
+- **`delegate`** — the agent hands a self-contained subtask to another agent. If a registered agent already owns the relevant services, the hand-off goes over RPC to that agent; otherwise a focused, short-lived sub-agent is created for the subtask with its own isolated context.
+
+This keeps intelligence distributed: an agent doesn't need to know *how* to do everything, only *who* does. See [examples/agent-plan-delegate](examples/agent-plan-delegate/).
+
+```go
+// A sub-agent is just an agent — created with New, talked to with Ask.
+// delegate-first: reuse a registered agent, or spin up a focused one.
+resp, _ := agent.Ask(ctx, "Plan the launch, create the tasks, and have comms notify the owner.")
+```
+
 ## Features
 
 | Category | What | Details |
 |----------|------|---------|
 | **AI** | Agents | `micro.NewAgent()` — intelligent layer that manages services |
+| **AI** | Plan & delegate | Built-in agent tools — plan multi-step work, delegate subtasks to other agents |
 | **AI** | Flows | `micro.NewFlow()` — event-driven LLM orchestration |
 | **AI** | MCP gateway | Every endpoint is an AI tool automatically |
 | **AI** | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
@@ -259,6 +275,7 @@ resp, _ := m.Generate(ctx, &ai.Request{Prompt: "hello"})
 - [hello-world](examples/hello-world/) — Basic RPC service
 - [multi-service](examples/multi-service/) — Multiple services in one binary
 - [mcp](examples/mcp/) — MCP integration with AI agents
+- [agent-plan-delegate](examples/agent-plan-delegate/) — Agent planning and multi-agent delegation
 - [grpc-interop](examples/grpc-interop/) — Call go-micro from any gRPC client
 
 See [all examples](examples/README.md).
