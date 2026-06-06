@@ -19,8 +19,8 @@ import (
 	"strings"
 	"sync"
 
-	"go-micro.dev/v5/ai"
 	pb "go-micro.dev/v5/agent/proto"
+	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
 
@@ -58,6 +58,12 @@ type agentImpl struct {
 	hist   *ai.History
 	server server.Server
 	mu     sync.Mutex
+
+	// ephemeral marks a short-lived sub-agent created by delegation.
+	// Ephemeral agents run with an isolated context: they load and
+	// persist no history, and have no built-in tools (so they cannot
+	// plan or re-delegate).
+	ephemeral bool
 }
 
 // New creates a new Agent.
@@ -94,11 +100,13 @@ func (a *agentImpl) setup() {
 	}
 
 	a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
-	modelOpts = append(modelOpts, ai.WithToolHandler(a.tools.Handler()))
+	modelOpts = append(modelOpts, ai.WithToolHandler(a.toolHandler()))
 	a.model = ai.New(a.opts.Provider, modelOpts...)
 
 	a.hist = ai.NewHistory(a.opts.HistoryLimit)
-	a.loadHistory()
+	if !a.ephemeral {
+		a.loadHistory()
+	}
 }
 
 // Ask sends a message and returns the agent's response.
@@ -230,18 +238,34 @@ func (a *agentImpl) discoverTools() ([]ai.Tool, error) {
 			}
 		}
 	}
+
+	// Expose the agent's own capabilities (plan, delegate) as tools.
+	// Ephemeral sub-agents don't get them.
+	if !a.ephemeral {
+		scoped = append(scoped, builtinTools()...)
+	}
 	return scoped, nil
 }
 
 func (a *agentImpl) buildPrompt() string {
-	if a.opts.Prompt != "" {
-		return a.opts.Prompt
-	}
-	if len(a.opts.Services) > 0 {
-		return fmt.Sprintf("You are the %s agent. You manage these services: %s. Use the available tools to fulfill requests.",
+	var base string
+	switch {
+	case a.opts.Prompt != "":
+		base = a.opts.Prompt
+	case len(a.opts.Services) > 0:
+		base = fmt.Sprintf("You are the %s agent. You manage these services: %s. Use the available tools to fulfill requests.",
 			a.opts.Name, strings.Join(a.opts.Services, ", "))
+	default:
+		base = fmt.Sprintf("You are the %s agent. Use the available tools to fulfill requests.", a.opts.Name)
 	}
-	return fmt.Sprintf("You are the %s agent. Use the available tools to fulfill requests.", a.opts.Name)
+
+	// Keep the agent oriented: surface its saved plan, if any.
+	if !a.ephemeral {
+		if plan := a.loadPlan(); plan != "" {
+			base += "\n\nYour current plan (update it with the plan tool as you make progress):\n" + plan
+		}
+	}
+	return base
 }
 
 func (a *agentImpl) historyKey() string {
@@ -263,6 +287,9 @@ func (a *agentImpl) loadHistory() {
 }
 
 func (a *agentImpl) saveHistory() {
+	if a.ephemeral {
+		return
+	}
 	data, err := json.Marshal(a.hist.Messages())
 	if err != nil {
 		return
