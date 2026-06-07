@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -74,6 +75,12 @@ func (s *TaskService) List(ctx context.Context, req *ListRequest, rsp *ListRespo
 	return nil
 }
 
+func (s *TaskService) count() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.tasks)
+}
+
 type SendRequest struct {
 	To      string `json:"to" description:"Recipient address"`
 	Message string `json:"message" description:"Message body"`
@@ -81,14 +88,26 @@ type SendRequest struct {
 type SendResponse struct {
 	Sent bool `json:"sent"`
 }
-type NotifyService struct{}
+type NotifyService struct {
+	mu   sync.Mutex
+	sent int
+}
 
 // Send delivers a notification message to a recipient.
 // @example {"to": "owner@acme.com", "message": "ready"}
 func (s *NotifyService) Send(ctx context.Context, req *SendRequest, rsp *SendResponse) error {
+	s.mu.Lock()
+	s.sent++
+	s.mu.Unlock()
 	fmt.Printf("    \033[35m[notify]\033[0m 📨 to=%s message=%q\n", req.To, req.Message)
 	rsp.Sent = true
 	return nil
+}
+
+func (s *NotifyService) count() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.sent
 }
 
 // ---------------------------------------------------------------------------
@@ -183,11 +202,39 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 	}
 }
 
-func main() {
-	ai.Register("mock", newMock)
+func providerKey(provider string) string {
+	if v := os.Getenv("MICRO_AI_API_KEY"); v != "" {
+		return v
+	}
+	env := map[string]string{
+		"anthropic":  "ANTHROPIC_API_KEY",
+		"openai":     "OPENAI_API_KEY",
+		"gemini":     "GEMINI_API_KEY",
+		"groq":       "GROQ_API_KEY",
+		"mistral":    "MISTRAL_API_KEY",
+		"together":   "TOGETHER_API_KEY",
+		"atlascloud": "ATLASCLOUD_API_KEY",
+	}[provider]
+	return os.Getenv(env)
+}
 
-	fmt.Println("\n\033[1mPlan & Delegate — live integration harness (mock LLM)\033[0m")
-	fmt.Println("Real services, registry, RPC, agent loop, store, delegation. Only the model is mocked.\n")
+func main() {
+	provider := flag.String("provider", "mock", "LLM provider: mock (default), anthropic, openai, gemini, groq, mistral, together, atlascloud")
+	flag.Parse()
+
+	apiKey := ""
+	if *provider == "mock" {
+		ai.Register("mock", newMock)
+	} else {
+		apiKey = providerKey(*provider)
+		if apiKey == "" {
+			fmt.Printf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env\n", *provider)
+			return
+		}
+	}
+
+	fmt.Printf("\n\033[1mPlan & Delegate — live integration harness (provider: %s)\033[0m\n", *provider)
+	fmt.Print("Real services, registry, RPC, agent loop, store, delegation.\n\n")
 
 	// Real services.
 	task := micro.New("task")
@@ -202,7 +249,8 @@ func main() {
 	comms := micro.NewAgent("comms",
 		micro.AgentServices("notify"),
 		micro.AgentPrompt("You handle outbound notifications. Use the notify service."),
-		micro.AgentProvider("mock"),
+		micro.AgentProvider(*provider),
+		micro.AgentAPIKey(apiKey),
 	)
 	go comms.Run()
 
@@ -210,13 +258,14 @@ func main() {
 	conductor := micro.NewAgent("conductor",
 		micro.AgentServices("task"),
 		micro.AgentPrompt("You coordinate launch work. Plan first, create tasks, and delegate notifications to the \"comms\" agent."),
-		micro.AgentProvider("mock"),
+		micro.AgentProvider(*provider),
+		micro.AgentAPIKey(apiKey),
 	)
 
 	fmt.Println("waiting for services + comms agent to register...")
 	time.Sleep(3 * time.Second)
 
-	fmt.Println("\n\033[1m> prompt:\033[0m Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified.\n")
+	fmt.Print("\n\033[1m> prompt:\033[0m Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified.\n\n")
 
 	resp, err := conductor.Ask(context.Background(),
 		"Create three launch tasks: Design, Build, and Ship. Then make sure owner@acme.com is notified that the launch plan is ready.")
