@@ -57,3 +57,7 @@ examples/mcp/hello/hello
 # IDE-specific files
 .DS_Store
 /micro
+
+# Built example/harness binaries (go build ./path/... drops these at repo root)
+/plan-delegate
+/agent-plan-delegate
