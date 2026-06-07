@@ -22,9 +22,9 @@ import (
 	"go-micro.dev/v5/agent"
 	"go-micro.dev/v5/ai"
 	clt "go-micro.dev/v5/client"
-	"go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/cmd/micro/cli/generate"
+	"go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/registry"
 
 	_ "go-micro.dev/v5/ai/anthropic"
@@ -102,6 +102,12 @@ type session struct {
 	sysPrompt string
 	procs     []*exec.Cmd
 	agents    map[string]agentInfo
+
+	// Built-in agent capabilities (plan, delegate), shared with the
+	// agent package so the direct-service fallback has the same tools a
+	// real agent would.
+	builtinTools  []ai.Tool
+	builtinHandle func(name string, input map[string]any) (any, string, bool)
 }
 
 // discoverAgents finds agents registered in the registry.
@@ -203,6 +209,7 @@ func (s *session) refreshTools() {
 		return
 	}
 	s.toolList = append(discovered, generateTool)
+	s.toolList = append(s.toolList, s.builtinTools...)
 
 	serviceNames := make(map[string]bool)
 	for _, t := range discovered {
@@ -320,13 +327,26 @@ func run(c *cli.Context) error {
 
 	tools := ai.NewTools(reg, ai.ToolClient(cl))
 
+	// Built-in agent capabilities (plan, delegate), reused from the
+	// agent package so the direct-service fallback matches a real agent.
+	builtinTools, builtinHandle := agent.Builtins(
+		agent.Name("chat"),
+		agent.WithRegistry(reg),
+		agent.WithClient(cl),
+		agent.Provider(provider),
+		agent.Model(modelName),
+		agent.APIKey(apiKey),
+	)
+
 	s := &session{
-		provider: provider,
-		apiKey:   apiKey,
-		tools:    tools,
-		reg:      reg,
-		cl:       cl,
-		hist:     ai.NewHistory(50),
+		provider:      provider,
+		apiKey:        apiKey,
+		tools:         tools,
+		reg:           reg,
+		cl:            cl,
+		hist:          ai.NewHistory(50),
+		builtinTools:  builtinTools,
+		builtinHandle: builtinHandle,
 	}
 	s.refreshTools()
 
@@ -335,6 +355,9 @@ func run(c *cli.Context) error {
 	wrappedHandler := func(name string, input map[string]any) (any, string) {
 		if name == "micro_generate_service" {
 			return s.handleGenerate(input)
+		}
+		if result, content, ok := s.builtinHandle(name, input); ok {
+			return result, content
 		}
 		return baseHandler(name, input)
 	}

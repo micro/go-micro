@@ -100,6 +100,38 @@ func TestEphemeralAgentHasNoBuiltins(t *testing.T) {
 	}
 }
 
+func TestBuiltinsAccessor(t *testing.T) {
+	mem := store.NewMemoryStore()
+	tools, handle := Builtins(
+		Name("chat"),
+		WithStore(mem),
+		WithRegistry(registry.NewMemoryRegistry()),
+	)
+
+	if len(tools) != 2 {
+		t.Fatalf("Builtins() returned %d tools, want 2", len(tools))
+	}
+
+	// A name that isn't a built-in falls through (ok == false).
+	if _, _, ok := handle("not_a_builtin", nil); ok {
+		t.Error("handle(non-builtin) ok = true, want false")
+	}
+
+	// plan is handled and persisted under the configured name.
+	_, content, ok := handle(toolPlan, map[string]any{
+		"steps": []any{map[string]any{"task": "x", "status": "pending"}},
+	})
+	if !ok {
+		t.Fatal("handle(plan) ok = false, want true")
+	}
+	if content == "" {
+		t.Fatal("handle(plan) returned empty content")
+	}
+	if recs, err := mem.Read("agent/chat/plan"); err != nil || len(recs) == 0 {
+		t.Errorf("plan not persisted under agent/chat/plan: err=%v recs=%d", err, len(recs))
+	}
+}
+
 func TestIsAgent(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
 

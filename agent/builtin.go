@@ -59,6 +59,31 @@ func builtinTools() []ai.Tool {
 	}
 }
 
+// Builtins returns the built-in agent tools (plan, delegate) together
+// with a handler for them, so the same capabilities can be wired into a
+// tool loop that isn't a running Agent — for example the `micro chat`
+// fallback. The handler's third return value is false when the name is
+// not a built-in, so callers can fall through to their own tools.
+//
+// Configure it with the same options as an Agent (Name, Provider,
+// WithStore, WithRegistry, WithClient, ...); these back plan's memory
+// and delegate's RPC/sub-agent behaviour.
+func Builtins(opts ...Option) (tools []ai.Tool, handle func(name string, input map[string]any) (result any, content string, ok bool)) {
+	a := &agentImpl{opts: newOptions(opts...)}
+	handle = func(name string, input map[string]any) (any, string, bool) {
+		switch name {
+		case toolPlan:
+			r, c := a.handlePlan(input)
+			return r, c, true
+		case toolDelegate:
+			r, c := a.handleDelegate(input)
+			return r, c, true
+		}
+		return nil, "", false
+	}
+	return builtinTools(), handle
+}
+
 // toolHandler returns the agent's tool-call handler. It intercepts the
 // built-in tools and falls through to RPC service execution for the
 // rest. Ephemeral sub-agents get the bare service handler so they can
