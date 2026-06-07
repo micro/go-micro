@@ -398,7 +398,7 @@ docker run -p 3000:3000 ghcr.io/micro/micro-mcp-gateway \
 Built into the `Agent` abstraction. Every agent gets two tools — `plan` and `delegate` — with no extra setup. They are plain tools, not a separate harness or graph.
 
 ```
-Coordinator ──plan──→ (records ordered steps in memory)
+Conductor ──plan──→ (records ordered steps in memory)
             ──delegate──→ registered agent (RPC)  or  ephemeral sub-agent
 ```
 
@@ -407,7 +407,7 @@ Coordinator ──plan──→ (records ordered steps in memory)
 Nothing to wire — the tools are added to every agent automatically. Guide their use with the prompt:
 
 ```go
-coordinator := micro.NewAgent("coordinator",
+conductor := micro.NewAgent("conductor",
     micro.AgentServices("task"),
     micro.AgentPrompt(
         "For multi-step requests, call the plan tool first to record your steps. "+
