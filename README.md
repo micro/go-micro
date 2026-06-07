@@ -285,6 +285,7 @@ See [all examples](examples/README.md).
 - [Getting Started](internal/website/docs/getting-started.md)
 - [AI Integration](internal/website/docs/ai-integration.md)
 - [Agent Design](internal/docs/AGENT_DESIGN.md)
+- [Plan & Delegate](internal/website/docs/guides/plan-delegate.md)
 - [MCP & AI Agents](internal/website/docs/mcp.md)
 - [Data Model](internal/website/docs/model.md)
 - [Deployment](internal/website/docs/deployment.md)

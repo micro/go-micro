@@ -107,13 +107,14 @@ func (s *NotifyService) Send(ctx context.Context, req *SendRequest, rsp *SendRes
 }
 
 func main() {
-	provider := os.Getenv("MICRO_AI_PROVIDER")
-	apiKey := os.Getenv("MICRO_AI_API_KEY")
-	if provider == "" || apiKey == "" {
-		fmt.Println("Set MICRO_AI_PROVIDER and MICRO_AI_API_KEY to run this example.")
-		fmt.Println("  e.g. MICRO_AI_PROVIDER=anthropic MICRO_AI_API_KEY=sk-ant-... go run main.go")
+	provider, apiKey := detectProvider()
+	if apiKey == "" {
+		fmt.Println("No LLM key found. Set a provider key and run again, e.g.:")
+		fmt.Println("  export ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, ...")
+		fmt.Println("  go run main.go")
 		return
 	}
+	fmt.Printf("Using provider %q\n", provider)
 
 	// Services.
 	task := micro.New("task")
@@ -167,4 +168,36 @@ func main() {
 	}
 	fmt.Println("\n--- coordinator reply ---")
 	fmt.Println(resp.Reply)
+}
+
+// detectProvider picks an LLM provider and key from the environment.
+// MICRO_AI_PROVIDER / MICRO_AI_API_KEY win if set; otherwise it falls
+// back to the first provider-specific key it finds (ANTHROPIC_API_KEY,
+// OPENAI_API_KEY, ...), so `export ANTHROPIC_API_KEY=... && go run .`
+// just works.
+func detectProvider() (provider, apiKey string) {
+	provider = os.Getenv("MICRO_AI_PROVIDER")
+	apiKey = os.Getenv("MICRO_AI_API_KEY")
+	if apiKey != "" {
+		if provider == "" {
+			provider = "anthropic"
+		}
+		return provider, apiKey
+	}
+
+	// provider name -> its conventional API key env var
+	for _, p := range []struct{ name, env string }{
+		{"anthropic", "ANTHROPIC_API_KEY"},
+		{"openai", "OPENAI_API_KEY"},
+		{"gemini", "GEMINI_API_KEY"},
+		{"groq", "GROQ_API_KEY"},
+		{"mistral", "MISTRAL_API_KEY"},
+		{"together", "TOGETHER_API_KEY"},
+		{"atlascloud", "ATLASCLOUD_API_KEY"},
+	} {
+		if v := os.Getenv(p.env); v != "" {
+			return p.name, v
+		}
+	}
+	return "", ""
 }

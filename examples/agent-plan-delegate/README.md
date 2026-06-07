@@ -22,9 +22,14 @@ coordinator (agent)  manages task, delegates notifications to comms
 
 ## Run
 
+Set any provider key and run — the example auto-detects the provider:
+
 ```bash
-MICRO_AI_PROVIDER=anthropic MICRO_AI_API_KEY=sk-ant-... go run main.go
+export ANTHROPIC_API_KEY=sk-ant-...    # or OPENAI_API_KEY, GEMINI_API_KEY, ...
+go run main.go
 ```
+
+(You can also force a provider with `MICRO_AI_PROVIDER` / `MICRO_AI_API_KEY`.)
 
 The coordinator is asked to *"Create three launch tasks: Design, Build, and Ship. Then make sure owner@acme.com is notified that the launch plan is ready."*
 
