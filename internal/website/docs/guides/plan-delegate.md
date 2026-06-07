@@ -105,7 +105,7 @@ This is how intelligence stays distributed: an agent doesn't need to know *how* 
 
 ## A multi-agent example
 
-Two services (`task`, `notify`) and two agents. The `coordinator` owns `task`; `comms` owns `notify`. Asked to create tasks and notify someone, the coordinator plans the work, creates the tasks with its own tools, then delegates the notification to `comms` — which, being a registered agent, receives the hand-off over RPC.
+Two services (`task`, `notify`) and two agents. The `conductor` owns `task`; `comms` owns `notify`. Asked to create tasks and notify someone, the conductor plans the work, creates the tasks with its own tools, then delegates the notification to `comms` — which, being a registered agent, receives the hand-off over RPC.
 
 ```go
 comms := micro.NewAgent("comms",
@@ -116,7 +116,7 @@ comms := micro.NewAgent("comms",
 )
 go comms.Run()
 
-coordinator := micro.NewAgent("coordinator",
+conductor := micro.NewAgent("conductor",
 	micro.AgentServices("task"),
 	micro.AgentPrompt(
 		"For multi-step requests, call the plan tool first. "+
@@ -125,7 +125,7 @@ coordinator := micro.NewAgent("coordinator",
 	micro.AgentAPIKey(key),
 )
 
-resp, _ := coordinator.Ask(ctx,
+resp, _ := conductor.Ask(ctx,
 	"Create three launch tasks: Design, Build, and Ship. "+
 		"Then make sure owner@acme.com is notified that the launch plan is ready.")
 ```

@@ -2,15 +2,15 @@
 //
 // This example shows the two built-in agent capabilities:
 //
-//   - plan:     the coordinator records an ordered plan before doing
+//   - plan:     the conductor records an ordered plan before doing
 //     multi-step work; the plan is saved to its memory.
-//   - delegate: the coordinator hands the notification step to a
+//   - delegate: the conductor hands the notification step to a
 //     separate "comms" agent over RPC, rather than doing it
 //     itself.
 //
-// Two services (task, notify), two agents (coordinator, comms). The
-// coordinator manages task; comms manages notify. When asked to create
-// tasks and notify someone, the coordinator plans the work, creates the
+// Two services (task, notify), two agents (conductor, comms). The
+// conductor manages task; comms manages notify. When asked to create
+// tasks and notify someone, the conductor plans the work, creates the
 // tasks with its own tools, then delegates the notification to comms —
 // which is a real registered agent, so the hand-off goes over RPC.
 //
@@ -126,7 +126,7 @@ func main() {
 	go notify.Run()
 
 	// comms is a real, registered agent that owns the notify service.
-	// Because it's registered, the coordinator's delegate hand-off
+	// Because it's registered, the conductor's delegate hand-off
 	// reaches it over RPC.
 	comms := micro.NewAgent("comms",
 		micro.AgentServices("notify"),
@@ -136,9 +136,9 @@ func main() {
 	)
 	go comms.Run()
 
-	// The coordinator owns task. Its prompt nudges it to plan, and to
+	// The conductor owns task. Its prompt nudges it to plan, and to
 	// delegate notifications to the comms agent rather than doing them.
-	coordinator := micro.NewAgent("coordinator",
+	conductor := micro.NewAgent("conductor",
 		micro.AgentServices("task"),
 		micro.AgentPrompt(
 			"You coordinate launch work. For multi-step requests, first call the plan tool "+
@@ -153,7 +153,7 @@ func main() {
 	// Give the services and comms agent a moment to register.
 	time.Sleep(2 * time.Second)
 
-	resp, err := coordinator.Ask(context.Background(),
+	resp, err := conductor.Ask(context.Background(),
 		"Create three launch tasks: Design, Build, and Ship. "+
 			"Then make sure owner@acme.com is notified that the launch plan is ready.")
 	if err != nil {
@@ -161,12 +161,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("\n--- coordinator tool calls ---")
+	fmt.Println("\n--- conductor tool calls ---")
 	for _, tc := range resp.ToolCalls {
 		args, _ := json.Marshal(tc.Input)
 		fmt.Printf("  → %s(%s)\n", tc.Name, args)
 	}
-	fmt.Println("\n--- coordinator reply ---")
+	fmt.Println("\n--- conductor reply ---")
 	fmt.Println(resp.Reply)
 }
 
