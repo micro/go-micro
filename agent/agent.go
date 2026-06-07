@@ -73,6 +73,19 @@ func New(opts ...Option) Agent {
 	}
 }
 
+// newEphemeral creates a short-lived sub-agent for a delegated subtask.
+// It shares the parent's provider, model, and infrastructure but runs
+// with an isolated context: it loads and persists no history and has no
+// built-in tools (so it can neither plan nor re-delegate). Returns the
+// concrete type because ephemeral is an internal construction detail,
+// not a public option.
+func newEphemeral(opts ...Option) *agentImpl {
+	return &agentImpl{
+		opts:      newOptions(opts...),
+		ephemeral: true,
+	}
+}
+
 func (a *agentImpl) Name() string {
 	return a.opts.Name
 }

@@ -120,7 +120,7 @@ func (a *agentImpl) handleDelegate(input map[string]any) (any, string) {
 	if to != "" {
 		svcs = []string{to}
 	}
-	sub := New(
+	sub := newEphemeral(
 		Name(a.opts.Name+".sub"),
 		Services(svcs...),
 		Prompt("You are a sub-agent handling a single delegated subtask. "+
@@ -131,8 +131,7 @@ func (a *agentImpl) handleDelegate(input map[string]any) (any, string) {
 		WithRegistry(a.opts.Registry),
 		WithClient(a.opts.Client),
 		WithStore(a.opts.Store),
-	).(*agentImpl)
-	sub.ephemeral = true
+	)
 
 	resp, err := sub.Ask(context.Background(), task)
 	if err != nil {
