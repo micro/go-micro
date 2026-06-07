@@ -393,6 +393,39 @@ docker run -p 3000:3000 ghcr.io/micro/micro-mcp-gateway \
 - Multiple teams deploying services but sharing one MCP endpoint
 - Enterprise environments needing centralized auth and audit
 
+## Pattern 9: Planning and Delegation
+
+Built into the `Agent` abstraction. Every agent gets two tools — `plan` and `delegate` — with no extra setup. They are plain tools, not a separate harness or graph.
+
+```
+Coordinator ──plan──→ (records ordered steps in memory)
+            ──delegate──→ registered agent (RPC)  or  ephemeral sub-agent
+```
+
+### Setup
+
+Nothing to wire — the tools are added to every agent automatically. Guide their use with the prompt:
+
+```go
+coordinator := micro.NewAgent("coordinator",
+    micro.AgentServices("task"),
+    micro.AgentPrompt(
+        "For multi-step requests, call the plan tool first to record your steps. "+
+            "For notifications, delegate to the \"comms\" agent (to: \"comms\")."),
+    micro.AgentProvider("anthropic"),
+)
+```
+
+- **`plan`** records an ordered list of steps (`task` + `status`) in the agent's store-backed memory, surfaced back on later turns so it stays oriented.
+- **`delegate`** hands a self-contained subtask to another agent. **Delegate-first**: if the target is a registered agent it's reached over RPC; otherwise a focused, short-lived sub-agent is created with a fresh, isolated context. A sub-agent is just an agent — created with `New`, talked to with `Ask`; there's no separate "spawn"/"fork" concept.
+
+Full example: [examples/agent-plan-delegate](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate).
+
+### When to Use
+
+- Multi-step tasks where an explicit plan keeps the agent on track
+- Multi-agent systems where domain experts own their own services and you want hand-offs to stay distributed (not one agent doing everything)
+
 ## Choosing a Pattern
 
 | Pattern | Complexity | Best For |
@@ -405,6 +438,7 @@ docker run -p 3000:3000 ghcr.io/micro/micro-mcp-gateway \
 | Claude Code | Low | Developer workflows |
 | LangChain/LlamaIndex | Medium | Python agent pipelines, RAG |
 | Standalone Gateway | Medium | Production, enterprise |
+| Planning & Delegation | Medium | Multi-step tasks, distributed multi-agent systems |
 
 Start with **Pattern 1** (single agent) and add complexity as needed. Most applications don't need multi-agent architectures.
 

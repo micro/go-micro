@@ -1,0 +1,178 @@
+package agent
+
+import (
+	"context"
+	"strings"
+	"testing"
+
+	"go-micro.dev/v5/ai"
+	"go-micro.dev/v5/client"
+	codecBytes "go-micro.dev/v5/codec/bytes"
+	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/store"
+)
+
+// fakeGen drives the fake provider's Generate. Tests set it and reset
+// it with a deferred cleanup. Tests in this package are not parallel,
+// so a package-level hook is safe.
+var fakeGen func(opts ai.Options, req *ai.Request) (*ai.Response, error)
+
+type fakeModel struct{ opts ai.Options }
+
+func (m *fakeModel) Init(opts ...ai.Option) error {
+	for _, o := range opts {
+		o(&m.opts)
+	}
+	return nil
+}
+func (m *fakeModel) Options() ai.Options { return m.opts }
+func (m *fakeModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+	if fakeGen != nil {
+		return fakeGen(m.opts, req)
+	}
+	return &ai.Response{Reply: "ok"}, nil
+}
+func (m *fakeModel) Stream(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (ai.Stream, error) {
+	return nil, nil
+}
+func (m *fakeModel) String() string { return "fake" }
+
+func init() {
+	ai.Register("fake", func(opts ...ai.Option) ai.Model {
+		m := &fakeModel{}
+		_ = m.Init(opts...)
+		return m
+	})
+}
+
+// fakeClient embeds the default client (so NewRequest works) and
+// overrides Call with a test-supplied function.
+type fakeClient struct {
+	client.Client
+	callFn func(ctx context.Context, req client.Request, rsp interface{}) error
+}
+
+func (c *fakeClient) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
+	return c.callFn(ctx, req, rsp)
+}
+
+func newTestAgent(opts ...Option) *agentImpl {
+	base := []Option{
+		Provider("fake"),
+		WithRegistry(registry.NewMemoryRegistry()),
+		WithStore(store.NewMemoryStore()),
+	}
+	a := New(append(base, opts...)...).(*agentImpl)
+	a.setup()
+	return a
+}
+
+// The model is offered the plan and delegate tools, and calling the
+// plan tool persists the plan to memory.
+func TestAskExposesAndRunsPlan(t *testing.T) {
+	var sawPlan, sawDelegate bool
+	fakeGen = func(opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		for _, tl := range req.Tools {
+			switch tl.Name {
+			case toolPlan:
+				sawPlan = true
+			case toolDelegate:
+				sawDelegate = true
+			}
+		}
+		// Simulate the model recording a plan.
+		if opts.ToolHandler != nil {
+			opts.ToolHandler(toolPlan, map[string]any{
+				"steps": []any{map[string]any{"task": "step one", "status": "pending"}},
+			})
+		}
+		return &ai.Response{Answer: "done"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("worker"))
+	resp, err := a.Ask(context.Background(), "do some multi-step work")
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if !sawPlan || !sawDelegate {
+		t.Errorf("model should be offered plan and delegate tools: plan=%v delegate=%v", sawPlan, sawDelegate)
+	}
+	if resp.Reply == "" {
+		t.Error("Ask returned empty reply")
+	}
+	if plan := a.loadPlan(); !strings.Contains(plan, "step one") {
+		t.Errorf("plan tool result not persisted; loadPlan() = %q", plan)
+	}
+}
+
+// Delegating with no matching agent creates an ephemeral sub-agent with
+// a fresh, isolated context (no builtin tools) and returns its reply.
+func TestDelegateEphemeral(t *testing.T) {
+	fakeGen = func(opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if strings.Contains(req.SystemPrompt, "sub-agent") {
+			for _, tl := range req.Tools {
+				if tl.Name == toolPlan || tl.Name == toolDelegate {
+					t.Errorf("ephemeral sub-agent must not have builtin tool %q", tl.Name)
+				}
+			}
+			return &ai.Response{Reply: "subtask complete"}, nil
+		}
+		return &ai.Response{Reply: "parent"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("root"))
+	_, content := a.handleDelegate(map[string]any{"task": "summarize the report"})
+	if !strings.Contains(content, "subtask complete") {
+		t.Errorf("delegate should return the sub-agent's reply; got %q", content)
+	}
+}
+
+// Delegating to a name that resolves to a registered agent goes over
+// RPC to that agent rather than spawning a sub-agent.
+func TestDelegateToRegisteredAgent(t *testing.T) {
+	reg := registry.NewMemoryRegistry()
+	if err := reg.Register(&registry.Service{
+		Name:     "comms",
+		Metadata: map[string]string{"type": "agent"},
+		Nodes:    []*registry.Node{{Id: "comms-1", Address: "127.0.0.1:0"}},
+	}); err != nil {
+		t.Fatalf("register agent: %v", err)
+	}
+
+	var calledService, calledEndpoint string
+	fc := &fakeClient{Client: client.DefaultClient}
+	fc.callFn = func(ctx context.Context, req client.Request, rsp interface{}) error {
+		calledService, calledEndpoint = req.Service(), req.Endpoint()
+		frame := rsp.(*codecBytes.Frame)
+		frame.Data = []byte(`{"reply":"notified alice","agent":"comms"}`)
+		return nil
+	}
+
+	// fakeGen guards against the ephemeral path being taken by mistake.
+	fakeGen = func(opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		t.Error("delegate to a registered agent must not spawn a sub-agent")
+		return &ai.Response{}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("root"), WithRegistry(reg), WithClient(fc))
+	_, content := a.handleDelegate(map[string]any{"task": "notify alice", "to": "comms"})
+
+	if calledService != "comms" || calledEndpoint != "Agent.Chat" {
+		t.Errorf("expected RPC to comms Agent.Chat, got %s %s", calledService, calledEndpoint)
+	}
+	if !strings.Contains(content, "notified alice") {
+		t.Errorf("delegate-first result missing agent reply; got %q", content)
+	}
+}
+
+// Delegate requires a task.
+func TestDelegateRequiresTask(t *testing.T) {
+	a := newTestAgent(Name("root"))
+	_, content := a.handleDelegate(map[string]any{})
+	if !strings.Contains(content, "error") {
+		t.Errorf("delegate with no task should error; got %q", content)
+	}
+}

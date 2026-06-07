@@ -100,6 +100,7 @@ Build compelling demos showing agents interacting with go-micro services in real
 - Kubernetes Operator with CRDs
 
 ### Recently Completed
+- **Agent Plan & Delegate** - Two built-in agent tools: `plan` (ordered plan persisted to store-backed memory, surfaced in the prompt) and `delegate` (hand a subtask to another agent — RPC to a registered agent, else an ephemeral sub-agent with isolated context). Added automatically to every agent; no harness or graph. (`agent/builtin.go`, `examples/agent-plan-delegate/`)
 - **`micro new` MCP Templates** - Scaffolds MCP-enabled services with doc comments, `@example` tags, `WithMCP()`. `--no-mcp` to opt out.
 - **CRUD Example** - Contact book service with 6 operations, rich agent docs (`examples/mcp/crud/`)
 - **Migration Guide** - "Add MCP to Existing Services" guide with 3 approaches

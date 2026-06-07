@@ -92,6 +92,29 @@ Agents persist conversation history in the store. Memory survives restarts.
 agent/{name}/history    — conversation history
 ```
 
+## Built-in Capabilities
+
+Beyond its scoped service tools, every agent gets two built-in tools. They are not service endpoints — they are capabilities the agent has over itself and over other agents. They are plain tools wired into the agent's tool handler; there is no separate harness, loop engine, or graph. The LLM calls them exactly like any other tool.
+
+### plan
+
+For multi-step work the agent records an ordered plan: a list of steps, each with a `task` and a `status` (`pending`, `in_progress`, `done`). The plan is persisted to the store and surfaced back in the system prompt on later turns, so the agent stays oriented.
+
+```
+agent/{name}/plan       — current plan
+```
+
+### delegate
+
+The agent hands a self-contained subtask to another agent. **Delegate-first** resolution:
+
+1. If the target names a **registered agent** (a service advertising `type=agent`), the subtask is sent to it via RPC (`Agent.Chat`). Intelligence stays distributed — the domain expert handles its own services.
+2. Otherwise a focused **ephemeral sub-agent** is created with `New(...)` + `Ask(...)`, given a fresh, isolated context, asked the subtask, and torn down.
+
+A sub-agent is just an agent — no new "spawn"/"fork" concept. Ephemeral sub-agents load and persist no history and have no built-in tools, so they cannot plan or re-delegate (which bounds recursion).
+
+These capabilities are added automatically to any non-ephemeral agent, so existing `NewAgent` services and `micro chat` routing get them for free.
+
 ## Registration
 
 Agents register as real services via `server.NewServer` with metadata:

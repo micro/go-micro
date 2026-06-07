@@ -32,6 +32,8 @@ examples:
   - title: Real-World Examples
     url: /docs/examples/realworld/
 guides:
+  - title: Plan & Delegate
+    url: /docs/guides/plan-delegate.html
   - title: Atlas Cloud Integration
     url: /docs/guides/atlascloud-integration.html
   - title: AI Provider Guide
