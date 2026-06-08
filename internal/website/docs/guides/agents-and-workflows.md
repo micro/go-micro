@@ -114,7 +114,7 @@ These are guardrails, not a framework — a counter and a callback on the path e
 
 ## Why no graph DSL
 
-Anthropic: "be cautious with frameworks… understand the underlying code." Go Micro's answer is that there is no separate framework to understand — workflows and agents are services, and tool use is RPC. `plan` and `delegate` are tools, not a harness. The patterns above are code you can read, not a DSL you have to learn. That's the [bet we made going all in on AI](/blog/14).
+Anthropic: "be cautious with frameworks… understand the underlying code." Go Micro's answer is that there is no separate framework to understand — workflows and agents are services, and tool use is RPC. `plan` and `delegate` are tools, not a harness. The patterns above are code you can read, not a DSL you have to learn. That's the [direction we took going all in on AI](/blog/14).
 
 ## See also
 
