@@ -14,6 +14,11 @@ Go Micro has three core abstractions:
 | **Agent** | Intelligence — manages services with an LLM | `micro.NewAgent("task-mgr")` |
 | **Flow** | Orchestration — event-driven LLM triggers | `micro.NewFlow("onboard")` |
 
+## Prerequisites
+
+- **Go 1.21+** for development. The `curl` install below gives you the `micro` binary without Go, but `micro run` compiles your services, so you'll want Go installed to build them.
+- An **LLM provider key** (Anthropic, OpenAI, Gemini, …) *only* for the AI features — `micro run --prompt`, `micro chat`, and agents. Plain services need no key. Set it before running, e.g. `export ANTHROPIC_API_KEY=sk-ant-...`.
+
 ## Install
 
 ```bash
@@ -21,7 +26,7 @@ Go Micro has three core abstractions:
 curl -fsSL https://go-micro.dev/install.sh | sh
 
 # Or with Go
-go install go-micro.dev/v5/cmd/micro@v5.25.0
+go install go-micro.dev/v5/cmd/micro@v5.26.0
 ```
 
 ## Quick Start: Generate from a Prompt

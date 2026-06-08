@@ -17,7 +17,7 @@ A **task management service** with full CRUD operations that:
 ## Prerequisites
 
 ```bash
-go install go-micro.dev/v5/cmd/micro@v5.16.0
+go install go-micro.dev/v5/cmd/micro@v5.26.0
 ```
 
 ## Step 1: Create the Service

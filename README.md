@@ -19,12 +19,32 @@ Install the CLI:
 curl -fsSL https://go-micro.dev/install.sh | sh
 
 # Or with Go
-go install go-micro.dev/v5/cmd/micro@v5.25.0
+go install go-micro.dev/v5/cmd/micro@v5.26.0
 ```
 
-Generate services from a description and start them:
+### Fastest start — no API key
+
+Scaffold a service, run it, call it:
 
 ```bash
+micro new helloworld
+cd helloworld
+micro run
+```
+
+Then in another terminal:
+
+```bash
+curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
+  -H 'Content-Type: application/json' -d '{"name":"World"}'
+```
+
+### Generate from a prompt — with an LLM key
+
+Set a provider key, describe what you want, and the AI designs services, writes handlers, compiles, and starts them:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, ...
 micro run --prompt "a task management system with categories" --provider anthropic
 ```
 
@@ -175,7 +195,7 @@ resp, _ := agent.Ask(ctx, "Plan the launch, create the tasks, and have comms not
 |----------|------|---------|
 | **AI** | Agents | `micro.NewAgent()` — intelligent layer that manages services |
 | **AI** | Plan & delegate | Built-in agent tools — plan multi-step work, delegate subtasks to other agents |
-| **AI** | Flows | `micro.NewFlow()` — event-driven LLM orchestration |
+| **AI** | Workflows | `micro.NewFlow()` — event-driven; runs a step or triggers an agent |
 | **AI** | MCP gateway | Every endpoint is an AI tool automatically |
 | **AI** | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
 | **AI** | Interactive console | `micro run` includes a chat console for talking to services |
