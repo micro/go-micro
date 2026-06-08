@@ -32,6 +32,8 @@ examples:
   - title: Real-World Examples
     url: /docs/examples/realworld/
 guides:
+  - title: Agents and Workflows
+    url: /docs/guides/agents-and-workflows.html
   - title: Plan & Delegate
     url: /docs/guides/plan-delegate.html
   - title: Atlas Cloud Integration

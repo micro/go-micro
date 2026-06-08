@@ -20,6 +20,10 @@ type Options struct {
 	HistoryLimit int
 	// OnResult is called after each execution with the result.
 	OnResult func(Result)
+	// Agent, if set, names a registered agent the flow hands each event
+	// to (over RPC). The flow triggers; the agent reasons. When empty,
+	// the flow runs a single augmented-LLM step itself.
+	Agent string
 }
 
 // Option applies a configuration to Options.
@@ -68,4 +72,11 @@ func HistoryLimit(n int) Option {
 // OnResult sets a callback for each execution result.
 func OnResult(fn func(Result)) Option {
 	return func(o *Options) { o.OnResult = fn }
+}
+
+// Agent makes the flow hand each event to a named registered agent over
+// RPC instead of running its own LLM step. The flow triggers; the agent
+// reasons (with its plan, delegate, memory, and guardrails).
+func Agent(name string) Option {
+	return func(o *Options) { o.Agent = name }
 }

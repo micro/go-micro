@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"go-micro.dev/v5/ai"
 	codecBytes "go-micro.dev/v5/codec/bytes"
@@ -94,10 +95,33 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 		return base
 	}
 	return func(name string, input map[string]any) (any, string) {
-		switch name {
-		case toolPlan:
+		// plan is internal bookkeeping, not an action — never gated.
+		if name == toolPlan {
 			return a.handlePlan(input)
-		case toolDelegate:
+		}
+
+		// Stopping condition: bound the number of actions per Ask.
+		if a.opts.MaxSteps > 0 {
+			a.steps++
+			if a.steps > a.opts.MaxSteps {
+				return errResult(fmt.Sprintf(
+					"step limit reached (%d). Do not call any more tools; stop and summarize what you have so far.",
+					a.opts.MaxSteps))
+			}
+		}
+
+		// Human-in-the-loop / policy: gate the action before it runs.
+		if a.opts.Approve != nil {
+			if ok, reason := a.opts.Approve(name, input); !ok {
+				msg := "tool call was not approved"
+				if reason != "" {
+					msg += ": " + reason
+				}
+				return errResult(msg)
+			}
+		}
+
+		if name == toolDelegate {
 			return a.handleDelegate(input)
 		}
 		return base(name, input)
