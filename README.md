@@ -191,24 +191,37 @@ resp, _ := agent.Ask(ctx, "Plan the launch, create the tasks, and have comms not
 
 ## Features
 
-| Category | What | Details |
-|----------|------|---------|
-| **AI** | Agents | `micro.NewAgent()` — intelligent layer that manages services |
-| **AI** | Plan & delegate | Built-in agent tools — plan multi-step work, delegate subtasks to other agents |
-| **AI** | Workflows | `micro.NewFlow()` — event-driven; runs a step or triggers an agent |
-| **AI** | MCP gateway | Every endpoint is an AI tool automatically |
-| **AI** | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
-| **AI** | Interactive console | `micro run` includes a chat console for talking to services |
-| **AI** | Service generation | `micro run --prompt` — describe a system, get running services |
-| **Discovery** | Service registry | mDNS (default), Consul, etcd |
-| **Communication** | RPC client/server | gRPC transport, load balancing, streaming |
-| **Messaging** | Pub/sub events | NATS, RabbitMQ, HTTP broker |
-| **Storage** | Key-value store | File (bbolt), Postgres, NATS KV |
-| **Data** | Typed model layer | CRUD + queries, SQLite/Postgres backends |
-| **DX** | Hot reload | `micro run` watches files, rebuilds on change |
-| **DX** | Templates | `micro new --template crud/pubsub/api` |
-| **Deploy** | One-command deploy | `micro deploy user@server` — SSH + systemd, no Docker |
-| **Plugins** | Everything swappable | All abstractions are Go interfaces |
+### AI
+
+| Feature | Details |
+|---------|---------|
+| Agents | `micro.NewAgent()` — intelligent layer that manages services |
+| Plan & delegate | Built-in agent tools — plan multi-step work, delegate subtasks to other agents |
+| Guardrails | `MaxSteps` (stopping condition) and `ApproveTool` (human-in-the-loop) on every agent |
+| Workflows | `micro.NewFlow()` — event-driven; runs a step or triggers an agent |
+| MCP gateway | Every endpoint is an AI tool automatically |
+| 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
+| Interactive console | `micro run` includes a chat console for talking to services |
+| Service generation | `micro run --prompt` — describe a system, get running services |
+
+### Framework
+
+| Feature | Details |
+|---------|---------|
+| Service registry | mDNS (default), Consul, etcd |
+| RPC client/server | gRPC transport, load balancing, streaming |
+| Pub/sub events | NATS, RabbitMQ, HTTP broker |
+| Key-value store | File (bbolt), Postgres, NATS KV |
+| Typed model layer | CRUD + queries, SQLite/Postgres backends |
+| Everything swappable | All abstractions are Go interfaces |
+
+### Developer experience & deployment
+
+| Feature | Details |
+|---------|---------|
+| Hot reload | `micro run` watches files, rebuilds on change |
+| Templates | `micro new --template crud/pubsub/api` |
+| One-command deploy | `micro deploy user@server` — SSH + systemd, no Docker |
 
 ## CLI
 
