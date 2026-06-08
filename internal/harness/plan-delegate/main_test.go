@@ -7,7 +7,9 @@ import (
 
 	"go-micro.dev/v5/agent"
 	"go-micro.dev/v5/ai"
+	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/flow"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/service"
@@ -108,5 +110,95 @@ func TestPlanDelegateEndToEnd(t *testing.T) {
 	// Delegation reached the comms agent over RPC, which called notify.
 	if n := notifySvc.count(); n != 1 {
 		t.Errorf("notify service called %d times, want 1 (delegation did not reach comms)", n)
+	}
+}
+
+// TestFlowDispatchesToAgentEndToEnd proves "Flow triggers, Agent reasons":
+// a workflow event hands off to the registered conductor agent, which then
+// plans, creates tasks, and delegates to comms — all over real RPC. Only
+// the LLM is mocked.
+func TestFlowDispatchesToAgentEndToEnd(t *testing.T) {
+	ai.Register("mock", newMock)
+
+	reg := registry.NewMemoryRegistry()
+	cl := client.NewClient(
+		client.Registry(reg),
+		client.Selector(selector.NewSelector(selector.Registry(reg))),
+	)
+	mem := store.NewMemoryStore()
+
+	taskSvc := new(TaskService)
+	task := service.New(service.Name("task"), service.Registry(reg), service.Client(cl))
+	if err := task.Handle(taskSvc); err != nil {
+		t.Fatalf("handle task: %v", err)
+	}
+	go task.Run()
+
+	notifySvc := new(NotifyService)
+	notify := service.New(service.Name("notify"), service.Registry(reg), service.Client(cl))
+	if err := notify.Handle(notifySvc); err != nil {
+		t.Fatalf("handle notify: %v", err)
+	}
+	go notify.Run()
+
+	comms := agent.New(
+		agent.Name("comms"),
+		agent.Services("notify"),
+		agent.Prompt("You handle outbound notifications."),
+		agent.Provider("mock"),
+		agent.WithRegistry(reg),
+		agent.WithClient(cl),
+		agent.WithStore(mem),
+	)
+	go comms.Run()
+	defer comms.Stop()
+
+	// Unlike the previous test, the conductor must be registered (running)
+	// so the flow can reach it over RPC.
+	conductor := agent.New(
+		agent.Name("conductor"),
+		agent.Services("task"),
+		agent.Prompt("Plan first, create tasks, delegate notifications to the comms agent."),
+		agent.Provider("mock"),
+		agent.WithRegistry(reg),
+		agent.WithClient(cl),
+		agent.WithStore(mem),
+	)
+	go conductor.Run()
+	defer conductor.Stop()
+
+	waitForService(t, reg, "task")
+	waitForService(t, reg, "notify")
+	waitForService(t, reg, "comms")
+	waitForService(t, reg, "conductor")
+
+	// A workflow that hands each event to the conductor agent.
+	f := flow.New("onboard",
+		flow.Agent("conductor"),
+		flow.Prompt("Get the launch ready: {{.Data}}"),
+	)
+	if err := f.Register(reg, broker.DefaultBroker, cl); err != nil {
+		t.Fatalf("flow register: %v", err)
+	}
+
+	// Fire the workflow (as a broker event would).
+	if err := f.Execute(context.Background(), "three tasks then notify owner@acme.com"); err != nil {
+		t.Fatalf("flow execute: %v", err)
+	}
+
+	// The flow recorded the agent's reply.
+	if rs := f.Results(); len(rs) != 1 || rs[0].Reply == "" {
+		t.Errorf("flow result = %+v, want one result with a reply", rs)
+	}
+
+	// The agent ran end to end: tasks created, plan stored, comms notified.
+	if n := taskSvc.count(); n != 3 {
+		t.Errorf("task service has %d tasks, want 3", n)
+	}
+	if recs, err := mem.Read("agent/conductor/plan"); err != nil || len(recs) == 0 {
+		t.Errorf("plan not persisted: err=%v recs=%d", err, len(recs))
+	}
+	if n := notifySvc.count(); n != 1 {
+		t.Errorf("notify called %d times, want 1 (flow->agent->delegate->comms chain broken)", n)
 	}
 }
