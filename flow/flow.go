@@ -1,7 +1,12 @@
-// Package flow provides event-driven LLM orchestration for go-micro
-// services. A Flow subscribes to a broker topic, feeds each event
-// into an LLM with all registered services as tools, and lets the
-// model decide which RPCs to call.
+// Package flow provides event-driven workflows for go-micro services.
+//
+// A Flow is a workflow in the sense of Anthropic's "Building Effective
+// Agents": LLMs and tools orchestrated through a predefined path. It
+// subscribes to a broker topic and, for each event, runs one augmented
+// LLM step — the registered services as tools, a fixed prompt — and
+// lets the model decide which RPCs to call. Use a Flow when the task is
+// well-defined and you want a deterministic trigger; use an Agent (see
+// the agent package) when the work needs to direct itself dynamically.
 //
 // Usage:
 //
