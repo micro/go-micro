@@ -10,7 +10,9 @@ Documentation for the Go Micro framework.
 
 <img src="/images/generated/architecture.png" alt="Go Micro architecture" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />
 
-Go Micro is a framework for microservices development. It's built on a powerful pluggable architecture using Go interfaces. Go Micro defines the foundations for distributed systems development which includes service discovery, client/server RPC and pub/sub. Additionally Go Micro contains other primitives such as auth, caching and storage. All of this is encapsulated in a high level service interface.
+Go Micro is a framework for building services and agents in Go. Write services — they register, discover each other, and communicate via RPC and events. Every endpoint is automatically an AI-callable tool via [MCP](https://modelcontextprotocol.io/), so AI agents can use your services the moment they run. Build agents to orchestrate them, and workflows to trigger them on events — all from the same primitives.
+
+It's built on a pluggable architecture of Go interfaces: service discovery, client/server RPC, pub/sub, plus auth, caching, and storage. Sane defaults out of the box, everything swappable.
 
 ## Learn More
 
