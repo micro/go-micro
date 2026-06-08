@@ -35,6 +35,20 @@ f := micro.NewFlow("onboard-user",
 )
 ```
 
+### Flow triggers, Agent reasons
+
+A flow doesn't have to do the reasoning itself. Point it at an agent and it becomes a pure trigger — the event fires, the flow renders the prompt, and a registered agent handles it over RPC with its full capabilities (plan, delegate, memory, guardrails):
+
+```go
+f := micro.NewFlow("onboard-user",
+    micro.FlowTrigger("events.user.created"),
+    micro.FlowPrompt("New user {{.Data}} — get them set up."),
+    micro.FlowAgent("conductor"),   // the conductor agent reasons; the flow only triggers
+)
+```
+
+This is the clean seam between the two halves of the taxonomy: the *workflow* (deterministic, event-driven) hands off to the *agent* (dynamic). One engine, two front doors — an event (`flow`) or a conversation (`agent.Ask`).
+
 ## Agent ↔ `agent`
 
 An [`Agent`](plan-delegate.html) is an agent in Anthropic's exact sense: it **directs itself** — plans, calls tools, evaluates results, and decides the next step over many turns, with memory across them. Use it when you want flexibility and model-driven decisions.

@@ -32,6 +32,7 @@ import (
 	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
+	codecbytes "go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/registry"
 
@@ -53,6 +54,7 @@ type Flow struct {
 	opts    Options
 	model   ai.Model
 	toolSet *ai.Tools
+	client  client.Client
 	tmpl    *template.Template
 	log     logger.Logger
 	mu      sync.Mutex
@@ -104,23 +106,28 @@ func New(name string, opts ...Option) *Flow {
 // model, discovers tools from the registry, and subscribes to the
 // trigger topic on the broker. Call this before service.Run().
 func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Client) error {
+	f.client = cl
 	f.toolSet = ai.NewTools(reg, ai.ToolClient(cl))
 
-	var modelOpts []ai.Option
-	if f.opts.APIKey != "" {
-		modelOpts = append(modelOpts, ai.WithAPIKey(f.opts.APIKey))
-	}
-	if f.opts.Model != "" {
-		modelOpts = append(modelOpts, ai.WithModel(f.opts.Model))
-	}
-	if f.opts.BaseURL != "" {
-		modelOpts = append(modelOpts, ai.WithBaseURL(f.opts.BaseURL))
-	}
-	modelOpts = append(modelOpts, ai.WithTools(f.toolSet))
+	// A flow that dispatches to an agent doesn't run its own model — the
+	// agent is the engine. Otherwise, set up the augmented LLM.
+	if f.opts.Agent == "" {
+		var modelOpts []ai.Option
+		if f.opts.APIKey != "" {
+			modelOpts = append(modelOpts, ai.WithAPIKey(f.opts.APIKey))
+		}
+		if f.opts.Model != "" {
+			modelOpts = append(modelOpts, ai.WithModel(f.opts.Model))
+		}
+		if f.opts.BaseURL != "" {
+			modelOpts = append(modelOpts, ai.WithBaseURL(f.opts.BaseURL))
+		}
+		modelOpts = append(modelOpts, ai.WithTools(f.toolSet))
 
-	f.model = ai.New(f.opts.Provider, modelOpts...)
-	if f.model == nil {
-		return fmt.Errorf("unknown provider: %s", f.opts.Provider)
+		f.model = ai.New(f.opts.Provider, modelOpts...)
+		if f.model == nil {
+			return fmt.Errorf("unknown provider: %s", f.opts.Provider)
+		}
 	}
 
 	if f.opts.TriggerTopic != "" {
@@ -146,11 +153,6 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 func (f *Flow) Execute(ctx context.Context, data string) error {
 	start := time.Now()
 
-	discovered, err := f.toolSet.Discover()
-	if err != nil {
-		return fmt.Errorf("discover tools: %w", err)
-	}
-
 	prompt := data
 	if f.tmpl != nil {
 		var buf bytes.Buffer
@@ -158,19 +160,44 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		prompt = buf.String()
 	}
 
-	resp, err := f.model.Generate(ctx, &ai.Request{
-		Prompt:       prompt,
-		SystemPrompt: f.opts.SystemPrompt,
-		Tools:        discovered,
-	})
-
 	result := Result{
 		FlowName:  f.name,
 		Trigger:   f.opts.TriggerTopic,
 		Prompt:    prompt,
 		Timestamp: start,
-		Duration:  time.Since(start).Seconds(),
 	}
+
+	// Flow triggers, Agent reasons: hand the event to the named agent.
+	if f.opts.Agent != "" {
+		reply, err := f.callAgent(ctx, f.opts.Agent, prompt)
+		result.Duration = time.Since(start).Seconds()
+		if err != nil {
+			result.Error = err.Error()
+			f.record(result)
+			return err
+		}
+		result.Reply = reply
+		f.record(result)
+		f.log.Logf(logger.InfoLevel, "Flow %s dispatched to agent %s in %.1fs",
+			f.name, f.opts.Agent, result.Duration)
+		return nil
+	}
+
+	// Otherwise run a single augmented-LLM step with the services as tools.
+	discovered, err := f.toolSet.Discover()
+	if err != nil {
+		result.Duration = time.Since(start).Seconds()
+		result.Error = err.Error()
+		f.record(result)
+		return fmt.Errorf("discover tools: %w", err)
+	}
+
+	resp, err := f.model.Generate(ctx, &ai.Request{
+		Prompt:       prompt,
+		SystemPrompt: f.opts.SystemPrompt,
+		Tools:        discovered,
+	})
+	result.Duration = time.Since(start).Seconds()
 
 	if err != nil {
 		result.Error = err.Error()
@@ -191,6 +218,24 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		f.name, result.Duration, len(result.ToolCalls))
 
 	return nil
+}
+
+// callAgent hands the rendered prompt to a registered agent's Agent.Chat
+// endpoint over RPC and returns its reply.
+func (f *Flow) callAgent(ctx context.Context, name, message string) (string, error) {
+	body, _ := json.Marshal(map[string]string{"message": message})
+	req := f.client.NewRequest(name, "Agent.Chat", &codecbytes.Frame{Data: body})
+	var rsp codecbytes.Frame
+	if err := f.client.Call(ctx, req, &rsp); err != nil {
+		return "", err
+	}
+	var out struct {
+		Reply string `json:"reply"`
+	}
+	if err := json.Unmarshal(rsp.Data, &out); err != nil {
+		return "", err
+	}
+	return out.Reply, nil
 }
 
 // Results returns a copy of all recorded execution results.

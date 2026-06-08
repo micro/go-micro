@@ -120,6 +120,11 @@ func FlowProvider(p string) FlowOption { return flow.Provider(p) }
 // FlowAPIKey sets the API key for the LLM provider.
 func FlowAPIKey(k string) FlowOption { return flow.APIKey(k) }
 
+// FlowAgent makes the flow hand each event to a named agent over RPC —
+// the flow triggers, the agent reasons. Without it, the flow runs a
+// single LLM step itself.
+func FlowAgent(name string) FlowOption { return flow.Agent(name) }
+
 // NewGroup creates a service group for running multiple services
 // in a single binary with shared lifecycle management.
 func NewGroup(svcs ...Service) *Group {
