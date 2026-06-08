@@ -5,8 +5,8 @@ import (
 	"context"
 
 	"go-micro.dev/v5/agent"
-	"go-micro.dev/v5/flow"
 	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/flow"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/service"
 )
@@ -84,6 +84,17 @@ func AgentModel(m string) AgentOption { return agent.Model(m) }
 
 // AgentAPIKey sets the API key for the LLM provider.
 func AgentAPIKey(k string) AgentOption { return agent.APIKey(k) }
+
+// ApproveFunc gates an agent's tool calls before they run.
+type ApproveFunc = agent.ApproveFunc
+
+// AgentMaxSteps bounds tool executions per Ask (0 = unbounded) — a
+// stopping condition for autonomous agents.
+func AgentMaxSteps(n int) AgentOption { return agent.MaxSteps(n) }
+
+// AgentApproveTool sets a human-in-the-loop / policy hook called before
+// each action the agent takes.
+func AgentApproveTool(fn ApproveFunc) AgentOption { return agent.ApproveTool(fn) }
 
 // NewFlow creates an event-driven LLM orchestration unit.
 //

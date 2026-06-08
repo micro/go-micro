@@ -71,7 +71,32 @@ Follow Anthropic's guidance:
 
 ## Guardrails
 
-Anthropic is emphatic that autonomous agents need stopping conditions, human checkpoints, and sandboxed testing. Go Micro's agent loop has a bounded number of tool rounds; explicit stopping conditions and human-in-the-loop checkpoints are areas of active work. Until then, prefer a **workflow** for anything that must be predictable, and test agents against the [integration harness](https://github.com/micro/go-micro/tree/master/internal/harness/plan-delegate).
+Anthropic is emphatic that autonomous agents need stopping conditions, human checkpoints, and sandboxed testing. Go Micro's agent has two built-in guardrails, both as plain options:
+
+**Stopping condition** — `MaxSteps` bounds the number of actions an agent may take per `Ask`. Once exceeded, further tool calls are refused and the model is told to stop and summarize.
+
+```go
+micro.NewAgent("conductor",
+    micro.AgentServices("task"),
+    micro.AgentMaxSteps(8),       // at most 8 tool calls per request
+)
+```
+
+**Human-in-the-loop** — `ApproveTool` gates each action before it runs. Return `false` to block it; the reason is shown to the model so it can adapt. The internal `plan` tool is never gated (it's bookkeeping, not an action).
+
+```go
+micro.NewAgent("conductor",
+    micro.AgentServices("task"),
+    micro.AgentApproveTool(func(tool string, input map[string]any) (bool, string) {
+        if strings.HasPrefix(tool, "billing_") {
+            return false, "billing actions require human sign-off"
+        }
+        return true, ""
+    }),
+)
+```
+
+These are guardrails, not a framework — a counter and a callback on the path every tool call already takes. For anything that must be predictable, still prefer a **workflow**, and test agents against the [integration harness](https://github.com/micro/go-micro/tree/master/internal/harness/plan-delegate).
 
 ## Why no graph DSL
 

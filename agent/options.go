@@ -9,6 +9,13 @@ import (
 // Option configures an Agent.
 type Option func(*Options)
 
+// ApproveFunc decides whether an agent may execute a tool call before it
+// runs. Returning false blocks the call; the reason is shown to the
+// model so it can adapt. Use it for human-in-the-loop approval or policy
+// checks. It is called for actions (service tools and delegate), not for
+// the internal plan tool.
+type ApproveFunc func(tool string, input map[string]any) (approved bool, reason string)
+
 // Options holds agent configuration.
 type Options struct {
 	Name         string
@@ -21,6 +28,13 @@ type Options struct {
 	Client       client.Client
 	Store        store.Store
 	HistoryLimit int
+
+	// MaxSteps bounds the number of tool executions per Ask (0 =
+	// unbounded). Once exceeded, further tool calls are refused and the
+	// model is told to stop and summarize. A stopping condition.
+	MaxSteps int
+	// Approve gates each action before it runs. Nil = allow all.
+	Approve ApproveFunc
 }
 
 func newOptions(opts ...Option) Options {
@@ -84,4 +98,17 @@ func WithStore(s store.Store) Option {
 // HistoryLimit sets the max conversation messages to retain.
 func HistoryLimit(n int) Option {
 	return func(o *Options) { o.HistoryLimit = n }
+}
+
+// MaxSteps bounds tool executions per Ask (0 = unbounded). A stopping
+// condition: beyond the limit, tool calls are refused and the model is
+// told to stop and summarize.
+func MaxSteps(n int) Option {
+	return func(o *Options) { o.MaxSteps = n }
+}
+
+// ApproveTool sets a human-in-the-loop / policy hook called before each
+// action (service tools and delegate). Returning false blocks the call.
+func ApproveTool(fn ApproveFunc) Option {
+	return func(o *Options) { o.Approve = fn }
 }

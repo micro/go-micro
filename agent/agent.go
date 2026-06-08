@@ -64,6 +64,9 @@ type agentImpl struct {
 	// persist no history, and have no built-in tools (so they cannot
 	// plan or re-delegate).
 	ephemeral bool
+
+	// steps counts tool executions in the current Ask, for MaxSteps.
+	steps int
 }
 
 // New creates a new Agent.
@@ -138,6 +141,7 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 	}
 
 	a.hist.Add("user", message)
+	a.steps = 0
 
 	resp, err := a.model.Generate(ctx, &ai.Request{
 		Prompt:       message,
