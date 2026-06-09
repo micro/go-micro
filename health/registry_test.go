@@ -43,7 +43,7 @@ func TestRegistryCheck_Unhealthy(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if !errors.Is(err, errors.Unwrap(err)) && err.Error() == "" {
+	if err.Error() == "" {
 		t.Fatal("expected non-empty error message")
 	}
 }
