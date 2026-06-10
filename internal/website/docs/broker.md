@@ -4,7 +4,7 @@ layout: default
 
 # Broker
 
-<img src="/images/generated/broker.png" alt="Broker" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
+<img src="/images/generated/broker.jpg" alt="Broker" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
 
 The broker provides pub/sub messaging for Go Micro services.
 

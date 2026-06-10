@@ -7,7 +7,7 @@ title: AI Integration
 
 Go Micro is an AI-native microservices framework. Every service you build is automatically accessible to AI agents, and every service can call AI models. This page explains how the pieces fit together.
 
-<img src="/images/generated/mcp-agent.png" alt="AI integration architecture" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
+<img src="/images/generated/mcp-agent.jpg" alt="AI integration architecture" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
 
 ## The Stack
 
