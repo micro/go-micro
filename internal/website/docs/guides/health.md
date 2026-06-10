@@ -117,6 +117,28 @@ health.Register("disk", health.CustomCheck(func() error {
 }))
 ```
 
+### RegistryCheck
+
+Verifies the service registry is still reachable. A go-micro service can keep running while it has silently lost its connection to the registry (etcd, Consul, …) — the process looks healthy, but other services can no longer discover it. `RegistryCheck` surfaces that state so a readiness probe can take the pod out of rotation.
+
+```go
+svc := micro.New("orders")
+
+health.Register("registry", health.RegistryCheck(svc.Options().Registry))
+```
+
+Registered checks are [critical](#critical-vs-non-critical-checks) by default, so when the registry connection is lost, `/health/ready` returns 503 and Kubernetes stops routing to the pod:
+
+```yaml
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8080
+  periodSeconds: 5
+```
+
+The check lists services under the configured probe timeout, so an unreachable registry is reported as `down` rather than hanging the probe. It works with any registry implementation — the connectivity is exercised through the standard `ListServices` call.
+
 ## Critical vs Non-Critical Checks
 
 By default, all checks are critical. A critical check failure marks the service as not ready.
