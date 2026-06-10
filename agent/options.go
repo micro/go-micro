@@ -1,6 +1,9 @@
 package agent
 
 import (
+	"context"
+
+	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
@@ -16,6 +19,16 @@ type Option func(*Options)
 // the internal plan tool.
 type ApproveFunc func(tool string, input map[string]any) (approved bool, reason string)
 
+// ToolFunc handles a custom tool call. Return the result as a string
+// (often JSON); return an error to report failure back to the model.
+type ToolFunc func(ctx context.Context, input map[string]any) (string, error)
+
+// customTool is a developer-registered tool beyond the agent's services.
+type customTool struct {
+	def     ai.Tool
+	handler ToolFunc
+}
+
 // Options holds agent configuration.
 type Options struct {
 	Name         string
@@ -29,12 +42,19 @@ type Options struct {
 	Store        store.Store
 	HistoryLimit int
 
+	// Memory is the agent's conversation memory. Nil = the default
+	// store-backed memory (durable across restarts).
+	Memory Memory
+
 	// MaxSteps bounds the number of tool executions per Ask (0 =
 	// unbounded). Once exceeded, further tool calls are refused and the
 	// model is told to stop and summarize. A stopping condition.
 	MaxSteps int
 	// Approve gates each action before it runs. Nil = allow all.
 	Approve ApproveFunc
+
+	// tools are developer-registered custom tools (see WithTool).
+	tools []customTool
 }
 
 func newOptions(opts ...Option) Options {
@@ -111,4 +131,28 @@ func MaxSteps(n int) Option {
 // action (service tools and delegate). Returning false blocks the call.
 func ApproveTool(fn ApproveFunc) Option {
 	return func(o *Options) { o.Approve = fn }
+}
+
+// WithMemory sets the agent's conversation memory. The default is
+// store-backed memory keyed by agent name; supply your own to use an
+// in-process, database, or semantic store.
+func WithMemory(m Memory) Option {
+	return func(o *Options) { o.Memory = m }
+}
+
+// WithTool registers a custom tool the agent can call, beyond the
+// services it discovers — a local function, an external API, anything.
+// properties is the JSON-schema map for the tool's parameters.
+func WithTool(name, description string, properties map[string]any, handler ToolFunc) Option {
+	return func(o *Options) {
+		o.tools = append(o.tools, customTool{
+			def: ai.Tool{
+				Name:         name,
+				OriginalName: name,
+				Description:  description,
+				Properties:   properties,
+			},
+			handler: handler,
+		})
+	}
 }

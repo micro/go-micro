@@ -9,6 +9,7 @@ import (
 	"go-micro.dev/v5/flow"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/service"
+	"go-micro.dev/v5/store"
 )
 
 type serviceKey struct{}
@@ -95,6 +96,26 @@ func AgentMaxSteps(n int) AgentOption { return agent.MaxSteps(n) }
 // AgentApproveTool sets a human-in-the-loop / policy hook called before
 // each action the agent takes.
 func AgentApproveTool(fn ApproveFunc) AgentOption { return agent.ApproveTool(fn) }
+
+// Memory is an agent's pluggable conversation memory.
+type Memory = agent.Memory
+
+// ToolFunc handles a custom agent tool call.
+type ToolFunc = agent.ToolFunc
+
+// NewMemory returns the default store-backed agent memory.
+func NewMemory(s store.Store, key string, limit int) Memory { return agent.NewMemory(s, key, limit) }
+
+// NewInMemory returns non-persistent agent memory.
+func NewInMemory(limit int) Memory { return agent.NewInMemory(limit) }
+
+// AgentMemory sets the agent's conversation memory (default: store-backed).
+func AgentMemory(m Memory) AgentOption { return agent.WithMemory(m) }
+
+// AgentTool registers a custom tool the agent can call, beyond its services.
+func AgentTool(name, description string, properties map[string]any, handler ToolFunc) AgentOption {
+	return agent.WithTool(name, description, properties, handler)
+}
 
 // NewFlow creates an event-driven LLM orchestration unit.
 //

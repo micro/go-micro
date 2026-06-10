@@ -191,6 +191,25 @@ This keeps intelligence distributed: an agent doesn't need to know *how* to do e
 resp, _ := agent.Ask(ctx, "Plan the launch, create the tasks, and have comms notify the owner.")
 ```
 
+### Batteries included, pluggable
+
+Just as a service composes pluggable abstractions (registry, broker, store), an agent composes a **model**, **memory**, and **tools** — sane defaults out of the box, each swappable.
+
+```go
+agent := micro.NewAgent("assistant",
+    micro.AgentProvider("anthropic"),                 // model — swap the provider
+    micro.AgentMemory(micro.NewInMemory(50)),         // memory — default is store-backed & durable
+    micro.AgentTool("weather", "Get the weather for a city",
+        map[string]any{"city": map[string]any{"type": "string"}},
+        func(ctx context.Context, in map[string]any) (string, error) {
+            return getWeather(in["city"].(string))    // tools beyond your services — any function
+        }),
+    micro.AgentMaxSteps(8),                            // guardrails
+)
+```
+
+**Memory** is durable and store-backed by default (Postgres, NATS KV, or file), so an agent picks up where it left off after a restart — or supply your own with `AgentMemory`. **Tools** are your services automatically, plus any function you register with `AgentTool`.
+
 ## Features
 
 ### AI
@@ -199,6 +218,8 @@ resp, _ := agent.Ask(ctx, "Plan the launch, create the tasks, and have comms not
 |---------|---------|
 | Agents | `micro.NewAgent()` — intelligent layer that manages services |
 | Plan & delegate | Built-in agent tools — plan multi-step work, delegate subtasks to other agents |
+| Pluggable memory | Durable store-backed conversation memory by default; swap with `AgentMemory` |
+| Custom tools | `AgentTool` — give an agent any function as a tool, beyond its services |
 | Guardrails | `MaxSteps` (stopping condition) and `ApproveTool` (human-in-the-loop) on every agent |
 | Workflows | `micro.NewFlow()` — event-driven; runs a step or triggers an agent |
 | MCP gateway | Every endpoint is an AI tool automatically |
