@@ -23,12 +23,15 @@ package health
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"runtime"
 	"sync"
 	"time"
+
+	"go-micro.dev/v5/registry"
 )
 
 // Status represents the health status of a check or the overall system
@@ -298,6 +301,39 @@ func DNSCheck(host string) CheckFunc {
 			return fmt.Errorf("dns lookup %s: %w", host, err)
 		}
 		return nil
+	}
+}
+
+// RegistryCheck creates a check that verifies the service registry is
+// reachable by listing services. Registered checks are critical by
+// default, so a service is reported not-ready when it loses its
+// connection to the registry — wire it to a Kubernetes readiness probe
+// on /health/ready:
+//
+//	health.Register("registry", health.RegistryCheck(service.Options().Registry))
+//
+// The lookup runs under the check's timeout, so an unreachable registry
+// (for example an etcd that has gone away) is reported as down rather
+// than blocking the probe.
+func RegistryCheck(reg registry.Registry) CheckFunc {
+	return func(ctx context.Context) error {
+		if reg == nil {
+			return errors.New("no registry configured")
+		}
+		errc := make(chan error, 1)
+		go func() {
+			_, err := reg.ListServices()
+			errc <- err
+		}()
+		select {
+		case err := <-errc:
+			if err != nil {
+				return fmt.Errorf("registry %s unreachable: %w", reg.String(), err)
+			}
+			return nil
+		case <-ctx.Done():
+			return fmt.Errorf("registry %s check timed out: %w", reg.String(), ctx.Err())
+		}
 	}
 }
 
