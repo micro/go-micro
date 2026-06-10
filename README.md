@@ -10,6 +10,8 @@ Write services — they register, discover each other, and communicate via RPC a
 &nbsp;&nbsp;
 <a href="https://go-micro.dev/blog/8"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
 
+**Want to support Go Micro and see your logo here?** [Become a sponsor](https://discord.gg/WeMU5AGxD) — reach out on Discord.
+
 ## Quick Start
 
 Install the CLI:
