@@ -121,6 +121,17 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 			}
 		}
 
+		// Developer-registered custom tools (WithTool).
+		for i := range a.opts.tools {
+			if a.opts.tools[i].def.Name == name {
+				out, err := a.opts.tools[i].handler(context.Background(), input)
+				if err != nil {
+					return errResult(err.Error())
+				}
+				return out, out
+			}
+		}
+
 		if name == toolDelegate {
 			return a.handleDelegate(input)
 		}

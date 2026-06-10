@@ -22,7 +22,6 @@ import (
 	pb "go-micro.dev/v5/agent/proto"
 	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/server"
-	"go-micro.dev/v5/store"
 
 	_ "go-micro.dev/v5/ai/anthropic"
 	_ "go-micro.dev/v5/ai/atlascloud"
@@ -55,7 +54,7 @@ type agentImpl struct {
 	opts   Options
 	model  ai.Model
 	tools  *ai.Tools
-	hist   *ai.History
+	mem    Memory
 	server server.Server
 	mu     sync.Mutex
 
@@ -119,9 +118,16 @@ func (a *agentImpl) setup() {
 	modelOpts = append(modelOpts, ai.WithToolHandler(a.toolHandler()))
 	a.model = ai.New(a.opts.Provider, modelOpts...)
 
-	a.hist = ai.NewHistory(a.opts.HistoryLimit)
-	if !a.ephemeral {
-		a.loadHistory()
+	// Memory is pluggable. Use the configured one, otherwise the default
+	// store-backed memory — except ephemeral sub-agents, which keep an
+	// isolated, non-persistent context.
+	switch {
+	case a.opts.Memory != nil:
+		a.mem = a.opts.Memory
+	case a.ephemeral:
+		a.mem = NewInMemory(a.opts.HistoryLimit)
+	default:
+		a.mem = NewMemory(a.opts.Store, "agent/"+a.opts.Name+"/history", a.opts.HistoryLimit)
 	}
 }
 
@@ -140,27 +146,25 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 		return nil, fmt.Errorf("discover tools: %w", err)
 	}
 
-	a.hist.Add("user", message)
+	a.mem.Add("user", message)
 	a.steps = 0
 
 	resp, err := a.model.Generate(ctx, &ai.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
 		Tools:        toolList,
-		Messages:     a.hist.Messages(),
+		Messages:     a.mem.Messages(),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.Reply != "" {
-		a.hist.Add("assistant", resp.Reply)
+		a.mem.Add("assistant", resp.Reply)
 	}
 	if resp.Answer != "" {
-		a.hist.Add("assistant", resp.Answer)
+		a.mem.Add("assistant", resp.Answer)
 	}
-
-	a.saveHistory()
 
 	reply := resp.Reply
 	if resp.Answer != "" {
@@ -256,6 +260,11 @@ func (a *agentImpl) discoverTools() ([]ai.Tool, error) {
 		}
 	}
 
+	// Developer-registered custom tools (WithTool).
+	for i := range a.opts.tools {
+		scoped = append(scoped, a.opts.tools[i].def)
+	}
+
 	// Expose the agent's own capabilities (plan, delegate) as tools.
 	// Ephemeral sub-agents don't get them.
 	if !a.ephemeral {
@@ -283,36 +292,4 @@ func (a *agentImpl) buildPrompt() string {
 		}
 	}
 	return base
-}
-
-func (a *agentImpl) historyKey() string {
-	return "agent/" + a.opts.Name + "/history"
-}
-
-func (a *agentImpl) loadHistory() {
-	recs, err := a.opts.Store.Read(a.historyKey())
-	if err != nil || len(recs) == 0 {
-		return
-	}
-	var messages []ai.Message
-	if err := json.Unmarshal(recs[0].Value, &messages); err != nil {
-		return
-	}
-	for _, m := range messages {
-		a.hist.Add(m.Role, m.Content)
-	}
-}
-
-func (a *agentImpl) saveHistory() {
-	if a.ephemeral {
-		return
-	}
-	data, err := json.Marshal(a.hist.Messages())
-	if err != nil {
-		return
-	}
-	a.opts.Store.Write(&store.Record{
-		Key:   a.historyKey(),
-		Value: data,
-	})
 }

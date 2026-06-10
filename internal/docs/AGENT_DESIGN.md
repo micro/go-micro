@@ -65,10 +65,34 @@ type AgentOptions struct {
     APIKey       string
     Registry     registry.Registry // discover services and other agents
     Client       client.Client     // call service endpoints and other agents
-    Store        store.Store       // agent memory (persists across restarts)
+    Store        store.Store       // backing store for the default memory
     HistoryLimit int               // max conversation turns to retain
+    Memory       Memory            // pluggable conversation memory (default: store-backed)
+    MaxSteps     int               // stopping condition: max tool calls per Ask
+    Approve      ApproveFunc        // human-in-the-loop / policy gate on each action
 }
 ```
+
+## Pluggable composition
+
+An agent composes the same way a service does — a small set of pluggable pieces with working defaults:
+
+| Piece | Default | Swap with |
+|-------|---------|-----------|
+| **Model** | first registered provider | `AgentProvider` / `AgentModel` |
+| **Memory** | store-backed, durable across restarts | `AgentMemory(m Memory)` |
+| **Tools** | the agent's services (RPC) + `plan`/`delegate` | `AgentTool(name, desc, schema, fn)` for any function |
+| **Guardrails** | none | `AgentMaxSteps`, `AgentApproveTool` |
+
+```go
+type Memory interface {
+    Add(role, content string)
+    Messages() []ai.Message
+    Clear()
+}
+```
+
+`NewMemory(store, key, limit)` is the durable default; `NewInMemory(limit)` is non-persistent. `AgentTool` registers a function the model can call alongside the services it discovers.
 
 Functional options:
 
