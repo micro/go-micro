@@ -5,7 +5,7 @@ title: Deployment
 
 # Deploying Go Micro Services
 
-<img src="/images/generated/deployment.png" alt="Go Micro deployment" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />
+<img src="/images/generated/deployment.jpg" alt="Go Micro deployment" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />
 
 This guide covers deploying go-micro services to a Linux server using systemd.
 

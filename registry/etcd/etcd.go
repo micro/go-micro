@@ -458,29 +458,45 @@ func (e *etcdRegistry) startKeepAlive(key string, leaseID clientv3.LeaseID) erro
 	e.keepaliveStop[key] = stopCh
 
 	// start goroutine to consume keepalive responses
-	go func() {
-		log := e.options.Logger
-		for {
-			select {
-			case <-stopCh:
-				log.Logf(logger.TraceLevel, "Stopping keepalive for %s", key)
-				return
-			case ka, ok := <-ch:
-				if !ok {
-					log.Logf(logger.DebugLevel, "Keepalive channel closed for %s", key)
-					e.handleKeepAliveClosed(key)
-					return
-				}
-				if ka == nil {
-					log.Logf(logger.WarnLevel, "Keepalive response is nil for %s", key)
-					continue
-				}
-				log.Logf(logger.TraceLevel, "Keepalive response for %s lease %d, TTL %d", key, ka.ID, ka.TTL)
-			}
-		}
-	}()
+	go e.keepAliveLoop(key, ch, stopCh)
 
 	return nil
+}
+
+// keepAliveLoop consumes keepalive responses for a lease. It exits and
+// drops the cached lease/registration (via handleKeepAliveClosed) when
+// the keepalive channel closes OR a response reports a non-positive TTL.
+// Both mean the lease is gone — for example a network partition that
+// outlasted the TTL — so the next Register must re-create it rather than
+// be short-circuited by the "unchanged" check in registerNode. Without
+// the TTL guard a silently-expired lease (where the channel does not
+// promptly close) would leave the service de-registered from etcd while
+// the cache still believed it was registered, and nothing would repair it.
+func (e *etcdRegistry) keepAliveLoop(key string, ch <-chan *clientv3.LeaseKeepAliveResponse, stopCh chan bool) {
+	log := e.options.Logger
+	for {
+		select {
+		case <-stopCh:
+			log.Logf(logger.TraceLevel, "Stopping keepalive for %s", key)
+			return
+		case ka, ok := <-ch:
+			if !ok {
+				log.Logf(logger.DebugLevel, "Keepalive channel closed for %s", key)
+				e.handleKeepAliveClosed(key)
+				return
+			}
+			if ka == nil {
+				log.Logf(logger.WarnLevel, "Keepalive response is nil for %s", key)
+				continue
+			}
+			if ka.TTL <= 0 {
+				log.Logf(logger.WarnLevel, "Keepalive TTL expired for %s lease %d; dropping lease to force re-register", key, ka.ID)
+				e.handleKeepAliveClosed(key)
+				return
+			}
+			log.Logf(logger.TraceLevel, "Keepalive response for %s lease %d, TTL %d", key, ka.ID, ka.TTL)
+		}
+	}
 }
 
 // handleKeepAliveClosed is invoked by the keepalive goroutine when the

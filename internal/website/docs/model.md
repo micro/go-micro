@@ -7,7 +7,7 @@ description: "Structured data model layer with CRUD operations, queries, and plu
 
 # Data Model
 
-<img src="/images/generated/data-model.png" alt="Go Micro data model" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />
+<img src="/images/generated/data-model.jpg" alt="Go Micro data model" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />
 
 The `model` package provides a structured data model layer for Go Micro services. Define Go structs, tag your fields, and get CRUD operations with queries, filtering, ordering, and pagination.
 
