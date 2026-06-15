@@ -559,15 +559,18 @@ func (s *Server) watchServices() {
 func (s *Server) serveHTTP() error {
 	mux := http.NewServeMux()
 
-	// MCP endpoints. Tool calls can be gated behind an x402 payment;
-	// listing tools and health stay free.
-	var call http.Handler = http.HandlerFunc(s.handleCallTool)
+	// MCP endpoints. Tool calls can be gated behind an x402 payment
+	// (enforced per-tool inside handleCallTool); listing tools and health
+	// stay free.
 	if s.opts.Payment != nil {
-		call = x402.Middleware(*s.opts.Payment)(call)
-		s.opts.Logger.Printf("[mcp] x402 payments enabled (network=%s, payTo=%s)", s.opts.Payment.Network, s.opts.Payment.PayTo)
+		net := s.opts.Payment.Network
+		if net == "" {
+			net = "base"
+		}
+		s.opts.Logger.Printf("[mcp] x402 payments enabled (network=%s, payTo=%s)", net, s.opts.Payment.PayTo)
 	}
 	mux.HandleFunc("/mcp/tools", s.handleListTools)
-	mux.Handle("/mcp/call", call)
+	mux.HandleFunc("/mcp/call", s.handleCallTool)
 	mux.HandleFunc("/health", s.handleHealth)
 
 	// WebSocket endpoint for bidirectional streaming
@@ -638,6 +641,15 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		http.Error(w, "Tool not found", http.StatusNotFound)
 		return
+	}
+
+	// x402 payment gate: require the tool's amount before doing work.
+	// Free tools (amount "" or "0") pass through; Require writes the 402
+	// challenge itself when payment is missing or invalid.
+	if s.opts.Payment != nil {
+		if !s.opts.Payment.Require(w, r, s.opts.Payment.AmountFor(req.Tool), req.Tool) {
+			return
+		}
 	}
 
 	// Generate trace ID for this call

@@ -36,6 +36,8 @@ guides:
     url: /docs/guides/agents-and-workflows.html
   - title: Plan & Delegate
     url: /docs/guides/plan-delegate.html
+  - title: Payments (x402)
+    url: /docs/guides/x402-payments.html
   - title: Atlas Cloud Integration
     url: /docs/guides/atlascloud-integration.html
   - title: AI Provider Guide

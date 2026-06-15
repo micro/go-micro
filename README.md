@@ -210,6 +210,19 @@ agent := micro.NewAgent("assistant",
 
 **Memory** is durable and store-backed by default (Postgres, NATS KV, or file), so an agent picks up where it left off after a restart — or supply your own with `AgentMemory`. **Tools** are your services automatically, plus any function you register with `AgentTool`.
 
+### Paid tools (x402)
+
+Every endpoint is an AI-callable tool — and it can be a *paid* tool. Go Micro supports [x402](https://x402.org), the HTTP 402 payment standard for agents, so a tool can require a stablecoin payment and an agent can settle it autonomously. It's opt-in and carries no crypto in the framework: verification is delegated to a pluggable facilitator (Coinbase, Alchemy, self-hosted), so Base and Solana are just different facilitators.
+
+```bash
+# Charge for tool calls at the MCP gateway (off unless you set a pay-to address)
+micro mcp serve --x402-pay-to 0xYourAddress --x402-network solana --x402-amount 10000
+# Per-tool amounts via a config file
+micro mcp serve --x402-config x402.json
+```
+
+See the [Payments (x402) guide](internal/website/docs/guides/x402-payments.md).
+
 ## Features
 
 ### AI
@@ -344,6 +357,7 @@ See [all examples](examples/README.md).
 - [Agents and Workflows](internal/website/docs/guides/agents-and-workflows.md)
 - [Agent Design](internal/docs/AGENT_DESIGN.md)
 - [Plan & Delegate](internal/website/docs/guides/plan-delegate.md)
+- [Payments (x402)](internal/website/docs/guides/x402-payments.md)
 - [MCP & AI Agents](internal/website/docs/mcp.md)
 - [Data Model](internal/website/docs/model.md)
 - [Deployment](internal/website/docs/deployment.md)
