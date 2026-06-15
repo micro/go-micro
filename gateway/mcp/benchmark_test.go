@@ -256,4 +256,3 @@ func toolCountLabel(n int) string {
 		return "10_tools"
 	}
 }
-
