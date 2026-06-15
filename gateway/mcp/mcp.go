@@ -32,6 +32,7 @@ import (
 	"go-micro.dev/v5/metadata"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
+	"go-micro.dev/v5/wrapper/x402"
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -151,6 +152,11 @@ type Options struct {
 	//       TraceProvider: tp,
 	//   })
 	TraceProvider trace.TracerProvider
+
+	// Payment, when set, requires an x402 payment for tool calls
+	// (the /mcp/call endpoint). Listing tools and health stay free.
+	// Opt-in: leave nil to disable payments.
+	Payment *x402.Config
 }
 
 // Server represents a running MCP gateway
@@ -553,9 +559,15 @@ func (s *Server) watchServices() {
 func (s *Server) serveHTTP() error {
 	mux := http.NewServeMux()
 
-	// MCP endpoints
+	// MCP endpoints. Tool calls can be gated behind an x402 payment;
+	// listing tools and health stay free.
+	var call http.Handler = http.HandlerFunc(s.handleCallTool)
+	if s.opts.Payment != nil {
+		call = x402.Middleware(*s.opts.Payment)(call)
+		s.opts.Logger.Printf("[mcp] x402 payments enabled (network=%s, payTo=%s)", s.opts.Payment.Network, s.opts.Payment.PayTo)
+	}
 	mux.HandleFunc("/mcp/tools", s.handleListTools)
-	mux.HandleFunc("/mcp/call", s.handleCallTool)
+	mux.Handle("/mcp/call", call)
 	mux.HandleFunc("/health", s.handleHealth)
 
 	// WebSocket endpoint for bidirectional streaming
