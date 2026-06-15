@@ -183,13 +183,51 @@ type Tool struct {
 	InputSchema map[string]interface{} `json:"inputSchema"`
 	// Scopes lists the auth scopes required to call this tool.
 	// An empty list means no scope restriction (subject to Auth provider).
-	Scopes   []string `json:"scopes,omitempty"`
-	Service  string   `json:"-"`
-	Endpoint string   `json:"-"`
+	Scopes []string `json:"scopes,omitempty"`
+	// Payment advertises the x402 payment required to call this tool, so
+	// the catalog is shoppable — an agent sees the price before calling.
+	// Populated at list time when the gateway has payments enabled; nil
+	// means free.
+	Payment  *PaymentInfo `json:"payment,omitempty"`
+	Service  string       `json:"-"`
+	Endpoint string       `json:"-"`
 	// Handler is an optional direct handler for framework tools that don't
 	// go through RPC. When set, handleCallTool calls this instead of making
 	// an RPC request.
 	Handler func(input map[string]interface{}) (interface{}, error) `json:"-"`
+}
+
+// PaymentInfo advertises, in the tool catalog, the x402 payment required
+// to call a tool: how much, in what asset, on which network, and where it
+// goes. It lets an agent shop the catalog and choose by price before
+// calling.
+type PaymentInfo struct {
+	Amount  string `json:"amount"` // smallest units (e.g. "10000" = 0.01 USDC)
+	Network string `json:"network"`
+	Asset   string `json:"asset,omitempty"`
+	PayTo   string `json:"payTo"`
+}
+
+// paymentFor returns the catalog payment info for a tool, or nil if the
+// gateway has no payments configured or the tool is free.
+func (s *Server) paymentFor(toolName string) *PaymentInfo {
+	if s.opts.Payment == nil {
+		return nil
+	}
+	amount := s.opts.Payment.AmountFor(toolName)
+	if amount == "" || amount == "0" {
+		return nil
+	}
+	net := s.opts.Payment.Network
+	if net == "" {
+		net = "base"
+	}
+	return &PaymentInfo{
+		Amount:  amount,
+		Network: net,
+		Asset:   s.opts.Payment.Asset,
+		PayTo:   s.opts.Payment.PayTo,
+	}
 }
 
 // Serve starts an MCP gateway with the given options.
@@ -604,6 +642,14 @@ func (s *Server) handleListTools(w http.ResponseWriter, r *http.Request) {
 	s.toolsMu.RLock()
 	tools := make([]*Tool, 0, len(s.tools))
 	for _, tool := range s.tools {
+		// Attach payment info for the catalog. Copy when pricing so the
+		// shared tool struct isn't mutated.
+		if pay := s.paymentFor(tool.Name); pay != nil {
+			cp := *tool
+			cp.Payment = pay
+			tools = append(tools, &cp)
+			continue
+		}
 		tools = append(tools, tool)
 	}
 	s.toolsMu.RUnlock()

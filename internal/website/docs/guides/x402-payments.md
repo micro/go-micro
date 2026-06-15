@@ -48,6 +48,22 @@ micro mcp serve --address :3000 \
     --x402-facilitator https://facilitator.example
 ```
 
+## A shoppable catalog
+
+When payments are enabled, `/mcp/tools` advertises each priced tool's payment requirements, so an agent can see the cost before calling and choose by price — the catalog is shoppable, not just discoverable:
+
+```json
+{
+  "tools": [
+    { "name": "weather.Weather.Forecast", "description": "...",
+      "payment": { "amount": "10000", "network": "solana", "asset": "USDC", "payTo": "0x…" } },
+    { "name": "time.Time.Now", "description": "..." }
+  ]
+}
+```
+
+Free tools carry no `payment` block. This is the foundation for a tool marketplace: offering a tool is registering a priced service; using it is list → choose → call → pay.
+
 ## Per-tool amounts
 
 Different tools can cost different amounts. Pricing is an **operator** concern — the payTo address is the operator's, and amounts change without redeploying anyone's service — so it's configured at the gateway with a file, the same way per-tool scopes and rate limits are. Point the gateway at an x402 config:
@@ -70,6 +86,21 @@ micro mcp serve --address :3000 --x402-config x402.json
 ```
 
 `amount` is the default (here `"0"` — free unless priced), and `amounts` sets per-tool overrides keyed by tool name. There is no "pricing" abstraction; it's the x402 `amount`, resolved per tool, in the protocol's own vocabulary. The standalone gateway accepts the same file via `--x402-config` or the `X402_CONFIG` environment variable.
+
+## Paying for tools (the consumer side)
+
+The counterpart to the server middleware is `x402.Client` — an HTTP client that settles 402 challenges automatically, up to a **spend budget**. This is the safety piece for an autonomous caller: it pays what a tool requires, but refuses (before paying) once a call would exceed the budget.
+
+```go
+c := &x402.Client{
+    Payer:  myWallet,   // constructs the payment payload (signs with a wallet)
+    Budget: 1_000_000,  // max total spend in the asset's smallest unit (0 = unlimited)
+}
+
+resp, err := c.Do(req) // a 402 is paid and retried; over-budget calls error instead
+```
+
+`Payer` is an interface (`Pay(ctx, Requirements) (payment string, error)`) — the consumer counterpart to `Facilitator`. The budget accumulates across calls, so a long-running agent can be handed a fixed allowance for a task. (The agent-level `AgentMaxSpend` option, wiring this into the agent loop next to `MaxSteps`/`ApproveTool`, is the next step.)
 
 ## Notes
 
