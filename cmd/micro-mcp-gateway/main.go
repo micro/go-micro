@@ -37,6 +37,7 @@ import (
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/registry/consul"
 	"go-micro.dev/v5/registry/etcd"
+	"go-micro.dev/v5/wrapper/x402"
 
 	"github.com/urfave/cli/v2"
 )
@@ -65,6 +66,27 @@ func main() {
 				Name:    "registry-address",
 				Usage:   "Registry address (e.g., consul:8500, etcd:2379)",
 				EnvVars: []string{"MICRO_REGISTRY_ADDRESS"},
+			},
+			&cli.StringFlag{
+				Name:    "x402-pay-to",
+				Usage:   "Enable x402 payments for tool calls; the address payments are sent to",
+				EnvVars: []string{"X402_PAY_TO"},
+			},
+			&cli.StringFlag{
+				Name:    "x402-price",
+				Usage:   "Per-call price in the asset's smallest unit (e.g. 10000 = 0.01 USDC)",
+				EnvVars: []string{"X402_PRICE"},
+			},
+			&cli.StringFlag{
+				Name:    "x402-network",
+				Usage:   "Payment network: base (default), solana, ...",
+				Value:   "base",
+				EnvVars: []string{"X402_NETWORK"},
+			},
+			&cli.StringFlag{
+				Name:    "x402-facilitator",
+				Usage:   "x402 facilitator URL (Coinbase CDP, Alchemy, or self-hosted)",
+				EnvVars: []string{"X402_FACILITATOR"},
 			},
 			&cli.Float64Flag{
 				Name:    "rate-limit",
@@ -129,6 +151,16 @@ func run(c *cli.Context) error {
 		Address:  c.String("address"),
 		Context:  ctx,
 		Logger:   logger,
+	}
+
+	// Opt-in x402 payments: enabled when a pay-to address is given.
+	if payTo := c.String("x402-pay-to"); payTo != "" {
+		opts.Payment = &x402.Config{
+			PayTo:          payTo,
+			Price:          c.String("x402-price"),
+			Network:        c.String("x402-network"),
+			FacilitatorURL: c.String("x402-facilitator"),
+		}
 	}
 
 	// Rate limiting

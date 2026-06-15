@@ -223,6 +223,7 @@ agent := micro.NewAgent("assistant",
 | Guardrails | `MaxSteps` (stopping condition) and `ApproveTool` (human-in-the-loop) on every agent |
 | Workflows | `micro.NewFlow()` — event-driven; runs a step or triggers an agent |
 | MCP gateway | Every endpoint is an AI tool automatically |
+| Payments (x402) | Opt-in per-call payments for tools via the x402 standard; pluggable facilitator (Base, Solana, …) |
 | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
 | Interactive console | `micro run` includes a chat console for talking to services |
 | Service generation | `micro run --prompt` — describe a system, get running services |

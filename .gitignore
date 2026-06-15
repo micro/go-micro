@@ -61,3 +61,4 @@ examples/mcp/hello/hello
 # Built example/harness binaries (go build ./path/... drops these at repo root)
 /plan-delegate
 /agent-plan-delegate
+/micro-mcp-gateway
