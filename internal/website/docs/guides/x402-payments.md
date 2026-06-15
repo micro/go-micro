@@ -48,6 +48,22 @@ micro mcp serve --address :3000 \
     --x402-facilitator https://facilitator.example
 ```
 
+## A shoppable catalog
+
+When payments are enabled, `/mcp/tools` advertises each priced tool's payment requirements, so an agent can see the cost before calling and choose by price — the catalog is shoppable, not just discoverable:
+
+```json
+{
+  "tools": [
+    { "name": "weather.Weather.Forecast", "description": "...",
+      "payment": { "amount": "10000", "network": "solana", "asset": "USDC", "payTo": "0x…" } },
+    { "name": "time.Time.Now", "description": "..." }
+  ]
+}
+```
+
+Free tools carry no `payment` block. This is the foundation for a tool marketplace: offering a tool is registering a priced service; using it is list → choose → call → pay.
+
 ## Per-tool amounts
 
 Different tools can cost different amounts. Pricing is an **operator** concern — the payTo address is the operator's, and amounts change without redeploying anyone's service — so it's configured at the gateway with a file, the same way per-tool scopes and rate limits are. Point the gateway at an x402 config:
