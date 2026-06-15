@@ -90,8 +90,8 @@ Examples:
 						Usage: "Enable x402 payments for tool calls; the address payments are sent to",
 					},
 					&cli.StringFlag{
-						Name:  "x402_price",
-						Usage: "Per-call price in the asset's smallest unit (e.g. 10000 = 0.01 USDC)",
+						Name:  "x402_amount",
+						Usage: "Default amount required per tool call, in the asset's smallest unit (e.g. 10000 = 0.01 USDC)",
 					},
 					&cli.StringFlag{
 						Name:  "x402_network",
@@ -101,6 +101,10 @@ Examples:
 					&cli.StringFlag{
 						Name:  "x402_facilitator",
 						Usage: "x402 facilitator URL (Coinbase CDP, Alchemy, or self-hosted)",
+					},
+					&cli.StringFlag{
+						Name:  "x402_config",
+						Usage: "Path to an x402 config file (payTo, network, asset, amount, per-tool amounts); overrides the x402_* flags",
 					},
 				},
 				Action: serveAction,
@@ -251,11 +255,17 @@ func serveAction(ctx *cli.Context) error {
 		Logger:   log.Default(),
 	}
 
-	// Opt-in x402 payments: enabled when a pay-to address is given.
-	if payTo := ctx.String("x402_pay_to"); payTo != "" {
+	// Opt-in x402 payments: a config file (per-tool amounts) or flags.
+	if cfgPath := ctx.String("x402_config"); cfgPath != "" {
+		cfg, err := x402.LoadConfig(cfgPath)
+		if err != nil {
+			return err
+		}
+		opts.Payment = cfg
+	} else if payTo := ctx.String("x402_pay_to"); payTo != "" {
 		opts.Payment = &x402.Config{
 			PayTo:          payTo,
-			Price:          ctx.String("x402_price"),
+			Amount:         ctx.String("x402_amount"),
 			Network:        ctx.String("x402_network"),
 			FacilitatorURL: ctx.String("x402_facilitator"),
 		}

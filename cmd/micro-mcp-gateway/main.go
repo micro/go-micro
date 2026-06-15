@@ -73,9 +73,9 @@ func main() {
 				EnvVars: []string{"X402_PAY_TO"},
 			},
 			&cli.StringFlag{
-				Name:    "x402-price",
-				Usage:   "Per-call price in the asset's smallest unit (e.g. 10000 = 0.01 USDC)",
-				EnvVars: []string{"X402_PRICE"},
+				Name:    "x402-amount",
+				Usage:   "Default amount required per tool call, in the asset's smallest unit (e.g. 10000 = 0.01 USDC)",
+				EnvVars: []string{"X402_AMOUNT"},
 			},
 			&cli.StringFlag{
 				Name:    "x402-network",
@@ -87,6 +87,11 @@ func main() {
 				Name:    "x402-facilitator",
 				Usage:   "x402 facilitator URL (Coinbase CDP, Alchemy, or self-hosted)",
 				EnvVars: []string{"X402_FACILITATOR"},
+			},
+			&cli.StringFlag{
+				Name:    "x402-config",
+				Usage:   "Path to an x402 config file (payTo, network, asset, amount, per-tool amounts); overrides the x402-* flags",
+				EnvVars: []string{"X402_CONFIG"},
 			},
 			&cli.Float64Flag{
 				Name:    "rate-limit",
@@ -153,11 +158,18 @@ func run(c *cli.Context) error {
 		Logger:   logger,
 	}
 
-	// Opt-in x402 payments: enabled when a pay-to address is given.
-	if payTo := c.String("x402-pay-to"); payTo != "" {
+	// Opt-in x402 payments: a config file (per-tool amounts) or flags.
+	if cfgPath := c.String("x402-config"); cfgPath != "" {
+		cfg, err := x402.LoadConfig(cfgPath)
+		if err != nil {
+			return fmt.Errorf("x402 config: %w", err)
+		}
+		opts.Payment = cfg
+		logger.Printf("x402 payments enabled from %s (payTo %s)", cfgPath, cfg.PayTo)
+	} else if payTo := c.String("x402-pay-to"); payTo != "" {
 		opts.Payment = &x402.Config{
 			PayTo:          payTo,
-			Price:          c.String("x402-price"),
+			Amount:         c.String("x402-amount"),
 			Network:        c.String("x402-network"),
 			FacilitatorURL: c.String("x402-facilitator"),
 		}
