@@ -233,7 +233,7 @@ See the [Payments (x402) guide](internal/website/docs/guides/x402-payments.md).
 | Plan & delegate | Built-in agent tools — plan multi-step work, delegate subtasks to other agents |
 | Pluggable memory | Durable store-backed conversation memory by default; swap with `AgentMemory` |
 | Custom tools | `AgentTool` — give an agent any function as a tool, beyond its services |
-| Guardrails | `MaxSteps` (stopping condition) and `ApproveTool` (human-in-the-loop) on every agent |
+| Guardrails | `MaxSteps` (stop on count), `LoopLimit` (stop repeated no-progress calls), `ApproveTool` (human-in-the-loop) |
 | Workflows | `micro.NewFlow()` — event-driven; runs a step or triggers an agent |
 | MCP gateway | Every endpoint is an AI tool automatically |
 | Payments (x402) | Opt-in per-call payments for tools via the x402 standard; pluggable facilitator (Base, Solana, …) |
@@ -357,6 +357,7 @@ See [all examples](examples/README.md).
 - [Agents and Workflows](internal/website/docs/guides/agents-and-workflows.md)
 - [Agent Design](internal/docs/AGENT_DESIGN.md)
 - [Plan & Delegate](internal/website/docs/guides/plan-delegate.md)
+- [Agent Guardrails](internal/website/docs/guides/agent-guardrails.md)
 - [Payments (x402)](internal/website/docs/guides/x402-payments.md)
 - [MCP & AI Agents](internal/website/docs/mcp.md)
 - [Data Model](internal/website/docs/model.md)

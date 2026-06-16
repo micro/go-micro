@@ -50,6 +50,11 @@ type Options struct {
 	// unbounded). Once exceeded, further tool calls are refused and the
 	// model is told to stop and summarize. A stopping condition.
 	MaxSteps int
+	// LoopLimit bounds how many times the agent may call the same tool
+	// with the same arguments in one Ask before the call is refused as a
+	// no-progress loop (0 = disabled). Catches the agent repeating an
+	// identical action — which MaxSteps only bounds by total count.
+	LoopLimit int
 	// Approve gates each action before it runs. Nil = allow all.
 	Approve ApproveFunc
 
@@ -63,6 +68,9 @@ func newOptions(opts ...Option) Options {
 		Client:       client.DefaultClient,
 		Store:        store.DefaultStore,
 		HistoryLimit: 50,
+		// On by default and lenient: identical repeated calls are a
+		// no-progress loop, never useful. Set LoopLimit(0) to disable.
+		LoopLimit: 3,
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -131,6 +139,13 @@ func MaxSteps(n int) Option {
 // action (service tools and delegate). Returning false blocks the call.
 func ApproveTool(fn ApproveFunc) Option {
 	return func(o *Options) { o.Approve = fn }
+}
+
+// LoopLimit sets how many times the agent may repeat the same tool call
+// (same name and arguments) in one Ask before it is refused as a
+// no-progress loop. 0 disables loop detection.
+func LoopLimit(n int) Option {
+	return func(o *Options) { o.LoopLimit = n }
 }
 
 // WithMemory sets the agent's conversation memory. The default is
