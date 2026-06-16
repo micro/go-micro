@@ -66,6 +66,9 @@ type agentImpl struct {
 
 	// steps counts tool executions in the current Ask, for MaxSteps.
 	steps int
+	// calls counts identical tool calls (name+args) in the current Ask,
+	// for LoopLimit.
+	calls map[string]int
 }
 
 // New creates a new Agent.
@@ -148,6 +151,7 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 
 	a.mem.Add("user", message)
 	a.steps = 0
+	a.calls = map[string]int{}
 
 	resp, err := a.model.Generate(ctx, &ai.Request{
 		Prompt:       message,

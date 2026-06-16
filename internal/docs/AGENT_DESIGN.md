@@ -69,6 +69,7 @@ type AgentOptions struct {
     HistoryLimit int               // max conversation turns to retain
     Memory       Memory            // pluggable conversation memory (default: store-backed)
     MaxSteps     int               // stopping condition: max tool calls per Ask
+    LoopLimit    int               // max identical repeated calls before refusal (default 3)
     Approve      ApproveFunc        // human-in-the-loop / policy gate on each action
 }
 ```
@@ -82,7 +83,7 @@ An agent composes the same way a service does — a small set of pluggable piece
 | **Model** | first registered provider | `AgentProvider` / `AgentModel` |
 | **Memory** | store-backed, durable across restarts | `AgentMemory(m Memory)` |
 | **Tools** | the agent's services (RPC) + `plan`/`delegate` | `AgentTool(name, desc, schema, fn)` for any function |
-| **Guardrails** | none | `AgentMaxSteps`, `AgentApproveTool` |
+| **Guardrails** | loop detection on | `AgentMaxSteps`, `AgentLoopLimit`, `AgentApproveTool` |
 
 ```go
 type Memory interface {

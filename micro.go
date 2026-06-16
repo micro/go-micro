@@ -93,6 +93,11 @@ type ApproveFunc = agent.ApproveFunc
 // stopping condition for autonomous agents.
 func AgentMaxSteps(n int) AgentOption { return agent.MaxSteps(n) }
 
+// AgentLoopLimit bounds how many times an agent may repeat the same tool
+// call (same arguments) in one Ask before it's refused as a no-progress
+// loop. 0 disables loop detection (defaults on).
+func AgentLoopLimit(n int) AgentOption { return agent.LoopLimit(n) }
+
 // AgentApproveTool sets a human-in-the-loop / policy hook called before
 // each action the agent takes.
 func AgentApproveTool(fn ApproveFunc) AgentOption { return agent.ApproveTool(fn) }

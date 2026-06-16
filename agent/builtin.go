@@ -110,6 +110,22 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 			}
 		}
 
+		// Loop detection: stop the agent repeating an identical action
+		// that makes no progress (which the step count alone won't catch).
+		if a.opts.LoopLimit > 0 {
+			if a.calls == nil {
+				a.calls = map[string]int{}
+			}
+			args, _ := json.Marshal(input)
+			fp := name + ":" + string(args)
+			a.calls[fp]++
+			if a.calls[fp] > a.opts.LoopLimit {
+				return errResult(fmt.Sprintf(
+					"loop detected: you have already called %q with the same arguments %d times and the result will not change. Stop repeating it — try a different approach, or finish with what you have.",
+					name, a.opts.LoopLimit))
+			}
+		}
+
 		// Human-in-the-loop / policy: gate the action before it runs.
 		if a.opts.Approve != nil {
 			if ok, reason := a.opts.Approve(name, input); !ok {
