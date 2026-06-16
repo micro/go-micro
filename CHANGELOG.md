@@ -10,6 +10,7 @@ calendar-based versions (YYYY.MM) for the AI-native era.
 ## [Unreleased]
 
 ### Added
+- **Agent tool-execution wrappers** — `AgentWrapTool` registers middleware around an agent's tool calls, the tool-side analogue of `client.CallWrapper`/`server.HandlerWrapper`. Use it for logging, metrics, retries, or policy; wrappers compose outermost-first and run outside the built-in guardrails. Includes a runnable example with observe + retry wrappers (`examples/agent-wrap-tool/`).
 - **Agent platform showcase** — full platform example (Users, Posts, Comments, Mail) mirroring [micro/blog](https://github.com/micro/blog), demonstrating how existing microservices become agent-accessible with zero code changes (`examples/mcp/platform/`).
 - **Blog post: "Your Microservices Are Already an AI Platform"** — walkthrough of agent-service interaction patterns using real-world services (`internal/website/blog/7.md`).
 - **Circuit breakers for MCP gateway** — per-tool circuit breakers protect downstream services from cascading failures. Configurable max failures, open-state timeout, and half-open probing. Available via `Options.CircuitBreaker` and `--circuit-breaker` CLI flag (`gateway/mcp/circuitbreaker.go`).
