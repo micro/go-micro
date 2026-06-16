@@ -69,6 +69,11 @@ The two built-in agent capabilities in a small multi-agent system:
 - **plan** — an agent records an ordered plan in its store-backed memory before doing multi-step work
 - **delegate** — an agent hands a subtask to another agent (over RPC if it's registered, else to an ephemeral sub-agent)
 
+### [agent-wrap-tool](./agent-wrap-tool/)
+Middleware around an agent's tool execution with `AgentWrapTool`, the tool-side analogue of client/server wrappers:
+- **observe** — time every tool call and record per-tool metrics, correlated by call ID
+- **retry** — re-run a call whose result is an error, recovering from a transient failure before the model sees it
+
 ## Coming Soon
 
 - **pubsub-events** - Event-driven architecture with NATS
