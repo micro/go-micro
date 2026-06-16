@@ -128,31 +128,32 @@ func (t *Tools) Handler() ToolHandler {
 	if c == nil {
 		c = client.DefaultClient
 	}
-	return func(name string, input map[string]any) (any, string) {
+	return func(ctx context.Context, call ToolCall) ToolResult {
+		name := call.Name
 		if orig, ok := t.names.get(name); ok {
 			name = orig
 		}
 		parts := strings.SplitN(name, ".", 2)
 		if len(parts) != 2 {
-			return toolErrResult("invalid tool name: " + name)
+			return toolErrResult(call.ID, "invalid tool name: "+name)
 		}
 
-		inputBytes, err := json.Marshal(input)
+		inputBytes, err := json.Marshal(call.Input)
 		if err != nil {
-			return toolErrResult("failed to marshal input: " + err.Error())
+			return toolErrResult(call.ID, "failed to marshal input: "+err.Error())
 		}
 
 		req := c.NewRequest(parts[0], parts[1], &codecBytes.Frame{Data: inputBytes})
 		var rsp codecBytes.Frame
-		if err := c.Call(context.Background(), req, &rsp); err != nil {
-			return toolErrResult(err.Error())
+		if err := c.Call(ctx, req, &rsp); err != nil {
+			return toolErrResult(call.ID, err.Error())
 		}
 
 		var result any
 		if err := json.Unmarshal(rsp.Data, &result); err != nil {
 			result = string(rsp.Data)
 		}
-		return result, string(rsp.Data)
+		return ToolResult{ID: call.ID, Value: result, Content: string(rsp.Data)}
 	}
 }
 
@@ -163,9 +164,9 @@ func DiscoverTools(reg registry.Registry) ([]Tool, error) {
 	return NewTools(reg).Discover()
 }
 
-func toolErrResult(msg string) (any, string) {
+func toolErrResult(id, msg string) ToolResult {
 	encoded, _ := json.Marshal(map[string]string{"error": msg})
-	return map[string]string{"error": msg}, string(encoded)
+	return ToolResult{ID: id, Value: map[string]string{"error": msg}, Content: string(encoded)}
 }
 
 func toolJSONType(goType string) string {

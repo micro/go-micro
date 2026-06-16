@@ -3,6 +3,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 )
 
@@ -66,10 +67,25 @@ type ToolCall struct {
 	Error  string         // Tool execution error (populated after execution)
 }
 
+// Scan decodes the call's Input into v (a pointer to a struct or map),
+// the same way a codec decodes an RPC request body. Use it when a tool
+// wants typed arguments instead of the raw map:
+//
+//	var args struct{ Query string `json:"query"` }
+//	if err := call.Scan(&args); err != nil { ... }
+func (c ToolCall) Scan(v any) error {
+	b, err := json.Marshal(c.Input)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, v)
+}
+
 // ToolResult represents the result of a tool execution
 type ToolResult struct {
 	ID      string // Tool call ID (for correlation)
-	Content string // Tool execution result (JSON string)
+	Value   any    // Structured result (optional)
+	Content string // Tool execution result (JSON string), shown to the model
 }
 
 // Stream is the interface for streaming responses (future implementation)
@@ -80,8 +96,17 @@ type Stream interface {
 	Close() error
 }
 
-// ToolHandler is a function that handles tool calls
-type ToolHandler func(name string, input map[string]any) (result any, content string)
+// ToolHandler executes a tool call and returns its result. It mirrors a
+// go-micro RPC handler — context first, a request in, a result out — so
+// the same mental model carries over from services to tools.
+type ToolHandler func(ctx context.Context, call ToolCall) ToolResult
+
+// ToolWrapper wraps a ToolHandler to add behaviour around execution —
+// logging, metrics, retries, guardrails. It is the tool-side analogue of
+// client.CallWrapper and server.HandlerWrapper: a wrapper takes the next
+// handler and returns a new one, and code before the next(...) call runs
+// before the tool, code after runs after.
+type ToolWrapper func(ToolHandler) ToolHandler
 
 // NewFunc creates a new Model instance
 type NewFunc func(...Option) Model

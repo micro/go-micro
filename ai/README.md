@@ -133,14 +133,15 @@ m.Init(
 The model can automatically execute tool calls when provided with a tool handler:
 
 ```go
-// Define a tool handler
-toolHandler := func(name string, input map[string]any) (result any, content string) {
+// Define a tool handler. It mirrors a go-micro RPC handler: context
+// first, the call in, a result out.
+toolHandler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
     // Execute the tool and return results
-    switch name {
+    switch call.Name {
     case "get_weather":
-        return map[string]string{"temp": "72F"}, `{"temp": "72F"}`
+        return ai.ToolResult{ID: call.ID, Value: map[string]string{"temp": "72F"}, Content: `{"temp": "72F"}`}
     default:
-        return nil, `{"error": "unknown tool"}`
+        return ai.ToolResult{ID: call.ID, Content: `{"error": "unknown tool"}`}
     }
 }
 

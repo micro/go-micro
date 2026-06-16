@@ -90,7 +90,7 @@ func TestWithToolExposedAndDispatched(t *testing.T) {
 		t.Fatal("custom tool 'calc' was not offered to the model")
 	}
 
-	_, content := a.toolHandler()("calc", map[string]any{"a": 1.0, "b": 2.0})
+	content := toolContent(a.toolHandler(), "calc", map[string]any{"a": 1.0, "b": 2.0})
 	if got == nil {
 		t.Fatal("custom tool handler was not called")
 	}
@@ -107,7 +107,7 @@ func TestWithToolError(t *testing.T) {
 				return "", errors.New("kaboom")
 			}))
 
-	_, content := a.toolHandler()("boom", nil)
+	content := toolContent(a.toolHandler(), "boom", nil)
 	if !strings.Contains(content, "kaboom") {
 		t.Errorf("tool error not surfaced: %q", content)
 	}

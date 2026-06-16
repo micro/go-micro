@@ -99,7 +99,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			"tool_calls": rawMessage["tool_calls"],
 		})
 		for _, tc := range resp.ToolCalls {
-			_, content := p.opts.ToolHandler(tc.Name, tc.Input)
+			content := p.opts.ToolHandler(ctx, tc).Content
 			followUpMessages = append(followUpMessages, map[string]any{
 				"role":         "tool",
 				"tool_call_id": tc.ID,

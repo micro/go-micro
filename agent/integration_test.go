@@ -82,8 +82,11 @@ func TestAskExposesAndRunsPlan(t *testing.T) {
 		}
 		// Simulate the model recording a plan.
 		if opts.ToolHandler != nil {
-			opts.ToolHandler(toolPlan, map[string]any{
-				"steps": []any{map[string]any{"task": "step one", "status": "pending"}},
+			opts.ToolHandler(context.Background(), ai.ToolCall{
+				Name: toolPlan,
+				Input: map[string]any{
+					"steps": []any{map[string]any{"task": "step one", "status": "pending"}},
+				},
 			})
 		}
 		return &ai.Response{Answer: "done"}, nil
@@ -123,7 +126,7 @@ func TestDelegateEphemeral(t *testing.T) {
 	defer func() { fakeGen = nil }()
 
 	a := newTestAgent(Name("root"))
-	_, content := a.handleDelegate(map[string]any{"task": "summarize the report"})
+	content := a.handleDelegate(ai.ToolCall{Name: "delegate", Input: map[string]any{"task": "summarize the report"}}).Content
 	if !strings.Contains(content, "subtask complete") {
 		t.Errorf("delegate should return the sub-agent's reply; got %q", content)
 	}
@@ -158,7 +161,7 @@ func TestDelegateToRegisteredAgent(t *testing.T) {
 	defer func() { fakeGen = nil }()
 
 	a := newTestAgent(Name("root"), WithRegistry(reg), WithClient(fc))
-	_, content := a.handleDelegate(map[string]any{"task": "notify alice", "to": "comms"})
+	content := a.handleDelegate(ai.ToolCall{Name: "delegate", Input: map[string]any{"task": "notify alice", "to": "comms"}}).Content
 
 	if calledService != "comms" || calledEndpoint != "Agent.Chat" {
 		t.Errorf("expected RPC to comms Agent.Chat, got %s %s", calledService, calledEndpoint)
@@ -171,7 +174,7 @@ func TestDelegateToRegisteredAgent(t *testing.T) {
 // Delegate requires a task.
 func TestDelegateRequiresTask(t *testing.T) {
 	a := newTestAgent(Name("root"))
-	_, content := a.handleDelegate(map[string]any{})
+	content := a.handleDelegate(ai.ToolCall{Name: "delegate", Input: map[string]any{}}).Content
 	if !strings.Contains(content, "error") {
 		t.Errorf("delegate with no task should error; got %q", content)
 	}

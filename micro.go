@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"go-micro.dev/v5/agent"
+	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/flow"
 	"go-micro.dev/v5/server"
@@ -120,6 +121,16 @@ func AgentMemory(m Memory) AgentOption { return agent.WithMemory(m) }
 // AgentTool registers a custom tool the agent can call, beyond its services.
 func AgentTool(name, description string, properties map[string]any, handler ToolFunc) AgentOption {
 	return agent.WithTool(name, description, properties, handler)
+}
+
+// AgentWrapTool registers a tool-execution wrapper — the tool-side
+// analogue of a client/server middleware wrapper. Each wrapper takes the
+// next handler and returns a new one; run code before next(...) for
+// "before", after it for "after". Use it for logging, metrics, retries,
+// or policy. Wrappers run outside the built-in guardrails, so they see
+// every call and result, including refusals.
+func AgentWrapTool(w ...ai.ToolWrapper) AgentOption {
+	return agent.WrapTool(w...)
 }
 
 // NewFlow creates an event-driven LLM orchestration unit.

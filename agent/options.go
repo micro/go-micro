@@ -60,6 +60,9 @@ type Options struct {
 
 	// tools are developer-registered custom tools (see WithTool).
 	tools []customTool
+	// wrappers are developer-registered tool-execution wrappers
+	// (see WrapTool), applied outside the built-in guardrails.
+	wrappers []ai.ToolWrapper
 }
 
 func newOptions(opts ...Option) Options {
@@ -153,6 +156,28 @@ func LoopLimit(n int) Option {
 // in-process, database, or semantic store.
 func WithMemory(m Memory) Option {
 	return func(o *Options) { o.Memory = m }
+}
+
+// WrapTool registers a tool-execution wrapper, the tool-side analogue of
+// a client/server middleware wrapper. Each wrapper takes the next handler
+// and returns a new one; code before the next(...) call runs before the
+// tool executes, code after runs after. Use it for logging, metrics,
+// retries, or custom policy. Wrappers run outside the built-in guardrails
+// (MaxSteps, LoopLimit, ApproveTool), so they observe every call and its
+// result, including refusals. Multiple wrappers compose outermost-first.
+//
+//	micro.NewAgent("worker", micro.AgentWrapTool(
+//	    func(next ai.ToolHandler) ai.ToolHandler {
+//	        return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+//	            res := next(ctx, call)
+//	            log.Printf("id=%s tool=%s", call.ID, call.Name)
+//	            return res
+//	        }
+//	    }))
+func WrapTool(w ...ai.ToolWrapper) Option {
+	return func(o *Options) {
+		o.wrappers = append(o.wrappers, w...)
+	}
 }
 
 // WithTool registers a custom tool the agent can call, beyond the
