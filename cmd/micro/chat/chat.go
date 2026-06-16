@@ -352,14 +352,15 @@ func run(c *cli.Context) error {
 
 	// Wrap the tool handler to intercept generate calls
 	baseHandler := tools.Handler()
-	wrappedHandler := func(name string, input map[string]any) (any, string) {
-		if name == "micro_generate_service" {
-			return s.handleGenerate(input)
+	wrappedHandler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		if call.Name == "micro_generate_service" {
+			r, c := s.handleGenerate(call.Input)
+			return ai.ToolResult{ID: call.ID, Value: r, Content: c}
 		}
-		if result, content, ok := s.builtinHandle(name, input); ok {
-			return result, content
+		if result, content, ok := s.builtinHandle(call.Name, call.Input); ok {
+			return ai.ToolResult{ID: call.ID, Value: result, Content: content}
 		}
-		return baseHandler(name, input)
+		return baseHandler(ctx, call)
 	}
 
 	opts := []ai.Option{
@@ -522,28 +523,28 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 		},
 	}
 
-	routerHandler := func(name string, input map[string]any) (any, string) {
-		agentName, _ := input["agent"].(string)
-		message, _ := input["message"].(string)
+	routerHandler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		agentName, _ := call.Input["agent"].(string)
+		message, _ := call.Input["message"].(string)
 		if message == "" {
 			message = prompt
 		}
 
 		if _, ok := s.agents[agentName]; !ok {
-			return map[string]string{"error": "unknown agent: " + agentName}, `{"error":"unknown agent"}`
+			return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": "unknown agent: " + agentName}, Content: `{"error":"unknown agent"}`}
 		}
 
 		fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", agentName)
 		resp, err := s.callAgent(ctx, agentName, message)
 		if err != nil {
-			return map[string]string{"error": err.Error()}, `{"error":"` + err.Error() + `"}`
+			return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": err.Error()}, Content: `{"error":"` + err.Error() + `"}`}
 		}
 
 		s.printAgentResponse(resp)
 
 		result := map[string]any{"agent": agentName, "reply": resp.Reply}
 		b, _ := json.Marshal(result)
-		return result, string(b)
+		return ai.ToolResult{ID: call.ID, Value: result, Content: string(b)}
 	}
 
 	routerModel := ai.New(s.provider,

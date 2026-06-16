@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"testing"
 
 	"go-micro.dev/v5/registry"
@@ -97,11 +98,11 @@ func TestTools_HandlerInvalidName(t *testing.T) {
 	tools := NewTools(registry.NewMemoryRegistry())
 	h := tools.Handler()
 
-	result, content := h("foo", map[string]any{})
-	if result == nil {
+	res := h(context.Background(), ToolCall{Name: "foo", Input: map[string]any{}})
+	if res.Value == nil {
 		t.Fatal("expected error result")
 	}
-	if content == "" {
+	if res.Content == "" {
 		t.Error("expected non-empty content")
 	}
 }

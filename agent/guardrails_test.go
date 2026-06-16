@@ -1,12 +1,20 @@
 package agent
 
 import (
+	"context"
 	"strings"
 	"testing"
 
+	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
 )
+
+// toolContent runs a tool call through a handler and returns the content
+// shown to the model — the part these tests assert on.
+func toolContent(h ai.ToolHandler, name string, input map[string]any) string {
+	return h(context.Background(), ai.ToolCall{Name: name, Input: input}).Content
+}
 
 // MaxSteps refuses tool calls once the per-Ask limit is exceeded; plan
 // is bookkeeping and is never counted.
@@ -17,7 +25,7 @@ func TestMaxStepsStopsActions(t *testing.T) {
 
 	// plan must not consume a step.
 	a.steps = 0
-	h(toolPlan, map[string]any{"steps": []any{}})
+	toolContent(h, toolPlan, map[string]any{"steps": []any{}})
 	if a.steps != 0 {
 		t.Fatalf("plan consumed a step: steps=%d", a.steps)
 	}
@@ -25,14 +33,14 @@ func TestMaxStepsStopsActions(t *testing.T) {
 	// First two actions are allowed (they fall through to RPC, which
 	// fails harmlessly — we only care they weren't refused by the limit).
 	for i := 1; i <= 2; i++ {
-		_, content := h("demo_Svc_Do", map[string]any{})
+		content := toolContent(h, "demo_Svc_Do", map[string]any{})
 		if strings.Contains(content, "step limit") {
 			t.Fatalf("action %d wrongly hit the step limit", i)
 		}
 	}
 
 	// Third action exceeds MaxSteps(2) and must be refused.
-	_, content := h("demo_Svc_Do", map[string]any{})
+	content := toolContent(h, "demo_Svc_Do", map[string]any{})
 	if !strings.Contains(content, "step limit") {
 		t.Errorf("third action should hit the step limit; got %q", content)
 	}
@@ -49,7 +57,7 @@ func TestApproveToolBlocks(t *testing.T) {
 		}),
 	)
 
-	_, content := a.toolHandler()("demo_Svc_Do", map[string]any{})
+	content := toolContent(a.toolHandler(), "demo_Svc_Do", map[string]any{})
 	if sawTool != "demo_Svc_Do" {
 		t.Errorf("approver saw %q, want demo_Svc_Do", sawTool)
 	}
@@ -72,7 +80,7 @@ func TestApproveToolDoesNotGatePlan(t *testing.T) {
 	).(*agentImpl)
 	a.setup()
 
-	_, content := a.toolHandler()(toolPlan, map[string]any{
+	content := toolContent(a.toolHandler(), toolPlan, map[string]any{
 		"steps": []any{map[string]any{"task": "x", "status": "pending"}},
 	})
 	if strings.Contains(content, "not approved") {

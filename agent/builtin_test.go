@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
 )
@@ -32,7 +33,7 @@ func TestHandlePlanPersists(t *testing.T) {
 			map[string]any{"task": "write code", "status": "in_progress"},
 		},
 	}
-	_, content := a.handlePlan(steps)
+	content := a.handlePlan(ai.ToolCall{Name: "plan", Input: steps}).Content
 	if content == "" {
 		t.Fatal("handlePlan returned empty content")
 	}
@@ -59,7 +60,7 @@ func TestPlanShowsInPrompt(t *testing.T) {
 		t.Errorf("buildPrompt() with no plan = %q, want %q", got, "base prompt")
 	}
 
-	a.handlePlan(map[string]any{"steps": []any{map[string]any{"task": "do it", "status": "pending"}}})
+	a.handlePlan(ai.ToolCall{Name: "plan", Input: map[string]any{"steps": []any{map[string]any{"task": "do it", "status": "pending"}}}})
 
 	got := a.buildPrompt()
 	if got == "base prompt" {

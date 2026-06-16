@@ -111,7 +111,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	for rounds := 0; rounds < 10; rounds++ {
 		var toolResultBlocks []map[string]any
 		for i := range pendingCalls {
-			_, content := p.opts.ToolHandler(pendingCalls[i].Name, pendingCalls[i].Input)
+			content := p.opts.ToolHandler(ctx, pendingCalls[i]).Content
 			pendingCalls[i].Result = content
 			toolResultBlocks = append(toolResultBlocks, map[string]any{
 				"type":        "tool_result",

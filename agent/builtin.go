@@ -74,108 +74,150 @@ func Builtins(opts ...Option) (tools []ai.Tool, handle func(name string, input m
 	handle = func(name string, input map[string]any) (any, string, bool) {
 		switch name {
 		case toolPlan:
-			r, c := a.handlePlan(input)
-			return r, c, true
+			r := a.handlePlan(ai.ToolCall{Name: name, Input: input})
+			return r.Value, r.Content, true
 		case toolDelegate:
-			r, c := a.handleDelegate(input)
-			return r, c, true
+			r := a.handleDelegate(ai.ToolCall{Name: name, Input: input})
+			return r.Value, r.Content, true
 		}
 		return nil, "", false
 	}
 	return builtinTools(), handle
 }
 
-// toolHandler returns the agent's tool-call handler. It intercepts the
-// built-in tools and falls through to RPC service execution for the
-// rest. Ephemeral sub-agents get the bare service handler so they can
-// neither plan nor re-delegate (which prevents runaway recursion).
+// toolHandler returns the agent's tool-call handler, composed as a stack
+// of wrappers around a base handler — the same middleware shape as
+// client/server wrappers. The base executes the call (custom tools,
+// delegate, or RPC); the built-in guardrails wrap it; developer wrappers
+// (WrapTool) wrap those, outermost, so they observe every call and its
+// result including guardrail refusals. Ephemeral sub-agents get the bare
+// service handler so they can neither plan nor re-delegate (which
+// prevents runaway recursion).
 func (a *agentImpl) toolHandler() ai.ToolHandler {
-	base := a.tools.Handler()
 	if a.ephemeral {
-		return base
+		return a.tools.Handler()
 	}
-	return func(name string, input map[string]any) (any, string) {
-		// plan is internal bookkeeping, not an action — never gated.
-		if name == toolPlan {
-			return a.handlePlan(input)
-		}
 
-		// Stopping condition: bound the number of actions per Ask.
+	// Innermost first: base, then guardrails (approve → loop → step →
+	// plan), then developer wrappers outermost. Wrapping reverses order,
+	// so the result runs plan → step → loop → approve → base.
+	h := a.baseHandler()
+	h = a.approveWrap(h)
+	h = a.loopWrap(h)
+	h = a.stepWrap(h)
+	h = a.planWrap(h)
+	for i := len(a.opts.wrappers) - 1; i >= 0; i-- {
+		h = a.opts.wrappers[i](h)
+	}
+	return h
+}
+
+// baseHandler executes a tool call: a developer custom tool, the built-in
+// delegate, or an RPC to the service. It is the innermost handler.
+func (a *agentImpl) baseHandler() ai.ToolHandler {
+	rpc := a.tools.Handler()
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		for i := range a.opts.tools {
+			if a.opts.tools[i].def.Name == call.Name {
+				out, err := a.opts.tools[i].handler(ctx, call.Input)
+				if err != nil {
+					return errResult(call.ID, err.Error())
+				}
+				return ai.ToolResult{ID: call.ID, Value: out, Content: out}
+			}
+		}
+		if call.Name == toolDelegate {
+			return a.handleDelegate(call)
+		}
+		return rpc(ctx, call)
+	}
+}
+
+// planWrap handles the plan tool inline. plan is internal bookkeeping,
+// not an action — it is never counted, loop-checked, or gated.
+func (a *agentImpl) planWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		if call.Name == toolPlan {
+			return a.handlePlan(call)
+		}
+		return next(ctx, call)
+	}
+}
+
+// stepWrap bounds the number of actions per Ask (MaxSteps).
+func (a *agentImpl) stepWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		if a.opts.MaxSteps > 0 {
 			a.steps++
 			if a.steps > a.opts.MaxSteps {
-				return errResult(fmt.Sprintf(
+				return errResult(call.ID, fmt.Sprintf(
 					"step limit reached (%d). Do not call any more tools; stop and summarize what you have so far.",
 					a.opts.MaxSteps))
 			}
 		}
+		return next(ctx, call)
+	}
+}
 
-		// Loop detection: stop the agent repeating an identical action
-		// that makes no progress (which the step count alone won't catch).
+// loopWrap stops the agent repeating an identical action that makes no
+// progress (which the step count alone won't catch).
+func (a *agentImpl) loopWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		if a.opts.LoopLimit > 0 {
 			if a.calls == nil {
 				a.calls = map[string]int{}
 			}
-			args, _ := json.Marshal(input)
-			fp := name + ":" + string(args)
+			args, _ := json.Marshal(call.Input)
+			fp := call.Name + ":" + string(args)
 			a.calls[fp]++
 			if a.calls[fp] > a.opts.LoopLimit {
-				return errResult(fmt.Sprintf(
+				return errResult(call.ID, fmt.Sprintf(
 					"loop detected: you have already called %q with the same arguments %d times and the result will not change. Stop repeating it — try a different approach, or finish with what you have.",
-					name, a.opts.LoopLimit))
+					call.Name, a.opts.LoopLimit))
 			}
 		}
+		return next(ctx, call)
+	}
+}
 
-		// Human-in-the-loop / policy: gate the action before it runs.
+// approveWrap gates each action before it runs (ApproveTool).
+func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		if a.opts.Approve != nil {
-			if ok, reason := a.opts.Approve(name, input); !ok {
+			if ok, reason := a.opts.Approve(call.Name, call.Input); !ok {
 				msg := "tool call was not approved"
 				if reason != "" {
 					msg += ": " + reason
 				}
-				return errResult(msg)
+				return errResult(call.ID, msg)
 			}
 		}
-
-		// Developer-registered custom tools (WithTool).
-		for i := range a.opts.tools {
-			if a.opts.tools[i].def.Name == name {
-				out, err := a.opts.tools[i].handler(context.Background(), input)
-				if err != nil {
-					return errResult(err.Error())
-				}
-				return out, out
-			}
-		}
-
-		if name == toolDelegate {
-			return a.handleDelegate(input)
-		}
-		return base(name, input)
+		return next(ctx, call)
 	}
 }
 
 // handlePlan persists the supplied plan to the agent's memory and
 // echoes it back so the model can see the stored state.
-func (a *agentImpl) handlePlan(input map[string]any) (any, string) {
-	data, err := json.Marshal(input)
+func (a *agentImpl) handlePlan(call ai.ToolCall) ai.ToolResult {
+	data, err := json.Marshal(call.Input)
 	if err != nil {
-		return errResult("invalid plan: " + err.Error())
+		return errResult(call.ID, "invalid plan: "+err.Error())
 	}
 	if a.opts.Store != nil {
 		a.opts.Store.Write(&store.Record{Key: a.planKey(), Value: data})
 	}
-	return input, string(data)
+	return ai.ToolResult{ID: call.ID, Value: call.Input, Content: string(data)}
 }
 
 // handleDelegate hands a subtask to another agent. Delegate-first:
 // if 'to' names a registered agent, it is called via RPC. Otherwise an
 // ephemeral sub-agent is created with a fresh, isolated context, asked
 // the subtask, and its reply returned.
-func (a *agentImpl) handleDelegate(input map[string]any) (any, string) {
+func (a *agentImpl) handleDelegate(call ai.ToolCall) ai.ToolResult {
+	input := call.Input
 	task, _ := input["task"].(string)
 	if task == "" {
-		return errResult("task is required")
+		return errResult(call.ID, "task is required")
 	}
 	to, _ := input["to"].(string)
 
@@ -183,11 +225,11 @@ func (a *agentImpl) handleDelegate(input map[string]any) (any, string) {
 	if to != "" && a.isAgent(to) {
 		reply, err := a.callAgentRPC(context.Background(), to, task)
 		if err != nil {
-			return errResult("delegate to agent " + to + ": " + err.Error())
+			return errResult(call.ID, "delegate to agent "+to+": "+err.Error())
 		}
 		out := map[string]any{"agent": to, "reply": reply}
 		b, _ := json.Marshal(out)
-		return out, string(b)
+		return ai.ToolResult{ID: call.ID, Value: out, Content: string(b)}
 	}
 
 	// Otherwise create a focused, ephemeral sub-agent. Fresh context:
@@ -211,11 +253,11 @@ func (a *agentImpl) handleDelegate(input map[string]any) (any, string) {
 
 	resp, err := sub.Ask(context.Background(), task)
 	if err != nil {
-		return errResult("sub-agent: " + err.Error())
+		return errResult(call.ID, "sub-agent: "+err.Error())
 	}
 	out := map[string]any{"reply": resp.Reply}
 	b, _ := json.Marshal(out)
-	return out, string(b)
+	return ai.ToolResult{ID: call.ID, Value: out, Content: string(b)}
 }
 
 // isAgent reports whether name resolves to a registered agent (a
@@ -273,8 +315,8 @@ func (a *agentImpl) loadPlan() string {
 	return string(recs[0].Value)
 }
 
-func errResult(msg string) (any, string) {
+func errResult(id, msg string) ai.ToolResult {
 	m := map[string]string{"error": msg}
 	b, _ := json.Marshal(m)
-	return m, string(b)
+	return ai.ToolResult{ID: id, Value: m, Content: string(b)}
 }

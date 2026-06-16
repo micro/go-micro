@@ -84,6 +84,7 @@ An agent composes the same way a service does — a small set of pluggable piece
 | **Memory** | store-backed, durable across restarts | `AgentMemory(m Memory)` |
 | **Tools** | the agent's services (RPC) + `plan`/`delegate` | `AgentTool(name, desc, schema, fn)` for any function |
 | **Guardrails** | loop detection on | `AgentMaxSteps`, `AgentLoopLimit`, `AgentApproveTool` |
+| **Tool middleware** | none | `AgentWrapTool(...ai.ToolWrapper)` — wrap tool execution (logging, metrics, retries) |
 
 ```go
 type Memory interface {

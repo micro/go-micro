@@ -173,27 +173,28 @@ tools := []ai.Tool{
     },
 }
 
-// Handle tool calls by routing to your services
-toolHandler := func(name string, input map[string]any) (any, string) {
-    switch name {
+// Handle tool calls by routing to your services. The handler mirrors a
+// go-micro RPC handler: context first, the call in, a result out.
+toolHandler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+    switch call.Name {
     case "create_task":
         var rsp CreateResponse
-        err := client.Call(ctx, "tasks", "TaskService.Create", input, &rsp)
+        err := client.Call(ctx, "tasks", "TaskService.Create", call.Input, &rsp)
         if err != nil {
-            return nil, fmt.Sprintf(`{"error": "%s"}`, err)
+            return ai.ToolResult{ID: call.ID, Content: fmt.Sprintf(`{"error": "%s"}`, err)}
         }
         b, _ := json.Marshal(rsp)
-        return rsp, string(b)
+        return ai.ToolResult{ID: call.ID, Value: rsp, Content: string(b)}
     case "list_tasks":
         var rsp ListResponse
-        err := client.Call(ctx, "tasks", "TaskService.List", input, &rsp)
+        err := client.Call(ctx, "tasks", "TaskService.List", call.Input, &rsp)
         if err != nil {
-            return nil, fmt.Sprintf(`{"error": "%s"}`, err)
+            return ai.ToolResult{ID: call.ID, Content: fmt.Sprintf(`{"error": "%s"}`, err)}
         }
         b, _ := json.Marshal(rsp)
-        return rsp, string(b)
+        return ai.ToolResult{ID: call.ID, Value: rsp, Content: string(b)}
     }
-    return nil, `{"error": "unknown tool"}`
+    return ai.ToolResult{ID: call.ID, Content: `{"error": "unknown tool"}`}
 }
 
 m := ai.New("anthropic",

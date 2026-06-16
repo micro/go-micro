@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -24,10 +25,6 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/cmd"
-	codecBytes "go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/ai"
 	_ "go-micro.dev/v5/ai/anthropic"
 	_ "go-micro.dev/v5/ai/atlascloud"
@@ -36,6 +33,10 @@ import (
 	_ "go-micro.dev/v5/ai/mistral"
 	_ "go-micro.dev/v5/ai/openai"
 	_ "go-micro.dev/v5/ai/together"
+	"go-micro.dev/v5/auth"
+	"go-micro.dev/v5/client"
+	"go-micro.dev/v5/cmd"
+	codecBytes "go-micro.dev/v5/codec/bytes"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/store"
 	"golang.org/x/crypto/bcrypt"
@@ -683,7 +684,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		// toolName can be either the original dotted name or the LLM-safe
 		// underscored name; the safe name is resolved first.
 		// Checks endpoint scopes against the caller's token before executing.
-		executeToolCall := func(toolName string, input map[string]any) (any, string) {
+		executeToolCall := func(_ context.Context, call ai.ToolCall) ai.ToolResult {
+			toolName := call.Name
+			input := call.Input
 			if orig, ok := safeNameMap[toolName]; ok {
 				toolName = orig
 			}
@@ -733,7 +736,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						}
 						if !allowed {
 							errMsg := fmt.Sprintf(`{"error":"insufficient scopes","required_scopes":"%s"}`, strings.Join(requiredScopes, ","))
-							return map[string]string{"error": "insufficient scopes", "required_scopes": strings.Join(requiredScopes, ",")}, errMsg
+							return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": "insufficient scopes", "required_scopes": strings.Join(requiredScopes, ",")}, Content: errMsg}
 						}
 					}
 				}
@@ -741,20 +744,20 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			parts := strings.SplitN(toolName, ".", 2)
 			if len(parts) != 2 {
 				errMsg := `{"error":"invalid tool name"}`
-				return map[string]string{"error": "invalid tool name"}, errMsg
+				return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": "invalid tool name"}, Content: errMsg}
 			}
 			inputBytes, _ := json.Marshal(input)
 			rpcReq := client.DefaultClient.NewRequest(parts[0], parts[1], &codecBytes.Frame{Data: inputBytes})
 			var rsp codecBytes.Frame
 			if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
 				errMsg := fmt.Sprintf(`{"error":"%s"}`, err.Error())
-				return map[string]string{"error": err.Error()}, errMsg
+				return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": err.Error()}, Content: errMsg}
 			}
 			var rpcResult any
 			if err := json.Unmarshal(rsp.Data, &rpcResult); err != nil {
 				rpcResult = string(rsp.Data)
 			}
-			return rpcResult, string(rsp.Data)
+			return ai.ToolResult{ID: call.ID, Value: rpcResult, Content: string(rsp.Data)}
 		}
 
 		// Create model with options
@@ -797,8 +800,8 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			var toolCalls []map[string]any
 			for _, tc := range response.ToolCalls {
 				toolCalls = append(toolCalls, map[string]any{
-					"tool":   tc.Name,
-					"input":  tc.Input,
+					"tool":  tc.Name,
+					"input": tc.Input,
 				})
 			}
 			result["tool_calls"] = toolCalls

@@ -48,6 +48,36 @@ micro.NewAgent("worker", micro.AgentApproveTool(
 
 `ApproveTool` is also where an **external policy engine** plugs in. It sees every tool call before execution and can veto, so you can route decisions to your own rules, a budget service, or a third-party runtime-safety layer — without go-micro depending on it. Orchestration stays in the agent; execution safety stays in the hook. That separation is the whole point: you can swap the safety layer without touching the agent.
 
+## Wrap the whole execution — `WrapTool`
+
+`ApproveTool` is a *before* gate. When you need the full lifecycle — timing, logging, metrics, retries, or inspecting the result — wrap the execution instead. `WrapTool` is the tool-side analogue of go-micro's `client.CallWrapper` and `server.HandlerWrapper`: a wrapper takes the next handler and returns a new one, so code before the `next(...)` call runs *before* the tool, and code after runs *after*.
+
+```go
+import "go-micro.dev/v5/ai"
+
+func logging(next ai.ToolHandler) ai.ToolHandler {
+    return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+        start := time.Now()
+        res := next(ctx, call)
+        log.Printf("id=%s tool=%s took=%s", call.ID, call.Name, time.Since(start))
+        return res
+    }
+}
+
+micro.NewAgent("worker", micro.AgentWrapTool(logging))
+```
+
+The handler signature is the same one every provider uses to execute a tool, and it mirrors a service handler — context first, the call in, a result out:
+
+```go
+type ToolHandler func(ctx context.Context, call ToolCall) ToolResult
+type ToolWrapper func(ToolHandler) ToolHandler
+```
+
+`call.ID` is a correlation ID carried through from the provider, so a wrapper can tie a tool call back to the request it came from. `call.Scan(&v)` decodes the arguments into a typed struct when you'd rather not work with the raw map.
+
+Wrappers run **outside** the built-in guardrails, so they observe every call and its result — including a guardrail's refusal. Multiple wrappers compose outermost-first (the first registered is the outer layer). A "before/after" hook is just the two halves of one wrapper, and retry is calling `next` again — so the wrapper is the single, composable seam for everything around execution, while `MaxSteps`, `LoopLimit`, and `ApproveTool` remain the named guardrails on top of it.
+
 ## Execution safety at the gateway
 
 When agents reach tools **through the MCP gateway**, the gateway adds its own per-tool policies, independent of the agent:

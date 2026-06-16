@@ -151,7 +151,7 @@ func (m *mockModel) call(who, name string, input map[string]any) {
 	args, _ := json.Marshal(input)
 	fmt.Printf("  \033[33m[%s]\033[0m → %s(%s)\n", who, name, args)
 	if m.opts.ToolHandler != nil {
-		m.opts.ToolHandler(name, input)
+		m.opts.ToolHandler(context.Background(), ai.ToolCall{Name: name, Input: input})
 	}
 }
 
