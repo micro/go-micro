@@ -47,22 +47,22 @@ with one step == current flow.
 
 ### State
 
-What carries across steps. **A struct, not a map** — a typed `Payload`
+What carries across steps. **A struct, not a map** — a typed `Data`
 plus a `Stage` marker so you can always tell where a run is.
 
 ```go
 type State struct {
-    Stage   string // name of the step the run is at — where it is
-    Payload []byte // carried data, serialized; use Set / Scan
+    Stage string // name of the step the run is at — where it is
+    Data  []byte // carried data, serialized; use Set / Scan
 }
 
-// Set replaces the payload with the JSON encoding of v.
+// Set replaces the data with the JSON encoding of v.
 func (s *State) Set(v any) error
-// Scan decodes the payload into v (a pointer to the caller's struct).
+// Scan decodes the data into v (a pointer to the caller's struct).
 func (s State) Scan(v any) error
 ```
 
-The developer defines their own payload struct and threads it through
+The developer defines their own data struct and threads it through
 with `Set`/`Scan` — type-safe at the edges, serializable in the middle
 (which is what makes checkpointing possible). `Stage` is the readable
 "where am I"; the engine also uses it as the resume point.
@@ -189,7 +189,7 @@ run.Status = "done"; checkpoint.Save(run)
 
 On restart, `Load` returns the `Run`; the loop resumes at the step named
 `run.State.Stage`, so completed steps are skipped — their effects already
-happened and their output is already in `run.State.Payload`.
+happened and their output is already in `run.State.Data`.
 
 ### Retry
 
@@ -279,8 +279,8 @@ A single-step flow keeps today's behavior, so this is additive.
 
 ## Decisions (resolved)
 
-- **State is a struct, not a map** — typed `Payload` + `Stage`. The
-  developer defines the payload struct; `Stage` doubles as the resume
+- **State is a struct, not a map** — typed `Data` + `Stage`. The
+  developer defines the data struct; `Stage` doubles as the resume
   point, so there is one source of truth for position.
 - **One `Step` kind** — a struct with `Name`, `Run`, and an optional
   `Retry`. Common actions are `StepFunc` helpers (`Call`, `LLM`,
