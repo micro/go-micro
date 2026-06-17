@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"go-micro.dev/v5/ai"
 	codecBytes "go-micro.dev/v5/codec/bytes"
+	"go-micro.dev/v5/gateway/a2a"
 	"go-micro.dev/v5/store"
 )
 
@@ -53,7 +55,7 @@ func builtinTools() []ai.Tool {
 				},
 				"to": map[string]any{
 					"type":        "string",
-					"description": "Optional. The agent or service name best suited to the subtask.",
+					"description": "Optional. The agent or service name best suited to the subtask, or the URL of an external agent that speaks the A2A protocol.",
 				},
 			},
 		},
@@ -218,6 +220,17 @@ func (a *agentImpl) handleDelegate(call ai.ToolCall) ai.ToolResult {
 		return errResult(call.ID, "task is required")
 	}
 	to, _ := input["to"].(string)
+
+	// An external agent on another framework, addressed by A2A URL.
+	if strings.HasPrefix(to, "http://") || strings.HasPrefix(to, "https://") {
+		reply, err := a2a.NewClient(to).Send(context.Background(), task)
+		if err != nil {
+			return errResult(call.ID, "delegate to A2A agent "+to+": "+err.Error())
+		}
+		out := map[string]any{"agent": to, "reply": reply}
+		b, _ := json.Marshal(out)
+		return ai.ToolResult{ID: call.ID, Value: out, Content: string(b)}
+	}
 
 	// Delegate-first: an existing agent that owns the domain handles it.
 	if to != "" && a.isAgent(to) {

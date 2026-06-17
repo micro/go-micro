@@ -12,6 +12,7 @@ import (
 	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/client"
 	codecbytes "go-micro.dev/v5/codec/bytes"
+	"go-micro.dev/v5/gateway/a2a"
 	"go-micro.dev/v5/logger"
 	"go-micro.dev/v5/store"
 )
@@ -228,6 +229,20 @@ func Dispatch(name string) StepFunc {
 		}
 		_ = json.Unmarshal(rsp.Data, &out)
 		in.Data = []byte(out.Reply)
+		return in, nil
+	}
+}
+
+// A2A returns a StepFunc that calls a remote agent over the A2A protocol
+// by URL — the cross-framework counterpart to Dispatch. It sends the
+// current state Data as the message and stores the reply as the new Data.
+func A2A(url string) StepFunc {
+	return func(ctx context.Context, in State) (State, error) {
+		reply, err := a2a.NewClient(url).Send(ctx, in.String())
+		if err != nil {
+			return in, err
+		}
+		in.Data = []byte(reply)
 		return in, nil
 	}
 }

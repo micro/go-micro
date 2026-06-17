@@ -4,37 +4,27 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	"go-micro.dev/v5/agent"
-	"go-micro.dev/v5/ai"
+	pb "go-micro.dev/v5/agent/proto"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/selector"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v5/server"
 )
 
-// mockModel is a fixed-reply LLM so the test needs no API key.
-type mockModel struct{ opts ai.Options }
+// echoAgent is a stub that implements the Agent proto handler — enough to
+// exercise the gateway's task→Agent.Chat translation without pulling in
+// the agent package (which would import this one, a test-only cycle).
+type echoAgent struct{}
 
-func newMock(opts ...ai.Option) ai.Model { m := &mockModel{}; _ = m.Init(opts...); return m }
-func (m *mockModel) Init(opts ...ai.Option) error {
-	for _, o := range opts {
-		o(&m.opts)
-	}
+func (echoAgent) Chat(_ context.Context, req *pb.ChatRequest, rsp *pb.ChatResponse) error {
+	rsp.Reply = "pong"
+	rsp.Agent = "echo"
 	return nil
-}
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "mock" }
-func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, fmt.Errorf("no stream")
-}
-func (m *mockModel) Generate(context.Context, *ai.Request, ...ai.GenerateOption) (*ai.Response, error) {
-	return &ai.Response{Answer: "pong"}, nil
 }
 
 func waitFor(reg registry.Registry, name string) {
@@ -51,21 +41,23 @@ func newGatewayWithAgent(t *testing.T) (*httptest.Server, func()) {
 	t.Helper()
 	reg := registry.NewMemoryRegistry()
 	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))))
-	ai.Register("mock", newMock)
 
-	a := agent.New(
-		agent.Name("echo"),
-		agent.Provider("mock"),
-		agent.WithRegistry(reg),
-		agent.WithClient(cl),
-		agent.WithStore(store.NewMemoryStore()),
+	srv := server.NewServer(
+		server.Name("echo"),
+		server.Registry(reg),
+		server.Metadata(map[string]string{"type": "agent", "services": ""}),
 	)
-	go a.Run()
+	if err := pb.RegisterAgentHandler(srv, echoAgent{}); err != nil {
+		t.Fatalf("register agent handler: %v", err)
+	}
+	if err := srv.Start(); err != nil {
+		t.Fatalf("start server: %v", err)
+	}
 	waitFor(reg, "echo")
 
 	g := New(Options{Registry: reg, Client: cl, BaseURL: "http://gw"})
 	ts := httptest.NewServer(g.Handler())
-	return ts, func() { ts.Close(); a.Stop() }
+	return ts, func() { ts.Close(); srv.Stop() }
 }
 
 func TestAgentCardFromRegistry(t *testing.T) {
@@ -99,7 +91,6 @@ func TestMessageSendAndGet(t *testing.T) {
 	ts, cleanup := newGatewayWithAgent(t)
 	defer cleanup()
 
-	// message/send -> completed task with the agent's reply.
 	task := rpcTask(t, ts.URL+"/agents/echo", `{
 		"jsonrpc":"2.0","id":1,"method":"message/send",
 		"params":{"message":{"role":"user","kind":"message","messageId":"m1",
@@ -111,9 +102,8 @@ func TestMessageSendAndGet(t *testing.T) {
 		t.Fatalf("artifact = %+v, want text 'pong'", task.Artifacts)
 	}
 
-	// tasks/get -> the same task, by id.
-	got := rpcTask(t, ts.URL+"/agents/echo", fmt.Sprintf(`{
-		"jsonrpc":"2.0","id":2,"method":"tasks/get","params":{"id":%q}}`, task.ID))
+	got := rpcTask(t, ts.URL+"/agents/echo", `{
+		"jsonrpc":"2.0","id":2,"method":"tasks/get","params":{"id":"`+task.ID+`"}}`)
 	if got.ID != task.ID || got.Status.State != stateCompleted {
 		t.Errorf("tasks/get returned %+v", got)
 	}
@@ -150,7 +140,6 @@ func TestListAgents(t *testing.T) {
 	}
 }
 
-// rpc posts a JSON-RPC request and decodes the response into v.
 func rpc(t *testing.T, url, body string, v any) {
 	t.Helper()
 	resp, err := http.Post(url, "application/json", bytes.NewBufferString(body))
@@ -163,7 +152,6 @@ func rpc(t *testing.T, url, body string, v any) {
 	}
 }
 
-// rpcTask posts a JSON-RPC request and returns the Task result.
 func rpcTask(t *testing.T, url, body string) Task {
 	t.Helper()
 	var resp struct {
