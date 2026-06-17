@@ -29,6 +29,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -39,6 +40,7 @@ import (
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/flow"
+	"go-micro.dev/v5/gateway/a2a"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/service"
@@ -169,6 +171,14 @@ func check(cond bool, format string, args ...any) {
 	}
 	fmt.Printf("  \033[31m✗ %s\033[0m\n", fmt.Sprintf(format, args...))
 	failures++
+}
+
+// a2aReachable calls the named agent through the gateway using the A2A
+// client — exercising both directions of the protocol — and reports
+// whether the agent replied.
+func a2aReachable(base, agent string) bool {
+	reply, err := a2a.NewClient(base+"/agents/"+agent).Send(context.Background(), "notify the buyer")
+	return err == nil && reply != ""
 }
 
 func providerKey(provider string) string {
@@ -329,6 +339,13 @@ func main() {
 	// Flows are discoverable while live.
 	flows, _ := reg.GetService("checkout")
 	check(len(flows) == 1 && flows[0].Metadata["type"] == "flow", "flow registered in the registry as type=flow")
+
+	// 4) The concierge agent is also reachable from outside, over the A2A
+	// protocol — its card is generated from the registry, and a task is
+	// translated to its Agent.Chat RPC.
+	gw := httptest.NewServer(a2a.New(a2a.Options{Registry: reg, Client: cl, BaseURL: "http://gw"}).Handler())
+	defer gw.Close()
+	check(a2aReachable(gw.URL, "concierge"), "concierge agent reachable over the A2A gateway")
 
 	fmt.Println("\n\033[1m> shutting down the universe\033[0m")
 	// defers stop the agent and flow (deregistering them).

@@ -178,6 +178,17 @@ client.Call("comms-mgr", "Agent.Chat", &ChatRequest{Message: "Notify Alice"})
 
 No special protocol. No broker topics. Just RPC.
 
+### Across frameworks: the A2A gateway
+
+That covers agents *within* a Go Micro system. To reach agents on other
+frameworks — and to let them reach yours — there is the **A2A gateway**
+(`gateway/a2a`, run with `micro a2a serve`), the agent-side analogue of
+the MCP gateway. It discovers agents from the registry, generates an
+[Agent Card](https://a2a-protocol.org) for each from its metadata (the
+same way MCP derives tools), and translates incoming Agent2Agent tasks to
+the agent's `Agent.Chat` RPC. No per-agent code: register an agent and it
+is reachable over A2A.
+
 ## Usage Patterns
 
 ### Single-service agent
