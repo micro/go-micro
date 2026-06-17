@@ -49,6 +49,28 @@ f := micro.NewFlow("onboard-user",
 
 This is the clean seam between the two halves of the taxonomy: the *workflow* (deterministic, event-driven) hands off to the *agent* (dynamic). One engine, two front doors — an event (`flow`) or a conversation (`agent.Ask`).
 
+### Ordered, durable steps
+
+A flow can be a **task made of ordered steps** rather than a single turn — the predefined path made explicit. Each step is checkpointed before and after, so if the process dies mid-run the run **resumes at the step it stopped on**, without re-running the steps that already completed (and already had their side effects). This is durable execution, store-backed by default, with no separate workflow engine.
+
+```go
+f := micro.NewFlow("checkout",
+    micro.FlowTrigger("events.order.placed"),
+    micro.FlowRetry(2),                       // retry each step; per-step override available
+    micro.FlowSteps(
+        micro.FlowStep{Name: "reserve", Run: micro.FlowCall("inventory", "Inventory.Reserve")},
+        micro.FlowStep{Name: "charge",  Run: micro.FlowCall("payment", "Payment.Charge")},
+        micro.FlowStep{Name: "welcome", Run: micro.FlowDispatch("comms")}, // hand a step to an agent
+    ),
+    // Durable by default; point the default store at Postgres/NATS KV to
+    // survive a real restart, or plug in Temporal/Restate via Checkpoint.
+)
+```
+
+A step's action is an RPC (`FlowCall`), an agent hand-off (`FlowDispatch`), one model turn (`FlowLLM`), or any function. `State` carries a typed payload (`Set`/`Scan`) plus a `Stage` marker — the resume point. Runs are retained for success and failure (audit) unless you set `FlowDeleteOnSuccess`. On restart, `f.Pending(ctx)` lists incomplete runs and `f.Resume(ctx, runID)` continues one. See [examples/flow-durable](https://github.com/micro/go-micro/tree/master/examples/flow-durable).
+
+The pluggability is the usual go-micro shape: the built-in `Checkpoint` is store-backed (swap the store backend freely); implement the `Checkpoint` interface to delegate durability to an external engine. Most teams need neither — the default is durable.
+
 ## Agent ↔ `agent`
 
 An [`Agent`](plan-delegate.html) is an agent in Anthropic's exact sense: it **directs itself** — plans, calls tools, evaluates results, and decides the next step over many turns, with memory across them. Use it when you want flexibility and model-driven decisions.

@@ -24,6 +24,20 @@ type Options struct {
 	// to (over RPC). The flow triggers; the agent reasons. When empty,
 	// the flow runs a single augmented-LLM step itself.
 	Agent string
+
+	// Steps, if set, makes the flow run an ordered list of steps per
+	// event instead of a single LLM step — the deterministic-workflow
+	// path. Checkpointed between steps when a Checkpoint is set.
+	Steps []Step
+	// Retry is the flow-level retry count applied to each step (0 = no
+	// retry). A Step's own Retry field overrides this.
+	Retry int
+	// Checkpoint is the durability backend for stepped runs. Nil with
+	// steps present means a store-backed default; set it to swap backends.
+	Checkpoint Checkpoint
+	// DeleteOnSuccess removes a run's checkpoint when it completes
+	// successfully. Failed runs are always retained. Default: retain all.
+	DeleteOnSuccess bool
 }
 
 // Option applies a configuration to Options.
@@ -79,4 +93,30 @@ func OnResult(fn func(Result)) Option {
 // reasons (with its plan, delegate, memory, and guardrails).
 func Agent(name string) Option {
 	return func(o *Options) { o.Agent = name }
+}
+
+// Steps sets the ordered steps of the flow. A flow with steps runs them
+// in order per event, checkpointing between each, instead of the
+// single-step prompt/agent behavior. Step names must be unique.
+func Steps(steps ...Step) Option {
+	return func(o *Options) { o.Steps = steps }
+}
+
+// Retry sets the flow-level retry count applied to each step (0 = no
+// retry). A Step's own Retry field overrides this.
+func Retry(n int) Option {
+	return func(o *Options) { o.Retry = n }
+}
+
+// WithCheckpoint sets the durability backend. With a checkpoint, a run is
+// persisted before and after each step and can be resumed after a crash.
+// Stepped flows default to a store-backed checkpoint; use this to swap it.
+func WithCheckpoint(c Checkpoint) Option {
+	return func(o *Options) { o.Checkpoint = c }
+}
+
+// DeleteOnSuccess removes a run's checkpoint when it completes
+// successfully. Failed runs are always retained. Default: retain all.
+func DeleteOnSuccess() Option {
+	return func(o *Options) { o.DeleteOnSuccess = true }
 }

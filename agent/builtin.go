@@ -203,9 +203,7 @@ func (a *agentImpl) handlePlan(call ai.ToolCall) ai.ToolResult {
 	if err != nil {
 		return errResult(call.ID, "invalid plan: "+err.Error())
 	}
-	if a.opts.Store != nil {
-		a.opts.Store.Write(&store.Record{Key: a.planKey(), Value: data})
-	}
+	a.stateStore().Write(&store.Record{Key: planKey, Value: data})
 	return ai.ToolResult{ID: call.ID, Value: call.Input, Content: string(data)}
 }
 
@@ -299,16 +297,12 @@ func (a *agentImpl) callAgentRPC(ctx context.Context, name, msg string) (string,
 	return out.Reply, nil
 }
 
-func (a *agentImpl) planKey() string {
-	return "agent/" + a.opts.Name + "/plan"
-}
+// planKey is the record key for an agent's plan within its scoped store.
+const planKey = "plan"
 
 // loadPlan returns the stored plan as a JSON string, or "" if none.
 func (a *agentImpl) loadPlan() string {
-	if a.opts.Store == nil {
-		return ""
-	}
-	recs, err := a.opts.Store.Read(a.planKey())
+	recs, err := a.stateStore().Read(planKey)
 	if err != nil || len(recs) == 0 {
 		return ""
 	}

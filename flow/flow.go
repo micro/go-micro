@@ -25,10 +25,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"sync"
 	"text/template"
 	"time"
 
+	"github.com/google/uuid"
 	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
@@ -50,15 +52,19 @@ import (
 // a broker topic, discovers services as tools, and feeds each event
 // into an LLM that decides which RPCs to call.
 type Flow struct {
-	name    string
-	opts    Options
-	model   ai.Model
-	toolSet *ai.Tools
-	client  client.Client
-	tmpl    *template.Template
-	log     logger.Logger
-	mu      sync.Mutex
-	results []Result
+	name         string
+	opts         Options
+	model        ai.Model
+	toolSet      *ai.Tools
+	client       client.Client
+	tmpl         *template.Template
+	log          logger.Logger
+	checkpoint   Checkpoint
+	reg          registry.Registry
+	sub          broker.Subscriber
+	registration *registry.Service
+	mu           sync.Mutex
+	results      []Result
 }
 
 // Result records one flow execution.
@@ -95,10 +101,11 @@ func New(name string, opts ...Option) *Flow {
 	}
 
 	return &Flow{
-		name: name,
-		opts: o,
-		tmpl: tmpl,
-		log:  logger.DefaultLogger,
+		name:       name,
+		opts:       o,
+		tmpl:       tmpl,
+		log:        logger.DefaultLogger,
+		checkpoint: defaultCheckpoint(name, o),
 	}
 }
 
@@ -107,6 +114,7 @@ func New(name string, opts ...Option) *Flow {
 // trigger topic on the broker. Call this before service.Run().
 func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Client) error {
 	f.client = cl
+	f.reg = reg
 	f.toolSet = ai.NewTools(reg, ai.ToolClient(cl))
 
 	// A flow that dispatches to an agent doesn't run its own model — the
@@ -131,7 +139,7 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 	}
 
 	if f.opts.TriggerTopic != "" {
-		_, err := br.Subscribe(f.opts.TriggerTopic, func(p broker.Event) error {
+		sub, err := br.Subscribe(f.opts.TriggerTopic, func(p broker.Event) error {
 			data := string(p.Message().Body)
 			if err := f.Execute(context.Background(), data); err != nil {
 				f.log.Logf(logger.ErrorLevel, "Flow %s failed: %v", f.name, err)
@@ -141,9 +149,49 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 		if err != nil {
 			return fmt.Errorf("subscribe to %s: %w", f.opts.TriggerTopic, err)
 		}
+		f.sub = sub
 		f.log.Logf(logger.InfoLevel, "Flow %s subscribed to %s", f.name, f.opts.TriggerTopic)
+
+		// Announce the flow in the registry so it's discoverable like a
+		// service or agent (e.g. `micro flow list`). This is liveness only:
+		// Stop deregisters it. Durable run history lives in the store.
+		f.registration = &registry.Service{
+			Name:    f.name,
+			Version: "latest",
+			Metadata: map[string]string{
+				"type":    "flow",
+				"trigger": f.opts.TriggerTopic,
+				"steps":   strconv.Itoa(len(f.opts.Steps)),
+			},
+			Nodes: []*registry.Node{{
+				Id:       f.name + "-" + uuid.New().String()[:8],
+				Address:  "flow://" + f.name,
+				Metadata: map[string]string{"type": "flow"},
+			}},
+		}
+		if err := reg.Register(f.registration); err != nil {
+			f.log.Logf(logger.ErrorLevel, "Flow %s registry register: %v", f.name, err)
+			f.registration = nil
+		}
 	}
 
+	return nil
+}
+
+// Stop unsubscribes the flow from its trigger and deregisters it from the
+// registry. In-flight and past runs remain in the store; Stop only ends
+// the flow's liveness, mirroring how a service leaves the registry when
+// it shuts down.
+func (f *Flow) Stop() error {
+	if f.sub != nil {
+		_ = f.sub.Unsubscribe()
+		f.sub = nil
+	}
+	if f.registration != nil && f.reg != nil {
+		err := f.reg.Deregister(f.registration)
+		f.registration = nil
+		return err
+	}
 	return nil
 }
 
@@ -151,6 +199,12 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 // called automatically on each broker event, but can also be
 // invoked directly for testing or one-shot use.
 func (f *Flow) Execute(ctx context.Context, data string) error {
+	// Stepped flows run the ordered, checkpointed step loop.
+	if len(f.opts.Steps) > 0 {
+		_, err := f.startRun(ctx, data)
+		return err
+	}
+
 	start := time.Now()
 
 	prompt := data

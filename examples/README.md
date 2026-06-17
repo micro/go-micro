@@ -74,6 +74,11 @@ Middleware around an agent's tool execution with `AgentWrapTool`, the tool-side 
 - **observe** — time every tool call and record per-tool metrics, correlated by call ID
 - **retry** — re-run a call whose result is an error, recovering from a transient failure before the model sees it
 
+### [flow-durable](./flow-durable/)
+A workflow as ordered, checkpointed steps that survives a crash and resumes where it stopped:
+- **steps** — a flow is a task with stages (`reserve → charge → confirm`), not just one LLM turn
+- **Checkpoint** — each step is persisted; on `Resume`, completed steps are not re-run (no duplicate side effects)
+
 ## Coming Soon
 
 - **pubsub-events** - Event-driven architecture with NATS

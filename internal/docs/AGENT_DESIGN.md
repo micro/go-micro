@@ -113,9 +113,13 @@ An agent only sees the endpoints of its assigned services (plus excludes its own
 ## Memory
 
 Agents persist conversation history in the store. Memory survives restarts.
+Each agent's state is confined to its own store table (database `agent`,
+table `{name}`) via `store.Scope`, so agents don't share a global table
+with each other, with services, or with flows.
 
 ```
-agent/{name}/history    — conversation history
+database "agent", table "{name}":
+  history    — conversation history
 ```
 
 ## Built-in Capabilities
@@ -127,7 +131,8 @@ Beyond its scoped service tools, every agent gets two built-in tools. They are n
 For multi-step work the agent records an ordered plan: a list of steps, each with a `task` and a `status` (`pending`, `in_progress`, `done`). The plan is persisted to the store and surfaced back in the system prompt on later turns, so the agent stays oriented.
 
 ```
-agent/{name}/plan       — current plan
+database "agent", table "{name}":
+  plan       — current plan
 ```
 
 ### delegate
@@ -226,10 +231,21 @@ func main() {
 ## CLI
 
 ```bash
-micro agent list                    # list registered agents
+micro agent list                    # list running agents (registry, type=agent)
 micro agent describe task-mgr       # show agent details
+micro agent history task-mgr        # show stored conversation (scoped store)
 micro chat                          # routes to agents automatically
 micro call task-mgr Agent.Chat '{"message": "..."}'  # direct RPC
+```
+
+The split is consistent across services, agents, and flows: **`list`**
+shows what's *running* (from the registry, filtered by type), while
+**`history`/`runs`** show *durable* state from the scoped store —
+available whether or not the component is currently running.
+
+```bash
+micro flow list                     # list running flows (registry, type=flow)
+micro flow runs checkout            # durable run history for a flow (scoped store)
 ```
 
 ## Generation

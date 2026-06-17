@@ -128,8 +128,9 @@ func TestBuiltinsAccessor(t *testing.T) {
 	if content == "" {
 		t.Fatal("handle(plan) returned empty content")
 	}
-	if recs, err := mem.Read("agent/chat/plan"); err != nil || len(recs) == 0 {
-		t.Errorf("plan not persisted under agent/chat/plan: err=%v recs=%d", err, len(recs))
+	scoped := store.Scope(mem, "agent", "chat")
+	if recs, err := scoped.Read(planKey); err != nil || len(recs) == 0 {
+		t.Errorf("plan not persisted in the agent's scoped store: err=%v recs=%d", err, len(recs))
 	}
 }
 

@@ -235,7 +235,8 @@ See the [Payments (x402) guide](internal/website/docs/guides/x402-payments.md).
 | Custom tools | `AgentTool` — give an agent any function as a tool, beyond its services |
 | Guardrails | `MaxSteps` (stop on count), `LoopLimit` (stop repeated no-progress calls), `ApproveTool` (human-in-the-loop) |
 | Tool middleware | `AgentWrapTool` — wrap tool execution for logging, metrics, or retries (like client/server wrappers) |
-| Workflows | `micro.NewFlow()` — event-driven; runs a step or triggers an agent |
+| Workflows | `micro.NewFlow()` — event-driven; one step, ordered durable steps, or triggers an agent |
+| Durable execution | Checkpointed flow steps survive a crash and resume where they stopped; store-backed by default, pluggable backend |
 | MCP gateway | Every endpoint is an AI tool automatically |
 | Payments (x402) | Opt-in per-call payments for tools via the x402 standard; pluggable facilitator (Base, Solana, …) |
 | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |

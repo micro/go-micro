@@ -11,10 +11,10 @@ import (
 	"syscall"
 
 	"github.com/urfave/cli/v2"
-	aiflow "go-micro.dev/v5/flow"
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
+	aiflow "go-micro.dev/v5/flow"
 	"go-micro.dev/v5/registry"
 )
 
@@ -24,6 +24,11 @@ func init() {
 		Usage: "Event-driven LLM orchestration",
 		Description: `Run flows that subscribe to broker events and use an LLM to
 orchestrate service calls in response.
+
+This command runs a single-step flow from flags. For ordered, durable
+multi-step workflows (checkpointed steps that resume after a crash),
+define the flow in code with micro.FlowSteps and a Checkpoint — see
+examples/flow-durable.
 
 Examples:
   # Run a flow that reacts to user creation events
@@ -58,8 +63,84 @@ Examples:
 					return runFlow(c, true)
 				},
 			},
+			{
+				Name:   "list",
+				Usage:  "List running flows (from the registry, type=flow)",
+				Action: listFlows,
+			},
+			{
+				Name:      "runs",
+				Usage:     "Show durable run history for a flow",
+				ArgsUsage: "[name]",
+				Action:    flowRuns,
+			},
 		},
 	})
+}
+
+// listFlows shows flows currently registered in the registry — the live
+// view, mirroring `micro agent list`.
+func listFlows(c *cli.Context) error {
+	svcs, err := registry.ListServices()
+	if err != nil {
+		return err
+	}
+	found := false
+	for _, svc := range svcs {
+		records, err := registry.GetService(svc.Name)
+		if err != nil || len(records) == 0 {
+			continue
+		}
+		meta := records[0].Metadata
+		isFlow := meta != nil && meta["type"] == "flow"
+		if !isFlow && len(records[0].Nodes) > 0 {
+			nm := records[0].Nodes[0].Metadata
+			isFlow = nm != nil && nm["type"] == "flow"
+		}
+		if !isFlow {
+			continue
+		}
+		found = true
+		trigger := ""
+		if meta != nil {
+			trigger = meta["trigger"]
+		}
+		fmt.Printf("  \033[36m⚡\033[0m %-20s trigger: %s\n", svc.Name, trigger)
+	}
+	if !found {
+		fmt.Println("  No running flows.")
+		fmt.Println("  Run one with: micro flow run --trigger <topic> --prompt <...>")
+	}
+	return nil
+}
+
+// flowRuns shows a flow's durable run history from the store — the
+// historic view, available whether or not the flow is currently running.
+func flowRuns(c *cli.Context) error {
+	name := c.Args().First()
+	if name == "" {
+		return fmt.Errorf("flow name required: micro flow runs <name>")
+	}
+	runs, err := aiflow.StoreCheckpoint(nil, name).List(context.Background())
+	if err != nil {
+		return err
+	}
+	if len(runs) == 0 {
+		fmt.Printf("  No runs recorded for flow %q.\n", name)
+		return nil
+	}
+	for _, r := range runs {
+		id := r.ID
+		if len(id) > 8 {
+			id = id[:8]
+		}
+		stage := r.State.Stage
+		if stage == "" {
+			stage = "-"
+		}
+		fmt.Printf("  %s  %-8s stage=%-12s (%d steps)\n", id, r.Status, stage, len(r.Steps))
+	}
+	return nil
 }
 
 func flowFlags() []cli.Flag {

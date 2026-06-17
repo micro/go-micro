@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: test test-race test-coverage lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: test test-race test-coverage harness lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -39,6 +39,13 @@ test-coverage:
 	go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report: coverage.html"
+
+# Run the end-to-end harnesses (deterministic, mock LLM — no API key).
+# The universe harness exits non-zero on assertion failure.
+harness:
+	go run ./internal/harness/universe
+	go run ./internal/harness/agent-flow
+	go run ./internal/harness/plan-delegate
 
 # Run linter
 lint:

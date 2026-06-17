@@ -162,6 +162,53 @@ func FlowAPIKey(k string) FlowOption { return flow.APIKey(k) }
 // single LLM step itself.
 func FlowAgent(name string) FlowOption { return flow.Agent(name) }
 
+// FlowStep is one unit of a stepped flow.
+type FlowStep = flow.Step
+
+// FlowState carries data across the steps of a flow run.
+type FlowState = flow.State
+
+// FlowStepFunc performs one step's work.
+type FlowStepFunc = flow.StepFunc
+
+// Checkpoint persists and resumes flow runs (durable execution).
+type Checkpoint = flow.Checkpoint
+
+// FlowSteps makes the flow run an ordered list of steps per event,
+// checkpointed between each, instead of a single LLM turn.
+func FlowSteps(steps ...FlowStep) FlowOption { return flow.Steps(steps...) }
+
+// FlowRetry sets the flow-level retry count per step (a Step's own Retry
+// overrides it).
+func FlowRetry(n int) FlowOption { return flow.Retry(n) }
+
+// FlowWithCheckpoint sets the durability backend for stepped runs.
+// Stepped flows default to a store-backed checkpoint.
+func FlowWithCheckpoint(c Checkpoint) FlowOption { return flow.WithCheckpoint(c) }
+
+// FlowDeleteOnSuccess removes a run's checkpoint on success (failed runs
+// are always kept). Default: retain all.
+func FlowDeleteOnSuccess() FlowOption { return flow.DeleteOnSuccess() }
+
+// FlowCall is a step action: an RPC to a service endpoint, sending the
+// state data as the request and storing the response.
+func FlowCall(service, endpoint string) FlowStepFunc { return flow.Call(service, endpoint) }
+
+// FlowLLM is a step action: one augmented-LLM turn with the services as
+// tools, storing the reply.
+func FlowLLM(prompt string) FlowStepFunc { return flow.LLM(prompt) }
+
+// FlowDispatch is a step action: hand the state data to a registered
+// agent over RPC, storing its reply.
+func FlowDispatch(agent string) FlowStepFunc { return flow.Dispatch(agent) }
+
+// StoreCheckpoint returns a store-backed Checkpoint whose run keys are
+// namespaced under scope (pass the flow name so each flow's runs stay in
+// their own keyspace). A nil store uses the default store.
+func StoreCheckpoint(s store.Store, scope string) Checkpoint {
+	return flow.StoreCheckpoint(s, scope)
+}
+
 // NewGroup creates a service group for running multiple services
 // in a single binary with shared lifecycle management.
 func NewGroup(svcs ...Service) *Group {

@@ -22,6 +22,7 @@ import (
 	pb "go-micro.dev/v5/agent/proto"
 	"go-micro.dev/v5/ai"
 	"go-micro.dev/v5/server"
+	"go-micro.dev/v5/store"
 
 	_ "go-micro.dev/v5/ai/anthropic"
 	_ "go-micro.dev/v5/ai/atlascloud"
@@ -130,8 +131,20 @@ func (a *agentImpl) setup() {
 	case a.ephemeral:
 		a.mem = NewInMemory(a.opts.HistoryLimit)
 	default:
-		a.mem = NewMemory(a.opts.Store, "agent/"+a.opts.Name+"/history", a.opts.HistoryLimit)
+		a.mem = NewMemory(a.stateStore(), "history", a.opts.HistoryLimit)
 	}
+}
+
+// stateStore returns the agent's own state store, scoped to its name so
+// memory and plan live in their own table ("agent/{name}") rather than a
+// shared global one. The scoped handle injects the database/table per
+// operation without mutating the underlying store.
+func (a *agentImpl) stateStore() store.Store {
+	s := a.opts.Store
+	if s == nil {
+		s = store.DefaultStore
+	}
+	return store.Scope(s, "agent", a.opts.Name)
 }
 
 // Ask sends a message and returns the agent's response.

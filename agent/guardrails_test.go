@@ -86,7 +86,7 @@ func TestApproveToolDoesNotGatePlan(t *testing.T) {
 	if strings.Contains(content, "not approved") {
 		t.Errorf("plan must not be gated by ApproveTool; got %q", content)
 	}
-	if recs, _ := mem.Read("agent/gated/plan"); len(recs) == 0 {
+	if recs, _ := store.Scope(mem, "agent", "gated").Read(planKey); len(recs) == 0 {
 		t.Error("plan should have been persisted despite the denying approver")
 	}
 }

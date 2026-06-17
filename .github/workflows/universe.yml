@@ -1,0 +1,59 @@
+name: Universe (E2E)
+
+# Spins up a mini go-micro world end-to-end — services, a durable flow
+# that crashes and resumes, and an agent — then shuts it down. Everything
+# is real except the LLM, which is mocked, so the default job is
+# deterministic and needs no secrets. A second job runs the same scenario
+# against a live model when an API key secret is configured.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  schedule:
+    - cron: "17 6 * * *" # daily, so the world is exercised even without changes
+  workflow_dispatch:
+
+jobs:
+  universe:
+    name: Mini universe (mock LLM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - name: Build
+        run: go build ./...
+      - name: Universe end-to-end (asserts; exits non-zero on failure)
+        run: go run ./internal/harness/universe
+      - name: Agent-flow harness
+        run: go run ./internal/harness/agent-flow
+      - name: Plan-delegate harness
+        run: go run ./internal/harness/plan-delegate
+
+  universe-live:
+    name: Mini universe (live LLM, if key present)
+    runs-on: ubuntu-latest
+    # Only on the daily schedule or a manual run — never automatically on
+    # every push/PR, so changes don't quietly burn API credits. Trigger it
+    # by hand (Actions → Universe → Run workflow) when changing the agent,
+    # flow, or AI internals and you want a real-model check.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - name: Universe against a live model (AtlasCloud)
+        env:
+          ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
+        run: |
+          if [ -z "$ATLASCLOUD_API_KEY" ]; then
+            echo "No ATLASCLOUD_API_KEY secret configured — skipping the live run."
+            exit 0
+          fi
+          go run ./internal/harness/universe -provider atlascloud
