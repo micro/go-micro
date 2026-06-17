@@ -50,15 +50,16 @@ import (
 // a broker topic, discovers services as tools, and feeds each event
 // into an LLM that decides which RPCs to call.
 type Flow struct {
-	name    string
-	opts    Options
-	model   ai.Model
-	toolSet *ai.Tools
-	client  client.Client
-	tmpl    *template.Template
-	log     logger.Logger
-	mu      sync.Mutex
-	results []Result
+	name       string
+	opts       Options
+	model      ai.Model
+	toolSet    *ai.Tools
+	client     client.Client
+	tmpl       *template.Template
+	log        logger.Logger
+	checkpoint Checkpoint
+	mu         sync.Mutex
+	results    []Result
 }
 
 // Result records one flow execution.
@@ -95,10 +96,11 @@ func New(name string, opts ...Option) *Flow {
 	}
 
 	return &Flow{
-		name: name,
-		opts: o,
-		tmpl: tmpl,
-		log:  logger.DefaultLogger,
+		name:       name,
+		opts:       o,
+		tmpl:       tmpl,
+		log:        logger.DefaultLogger,
+		checkpoint: defaultCheckpoint(o),
 	}
 }
 
@@ -151,6 +153,12 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 // called automatically on each broker event, but can also be
 // invoked directly for testing or one-shot use.
 func (f *Flow) Execute(ctx context.Context, data string) error {
+	// Stepped flows run the ordered, checkpointed step loop.
+	if len(f.opts.Steps) > 0 {
+		_, err := f.startRun(ctx, data)
+		return err
+	}
+
 	start := time.Now()
 
 	prompt := data
