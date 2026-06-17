@@ -40,6 +40,8 @@ guides:
     url: /docs/guides/agent-guardrails.html
   - title: Payments (x402)
     url: /docs/guides/x402-payments.html
+  - title: Agent2Agent (A2A)
+    url: /docs/guides/a2a-protocol.html
   - title: Atlas Cloud Integration
     url: /docs/guides/atlascloud-integration.html
   - title: AI Provider Guide

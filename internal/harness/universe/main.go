@@ -27,8 +27,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -39,6 +42,7 @@ import (
 	"go-micro.dev/v5/broker"
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/flow"
+	"go-micro.dev/v5/gateway/a2a"
 	"go-micro.dev/v5/registry"
 	"go-micro.dev/v5/selector"
 	"go-micro.dev/v5/service"
@@ -169,6 +173,38 @@ func check(cond bool, format string, args ...any) {
 	}
 	fmt.Printf("  \033[31m✗ %s\033[0m\n", fmt.Sprintf(format, args...))
 	failures++
+}
+
+// a2aReachable sends an A2A message/send to the named agent through the
+// gateway and reports whether it came back as a completed task with text.
+func a2aReachable(base, agent string) bool {
+	body := `{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":` +
+		`{"role":"user","kind":"message","messageId":"u1",` +
+		`"parts":[{"kind":"text","text":"notify the buyer"}]}}}`
+	resp, err := http.Post(base+"/agents/"+agent, "application/json", strings.NewReader(body))
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	var out struct {
+		Result struct {
+			Status struct {
+				State string `json:"state"`
+			} `json:"status"`
+			Artifacts []struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"artifacts"`
+		} `json:"result"`
+	}
+	if json.NewDecoder(resp.Body).Decode(&out) != nil {
+		return false
+	}
+	if out.Result.Status.State != "completed" || len(out.Result.Artifacts) == 0 {
+		return false
+	}
+	return len(out.Result.Artifacts[0].Parts) > 0 && out.Result.Artifacts[0].Parts[0].Text != ""
 }
 
 func providerKey(provider string) string {
@@ -329,6 +365,13 @@ func main() {
 	// Flows are discoverable while live.
 	flows, _ := reg.GetService("checkout")
 	check(len(flows) == 1 && flows[0].Metadata["type"] == "flow", "flow registered in the registry as type=flow")
+
+	// 4) The concierge agent is also reachable from outside, over the A2A
+	// protocol — its card is generated from the registry, and a task is
+	// translated to its Agent.Chat RPC.
+	gw := httptest.NewServer(a2a.New(a2a.Options{Registry: reg, Client: cl, BaseURL: "http://gw"}).Handler())
+	defer gw.Close()
+	check(a2aReachable(gw.URL, "concierge"), "concierge agent reachable over the A2A gateway")
 
 	fmt.Println("\n\033[1m> shutting down the universe\033[0m")
 	// defers stop the agent and flow (deregistering them).
