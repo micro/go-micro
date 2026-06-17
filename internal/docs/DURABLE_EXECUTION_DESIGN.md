@@ -142,14 +142,16 @@ The built-in implementation is **store-backed** and on by default, keyed
 in the store:
 
 ```
-flow/{name}/runs/{runID}   →   JSON(Run)
+database "flow", table "{name}", key {runID}   →   JSON(Run)
 ```
 
-The keys are **namespaced by flow name** (`flow/{name}/runs/...`), not a
-single global keyspace, so one flow's runs stay separate from another's.
-`StoreCheckpoint(s, scope)` takes that scope; the flow passes its name by
-default. Because it rides on `store.Store`, the *storage* is also
-pluggable (Postgres, NATS KV, file) with no extra interface.
+Runs are confined to their own **store table** — database `flow`, one
+table per flow name — via `store.Scope`, not a single shared table keyed
+by prefix. `StoreCheckpoint(s, scope)` takes that scope; the flow passes
+its name by default. `store.Scope` injects the database/table per
+operation, so it doesn't mutate or race on the shared store (the way
+`Init(Table(...))` would). Because it rides on `store.Store`, the storage
+is also pluggable (Postgres, NATS KV, file) with no extra interface.
 
 **Retention:** completed runs (success *and* failure) are **kept** by
 default, so you have a durable history of what ran. `Delete` is only

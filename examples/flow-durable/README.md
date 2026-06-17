@@ -53,10 +53,11 @@ f.Resume(ctx, pending[0].ID) // continues from charge to the end
 - **`State`** carries a typed payload (`Set`/`Scan`) plus a `Stage`
   marker — the resume point.
 - **`Checkpoint`** persists each `Run`. The built-in is store-backed and
-  namespaces keys by flow name (`flow/checkout/runs/...`), so one flow's
-  runs don't share a keyspace with another's. Point the default store at
-  Postgres or NATS KV and a run survives a real process restart, or
-  implement the interface to plug in Temporal, Restate, etc.
+  keeps each flow's runs in their own store table (database `flow`, table
+  `checkout`) via `store.Scope`, so one flow's runs don't share a table
+  with another's — or with agent or service state. Point the default
+  store at Postgres or NATS KV and a run survives a real process restart,
+  or implement the interface to plug in Temporal, Restate, etc.
 - A real step would be `flow.Call(service, endpoint)` (an RPC),
   `flow.Dispatch(agent)` (hand off to an agent), or `flow.LLM(prompt)`
   (one model turn). Here they're plain funcs so durability is the only

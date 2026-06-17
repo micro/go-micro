@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"text/template"
 	"time"
 
@@ -94,24 +93,20 @@ type Checkpoint interface {
 }
 
 type storeCheckpoint struct {
-	store  store.Store
-	prefix string // key namespace, e.g. "flow/checkout/runs/"
+	store store.Store
 }
 
-// StoreCheckpoint returns a store-backed Checkpoint whose run keys are
-// namespaced under scope — pass the flow name so each flow's runs are
-// kept apart (keys become "flow/{scope}/runs/{id}") rather than sharing
-// one global keyspace. An empty scope falls back to "flow/runs/"; a nil
-// store uses store.DefaultStore.
+// StoreCheckpoint returns a store-backed Checkpoint that keeps a flow's
+// runs in their own store table — pass the flow name as scope, so one
+// flow's runs never share a table with another's (or with service or
+// agent state). A nil store uses store.DefaultStore.
 func StoreCheckpoint(s store.Store, scope string) Checkpoint {
 	if s == nil {
 		s = store.DefaultStore
 	}
-	prefix := "flow/runs/"
-	if scope != "" {
-		prefix = "flow/" + scope + "/runs/"
-	}
-	return &storeCheckpoint{store: s, prefix: prefix}
+	// Confine runs to the "flow" database, one table per flow name. The
+	// scoped handle injects this per-operation without mutating s.
+	return &storeCheckpoint{store: store.Scope(s, "flow", scope)}
 }
 
 func (c *storeCheckpoint) Save(_ context.Context, run Run) error {
@@ -120,11 +115,11 @@ func (c *storeCheckpoint) Save(_ context.Context, run Run) error {
 	if err != nil {
 		return err
 	}
-	return c.store.Write(&store.Record{Key: c.prefix + run.ID, Value: b})
+	return c.store.Write(&store.Record{Key: run.ID, Value: b})
 }
 
 func (c *storeCheckpoint) Load(_ context.Context, runID string) (Run, bool, error) {
-	recs, err := c.store.Read(c.prefix + runID)
+	recs, err := c.store.Read(runID)
 	if err == store.ErrNotFound || len(recs) == 0 {
 		return Run{}, false, nil
 	}
@@ -139,17 +134,16 @@ func (c *storeCheckpoint) Load(_ context.Context, runID string) (Run, bool, erro
 }
 
 func (c *storeCheckpoint) Delete(_ context.Context, runID string) error {
-	return c.store.Delete(c.prefix + runID)
+	return c.store.Delete(runID)
 }
 
 func (c *storeCheckpoint) List(ctx context.Context) ([]Run, error) {
-	keys, err := c.store.List(store.ListPrefix(c.prefix))
+	keys, err := c.store.List()
 	if err != nil {
 		return nil, err
 	}
 	var runs []Run
-	for _, k := range keys {
-		id := strings.TrimPrefix(k, c.prefix)
+	for _, id := range keys {
 		if run, ok, err := c.Load(ctx, id); err == nil && ok {
 			runs = append(runs, run)
 		}
