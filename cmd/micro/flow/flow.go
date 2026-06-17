@@ -25,6 +25,11 @@ func init() {
 		Description: `Run flows that subscribe to broker events and use an LLM to
 orchestrate service calls in response.
 
+This command runs a single-step flow from flags. For ordered, durable
+multi-step workflows (checkpointed steps that resume after a crash),
+define the flow in code with micro.FlowSteps and a Checkpoint — see
+examples/flow-durable.
+
 Examples:
   # Run a flow that reacts to user creation events
   micro flow run --trigger events.user.created \
