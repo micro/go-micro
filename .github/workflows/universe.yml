@@ -37,6 +37,11 @@ jobs:
   universe-live:
     name: Mini universe (live LLM, if key present)
     runs-on: ubuntu-latest
+    # Only on the daily schedule or a manual run — never automatically on
+    # every push/PR, so changes don't quietly burn API credits. Trigger it
+    # by hand (Actions → Universe → Run workflow) when changing the agent,
+    # flow, or AI internals and you want a real-model check.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
