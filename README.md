@@ -238,6 +238,7 @@ See the [Payments (x402) guide](internal/website/docs/guides/x402-payments.md).
 | Workflows | `micro.NewFlow()` — event-driven; one step, ordered durable steps, or triggers an agent |
 | Durable execution | Checkpointed flow steps survive a crash and resume where they stopped; store-backed by default, pluggable backend |
 | MCP gateway | Every endpoint is an AI tool automatically |
+| A2A gateway | Every agent is reachable over the Agent2Agent protocol; cards generated from the registry (`micro a2a`) |
 | Payments (x402) | Opt-in per-call payments for tools via the x402 standard; pluggable facilitator (Base, Solana, …) |
 | 7 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud |
 | Interactive console | `micro run` includes a chat console for talking to services |
