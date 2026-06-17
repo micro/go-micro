@@ -6,8 +6,10 @@ import (
 	"fmt"
 
 	"github.com/urfave/cli/v2"
+	goagent "go-micro.dev/v5/agent"
 	"go-micro.dev/v5/cmd"
 	"go-micro.dev/v5/registry"
+	"go-micro.dev/v5/store"
 )
 
 func init() {
@@ -72,6 +74,30 @@ func init() {
 					}
 					b, _ := json.MarshalIndent(records[0], "", "  ")
 					fmt.Println(string(b))
+					return nil
+				},
+			},
+			{
+				Name:      "history",
+				Usage:     "Show an agent's stored conversation history",
+				ArgsUsage: "[name]",
+				Action: func(c *cli.Context) error {
+					name := c.Args().First()
+					if name == "" {
+						return fmt.Errorf("usage: micro agent history [name]")
+					}
+					// Read from the agent's scoped state store (database
+					// "agent", table = name) — available whether or not the
+					// agent is currently running.
+					mem := goagent.NewMemory(store.Scope(store.DefaultStore, "agent", name), "history", 1000)
+					msgs := mem.Messages()
+					if len(msgs) == 0 {
+						fmt.Printf("  No history for agent %q.\n", name)
+						return nil
+					}
+					for _, m := range msgs {
+						fmt.Printf("  \033[2m%s:\033[0m %v\n", m.Role, m.Content)
+					}
 					return nil
 				},
 			},

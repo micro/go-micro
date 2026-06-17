@@ -231,10 +231,21 @@ func main() {
 ## CLI
 
 ```bash
-micro agent list                    # list registered agents
+micro agent list                    # list running agents (registry, type=agent)
 micro agent describe task-mgr       # show agent details
+micro agent history task-mgr        # show stored conversation (scoped store)
 micro chat                          # routes to agents automatically
 micro call task-mgr Agent.Chat '{"message": "..."}'  # direct RPC
+```
+
+The split is consistent across services, agents, and flows: **`list`**
+shows what's *running* (from the registry, filtered by type), while
+**`history`/`runs`** show *durable* state from the scoped store —
+available whether or not the component is currently running.
+
+```bash
+micro flow list                     # list running flows (registry, type=flow)
+micro flow runs checkout            # durable run history for a flow (scoped store)
 ```
 
 ## Generation

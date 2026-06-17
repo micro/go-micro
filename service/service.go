@@ -8,11 +8,11 @@ import (
 
 	"go-micro.dev/v5/client"
 	"go-micro.dev/v5/cmd"
+	signalutil "go-micro.dev/v5/internal/util/signal"
 	log "go-micro.dev/v5/logger"
 	"go-micro.dev/v5/model"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
-	signalutil "go-micro.dev/v5/internal/util/signal"
 )
 
 // Service is the interface for a go-micro service.
@@ -88,10 +88,19 @@ func (s *serviceImpl) Init(opts ...Option) {
 			s.opts.Logger.Log(log.FatalLevel, err)
 		}
 
-		// Initialize the store with the service name as table
+		// Scope the service's store to its own table (database "service",
+		// table = service name), consistent with how agents ("agent/{name}")
+		// and flows ("flow/{name}") scope their state. This replaces the
+		// older Init(store.Table(name)) global mutation with a composable
+		// scoped handle: each service gets an isolated handle that works
+		// even when several run in one process. When the service uses the
+		// package default store, bridge it to the same scope so handlers
+		// that reach for store.DefaultStore stay isolated too.
 		name := s.opts.Cmd.App().Name
-		if err := s.opts.Store.Init(store.Table(name)); err != nil {
-			s.opts.Logger.Logf(log.ErrorLevel, "error initializing store: %v", err)
+		wasDefault := s.opts.Store == store.DefaultStore
+		s.opts.Store = store.Scope(s.opts.Store, "service", name)
+		if wasDefault {
+			store.DefaultStore = s.opts.Store
 		}
 	})
 }
@@ -111,7 +120,6 @@ func (s *serviceImpl) Server() server.Server {
 func (s *serviceImpl) Model() model.Model {
 	return s.opts.Model
 }
-
 
 func (s *serviceImpl) String() string {
 	return "micro"
