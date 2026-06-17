@@ -42,7 +42,7 @@ f := micro.NewFlow("checkout",
         micro.FlowStep{Name: "charge",  Run: charge},
         micro.FlowStep{Name: "confirm", Run: confirm},
     ),
-    micro.FlowWithCheckpoint(micro.StoreCheckpoint(nil)), // nil = default store
+    micro.FlowWithCheckpoint(micro.StoreCheckpoint(nil, "checkout")), // nil store = default; "checkout" = key scope
 )
 
 f.Execute(ctx, `{}`)        // runs; crashes at charge
@@ -52,10 +52,11 @@ f.Resume(ctx, pending[0].ID) // continues from charge to the end
 
 - **`State`** carries a typed payload (`Set`/`Scan`) plus a `Stage`
   marker — the resume point.
-- **`Checkpoint`** persists each `Run`. The built-in is store-backed;
-  point the default store at Postgres or NATS KV and a run survives a
-  real process restart. Implement the interface to plug in Temporal,
-  Restate, etc.
+- **`Checkpoint`** persists each `Run`. The built-in is store-backed and
+  namespaces keys by flow name (`flow/checkout/runs/...`), so one flow's
+  runs don't share a keyspace with another's. Point the default store at
+  Postgres or NATS KV and a run survives a real process restart, or
+  implement the interface to plug in Temporal, Restate, etc.
 - A real step would be `flow.Call(service, endpoint)` (an RPC),
   `flow.Dispatch(agent)` (hand off to an agent), or `flow.LLM(prompt)`
   (one model turn). Here they're plain funcs so durability is the only

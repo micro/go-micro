@@ -202,9 +202,12 @@ func FlowLLM(prompt string) FlowStepFunc { return flow.LLM(prompt) }
 // agent over RPC, storing its reply.
 func FlowDispatch(agent string) FlowStepFunc { return flow.Dispatch(agent) }
 
-// StoreCheckpoint returns a store-backed Checkpoint (nil uses the default
-// store).
-func StoreCheckpoint(s store.Store) Checkpoint { return flow.StoreCheckpoint(s) }
+// StoreCheckpoint returns a store-backed Checkpoint whose run keys are
+// namespaced under scope (pass the flow name so each flow's runs stay in
+// their own keyspace). A nil store uses the default store.
+func StoreCheckpoint(s store.Store, scope string) Checkpoint {
+	return flow.StoreCheckpoint(s, scope)
+}
 
 // NewGroup creates a service group for running multiple services
 // in a single binary with shared lifecycle management.

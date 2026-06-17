@@ -142,11 +142,14 @@ The built-in implementation is **store-backed** and on by default, keyed
 in the store:
 
 ```
-flow/{name}/run/{runID}   →   JSON(Run)
+flow/{name}/runs/{runID}   →   JSON(Run)
 ```
 
-Because it rides on `store.Store`, the *storage* is already pluggable
-(Postgres, NATS KV, file) with no extra interface.
+The keys are **namespaced by flow name** (`flow/{name}/runs/...`), not a
+single global keyspace, so one flow's runs stay separate from another's.
+`StoreCheckpoint(s, scope)` takes that scope; the flow passes its name by
+default. Because it rides on `store.Store`, the *storage* is also
+pluggable (Postgres, NATS KV, file) with no extra interface.
 
 **Retention:** completed runs (success *and* failure) are **kept** by
 default, so you have a durable history of what ran. `Delete` is only
@@ -268,7 +271,7 @@ f := flow.New("onboard-user",
         flow.Step{Name: "welcome", Run: flow.Agent("comms")},
     ),
     // Durable by default (store-backed); runs are retained for audit.
-    flow.WithCheckpoint(flow.StoreCheckpoint(service.Options().Store)),
+    flow.WithCheckpoint(flow.StoreCheckpoint(service.Options().Store, "onboard-user")),
 )
 f.Register(reg, broker, client)
 ```

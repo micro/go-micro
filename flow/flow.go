@@ -100,7 +100,7 @@ func New(name string, opts ...Option) *Flow {
 		opts:       o,
 		tmpl:       tmpl,
 		log:        logger.DefaultLogger,
-		checkpoint: defaultCheckpoint(o),
+		checkpoint: defaultCheckpoint(name, o),
 	}
 }
 

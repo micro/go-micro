@@ -75,9 +75,11 @@ func main() {
 			micro.FlowStep{Name: "charge", Run: charge},
 			micro.FlowStep{Name: "confirm", Run: confirm},
 		),
-		// Durable by default; shown explicitly. Point the default store at
-		// Postgres or NATS KV and the run survives a real process restart.
-		micro.FlowWithCheckpoint(micro.StoreCheckpoint(nil)),
+		// Durable by default; shown explicitly. Runs are namespaced under
+		// the flow name ("flow/checkout/runs/..."), so this flow's state
+		// doesn't share a keyspace with other flows. Point the default
+		// store at Postgres or NATS KV to survive a real process restart.
+		micro.FlowWithCheckpoint(micro.StoreCheckpoint(nil, "checkout")),
 	)
 
 	ctx := context.Background()

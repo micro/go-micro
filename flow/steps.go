@@ -93,19 +93,25 @@ type Checkpoint interface {
 	List(ctx context.Context) ([]Run, error)
 }
 
-const runKeyPrefix = "flow/runs/"
-
 type storeCheckpoint struct {
-	store store.Store
+	store  store.Store
+	prefix string // key namespace, e.g. "flow/checkout/runs/"
 }
 
-// StoreCheckpoint returns a store-backed Checkpoint. A nil store uses
-// store.DefaultStore.
-func StoreCheckpoint(s store.Store) Checkpoint {
+// StoreCheckpoint returns a store-backed Checkpoint whose run keys are
+// namespaced under scope — pass the flow name so each flow's runs are
+// kept apart (keys become "flow/{scope}/runs/{id}") rather than sharing
+// one global keyspace. An empty scope falls back to "flow/runs/"; a nil
+// store uses store.DefaultStore.
+func StoreCheckpoint(s store.Store, scope string) Checkpoint {
 	if s == nil {
 		s = store.DefaultStore
 	}
-	return &storeCheckpoint{store: s}
+	prefix := "flow/runs/"
+	if scope != "" {
+		prefix = "flow/" + scope + "/runs/"
+	}
+	return &storeCheckpoint{store: s, prefix: prefix}
 }
 
 func (c *storeCheckpoint) Save(_ context.Context, run Run) error {
@@ -114,11 +120,11 @@ func (c *storeCheckpoint) Save(_ context.Context, run Run) error {
 	if err != nil {
 		return err
 	}
-	return c.store.Write(&store.Record{Key: runKeyPrefix + run.ID, Value: b})
+	return c.store.Write(&store.Record{Key: c.prefix + run.ID, Value: b})
 }
 
 func (c *storeCheckpoint) Load(_ context.Context, runID string) (Run, bool, error) {
-	recs, err := c.store.Read(runKeyPrefix + runID)
+	recs, err := c.store.Read(c.prefix + runID)
 	if err == store.ErrNotFound || len(recs) == 0 {
 		return Run{}, false, nil
 	}
@@ -133,17 +139,17 @@ func (c *storeCheckpoint) Load(_ context.Context, runID string) (Run, bool, erro
 }
 
 func (c *storeCheckpoint) Delete(_ context.Context, runID string) error {
-	return c.store.Delete(runKeyPrefix + runID)
+	return c.store.Delete(c.prefix + runID)
 }
 
 func (c *storeCheckpoint) List(ctx context.Context) ([]Run, error) {
-	keys, err := c.store.List(store.ListPrefix(runKeyPrefix))
+	keys, err := c.store.List(store.ListPrefix(c.prefix))
 	if err != nil {
 		return nil, err
 	}
 	var runs []Run
 	for _, k := range keys {
-		id := strings.TrimPrefix(k, runKeyPrefix)
+		id := strings.TrimPrefix(k, c.prefix)
 		if run, ok, err := c.Load(ctx, id); err == nil && ok {
 			runs = append(runs, run)
 		}
@@ -152,13 +158,15 @@ func (c *storeCheckpoint) List(ctx context.Context) ([]Run, error) {
 }
 
 // defaultCheckpoint returns the configured checkpoint, or a store-backed
-// default when the flow has steps (durable by default).
-func defaultCheckpoint(o Options) Checkpoint {
+// default scoped to the flow name when the flow has steps (durable by
+// default). Scoping by name keeps each flow's runs in their own keyspace
+// rather than a global one.
+func defaultCheckpoint(name string, o Options) Checkpoint {
 	if o.Checkpoint != nil {
 		return o.Checkpoint
 	}
 	if len(o.Steps) > 0 {
-		return StoreCheckpoint(store.DefaultStore)
+		return StoreCheckpoint(store.DefaultStore, name)
 	}
 	return nil
 }

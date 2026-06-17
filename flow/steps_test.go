@@ -23,7 +23,7 @@ func appendStep(name string) Step {
 
 func TestFlowStepsRunInOrder(t *testing.T) {
 	f := New("seq",
-		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore())),
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "seq")),
 		Steps(appendStep("a"), appendStep("b"), appendStep("c")),
 	)
 	if err := f.Execute(context.Background(), ""); err != nil {
@@ -56,7 +56,7 @@ func TestFlowCheckpointResume(t *testing.T) {
 		}},
 	}
 
-	f := New("resumable", WithCheckpoint(StoreCheckpoint(mem)), Steps(steps...))
+	f := New("resumable", WithCheckpoint(StoreCheckpoint(mem, "resumable")), Steps(steps...))
 
 	// First run fails at "flaky".
 	if err := f.Execute(context.Background(), "start"); err == nil {
@@ -98,7 +98,7 @@ func TestFlowStepRetry(t *testing.T) {
 	}}
 
 	f := New("retrying",
-		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore())),
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "retrying")),
 		Retry(2), // up to 3 tries
 		Steps(step),
 	)
@@ -119,7 +119,7 @@ func TestFlowStepRetryOverride(t *testing.T) {
 	}}
 
 	f := New("override",
-		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore())),
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "override")),
 		Retry(5), // would be 6 tries; the step's Retry:1 caps it at 2
 		Steps(step),
 	)
