@@ -43,12 +43,12 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - name: Universe against a live model
+      - name: Universe against a live model (AtlasCloud)
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "No ANTHROPIC_API_KEY secret configured — skipping the live run."
+          if [ -z "$ATLASCLOUD_API_KEY" ]; then
+            echo "No ATLASCLOUD_API_KEY secret configured — skipping the live run."
             exit 0
           fi
-          go run ./internal/harness/universe -provider anthropic
+          go run ./internal/harness/universe -provider atlascloud
