@@ -27,6 +27,12 @@ import (
 	_ "go-micro.dev/v5/ai/together"
 )
 
+// goMicroVersion is the go-micro.dev/v5 release pinned into the go.mod of
+// every scaffolded project. This is the single source of truth — bump it
+// here when cutting a release so generated services and agents stay in
+// sync with the framework.
+const goMicroVersion = "v5.29.0"
+
 const designPrompt = `You are a Go microservices architect using the go-micro framework.
 Given a system description, design the services needed.
 
@@ -346,7 +352,7 @@ func generateStructure(dir string, svc ServiceSpec) error {
 			"GOPATH:=$(shell go env GOPATH)\n\n.PHONY: proto\nproto:\n\tprotoc --proto_path=. --micro_out=. --go_out=. proto/*.proto\n")
 
 		writeFile(filepath.Join(dir, "go.mod"),
-			fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v5 v5.24.0\n", name))
+			fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v5 %s\n", name, goMicroVersion))
 
 		writeFile(filepath.Join(dir, ".gitignore"),
 			fmt.Sprintf("%s\n.micro\n", name))
@@ -626,7 +632,7 @@ func main() {
 `, quoted, prompt))
 
 	writeFile(filepath.Join(agentDir, "go.mod"),
-		fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v5 v5.25.0\n", agentName))
+		fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v5 %s\n", agentName, goMicroVersion))
 
 	runIn(agentDir, "go", "mod", "tidy")
 
