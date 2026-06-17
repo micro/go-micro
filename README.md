@@ -234,6 +234,7 @@ See the [Payments (x402) guide](internal/website/docs/guides/x402-payments.md).
 | Pluggable memory | Durable store-backed conversation memory by default; swap with `AgentMemory` |
 | Custom tools | `AgentTool` — give an agent any function as a tool, beyond its services |
 | Guardrails | `MaxSteps` (stop on count), `LoopLimit` (stop repeated no-progress calls), `ApproveTool` (human-in-the-loop) |
+| Tool middleware | `AgentWrapTool` — wrap tool execution for logging, metrics, or retries (like client/server wrappers) |
 | Workflows | `micro.NewFlow()` — event-driven; runs a step or triggers an agent |
 | MCP gateway | Every endpoint is an AI tool automatically |
 | Payments (x402) | Opt-in per-call payments for tools via the x402 standard; pluggable facilitator (Base, Solana, …) |
