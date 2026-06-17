@@ -82,6 +82,34 @@ curl -s https://agents.example.com/agents/task-mgr \
 
 Retrieve a task later with `tasks/get` (`params: { "id": "…" }`).
 
+## Calling out to other agents
+
+The gateway makes your agents reachable *from* the A2A ecosystem. The
+client (`a2a.Client`) is the other direction: it lets a Go Micro agent or
+flow call an agent on any framework, by URL.
+
+```go
+reply, err := a2a.NewClient("https://other.example.com/agents/research").
+    Send(ctx, "Summarize the latest on X")
+```
+
+It's wired into the two places that hand off work:
+
+- **A flow step** — `flow.A2A(url)` is the cross-framework counterpart to
+  `flow.Dispatch(name)` (which dispatches to a local agent):
+
+  ```go
+  flow.Step{Name: "research", Run: flow.A2A("https://other.example.com/agents/research")}
+  ```
+
+- **Agent delegate** — when an agent's `delegate` target is an `http(s)`
+  URL, the subtask is sent to that external agent over A2A instead of to a
+  locally registered one. Nothing else changes; the model just delegates
+  to a URL.
+
+`Send` handles the task lifecycle: if the remote returns a task that isn't
+yet terminal, it polls `tasks/get` until it completes.
+
 ## Scope
 
 This is the synchronous JSON-RPC binding:
@@ -90,14 +118,15 @@ This is the synchronous JSON-RPC binding:
 - **`tasks/get`** returns a recent task by id.
 - **Agent Card** discovery, generated from the registry.
 
+Both directions work: the gateway exposes your agents, and `a2a.Client` (via `flow.A2A` or `delegate` to a URL) calls external ones.
+
 Not yet supported (advertised as such on the card, so clients negotiate correctly):
 
 - **`message/stream`** (SSE streaming) and `tasks/resubscribe`.
 - Multi-turn `input-required` tasks.
 - Push notifications.
-- Calling *out* to external A2A agents from a Go Micro agent (the client side).
 
-These are the natural follow-ups; the synchronous server side is what makes a Go Micro agent reachable from the A2A ecosystem today.
+These are the natural follow-ups; the synchronous binding is what makes a Go Micro agent both reachable from, and able to reach, the A2A ecosystem today.
 
 ## See also
 

@@ -245,6 +245,8 @@ micro a2a serve --address :4000    # expose registered agents over A2A
 micro a2a list                     # agents and their Agent Card URLs
 ```
 
+It works both ways. To call an agent on another framework, an `a2a.Client` is wired into the two places that hand off work: `flow.A2A(url)` as a workflow step (the cross-framework `Dispatch`), and `delegate` to an `http(s)` URL from inside an agent.
+
 MCP exposes your services as tools; A2A exposes your agents as agents. See the [A2A guide](internal/website/docs/guides/a2a-protocol.md).
 
 ## Features
