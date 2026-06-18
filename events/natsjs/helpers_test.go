@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	nserver "github.com/nats-io/nats-server/v2/server"
-	"github.com/test-go/testify/require"
 )
 
 func getFreeLocalhostAddress() string {
@@ -21,11 +21,11 @@ func getFreeLocalhostAddress() string {
 func natsServer(ctx context.Context, t *testing.T, opts *nserver.Options) {
 	t.Helper()
 
-	server, err := nserver.NewServer(
-		opts,
-	)
-	require.NoError(t, err)
+	// Report errors with Errorf (not Fatalf/require), which are safe to
+	// call from this non-test goroutine; Fatalf/FailNow are not.
+	server, err := nserver.NewServer(opts)
 	if err != nil {
+		t.Errorf("nats: new server: %v", err)
 		return
 	}
 
@@ -36,24 +36,33 @@ func natsServer(ctx context.Context, t *testing.T, opts *nserver.Options) {
 
 	// first start NATS
 	go server.Start()
-	ready := server.ReadyForConnections(time.Second * 10)
-	if !ready {
-		t.Fatalf("NATS server not ready")
-	}
-	jsConf := &nserver.JetStreamConfig{
-		StoreDir: filepath.Join(t.TempDir(), "nats-js"),
+	if !server.ReadyForConnections(time.Second * 10) {
+		t.Errorf("NATS server not ready")
+		return
 	}
 
-	// second start JetStream
-	err = server.EnableJetStream(jsConf)
-	require.NoError(t, err)
+	// Manage the JetStream store dir ourselves rather than via t.TempDir.
+	// t.TempDir registers a RemoveAll that runs when the test ends, which
+	// races this goroutine's shutdown — the server can still be releasing
+	// JetStream files, leaving the dir non-empty ("directory not empty").
+	// Remove it here instead, only after the server has fully stopped.
+	storeDir, err := os.MkdirTemp("", "nats-js")
 	if err != nil {
+		t.Errorf("nats: temp dir: %v", err)
+		return
+	}
+	defer os.RemoveAll(storeDir)
+
+	// second start JetStream
+	if err := server.EnableJetStream(&nserver.JetStreamConfig{StoreDir: filepath.Join(storeDir, "nats-js")}); err != nil {
+		t.Errorf("nats: enable jetstream: %v", err)
 		return
 	}
 
 	<-ctx.Done()
 
 	server.Shutdown()
+	server.WaitForShutdown()
 }
 
 func NewLogWrapper() *LogWrapper {
