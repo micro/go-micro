@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Go Micro - A framework for building services and agents in Go." />
+    <meta name="description" content="Go Micro - An AI-native framework for building agents, services, and flows in Go." />
     <meta name="go-import" content="go-micro.dev/v5 git https://github.com/micro/go-micro">
     <meta name="go-source" content="go-micro.dev/5 https://github.com/micro/go-micro https://github.com/micro/go-micro/tree/master{/dir} https://github.com/micro/go-micro/blob/master{/dir}/{file}#L{line}">
-    <title>Go Micro - Build Services and Agents in Go</title>
+    <title>Go Micro - Build Agents and Services in Go</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html { overflow-x: hidden; }
@@ -174,8 +174,8 @@
 
     <section class="hero">
       <div class="hero-inner">
-        <h1>Build Services and Agents in Go</h1>
-        <p class="tagline">A framework for microservices that AI agents can discover, use, and manage.</p>
+        <h1>Build Agents and Services in Go</h1>
+        <p class="tagline">An AI-native framework for agents, services, and flows. Every service is an MCP tool; every agent speaks A2A.</p>
         <pre>curl -fsSL https://go-micro.dev/install.sh | sh</pre>
         <div class="hero-buttons">
           <a href="/docs/getting-started.html" class="btn btn-primary">Get Started</a>
@@ -194,28 +194,28 @@
         <p class="subtitle">AI generation and orchestration on top of a production microservices framework.</p>
         <div class="features">
           <div class="feature">
+            <strong>Agents</strong>
+            <p>A model, memory, and tools that manage your services. Plan, delegate, guardrails — built in, no harness.</p>
+          </div>
+          <div class="feature">
             <strong>Services</strong>
             <p>Build services in Go or generate them from a prompt. They register and discover each other automatically.</p>
           </div>
           <div class="feature">
-            <strong>Agents</strong>
-            <p>Intelligent layer that manages services with scoped tools, memory, and domain knowledge.</p>
-          </div>
-          <div class="feature">
             <strong>Flows</strong>
-            <p>Event-driven LLM orchestration. Subscribe to events and let an AI decide what to do.</p>
-          </div>
-          <div class="feature">
-            <strong>Generate</strong>
-            <p><code>micro run --prompt</code> designs services and an agent, then starts everything.</p>
+            <p>Event-driven, durable workflows. Ordered steps that checkpoint and resume after a crash.</p>
           </div>
           <div class="feature">
             <strong>MCP Gateway</strong>
-            <p>Every endpoint is automatically an AI-callable tool via Model Context Protocol.</p>
+            <p>Every service endpoint is automatically an AI-callable tool via the Model Context Protocol.</p>
+          </div>
+          <div class="feature">
+            <strong>A2A Gateway</strong>
+            <p>Every agent is reachable over the Agent2Agent protocol — discovered and called by agents on any framework.</p>
           </div>
           <div class="feature">
             <strong>Pluggable Everything</strong>
-            <p>All abstractions are Go interfaces. Swap any component without changing service code.</p>
+            <p>All abstractions are Go interfaces. Swap any component without changing your code.</p>
           </div>
         </div>
       </div>
