@@ -16,11 +16,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 
 	pb "go-micro.dev/v5/agent/proto"
 	"go-micro.dev/v5/ai"
+	"go-micro.dev/v5/gateway/a2a"
 	"go-micro.dev/v5/server"
 	"go-micro.dev/v5/store"
 
@@ -241,6 +243,25 @@ func (a *agentImpl) Run() error {
 	}
 
 	fmt.Printf("Agent %s registered (manages: %s)\n", a.opts.Name, strings.Join(a.opts.Services, ", "))
+
+	// Optionally serve the agent directly over the A2A protocol, calling
+	// Ask in-process — no separate gateway needed to be queried by URL.
+	if a.opts.A2AAddress != "" {
+		card := a2a.Card(a.opts.Name, "http://localhost"+a.opts.A2AAddress, "", a.opts.Services)
+		handler := a2a.NewAgentHandler(card, func(ctx context.Context, text string) (string, error) {
+			resp, err := a.Ask(ctx, text)
+			if err != nil {
+				return "", err
+			}
+			return resp.Reply, nil
+		})
+		go func() {
+			if err := http.ListenAndServe(a.opts.A2AAddress, handler); err != nil {
+				fmt.Printf("agent %s A2A server: %v\n", a.opts.Name, err)
+			}
+		}()
+		fmt.Printf("Agent %s serving A2A on %s\n", a.opts.Name, a.opts.A2AAddress)
+	}
 
 	ch := make(chan struct{})
 	<-ch

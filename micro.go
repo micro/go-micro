@@ -123,6 +123,11 @@ func AgentTool(name, description string, properties map[string]any, handler Tool
 	return agent.WithTool(name, description, properties, handler)
 }
 
+// AgentA2A makes the agent serve the A2A protocol on addr (e.g. ":4000")
+// when it runs, so other agents can reach it directly by URL without a
+// separate gateway.
+func AgentA2A(addr string) AgentOption { return agent.WithA2A(addr) }
+
 // AgentWrapTool registers a tool-execution wrapper — the tool-side
 // analogue of a client/server middleware wrapper. Each wrapper takes the
 // next handler and returns a new one; run code before next(...) for

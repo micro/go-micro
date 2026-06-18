@@ -15,7 +15,7 @@ micro a2a serve --address :4000 --base_url https://agents.example.com
 micro a2a list     # agents and their Agent Card URLs
 ```
 
-Or embed it next to a service:
+Or embed the gateway next to a service:
 
 ```go
 go a2a.Serve(a2a.Options{
@@ -24,6 +24,26 @@ go a2a.Serve(a2a.Options{
     BaseURL:  "https://agents.example.com",
 })
 ```
+
+## Gateway, or directly on the agent
+
+A2A is JSON-RPC over HTTP — a different wire protocol from go-micro's RPC — so *something* always translates between the two. That something doesn't have to be a separate process. There are two ways to run it:
+
+- **A gateway** (above) fronts every agent in the registry behind one endpoint. Use it for a single front door, centralized discovery, and shared policy.
+- **Directly on the agent.** `AgentA2A(addr)` makes the agent serve its own A2A endpoint when it runs — no separate gateway, and the task is handled in-process (no extra RPC hop):
+
+  ```go
+  agent := micro.NewAgent("task-mgr",
+      micro.AgentServices("task"),
+      micro.AgentProvider("anthropic"),
+      micro.AgentA2A(":4000"),   // also reachable at http://host:4000 over A2A
+  )
+  agent.Run()
+  ```
+
+  The agent stays a normal go-micro service; this adds a second, A2A-native HTTP endpoint. Now any A2A client can `curl` it directly. Use it when each agent should be independently addressable without a gateway.
+
+Both reuse the same handler; the only difference is whether the agent is reached over RPC (gateway) or in-process (embedded).
 
 ## Discovery: cards from the registry
 

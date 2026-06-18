@@ -241,8 +241,14 @@ See the [Payments (x402) guide](internal/website/docs/guides/x402-payments.md).
 Within a Go Micro system, agents reach each other over RPC. To make them reachable by agents on *other* frameworks, Go Micro speaks the [Agent2Agent (A2A) protocol](https://a2a-protocol.org). The A2A gateway discovers your agents from the registry, generates an Agent Card for each from its metadata — the same way the MCP gateway derives tools from service endpoints — and translates incoming A2A tasks to the agent's `Agent.Chat` RPC. No per-agent code: register an agent and it's reachable over A2A.
 
 ```bash
-micro a2a serve --address :4000    # expose registered agents over A2A
+micro a2a serve --address :4000    # gateway: expose every registered agent over A2A
 micro a2a list                     # agents and their Agent Card URLs
+```
+
+Or skip the gateway entirely — an agent can serve its own A2A endpoint directly, handling tasks in-process:
+
+```go
+micro.NewAgent("task-mgr", micro.AgentServices("task"), micro.AgentA2A(":4000"))
 ```
 
 It works both ways. To call an agent on another framework, an `a2a.Client` is wired into the two places that hand off work: `flow.A2A(url)` as a workflow step (the cross-framework `Dispatch`), and `delegate` to an `http(s)` URL from inside an agent.
