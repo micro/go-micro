@@ -2,7 +2,7 @@
 //
 // Usage:
 //
-//	import _ "go-micro.dev/v5/ai/gemini"
+//	import _ "go-micro.dev/v6/ai/gemini"
 //
 //	m := ai.New("gemini",
 //	    ai.WithAPIKey("your-api-key"),
@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"strings"
 
-	"go-micro.dev/v5/ai"
+	"go-micro.dev/v6/ai"
 )
 
 func init() {

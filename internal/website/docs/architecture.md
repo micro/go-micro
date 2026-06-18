@@ -61,7 +61,7 @@ Here's a minimal Go Micro service demonstrating the architecture:
 package main
 
 import (
-    "go-micro.dev/v5"
+    "go-micro.dev/v6"
     "log"
 )
 

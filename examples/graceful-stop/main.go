@@ -7,12 +7,12 @@ import (
 	"net"
 	"time"
 
-	micro "go-micro.dev/v5"
-	"go-micro.dev/v5/client"
-	grpcclient "go-micro.dev/v5/client/grpc"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/server"
-	grpcserver "go-micro.dev/v5/server/grpc"
+	micro "go-micro.dev/v6"
+	"go-micro.dev/v6/client"
+	grpcclient "go-micro.dev/v6/client/grpc"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/server"
+	grpcserver "go-micro.dev/v6/server/grpc"
 )
 
 type SleepRequest struct {
@@ -57,7 +57,7 @@ func main() {
 	reg := registry.NewMemoryRegistry()
 	handler := &Sleeper{started: make(chan struct{}, 1)}
 
-	service := micro.New("grace-demo",
+	service := micro.NewService("grace-demo",
 		micro.HandleSignal(false),
 		micro.Registry(reg),
 		micro.Server(grpcserver.NewServer(

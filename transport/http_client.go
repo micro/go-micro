@@ -12,8 +12,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	log "go-micro.dev/v5/logger"
-	"go-micro.dev/v5/internal/util/buf"
+	log "go-micro.dev/v6/logger"
+	"go-micro.dev/v6/internal/util/buf"
 )
 
 type httpTransportClient struct {

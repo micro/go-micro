@@ -11,11 +11,11 @@ import (
 	"syscall"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5/broker"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/cmd"
-	aiflow "go-micro.dev/v5/flow"
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/cmd"
+	aiflow "go-micro.dev/v6/flow"
+	"go-micro.dev/v6/registry"
 )
 
 func init() {

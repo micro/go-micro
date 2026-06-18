@@ -5,7 +5,7 @@
 Service = capability. Agent = intelligence. An agent IS a service — it has a real RPC server, a proto-defined `Agent.Chat` endpoint, and registers in the registry like everything else.
 
 ```
-micro.New("task")           // creates a service
+micro.NewService("task")           // creates a service
 micro.NewAgent("task-mgr")  // creates an agent (which is also a service)
 ```
 
@@ -225,7 +225,7 @@ resp, _ := agent.Ask(ctx, "What tickets are open?")
 
 ```go
 func main() {
-    svc := micro.New("task")
+    svc := micro.NewService("task")
     svc.Handle(new(TaskHandler))
 
     agent := micro.NewAgent("task-mgr",

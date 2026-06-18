@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	pb "go-micro.dev/v5/agent/proto"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/selector"
-	"go-micro.dev/v5/server"
+	pb "go-micro.dev/v6/agent/proto"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/selector"
+	"go-micro.dev/v6/server"
 )
 
 // echoAgent is a stub that implements the Agent proto handler — enough to

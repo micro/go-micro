@@ -10,10 +10,10 @@ Payments are **opt-in** and **dependency-light**. Go Micro carries no chain or c
 
 ## The wrapper
 
-The core is HTTP middleware in `go-micro.dev/v5/wrapper/x402`:
+The core is HTTP middleware in `go-micro.dev/v6/wrapper/x402`:
 
 ```go
-import "go-micro.dev/v5/wrapper/x402"
+import "go-micro.dev/v6/wrapper/x402"
 
 pay := x402.Middleware(x402.Config{
     PayTo:          "0xYourAddress",            // where payments go (required)

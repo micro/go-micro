@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5/cmd"
-	"go-micro.dev/v5/gateway/a2a"
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/cmd"
+	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/registry"
 )
 
 func init() {

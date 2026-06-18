@@ -14,25 +14,25 @@ func TestConfig(t *testing.T) {
 		description  string
 	}{
 		{
-			name:         "default_insecure_for_backward_compatibility",
+			name:         "secure_by_default",
 			envVar:       "",
 			envValue:     "",
-			wantInsecure: true,
-			description:  "Default should remain insecure for backward compatibility (will change in v6)",
-		},
-		{
-			name:         "secure_mode_enabled",
-			envVar:       "MICRO_TLS_SECURE",
-			envValue:     "true",
 			wantInsecure: false,
-			description:  "MICRO_TLS_SECURE=true should enable certificate verification",
+			description:  "v6: certificate verification is on by default",
 		},
 		{
-			name:         "secure_mode_disabled",
-			envVar:       "MICRO_TLS_SECURE",
-			envValue:     "false",
+			name:         "insecure_opt_out",
+			envVar:       "MICRO_TLS_INSECURE",
+			envValue:     "true",
 			wantInsecure: true,
-			description:  "MICRO_TLS_SECURE=false should remain insecure",
+			description:  "MICRO_TLS_INSECURE=true skips verification (dev/self-signed)",
+		},
+		{
+			name:         "insecure_disabled_stays_secure",
+			envVar:       "MICRO_TLS_INSECURE",
+			envValue:     "false",
+			wantInsecure: false,
+			description:  "MICRO_TLS_INSECURE=false stays secure",
 		},
 	}
 

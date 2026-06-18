@@ -95,7 +95,7 @@ go-micro supports multiple transports:
 Choose based on your deployment:
 
 ```go
-import "go-micro.dev/v5/server/grpc"
+import "go-micro.dev/v6/server/grpc"
 
 // Use gRPC for better performance
 service := micro.NewService(
@@ -118,13 +118,13 @@ go-micro supports multiple codecs:
 
 ```go
 // Protobuf (fastest, binary)
-import "go-micro.dev/v5/codec/proto"
+import "go-micro.dev/v6/codec/proto"
 
 // JSON (human-readable, slower)  
-import "go-micro.dev/v5/codec/json"
+import "go-micro.dev/v6/codec/json"
 
 // MessagePack (compact, fast)
-import "go-micro.dev/v5/codec/msgpack"
+import "go-micro.dev/v6/codec/msgpack"
 ```
 
 Protobuf is 2-5x faster than JSON for most payloads.

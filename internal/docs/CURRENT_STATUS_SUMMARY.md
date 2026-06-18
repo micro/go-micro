@@ -193,7 +193,7 @@ Platform showcase example mirroring micro/blog with Users, Posts, Comments, Mail
 - **Migration Guide** - "Add MCP to Existing Services" — 3 approaches from one-liner to standalone gateway
 - **Troubleshooting Guide** - Common issues: agent can't find tools, WebSocket drops, Claude Code config, auth errors
 - **Error Handling Guide** - Patterns for writing services that give agents actionable error messages
-- **DX Cleanup** - Unified `micro.New("name")` API, `service.Handle()`, `micro.NewGroup()` for modular monoliths
+- **DX Cleanup** - Unified `micro.NewService("name")` API, `service.Handle()`, `micro.NewGroup()` for modular monoliths
 - **Multi-Service Binaries** - Run multiple services in a single binary with isolated state per service and shared lifecycle via `service.Group`. Modular monolith pattern: start together, split later.
 - **Documentation Guides** - Six guides complete: AI-native services, MCP security, tool descriptions, agent patterns, error handling, troubleshooting
 - **WithMCP Convenience Option** - One-line MCP setup: `mcp.WithMCP(":3000")`

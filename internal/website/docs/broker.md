@@ -16,11 +16,11 @@ The broker provides pub/sub messaging for Go Micro services.
 ## Implementations
 Supported brokers include:
 - HTTP (default)
-- NATS (`go-micro.dev/v5/broker/nats`)
-- RabbitMQ (`go-micro.dev/v5/broker/rabbitmq`)
-- Memory (`go-micro.dev/v5/broker/memory`)
+- NATS (`go-micro.dev/v6/broker/nats`)
+- RabbitMQ (`go-micro.dev/v6/broker/rabbitmq`)
+- Memory (`go-micro.dev/v6/broker/memory`)
 
-Plugins are scoped under `go-micro.dev/v5/broker/<plugin>`.
+Plugins are scoped under `go-micro.dev/v6/broker/<plugin>`.
 
 Configure the broker in code or via environment variables.
 
@@ -32,8 +32,8 @@ Here's how to use the broker in your Go Micro service:
 package main
 
 import (
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/broker"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/broker"
     "log"
 )
 
@@ -67,8 +67,8 @@ func main() {
 NATS:
 ```go
 import (
-    "go-micro.dev/v5"
-    bnats "go-micro.dev/v5/broker/nats"
+    "go-micro.dev/v6"
+    bnats "go-micro.dev/v6/broker/nats"
 )
 
 func main() {
@@ -82,8 +82,8 @@ func main() {
 RabbitMQ:
 ```go
 import (
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/broker/rabbitmq"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/broker/rabbitmq"
 )
 
 func main() {

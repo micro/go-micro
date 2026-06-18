@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"go-micro.dev/v5/broker"
-	"go-micro.dev/v5/codec"
-	"go-micro.dev/v5/logger"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/selector"
-	"go-micro.dev/v5/transport"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/codec"
+	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/selector"
+	"go-micro.dev/v6/transport"
 )
 
 var (

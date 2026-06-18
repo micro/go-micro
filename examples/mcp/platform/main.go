@@ -35,9 +35,9 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
-	"go-micro.dev/v5/server"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/server"
 )
 
 // ---------------------------------------------------------------------------
@@ -687,7 +687,7 @@ func (s *Mail) Read(ctx context.Context, req *ReadMailRequest, rsp *ReadMailResp
 // ---------------------------------------------------------------------------
 
 func main() {
-	service := micro.New("platform",
+	service := micro.NewService("platform",
 		micro.Address(":9090"),
 		mcp.WithMCP(":3001"),
 	)

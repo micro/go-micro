@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
-	"go-micro.dev/v5/server"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/server"
 )
 
 // ---------------------------------------------------------------------------
@@ -346,7 +346,7 @@ func hasSkill(skills []string, target string) bool {
 
 func main() {
 	// Create the service
-	service := micro.New("demo",
+	service := micro.NewService("demo",
 		micro.Address(":9090"),
 		// Start MCP gateway alongside the service
 		mcp.WithMCP(":3000"),

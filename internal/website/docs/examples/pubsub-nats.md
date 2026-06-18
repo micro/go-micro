@@ -13,9 +13,9 @@ package main
 
 import (
     "log"
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/broker"
-    bnats "go-micro.dev/v5/broker/nats"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/broker"
+    bnats "go-micro.dev/v6/broker/nats"
 )
 
 func main() {

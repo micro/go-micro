@@ -12,7 +12,7 @@ When AI agents call your services through MCP, they need to understand errors we
 Go Micro's `errors` package provides structured errors that the MCP gateway forwards to agents with status codes and detail messages.
 
 ```go
-import "go-micro.dev/v5/errors"
+import "go-micro.dev/v6/errors"
 
 func (s *Users) Get(ctx context.Context, req *GetRequest, rsp *GetResponse) error {
     if req.ID == "" {

@@ -51,7 +51,7 @@ import (
     "net/http"
     "strings"
 
-    "go-micro.dev/v5/ai"
+    "go-micro.dev/v6/ai"
 )
 
 func init() {
@@ -213,7 +213,7 @@ import (
     "context"
     "testing"
 
-    "go-micro.dev/v5/ai"
+    "go-micro.dev/v6/ai"
 )
 
 func TestProvider_String(t *testing.T) {
@@ -273,7 +273,7 @@ The `init()` function in your package calls `ai.Register`. Users enable
 your provider with a blank import:
 
 ```go
-import _ "go-micro.dev/v5/ai/yourprovider"
+import _ "go-micro.dev/v6/ai/yourprovider"
 ```
 
 Then use it:
@@ -323,13 +323,13 @@ Before submitting your PR:
 - [ ] `go vet ./ai/yourprovider/...` is clean
 - [ ] Provider added to `ai/README.md` under "Supported Providers"
 - [ ] Provider added to project README.md under "Supported AI Providers"
-- [ ] No new dependencies beyond `go-micro.dev/v5/ai` and stdlib (use
+- [ ] No new dependencies beyond `go-micro.dev/v6/ai` and stdlib (use
       `net/http` directly rather than an SDK)
 
 ## Design Notes
 
 **Why `net/http` instead of an SDK?** Keeping providers dependency-free
-means `go get go-micro.dev/v5` never pulls in heavy SDK trees. All
+means `go get go-micro.dev/v6` never pulls in heavy SDK trees. All
 existing providers (Anthropic, OpenAI) use raw HTTP for the same reason.
 
 **OpenAI-compatible APIs.** Many providers (Together, Groq, Fireworks,

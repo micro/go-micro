@@ -31,7 +31,7 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/registry"
 )
 
 // Status represents the health status of a check or the overall system

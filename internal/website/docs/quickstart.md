@@ -5,7 +5,7 @@ Get up and running with go-micro in under 5 minutes.
 ## Install
 
 ```bash
-go install go-micro.dev/v5/cmd/micro@v5.27.0
+go install go-micro.dev/v6/cmd/micro@latest
 ```
 
 > **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
@@ -33,7 +33,7 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
 
 - **[Full Tutorial](getting-started.html)** - In-depth guide
 - **[Examples](examples/)** - Learn by example
-- **[API Reference](https://pkg.go.dev/go-micro.dev/v5)** - Complete API docs
+- **[API Reference](https://pkg.go.dev/go-micro.dev/v6)** - Complete API docs
 - **[Deployment](deployment.html)** - Deploy to production
 
 ## Common Patterns
@@ -42,7 +42,7 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
 ```go
 package main
 
-import "go-micro.dev/v5"
+import "go-micro.dev/v6"
 
 type Greeter struct{}
 
@@ -52,7 +52,7 @@ func (g *Greeter) Hello(ctx context.Context, req *Request, rsp *Response) error 
 }
 
 func main() {
-    service := micro.New("greeter")
+    service := micro.NewService("greeter")
     service.Handle(new(Greeter))
     service.Run()
 }
@@ -60,10 +60,10 @@ func main() {
 
 ### Pub/Sub Event Handler
 ```go
-import "go-micro.dev/v5"
+import "go-micro.dev/v6"
 
 func main() {
-    service := micro.New("subscriber")
+    service := micro.NewService("subscriber")
     
     // Subscribe to events
     micro.RegisterSubscriber("user.created", service.Server(), 

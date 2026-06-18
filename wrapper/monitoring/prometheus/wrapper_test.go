@@ -7,10 +7,10 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/codec"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/server"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/codec"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/server"
 )
 
 // mockServerRequest is a minimal implementation of server.Request.

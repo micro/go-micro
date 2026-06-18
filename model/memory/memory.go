@@ -3,7 +3,7 @@
 package memory
 
 import (
-	"go-micro.dev/v5/model"
+	"go-micro.dev/v6/model"
 )
 
 // New creates a new in-memory model.

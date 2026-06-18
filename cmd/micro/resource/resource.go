@@ -21,7 +21,7 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5/cmd"
+	"go-micro.dev/v6/cmd"
 )
 
 // commandFunc returns a cli.Command for a single core interface. Add a

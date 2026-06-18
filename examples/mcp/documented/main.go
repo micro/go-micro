@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"log"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
-	"go-micro.dev/v5/server"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/server"
 )
 
 // User represents a user in the system
@@ -90,7 +90,7 @@ func (u *Users) CreateUser(ctx context.Context, req *CreateUserRequest, rsp *Cre
 
 func main() {
 	// Create service
-	service := micro.New("users",
+	service := micro.NewService("users",
 		micro.Address(":9090"),
 		// Start MCP gateway alongside the service
 		mcp.WithMCP(":3000"),

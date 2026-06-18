@@ -32,8 +32,8 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/ai"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/ai"
 )
 
 // ---------------------------------------------------------------------------
@@ -161,7 +161,7 @@ func main() {
 	}
 	fmt.Printf("Using provider %q\n", provider)
 
-	weather := micro.New("weather")
+	weather := micro.NewService("weather")
 	weather.Handle(new(WeatherService))
 	go weather.Run()
 

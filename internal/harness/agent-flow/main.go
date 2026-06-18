@@ -22,15 +22,15 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5/agent"
-	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/broker"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/flow"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/selector"
-	"go-micro.dev/v5/service"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/agent"
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/selector"
+	"go-micro.dev/v6/service"
+	"go-micro.dev/v6/store"
 )
 
 // ---------------------------------------------------------------------------

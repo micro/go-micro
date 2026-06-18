@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/server"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/server"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )

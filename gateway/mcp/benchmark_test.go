@@ -9,9 +9,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/registry"
 )
 
 // benchServer creates a Server with N pre-populated tools.

@@ -7,13 +7,13 @@ import (
 	"{{.Dir}}/handler"
 	pb "{{.Dir}}/proto"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
 )
 
 func main() {
 	// Create service
-	service := micro.New("{{lower .Alias}}",
+	service := micro.NewService("{{lower .Alias}}",
 		mcp.WithMCP(":3001"),
 	)
 
@@ -34,12 +34,12 @@ import (
 	"{{.Dir}}/handler"
 	pb "{{.Dir}}/proto"
 
-	"go-micro.dev/v5"
+	"go-micro.dev/v6"
 )
 
 func main() {
 	// Create service
-	service := micro.New("{{lower .Alias}}")
+	service := micro.NewService("{{lower .Alias}}")
 
 	// Initialize service
 	service.Init()

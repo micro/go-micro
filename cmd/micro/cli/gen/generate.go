@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5/cmd"
+	"go-micro.dev/v6/cmd"
 )
 
 var handlerTemplate = `package handler
@@ -17,7 +17,7 @@ var handlerTemplate = `package handler
 import (
 	"context"
 
-	log "go-micro.dev/v5/logger"
+	log "go-micro.dev/v6/logger"
 )
 
 type {{.Name}} struct{}
@@ -43,7 +43,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	log "go-micro.dev/v5/logger"
+	log "go-micro.dev/v6/logger"
 )
 
 // {{.Name}}Request is the request for {{.Name}}

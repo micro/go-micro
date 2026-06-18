@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"go-micro.dev/v5"
+	"go-micro.dev/v6"
 )
 
 // Request and Response types
@@ -29,7 +29,7 @@ func (g *Greeter) Hello(ctx context.Context, req *Request, rsp *Response) error 
 
 func main() {
 	// Create a new service
-	service := micro.New("greeter", micro.Address(":8080"))
+	service := micro.NewService("greeter", micro.Address(":8080"))
 
 	// Initialize the service
 	service.Init()

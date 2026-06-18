@@ -23,8 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/ai"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/ai"
 )
 
 // ---------------------------------------------------------------------------
@@ -237,11 +237,11 @@ func main() {
 	fmt.Print("Real services, registry, RPC, agent loop, store, delegation.\n\n")
 
 	// Real services.
-	task := micro.New("task")
+	task := micro.NewService("task")
 	task.Handle(new(TaskService))
 	go task.Run()
 
-	notify := micro.New("notify")
+	notify := micro.NewService("notify")
 	notify.Handle(new(NotifyService))
 	go notify.Run()
 

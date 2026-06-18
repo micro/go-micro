@@ -334,8 +334,8 @@ package main
 import (
     "context"
     "log"
-    "go-micro.dev/v5/cmd/micro/server"
-    "go-micro.dev/v5/store"
+    "go-micro.dev/v6/cmd/micro/server"
+    "go-micro.dev/v6/store"
 )
 
 func main() {

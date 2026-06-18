@@ -5,7 +5,7 @@
 //
 // Usage:
 //
-//	import _ "go-micro.dev/v5/ai/together"
+//	import _ "go-micro.dev/v6/ai/together"
 //
 //	m := ai.New("together",
 //	    ai.WithAPIKey("your-api-key"),
@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"strings"
 
-	"go-micro.dev/v5/ai"
+	"go-micro.dev/v6/ai"
 )
 
 func init() {

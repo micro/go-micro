@@ -7,12 +7,12 @@ layout: default
 Plugins are scoped under each interface directory within this repository. To use a plugin, import it directly from the corresponding interface subpackage and pass it to your service via options.
 
 Common interfaces and locations:
-- Registry: `go-micro.dev/v5/registry/*` (e.g. `consul`, `etcd`, `nats`, `mdns`)
-- Broker: `go-micro.dev/v5/broker/*` (e.g. `nats`, `rabbitmq`, `http`, `memory`)
-- Transport: `go-micro.dev/v5/transport/*` (e.g. `nats`, default `http`)
-- Server: `go-micro.dev/v5/server/*` (e.g. `grpc` for native gRPC compatibility)
-- Client: `go-micro.dev/v5/client/*` (e.g. `grpc` for native gRPC compatibility)
-- Store: `go-micro.dev/v5/store/*` (e.g. `postgres`, `mysql`, `nats-js-kv`, `memory`)
+- Registry: `go-micro.dev/v6/registry/*` (e.g. `consul`, `etcd`, `nats`, `mdns`)
+- Broker: `go-micro.dev/v6/broker/*` (e.g. `nats`, `rabbitmq`, `http`, `memory`)
+- Transport: `go-micro.dev/v6/transport/*` (e.g. `nats`, default `http`)
+- Server: `go-micro.dev/v6/server/*` (e.g. `grpc` for native gRPC compatibility)
+- Client: `go-micro.dev/v6/client/*` (e.g. `grpc` for native gRPC compatibility)
+- Store: `go-micro.dev/v6/store/*` (e.g. `postgres`, `mysql`, `nats-js-kv`, `memory`)
 - Auth, Cache, etc. follow the same pattern under their respective directories.
 
 ## Registry Examples
@@ -20,8 +20,8 @@ Common interfaces and locations:
 Consul:
 ```go
 import (
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/registry/consul"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/registry/consul"
 )
 
 func main() {
@@ -37,8 +37,8 @@ func main() {
 Etcd:
 ```go
 import (
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/registry/etcd"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/registry/etcd"
 )
 
 func main() {
@@ -54,8 +54,8 @@ func main() {
 NATS:
 ```go
 import (
-    "go-micro.dev/v5"
-    bnats "go-micro.dev/v5/broker/nats"
+    "go-micro.dev/v6"
+    bnats "go-micro.dev/v6/broker/nats"
 )
 
 func main() {
@@ -69,8 +69,8 @@ func main() {
 RabbitMQ:
 ```go
 import (
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/broker/rabbitmq"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/broker/rabbitmq"
 )
 
 func main() {
@@ -84,8 +84,8 @@ func main() {
 ## Transport Example (NATS)
 ```go
 import (
-    "go-micro.dev/v5"
-    tnats "go-micro.dev/v5/transport/nats"
+    "go-micro.dev/v6"
+    tnats "go-micro.dev/v6/transport/nats"
 )
 
 func main() {
@@ -102,9 +102,9 @@ For native gRPC compatibility (required for `grpcurl`, polyglot gRPC clients, et
 
 ```go
 import (
-    "go-micro.dev/v5"
-    grpcServer "go-micro.dev/v5/server/grpc"
-    grpcClient "go-micro.dev/v5/client/grpc"
+    "go-micro.dev/v6"
+    grpcServer "go-micro.dev/v6/server/grpc"
+    grpcClient "go-micro.dev/v6/client/grpc"
 )
 
 func main() {
@@ -124,8 +124,8 @@ See [Native gRPC Compatibility](guides/grpc-compatibility.html) for a complete g
 Postgres:
 ```go
 import (
-    "go-micro.dev/v5"
-    postgres "go-micro.dev/v5/store/postgres"
+    "go-micro.dev/v6"
+    postgres "go-micro.dev/v6/store/postgres"
 )
 
 func main() {
@@ -139,8 +139,8 @@ func main() {
 NATS JetStream KV:
 ```go
 import (
-    "go-micro.dev/v5"
-    natsjskv "go-micro.dev/v5/store/nats-js-kv"
+    "go-micro.dev/v6"
+    natsjskv "go-micro.dev/v6/store/nats-js-kv"
 )
 
 func main() {

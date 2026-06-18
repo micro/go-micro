@@ -3,10 +3,10 @@ package auth
 import (
 	"context"
 
-	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/errors"
-	"go-micro.dev/v5/metadata"
-	"go-micro.dev/v5/server"
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/errors"
+	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/server"
 )
 
 // HandlerOptions for configuring the auth handler wrapper

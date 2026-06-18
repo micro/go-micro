@@ -17,7 +17,7 @@ A **task management service** with full CRUD operations that:
 ## Prerequisites
 
 ```bash
-go install go-micro.dev/v5/cmd/micro@v5.27.0
+go install go-micro.dev/v6/cmd/micro@latest
 ```
 
 ## Step 1: Create the Service
@@ -188,12 +188,12 @@ import (
     "context"
     "fmt"
 
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/server"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/server"
 )
 
 func main() {
-    service := micro.New("tasks", micro.Address(":8081"))
+    service := micro.NewService("tasks", micro.Address(":8081"))
     service.Init()
 
     service.Handle(
@@ -234,10 +234,10 @@ Your service is now available at:
 Add MCP to your service with a single option:
 
 ```go
-import "go-micro.dev/v5/gateway/mcp"
+import "go-micro.dev/v6/gateway/mcp"
 
 func main() {
-    service := micro.New("tasks",
+    service := micro.NewService("tasks",
         mcp.WithMCP(":3000"), // MCP gateway starts automatically
     )
     service.Init()
@@ -342,7 +342,7 @@ Enable OpenTelemetry tracing to see every agent tool call as a distributed trace
 ```go
 import (
     "go.opentelemetry.io/otel"
-    "go-micro.dev/v5/gateway/mcp"
+    "go-micro.dev/v6/gateway/mcp"
 )
 
 go mcp.ListenAndServe(":3000", mcp.Options{
@@ -365,8 +365,8 @@ If your service needs to call AI models directly:
 
 ```go
 import (
-    "go-micro.dev/v5/ai"
-    _ "go-micro.dev/v5/ai/anthropic"
+    "go-micro.dev/v6/ai"
+    _ "go-micro.dev/v6/ai/anthropic"
 )
 
 m := ai.New("anthropic",

@@ -3,9 +3,9 @@
 // This example runs three services (Inventory, Orders, Notifications) and
 // demonstrates how an AI agent can orchestrate a multi-step workflow:
 //
-//	1. Check inventory for a product
-//	2. Place an order if in stock
-//	3. Send a confirmation notification
+//  1. Check inventory for a product
+//  2. Place an order if in stock
+//  3. Send a confirmation notification
 //
 // The agent figures out the right sequence of calls on its own — no
 // workflow engine, no glue code, just natural language.
@@ -25,8 +25,8 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
 )
 
 // ---------------------------------------------------------------------------
@@ -347,7 +347,7 @@ func (s *NotificationService) List(ctx context.Context, req *ListNotificationsRe
 // ---------------------------------------------------------------------------
 
 func main() {
-	service := micro.New("shop",
+	service := micro.NewService("shop",
 		micro.Address(":9090"),
 		mcp.WithMCP(":3001"),
 	)

@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"go-micro.dev/v5/codec"
-	"go-micro.dev/v5/logger"
+	"go-micro.dev/v6/codec"
+	"go-micro.dev/v6/logger"
 )
 
 var (

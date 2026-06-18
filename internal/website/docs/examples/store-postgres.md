@@ -13,9 +13,9 @@ package main
 
 import (
     "log"
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/store"
-    postgres "go-micro.dev/v5/store/postgres"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/store"
+    postgres "go-micro.dev/v6/store/postgres"
 )
 
 func main() {

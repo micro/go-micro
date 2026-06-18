@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/registry"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

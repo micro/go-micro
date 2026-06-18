@@ -12,8 +12,8 @@ Use NATS as the transport between services.
 package main
 
 import (
-    "go-micro.dev/v5"
-    tnats "go-micro.dev/v5/transport/nats"
+    "go-micro.dev/v6"
+    tnats "go-micro.dev/v6/transport/nats"
 )
 
 func main() {

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/logger"
-	"go-micro.dev/v5/web"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/web"
 )
 
 func TestWeb(t *testing.T) {
@@ -22,9 +22,7 @@ func testFunc() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*250)
 	defer cancel()
 
-	service := micro.NewService(
-		micro.Name("test"),
-		micro.Context(ctx),
+	service := micro.NewService("test", micro.Context(ctx),
 		micro.HandleSignal(false),
 		micro.Flags(
 			&cli.StringFlag{

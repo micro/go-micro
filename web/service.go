@@ -13,15 +13,15 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5"
-	log "go-micro.dev/v5/logger"
-	"go-micro.dev/v5/registry"
-	maddr "go-micro.dev/v5/internal/util/addr"
-	"go-micro.dev/v5/internal/util/backoff"
-	mhttp "go-micro.dev/v5/internal/util/http"
-	mnet "go-micro.dev/v5/internal/util/net"
-	signalutil "go-micro.dev/v5/internal/util/signal"
-	mls "go-micro.dev/v5/internal/util/tls"
+	"go-micro.dev/v6"
+	maddr "go-micro.dev/v6/internal/util/addr"
+	"go-micro.dev/v6/internal/util/backoff"
+	mhttp "go-micro.dev/v6/internal/util/http"
+	mnet "go-micro.dev/v6/internal/util/net"
+	signalutil "go-micro.dev/v6/internal/util/signal"
+	mls "go-micro.dev/v6/internal/util/tls"
+	log "go-micro.dev/v6/logger"
+	"go-micro.dev/v6/registry"
 )
 
 type service struct {

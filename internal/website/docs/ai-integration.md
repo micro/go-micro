@@ -48,7 +48,7 @@ The doc comment becomes the tool description. The `@example` tag gives the LLM a
 Services register automatically. The registry is the source of truth for what's running:
 
 ```go
-service := micro.New("users")
+service := micro.NewService("users")
 service.Handle(handler.New())
 service.Run() // registers with the registry
 ```
@@ -61,7 +61,7 @@ The MCP gateway walks the registry and exposes every endpoint as a tool via the 
 
 ```go
 // One line to expose all services as AI tools
-service := micro.New("myservice", mcp.WithMCP(":3001"))
+service := micro.NewService("myservice", mcp.WithMCP(":3001"))
 ```
 
 Or run it standalone:
@@ -93,8 +93,8 @@ The `ai` package provides a pluggable interface for calling LLMs:
 
 ```go
 import (
-    "go-micro.dev/v5/ai"
-    _ "go-micro.dev/v5/ai/anthropic"
+    "go-micro.dev/v6/ai"
+    _ "go-micro.dev/v6/ai/anthropic"
 )
 
 m := ai.New("anthropic", ai.WithAPIKey(key))
@@ -134,7 +134,7 @@ Multi-turn conversation with `ai.History` — the model remembers context across
 Subscribe to broker events and let an LLM orchestrate the response:
 
 ```go
-import "go-micro.dev/v5/flow"
+import "go-micro.dev/v6/flow"
 
 f := flow.New("onboard",
     flow.Trigger("events.user.created"),

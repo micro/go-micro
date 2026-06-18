@@ -23,7 +23,7 @@ package main
 
 import (
     "context"
-    "go-micro.dev/v5"
+    "go-micro.dev/v6"
     "log"
 )
 

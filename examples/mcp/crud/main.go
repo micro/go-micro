@@ -19,8 +19,8 @@ import (
 	"strings"
 	"sync"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
 )
 
 // --- Types ---
@@ -253,7 +253,7 @@ func (h *Contacts) Search(ctx context.Context, req *SearchRequest, rsp *SearchRe
 }
 
 func main() {
-	service := micro.New("contacts",
+	service := micro.NewService("contacts",
 		micro.Address(":9010"),
 		mcp.WithMCP(":3001"),
 	)

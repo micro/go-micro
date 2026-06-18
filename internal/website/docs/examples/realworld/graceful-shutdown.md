@@ -29,8 +29,8 @@ import (
     "os/signal"
     "syscall"
     "time"
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/logger"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/logger"
 )
 
 func main() {
@@ -154,8 +154,8 @@ import (
     "syscall"
     "time"
     
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/logger"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/logger"
 )
 
 type Application struct {

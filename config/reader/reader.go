@@ -4,7 +4,7 @@ package reader
 import (
 	"time"
 
-	"go-micro.dev/v5/config/source"
+	"go-micro.dev/v6/config/source"
 )
 
 // Reader is an interface for merging changesets.

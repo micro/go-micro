@@ -44,7 +44,7 @@ micro call greeter Greeter.Hello '{"name": "Bob"}'
 
 1. **Define types** - Request and Response structures
 2. **Implement handler** - The `Greeter` service with `Hello` method
-3. **Create service** - Using `micro.New()` with options
+3. **Create service** - Using `micro.NewService()` with options
 4. **Register handler** - Link the handler to the service
 5. **Run service** - Start listening for requests
 

@@ -23,8 +23,8 @@ The MCP gateway uses bearer token authentication. Tokens are validated by the co
 
 ```go
 import (
-    "go-micro.dev/v5/gateway/mcp"
-    "go-micro.dev/v5/auth"
+    "go-micro.dev/v6/gateway/mcp"
+    "go-micro.dev/v6/auth"
 )
 
 gateway := mcp.ListenAndServe(":3000", mcp.Options{
@@ -232,7 +232,7 @@ For full distributed tracing, plug in an OpenTelemetry trace provider:
 ```go
 import (
     "go.opentelemetry.io/otel"
-    "go-micro.dev/v5/gateway/mcp"
+    "go-micro.dev/v6/gateway/mcp"
 )
 
 mcp.ListenAndServe(":3000", mcp.Options{
@@ -312,10 +312,10 @@ package main
 import (
     "log"
 
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/auth"
-    "go-micro.dev/v5/gateway/mcp"
-    "go-micro.dev/v5/server"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/auth"
+    "go-micro.dev/v6/gateway/mcp"
+    "go-micro.dev/v6/server"
 )
 
 func main() {

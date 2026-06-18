@@ -32,7 +32,7 @@ import (
 	"fmt"
 	"os"
 
-	"go-micro.dev/v5"
+	"go-micro.dev/v6"
 )
 
 func main() {
@@ -55,7 +55,7 @@ Save it in a fresh module and run:
 ```bash
 mkdir my-agent && cd my-agent
 go mod init my-agent
-go get go-micro.dev/v5
+go get go-micro.dev/v6
 # save the code above as main.go
 export ANTHROPIC_API_KEY=sk-ant-...
 go run main.go

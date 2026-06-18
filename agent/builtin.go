@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"strings"
 
-	"go-micro.dev/v5/ai"
-	codecBytes "go-micro.dev/v5/codec/bytes"
-	"go-micro.dev/v5/gateway/a2a"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/ai"
+	codecBytes "go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/store"
 )
 
 // Built-in agent tools. These are not service endpoints — they are

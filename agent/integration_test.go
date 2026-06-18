@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/client"
-	codecBytes "go-micro.dev/v5/codec/bytes"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/client"
+	codecBytes "go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/store"
 )
 
 // fakeGen drives the fake provider's Generate. Tests set it and reset

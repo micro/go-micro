@@ -27,8 +27,8 @@ export MICRO_TLS_SECURE=true
 
 ```go
 import (
-    "go-micro.dev/v5/broker"
-    mls "go-micro.dev/v5/util/tls"
+    "go-micro.dev/v6/broker"
+    mls "go-micro.dev/v6/util/tls"
 )
 
 broker := broker.NewHttpBroker(

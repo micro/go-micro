@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/registry"
 )
 
 func addNodes(old, neu []*registry.Node) []*registry.Node {
