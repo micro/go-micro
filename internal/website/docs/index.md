@@ -10,7 +10,7 @@ Documentation for the Go Micro framework.
 
 <img src="/images/generated/architecture.jpg" alt="Go Micro architecture" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />
 
-Go Micro is a framework for building services and agents in Go. Write services — they register, discover each other, and communicate via RPC and events. Every endpoint is automatically an AI-callable tool via [MCP](https://modelcontextprotocol.io/), so AI agents can use your services the moment they run. Build agents to orchestrate them, and workflows to trigger them on events — all from the same primitives.
+Go Micro is a framework for building agents and services in Go. Build an agent and it gets a model, memory, and tools, manages your services, and is reachable over [MCP](https://modelcontextprotocol.io/) and [A2A](https://a2a-protocol.org). Write services and they register, discover each other, and every endpoint is automatically an AI-callable tool. Orchestrate the deterministic parts with flows. Agents, services, and flows come from the same primitives — because an agent is a distributed system, and building one is building a service.
 
 It's built on a pluggable architecture of Go interfaces: service discovery, client/server RPC, pub/sub, plus auth, caching, and storage. Sane defaults out of the box, everything swappable.
 

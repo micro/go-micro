@@ -3,7 +3,7 @@
 //
 // Example usage:
 //
-//	service := micro.NewService(micro.Name("myservice"))
+//	service := micro.NewService("myservice", )
 //	service.Init()
 //
 //	// Add MCP gateway
@@ -25,14 +25,14 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/broker"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/codec/bytes"
-	"go-micro.dev/v5/metadata"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/store"
-	"go-micro.dev/v5/wrapper/x402"
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/wrapper/x402"
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -970,7 +970,7 @@ func Example() {
 	// This function is never called - it's just documentation
 	_ = func() {
 		// In your service code:
-		// service := micro.NewService(micro.Name("myservice"))
+		// service := micro.NewService("myservice", )
 		// service.Init()
 
 		// Start MCP gateway

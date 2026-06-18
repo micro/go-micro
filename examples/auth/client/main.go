@@ -6,13 +6,13 @@ import (
 	"log"
 	"os"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/auth/noop"
-	"go-micro.dev/v5/client"
-	authWrapper "go-micro.dev/v5/wrapper/auth"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/auth/noop"
+	"go-micro.dev/v6/client"
+	authWrapper "go-micro.dev/v6/wrapper/auth"
 
-	pb "go-micro.dev/v5/examples/auth/proto"
+	pb "go-micro.dev/v6/examples/auth/proto"
 )
 
 func main() {
@@ -40,11 +40,9 @@ func main() {
 	}
 
 	// Create service with auth client wrapper
-	service := micro.NewService(
-		micro.Name("greeter.client"),
-		micro.WrapClient(
-			authWrapper.FromToken(token), // Add token to all requests
-		),
+	service := micro.NewService("greeter.client", micro.WrapClient(
+		authWrapper.FromToken(token), // Add token to all requests
+	),
 	)
 
 	service.Init()

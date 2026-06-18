@@ -160,7 +160,7 @@ type Response struct {
 }
 
 func main() {
-        client := micro.New("helloworld").Client()
+        client := micro.NewService("helloworld").Client()
 
         req := client.NewRequest("helloworld", "Helloworld.Call", &Request{Name: "John"})
 

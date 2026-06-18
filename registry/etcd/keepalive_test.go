@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v5/logger"
+	"go-micro.dev/v6/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

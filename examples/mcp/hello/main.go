@@ -10,8 +10,8 @@ import (
 	"context"
 	"log"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
 )
 
 // Greeter service handles greeting operations
@@ -37,7 +37,7 @@ type HelloResponse struct {
 
 func main() {
 	// Create service
-	service := micro.New("greeter",
+	service := micro.NewService("greeter",
 		micro.Address(":9090"),
 		// Start MCP gateway alongside the service
 		mcp.WithMCP(":3000"),

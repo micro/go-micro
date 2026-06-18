@@ -93,7 +93,7 @@ func TestExtractJSON(t *testing.T) {
 
 func TestExtractCode(t *testing.T) {
 	tests := []struct {
-		name, in string
+		name, in   string
 		wantPrefix string
 	}{
 		{
@@ -183,7 +183,7 @@ func TestBuildMain(t *testing.T) {
 	checks := []string{
 		`"order/handler"`,
 		`pb "order/proto"`,
-		`micro.New("order"`,
+		`micro.NewService("order"`,
 		`pb.RegisterOrderHandler`,
 		`handler.New()`,
 	}
@@ -198,7 +198,7 @@ func TestBuildMain(t *testing.T) {
 	checks = []string{
 		`"order-service/handler"`,
 		`pb "order-service/proto"`,
-		`micro.New("order"`,
+		`micro.NewService("order"`,
 		`pb.RegisterOrderServiceHandler`,
 		`handler.New()`,
 	}

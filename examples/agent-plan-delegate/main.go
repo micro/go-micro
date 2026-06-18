@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5"
+	"go-micro.dev/v6"
 )
 
 // ---------------------------------------------------------------------------
@@ -117,11 +117,11 @@ func main() {
 	fmt.Printf("Using provider %q\n", provider)
 
 	// Services.
-	task := micro.New("task")
+	task := micro.NewService("task")
 	task.Handle(new(TaskService))
 	go task.Run()
 
-	notify := micro.New("notify")
+	notify := micro.NewService("notify")
 	notify.Handle(new(NotifyService))
 	go notify.Run()
 

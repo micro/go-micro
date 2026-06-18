@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/server"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/server"
 )
 
 // NewHandlerWrapper returns a server.HandlerWrapper that records Prometheus

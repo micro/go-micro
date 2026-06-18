@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
-	"go-micro.dev/v5/auth"
+	"github.com/golang-jwt/jwt/v5"
+	"go-micro.dev/v6/auth"
 )
 
 // authClaims to be encoded in the JWT.
@@ -14,7 +14,7 @@ type authClaims struct {
 	Scopes   []string          `json:"scopes"`
 	Metadata map[string]string `json:"metadata"`
 
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // JWT implementation of token provider.
@@ -49,10 +49,10 @@ func (j *JWT) Generate(acc *auth.Account, opts ...GenerateOption) (*Token, error
 	// generate the JWT
 	expiry := time.Now().Add(options.Expiry)
 	t := jwt.NewWithClaims(jwt.SigningMethodRS256, authClaims{
-		acc.Type, acc.Scopes, acc.Metadata, jwt.StandardClaims{
+		acc.Type, acc.Scopes, acc.Metadata, jwt.RegisteredClaims{
 			Subject:   acc.ID,
 			Issuer:    acc.Issuer,
-			ExpiresAt: expiry.Unix(),
+			ExpiresAt: jwt.NewNumericDate(expiry),
 		},
 	})
 	tok, err := t.SignedString(key)

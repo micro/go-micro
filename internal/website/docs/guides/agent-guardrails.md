@@ -53,7 +53,7 @@ micro.NewAgent("worker", micro.AgentApproveTool(
 `ApproveTool` is a *before* gate. When you need the full lifecycle — timing, logging, metrics, retries, or inspecting the result — wrap the execution instead. `WrapTool` is the tool-side analogue of go-micro's `client.CallWrapper` and `server.HandlerWrapper`: a wrapper takes the next handler and returns a new one, so code before the `next(...)` call runs *before* the tool, and code after runs *after*.
 
 ```go
-import "go-micro.dev/v5/ai"
+import "go-micro.dev/v6/ai"
 
 func logging(next ai.ToolHandler) ai.ToolHandler {
     return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {

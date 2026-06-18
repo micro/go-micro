@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"go-micro.dev/v5/client"
-	codecbytes "go-micro.dev/v5/codec/bytes"
+	"go-micro.dev/v6/client"
+	codecbytes "go-micro.dev/v6/codec/bytes"
 )
 
 // fakeClient embeds the default client (so NewRequest works) and

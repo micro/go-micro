@@ -12,7 +12,7 @@ title: Atlas Cloud Integration
 Install or update Go Micro:
 
 ```bash
-go get go-micro.dev/v5@latest
+go get go-micro.dev/v6@latest
 ```
 
 Import the Atlas Cloud provider and use it:
@@ -25,8 +25,8 @@ import (
     "fmt"
     "log"
 
-    "go-micro.dev/v5/ai"
-    _ "go-micro.dev/v5/ai/atlascloud"
+    "go-micro.dev/v6/ai"
+    _ "go-micro.dev/v6/ai/atlascloud"
 )
 
 func main() {
@@ -112,8 +112,8 @@ import (
     "context"
     "fmt"
 
-    "go-micro.dev/v5/ai"
-    _ "go-micro.dev/v5/ai/atlascloud"
+    "go-micro.dev/v6/ai"
+    _ "go-micro.dev/v6/ai/atlascloud"
 )
 
 func main() {
@@ -170,14 +170,14 @@ import (
     "fmt"
     "log"
 
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/ai"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/ai"
     
-    _ "go-micro.dev/v5/ai/atlascloud"
+    _ "go-micro.dev/v6/ai/atlascloud"
 )
 
 func main() {
-    service := micro.New("my-agent")
+    service := micro.NewService("my-agent")
     service.Init()
 
     // Discover all services as tools
@@ -259,15 +259,15 @@ All Go Micro AI providers implement the same `ai.Model` interface. To switch fro
 
 ```go
 // Atlas Cloud
-import _ "go-micro.dev/v5/ai/atlascloud"
+import _ "go-micro.dev/v6/ai/atlascloud"
 m := ai.New("atlascloud", ai.WithAPIKey(key))
 
 // Anthropic
-import _ "go-micro.dev/v5/ai/anthropic"
+import _ "go-micro.dev/v6/ai/anthropic"
 m := ai.New("anthropic", ai.WithAPIKey(key))
 
 // OpenAI
-import _ "go-micro.dev/v5/ai/openai"
+import _ "go-micro.dev/v6/ai/openai"
 m := ai.New("openai", ai.WithAPIKey(key))
 ```
 
@@ -284,7 +284,7 @@ Atlas Cloud exposes an OpenAI-compatible `/v1/chat/completions` endpoint. This m
 If you're already using the `openai` provider, you can point it at Atlas Cloud directly:
 
 ```go
-import _ "go-micro.dev/v5/ai/openai"
+import _ "go-micro.dev/v6/ai/openai"
 
 m := ai.New("openai",
     ai.WithAPIKey("your-atlas-cloud-key"),
@@ -299,5 +299,5 @@ The dedicated `atlascloud` provider simply sets these defaults for you.
 
 - [Atlas Cloud](https://www.atlascloud.ai/) — Sign up and get an API key
 - [AI Provider Integration Guide](/docs/guides/ai-provider-guide) — How providers are built
-- [ai.Tools](https://pkg.go.dev/go-micro.dev/v5/ai.Tools) — Service-to-tool discovery
+- [ai.Tools](https://pkg.go.dev/go-micro.dev/v6/ai.Tools) — Service-to-tool discovery
 - [Blog: Atlas Cloud Sponsors Go Micro](/blog/8) — Announcement post

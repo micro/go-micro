@@ -20,19 +20,19 @@ import (
 	"strings"
 	"sync"
 
-	pb "go-micro.dev/v5/agent/proto"
-	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/gateway/a2a"
-	"go-micro.dev/v5/server"
-	"go-micro.dev/v5/store"
+	pb "go-micro.dev/v6/agent/proto"
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/server"
+	"go-micro.dev/v6/store"
 
-	_ "go-micro.dev/v5/ai/anthropic"
-	_ "go-micro.dev/v5/ai/atlascloud"
-	_ "go-micro.dev/v5/ai/gemini"
-	_ "go-micro.dev/v5/ai/groq"
-	_ "go-micro.dev/v5/ai/mistral"
-	_ "go-micro.dev/v5/ai/openai"
-	_ "go-micro.dev/v5/ai/together"
+	_ "go-micro.dev/v6/ai/anthropic"
+	_ "go-micro.dev/v6/ai/atlascloud"
+	_ "go-micro.dev/v6/ai/gemini"
+	_ "go-micro.dev/v6/ai/groq"
+	_ "go-micro.dev/v6/ai/mistral"
+	_ "go-micro.dev/v6/ai/openai"
+	_ "go-micro.dev/v6/ai/together"
 )
 
 // Agent is the interface for an AI agent that manages services.

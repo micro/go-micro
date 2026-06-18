@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/miekg/dns"
-	log "go-micro.dev/v5/logger"
+	log "go-micro.dev/v6/logger"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 )

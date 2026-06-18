@@ -35,9 +35,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v5/client"
-	codecbytes "go-micro.dev/v5/codec/bytes"
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/client"
+	codecbytes "go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/registry"
 )
 
 // protocolVersion is the A2A spec version this gateway targets. Verify

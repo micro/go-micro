@@ -26,8 +26,8 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 
-	"go-micro.dev/v5/logger"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/store"
 )
 
 const defaultDatabase = "micro"

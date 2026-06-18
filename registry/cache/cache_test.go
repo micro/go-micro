@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v5/logger"
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/registry"
 )
 
 // mockRegistry is a mock implementation of registry.Registry for testing

@@ -46,8 +46,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v5/broker"
-	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v6/broker"
+	log "go-micro.dev/v6/logger"
 
 	pb "{{.Dir}}/proto"
 )
@@ -126,13 +126,13 @@ import (
 	"{{.Dir}}/handler"
 	pb "{{.Dir}}/proto"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
-	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
+	log "go-micro.dev/v6/logger"
 )
 
 func main() {
-	service := micro.New("{{lower .Alias}}",
+	service := micro.NewService("{{lower .Alias}}",
 		mcp.WithMCP(":3001"),
 	)
 
@@ -159,12 +159,12 @@ import (
 	"{{.Dir}}/handler"
 	pb "{{.Dir}}/proto"
 
-	"go-micro.dev/v5"
-	log "go-micro.dev/v5/logger"
+	"go-micro.dev/v6"
+	log "go-micro.dev/v6/logger"
 )
 
 func main() {
-	service := micro.New("{{lower .Alias}}")
+	service := micro.NewService("{{lower .Alias}}")
 
 	service.Init()
 

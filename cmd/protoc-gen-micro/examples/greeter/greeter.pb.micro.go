@@ -11,8 +11,8 @@ import (
 
 import (
 	context "context"
-	client "go-micro.dev/v5/client"
-	server "go-micro.dev/v5/server"
+	client "go-micro.dev/v6/client"
+	server "go-micro.dev/v6/server"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

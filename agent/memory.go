@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"sync"
 
-	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/store"
 )
 
 // Memory is an agent's conversation memory. Like the rest of the

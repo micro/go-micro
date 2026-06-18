@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/store"
 )
 
 // storeCommand exposes the store interface: read, write, delete, list.

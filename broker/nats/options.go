@@ -4,7 +4,7 @@ import (
 	"time"
 
 	natsp "github.com/nats-io/nats.go"
-	"go-micro.dev/v5/broker"
+	"go-micro.dev/v6/broker"
 )
 
 type optionsKey struct{}

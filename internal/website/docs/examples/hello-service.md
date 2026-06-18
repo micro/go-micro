@@ -13,7 +13,7 @@ package main
 
 import (
     "context"
-    "go-micro.dev/v5"
+    "go-micro.dev/v6"
 )
 
 type Request struct { Name string `json:"name"` }
@@ -28,7 +28,7 @@ func (h *Say) Hello(ctx context.Context, req *Request, rsp *Response) error {
 }
 
 func main() {
-    svc := micro.New("helloworld")
+    svc := micro.NewService("helloworld")
     svc.Init()
     svc.Handle(new(Say))
     svc.Run()

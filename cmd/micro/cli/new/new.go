@@ -15,13 +15,13 @@ import (
 	"strings"
 	"syscall"
 
-	"go-micro.dev/v5/cmd/micro/cli/generate"
+	"go-micro.dev/v6/cmd/micro/cli/generate"
 	"text/template"
 	"time"
 
 	"github.com/urfave/cli/v2"
 	"github.com/xlab/treeprint"
-	tmpl "go-micro.dev/v5/cmd/micro/cli/new/template"
+	tmpl "go-micro.dev/v6/cmd/micro/cli/new/template"
 )
 
 func protoComments(goDir, alias string) []string {

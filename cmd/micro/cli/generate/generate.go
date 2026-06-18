@@ -16,22 +16,22 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v5/ai"
+	"go-micro.dev/v6/ai"
 
-	_ "go-micro.dev/v5/ai/anthropic"
-	_ "go-micro.dev/v5/ai/atlascloud"
-	_ "go-micro.dev/v5/ai/gemini"
-	_ "go-micro.dev/v5/ai/groq"
-	_ "go-micro.dev/v5/ai/mistral"
-	_ "go-micro.dev/v5/ai/openai"
-	_ "go-micro.dev/v5/ai/together"
+	_ "go-micro.dev/v6/ai/anthropic"
+	_ "go-micro.dev/v6/ai/atlascloud"
+	_ "go-micro.dev/v6/ai/gemini"
+	_ "go-micro.dev/v6/ai/groq"
+	_ "go-micro.dev/v6/ai/mistral"
+	_ "go-micro.dev/v6/ai/openai"
+	_ "go-micro.dev/v6/ai/together"
 )
 
-// goMicroVersion is the go-micro.dev/v5 release pinned into the go.mod of
+// goMicroVersion is the go-micro.dev/v6 release pinned into the go.mod of
 // every scaffolded project. This is the single source of truth — bump it
 // here when cutting a release so generated services and agents stay in
 // sync with the framework.
-const goMicroVersion = "v5.29.0"
+const goMicroVersion = "v6.0.0"
 
 const designPrompt = `You are a Go microservices architect using the go-micro framework.
 Given a system description, design the services needed.
@@ -106,9 +106,9 @@ Generate a COMPLETE, COMPILABLE Go handler file.
 The handler must:
 1. Use package "handler"
 2. Import the proto package as: pb "%s/proto"
-3. Import go-micro logger as: log "go-micro.dev/v5/logger"
+3. Import go-micro logger as: log "go-micro.dev/v6/logger"
 4. Import "github.com/google/uuid" for ID generation
-5. Use "go-micro.dev/v5/store" for persistent storage (NOT in-memory maps)
+5. Use "go-micro.dev/v6/store" for persistent storage (NOT in-memory maps)
 6. Include REAL business logic — not just CRUD store operations
 7. Every exported method must have a doc comment explaining what it does
 8. Every method must have an @example tag with realistic JSON input
@@ -116,7 +116,7 @@ The handler must:
 10. Keep the file under 200 lines — be concise, no boilerplate
 
 For storage, use the go-micro store package:
-  import "go-micro.dev/v5/store"
+  import "go-micro.dev/v6/store"
   import "encoding/json"
 
   // In the struct:
@@ -352,7 +352,7 @@ func generateStructure(dir string, svc ServiceSpec) error {
 			"GOPATH:=$(shell go env GOPATH)\n\n.PHONY: proto\nproto:\n\tprotoc --proto_path=. --micro_out=. --go_out=. proto/*.proto\n")
 
 		writeFile(filepath.Join(dir, "go.mod"),
-			fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v5 %s\n", name, goMicroVersion))
+			fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v6 %s\n", name, goMicroVersion))
 
 		writeFile(filepath.Join(dir, ".gitignore"),
 			fmt.Sprintf("%s\n.micro\n", name))
@@ -573,12 +573,12 @@ import (
 	"%s/handler"
 	pb "%s/proto"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/gateway/mcp"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/gateway/mcp"
 )
 
 func main() {
-	service := micro.New("%s",
+	service := micro.NewService("%s",
 		mcp.WithMCP(":0"),
 	)
 	service.Init()
@@ -616,7 +616,7 @@ func generateAgent(baseDir string, design *ServiceDesign, svcNames []string) err
 import (
 	"os"
 
-	"go-micro.dev/v5"
+	"go-micro.dev/v6"
 )
 
 func main() {
@@ -632,7 +632,7 @@ func main() {
 `, quoted, prompt))
 
 	writeFile(filepath.Join(agentDir, "go.mod"),
-		fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v5 %s\n", agentName, goMicroVersion))
+		fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v6 %s\n", agentName, goMicroVersion))
 
 	runIn(agentDir, "go", "mod", "tidy")
 

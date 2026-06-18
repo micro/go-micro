@@ -13,12 +13,12 @@ The store provides a pluggable interface for data storage in Go Micro.
 ## Implementations
 Supported stores include:
 - Memory (default)
-- File (`go-micro.dev/v5/store/file`)
-- MySQL (`go-micro.dev/v5/store/mysql`)
-- Postgres (`go-micro.dev/v5/store/postgres`)
-- NATS JetStream KV (`go-micro.dev/v5/store/nats-js-kv`)
+- File (`go-micro.dev/v6/store/file`)
+- MySQL (`go-micro.dev/v6/store/mysql`)
+- Postgres (`go-micro.dev/v6/store/postgres`)
+- NATS JetStream KV (`go-micro.dev/v6/store/nats-js-kv`)
 
-Plugins are scoped under `go-micro.dev/v5/store/<plugin>`.
+Plugins are scoped under `go-micro.dev/v6/store/<plugin>`.
 
 Configure the store in code or via environment variables.
 
@@ -30,8 +30,8 @@ Here's how to use the store in your Go Micro service:
 package main
 
 import (
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/store"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/store"
     "log"
 )
 
@@ -58,8 +58,8 @@ func main() {
 Postgres:
 ```go
 import (
-    "go-micro.dev/v5"
-    postgres "go-micro.dev/v5/store/postgres"
+    "go-micro.dev/v6"
+    postgres "go-micro.dev/v6/store/postgres"
 )
 
 func main() {
@@ -73,8 +73,8 @@ func main() {
 NATS JetStream KV:
 ```go
 import (
-    "go-micro.dev/v5"
-    natsjskv "go-micro.dev/v5/store/nats-js-kv"
+    "go-micro.dev/v6"
+    natsjskv "go-micro.dev/v6/store/nats-js-kv"
 )
 
 func main() {

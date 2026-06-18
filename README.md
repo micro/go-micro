@@ -1,8 +1,8 @@
-# Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v5?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro)
+# Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v6?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro)
 
-Go Micro is a framework for building services and agents in Go.
+Go Micro is a framework for building agents and services in Go.
 
-Write services — they register, discover each other, and communicate via RPC and events. Every endpoint is automatically an AI-callable tool via [MCP](https://modelcontextprotocol.io/). Build agents to manage them intelligently. Both are Go code, both use the same primitives, both deploy the same way.
+Build an agent and it gets a model, memory, and tools, manages your services, and is reachable over [MCP](https://modelcontextprotocol.io/) and [A2A](https://a2a-protocol.org). Write services and they register, discover each other, and every endpoint is automatically an AI-callable tool. Orchestrate the deterministic parts with flows. Agents, services, and flows are all Go code — the same primitives, the same deployment — because an agent is a distributed system, and building one is building a service.
 
 ## Sponsors
 
@@ -34,7 +34,7 @@ Install the CLI:
 curl -fsSL https://go-micro.dev/install.sh | sh
 
 # Or with Go
-go install go-micro.dev/v5/cmd/micro@v5.27.0
+go install go-micro.dev/v6/cmd/micro@latest
 ```
 
 ### Fastest start — no API key
@@ -117,7 +117,7 @@ Under the hood, a service is a struct with methods. Doc comments and `@example` 
 package main
 
 import (
-    "go-micro.dev/v5"
+    "go-micro.dev/v6"
 )
 
 type Request struct {
@@ -138,7 +138,7 @@ func (h *Say) Hello(ctx context.Context, req *Request, rsp *Response) error {
 }
 
 func main() {
-    service := micro.New("greeter")
+    service := micro.NewService("greeter")
     service.Handle(new(Say))
     service.Run()
 }
@@ -314,8 +314,8 @@ MCP exposes your services as tools; A2A exposes your agents as agents. See the [
 Run multiple services together:
 
 ```go
-users := micro.New("users", micro.Address(":9001"))
-orders := micro.New("orders", micro.Address(":9002"))
+users := micro.NewService("users", micro.Address(":9001"))
+orders := micro.NewService("orders", micro.Address(":9002"))
 
 users.Handle(new(Users))
 orders.Handle(new(Orders))
@@ -399,4 +399,4 @@ See [all examples](examples/README.md).
 - [Deployment](internal/website/docs/deployment.md)
 - [Plugins](internal/website/docs/plugins.md)
 
-Package reference: https://pkg.go.dev/go-micro.dev/v5
+Package reference: https://pkg.go.dev/go-micro.dev/v6

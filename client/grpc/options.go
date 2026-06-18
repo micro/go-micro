@@ -5,7 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 
-	"go-micro.dev/v5/client"
+	"go-micro.dev/v6/client"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 )

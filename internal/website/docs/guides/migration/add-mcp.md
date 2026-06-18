@@ -12,10 +12,10 @@ You have a working go-micro service and want to make it accessible to AI agents 
 Add a single option to your service constructor:
 
 ```go
-import "go-micro.dev/v5/gateway/mcp"
+import "go-micro.dev/v6/gateway/mcp"
 
 func main() {
-    service := micro.New("myservice",
+    service := micro.NewService("myservice",
         mcp.WithMCP(":3001"),  // Add this line
     )
     service.Init()
@@ -31,7 +31,7 @@ That's it. Your service now exposes all registered handlers as MCP tools at `htt
 If you want the MCP gateway to run separately from your services (e.g., in production with multiple services):
 
 ```go
-import "go-micro.dev/v5/gateway/mcp"
+import "go-micro.dev/v6/gateway/mcp"
 
 // Start MCP gateway alongside your service
 go mcp.ListenAndServe(":3001", mcp.Options{

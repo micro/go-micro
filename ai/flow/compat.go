@@ -1,8 +1,8 @@
 // Package flow is maintained for backward compatibility.
-// The canonical import is go-micro.dev/v5/flow.
+// The canonical import is go-micro.dev/v6/flow.
 package flow
 
-import "go-micro.dev/v5/flow"
+import "go-micro.dev/v6/flow"
 
 // Re-export types for backward compatibility.
 type Flow = flow.Flow

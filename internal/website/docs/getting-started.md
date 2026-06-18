@@ -10,7 +10,7 @@ Go Micro has three core abstractions:
 
 | Abstraction | What | Constructor |
 |-------------|------|-------------|
-| **Service** | Capability — endpoints, data, business logic | `micro.New("task")` |
+| **Service** | Capability — endpoints, data, business logic | `micro.NewService("task")` |
 | **Agent** | Intelligence — manages services with an LLM | `micro.NewAgent("task-mgr")` |
 | **Flow** | Orchestration — event-driven LLM triggers | `micro.NewFlow("onboard")` |
 
@@ -26,7 +26,7 @@ Go Micro has three core abstractions:
 curl -fsSL https://go-micro.dev/install.sh | sh
 
 # Or with Go
-go install go-micro.dev/v5/cmd/micro@v5.27.0
+go install go-micro.dev/v6/cmd/micro@latest
 ```
 
 ## Quick Start: Generate from a Prompt
@@ -85,7 +85,7 @@ A service is a Go struct with methods. Doc comments and `@example` tags become t
 ```go
 package main
 
-import "go-micro.dev/v5"
+import "go-micro.dev/v6"
 
 type Request struct {
     Name string `json:"name"`
@@ -105,7 +105,7 @@ func (h *Say) Hello(ctx context.Context, req *Request, rsp *Response) error {
 }
 
 func main() {
-    service := micro.New("greeter")
+    service := micro.NewService("greeter")
     service.Handle(new(Say))
     service.Run()
 }
@@ -133,7 +133,7 @@ An Agent is an intelligent layer that manages one or more services:
 ```go
 package main
 
-import "go-micro.dev/v5"
+import "go-micro.dev/v6"
 
 func main() {
     agent := micro.NewAgent("task-mgr",

@@ -14,8 +14,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"go-micro.dev/v5/logger"
-	"go-micro.dev/v5/server"
+	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/server"
 )
 
 var (

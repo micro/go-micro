@@ -1,4 +1,4 @@
-module go-micro.dev/v5
+module go-micro.dev/v6
 
 go 1.24
 
@@ -9,7 +9,6 @@ require (
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/cornelk/hashmap v1.0.8
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.9.2
@@ -22,7 +21,6 @@ require (
 	github.com/kr/pretty v0.3.1
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-sqlite3 v1.14.34
-	github.com/micro/plugins/v5/auth/jwt v0.0.0-20250502062951-be3f35ce6464
 	github.com/miekg/dns v1.1.50
 	github.com/mitchellh/hashstructure v1.1.0
 	github.com/nats-io/nats-server/v2 v2.11.3

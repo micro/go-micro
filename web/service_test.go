@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/registry"
 )
 
 func TestService(t *testing.T) {

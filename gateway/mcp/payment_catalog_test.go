@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go-micro.dev/v5/wrapper/x402"
+	"go-micro.dev/v6/wrapper/x402"
 )
 
 // With payments enabled, /mcp/tools advertises each priced tool's payment

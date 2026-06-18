@@ -5,7 +5,7 @@ import (
 	"time"
 
 	rclient "github.com/go-redis/redis/v8"
-	"go-micro.dev/v5/cache"
+	"go-micro.dev/v6/cache"
 )
 
 // NewRedisCache returns a new redis cache.

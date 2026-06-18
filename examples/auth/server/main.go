@@ -4,12 +4,12 @@ import (
 	"context"
 	"log"
 
-	"go-micro.dev/v5"
-	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/auth/noop"
-	authWrapper "go-micro.dev/v5/wrapper/auth"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/auth/noop"
+	authWrapper "go-micro.dev/v6/wrapper/auth"
 
-	pb "go-micro.dev/v5/examples/auth/proto"
+	pb "go-micro.dev/v6/examples/auth/proto"
 )
 
 // Greeter implements the Greeter service
@@ -61,9 +61,7 @@ func main() {
 	})
 
 	// Create service with auth wrapper
-	service := micro.NewService(
-		micro.Name("greeter"),
-		micro.Version("latest"),
+	service := micro.NewService("greeter", micro.Version("latest"),
 		micro.WrapHandler(
 			authWrapper.AuthHandler(authWrapper.HandlerOptions{
 				Auth:          authProvider,

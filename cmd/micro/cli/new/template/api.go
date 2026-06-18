@@ -42,7 +42,7 @@ import (
 	"net/http"
 	"time"
 
-	log "go-micro.dev/v5/logger"
+	log "go-micro.dev/v6/logger"
 
 	pb "{{.Dir}}/proto"
 )

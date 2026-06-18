@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/registry"
 )
 
 // ToolDescription represents enhanced documentation for an MCP tool

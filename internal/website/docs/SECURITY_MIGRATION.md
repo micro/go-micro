@@ -30,8 +30,8 @@ In your code, explicitly use the secure configuration:
 
 ```go
 import (
-    "go-micro.dev/v5/broker"
-    mls "go-micro.dev/v5/util/tls"
+    "go-micro.dev/v6/broker"
+    mls "go-micro.dev/v6/util/tls"
 )
 
 // Create broker with secure TLS config
@@ -48,7 +48,7 @@ For fine-grained control, provide your own TLS configuration:
 import (
     "crypto/tls"
     "crypto/x509"
-    "go-micro.dev/v5/broker"
+    "go-micro.dev/v6/broker"
     "io/ioutil"
 )
 
@@ -128,7 +128,7 @@ package main
 
 import (
     "fmt"
-    mls "go-micro.dev/v5/util/tls"
+    mls "go-micro.dev/v6/util/tls"
     "os"
 )
 

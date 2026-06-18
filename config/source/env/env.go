@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"dario.cat/mergo"
-	"go-micro.dev/v5/config/source"
+	"go-micro.dev/v6/config/source"
 )
 
 var (

@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v5/logger"
+	"go-micro.dev/v6/logger"
 
-	micro "go-micro.dev/v5"
-	broker "go-micro.dev/v5/broker"
-	rabbitmq "go-micro.dev/v5/broker/rabbitmq"
-	server "go-micro.dev/v5/server"
+	micro "go-micro.dev/v6"
+	broker "go-micro.dev/v6/broker"
+	rabbitmq "go-micro.dev/v6/broker/rabbitmq"
+	server "go-micro.dev/v6/server"
 )
 
 type Example struct{}
@@ -50,8 +50,7 @@ func TestDurable(t *testing.T) {
 
 	s := server.NewServer(server.Broker(b))
 
-	service := micro.NewService(
-		micro.Server(s),
+	service := micro.NewService("test", micro.Server(s),
 		micro.Broker(b),
 	)
 	h := &Example{}
@@ -82,8 +81,7 @@ func TestWithoutExchange(t *testing.T) {
 
 	s := server.NewServer(server.Broker(b))
 
-	service := micro.NewService(
-		micro.Server(s),
+	service := micro.NewService("test", micro.Server(s),
 		micro.Broker(b),
 	)
 	brkrSub := broker.NewSubscribeOptions(
@@ -140,8 +138,7 @@ func TestFanoutExchange(t *testing.T) {
 
 	s := server.NewServer(server.Broker(b))
 
-	service := micro.NewService(
-		micro.Server(s),
+	service := micro.NewService("test", micro.Server(s),
 		micro.Broker(b),
 	)
 	brkrSub := broker.NewSubscribeOptions(
@@ -198,8 +195,7 @@ func TestDirectExchange(t *testing.T) {
 
 	s := server.NewServer(server.Broker(b))
 
-	service := micro.NewService(
-		micro.Server(s),
+	service := micro.NewService("test", micro.Server(s),
 		micro.Broker(b),
 	)
 	brkrSub := broker.NewSubscribeOptions(
@@ -256,8 +252,7 @@ func TestTopicExchange(t *testing.T) {
 
 	s := server.NewServer(server.Broker(b))
 
-	service := micro.NewService(
-		micro.Server(s),
+	service := micro.NewService("test", micro.Server(s),
 		micro.Broker(b),
 	)
 	brkrSub := broker.NewSubscribeOptions(

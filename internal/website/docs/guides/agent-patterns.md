@@ -19,9 +19,9 @@ User → AI Agent → MCP Gateway → [Service A, Service B, Service C]
 Run multiple services and expose them all through one MCP gateway:
 
 ```go
-users := micro.New("users", micro.Address(":8081"))
-tasks := micro.New("tasks", micro.Address(":8082"))
-notifications := micro.New("notifications", micro.Address(":8083"))
+users := micro.NewService("users", micro.Address(":8081"))
+tasks := micro.NewService("tasks", micro.Address(":8082"))
+notifications := micro.NewService("notifications", micro.Address(":8083"))
 
 // Run all together as a modular monolith
 g := micro.NewGroup(users, tasks, notifications)
@@ -89,8 +89,8 @@ User → API → Your Service → AI Model (Claude/GPT)
 
 ```go
 import (
-    "go-micro.dev/v5/ai"
-    _ "go-micro.dev/v5/ai/anthropic"
+    "go-micro.dev/v6/ai"
+    _ "go-micro.dev/v6/ai/anthropic"
 )
 
 type SummaryService struct {
@@ -150,8 +150,8 @@ User → Your App → AI Model ←→ MCP Tools (your services)
 
 ```go
 import (
-    "go-micro.dev/v5/ai"
-    _ "go-micro.dev/v5/ai/anthropic"
+    "go-micro.dev/v6/ai"
+    _ "go-micro.dev/v6/ai/anthropic"
 )
 
 // Define tools from your service endpoints

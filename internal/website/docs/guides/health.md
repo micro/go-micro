@@ -9,7 +9,7 @@ The `health` package provides health check functionality for microservices, incl
 ## Quick Start
 
 ```go
-import "go-micro.dev/v5/health"
+import "go-micro.dev/v6/health"
 
 func main() {
     // Register health checks
@@ -122,7 +122,7 @@ health.Register("disk", health.CustomCheck(func() error {
 Verifies the service registry is still reachable. A go-micro service can keep running while it has silently lost its connection to the registry (etcd, Consul, …) — the process looks healthy, but other services can no longer discover it. `RegistryCheck` surfaces that state so a readiness probe can take the pod out of rotation.
 
 ```go
-svc := micro.New("orders")
+svc := micro.NewService("orders")
 
 health.Register("registry", health.RegistryCheck(svc.Options().Registry))
 ```

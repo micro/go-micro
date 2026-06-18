@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/registry"
 )
 
 // mockAuth implements auth.Auth for testing.

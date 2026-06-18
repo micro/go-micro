@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 
-	"go-micro.dev/v5"
+	"go-micro.dev/v6"
 )
 
 // -- Users service --
@@ -56,8 +56,8 @@ func (o *Orders) Create(ctx context.Context, req *OrderRequest, rsp *OrderRespon
 func main() {
 	// Create two services — each gets isolated server, client,
 	// store, and cache instances automatically.
-	users := micro.New("users", micro.Address(":9001"))
-	orders := micro.New("orders", micro.Address(":9002"))
+	users := micro.NewService("users", micro.Address(":9001"))
+	orders := micro.NewService("orders", micro.Address(":9002"))
 
 	// Register handlers
 	if err := users.Handle(new(Users)); err != nil {

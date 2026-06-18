@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"log"
 
-	micro "go-micro.dev/v5"
-	"go-micro.dev/v5/client"
-	grpcclient "go-micro.dev/v5/client/grpc"
-	"go-micro.dev/v5/server"
-	grpcserver "go-micro.dev/v5/server/grpc"
+	micro "go-micro.dev/v6"
+	"go-micro.dev/v6/client"
+	grpcclient "go-micro.dev/v6/client/grpc"
+	"go-micro.dev/v6/server"
+	grpcserver "go-micro.dev/v6/server/grpc"
 
 	pb "example/proto"
 )
@@ -28,7 +28,7 @@ func (g *Greeter) Hello(ctx context.Context, req *pb.HelloRequest, rsp *pb.Hello
 func main() {
 	addr := ":50051"
 
-	service := micro.New("greeter",
+	service := micro.NewService("greeter",
 		micro.Server(grpcserver.NewServer(
 			server.Name("greeter"),
 			server.Address(addr),

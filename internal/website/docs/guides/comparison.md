@@ -136,8 +136,8 @@ func main() {
 You can use gRPC with Go Micro for native gRPC compatibility:
 ```go
 import (
-    grpcServer "go-micro.dev/v5/server/grpc"
-    grpcClient "go-micro.dev/v5/client/grpc"
+    grpcServer "go-micro.dev/v6/server/grpc"
+    grpcClient "go-micro.dev/v6/client/grpc"
 )
 
 svc := micro.NewService(

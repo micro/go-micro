@@ -10,58 +10,34 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"log"
 	"math/big"
 	"net"
 	"os"
-	"sync"
 	"time"
 )
 
-var (
-	// Track if we've already logged the warning to avoid spam
-	warningOnce sync.Once
-)
-
-// Config returns a TLS config.
+// Config returns the default TLS config.
 //
-// BACKWARD COMPATIBILITY: By default, InsecureSkipVerify is true for compatibility
-// with existing deployments. This maintains the existing behavior to avoid breaking
-// production systems during upgrades.
+// As of v6, certificate verification is ON by default (secure by default).
+// This is the safe choice now that an agent — not just a human on a
+// trusted network — can reach an endpoint.
 //
-// SECURITY WARNING: The default behavior skips certificate verification. This is
-// insecure and vulnerable to man-in-the-middle attacks.
-//
-// To enable secure certificate verification (RECOMMENDED for production):
-//   - Set environment variable: MICRO_TLS_SECURE=true
-//   - Use SecureConfig() function directly
-//   - Configure TLSConfig with proper certificates
-//   - Use a service mesh (Istio, Linkerd) for mTLS
-//
-// DEPRECATION NOTICE: The insecure default will be changed in a future major version (v6).
-// Please migrate to secure mode by setting MICRO_TLS_SECURE=true in your environment.
+// For development against self-signed certificates, set
+// MICRO_TLS_INSECURE=true to skip verification, or call InsecureConfig()
+// directly. (In v5 the default was the reverse: insecure unless
+// MICRO_TLS_SECURE=true was set. That env var is no longer needed.)
 func Config() *tls.Config {
-	// Check environment for explicit secure mode
-	if os.Getenv("MICRO_TLS_SECURE") == "true" {
+	// Opt out of verification for local/dev against self-signed certs.
+	if os.Getenv("MICRO_TLS_INSECURE") == "true" {
 		return &tls.Config{
-			InsecureSkipVerify: false,
+			InsecureSkipVerify: true,
 			MinVersion:         tls.VersionTLS12,
 		}
 	}
 
-	// Log deprecation warning once (only if not in test environment)
-	if os.Getenv("IN_TRAVIS_CI") == "" {
-		warningOnce.Do(func() {
-			log.Println("[SECURITY WARNING] TLS certificate verification is disabled by default. " +
-				"This is insecure and will change in v6. " +
-				"Set MICRO_TLS_SECURE=true to enable certificate verification.")
-		})
-	}
-
-	// DEPRECATED: Default remains insecure for backward compatibility
-	// This will change in v6 - please migrate to secure mode
+	// Secure by default.
 	return &tls.Config{
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: false,
 		MinVersion:         tls.VersionTLS12,
 	}
 }

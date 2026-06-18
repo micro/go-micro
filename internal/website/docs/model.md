@@ -19,8 +19,8 @@ package main
 import (
     "context"
 
-    "go-micro.dev/v5"
-    "go-micro.dev/v5/model"
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/model"
 )
 
 type Task struct {
@@ -31,7 +31,7 @@ type Task struct {
 }
 
 func main() {
-    service := micro.New("tasks")
+    service := micro.NewService("tasks")
 
     // Register your type with the service's model backend
     db := service.Model()
@@ -162,7 +162,7 @@ The model layer uses Go Micro's pluggable interface pattern. All backends implem
 Zero-config, in-memory storage. Data doesn't persist across restarts. Ideal for development and testing.
 
 ```go
-service := micro.New("myservice")
+service := micro.NewService("myservice")
 db := service.Model() // memory backend by default
 db.Register(&Task{})
 ```
@@ -170,7 +170,7 @@ db.Register(&Task{})
 Or create directly:
 
 ```go
-import "go-micro.dev/v5/model"
+import "go-micro.dev/v6/model"
 
 db := model.NewModel()
 db.Register(&Task{})
@@ -181,10 +181,10 @@ db.Register(&Task{})
 File-based database. Good for local development or single-node production.
 
 ```go
-import "go-micro.dev/v5/model/sqlite"
+import "go-micro.dev/v6/model/sqlite"
 
 db := sqlite.New("app.db")
-service := micro.New("myservice", micro.Model(db))
+service := micro.NewService("myservice", micro.Model(db))
 ```
 
 ### Postgres
@@ -192,10 +192,10 @@ service := micro.New("myservice", micro.Model(db))
 Production-grade with connection pooling.
 
 ```go
-import "go-micro.dev/v5/model/postgres"
+import "go-micro.dev/v6/model/postgres"
 
 db := postgres.New("postgres://user:pass@localhost/myapp?sslmode=disable")
-service := micro.New("myservice", micro.Model(db))
+service := micro.NewService("myservice", micro.Model(db))
 ```
 
 ## Service Integration
@@ -203,7 +203,7 @@ service := micro.New("myservice", micro.Model(db))
 The `Service` interface provides `Model()` alongside `Client()` and `Server()`:
 
 ```go
-service := micro.New("users", micro.Address(":9001"))
+service := micro.NewService("users", micro.Address(":9001"))
 
 // Access the three core components
 client := service.Client()  // Call other services
@@ -248,7 +248,7 @@ func (h *OrderHandler) CreateOrder(ctx context.Context, req *CreateReq, rsp *Cre
 The model package returns sentinel errors:
 
 ```go
-import "go-micro.dev/v5/model"
+import "go-micro.dev/v6/model"
 
 // Check for not found
 err := db.Read(ctx, "missing", &User{})
@@ -278,7 +278,7 @@ func main() {
         db = model.NewModel()
     }
 
-    service := micro.New("myservice", micro.Model(db))
+    service := micro.NewService("myservice", micro.Model(db))
     // ... same application code regardless of backend
 }
 ```

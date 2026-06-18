@@ -3,8 +3,8 @@ package server
 import (
 	"net/http"
 
-	"go-micro.dev/v5/codec"
-	"go-micro.dev/v5/transport"
+	"go-micro.dev/v6/codec"
+	"go-micro.dev/v6/transport"
 )
 
 type rpcResponse struct {

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v5/auth"
+	"go-micro.dev/v6/auth"
 
 	"github.com/gorilla/websocket"
 )

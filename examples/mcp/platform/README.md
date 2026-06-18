@@ -58,7 +58,7 @@ The agent will: call Users.List, Posts.List, and ListTags (potentially in parall
 The key insight: **you don't need to write any agent-specific code**. The MCP gateway discovers services from the registry, extracts tool schemas from Go types, and generates descriptions from doc comments.
 
 ```go
-service := micro.New("platform",
+service := micro.NewService("platform",
     micro.Address(":9090"),
     mcp.WithMCP(":3001"),  // This one line makes everything AI-accessible
 )

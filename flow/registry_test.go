@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"go-micro.dev/v5/broker"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/registry"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/registry"
 )
 
 // A trigger-bound flow announces itself in the registry as type=flow

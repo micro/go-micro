@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v5/cmd"
-	"go-micro.dev/v5/cmd/micro/run/config"
+	"go-micro.dev/v6/cmd"
+	"go-micro.dev/v6/cmd/micro/run/config"
 )
 
 // Build builds Go binaries for services

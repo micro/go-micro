@@ -24,7 +24,7 @@ package main
 
 import (
     "context"
-    "go-micro.dev/v5"
+    "go-micro.dev/v6"
 )
 
 type GreeterService struct{}
@@ -46,7 +46,7 @@ type HelloResponse struct {
 }
 
 func main() {
-    service := micro.New("greeter")
+    service := micro.NewService("greeter")
     service.Init()
 
     // Register handler - docs extracted automatically from comments!

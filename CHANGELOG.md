@@ -7,7 +7,16 @@ calendar-based versions (YYYY.MM) for the AI-native era.
 
 ---
 
-## [Unreleased]
+## [6.0.0] - June 2026
+
+The AI-native major release. Breaking changes are listed first; everything
+else is additive. See the [v5 → v6 migration guide](internal/website/docs/guides/migration/v5-to-v6.md) — it's a small upgrade.
+
+### Changed (breaking)
+- **Module path is now `go-micro.dev/v6`.** Update imports (`go-micro.dev/v5/...` → `go-micro.dev/v6/...`) and `go install go-micro.dev/v6/cmd/micro@latest`.
+- **TLS verification is on by default.** v5 skipped verification unless `MICRO_TLS_SECURE=true`; v6 verifies by default. `MICRO_TLS_SECURE` is removed — set `MICRO_TLS_INSECURE=true` (or call `tls.InsecureConfig()`) for self-signed/dev certs.
+- **`micro.NewService(name, opts...)` is the service constructor**, symmetric with `NewAgent`/`NewFlow`. `micro.New(name, opts...)` remains as a deprecated alias; the old name-less `micro.NewService(opts...)` form is removed (pass the name positionally). Generators emit the new form.
+- **JWT auth ported in-module.** The external `github.com/micro/plugins/v5/auth/jwt` (pinned to v5) is replaced by `go-micro.dev/v6/auth/jwt/token`, now on the maintained `golang-jwt/jwt/v5`; the deprecated `dgrijalva/jwt-go` dependency is dropped.
 
 ### Added
 - **A2A protocol — both directions** — `gateway/a2a` exposes registered agents over the open Agent2Agent (A2A) protocol so agents on other frameworks can discover and call them: Agent Cards are generated from registry metadata (the same way the MCP gateway derives tools), and incoming tasks are translated to the agent's existing `Agent.Chat` RPC, with no per-agent code (`micro a2a serve`). The outbound `a2a.Client` calls external A2A agents by URL, wired into `flow.A2A(url)` (a workflow step) and `delegate` to an `http(s)` URL (from inside an agent). An agent can also serve A2A **directly** without a gateway via `AgentA2A(addr)` (`a2a.NewAgentHandler`), handling tasks in-process. v1 is the synchronous JSON-RPC binding (`message/send`, `tasks/get`, card discovery); streaming and push notifications are advertised as unsupported. (`gateway/a2a/`, `cmd/micro/a2a/`)
@@ -37,10 +46,10 @@ calendar-based versions (YYYY.MM) for the AI-native era.
 
 #### Developer Experience
 - **`micro new` MCP templates** — `micro new myservice` generates MCP-enabled services with doc comments, `@example` tags, and `WithMCP()` wired in. Use `--no-mcp` to opt out.
-- **`micro.New("name")` unified API** — single way to create services: `micro.New("greeter")` or `micro.New("greeter", micro.Address(":8080"))`. Replaces `micro.NewService()` + `service.New()` dual API.
+- **`micro.NewService("name")` unified API** — single way to create services: `micro.NewService("greeter")` or `micro.NewService("greeter", micro.Address(":8080"))`. Replaces `micro.NewService()` + `service.New()` dual API.
 - **`service.Handle()` simplified registration** — register handlers with `service.Handle(new(Greeter))` instead of manual `server.NewHandler` + `server.Handle`.
 - **`micro.NewGroup()` modular monoliths** — run multiple services in one binary with shared lifecycle: `micro.NewGroup(users, orders).Run()`.
-- **`mcp.WithMCP()` one-liner** — add MCP to any service with a single option: `micro.New("name", mcp.WithMCP(":3001"))`.
+- **`mcp.WithMCP()` one-liner** — add MCP to any service with a single option: `micro.NewService("name", mcp.WithMCP(":3001"))`.
 - **CRUD example** — contact book service with 6 operations, rich agent docs, and validation patterns (`examples/mcp/crud/`).
 
 #### MCP Gateway

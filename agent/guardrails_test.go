@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/store"
 )
 
 // toolContent runs a tool call through a handler and returns the content

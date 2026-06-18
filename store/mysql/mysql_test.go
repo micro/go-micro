@@ -10,7 +10,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/store"
 )
 
 var (

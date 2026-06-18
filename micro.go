@@ -4,13 +4,13 @@ package micro
 import (
 	"context"
 
-	"go-micro.dev/v5/agent"
-	"go-micro.dev/v5/ai"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/flow"
-	"go-micro.dev/v5/server"
-	"go-micro.dev/v5/service"
-	"go-micro.dev/v5/store"
+	"go-micro.dev/v6/agent"
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/server"
+	"go-micro.dev/v6/service"
+	"go-micro.dev/v6/store"
 )
 
 type serviceKey struct{}
@@ -46,18 +46,20 @@ type Event interface {
 // Type alias to satisfy the deprecation.
 type Publisher = Event
 
-// New creates a new service with the given name and options.
+// NewService creates a new service with the given name and options. It is
+// the canonical constructor, symmetric with NewAgent and NewFlow.
 //
-//	service := micro.New("greeter")
-//	service := micro.New("greeter", micro.Address(":8080"))
-func New(name string, opts ...Option) Service {
+//	service := micro.NewService("greeter")
+//	service := micro.NewService("greeter", micro.Address(":8080"))
+func NewService(name string, opts ...Option) Service {
 	return service.New(append([]Option{service.Name(name)}, opts...)...)
 }
 
-// NewService creates and returns a new Service based on the packages within.
-// Deprecated: Use New(name, opts...) instead.
-func NewService(opts ...Option) Service {
-	return service.New(opts...)
+// New is a deprecated alias for NewService.
+//
+// Deprecated: use NewService(name, opts...) — symmetric with NewAgent and NewFlow.
+func New(name string, opts ...Option) Service {
+	return NewService(name, opts...)
 }
 
 // NewAgent creates a new AI agent that manages the given services.

@@ -3,9 +3,9 @@ package auth
 import (
 	"context"
 
-	"go-micro.dev/v5/auth"
-	"go-micro.dev/v5/client"
-	"go-micro.dev/v5/metadata"
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/metadata"
 )
 
 // ClientOptions for configuring the auth client wrapper

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	rclient "github.com/go-redis/redis/v8"
-	"go-micro.dev/v5/cache"
+	"go-micro.dev/v6/cache"
 )
 
 type redisOptionsContextKey struct{}

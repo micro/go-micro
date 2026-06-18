@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	micro "go-micro.dev/v5"
-	"go-micro.dev/v5/client"
-	grpcclient "go-micro.dev/v5/client/grpc"
-	"go-micro.dev/v5/registry"
-	"go-micro.dev/v5/server"
+	micro "go-micro.dev/v6"
+	"go-micro.dev/v6/client"
+	grpcclient "go-micro.dev/v6/client/grpc"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/server"
 )
 
 type SleepRequest struct {
@@ -55,7 +55,7 @@ func TestGracefulStopRejectsNewRPCsButAllowsInFlightRPCs(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
 	handler := &SleepHandler{started: make(chan struct{}, 1)}
 
-	svc := micro.New("grace-demo",
+	svc := micro.NewService("grace-demo",
 		micro.HandleSignal(false),
 		micro.Registry(reg),
 		micro.Server(NewServer(
