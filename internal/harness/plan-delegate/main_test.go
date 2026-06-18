@@ -102,8 +102,8 @@ func TestPlanDelegateEndToEnd(t *testing.T) {
 		t.Errorf("task service has %d tasks, want 3", n)
 	}
 
-	// The plan was persisted to the real store.
-	if recs, err := mem.Read("agent/conductor/plan"); err != nil || len(recs) == 0 {
+	// The plan was persisted to the real store, in the agent's scoped table.
+	if recs, err := store.Scope(mem, "agent", "conductor").Read("plan"); err != nil || len(recs) == 0 {
 		t.Errorf("plan not persisted to store: err=%v recs=%d", err, len(recs))
 	}
 
@@ -195,7 +195,7 @@ func TestFlowDispatchesToAgentEndToEnd(t *testing.T) {
 	if n := taskSvc.count(); n != 3 {
 		t.Errorf("task service has %d tasks, want 3", n)
 	}
-	if recs, err := mem.Read("agent/conductor/plan"); err != nil || len(recs) == 0 {
+	if recs, err := store.Scope(mem, "agent", "conductor").Read("plan"); err != nil || len(recs) == 0 {
 		t.Errorf("plan not persisted: err=%v recs=%d", err, len(recs))
 	}
 	if n := notifySvc.count(); n != 1 {
