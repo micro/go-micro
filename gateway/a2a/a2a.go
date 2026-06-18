@@ -64,10 +64,8 @@ type Options struct {
 
 // Gateway serves the A2A protocol over HTTP for the registry's agents.
 type Gateway struct {
-	opts  Options
-	mu    sync.Mutex
-	tasks map[string]*Task
-	order []string // task ids in insertion order, for bounded eviction
+	opts Options
+	disp *dispatcher
 }
 
 // New creates an A2A gateway.
@@ -85,7 +83,27 @@ func New(opts Options) *Gateway {
 		opts.BaseURL = "http://localhost" + opts.Address
 	}
 	opts.BaseURL = strings.TrimRight(opts.BaseURL, "/")
-	return &Gateway{opts: opts, tasks: map[string]*Task{}}
+	return &Gateway{opts: opts, disp: newDispatcher()}
+}
+
+// Invoke runs an agent for one message and returns its reply. It is the
+// seam between the A2A protocol and however the agent is reached — an RPC
+// to Agent.Chat (the gateway) or an in-process Ask (an embedded agent).
+type Invoke func(ctx context.Context, text string) (string, error)
+
+// NewAgentHandler returns an http.Handler that serves the A2A protocol
+// for a single agent: its Agent Card at / and /.well-known/agent.json,
+// and the JSON-RPC endpoint at /. invoke runs the agent. This is what an
+// agent embeds to speak A2A directly, without a separate gateway.
+func NewAgentHandler(card AgentCard, invoke Invoke) http.Handler {
+	d := newDispatcher()
+	mux := http.NewServeMux()
+	card.URL = strings.TrimRight(card.URL, "/")
+	serveCard := func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, http.StatusOK, card) }
+	mux.HandleFunc("GET /{$}", serveCard)
+	mux.HandleFunc("GET /.well-known/agent.json", serveCard)
+	mux.HandleFunc("POST /{$}", func(w http.ResponseWriter, r *http.Request) { d.serve(w, r, invoke) })
+	return mux
 }
 
 // Serve creates a gateway and serves it on opts.Address (blocking).
@@ -272,23 +290,28 @@ func agentMetadata(svc *registry.Service) map[string]string {
 
 // card builds an Agent Card for a named agent from its registry metadata.
 func (g *Gateway) card(name string, meta map[string]string) AgentCard {
-	services := meta["services"]
-	desc := meta["description"]
-	if desc == "" {
-		if services != "" {
-			desc = fmt.Sprintf("Go Micro agent managing: %s", services)
-		} else {
-			desc = "Go Micro agent"
-		}
+	var services []string
+	if meta["services"] != "" {
+		services = strings.Split(meta["services"], ",")
 	}
-	var tags []string
-	if services != "" {
-		tags = strings.Split(services, ",")
+	return Card(name, g.opts.BaseURL+"/agents/"+name, meta["description"], services)
+}
+
+// Card builds an Agent Card for an agent. url is the agent's A2A endpoint
+// (the card's `url`); description defaults from the services it manages.
+// Agents embedding the A2A handler use this to build their own card.
+func Card(name, url, description string, services []string) AgentCard {
+	if description == "" {
+		if len(services) > 0 {
+			description = fmt.Sprintf("Go Micro agent managing: %s", strings.Join(services, ","))
+		} else {
+			description = "Go Micro agent"
+		}
 	}
 	return AgentCard{
 		Name:            name,
-		Description:     desc,
-		URL:             g.opts.BaseURL + "/agents/" + name,
+		Description:     description,
+		URL:             url,
 		Version:         "1.0.0",
 		ProtocolVersion: protocolVersion,
 		Capabilities:    Capabilities{Streaming: false, PushNotifications: false},
@@ -300,7 +323,7 @@ func (g *Gateway) card(name string, meta map[string]string) AgentCard {
 			ID:          "chat",
 			Name:        "Chat",
 			Description: "Converse with the agent to operate its services.",
-			Tags:        tags,
+			Tags:        services,
 		}},
 	}
 }
@@ -359,6 +382,27 @@ func (g *Gateway) handleWellKnown(w http.ResponseWriter, r *http.Request) {
 
 func (g *Gateway) handleRPC(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
+	if _, ok := g.lookupCard(name); !ok {
+		writeRPC(w, nil, nil, &rpcError{Code: errInvalidParams, Message: "unknown agent: " + name})
+		return
+	}
+	g.disp.serve(w, r, func(ctx context.Context, text string) (string, error) {
+		return g.callAgent(ctx, name, text)
+	})
+}
+
+// dispatcher handles A2A JSON-RPC requests against an Invoke function and
+// retains recent tasks for tasks/get. It is shared by the gateway (one
+// per registry) and embedded agents (one per agent).
+type dispatcher struct {
+	mu    sync.Mutex
+	tasks map[string]*Task
+	order []string // task ids in insertion order, for bounded eviction
+}
+
+func newDispatcher() *dispatcher { return &dispatcher{tasks: map[string]*Task{}} }
+
+func (d *dispatcher) serve(w http.ResponseWriter, r *http.Request, invoke Invoke) {
 	var req rpcRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeRPC(w, nil, nil, &rpcError{Code: errParse, Message: "parse error"})
@@ -371,14 +415,14 @@ func (g *Gateway) handleRPC(w http.ResponseWriter, r *http.Request) {
 
 	switch req.Method {
 	case "message/send":
-		g.handleSend(w, name, req)
+		d.send(w, req, invoke)
 	case "tasks/get":
-		g.handleGet(w, req)
+		d.get(w, req)
 	case "tasks/cancel":
 		// v1 tasks complete synchronously, so they're already terminal.
 		writeRPC(w, req.ID, nil, &rpcError{Code: errNotCancelable, Message: "task is not cancelable"})
 	case "message/stream", "tasks/resubscribe":
-		writeRPC(w, req.ID, nil, &rpcError{Code: errMethodNotFound, Message: "streaming is not supported by this gateway"})
+		writeRPC(w, req.ID, nil, &rpcError{Code: errMethodNotFound, Message: "streaming is not supported"})
 	default:
 		writeRPC(w, req.ID, nil, &rpcError{Code: errMethodNotFound, Message: "method not found: " + req.Method})
 	}
@@ -388,11 +432,7 @@ type sendParams struct {
 	Message Message `json:"message"`
 }
 
-func (g *Gateway) handleSend(w http.ResponseWriter, name string, req rpcRequest) {
-	if _, ok := g.lookupCard(name); !ok {
-		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "unknown agent: " + name})
-		return
-	}
+func (d *dispatcher) send(w http.ResponseWriter, req rpcRequest, invoke Invoke) {
 	var p sendParams
 	if err := json.Unmarshal(req.Params, &p); err != nil {
 		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
@@ -404,7 +444,7 @@ func (g *Gateway) handleSend(w http.ResponseWriter, name string, req rpcRequest)
 		return
 	}
 
-	reply, err := g.callAgent(r2ctx(), name, text)
+	reply, err := invoke(r2ctx(), text)
 	contextID := p.Message.ContextID
 	if contextID == "" {
 		contextID = uuid.New().String()
@@ -423,7 +463,7 @@ func (g *Gateway) handleSend(w http.ResponseWriter, name string, req rpcRequest)
 		task.Status.State = stateCompleted
 		task.Artifacts = []Artifact{textArtifact(reply)}
 	}
-	g.store(task)
+	d.store(task)
 	writeRPC(w, req.ID, task, nil)
 }
 
@@ -431,15 +471,15 @@ type getParams struct {
 	ID string `json:"id"`
 }
 
-func (g *Gateway) handleGet(w http.ResponseWriter, req rpcRequest) {
+func (d *dispatcher) get(w http.ResponseWriter, req rpcRequest) {
 	var p getParams
 	if err := json.Unmarshal(req.Params, &p); err != nil || p.ID == "" {
 		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
 		return
 	}
-	g.mu.Lock()
-	task := g.tasks[p.ID]
-	g.mu.Unlock()
+	d.mu.Lock()
+	task := d.tasks[p.ID]
+	d.mu.Unlock()
 	if task == nil {
 		writeRPC(w, req.ID, nil, &rpcError{Code: errTaskNotFound, Message: "task not found"})
 		return
@@ -473,15 +513,15 @@ func (g *Gateway) callAgent(ctx context.Context, name, message string) (string, 
 // helpers
 // ---------------------------------------------------------------------------
 
-func (g *Gateway) store(t *Task) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.tasks[t.ID] = t
-	g.order = append(g.order, t.ID)
-	for len(g.order) > maxTasks {
-		oldest := g.order[0]
-		g.order = g.order[1:]
-		delete(g.tasks, oldest)
+func (d *dispatcher) store(t *Task) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.tasks[t.ID] = t
+	d.order = append(d.order, t.ID)
+	for len(d.order) > maxTasks {
+		oldest := d.order[0]
+		d.order = d.order[1:]
+		delete(d.tasks, oldest)
 	}
 }
 

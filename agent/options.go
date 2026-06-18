@@ -58,6 +58,10 @@ type Options struct {
 	// Approve gates each action before it runs. Nil = allow all.
 	Approve ApproveFunc
 
+	// A2AAddress, if set, makes Run serve this agent over the A2A protocol
+	// on that address directly (no separate gateway), e.g. ":4000".
+	A2AAddress string
+
 	// tools are developer-registered custom tools (see WithTool).
 	tools []customTool
 	// wrappers are developer-registered tool-execution wrappers
@@ -149,6 +153,14 @@ func ApproveTool(fn ApproveFunc) Option {
 // no-progress loop. 0 disables loop detection.
 func LoopLimit(n int) Option {
 	return func(o *Options) { o.LoopLimit = n }
+}
+
+// WithA2A makes Run serve the agent over the A2A protocol on addr (e.g.
+// ":4000"), so other agents can reach it directly by URL without a
+// separate gateway. The agent stays a normal go-micro service as well;
+// this adds a second, A2A-native HTTP endpoint that calls it in-process.
+func WithA2A(addr string) Option {
+	return func(o *Options) { o.A2AAddress = addr }
 }
 
 // WithMemory sets the agent's conversation memory. The default is
