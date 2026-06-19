@@ -79,6 +79,12 @@ A workflow as ordered, checkpointed steps that survives a crash and resumes wher
 - **steps** — a flow is a task with stages (`reserve → charge → confirm`), not just one LLM turn
 - **Checkpoint** — each step is persisted; on `Resume`, completed steps are not re-run (no duplicate side effects)
 
+### [support](./support/)
+A real-world support desk — the "zero to hero" shape in one runnable file:
+- **services** (`customers`, `tickets`, `notify`) become the agent's tools automatically
+- **flow** turns a `ticket.created` event into work for the agent (the event is the prompt)
+- **guardrail** — the agent triages freely but can't email a customer without passing the approval gate
+
 ## Coming Soon
 
 - **pubsub-events** - Event-driven architecture with NATS
