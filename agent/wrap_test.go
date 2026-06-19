@@ -2,10 +2,13 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/store"
 )
 
 // A registered wrapper runs around every tool call and can observe and
@@ -79,6 +82,81 @@ func TestWrapToolSeesGuardrailRefusal(t *testing.T) {
 
 	if !strings.Contains(sawResult, "not approved") {
 		t.Errorf("wrapper should observe the guardrail refusal; got %q", sawResult)
+	}
+}
+
+// A guardrail refusal carries a structured reason a wrapper can switch on,
+// so reliability tooling (e.g. loop handling) needn't parse the message.
+func TestWrapToolSeesRefusedReason(t *testing.T) {
+	a := newTestAgent(Name("looper"), LoopLimit(2))
+	h := a.toolHandler()
+
+	var last ai.ToolResult
+	for i := 0; i < 3; i++ {
+		last = h(context.Background(), ai.ToolCall{ID: "x", Name: "demo_Svc_Do", Input: map[string]any{"q": "same"}})
+	}
+	if last.Refused != ai.RefusedLoop {
+		t.Errorf("Refused = %q, want %q", last.Refused, ai.RefusedLoop)
+	}
+}
+
+// ctxMock is a model that forwards the Generate context to the tool
+// handler (as real providers do), so a wrapper can read ai.RunInfo.
+type ctxMock struct{ opts ai.Options }
+
+func (m *ctxMock) Init(opts ...ai.Option) error {
+	for _, o := range opts {
+		o(&m.opts)
+	}
+	return nil
+}
+func (m *ctxMock) Options() ai.Options { return m.opts }
+func (m *ctxMock) String() string      { return "ctxmock" }
+func (m *ctxMock) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+	return nil, fmt.Errorf("no stream")
+}
+func (m *ctxMock) Generate(ctx context.Context, _ *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+	if m.opts.ToolHandler != nil {
+		m.opts.ToolHandler(ctx, ai.ToolCall{ID: "c1", Name: "demo_Svc_Do", Input: map[string]any{}})
+	}
+	return &ai.Response{Answer: "done"}, nil
+}
+
+// During an Ask, a wrapper sees RunInfo on the context: a correlation id
+// for the run and the agent's name.
+func TestWrapToolSeesRunInfo(t *testing.T) {
+	ai.Register("ctxmock", func(opts ...ai.Option) ai.Model {
+		m := &ctxMock{}
+		_ = m.Init(opts...)
+		return m
+	})
+
+	var got ai.RunInfo
+	var ok bool
+	a := New(
+		Name("runner"),
+		Provider("ctxmock"),
+		WithRegistry(registry.NewMemoryRegistry()),
+		WithStore(store.NewMemoryStore()),
+		WrapTool(func(next ai.ToolHandler) ai.ToolHandler {
+			return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+				got, ok = ai.RunInfoFrom(ctx)
+				return next(ctx, call)
+			}
+		}),
+	)
+
+	if _, err := a.Ask(context.Background(), "go"); err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if !ok {
+		t.Fatal("wrapper did not see RunInfo on the context")
+	}
+	if got.Agent != "runner" {
+		t.Errorf("RunInfo.Agent = %q, want runner", got.Agent)
+	}
+	if got.RunID == "" {
+		t.Error("RunInfo.RunID is empty")
 	}
 }
 

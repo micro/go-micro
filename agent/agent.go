@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/google/uuid"
 	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/gateway/a2a"
@@ -72,6 +73,12 @@ type agentImpl struct {
 	// calls counts identical tool calls (name+args) in the current Ask,
 	// for LoopLimit.
 	calls map[string]int
+
+	// runID correlates the tool calls of the current Ask; parentRunID is
+	// the run that delegated to this one (set on ephemeral sub-agents).
+	// Both are surfaced to tool wrappers via ai.RunInfo on the context.
+	runID       string
+	parentRunID string
 }
 
 // New creates a new Agent.
@@ -167,6 +174,14 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 	a.mem.Add("user", message)
 	a.steps = 0
 	a.calls = map[string]int{}
+
+	// Correlate this run's tool calls and surface lineage to wrappers.
+	a.runID = uuid.New().String()
+	ctx = ai.WithRunInfo(ctx, ai.RunInfo{
+		RunID:    a.runID,
+		ParentID: a.parentRunID,
+		Agent:    a.opts.Name,
+	})
 
 	resp, err := a.model.Generate(ctx, &ai.Request{
 		Prompt:       message,
