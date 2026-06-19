@@ -125,17 +125,15 @@ Build compelling demos showing agents interacting with go-micro services in real
 | CLI Entry | `cmd/micro/main.go` |
 | MCP CLI | `cmd/micro/mcp/` |
 | Server (run/server) | `cmd/micro/server/server.go` |
-| Roadmap | `internal/docs/ROADMAP_2026.md` |
-| Status | `internal/docs/CURRENT_STATUS_SUMMARY.md` |
+| Roadmap | `ROADMAP.md` (full: `internal/website/docs/roadmap.md`) |
+| Status | `CHANGELOG.md` |
 | Changelog | `CHANGELOG.md` |
 | Docs Site | `internal/website/docs/` |
 
 ## Roadmap & Status Documents
 
-- **[ROADMAP.md](ROADMAP.md)** - General framework roadmap
-- **[internal/docs/ROADMAP_2026.md](internal/docs/ROADMAP_2026.md)** - AI-native era roadmap with business model
-- **[internal/docs/CURRENT_STATUS_SUMMARY.md](internal/docs/CURRENT_STATUS_SUMMARY.md)** - Quick status overview
-- **[internal/docs/PROJECT_STATUS_2026.md](internal/docs/PROJECT_STATUS_2026.md)** - Detailed technical status
+- **[ROADMAP.md](ROADMAP.md)** - the single, current roadmap (agentic development + DX). Full version at `internal/website/docs/roadmap.md`.
+- **[CHANGELOG.md](CHANGELOG.md)** - what shipped and when (the source of truth for status).
 - **[internal/docs/IMPLEMENTATION_SUMMARY.md](internal/docs/IMPLEMENTATION_SUMMARY.md)** - Implementation notes
 - **[CHANGELOG.md](CHANGELOG.md)** - What changed and when
 

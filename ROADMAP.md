@@ -1,182 +1,75 @@
 # Go Micro Roadmap
 
-This roadmap outlines the planned features and improvements for Go Micro. Community feedback and contributions are welcome!
+Go Micro is a framework for building **agents and services** in Go. An agent is a
+distributed system — it discovers services, calls them, holds state, and recovers
+from failure — so building an agent is building a service. The roadmap has two
+jobs: make **agentic development** excellent, and make the **developer experience**
+around it excellent.
 
-> **See [internal/docs/ROADMAP_2026.md](internal/docs/ROADMAP_2026.md) for the AI-Native Era roadmap** focused on MCP integration, agent-first development, and business sustainability. This document covers general framework improvements.
+The full, current roadmap lives at **[go-micro.dev/docs/roadmap](https://go-micro.dev/docs/roadmap)**
+([source](internal/website/docs/roadmap.md)). The highlights:
 
-## Current Focus (Q1 2026) - COMPLETE
+## Where we are (v6)
 
-### Documentation & Developer Experience
-- [x] Modernize documentation structure
-- [x] Add learn-by-example guides
-- [x] Update issue templates
-- [x] MCP integration documentation
-- [x] Agent playground and MCP tools registry
-- [ ] Create video tutorials
-- [ ] Interactive documentation site
-- [ ] Plugin discovery dashboard
+Services, agents (`plan`/`delegate`, guardrails, memory, tool middleware), durable
+flows, the MCP and A2A gateways (both directions), x402 paid tools, secure by
+default.
 
-### AI & Model Integration
-- [x] AI package with provider abstraction (`ai.Model` interface)
-- [x] Anthropic Claude provider (`ai/anthropic`)
-- [x] OpenAI GPT provider (`ai/openai`)
-- [x] Tool execution with auto-calling support
-- [x] Streaming support via `ai.Stream`
+## Principles
 
-### Observability
-- [ ] OpenTelemetry native support
-- [ ] Auto-instrumentation for handlers
-- [ ] Metrics export standardization
-- [ ] Distributed tracing examples
-- [ ] Integration with popular observability platforms
+1. Build into what people run, never a separate product (no hosted platform, no
+   enterprise edition, no VC).
+2. CLI-first — the CLI is the experience; UI must earn its place, never bloat.
+3. The getting-started flow is a contract: *0→1* (scaffold → run → call) and
+   *0→hero* (a working multi-agent system) must always work and are verified on
+   every change.
+4. Interaction matters as much as running — chatting with agents, inspecting runs
+   and history, end to end.
+5. Battle-tested: works across every provider, fails safely, observable.
 
-### Developer Tools
-- [x] `micro run` with hot reload and unified gateway
-- [x] `micro deploy` with SSH + systemd deployment
-- [x] `micro mcp` command suite (serve, list, test, docs, export)
-- [ ] `micro dev` with enhanced hot reload
-- [ ] Service templates (`micro new --template`)
-- [ ] Better error messages with suggestions
-- [ ] Debug tooling improvements
-- [ ] VS Code extension for Go Micro
+## Now — hardening
 
-## Q2 2026
+- **Cross-provider conformance** — the same agent scenario across all seven
+  providers, gated on keys, on a schedule.
+- **Failure & resilience** — timeouts, rate limits, cancellation, deadline/context
+  propagation, retry/backoff.
+- **Getting-started contract** — define and CI-verify the 0→1 and 0→hero flows.
 
-### Production Readiness
-- [x] Health check standardization
-- [x] Graceful shutdown improvements
-- [ ] Resource cleanup best practices
-- [ ] Load testing framework integration
-- [ ] Performance benchmarking suite
+## Next — agentic depth
 
-### Cloud Native
-- [ ] Kubernetes operator
-- [ ] Helm charts for common setups
-- [ ] Service mesh integration guides (Istio, Linkerd)
-- [ ] Cloud provider quickstarts (AWS, GCP, Azure)
-- [ ] Multi-cluster patterns
+- **Durable agent loop** — resume a long run via `Checkpoint` (flows already do).
+- **Streaming** — `ai.Stream` + A2A `message/stream`, end to end.
+- **Agent observability** — `RunInfo` → OpenTelemetry spans.
 
-### Security
-- [x] Bearer token authentication for MCP
-- [x] Per-tool scope enforcement
-- [x] Audit logging
-- [x] Rate limiting
-- [ ] mTLS by default option
-- [ ] Secret management integration (Vault, AWS Secrets Manager)
-- [ ] RBAC improvements
-- [ ] Security audit and hardening
-- [ ] CVE scanning and response process
+## Later
 
-## Q3 2026
+- Memory management (summarization, retrieval/RAG); human-in-the-loop pause/resume;
+  x402 live-facilitator conformance and paid remote tools with spend caps; A2A
+  streaming, push notifications, and multi-turn tasks.
 
-### Plugin Ecosystem
-- [ ] Plugin marketplace/registry
-- [ ] Plugin quality standards
-- [ ] Community plugin contributions
-- [ ] Plugin compatibility matrix
-- [ ] Auto-discovery of available plugins
+## Developer experience (ongoing)
 
-### Streaming & Async
-- [ ] Improved streaming support
-- [x] Server-sent events (SSE) support (via MCP gateway)
-- [ ] WebSocket plugin
-- [ ] Event sourcing patterns
-- [ ] CQRS examples
+- A seamless CLI inner loop (scaffold → run → chat → inspect → deploy); UI
+  discipline (trim what isn't great); a maintained real-world example that doubles
+  as the 0→hero reference; docs kept in lockstep with the code.
 
-### Testing
-- [ ] Mock generation tooling
-- [ ] Integration test helpers
-- [ ] Contract testing support
-- [ ] Chaos engineering examples
-- [ ] E2E testing framework
+## How it's sustained
 
-## Q4 2026
+The framework is the product, funded by sponsorship from those who run it — not a
+hosted service, enterprise tier, or venture funding. See
+[the v6 story](https://go-micro.dev/blog/27).
 
-### Performance
-- [ ] Connection pooling optimizations
-- [ ] Zero-allocation paths
-- [ ] gRPC performance improvements
-- [ ] Caching strategies guide
-- [ ] Performance profiling tools
+## Contributing & feedback
 
-### Developer Productivity
-- [ ] Code generation improvements
-- [ ] Better IDE support
-- [ ] Debugging tools
-- [ ] Migration automation tools
-- [ ] Upgrade helpers
+Pick an item, open an issue to discuss the approach, and submit a PR. Or join the
+[Discord](https://discord.gg/WeMU5AGxD). Include tests, run `make test` and
+`make lint`.
 
-### Community
-- [ ] Regular blog posts and case studies
-- [ ] Community spotlight program
-- [ ] Contribution rewards
-- [ ] Monthly community calls
-- [ ] Conference presence
+## Version support
 
-## Long-term Vision
+- **v6** — active development (current).
+- **v5** — security fixes only.
+- **v4 and earlier** — end of life.
 
-### Core Framework
-- Maintain backward compatibility (Go Micro v5+)
-- Progressive disclosure of complexity
-- Best-in-class developer experience
-- Production-grade reliability
-- Comprehensive plugin ecosystem
-
-### Ecosystem Goals
-- 100+ production deployments documented
-- 50+ community plugins
-- Active contributor community
-- Regular releases (monthly patches, quarterly features)
-- Comprehensive benchmarks vs alternatives
-
-### Differentiation
-- **Batteries included, fully swappable** - Start simple, scale complex
-- **Zero-config local development** - No infrastructure required to start
-- **AI-native by default** - Every service is an MCP tool automatically
-- **Plugin ecosystem in-repo** - No version compatibility hell
-- **Progressive complexity** - Learn as you grow
-- **Cloud-native first** - Built for Kubernetes and containers
-
-## Contributing
-
-We welcome contributions to any roadmap items! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### High Priority Areas
-1. Documentation improvements (guides, tutorials)
-2. Multi-protocol MCP support (WebSocket, gRPC)
-3. Agent SDK integrations (LlamaIndex, AutoGPT)
-4. OpenTelemetry integration
-5. Kubernetes operator and Helm charts
-
-### How to Contribute
-- Pick an item from the roadmap
-- Open an issue to discuss approach
-- Submit a PR with implementation
-- Help review others' contributions
-
-## Feedback
-
-Have suggestions for the roadmap?
-
-- Open a [feature request](.github/ISSUE_TEMPLATE/feature_request.md)
-- Start a discussion in GitHub Discussions
-- Comment on existing roadmap issues
-
-## Version Compatibility
-
-We follow semantic versioning:
-- Major versions (v5 → v6): Breaking changes
-- Minor versions (v5.3 → v5.4): New features, backward compatible
-- Patch versions (v5.3.0 → v5.3.1): Bug fixes, no API changes
-
-## Support Timeline
-
-- v5: Active development (current)
-- v4: Security fixes only (until v6 release)
-- v3: End of life
-
----
-
-Last updated: March 2026
-
-This roadmap is subject to change based on community needs and priorities.
+Major versions (v5 → v6) carry breaking changes; minors are backward-compatible.
+See the [v5 → v6 migration guide](https://go-micro.dev/docs/guides/migration/v5-to-v6).
