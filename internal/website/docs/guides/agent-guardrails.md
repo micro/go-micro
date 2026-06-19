@@ -78,6 +78,31 @@ type ToolWrapper func(ToolHandler) ToolHandler
 
 Wrappers run **outside** the built-in guardrails, so they observe every call and its result — including a guardrail's refusal. Multiple wrappers compose outermost-first (the first registered is the outer layer). A "before/after" hook is just the two halves of one wrapper, and retry is calling `next` again — so the wrapper is the single, composable seam for everything around execution, while `MaxSteps`, `LoopLimit`, and `ApproveTool` remain the named guardrails on top of it.
 
+### Reliability metadata
+
+A wrapper has what it needs to build reliability tooling — loop handling, retry policies, auditing — without coupling to the agent:
+
+- **What happened** — a guardrail refusal is tagged with a structured reason on the result, so you switch on it rather than parse a message:
+
+  ```go
+  res := next(ctx, call)
+  switch res.Refused {
+  case ai.RefusedLoop:     // the agent repeated an identical call
+  case ai.RefusedMaxSteps: // the step budget was exhausted
+  case ai.RefusedApproval: // ApproveTool blocked it
+  }
+  ```
+
+- **Which run** — `ai.RunInfoFrom(ctx)` returns a correlation id for the run, the agent's name, and the parent run when the call came from a delegated sub-agent:
+
+  ```go
+  if run, ok := ai.RunInfoFrom(ctx); ok {
+      log.Printf("run=%s parent=%s agent=%s tool=%s", run.RunID, run.ParentID, run.Agent, call.Name)
+  }
+  ```
+
+- **Per-call detail** — `call.ID` (correlation), `call.Name`; duration is `time.Since(start)` around `next`, and step/attempt counts are naturally counted by the wrapper itself (it sees every call).
+
 ## Execution safety at the gateway
 
 When agents reach tools **through the MCP gateway**, the gateway adds its own per-tool policies, independent of the agent:

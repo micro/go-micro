@@ -86,6 +86,42 @@ type ToolResult struct {
 	ID      string // Tool call ID (for correlation)
 	Value   any    // Structured result (optional)
 	Content string // Tool execution result (JSON string), shown to the model
+	// Refused names the reason a guardrail blocked the call before it ran
+	// ("max_steps", "loop", "approval"); empty when the call executed. A
+	// tool wrapper can switch on it to build reliability tooling — react to
+	// a detected loop, audit refusals — without parsing the message.
+	Refused string `json:"refused,omitempty"`
+}
+
+// Refusal reason codes set on ToolResult.Refused by the agent's guardrails.
+const (
+	RefusedMaxSteps = "max_steps"
+	RefusedLoop     = "loop"
+	RefusedApproval = "approval"
+)
+
+// RunInfo describes the agent run a tool call belongs to. The agent
+// attaches it to the context passed to a ToolHandler, so a wrapper can
+// correlate calls within a run and across delegation without coupling to
+// the agent package. Per-call detail (tool name, id) is on the ToolCall;
+// step and attempt counts are naturally counted by the wrapper itself.
+type RunInfo struct {
+	RunID    string // correlation id for this agent run (one per Ask)
+	ParentID string // the run that delegated to this one, if any
+	Agent    string // the agent's name
+}
+
+type runInfoKey struct{}
+
+// WithRunInfo attaches run info to ctx.
+func WithRunInfo(ctx context.Context, r RunInfo) context.Context {
+	return context.WithValue(ctx, runInfoKey{}, r)
+}
+
+// RunInfoFrom returns the run info attached to ctx, and whether it was set.
+func RunInfoFrom(ctx context.Context) (RunInfo, bool) {
+	r, ok := ctx.Value(runInfoKey{}).(RunInfo)
+	return r, ok
 }
 
 // Stream is the interface for streaming responses (future implementation)

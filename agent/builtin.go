@@ -152,7 +152,7 @@ func (a *agentImpl) stepWrap(next ai.ToolHandler) ai.ToolHandler {
 		if a.opts.MaxSteps > 0 {
 			a.steps++
 			if a.steps > a.opts.MaxSteps {
-				return errResult(call.ID, fmt.Sprintf(
+				return refused(call.ID, ai.RefusedMaxSteps, fmt.Sprintf(
 					"step limit reached (%d). Do not call any more tools; stop and summarize what you have so far.",
 					a.opts.MaxSteps))
 			}
@@ -173,7 +173,7 @@ func (a *agentImpl) loopWrap(next ai.ToolHandler) ai.ToolHandler {
 			fp := call.Name + ":" + string(args)
 			a.calls[fp]++
 			if a.calls[fp] > a.opts.LoopLimit {
-				return errResult(call.ID, fmt.Sprintf(
+				return refused(call.ID, ai.RefusedLoop, fmt.Sprintf(
 					"loop detected: you have already called %q with the same arguments %d times and the result will not change. Stop repeating it — try a different approach, or finish with what you have.",
 					call.Name, a.opts.LoopLimit))
 			}
@@ -191,7 +191,7 @@ func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
 				if reason != "" {
 					msg += ": " + reason
 				}
-				return errResult(call.ID, msg)
+				return refused(call.ID, ai.RefusedApproval, msg)
 			}
 		}
 		return next(ctx, call)
@@ -261,6 +261,8 @@ func (a *agentImpl) handleDelegate(call ai.ToolCall) ai.ToolResult {
 		WithClient(a.opts.Client),
 		WithStore(a.opts.Store),
 	)
+	// Record lineage so the sub-agent's tool calls carry this run as parent.
+	sub.parentRunID = a.runID
 
 	resp, err := sub.Ask(context.Background(), task)
 	if err != nil {
@@ -326,4 +328,13 @@ func errResult(id, msg string) ai.ToolResult {
 	m := map[string]string{"error": msg}
 	b, _ := json.Marshal(m)
 	return ai.ToolResult{ID: id, Value: m, Content: string(b)}
+}
+
+// refused is an error result a guardrail returns, tagged with a structured
+// reason (ai.Refused*) so a tool wrapper can react to it without parsing
+// the message.
+func refused(id, reason, msg string) ai.ToolResult {
+	r := errResult(id, msg)
+	r.Refused = reason
+	return r
 }
