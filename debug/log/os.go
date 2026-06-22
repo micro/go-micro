@@ -14,7 +14,6 @@ type osLog struct {
 	subs   map[string]*osStream
 
 	sync.RWMutex
-	once sync.Once
 }
 
 type osStream struct {

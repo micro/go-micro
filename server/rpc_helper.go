@@ -8,14 +8,6 @@ import (
 	"go-micro.dev/v6/registry"
 )
 
-// setRegistered will set the service as registered safely.
-func (s *rpcServer) setRegistered(b bool) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.registered = b
-}
-
 // isRegistered will check if the service has already been registered.
 func (s *rpcServer) isRegistered() bool {
 	s.RLock()
@@ -38,14 +30,6 @@ func (s *rpcServer) isStarted() bool {
 	defer s.RUnlock()
 
 	return s.started
-}
-
-// setWg will set the waitgroup safely.
-func (s *rpcServer) setWg(wg *sync.WaitGroup) {
-	s.Lock()
-	defer s.Unlock()
-
-	s.wg = wg
 }
 
 // getWaitgroup returns the global waitgroup safely.

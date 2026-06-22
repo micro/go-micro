@@ -9,18 +9,6 @@ import (
 	"time"
 )
 
-func expectedPort(t *testing.T, expected string, lsn Listener) {
-	_, port, err := net.SplitHostPort(lsn.Addr())
-	if err != nil {
-		t.Errorf("Expected address to be `%s`, got error: %v", expected, err)
-	}
-
-	if port != expected {
-		lsn.Close()
-		t.Errorf("Expected address to be `%s`, got `%s`", expected, port)
-	}
-}
-
 func TestHTTPTransportCommunication(t *testing.T) {
 	tr := NewHTTPTransport()
 
@@ -179,7 +167,7 @@ func TestHTTPTransportTimeout(t *testing.T) {
 			case <-done:
 				return
 			case <-time.After(time.Second):
-				t.Fatal("deadline not executed")
+				t.Errorf("deadline not executed")
 			}
 		}()
 
@@ -408,7 +396,7 @@ func TestHttpTransportListenerNetListener(t *testing.T) {
 			case <-done:
 				return
 			case <-time.After(time.Second):
-				t.Fatal("deadline not executed")
+				t.Errorf("deadline not executed")
 			}
 		}()
 

@@ -264,7 +264,7 @@ func cleanContent(raw any) any {
 			cleaned = append(cleaned, map[string]any{"type": "text", "text": b.Text})
 		case "tool_use":
 			var input any
-			json.Unmarshal(b.Input, &input)
+			_ = json.Unmarshal(b.Input, &input)
 			cleaned = append(cleaned, map[string]any{"type": "tool_use", "id": b.ID, "name": b.Name, "input": input})
 		}
 	}

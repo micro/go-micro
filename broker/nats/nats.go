@@ -194,7 +194,7 @@ func (n *natsBroker) Disconnect() error {
 	if n.conn != nil {
 		// drain the connection if specified
 		if n.drain {
-			n.conn.Drain()
+			_ = n.conn.Drain()
 			n.closeCh <- nil
 		}
 
@@ -233,7 +233,7 @@ func (n *natsBroker) Publish(topic string, msg *broker.Message, opts ...broker.P
 		if err != nil {
 			return err
 		}
-		defer n.pool.Put(poolConn)
+		defer func() { _ = n.pool.Put(poolConn) }()
 
 		conn := poolConn.Conn()
 		if conn == nil {
@@ -279,7 +279,7 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 			m.Body = msg.Data
 			n.opts.Logger.Log(logger.ErrorLevel, err)
 			if eh != nil {
-				eh(pub)
+				_ = eh(pub)
 			}
 			return
 		}
@@ -287,7 +287,7 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 			pub.err = err
 			n.opts.Logger.Log(logger.ErrorLevel, err)
 			if eh != nil {
-				eh(pub)
+				_ = eh(pub)
 			}
 		}
 	}
@@ -304,7 +304,7 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 
 		conn := poolConn.Conn()
 		if conn == nil {
-			n.pool.Put(poolConn)
+			_ = n.pool.Put(poolConn)
 			return nil, errors.New("invalid connection from pool")
 		}
 
@@ -315,13 +315,13 @@ func (n *natsBroker) Subscribe(topic string, handler broker.Handler, opts ...bro
 		}
 
 		if err != nil {
-			n.pool.Put(poolConn)
+			_ = n.pool.Put(poolConn)
 			return nil, err
 		}
 
 		// Return connection to pool after subscription is created
 		// The subscription keeps the connection alive
-		n.pool.Put(poolConn)
+		_ = n.pool.Put(poolConn)
 
 		return &subscriber{s: sub, opts: opt}, nil
 	}

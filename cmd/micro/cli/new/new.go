@@ -386,7 +386,7 @@ func printTree(dir string) {
 		}
 		return nil
 	}
-	filepath.Walk(dir, walk)
+	_ = filepath.Walk(dir, walk)
 	fmt.Println(t.String())
 }
 

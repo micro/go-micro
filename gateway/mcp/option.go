@@ -18,9 +18,11 @@ import (
 func WithMCP(address string) service.Option {
 	return func(o *service.Options) {
 		o.AfterStart = append(o.AfterStart, func() error {
-			go ListenAndServe(address, Options{
-				Registry: o.Registry,
-			})
+			go func() {
+				_ = ListenAndServe(address, Options{
+					Registry: o.Registry,
+				})
+			}()
 			return nil
 		})
 	}

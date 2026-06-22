@@ -51,9 +51,7 @@ func (t *WebSocketTransport) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var account *auth.Account
 	if t.server.opts.Auth != nil {
 		token := r.Header.Get("Authorization")
-		if strings.HasPrefix(token, "Bearer ") {
-			token = strings.TrimPrefix(token, "Bearer ")
-		}
+		token = strings.TrimPrefix(token, "Bearer ")
 		// Allow connection-level auth from header. Per-message auth via
 		// _token param is also supported (checked in handleToolsCall).
 		if token != "" {
@@ -189,9 +187,7 @@ func (wc *wsConn) handleToolsCall(req *JSONRPCRequest) {
 				wc.sendError(req.ID, InvalidParams, "Unauthorized", "missing token")
 				return
 			}
-			if strings.HasPrefix(token, "Bearer ") {
-				token = strings.TrimPrefix(token, "Bearer ")
-			}
+			token = strings.TrimPrefix(token, "Bearer ")
 			acc, err := wc.server.opts.Auth.Inspect(token)
 			if err != nil {
 				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))

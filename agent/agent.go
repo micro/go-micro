@@ -251,7 +251,7 @@ func (a *agentImpl) Run() error {
 		}),
 	)
 
-	pb.RegisterAgentHandler(a.server, a)
+	_ = pb.RegisterAgentHandler(a.server, a)
 
 	if err := a.server.Start(); err != nil {
 		return fmt.Errorf("failed to start agent: %w", err)

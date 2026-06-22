@@ -186,7 +186,7 @@ func (n *natsRegistry) register(s *registry.Service) error {
 				if err != nil {
 					continue
 				}
-				conn.Publish(m.Reply, b)
+				_ = conn.Publish(m.Reply, b)
 			}
 		})
 		if err != nil {
@@ -196,7 +196,7 @@ func (n *natsRegistry) register(s *registry.Service) error {
 		// Unsubscribe if we're told to do so
 		go func() {
 			<-listener
-			sub.Unsubscribe()
+			_ = sub.Unsubscribe()
 		}()
 
 		n.listeners[s.Name] = listener
@@ -260,7 +260,7 @@ func (n *natsRegistry) query(s string, quorum int) ([]*registry.Service, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer sub.Unsubscribe()
+	defer func() { _ = sub.Unsubscribe() }()
 
 	b, err := json.Marshal(&registry.Result{Action: action, Service: service})
 	if err != nil {
@@ -412,6 +412,6 @@ func NewNatsRegistry(opts ...registry.Option) registry.Registry {
 		services:  make(map[string][]*registry.Service),
 		listeners: make(map[string]chan bool),
 	}
-	configure(n, opts...)
+	_ = configure(n, opts...)
 	return n
 }

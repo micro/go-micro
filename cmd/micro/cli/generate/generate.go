@@ -288,8 +288,8 @@ func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provid
 		}
 
 		// Step 2: Run go mod tidy + make proto to get compiled proto
-		runIn(svcDir, "go", "mod", "tidy")
-		runIn(svcDir, "make", "proto")
+		_ = runIn(svcDir, "go", "mod", "tidy")
+		_ = runIn(svcDir, "make", "proto")
 
 		// Step 3: Generate handler with business logic (LLM)
 		proto := readFile(protoFile)
@@ -328,8 +328,8 @@ func generateStructure(dir string, svc ServiceSpec) error {
 	if _, err := os.Stat(dir); err == nil {
 		exists = true
 	}
-	os.MkdirAll(filepath.Join(dir, "handler"), 0755)
-	os.MkdirAll(filepath.Join(dir, "proto"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "handler"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "proto"), 0755)
 
 	name := svc.Name
 	titleName := toTitle(name)
@@ -596,7 +596,7 @@ func generateAgent(baseDir string, design *ServiceDesign, svcNames []string) err
 		return nil // already exists
 	}
 
-	os.MkdirAll(agentDir, 0755)
+	_ = os.MkdirAll(agentDir, 0755)
 
 	// Build a description of all services for the agent prompt
 	var svcDescs []string
@@ -634,7 +634,7 @@ func main() {
 	writeFile(filepath.Join(agentDir, "go.mod"),
 		fmt.Sprintf("module %s\n\ngo 1.24\n\nrequire go-micro.dev/v6 %s\n", agentName, goMicroVersion))
 
-	runIn(agentDir, "go", "mod", "tidy")
+	_ = runIn(agentDir, "go", "mod", "tidy")
 
 	fmt.Printf("    \033[35m◆\033[0m agent \033[2m(manages: %s)\033[0m\n", strings.Join(svcNames, ", "))
 	return nil
@@ -752,7 +752,7 @@ func readFile(path string) string {
 }
 
 func writeFile(path, content string) {
-	os.WriteFile(path, []byte(content), 0644)
+	_ = os.WriteFile(path, []byte(content), 0644)
 }
 
 func runIn(dir string, name string, args ...string) error {
@@ -829,13 +829,13 @@ func readMeta(svcDir string) map[string]string {
 	if err != nil {
 		return m
 	}
-	json.Unmarshal(b, &m)
+	_ = json.Unmarshal(b, &m)
 	return m
 }
 
 func writeMeta(svcDir string, m map[string]string) {
 	b, _ := json.MarshalIndent(m, "", "  ")
-	os.WriteFile(metaPath(svcDir), b, 0644)
+	_ = os.WriteFile(metaPath(svcDir), b, 0644)
 }
 
 func fileModified(svcDir, key, path string) bool {

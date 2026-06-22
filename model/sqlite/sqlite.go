@@ -32,7 +32,7 @@ func New(dsn string) model.Model {
 	if err != nil {
 		panic(fmt.Sprintf("model/sqlite: failed to open %q: %v", dsn, err))
 	}
-	db.Exec("PRAGMA journal_mode=WAL")
+	_, _ = db.Exec("PRAGMA journal_mode=WAL")
 	return &sqliteModel{
 		db:      db,
 		schemas: make(map[string]*model.Schema),

@@ -52,6 +52,6 @@ func (c *redisCache) Delete(ctx context.Context, key string) error {
 	return c.client.Del(ctx, key).Err()
 }
 
-func (m *redisCache) String() string {
+func (c *redisCache) String() string {
 	return "redis"
 }

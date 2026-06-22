@@ -27,7 +27,7 @@ func init() {
 }
 
 func main() {
-	cmd.Init(
+	_ = cmd.Init(
 		cmd.Name("micro"),
 		cmd.Version(version),
 	)

@@ -117,7 +117,7 @@ func TestWithoutExchange(t *testing.T) {
 			rabbitmq.DeliveryMode(2),
 			rabbitmq.ContentType("application/json"))
 		if err != nil {
-			t.Fatal(err)
+			t.Errorf("%v", err)
 		}
 	}()
 
@@ -174,7 +174,7 @@ func TestFanoutExchange(t *testing.T) {
 			rabbitmq.DeliveryMode(2),
 			rabbitmq.ContentType("application/json"))
 		if err != nil {
-			t.Fatal(err)
+			t.Errorf("%v", err)
 		}
 	}()
 
@@ -231,7 +231,7 @@ func TestDirectExchange(t *testing.T) {
 			rabbitmq.DeliveryMode(2),
 			rabbitmq.ContentType("application/json"))
 		if err != nil {
-			t.Fatal(err)
+			t.Errorf("%v", err)
 		}
 	}()
 
@@ -288,7 +288,7 @@ func TestTopicExchange(t *testing.T) {
 			rabbitmq.DeliveryMode(2),
 			rabbitmq.ContentType("application/json"))
 		if err != nil {
-			t.Fatal(err)
+			t.Errorf("%v", err)
 		}
 	}()
 

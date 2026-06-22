@@ -94,5 +94,5 @@ func (m *storeMemory) save() {
 	if err != nil {
 		return
 	}
-	m.store.Write(&store.Record{Key: m.key, Value: data})
+	_ = m.store.Write(&store.Record{Key: m.key, Value: data})
 }

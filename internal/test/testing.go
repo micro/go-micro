@@ -157,10 +157,10 @@ func (h *Harness) Stop() {
 	defer h.mu.Unlock()
 
 	if h.server != nil {
-		h.server.Stop()
+		_ = h.server.Stop()
 	}
 	if h.broker != nil {
-		h.broker.Disconnect()
+		_ = h.broker.Disconnect()
 	}
 
 	h.started = false

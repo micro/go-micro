@@ -4,7 +4,8 @@ import "sync"
 
 var http2BufPool = sync.Pool{
 	New: func() interface{} {
-		return make([]byte, DefaultBufSizeH2)
+		buf := make([]byte, DefaultBufSizeH2)
+		return &buf
 	},
 }
 

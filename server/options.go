@@ -246,7 +246,7 @@ func TLSConfig(t *tls.Config) Option {
 		}
 
 		// set the transport tls
-		o.Transport.Init(
+		_ = o.Transport.Init(
 			transport.Secure(true),
 			transport.TLSConfig(t),
 		)

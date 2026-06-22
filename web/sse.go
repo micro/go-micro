@@ -14,10 +14,9 @@ import (
 
 // SSEClient represents a connected SSE client
 type SSEClient struct {
-	id       string
-	send     chan []byte
-	done     chan struct{}
-	metadata map[string]string
+	id   string
+	send chan []byte
+	done chan struct{}
 }
 
 // SSEBroadcaster manages SSE connections and broadcasts events to connected clients

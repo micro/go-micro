@@ -172,7 +172,7 @@ func (s *session) callAgent(ctx context.Context, name, message string) (*agent.R
 	}
 	for _, tc := range resp.ToolCalls {
 		var input map[string]any
-		json.Unmarshal([]byte(tc.Input), &input)
+		_ = json.Unmarshal([]byte(tc.Input), &input)
 		r.ToolCalls = append(r.ToolCalls, ai.ToolCall{
 			ID:     tc.ID,
 			Name:   tc.Name,
@@ -586,7 +586,7 @@ func (s *session) printAgentResponse(resp *agent.Response) {
 func (s *session) cleanup() {
 	for _, p := range s.procs {
 		if p.Process != nil {
-			p.Process.Kill()
+			_ = p.Process.Kill()
 		}
 	}
 }

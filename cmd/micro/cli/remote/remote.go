@@ -14,8 +14,6 @@ import (
 	"go-micro.dev/v6/cmd"
 )
 
-const defaultRemotePath = "/opt/micro"
-
 // Status shows status of services (local or remote)
 func Status(c *cli.Context) error {
 	remoteHost := c.String("remote")
@@ -57,7 +55,7 @@ func localStatus(c *cli.Context) error {
 		var dir string
 		scanner := bufio.NewScanner(pidFile)
 		if scanner.Scan() {
-			fmt.Sscanf(scanner.Text(), "%d", &pid)
+			_, _ = fmt.Sscanf(scanner.Text(), "%d", &pid)
 		}
 		if scanner.Scan() {
 			dir = scanner.Text()
@@ -229,7 +227,7 @@ func remoteLogs(host, service string, follow bool, lines int) error {
 // Stop stops a running service
 func Stop(c *cli.Context) error {
 	if c.Args().Len() != 1 {
-		return fmt.Errorf("Usage: micro stop <service>")
+		return fmt.Errorf("usage: micro stop <service>")
 	}
 
 	service := c.Args().First()
@@ -258,7 +256,7 @@ func localStop(service string) error {
 	var pid int
 	scanner := bufio.NewScanner(pidFile)
 	if scanner.Scan() {
-		fmt.Sscanf(scanner.Text(), "%d", &pid)
+		_, _ = fmt.Sscanf(scanner.Text(), "%d", &pid)
 	}
 	pidFile.Close()
 

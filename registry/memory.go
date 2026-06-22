@@ -60,22 +60,19 @@ func (m *memRegistry) ttlPrune() {
 	prune := time.NewTicker(ttlPruneTime)
 	defer prune.Stop()
 
-	for {
-		select {
-		case <-prune.C:
-			m.Lock()
-			for name, records := range m.records {
-				for version, record := range records {
-					for id, n := range record.Nodes {
-						if n.TTL != 0 && time.Since(n.LastSeen) > n.TTL {
-							logger.Logf(log.DebugLevel, "Registry TTL expired for node %s of service %s", n.Id, name)
-							delete(m.records[name][version].Nodes, id)
-						}
+	for range prune.C {
+		m.Lock()
+		for name, records := range m.records {
+			for version, record := range records {
+				for id, n := range record.Nodes {
+					if n.TTL != 0 && time.Since(n.LastSeen) > n.TTL {
+						logger.Logf(log.DebugLevel, "Registry TTL expired for node %s of service %s", n.Id, name)
+						delete(m.records[name][version].Nodes, id)
 					}
 				}
 			}
-			m.Unlock()
 		}
+		m.Unlock()
 	}
 }
 

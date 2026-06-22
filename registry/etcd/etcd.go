@@ -53,7 +53,7 @@ func NewEtcdRegistry(opts ...registry.Option) registry.Registry {
 	if len(address) > 0 {
 		opts = append(opts, registry.Addrs(address))
 	}
-	configure(e, opts...)
+	_ = configure(e, opts...)
 	return e
 }
 
@@ -134,7 +134,7 @@ func encode(s *registry.Service) string {
 
 func decode(ds []byte) *registry.Service {
 	var s *registry.Service
-	json.Unmarshal(ds, &s)
+	_ = json.Unmarshal(ds, &s)
 	return s
 }
 
@@ -158,7 +158,7 @@ func (e *etcdRegistry) Options() registry.Options {
 
 func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, opts ...registry.RegisterOption) error {
 	if len(s.Nodes) == 0 {
-		return errors.New("Require at least one node")
+		return errors.New("require at least one node")
 	}
 
 	// check existing lease cache
@@ -301,7 +301,7 @@ func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, op
 
 func (e *etcdRegistry) Deregister(s *registry.Service, opts ...registry.DeregisterOption) error {
 	if len(s.Nodes) == 0 {
-		return errors.New("Require at least one node")
+		return errors.New("require at least one node")
 	}
 
 	for _, node := range s.Nodes {
@@ -332,7 +332,7 @@ func (e *etcdRegistry) Deregister(s *registry.Service, opts ...registry.Deregist
 
 func (e *etcdRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
 	if len(s.Nodes) == 0 {
-		return errors.New("Require at least one node")
+		return errors.New("require at least one node")
 	}
 
 	var gerr error

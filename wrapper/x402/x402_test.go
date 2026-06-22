@@ -94,8 +94,9 @@ func TestRequireFreeAmount(t *testing.T) {
 	if !cfg.Require(rec, httptest.NewRequest(http.MethodGet, "/free", nil), "0", "free.tool") {
 		t.Error("a zero amount should be free and proceed")
 	}
-	if rec.Code != http.StatusOK && rec.Code != 200 {
-		// Require doesn't write on success; recorder defaults to 200.
+	// Require doesn't write on success; recorder defaults to 200.
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, rec.Code)
 	}
 }
 

@@ -208,7 +208,7 @@ func (n *ntportClient) Recv(m *transport.Message) error {
 }
 
 func (n *ntportClient) Close() error {
-	n.sub.Unsubscribe()
+	_ = n.sub.Unsubscribe()
 
 	// If using a pooled connection, return it to the pool
 	if n.pool != nil && n.pooledConn != nil {
@@ -321,7 +321,7 @@ func (n *ntportListener) Accept(fn func(transport.Socket)) error {
 
 	go func() {
 		<-n.exit
-		s.Unsubscribe()
+		_ = s.Unsubscribe()
 	}()
 
 	for {
@@ -410,7 +410,7 @@ func (n *ntport) Dial(addr string, dialOpts ...transport.DialOption) (transport.
 		}
 		c = pooledConn.Conn()
 		if c == nil {
-			n.pool.Put(pooledConn)
+			_ = n.pool.Put(pooledConn)
 			return nil, errors.New("invalid connection from pool")
 		}
 	} else {
@@ -436,7 +436,7 @@ func (n *ntport) Dial(addr string, dialOpts ...transport.DialOption) (transport.
 	sub, err := c.SubscribeSync(id)
 	if err != nil {
 		if pooledConn != nil {
-			n.pool.Put(pooledConn)
+			_ = n.pool.Put(pooledConn)
 		} else {
 			c.Close()
 		}

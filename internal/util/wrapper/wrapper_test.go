@@ -2,13 +2,9 @@ package wrapper
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
-	"go-micro.dev/v6/auth"
-	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/metadata"
-	"go-micro.dev/v6/server"
 )
 
 func TestWrapper(t *testing.T) {
@@ -53,64 +49,4 @@ func TestWrapper(t *testing.T) {
 			}
 		}
 	}
-}
-
-type testAuth struct {
-	verifyCount    int
-	inspectCount   int
-	namespace      string
-	inspectAccount *auth.Account
-	verifyError    error
-
-	auth.Auth
-}
-
-func (a *testAuth) Verify(acc *auth.Account, res *auth.Resource, opts ...auth.VerifyOption) error {
-	a.verifyCount = a.verifyCount + 1
-	return a.verifyError
-}
-
-func (a *testAuth) Inspect(token string) (*auth.Account, error) {
-	a.inspectCount = a.inspectCount + 1
-	return a.inspectAccount, nil
-}
-
-func (a *testAuth) Options() auth.Options {
-	return auth.Options{Namespace: a.namespace}
-}
-
-type testRequest struct {
-	service  string
-	endpoint string
-
-	server.Request
-}
-
-func (r testRequest) Service() string {
-	return r.service
-}
-
-func (r testRequest) Endpoint() string {
-	return r.endpoint
-}
-
-type testClient struct {
-	callCount int
-	callRsp   interface{}
-	client.Client
-}
-
-func (c *testClient) Call(ctx context.Context, req client.Request, rsp interface{}, opts ...client.CallOption) error {
-	c.callCount++
-
-	if c.callRsp != nil {
-		val := reflect.ValueOf(rsp).Elem()
-		val.Set(reflect.ValueOf(c.callRsp).Elem())
-	}
-
-	return nil
-}
-
-type testRsp struct {
-	value string
 }

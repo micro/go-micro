@@ -70,7 +70,8 @@ func runTestStream(t *testing.T, stream Stream) {
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not received")
+				t.Errorf("Event was not received")
+				wg.Done()
 			}
 		}()
 
@@ -112,7 +113,8 @@ func runTestStream(t *testing.T, stream Stream) {
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not received")
+				t.Errorf("Event was not received")
+				wg.Done()
 			}
 		}()
 
@@ -141,7 +143,8 @@ func runTestStream(t *testing.T, stream Stream) {
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not received")
+				t.Errorf("Event was not received")
+				wg.Done()
 			}
 		}()
 

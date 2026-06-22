@@ -122,7 +122,7 @@ func (m *memoryBroker) Publish(topic string, msg *Message, opts ...PublishOption
 		if err := sub.handler(p); err != nil {
 			p.err = err
 			if eh := m.opts.ErrorHandler; eh != nil {
-				eh(p)
+				_ = eh(p)
 				continue
 			}
 			return err

@@ -210,7 +210,7 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 	prompt := data
 	if f.tmpl != nil {
 		var buf bytes.Buffer
-		f.tmpl.Execute(&buf, map[string]string{"Data": data})
+		_ = f.tmpl.Execute(&buf, map[string]string{"Data": data})
 		prompt = buf.String()
 	}
 

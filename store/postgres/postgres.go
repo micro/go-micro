@@ -46,10 +46,6 @@ var (
 var (
 	re = regexp.MustCompile("[^a-zA-Z0-9]+")
 
-	// alternative ordering
-	orderAsc  = "ORDER BY key ASC"
-	orderDesc = "ORDER BY key DESC"
-
 	// the sql statements we prepare and use
 	statements = map[string]string{
 		"list":          "SELECT key, value, metadata, expiry FROM %s.%s WHERE key LIKE $1 ORDER BY key ASC LIMIT $2 OFFSET $3;",
@@ -370,7 +366,7 @@ func (s *sqlStore) rowToRecord(row *sql.Row) (*store.Record, error) {
 	if timehelper.Valid {
 		if timehelper.Time.Before(time.Now()) {
 			// record has expired
-			go s.Delete(record.Key)
+			go func() { _ = s.Delete(record.Key) }()
 			return nil, store.ErrNotFound
 		}
 		record.Expiry = time.Until(timehelper.Time)
@@ -398,7 +394,7 @@ func (s *sqlStore) rowsToRecords(rows *sql.Rows) ([]*store.Record, error) {
 		if timehelper.Valid {
 			if timehelper.Time.Before(time.Now()) {
 				// record has expired
-				go s.Delete(record.Key)
+				go func() { _ = s.Delete(record.Key) }()
 			} else {
 				record.Expiry = time.Until(timehelper.Time)
 				records = append(records, record)
@@ -607,7 +603,7 @@ func NewStore(opts ...store.Option) store.Store {
 
 func (s *sqlStore) expiryLoop() {
 	for {
-		s.expireRows()
+		_ = s.expireRows()
 		time.Sleep(1 * time.Hour)
 	}
 }

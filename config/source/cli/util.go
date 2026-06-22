@@ -12,7 +12,7 @@ func copyFlag(name string, ff *flag.Flag, set *flag.FlagSet) {
 	switch ff.Value.(type) {
 	case *cli.StringSlice:
 	default:
-		set.Set(name, ff.Value.String())
+		_ = set.Set(name, ff.Value.String())
 	}
 }
 

@@ -312,7 +312,6 @@ func TestGenerateStructure(t *testing.T) {
 
 	// Proto should be protected if user modified it
 	protoFile := filepath.Join(svcDir, "proto", "test-svc.proto")
-	protoBefore, _ := os.ReadFile(protoFile)
 	os.WriteFile(protoFile, []byte("// user-edited proto\n"), 0644)
 	if err := generateStructure(svcDir, svc); err != nil {
 		t.Fatal(err)
@@ -328,9 +327,7 @@ func TestGenerateStructure(t *testing.T) {
 		t.Fatal(err)
 	}
 	protoAfter2, _ := os.ReadFile(protoFile)
-	if string(protoAfter2) == string(protoBefore) {
-		// ok — regenerated from spec
-	}
+	_ = protoAfter2
 }
 
 func TestFileModified(t *testing.T) {

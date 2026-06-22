@@ -22,7 +22,7 @@ func newWatcher(f *file) (source.Watcher, error) {
 		return nil, err
 	}
 
-	fw.Add(f.path)
+	_ = fw.Add(f.path)
 
 	return &watcher{
 		f:  f,
@@ -43,7 +43,7 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 			// check existence of file, and add watch again
 			_, err := os.Stat(event.Name)
 			if err == nil || os.IsExist(err) {
-				w.fw.Add(event.Name)
+				_ = w.fw.Add(event.Name)
 			}
 		}
 
@@ -53,7 +53,7 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 		}
 
 		// add path again for the event bug of fsnotify
-		w.fw.Add(w.f.path)
+		_ = w.fw.Add(w.f.path)
 
 		return c, nil
 	case err, ok := <-w.fw.Errors:

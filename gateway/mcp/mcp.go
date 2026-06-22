@@ -709,9 +709,7 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	var account *auth.Account
 	if s.opts.Auth != nil {
 		token := r.Header.Get("Authorization")
-		if strings.HasPrefix(token, "Bearer ") {
-			token = strings.TrimPrefix(token, "Bearer ")
-		}
+		token = strings.TrimPrefix(token, "Bearer ")
 		if token == "" {
 			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
 			setSpanError(span, fmt.Errorf("missing token"))

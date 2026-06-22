@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -109,7 +108,7 @@ func (s *serviceProcess) start(logDir string) error {
 		for scanner.Scan() {
 			line := scanner.Text()
 			fmt.Printf("%s[%s]%s %s\n", color, name, colorReset, line)
-			logFile.WriteString("[" + name + "] " + line + "\n")
+			_, _ = logFile.WriteString("[" + name + "] " + line + "\n")
 		}
 	}(s.name, s.color, pr, logFile)
 
@@ -119,7 +118,7 @@ func (s *serviceProcess) start(logDir string) error {
 	}
 
 	// Write PID file
-	os.WriteFile(s.pidFile, []byte(fmt.Sprintf("%d\n%s\n%s\n%s\n",
+	_ = os.WriteFile(s.pidFile, []byte(fmt.Sprintf("%d\n%s\n%s\n%s\n",
 		s.cmd.Process.Pid, s.dir, s.name, time.Now().Format(time.RFC3339))), 0644)
 
 	s.running = true
@@ -139,7 +138,7 @@ func (s *serviceProcess) stop() {
 	fmt.Printf("%s[%s]%s stopping...\n", s.color, s.name, colorReset)
 
 	// Graceful shutdown
-	s.cmd.Process.Signal(syscall.SIGTERM)
+	_ = s.cmd.Process.Signal(syscall.SIGTERM)
 
 	// Wait with timeout
 	done := make(chan error, 1)
@@ -150,7 +149,7 @@ func (s *serviceProcess) stop() {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		s.cmd.Process.Kill()
+		_ = s.cmd.Process.Kill()
 		<-done
 	}
 
@@ -293,7 +292,7 @@ func Run(c *cli.Context) error {
 	} else {
 		// Auto-discover from main.go files
 		var mainFiles []string
-		filepath.Walk(absDir, func(path string, info os.FileInfo, err error) error {
+		_ = filepath.Walk(absDir, func(path string, info os.FileInfo, err error) error {
 			if err != nil || info.IsDir() {
 				return nil
 			}
@@ -444,7 +443,7 @@ func Run(c *cli.Context) error {
 	}
 
 	if gw != nil {
-		gw.Stop()
+		_ = gw.Stop()
 	}
 
 	// Stop services in reverse order
@@ -453,24 +452,6 @@ func Run(c *cli.Context) error {
 	}
 
 	return nil
-}
-
-// Helper functions
-func parsePid(pidStr string) int {
-	pid, _ := strconv.Atoi(pidStr)
-	return pid
-}
-
-func processRunning(pidStr string) bool {
-	pid := parsePid(pidStr)
-	if pid <= 0 {
-		return false
-	}
-	proc, err := os.FindProcess(pid)
-	if err != nil {
-		return false
-	}
-	return proc.Signal(syscall.Signal(0)) == nil
 }
 
 func discoverNewServices(baseDir string, known map[string]*serviceProcess, binDir, runDir, logsDir string, envVars []string, colorOffset int) []*serviceProcess {
@@ -826,7 +807,7 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 	fmt.Println()
 
 	cancel()
-	c.Set("prompt", "")
+	_ = c.Set("prompt", "")
 	return Run(c)
 }
 

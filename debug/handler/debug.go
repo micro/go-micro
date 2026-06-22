@@ -138,7 +138,7 @@ func (d *Debug) Log(ctx context.Context, req *proto.LogRequest, stream proto.Deb
 		if err != nil {
 			return err
 		}
-		defer lgStream.Stop()
+		defer func() { _ = lgStream.Stop() }()
 
 		for record := range lgStream.Chan() {
 			// copy metadata
