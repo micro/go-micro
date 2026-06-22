@@ -62,3 +62,8 @@ examples/mcp/hello/hello
 /plan-delegate
 /agent-plan-delegate
 /micro-mcp-gateway
+
+# Local Jekyll / Bundler artifacts
+internal/website/.bundle/
+internal/website/_site/
+internal/website/.jekyll-cache/
