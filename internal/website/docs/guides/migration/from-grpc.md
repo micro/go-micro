@@ -90,7 +90,7 @@ Update your proto generation:
 
 ```bash
 # Install protoc-gen-micro
-go install go-micro.dev/v6/cmd/protoc-gen-micro@latest
+go install go-micro.dev/v6/cmd/protoc-gen-micro@v6
 
 # Generate both gRPC and Go Micro code
 protoc --proto_path=. \

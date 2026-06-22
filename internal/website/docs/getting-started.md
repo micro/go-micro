@@ -26,10 +26,10 @@ Go Micro has three core abstractions:
 curl -fsSL https://go-micro.dev/install.sh | sh
 
 # Or with Go
-go install go-micro.dev/v6/cmd/micro@latest
+go install go-micro.dev/v6/cmd/micro@v6
 ```
 
-> If `@latest` reports a version constraint conflict, pin the current major version explicitly, e.g. `go install go-micro.dev/v6/cmd/micro@v6.1.0` (see [releases](https://github.com/micro/go-micro/releases)).
+> Use `@v6` (not `@latest`). It selects the newest `v6.x.x` release. Plain `@latest` can currently resolve to a stale pre-rename tag through the public module proxy and fail with a "version constraints conflict"; `@v6` avoids that. To pin an exact version use e.g. `@v6.2.0` (see [releases](https://github.com/micro/go-micro/releases)).
 
 ## Quick Start: Generate from a Prompt
 

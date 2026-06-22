@@ -13,7 +13,7 @@ The AI-native major release. Breaking changes are listed first; everything
 else is additive. See the [v5 → v6 migration guide](internal/website/docs/guides/migration/v5-to-v6.md) — it's a small upgrade.
 
 ### Changed (breaking)
-- **Module path is now `go-micro.dev/v6`.** Update imports (`go-micro.dev/v5/...` → `go-micro.dev/v6/...`) and `go install go-micro.dev/v6/cmd/micro@latest`.
+- **Module path is now `go-micro.dev/v6`.** Update imports (`go-micro.dev/v5/...` → `go-micro.dev/v6/...`) and `go install go-micro.dev/v6/cmd/micro@v6`.
 - **TLS verification is on by default.** v5 skipped verification unless `MICRO_TLS_SECURE=true`; v6 verifies by default. `MICRO_TLS_SECURE` is removed — set `MICRO_TLS_INSECURE=true` (or call `tls.InsecureConfig()`) for self-signed/dev certs.
 - **`micro.NewService(name, opts...)` is the service constructor**, symmetric with `NewAgent`/`NewFlow`. `micro.New(name, opts...)` remains as a deprecated alias; the old name-less `micro.NewService(opts...)` form is removed (pass the name positionally). Generators emit the new form.
 - **JWT auth ported in-module.** The external `github.com/micro/plugins/v5/auth/jwt` (pinned to v5) is replaced by `go-micro.dev/v6/auth/jwt/token`, now on the maintained `golang-jwt/jwt/v5`; the deprecated `dgrijalva/jwt-go` dependency is dropped.

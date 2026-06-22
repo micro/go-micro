@@ -13,10 +13,10 @@ curl -fsSL https://go-micro.dev/install.sh | sh
 Or, if you have Go and prefer to build from source:
 
 ```bash
-go install go-micro.dev/v6/cmd/micro@latest
+go install go-micro.dev/v6/cmd/micro@v6
 ```
 
-> **Note:** If `go install ...@latest` reports a version constraint conflict, pin the major version explicitly, e.g. `go install go-micro.dev/v6/cmd/micro@v6.1.0` (see [releases](https://github.com/micro/go-micro/releases)).
+> **Note:** Use `@v6` (not `@latest`) — it resolves to the newest `v6.x.x` release. Plain `@latest` can currently resolve to a stale pre-rename tag through the public module proxy and fail with a "version constraints conflict"; `@v6` avoids that. To pin an exact version use e.g. `@v6.2.0` (see [releases](https://github.com/micro/go-micro/releases)).
 
 ## Create Your First Service
 
