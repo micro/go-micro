@@ -12,6 +12,10 @@ Build an agent and it gets a model, memory, and tools, manages your services, an
 
 **Want to support Go Micro and see your logo here?** [Become a sponsor](https://discord.gg/WeMU5AGxD) — reach out on Discord.
 
+## Commercial Support
+
+Running Go Micro in production, or building on it and want help? Paid **support, consulting, training, and retainers** are available directly from the maintainer — and they're what keep the project maintained. See [**Support**](SUPPORT.md) for the tiers, or [open a request](https://github.com/micro/go-micro/issues/new?template=commercial_support.md).
+
 ## Contents
 
 - [Quick Start](#quick-start)
@@ -23,6 +27,7 @@ Build an agent and it gets a model, memory, and tools, manages your services, an
 - [Data Model](#data-model)
 - [AI Providers](#ai-providers)
 - [Examples](#examples)
+- [Commercial Support](#commercial-support)
 - [Docs](#docs)
 
 ## Quick Start
