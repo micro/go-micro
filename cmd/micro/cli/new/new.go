@@ -12,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"syscall"
 
@@ -35,10 +36,36 @@ type config struct {
 	GoPath string
 	// UseGoPath
 	UseGoPath bool
+	// MicroVersion is the go-micro version to require in go.mod
+	MicroVersion string
 	// Files
 	Files []file
 	// Comments
 	Comments []string
+}
+
+// microVersion returns the go-micro version this CLI was built from, so a
+// generated service requires the same framework version the user is running.
+// Falls back to "latest" for local/dev builds (resolved by 'go mod tidy').
+func microVersion() string {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "latest"
+	}
+	isRelease := func(v string) bool {
+		return strings.HasPrefix(v, "v") && !strings.Contains(v, "devel")
+	}
+	// cmd/micro is part of the go-micro.dev/v6 module, so for an installed
+	// binary the main module version is the framework version.
+	if bi.Main.Path == "go-micro.dev/v6" && isRelease(bi.Main.Version) {
+		return bi.Main.Version
+	}
+	for _, dep := range bi.Deps {
+		if dep.Path == "go-micro.dev/v6" && isRelease(dep.Version) {
+			return dep.Version
+		}
+	}
+	return "latest"
 }
 
 type file struct {
@@ -180,12 +207,13 @@ func Run(ctx *cli.Context) error {
 	useProto := ctx.Bool("proto") || (templateName != "" && templateName != "default")
 
 	c := config{
-		Alias:     dir,
-		Comments:  nil,
-		Dir:       dir,
-		GoDir:     goDir,
-		GoPath:    goPath,
-		UseGoPath: false,
+		Alias:        dir,
+		Comments:     nil,
+		Dir:          dir,
+		GoDir:        goDir,
+		GoPath:       goPath,
+		UseGoPath:    false,
+		MicroVersion: microVersion(),
 	}
 
 	if useProto {

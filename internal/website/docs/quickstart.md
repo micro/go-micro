@@ -4,11 +4,19 @@ Get up and running with go-micro in under 5 minutes.
 
 ## Install
 
+The recommended way is the precompiled binary — no Go toolchain required:
+
+```bash
+curl -fsSL https://go-micro.dev/install.sh | sh
+```
+
+Or, if you have Go and prefer to build from source:
+
 ```bash
 go install go-micro.dev/v6/cmd/micro@latest
 ```
 
-> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
+> **Note:** If `go install ...@latest` reports a version constraint conflict, pin the major version explicitly, e.g. `go install go-micro.dev/v6/cmd/micro@v6.1.0` (see [releases](https://github.com/micro/go-micro/releases)).
 
 ## Create Your First Service
 
