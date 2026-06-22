@@ -28,7 +28,7 @@ For local development, use [`micro run`](guides/micro-run.html) instead.
 Install the CLI which includes the server command:
 
 ```bash
-go install go-micro.dev/v6/cmd/micro@latest
+go install go-micro.dev/v6/cmd/micro@v6
 ```
 
 > **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.

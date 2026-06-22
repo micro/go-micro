@@ -88,7 +88,7 @@ message Response {
 
 ```bash
 # Install protoc-gen-micro
-go install go-micro.dev/v6/cmd/protoc-gen-micro@latest
+go install go-micro.dev/v6/cmd/protoc-gen-micro@v6
 
 # Generate Go code
 protoc --proto_path=. \
