@@ -202,7 +202,6 @@ func removeConn(conn *poolConn) {
 	conn.next = nil
 	conn.in = false
 	conn.sp.count--
-	return
 }
 
 func addConnAfter(conn *poolConn, after *poolConn) {
@@ -214,5 +213,4 @@ func addConnAfter(conn *poolConn, after *poolConn) {
 	after.next = conn
 	conn.in = true
 	conn.sp.count++
-	return
 }

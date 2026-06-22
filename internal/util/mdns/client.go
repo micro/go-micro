@@ -89,10 +89,9 @@ func Query(params *QueryParam) error {
 		if params.Timeout == 0 {
 			params.Timeout = time.Second
 		}
-		params.Context, _ = context.WithTimeout(context.Background(), params.Timeout)
-		if err != nil {
-			return err
-		}
+		var cancel context.CancelFunc
+		params.Context, cancel = context.WithTimeout(context.Background(), params.Timeout)
+		defer cancel()
 	}
 
 	// Run the query

@@ -14,6 +14,13 @@ linters:
     - unconvert
     - usestdlibvars
   settings:
+    errcheck:
+      exclude-functions:
+        - (*encoding/json.Encoder).Encode
+        - (net/http.ResponseWriter).Write
+        - fmt.Fprintf
+        - fmt.Fprint
+        - fmt.Fprintln
     misspell:
       locale: US
     staticcheck:

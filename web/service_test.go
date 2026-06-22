@@ -108,7 +108,7 @@ func TestService(t *testing.T) {
 		if err != nil {
 			t.Fatalf("service.Run():%v", err)
 		}
-	case <-time.After(time.Duration(time.Second)):
+	case <-time.After(time.Second):
 		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
 			t.Logf("service.Run() survived a client request without an error")
 		}
@@ -130,7 +130,7 @@ func TestService(t *testing.T) {
 				t.Log("service.Run() nil return on syscall.SIGTERM")
 			}
 		}
-	case <-time.After(time.Duration(time.Second)):
+	case <-time.After(time.Second):
 		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
 			t.Logf("service.Run() survived a client request without an error")
 		}
@@ -289,7 +289,7 @@ func TestTLS(t *testing.T) {
 		if err != nil {
 			t.Fatalf("service.Run():%v", err)
 		}
-	case <-time.After(time.Duration(time.Second)):
+	case <-time.After(time.Second):
 		if len(os.Getenv("IN_TRAVIS_CI")) == 0 {
 			t.Logf("service.Run() survived a client request without an error")
 		}
