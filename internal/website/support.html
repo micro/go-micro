@@ -1,0 +1,200 @@
+---
+permalink: /support
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Go Micro support — free community help, plus commercial support, consulting, and sponsorship for teams running Go Micro in production." />
+    <title>Support — Go Micro</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { overflow-x: hidden; }
+      body {
+        font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+        line-height: 1.6;
+        color: #1a1a1a;
+        background: #fff;
+        overflow-x: hidden;
+      }
+      a { color: #0366d6; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      /* Nav */
+      .nav { display: flex; align-items: center; justify-content: space-between; max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem; }
+      .nav-brand { display: flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.1rem; color: #1a1a1a; text-decoration: none; }
+      .nav-brand img { height: 32px; }
+      .nav-links { display: flex; gap: 1.5rem; font-size: 0.9rem; }
+      .nav-links a { color: #555; font-weight: 500; }
+      .nav-links a:hover { color: #0366d6; text-decoration: none; }
+      .nav-links a.active { color: #0366d6; }
+
+      /* Hero */
+      .hero { background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%); padding: 4rem 1.5rem; text-align: center; }
+      .hero-inner { max-width: 800px; margin: 0 auto; }
+      .hero h1 { font-size: 2.5rem; margin-bottom: 0.75rem; color: #0d1117; }
+      .hero .tagline { font-size: 1.2rem; color: #555; margin-bottom: 2rem; }
+      .hero-buttons { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+      .btn { display: inline-block; padding: 0.7rem 1.5rem; font-weight: 600; border-radius: 8px; font-size: 0.95rem; transition: all 0.2s; text-decoration: none; }
+      .btn-primary { background: #0366d6; color: #fff; }
+      .btn-primary:hover { background: #0256c5; text-decoration: none; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(3,102,214,0.3); }
+      .btn-secondary { background: #fff; color: #0366d6; border: 1px solid #d0d7de; }
+      .btn-secondary:hover { background: #f6f8fa; border-color: #0366d6; text-decoration: none; }
+
+      /* Sections */
+      .section { max-width: 1100px; margin: 0 auto; padding: 4rem 1.5rem; }
+      .section-alt { background: #f8f9fa; }
+      .section h2 { font-size: 1.75rem; margin-bottom: 0.5rem; color: #0d1117; text-align: center; }
+      .section .subtitle { color: #555; font-size: 1.05rem; margin-bottom: 2rem; text-align: center; }
+
+      /* Tier cards */
+      .tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-top: 2rem; align-items: stretch; }
+      .tier { display: flex; flex-direction: column; background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.5rem; }
+      .tier.featured { border-color: #0366d6; box-shadow: 0 4px 24px rgba(3,102,214,0.12); }
+      .tier h3 { font-size: 1.15rem; color: #0d1117; margin-bottom: 0.25rem; }
+      .tier .who { font-size: 0.8rem; color: #888; margin-bottom: 1rem; min-height: 2.4em; }
+      .tier ul { list-style: none; font-size: 0.88rem; color: #444; flex: 1; }
+      .tier li { padding: 0.3rem 0 0.3rem 1.2rem; position: relative; }
+      .tier li::before { content: "✓"; color: #0366d6; position: absolute; left: 0; }
+      .tier .cta { margin-top: 1.25rem; }
+      .tier .cta .btn { width: 100%; text-align: center; }
+      .price { font-weight: 700; color: #0366d6; font-size: 0.95rem; margin-bottom: 1rem; }
+
+      /* Community links */
+      .links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1.5rem; }
+      .link-card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 1rem 1.25rem; }
+      .link-card strong { display: block; color: #0366d6; }
+      .link-card span { font-size: 0.85rem; color: #666; }
+
+      /* Footer */
+      .footer { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; border-top: 1px solid #e5e5e5; font-size: 0.85rem; color: #666; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+      .footer a { color: #0366d6; }
+
+      @media (max-width: 900px) { .tiers { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 768px) {
+        .hero h1 { font-size: 1.75rem; }
+        .hero .tagline { font-size: 1rem; }
+        .section { padding: 2.5rem 1rem; }
+        .tiers { grid-template-columns: 1fr; }
+        .links { grid-template-columns: 1fr; }
+        .nav-links { gap: 0.75rem; font-size: 0.8rem; }
+        .footer { flex-direction: column; text-align: center; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <nav class="nav">
+      <a class="nav-brand" href="/">
+        <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" alt="Go Micro" style="border-radius: 8px;" />
+        Go Micro
+      </a>
+      <div class="nav-links">
+        <a href="/docs/">Docs</a>
+        <a href="/blog/">Blog</a>
+        <a href="/support" class="active">Support</a>
+        <a href="https://github.com/micro/go-micro">GitHub</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="hero-inner">
+        <h1>Support</h1>
+        <p class="tagline">Community help is free. Commercial support and consulting keep the project moving — and keep your team unblocked in production.</p>
+        <div class="hero-buttons">
+          <a href="https://github.com/sponsors/asim" class="btn btn-primary">Become a sponsor</a>
+          <a href="https://github.com/micro/go-micro/issues/new?template=commercial_support.md" class="btn btn-secondary">Talk to us</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-alt">
+      <div class="section">
+        <h2>Choose your level</h2>
+        <p class="subtitle">From free community help to hands-on engagements. Recurring amounts are set on GitHub Sponsors; support and consulting are scoped per engagement.</p>
+        <div class="tiers">
+          <div class="tier">
+            <h3>Community</h3>
+            <p class="who">Everyone</p>
+            <p class="price">Free</p>
+            <ul>
+              <li>Docs &amp; examples</li>
+              <li>GitHub issues</li>
+              <li>Best-effort, no SLA</li>
+            </ul>
+            <div class="cta"><a href="https://github.com/micro/go-micro/issues" class="btn btn-secondary">Open an issue</a></div>
+          </div>
+          <div class="tier">
+            <h3>Sponsor</h3>
+            <p class="who">Individuals &amp; companies who rely on Go Micro</p>
+            <p class="price">Recurring</p>
+            <ul>
+              <li>Back ongoing development</li>
+              <li>Your name/logo on the project</li>
+              <li>A voice in priorities</li>
+            </ul>
+            <div class="cta"><a href="https://github.com/sponsors/asim" class="btn btn-secondary">Sponsor</a></div>
+          </div>
+          <div class="tier featured">
+            <h3>Support</h3>
+            <p class="who">Teams running Go Micro in production</p>
+            <p class="price">Retainer</p>
+            <ul>
+              <li>Priority responses</li>
+              <li>Direct line to the maintainer</li>
+              <li>Prioritized bug fixes</li>
+              <li>Upgrade &amp; integration help</li>
+            </ul>
+            <div class="cta"><a href="https://github.com/micro/go-micro/issues/new?template=commercial_support.md" class="btn btn-primary">Get in touch</a></div>
+          </div>
+          <div class="tier">
+            <h3>Consulting</h3>
+            <p class="who">Teams building on Go Micro</p>
+            <p class="price">Per engagement</p>
+            <ul>
+              <li>Integration &amp; architecture</li>
+              <li>Agent-design review</li>
+              <li>Training &amp; onboarding</li>
+              <li>Sponsored features</li>
+            </ul>
+            <div class="cta"><a href="https://github.com/micro/go-micro/issues/new?template=commercial_support.md" class="btn btn-primary">Get in touch</a></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Community support</h2>
+      <p class="subtitle">Free, from maintainers and contributors. No response-time guarantees.</p>
+      <div class="links">
+        <a class="link-card" href="/docs/"><strong>Documentation</strong><span>Guides, examples, and the full reference.</span></a>
+        <a class="link-card" href="https://github.com/micro/go-micro/tree/master/examples"><strong>Examples</strong><span>Working services, agents, and flows.</span></a>
+        <a class="link-card" href="https://github.com/micro/go-micro/issues"><strong>Issues</strong><span>Report bugs and request features.</span></a>
+        <a class="link-card" href="https://github.com/micro/go-micro/issues/new?labels=question&amp;template=question.md"><strong>Questions</strong><span>Ask about using Go Micro.</span></a>
+      </div>
+    </section>
+
+    <section class="section-alt">
+      <div class="section" style="text-align: center;">
+        <h2>Running Go Micro in production?</h2>
+        <p class="subtitle">Tell us what you're building and what you need — we'll follow up.</p>
+        <div class="hero-buttons">
+          <a href="https://github.com/micro/go-micro/issues/new?template=commercial_support.md" class="btn btn-primary">Request commercial support</a>
+          <a href="https://github.com/sponsors/asim" class="btn btn-secondary">Become a sponsor</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>&copy; 2026 Go Micro. Apache 2.0 Licensed.</div>
+      <div>
+        <a href="/docs/">Docs</a> &middot;
+        <a href="/blog/">Blog</a> &middot;
+        <a href="https://github.com/micro/go-micro">GitHub</a> &middot;
+        <a href="/support">Support</a>
+      </div>
+    </footer>
+
+  </body>
+</html>
