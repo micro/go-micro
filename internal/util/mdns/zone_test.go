@@ -196,7 +196,7 @@ func TestMDNSService_InstanceAddr_AAAA(t *testing.T) {
 	if got := len(ip6); got != net.IPv6len {
 		t.Fatalf("test IP failed to parse (len = %d, want %d)", got, net.IPv6len)
 	}
-	if !bytes.Equal(a4.AAAA, ip6) {
+	if !a4.AAAA.Equal(ip6) {
 		t.Fatalf("bad: %v", recs[0])
 	}
 }

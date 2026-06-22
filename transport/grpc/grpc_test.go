@@ -1,23 +1,10 @@
 package grpc
 
 import (
-	"net"
 	"testing"
 
 	"go-micro.dev/v6/transport"
 )
-
-func expectedPort(t *testing.T, expected string, lsn transport.Listener) {
-	_, port, err := net.SplitHostPort(lsn.Addr())
-	if err != nil {
-		t.Errorf("Expected address to be `%s`, got error: %v", expected, err)
-	}
-
-	if port != expected {
-		lsn.Close()
-		t.Errorf("Expected address to be `%s`, got `%s`", expected, port)
-	}
-}
 
 // func TestGRPCTransportPortRange(t *testing.T) {
 // 	tp := NewTransport()

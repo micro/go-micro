@@ -67,7 +67,7 @@ func (s *sqlStore) List(opts ...store.ListOption) ([]string, error) {
 
 		if cachedTime.Before(time.Now()) {
 			// record has expired
-			go s.Delete(record.Key)
+			go func() { _ = s.Delete(record.Key) }()
 		} else {
 			records = append(records, record.Key)
 		}
@@ -105,7 +105,7 @@ func (s *sqlStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, 
 	}
 	if cachedTime.Before(time.Now()) {
 		// record has expired
-		go s.Delete(key)
+		go func() { _ = s.Delete(key) }()
 		return records, store.ErrNotFound
 	}
 	record.Expiry = time.Until(cachedTime)

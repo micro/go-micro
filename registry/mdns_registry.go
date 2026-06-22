@@ -197,7 +197,6 @@ func (m *mdnsRegistry) Register(service *Service, opts ...RegisterOption) error 
 		for _, entry := range entries {
 			if node.Id == entry.id {
 				seen = true
-				e = entry
 				break
 			}
 		}
@@ -275,7 +274,7 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 
 		for _, node := range service.Nodes {
 			if node.Id == entry.id {
-				entry.node.Shutdown()
+				_ = entry.node.Shutdown()
 				remove = true
 				break
 			}
@@ -289,7 +288,7 @@ func (m *mdnsRegistry) Deregister(service *Service, opts ...DeregisterOption) er
 
 	// last entry is the wildcard for list queries. Remove it.
 	if len(newEntries) == 1 && newEntries[0].id == "*" {
-		newEntries[0].node.Shutdown()
+		_ = newEntries[0].node.Shutdown()
 		delete(m.services, service.Name)
 	} else {
 		m.services[service.Name] = newEntries
@@ -519,7 +518,7 @@ func (m *mdnsRegistry) Watch(opts ...WatchOption) (Watcher, error) {
 			}()
 
 			// start listening, blocking call
-			mdns.Listen(ch, exit)
+			_ = mdns.Listen(ch, exit)
 
 			// mdns.Listen has unblocked
 			// kill the saved listener

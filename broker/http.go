@@ -100,7 +100,7 @@ func newTransport(config *tls.Config) *http.Transport {
 	})
 
 	// setup http2
-	http2.ConfigureTransport(t)
+	_ = http2.ConfigureTransport(t)
 
 	return t
 }
@@ -295,7 +295,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	defer req.Body.Close()
 
-	req.ParseForm()
+	_ = req.ParseForm()
 
 	b, err := io.ReadAll(req.Body)
 	if err != nil {
@@ -406,7 +406,7 @@ func (h *httpBroker) Connect() error {
 	addr := h.address
 	h.address = l.Addr().String()
 
-	go http.Serve(l, h.mux)
+	go func() { _ = http.Serve(l, h.mux) }()
 	go func() {
 		h.run(l)
 		h.Lock()
@@ -555,7 +555,7 @@ func (h *httpBroker) Publish(topic string, msg *Message, opts ...PublishOption) 
 		}
 
 		// discard response body
-		io.Copy(io.Discard, r.Body)
+		_, _ = io.Copy(io.Discard, r.Body)
 		r.Body.Close()
 		return nil
 	}

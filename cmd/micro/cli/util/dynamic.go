@@ -150,7 +150,7 @@ func CallService(srv *registry.Service, args []string) error {
 		}
 	}
 	if ep == nil {
-		return fmt.Errorf("Endpoint %v not found for service %v", endpoint, srv.Name)
+		return fmt.Errorf("endpoint %v not found for service %v", endpoint, srv.Name)
 	}
 
 	// create a context for the call
@@ -189,7 +189,7 @@ func CallService(srv *registry.Service, args []string) error {
 		return err
 	}
 	out.Write([]byte("\n"))
-	out.WriteTo(os.Stdout)
+	_, _ = out.WriteTo(os.Stdout)
 
 	return nil
 }
@@ -230,7 +230,7 @@ func splitCmdArgs(arguments []string) ([]string, map[string][]string, error) {
 		case 2:
 			flags[comps[0]] = append(flags[comps[0]], comps[1])
 		default:
-			return nil, nil, fmt.Errorf("Invalid flag: %v. Expected format: --foo=bar", a)
+			return nil, nil, fmt.Errorf("invalid flag: %v. Expected format: --foo=bar", a)
 		}
 	}
 
@@ -250,7 +250,7 @@ func constructEndpoint(args []string) (string, error) {
 	case 3:
 		epComps = args[1:3]
 	default:
-		return "", fmt.Errorf("Incorrect number of arguments")
+		return "", fmt.Errorf("incorrect number of arguments")
 	}
 
 	// transform the endpoint components, e.g ["helloworld", "call"] to the
@@ -408,7 +408,7 @@ func FlagsToRequest(flags map[string][]string, req *registry.Value) (map[string]
 	for key, value := range flags {
 		ty, found := flagType(key, req.Values)
 		if !found {
-			return nil, fmt.Errorf("Unknown flag: %v", key)
+			return nil, fmt.Errorf("unknown flag: %v", key)
 		}
 		parsed, err := coerceValue(ty, value)
 		if err != nil {

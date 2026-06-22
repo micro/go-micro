@@ -14,8 +14,7 @@ type serverCodec struct {
 	c   io.Closer
 
 	// temporary work space
-	req  serverRequest
-	resp serverResponse
+	req serverRequest
 }
 
 type serverRequest struct {
@@ -67,8 +66,6 @@ func (c *serverCodec) ReadBody(x interface{}) error {
 	params[0] = x
 	return json.Unmarshal(*c.req.Params, &params)
 }
-
-var null = json.RawMessage([]byte("null"))
 
 func (c *serverCodec) Write(m *codec.Message, x interface{}) error {
 	var resp serverResponse

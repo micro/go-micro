@@ -35,5 +35,5 @@ func (n *natsWatcher) Next() (*registry.Result, error) {
 }
 
 func (n *natsWatcher) Stop() {
-	n.sub.Unsubscribe()
+	_ = n.sub.Unsubscribe()
 }

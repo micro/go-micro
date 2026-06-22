@@ -61,14 +61,14 @@ func (r *rabbitMQChannel) Connect(prefetchCount int, prefetchGlobal bool, confir
 
 func (r *rabbitMQChannel) Close() error {
 	if r.channel == nil {
-		return errors.New("Channel is nil")
+		return errors.New("channel is nil")
 	}
 	return r.channel.Close()
 }
 
 func (r *rabbitMQChannel) Publish(exchange, key string, message amqp.Publishing) error {
 	if r.channel == nil {
-		return errors.New("Channel is nil")
+		return errors.New("channel is nil")
 	}
 
 	if r.confirmPublish != nil {
@@ -84,11 +84,11 @@ func (r *rabbitMQChannel) Publish(exchange, key string, message amqp.Publishing)
 	if r.confirmPublish != nil {
 		confirmation, ok := <-r.confirmPublish
 		if !ok {
-			return errors.New("Channel closed before could receive confirmation of publish")
+			return errors.New("channel closed before could receive confirmation of publish")
 		}
 
 		if !confirmation.Ack {
-			return errors.New("Could not publish message, received nack from broker on confirmation")
+			return errors.New("could not publish message, received nack from broker on confirmation")
 		}
 	}
 

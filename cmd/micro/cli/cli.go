@@ -24,12 +24,6 @@ import (
 	_ "go-micro.dev/v6/cmd/micro/cli/remote"
 )
 
-var (
-	// version is set by the release action
-	// this is the default for local builds
-	version = "5.0.0-dev"
-)
-
 func genProtoHandler(c *cli.Context) error {
 	cmd := exec.Command("find", ".", "-name", "*.proto", "-exec", "protoc", "--proto_path=.", "--micro_out=.", "--go_out=.", `{}`, `;`)
 	cmd.Stdout = os.Stdout
@@ -121,7 +115,7 @@ func init() {
 				args := ctx.Args()
 
 				if args.Len() < 2 {
-					return fmt.Errorf("Usage: [service] [endpoint] [request]")
+					return fmt.Errorf("usage: [service] [endpoint] [request]")
 				}
 
 				service := args.Get(0)
@@ -157,7 +151,7 @@ func init() {
 				args := ctx.Args()
 
 				if args.Len() != 1 {
-					return fmt.Errorf("Usage: [service]")
+					return fmt.Errorf("usage: [service]")
 				}
 
 				service := args.Get(0)

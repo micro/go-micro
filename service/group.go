@@ -51,7 +51,7 @@ func (g *Group) Run() error {
 		g.logger.Logf(log.InfoLevel, "Starting [service] %s", svc.Name())
 		if err := svc.Start(); err != nil {
 			cancel()
-			g.stopAll()
+			_ = g.stopAll()
 			return err
 		}
 	}
@@ -66,7 +66,7 @@ func (g *Group) Run() error {
 	case <-ctx.Done():
 	case err := <-errCh:
 		cancel()
-		g.stopAll()
+		_ = g.stopAll()
 		return err
 	}
 

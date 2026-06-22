@@ -206,9 +206,7 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 			t.sendError(req.ID, InvalidParams, "Unauthorized", "missing _token in params")
 			return
 		}
-		if strings.HasPrefix(token, "Bearer ") {
-			token = strings.TrimPrefix(token, "Bearer ")
-		}
+		token = strings.TrimPrefix(token, "Bearer ")
 		acc, err := t.server.opts.Auth.Inspect(token)
 		if err != nil {
 			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))

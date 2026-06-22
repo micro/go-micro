@@ -7,36 +7,6 @@ import (
 	"github.com/miekg/dns"
 )
 
-type mockMDNSService struct{}
-
-func (s *mockMDNSService) Records(q dns.Question) []dns.RR {
-	return []dns.RR{
-		&dns.PTR{
-			Hdr: dns.RR_Header{
-				Name:   "fakerecord",
-				Rrtype: dns.TypePTR,
-				Class:  dns.ClassINET,
-				Ttl:    42,
-			},
-			Ptr: "fake.local.",
-		},
-	}
-}
-
-func (s *mockMDNSService) Announcement() []dns.RR {
-	return []dns.RR{
-		&dns.PTR{
-			Hdr: dns.RR_Header{
-				Name:   "fakeannounce",
-				Rrtype: dns.TypePTR,
-				Class:  dns.ClassINET,
-				Ttl:    42,
-			},
-			Ptr: "fake.local.",
-		},
-	}
-}
-
 func TestDNSSDServiceRecords(t *testing.T) {
 	s := &DNSSDService{
 		MDNSService: &MDNSService{

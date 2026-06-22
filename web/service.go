@@ -110,7 +110,7 @@ func (s *service) run() {
 	for {
 		select {
 		case <-t.C:
-			s.register()
+			_ = s.register()
 		case <-s.ex:
 			t.Stop()
 			return
@@ -248,7 +248,7 @@ func (s *service) start() error {
 
 	httpSrv.Handler = handler
 
-	go httpSrv.Serve(listener)
+	go func() { _ = httpSrv.Serve(listener) }()
 
 	for _, fn := range s.opts.AfterStart {
 		if err := fn(); err != nil {

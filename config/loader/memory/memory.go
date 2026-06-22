@@ -104,7 +104,7 @@ func (m *memory) watch(idx int, s source.Source) {
 			case <-done:
 			case <-m.exit:
 			}
-			w.Stop()
+			_ = w.Stop()
 		}()
 
 		// block watch

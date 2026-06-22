@@ -74,7 +74,7 @@ func brokerSubscribe(c *cli.Context) error {
 	if err != nil {
 		return fail("subscribe: %v", err)
 	}
-	defer sub.Unsubscribe()
+	defer func() { _ = sub.Unsubscribe() }()
 
 	fmt.Printf("Subscribed to %q (Ctrl-C to stop)...\n", topic)
 	sig := make(chan os.Signal, 1)

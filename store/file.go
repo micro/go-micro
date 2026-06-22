@@ -32,7 +32,7 @@ func NewFileStore(opts ...Option) Store {
 	s := &fileStore{
 		handles: make(map[string]*fileHandle),
 	}
-	s.init(opts...)
+	_ = s.init(opts...)
 	return s
 }
 
@@ -100,18 +100,18 @@ func (m *fileStore) init(opts ...Option) error {
 	return os.MkdirAll(m.dir, 0700)
 }
 
-func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
+func (m *fileStore) getDB(database, table string) (*fileHandle, error) {
 	if len(database) == 0 {
-		database = f.options.Database
+		database = m.options.Database
 	}
 	if len(table) == 0 {
-		table = f.options.Table
+		table = m.options.Table
 	}
 
 	k := key(database, table)
-	f.RLock()
-	fd, ok := f.handles[k]
-	f.RUnlock()
+	m.RLock()
+	fd, ok := m.handles[k]
+	m.RUnlock()
 
 	// return the file handle
 	if ok {
@@ -119,18 +119,18 @@ func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
 	}
 
 	// double check locking
-	f.Lock()
-	defer f.Unlock()
-	if fd, ok := f.handles[k]; ok {
+	m.Lock()
+	defer m.Unlock()
+	if fd, ok := m.handles[k]; ok {
 		return fd, nil
 	}
 
 	// create directory
-	dir := filepath.Join(f.dir, database)
+	dir := filepath.Join(m.dir, database)
 	// create the database handle
 	fname := table + ".db"
 	// make the dir
-	os.MkdirAll(dir, 0700)
+	_ = os.MkdirAll(dir, 0700)
 	// database path
 	dbPath := filepath.Join(dir, fname)
 
@@ -144,7 +144,7 @@ func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
 		key: k,
 		db:  db,
 	}
-	f.handles[k] = fd
+	m.handles[k] = fd
 
 	return fd, nil
 }
@@ -152,7 +152,7 @@ func (f *fileStore) getDB(database, table string) (*fileHandle, error) {
 func (m *fileStore) list(fd *fileHandle, limit, offset uint) []string {
 	var allItems []string
 
-	fd.db.View(func(tx *bolt.Tx) error {
+	_ = fd.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(dataBucket))
 		// nothing to read
 		if b == nil {
@@ -204,7 +204,7 @@ func (m *fileStore) list(fd *fileHandle, limit, offset uint) []string {
 func (m *fileStore) get(fd *fileHandle, k string) (*Record, error) {
 	var value []byte
 
-	fd.db.View(func(tx *bolt.Tx) error {
+	_ = fd.db.View(func(tx *bolt.Tx) error {
 		// @todo this is still very experimental...
 		b := tx.Bucket([]byte(dataBucket))
 		if b == nil {
@@ -276,18 +276,18 @@ func (m *fileStore) set(fd *fileHandle, r *Record) error {
 	})
 }
 
-func (f *fileStore) Close() error {
-	f.Lock()
-	defer f.Unlock()
-	for k, v := range f.handles {
+func (m *fileStore) Close() error {
+	m.Lock()
+	defer m.Unlock()
+	for k, v := range m.handles {
 		v.db.Close()
-		delete(f.handles, k)
+		delete(m.handles, k)
 	}
 	return nil
 }
 
-func (f *fileStore) Init(opts ...Option) error {
-	return f.init(opts...)
+func (m *fileStore) Init(opts ...Option) error {
+	return m.init(opts...)
 }
 
 func (m *fileStore) Delete(key string, opts ...DeleteOption) error {

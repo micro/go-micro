@@ -7,8 +7,6 @@ import (
 	"strings"
 
 	"go-micro.dev/v6/cmd/protoc-gen-micro/generator"
-	options "google.golang.org/genproto/googleapis/api/annotations"
-	"google.golang.org/protobuf/proto"
 	pb "google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -274,51 +272,9 @@ func (g *micro) generateService(file *generator.FileDescriptor, service *pb.Serv
 	g.P("}")
 
 	// Server handler implementations.
-	var handlerNames []string
 	for _, method := range service.Method {
-		hname := g.generateServerMethod(servName, method)
-		handlerNames = append(handlerNames, hname)
+		g.generateServerMethod(servName, method)
 	}
-}
-
-// generateEndpoint creates the api endpoint
-func (g *micro) generateEndpoint(servName string, method *pb.MethodDescriptorProto) {
-	if method.Options == nil || !proto.HasExtension(method.Options, options.E_Http) {
-		return
-	}
-	// http rules
-	r := proto.GetExtension(method.Options, options.E_Http)
-	rule := r.(*options.HttpRule)
-	var meth string
-	var path string
-	switch {
-	case len(rule.GetDelete()) > 0:
-		meth = "DELETE"
-		path = rule.GetDelete()
-	case len(rule.GetGet()) > 0:
-		meth = "GET"
-		path = rule.GetGet()
-	case len(rule.GetPatch()) > 0:
-		meth = "PATCH"
-		path = rule.GetPatch()
-	case len(rule.GetPost()) > 0:
-		meth = "POST"
-		path = rule.GetPost()
-	case len(rule.GetPut()) > 0:
-		meth = "PUT"
-		path = rule.GetPut()
-	}
-	if len(meth) == 0 || len(path) == 0 {
-		return
-	}
-	// TODO: process additional bindings
-	g.P("Name:", fmt.Sprintf(`"%s.%s",`, servName, method.GetName()))
-	g.P("Path:", fmt.Sprintf(`[]string{"%s"},`, path))
-	g.P("Method:", fmt.Sprintf(`[]string{"%s"},`, meth))
-	if method.GetServerStreaming() || method.GetClientStreaming() {
-		g.P("Stream: true,")
-	}
-	g.P(`Handler: "rpc",`)
 }
 
 // generateClientSignature returns the client-side signature for a method.

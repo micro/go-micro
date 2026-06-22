@@ -207,7 +207,7 @@ func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
 		// set in the selector
-		o.Selector.Init(selector.Registry(r))
+		_ = o.Selector.Init(selector.Registry(r))
 	}
 }
 

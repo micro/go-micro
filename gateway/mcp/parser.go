@@ -2,16 +2,9 @@ package mcp
 
 import (
 	"fmt"
-	"go/ast"
-	"go/doc"
-	"go/parser"
-	"go/token"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
-
-	"go-micro.dev/v6/registry"
 )
 
 // ToolDescription represents enhanced documentation for an MCP tool
@@ -43,58 +36,6 @@ var (
 	returnPattern  = regexp.MustCompile(`@return\s+\{(\w+)\}\s+(.+)`)
 	examplePattern = regexp.MustCompile(`@example\s+([\s\S]+?)(?:@\w+|$)`)
 )
-
-// parseServiceDocs attempts to parse Go source files to extract documentation
-// for service methods. This enhances tool descriptions with godoc comments.
-func parseServiceDocs(serviceName string, endpoint *registry.Endpoint) *ToolDescription {
-	// For now, return basic description
-	// Full implementation would:
-	// 1. Use go/parser to find service source files
-	// 2. Extract godoc comments for methods
-	// 3. Parse JSDoc-style tags (@param, @return, @example)
-	// 4. Return rich ToolDescription
-
-	desc := &ToolDescription{
-		Summary:     fmt.Sprintf("Call %s on %s service", endpoint.Name, serviceName),
-		Description: "",
-		Params:      parseEndpointParams(endpoint.Request),
-		Returns:     parseEndpointReturns(endpoint.Response),
-		Examples:    []string{},
-	}
-
-	return desc
-}
-
-// parseEndpointParams extracts parameter documentation from registry Value
-func parseEndpointParams(value *registry.Value) []ParamDoc {
-	if value == nil || len(value.Values) == 0 {
-		return nil
-	}
-
-	params := make([]ParamDoc, 0, len(value.Values))
-	for _, field := range value.Values {
-		params = append(params, ParamDoc{
-			Name:        field.Name,
-			Type:        field.Type,
-			Description: formatFieldDescription(field.Name, field.Type),
-			Required:    true, // Conservative default
-		})
-	}
-
-	return params
-}
-
-// parseEndpointReturns extracts return value documentation
-func parseEndpointReturns(value *registry.Value) []ReturnDoc {
-	if value == nil {
-		return nil
-	}
-
-	return []ReturnDoc{{
-		Type:        value.Name,
-		Description: fmt.Sprintf("Returns %s", value.Name),
-	}}
-}
 
 // formatFieldDescription creates a basic description for a field
 func formatFieldDescription(name, typeName string) string {
@@ -174,50 +115,6 @@ func ParseGoDocComment(comment string) *ToolDescription {
 	return desc
 }
 
-// enhanceToolDescription attempts to enhance a tool with parsed documentation
-func enhanceToolDescription(tool *Tool, serviceName string, endpoint *registry.Endpoint) {
-	// Try to parse service documentation
-	toolDesc := parseServiceDocs(serviceName, endpoint)
-
-	// Update tool description with parsed info
-	if toolDesc.Summary != "" {
-		tool.Description = toolDesc.Summary
-	}
-
-	// Add detailed description to input schema
-	if toolDesc.Description != "" {
-		if tool.InputSchema == nil {
-			tool.InputSchema = make(map[string]interface{})
-		}
-		tool.InputSchema["description"] = toolDesc.Description
-	}
-
-	// Enhance parameter descriptions
-	if len(toolDesc.Params) > 0 {
-		properties, ok := tool.InputSchema["properties"].(map[string]interface{})
-		if ok {
-			for _, param := range toolDesc.Params {
-				if propSchema, exists := properties[param.Name]; exists {
-					if propMap, ok := propSchema.(map[string]interface{}); ok {
-						propMap["description"] = param.Description
-						if param.Required {
-							// Add to required array
-							required, _ := tool.InputSchema["required"].([]string)
-							required = append(required, param.Name)
-							tool.InputSchema["required"] = required
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Add examples if available
-	if len(toolDesc.Examples) > 0 {
-		tool.InputSchema["examples"] = toolDesc.Examples
-	}
-}
-
 // ParseStructTags extracts JSON schema information from struct tags
 // This can be used to enhance parameter descriptions
 func ParseStructTags(t reflect.Type) map[string]interface{} {
@@ -290,50 +187,4 @@ func reflectTypeToJSONType(t reflect.Type) string {
 	default:
 		return "string"
 	}
-}
-
-// findServiceSource attempts to locate Go source files for a service
-// This is used to extract godoc comments
-func findServiceSource(serviceName string) ([]string, error) {
-	// This would search GOPATH/module cache for service sources
-	// For now, return empty - implementation would use:
-	// - go/packages to find module
-	// - Search for service struct definitions
-	// - Return list of source files
-	return nil, fmt.Errorf("source discovery not yet implemented")
-}
-
-// parseGoFile parses a Go source file and extracts method documentation
-func parseGoFile(filename string, serviceName string) (map[string]*ToolDescription, error) {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
-	if err != nil {
-		return nil, err
-	}
-
-	docs := make(map[string]*ToolDescription)
-
-	// Use go/doc to extract documentation
-	pkg := &ast.Package{
-		Name:  f.Name.Name,
-		Files: map[string]*ast.File{filename: f},
-	}
-
-	docPkg := doc.New(pkg, filepath.Dir(filename), doc.AllDecls)
-
-	// Extract method documentation
-	for _, typ := range docPkg.Types {
-		if !strings.Contains(typ.Name, serviceName) {
-			continue
-		}
-
-		for _, method := range typ.Methods {
-			toolDesc := ParseGoDocComment(method.Doc)
-			toolDesc.Summary = fmt.Sprintf("%s - %s", method.Name, toolDesc.Summary)
-
-			docs[method.Name] = toolDesc
-		}
-	}
-
-	return docs, nil
 }

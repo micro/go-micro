@@ -53,7 +53,7 @@ func Deploy(c *cli.Context) error {
 }
 
 func showDeployHelp() error {
-	return fmt.Errorf(`No deployment target specified.
+	return fmt.Errorf(`no deployment target specified.
 
 To deploy, you need a server running micro. Quick setup:
 
@@ -69,7 +69,7 @@ To deploy, you need a server running micro. Quick setup:
      deploy prod
          ssh user@your-server
 
-Run 'micro deploy --help' for more options.`)
+Run 'micro deploy --help' for more options`)
 }
 
 func showDeployTargets(cfg *config.Config) error {
@@ -271,14 +271,6 @@ func checkServerInit(host, remotePath string) error {
 func buildBinaries(absDir string, cfg *config.Config, forceBuild bool, servicesToBuild []string) error {
 	binDir := filepath.Join(absDir, "bin")
 
-	// Check if we already have binaries and don't need to rebuild
-	if !forceBuild {
-		if _, err := os.Stat(binDir); err == nil {
-			// Check if binaries are for linux
-			// For now, just rebuild to be safe
-		}
-	}
-
 	// Always build for linux/amd64
 	targetOS := "linux"
 	targetArch := "amd64"
@@ -391,7 +383,7 @@ func setupSystemdServices(target, remotePath string, services []string) error {
 		// Enable the service using the template
 		enableCmd := fmt.Sprintf("sudo systemctl enable micro@%s 2>/dev/null || true", svc)
 		sshCmd := exec.Command("ssh", target, enableCmd)
-		sshCmd.Run() // Ignore errors, service might already be enabled
+		_ = sshCmd.Run() // Ignore errors, service might already be enabled
 	}
 
 	// Reload systemd
@@ -430,7 +422,7 @@ func checkServicesHealth(target string, services []string) (healthy, unhealthy [
 // Ensure we're not on Windows for deploy
 func checkPlatform() error {
 	if runtime.GOOS == "windows" {
-		return fmt.Errorf("micro deploy requires SSH and rsync, which work best on Linux/macOS.\nConsider using WSL on Windows.")
+		return fmt.Errorf("micro deploy requires SSH and rsync, which work best on Linux/macOS.\nConsider using WSL on Windows")
 	}
 	return nil
 }

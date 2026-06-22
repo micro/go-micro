@@ -205,7 +205,7 @@ func (a *agentImpl) handlePlan(call ai.ToolCall) ai.ToolResult {
 	if err != nil {
 		return errResult(call.ID, "invalid plan: "+err.Error())
 	}
-	a.stateStore().Write(&store.Record{Key: planKey, Value: data})
+	_ = a.stateStore().Write(&store.Record{Key: planKey, Value: data})
 	return ai.ToolResult{ID: call.ID, Value: call.Input, Content: string(data)}
 }
 

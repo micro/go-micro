@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
@@ -139,7 +138,7 @@ func decodeBase64Url(s string) ([]byte, error) {
 
 // Helper: store JWT token
 func storeJWTToken(storeInst store.Store, token, userID string) {
-	storeInst.Write(&store.Record{Key: "jwt/" + token, Value: []byte(userID)})
+	_ = storeInst.Write(&store.Record{Key: "jwt/" + token, Value: []byte(userID)})
 }
 
 // Helper: check if JWT token is revoked (not present in store)
@@ -153,7 +152,7 @@ func deleteUserTokens(storeInst store.Store, userID string) {
 	recs, _ := storeInst.Read("jwt/", store.ReadPrefix())
 	for _, rec := range recs {
 		if string(rec.Value) == userID {
-			storeInst.Delete(rec.Key)
+			_ = storeInst.Delete(rec.Key)
 		}
 	}
 }
@@ -309,31 +308,6 @@ func getDashboardData() (serviceCount, runningCount, stoppedCount int, statusDot
 	return
 }
 
-func getSidebarEndpoints() ([]map[string]string, error) {
-	apiCache.Lock()
-	defer apiCache.Unlock()
-	if apiCache.data != nil && time.Since(apiCache.time) < 30*time.Second {
-		if v, ok := apiCache.data["SidebarEndpoints"]; ok {
-			if endpoints, ok := v.([]map[string]string); ok {
-				return endpoints, nil
-			}
-		}
-	}
-	services, err := registry.ListServices()
-	if err != nil {
-		return nil, err
-	}
-	var sidebarEndpoints []map[string]string
-	for _, srv := range services {
-		anchor := strings.ReplaceAll(srv.Name, ".", "-")
-		sidebarEndpoints = append(sidebarEndpoints, map[string]string{"Name": srv.Name, "Anchor": anchor})
-	}
-	sort.Slice(sidebarEndpoints, func(i, j int) bool {
-		return sidebarEndpoints[i]["Name"] < sidebarEndpoints[j]["Name"]
-	})
-	return sidebarEndpoints, nil
-}
-
 func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Store, authEnabled bool) {
 	var wrap func(http.HandlerFunc) http.HandlerFunc
 
@@ -419,7 +393,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			return
 		}
 		defer f.Close()
-		io.Copy(w, f)
+		_, _ = io.Copy(w, f)
 	})
 
 	mux.HandleFunc("/main.js", func(w http.ResponseWriter, r *http.Request) {
@@ -430,7 +404,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			return
 		}
 		defer f.Close()
-		io.Copy(w, f)
+		_, _ = io.Copy(w, f)
 	})
 
 	// MCP API endpoints - list tools and call tools through the web server
@@ -546,7 +520,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		}
 
 		var traceBytes [16]byte
-		rand.Read(traceBytes[:])
+		_, _ = rand.Read(traceBytes[:])
 		traceID := fmt.Sprintf("%x", traceBytes)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]any{
@@ -581,7 +555,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 				return
 			}
 			b, _ := json.Marshal(settings)
-			storeInst.Write(&store.Record{Key: "agent/settings", Value: b})
+			_ = storeInst.Write(&store.Record{Key: "agent/settings", Value: b})
 			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 			return
 		}
@@ -1170,10 +1144,10 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					var reqBody map[string]interface{}
 					if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 						defer r.Body.Close()
-						json.NewDecoder(r.Body).Decode(&reqBody)
+						_ = json.NewDecoder(r.Body).Decode(&reqBody)
 					} else {
 						reqBody = map[string]interface{}{}
-						r.ParseForm()
+						_ = r.ParseForm()
 						for k, v := range r.Form {
 							if len(v) == 1 {
 								if len(v[0]) == 0 {
@@ -1229,14 +1203,14 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 				scopesStr := r.FormValue("scopes")
 				if endpoint != "" {
 					if scopesStr == "" {
-						storeInst.Delete("endpoint-scopes/" + endpoint)
+						_ = storeInst.Delete("endpoint-scopes/" + endpoint)
 					} else {
 						scopes := strings.Split(scopesStr, ",")
 						for i := range scopes {
 							scopes[i] = strings.TrimSpace(scopes[i])
 						}
 						b, _ := json.Marshal(scopes)
-						storeInst.Write(&store.Record{Key: "endpoint-scopes/" + endpoint, Value: b})
+						_ = storeInst.Write(&store.Record{Key: "endpoint-scopes/" + endpoint, Value: b})
 					}
 					success = true
 				}
@@ -1318,10 +1292,10 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					}
 					if matched {
 						if len(scopes) == 0 {
-							storeInst.Delete("endpoint-scopes/" + key)
+							_ = storeInst.Delete("endpoint-scopes/" + key)
 						} else {
 							b, _ := json.Marshal(scopes)
-							storeInst.Write(&store.Record{Key: "endpoint-scopes/" + key, Value: b})
+							_ = storeInst.Write(&store.Record{Key: "endpoint-scopes/" + key, Value: b})
 						}
 					}
 				}
@@ -1369,7 +1343,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 				tok, _ := GenerateJWT(acc.ID, acc.Type, acc.Scopes, 24*time.Hour)
 				acc.Metadata["token"] = tok
 				b, _ := json.Marshal(acc)
-				storeInst.Write(&store.Record{Key: "auth/" + id, Value: b})
+				_ = storeInst.Write(&store.Record{Key: "auth/" + id, Value: b})
 				storeJWTToken(storeInst, tok, acc.ID) // Store the JWT token
 				http.Redirect(w, r, "/auth/tokens", http.StatusSeeOther)
 				return
@@ -1416,11 +1390,11 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			if r.Method == http.MethodPost {
 				if del := r.FormValue("delete"); del != "" {
 					// Delete user
-					storeInst.Delete("auth/" + del)
+					_ = storeInst.Delete("auth/" + del)
 					deleteUserTokens(storeInst, del)
 					// Mark default admin as deleted so it won't be recreated on restart
 					if del == "admin" {
-						storeInst.Write(&store.Record{Key: "auth/.admin-deleted", Value: []byte("true")})
+						_ = storeInst.Write(&store.Record{Key: "auth/.admin-deleted", Value: []byte("true")})
 					}
 					http.Redirect(w, r, "/auth/users", http.StatusSeeOther)
 					return
@@ -1444,7 +1418,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					Metadata: map[string]string{"created": time.Now().Format(time.RFC3339), "password_hash": string(hash)},
 				}
 				b, _ := json.Marshal(acc)
-				storeInst.Write(&store.Record{Key: "auth/" + id, Value: b})
+				_ = storeInst.Write(&store.Record{Key: "auth/" + id, Value: b})
 				http.Redirect(w, r, "/auth/users", http.StatusSeeOther)
 				return
 			}
@@ -1567,70 +1541,23 @@ func processRunning(pid string) bool {
 	return proc.Signal(syscall.Signal(0)) == nil
 }
 
-func generateKeyPair(bits int) (*rsa.PrivateKey, error) {
-	priv, err := rsa.GenerateKey(rand.Reader, bits)
-	if err != nil {
-		return nil, err
-	}
-	return priv, nil
-}
-func exportPrivateKeyAsPEM(priv *rsa.PrivateKey) ([]byte, error) {
-	privKeyBytes := x509.MarshalPKCS1PrivateKey(priv)
-	block := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privKeyBytes,
-	}
-	var buf bytes.Buffer
-	err := pem.Encode(&buf, block)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-func exportPublicKeyAsPEM(pub *rsa.PublicKey) ([]byte, error) {
-	pubKeyBytes := x509.MarshalPKCS1PublicKey(pub)
-	block := &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: pubKeyBytes,
-	}
-	var buf bytes.Buffer
-	err := pem.Encode(&buf, block)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-func importPrivateKeyFromPEM(privKeyPEM []byte) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode(privKeyPEM)
-	if block == nil {
-		return nil, fmt.Errorf("invalid PEM block")
-	}
-	return x509.ParsePKCS1PrivateKey(block.Bytes)
-}
-func importPublicKeyFromPEM(pubKeyPEM []byte) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode(pubKeyPEM)
-	if block == nil {
-		return nil, fmt.Errorf("invalid PEM block")
-	}
-	return x509.ParsePKCS1PublicKey(block.Bytes)
-}
 func initAuth() error {
 	// --- AUTH SETUP ---
 	homeDir, _ := os.UserHomeDir()
 	keyDir := filepath.Join(homeDir, "micro", "keys")
 	privPath := filepath.Join(keyDir, "private.pem")
 	pubPath := filepath.Join(keyDir, "public.pem")
-	os.MkdirAll(keyDir, 0700)
+	_ = os.MkdirAll(keyDir, 0700)
 	// Generate keypair if not exist
 	if _, err := os.Stat(privPath); os.IsNotExist(err) {
 		priv, _ := rsa.GenerateKey(rand.Reader, 2048)
 		privBytes := x509.MarshalPKCS1PrivateKey(priv)
 		privPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes})
-		os.WriteFile(privPath, privPem, 0600)
+		_ = os.WriteFile(privPath, privPem, 0600)
 		// Use PKIX format for public key
 		pubBytes, _ := x509.MarshalPKIXPublicKey(&priv.PublicKey)
 		pubPem := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-		os.WriteFile(pubPath, pubPem, 0644)
+		_ = os.WriteFile(pubPath, pubPem, 0644)
 	}
 	_, _ = os.ReadFile(privPath)
 	_, _ = os.ReadFile(pubPath)
@@ -1656,7 +1583,7 @@ func initAuth() error {
 			Metadata: map[string]string{"created": time.Now().Format(time.RFC3339), "password_hash": string(hash)},
 		}
 		b, _ := json.Marshal(acc)
-		storeInst.Write(&store.Record{Key: adminKey, Value: b})
+		_ = storeInst.Write(&store.Record{Key: adminKey, Value: b})
 	}
 	return nil
 }

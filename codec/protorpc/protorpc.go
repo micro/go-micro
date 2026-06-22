@@ -112,9 +112,9 @@ func (c *protoCodec) Write(m *codec.Message, b interface{}) error {
 		if err != nil {
 			return err
 		}
-		c.rwc.Write(data)
+		_, _ = c.rwc.Write(data)
 	default:
-		return fmt.Errorf("Unrecognized message type: %v", m.Type)
+		return fmt.Errorf("unrecognized message type: %v", m.Type)
 	}
 	return nil
 }
@@ -153,7 +153,7 @@ func (c *protoCodec) ReadHeader(m *codec.Message, mt codec.MessageType) error {
 		_, err := io.Copy(c.buf, c.rwc)
 		return err
 	default:
-		return fmt.Errorf("Unrecognized message type: %v", mt)
+		return fmt.Errorf("unrecognized message type: %v", mt)
 	}
 	return nil
 }
@@ -170,7 +170,7 @@ func (c *protoCodec) ReadBody(b interface{}) error {
 	case codec.Event:
 		data = c.buf.Bytes()
 	default:
-		return fmt.Errorf("Unrecognized message type: %v", c.mt)
+		return fmt.Errorf("unrecognized message type: %v", c.mt)
 	}
 	if b != nil {
 		return proto.Unmarshal(data, b.(proto.Message))

@@ -58,7 +58,6 @@ func (j *jsonValues) Del(path ...string) {
 	vals := j.sj.GetPath(path[:len(path)-1]...)
 	vals.Del(path[len(path)-1])
 	j.sj.SetPath(path[:len(path)-1], vals.Interface())
-	return
 }
 
 func (j *jsonValues) Set(val interface{}, path ...string) {

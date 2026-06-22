@@ -59,7 +59,7 @@ func HandlerStats(stats stats.Stats) server.HandlerWrapper {
 			// execute the handler
 			err := h(ctx, req, rsp)
 			// record the stats
-			stats.Record(err)
+			_ = stats.Record(err)
 			// return the error
 			return err
 		}
@@ -84,7 +84,7 @@ func (c *traceWrapper) Call(ctx context.Context, req client.Request, rsp interfa
 	}
 
 	// finish the trace
-	c.trace.Finish(s)
+	_ = c.trace.Finish(s)
 
 	return err
 }
@@ -119,7 +119,7 @@ func TraceHandler(t trace.Tracer) server.HandlerWrapper {
 			}
 
 			// finish
-			t.Finish(s)
+			_ = t.Finish(s)
 
 			return err
 		}

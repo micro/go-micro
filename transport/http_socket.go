@@ -181,15 +181,17 @@ func (h *httpTransportSocket) recvHTTP2(msg *Message) error {
 		s = DefaultBufSizeH2
 	}
 
-	buf := bufPool.Get().([]byte)
+	bufp := bufPool.Get().(*[]byte)
+	buf := *bufp
 	if cap(buf) < s {
 		buf = make([]byte, s)
+		*bufp = buf
 	}
 	buf = buf[:s]
 
 	n, err := h.buf.Read(buf)
 	if err != nil {
-		bufPool.Put(buf)
+		bufPool.Put(bufp)
 		return err
 	}
 
@@ -197,7 +199,7 @@ func (h *httpTransportSocket) recvHTTP2(msg *Message) error {
 		msg.Body = make([]byte, n)
 		copy(msg.Body, buf[:n])
 	}
-	bufPool.Put(buf)
+	bufPool.Put(bufp)
 
 	for k, v := range h.r.Header {
 		if len(v) > 0 {

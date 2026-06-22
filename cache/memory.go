@@ -61,6 +61,6 @@ func (c *memCache) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
-func (m *memCache) String() string {
+func (c *memCache) String() string {
 	return "memory"
 }

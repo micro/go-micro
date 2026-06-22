@@ -75,7 +75,7 @@ func (p *profiler) Stop() error {
 	pprof.StopCPUProfile()
 	p.cpuFile.Close()
 	runtime.GC()
-	pprof.WriteHeapProfile(p.memFile)
+	_ = pprof.WriteHeapProfile(p.memFile)
 	p.memFile.Close()
 	p.running = false
 	p.cpuFile = nil

@@ -160,7 +160,7 @@ func Init(opt ...Option) {
 	if DefaultServer == nil {
 		DefaultServer = NewRPCServer(opt...)
 	}
-	DefaultServer.Init(opt...)
+	_ = DefaultServer.Init(opt...)
 }
 
 // NewRouter returns a new router.

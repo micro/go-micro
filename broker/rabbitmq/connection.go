@@ -46,8 +46,6 @@ var (
 		Locale:    defaultLocale,
 	}
 
-	dial       = amqp.Dial
-	dialTLS    = amqp.DialTLS
 	dialConfig = amqp.DialConfig
 )
 
@@ -251,9 +249,9 @@ func (r *rabbitMQConn) tryConnect(secure bool, config *amqp.Config) error {
 
 	if !r.withoutExchange {
 		if r.exchange.Durable {
-			r.Channel.DeclareDurableExchange(r.exchange)
+			_ = r.Channel.DeclareDurableExchange(r.exchange)
 		} else {
-			r.Channel.DeclareExchange(r.exchange)
+			_ = r.Channel.DeclareExchange(r.exchange)
 		}
 		r.ExchangeChannel, err = newRabbitChannel(r.Connection, r.prefetchCount, r.prefetchGlobal, r.confirmPublish)
 	}

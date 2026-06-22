@@ -170,7 +170,7 @@ func (s *rpcServer) reSubscribe(config Options) {
 		err = s.router.Subscribe(sb)
 		if err != nil {
 			config.Logger.Logf(log.WarnLevel, "Unable to subscribing to topic: %s, error: %s", sb.Topic(), err)
-			sub.Unsubscribe()
+			_ = sub.Unsubscribe()
 			continue
 		}
 		s.subscribers[sb] = []broker.Subscriber{sub}

@@ -24,10 +24,10 @@ func InitJWTKeys(privPath, pubPath string) error {
 		priv, _ := rsa.GenerateKey(rand.Reader, 2048)
 		privBytes := x509.MarshalPKCS1PrivateKey(priv)
 		privPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes})
-		os.WriteFile(privPath, privPem, 0600)
+		_ = os.WriteFile(privPath, privPem, 0600)
 		pubBytes, _ := x509.MarshalPKIXPublicKey(&priv.PublicKey)
 		pubPem := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubBytes})
-		os.WriteFile(pubPath, pubPem, 0644)
+		_ = os.WriteFile(pubPath, pubPem, 0644)
 	}
 	privPem, err := os.ReadFile(privPath)
 	if err != nil {

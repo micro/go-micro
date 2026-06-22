@@ -2554,7 +2554,7 @@ func (g *Generator) generateFileDescriptor(file *FileDescriptor) {
 
 	var buf bytes.Buffer
 	w, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
-	w.Write(b)
+	_, _ = w.Write(b)
 	w.Close()
 	b = buf.Bytes()
 

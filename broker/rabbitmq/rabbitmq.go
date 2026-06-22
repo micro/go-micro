@@ -15,13 +15,11 @@ import (
 )
 
 type rbroker struct {
-	conn           *rabbitMQConn
-	addrs          []string
-	opts           broker.Options
-	prefetchCount  int
-	prefetchGlobal bool
-	mtx            sync.Mutex
-	wg             sync.WaitGroup
+	conn  *rabbitMQConn
+	addrs []string
+	opts  broker.Options
+	mtx   sync.Mutex
+	wg    sync.WaitGroup
 }
 
 type subscriber struct {
@@ -304,9 +302,9 @@ func (r *rbroker) Subscribe(topic string, handler broker.Handler, opts ...broker
 		p := &publication{d: msg, m: m, t: msg.RoutingKey}
 		p.err = handler(p)
 		if p.err == nil && ackSuccess && !opt.AutoAck {
-			msg.Ack(false)
+			_ = msg.Ack(false)
 		} else if p.err != nil && !opt.AutoAck {
-			msg.Nack(false, requeueOnError)
+			_ = msg.Nack(false, requeueOnError)
 		}
 	}
 
