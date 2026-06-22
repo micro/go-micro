@@ -19,8 +19,8 @@ type MQExchangeType string
 
 const (
 	ExchangeTypeFanout MQExchangeType = "fanout"
-	ExchangeTypeTopic                 = "topic"
-	ExchangeTypeDirect                = "direct"
+	ExchangeTypeTopic  MQExchangeType = "topic"
+	ExchangeTypeDirect MQExchangeType = "direct"
 )
 
 var (

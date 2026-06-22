@@ -14,9 +14,9 @@ import (
 
 	consul "github.com/hashicorp/consul/api"
 	hash "github.com/mitchellh/hashstructure"
-	"go-micro.dev/v6/registry"
 	mnet "go-micro.dev/v6/internal/util/net"
 	mtls "go-micro.dev/v6/internal/util/tls"
+	"go-micro.dev/v6/registry"
 )
 
 type consulRegistry struct {

@@ -70,7 +70,7 @@ func builtinTools() []ai.Tool {
 //
 // Configure it with the same options as an Agent (Name, Provider,
 // WithStore, WithRegistry, WithClient, ...); these back plan's memory
-// and delegate's RPC/sub-agent behaviour.
+// and delegate's RPC/sub-agent behavior.
 func Builtins(opts ...Option) (tools []ai.Tool, handle func(name string, input map[string]any) (result any, content string, ok bool)) {
 	a := &agentImpl{opts: newOptions(opts...)}
 	handle = func(name string, input map[string]any) (any, string, bool) {

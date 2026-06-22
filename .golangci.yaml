@@ -14,6 +14,13 @@ linters:
     - unconvert
     - usestdlibvars
   settings:
+    errcheck:
+      exclude-functions:
+        - (*encoding/json.Encoder).Encode
+        - (net/http.ResponseWriter).Write
+        - fmt.Fprintf
+        - fmt.Fprint
+        - fmt.Fprintln
     misspell:
       locale: US
     staticcheck:
@@ -22,6 +29,10 @@ linters:
         # Deprecations are tracked separately; some (e.g. gRPC dial options)
         # are kept intentionally for compatibility. Migrate them on their own.
         - -SA1019
+        # Initialism/naming convention (Id->ID, Http->HTTP, ...). The remaining
+        # offenders are exported identifiers (e.g. web.Id, web.DefaultId) whose
+        # rename is a breaking API change; not worth it in a lint-bootstrap pass.
+        - -ST1003
   exclusions:
     # Use golangci-lint's built-in sensible exclusions and skip generated code.
     generated: lax
@@ -40,6 +51,11 @@ linters:
       - path: _test\.go
         linters:
           - bodyclose
+          - errcheck
+      # Demo/harness code: fire-and-forget calls are fine and `_ =` noise hurts
+      # readability of examples.
+      - path: (^|/)(examples|internal/harness)/
+        linters:
           - errcheck
 
 formatters:

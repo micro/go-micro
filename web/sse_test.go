@@ -19,7 +19,7 @@ func TestSSEBroadcaster_Basic(t *testing.T) {
 	defer b.Stop()
 
 	// Create test server
-	server := httptest.NewServer(http.HandlerFunc(b.Handler()))
+	server := httptest.NewServer(b.Handler())
 	defer server.Close()
 
 	// Connect client
@@ -52,7 +52,7 @@ func TestSSEBroadcaster_BroadcastEvent(t *testing.T) {
 	}
 	defer b.Stop()
 
-	server := httptest.NewServer(http.HandlerFunc(b.Handler()))
+	server := httptest.NewServer(b.Handler())
 	defer server.Close()
 
 	// Connect client
@@ -106,7 +106,7 @@ func TestSSEBroadcaster_ClientCount(t *testing.T) {
 	}
 	defer b.Stop()
 
-	server := httptest.NewServer(http.HandlerFunc(b.Handler()))
+	server := httptest.NewServer(b.Handler())
 	defer server.Close()
 
 	if count := b.ClientCount(); count != 0 {

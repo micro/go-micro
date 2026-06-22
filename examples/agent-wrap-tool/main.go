@@ -10,7 +10,7 @@
 //
 //   - observe: times every call and records a count per tool, keyed so
 //     you can correlate by call ID. Pure "lifecycle hook" — it observes,
-//     it doesn't change behaviour.
+//     it doesn't change behavior.
 //   - retry:   re-runs a call whose result comes back as an error, up to
 //     a few attempts. The "weather" service fails the first time it is
 //     hit and succeeds after, so the retry wrapper turns a transient

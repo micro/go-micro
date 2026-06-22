@@ -705,7 +705,7 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	ctx, span := s.startToolSpan(r.Context(), req.Tool, "http", traceID)
 	defer span.End()
 
-	// Authenticate and authorise
+	// Authenticate and authorize
 	var account *auth.Account
 	if s.opts.Auth != nil {
 		token := r.Header.Get("Authorization")

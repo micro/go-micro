@@ -42,7 +42,7 @@ func UseNumber() {
 }
 
 func (w wrapCodec) String() string {
-	return w.Codec.Name()
+	return w.Name()
 }
 
 func (w wrapCodec) Marshal(v interface{}) ([]byte, error) {

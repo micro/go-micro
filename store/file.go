@@ -185,9 +185,7 @@ func (m *fileStore) list(fd *fileHandle, limit, offset uint) []string {
 
 	allKeys := make([]string, len(allItems))
 
-	for i, k := range allItems {
-		allKeys[i] = k
-	}
+	copy(allKeys, allItems)
 
 	if limit != 0 || offset != 0 {
 		sort.Slice(allKeys, func(i, j int) bool { return allKeys[i] < allKeys[j] })

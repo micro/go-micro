@@ -391,7 +391,7 @@ func (s *Server) probe() {
 	}
 
 	resp := new(dns.Msg)
-	resp.MsgHdr.Response = true
+	resp.Response = true
 
 	// set for query
 	q.SetQuestion(name, dns.TypeANY)
@@ -481,7 +481,7 @@ func (s *Server) unregister() error {
 	q.SetQuestion(name, dns.TypeANY)
 
 	resp := new(dns.Msg)
-	resp.MsgHdr.Response = true
+	resp.Response = true
 	resp.Answer = append(resp.Answer, s.config.Zone.Records(q.Question[0])...)
 
 	return s.SendMulticast(resp)

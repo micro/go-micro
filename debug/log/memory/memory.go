@@ -35,7 +35,7 @@ func NewLog(opts ...log.Option) log.Log {
 
 // Write writes logs into logger.
 func (l *memoryLog) Write(r log.Record) error {
-	l.Buffer.Put(fmt.Sprint(r.Message))
+	l.Put(fmt.Sprint(r.Message))
 	return nil
 }
 
@@ -50,7 +50,7 @@ func (l *memoryLog) Read(opts ...log.ReadOption) ([]log.Record, error) {
 	var entries []*ring.Entry
 	// if Since options ha sbeen specified we honor it
 	if !options.Since.IsZero() {
-		entries = l.Buffer.Since(options.Since)
+		entries = l.Since(options.Since)
 	}
 
 	// only if we specified valid count constraint
@@ -66,7 +66,7 @@ func (l *memoryLog) Read(opts ...log.ReadOption) ([]log.Record, error) {
 				entries = entries[0:options.Count]
 			}
 		default:
-			entries = l.Buffer.Get(options.Count)
+			entries = l.Get(options.Count)
 		}
 	}
 
@@ -90,7 +90,7 @@ func (l *memoryLog) Stream() (log.Stream, error) {
 	// make a buffered channel
 	records := make(chan log.Record, 128)
 	// get last 10 records
-	last10 := l.Buffer.Get(10)
+	last10 := l.Get(10)
 
 	// stream the log records
 	go func() {

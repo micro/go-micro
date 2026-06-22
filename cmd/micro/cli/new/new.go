@@ -430,7 +430,7 @@ func runPrompt(cliCtx *cli.Context, prompt string) error {
 	fmt.Println()
 
 	if !confirmGenerate() {
-		fmt.Println("  Cancelled.")
+		fmt.Println("  Canceled.")
 		return nil
 	}
 

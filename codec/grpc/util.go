@@ -20,7 +20,7 @@ func decode(r io.Reader) (uint8, []byte, error) {
 	}
 
 	// get encoding format e.g compressed
-	cf := uint8(header[0])
+	cf := header[0]
 
 	// get message length
 	length := binary.BigEndian.Uint32(header[1:])
@@ -54,7 +54,7 @@ func encode(cf uint8, buf []byte, w io.Writer) error {
 	header := make([]byte, 5)
 
 	// set compression
-	header[0] = byte(cf)
+	header[0] = cf
 
 	// write length as header
 	binary.BigEndian.PutUint32(header[1:], uint32(len(buf)))

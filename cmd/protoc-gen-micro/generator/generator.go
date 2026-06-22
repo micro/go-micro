@@ -2013,7 +2013,7 @@ func (g *Generator) generateInternalStructFields(mc *msgCtx, topLevelFields []to
 
 }
 
-// generateOneofFuncs adds all the utility functions for oneof, including marshalling, unmarshalling and sizer.
+// generateOneofFuncs adds all the utility functions for oneof, including marshaling, unmarshalling and sizer.
 func (g *Generator) generateOneofFuncs(mc *msgCtx, topLevelFields []topLevelField) {
 	ofields := []*oneofField{}
 	for _, f := range topLevelFields {

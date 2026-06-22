@@ -213,8 +213,6 @@ func (c *config) Set(val interface{}, path ...string) {
 	if c.vals != nil {
 		c.vals.Set(val, path...)
 	}
-
-	return
 }
 
 func (c *config) Del(path ...string) {
@@ -224,8 +222,6 @@ func (c *config) Del(path ...string) {
 	if c.vals != nil {
 		c.vals.Del(path...)
 	}
-
-	return
 }
 
 func (c *config) Bytes() []byte {

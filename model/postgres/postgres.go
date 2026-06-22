@@ -191,10 +191,9 @@ func (d *postgresModel) List(ctx context.Context, result interface{}, opts ...mo
 	paramN := 1
 
 	if len(q.Filters) > 0 {
-		where, fArgs, nextParam := buildWhere(q.Filters, paramN)
+		where, fArgs, _ := buildWhere(q.Filters, paramN)
 		query += " WHERE " + where
 		args = append(args, fArgs...)
-		paramN = nextParam
 	}
 
 	if q.OrderBy != "" {

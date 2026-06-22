@@ -174,7 +174,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 
 	// Build HTTP request
 	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/messages"
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -193,7 +193,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 
 	// Read response
 	respBody, _ := io.ReadAll(httpResp.Body)
-	if httpResp.StatusCode != 200 {
+	if httpResp.StatusCode != http.StatusOK {
 		return nil, nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
 	}
 

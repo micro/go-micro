@@ -177,7 +177,7 @@ func TestHandleCallTool_AuthRequired(t *testing.T) {
 				"tool":  "blog.Blog.Create",
 				"input": map[string]interface{}{"title": "hello"},
 			})
-			req := httptest.NewRequest("POST", "/mcp/call", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/mcp/call", bytes.NewReader(body))
 			if tt.token != "" {
 				req.Header.Set("Authorization", "Bearer "+tt.token)
 			}
@@ -204,7 +204,7 @@ func TestHandleCallTool_TraceID(t *testing.T) {
 		"tool":  "svc.Echo",
 		"input": map[string]interface{}{},
 	})
-	req := httptest.NewRequest("POST", "/mcp/call", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mcp/call", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	s.handleCallTool(rec, req)
 
@@ -245,7 +245,7 @@ func TestHandleCallTool_AuditFunc(t *testing.T) {
 		"tool":  "svc.Do",
 		"input": map[string]interface{}{},
 	})
-	req := httptest.NewRequest("POST", "/mcp/call", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mcp/call", bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer tok")
 	rec := httptest.NewRecorder()
 	s.handleCallTool(rec, req)
@@ -299,7 +299,7 @@ func TestHandleCallTool_AuditDenied(t *testing.T) {
 		"tool":  "svc.Do",
 		"input": map[string]interface{}{},
 	})
-	req := httptest.NewRequest("POST", "/mcp/call", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mcp/call", bytes.NewReader(body))
 	req.Header.Set("Authorization", "Bearer tok")
 	rec := httptest.NewRecorder()
 	s.handleCallTool(rec, req)
@@ -372,7 +372,7 @@ func TestHandleCallTool_RateLimit(t *testing.T) {
 			"tool":  "svc.Do",
 			"input": map[string]interface{}{},
 		})
-		req := httptest.NewRequest("POST", "/mcp/call", bytes.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/mcp/call", bytes.NewReader(body))
 		rec := httptest.NewRecorder()
 		s.handleCallTool(rec, req)
 		return rec.Code
@@ -418,7 +418,7 @@ func TestHandleCallTool_NoAuth_NoScope(t *testing.T) {
 		"tool":  "svc.Echo",
 		"input": map[string]interface{}{"msg": "hi"},
 	})
-	req := httptest.NewRequest("POST", "/mcp/call", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/mcp/call", bytes.NewReader(body))
 	rec := httptest.NewRecorder()
 	s.handleCallTool(rec, req)
 

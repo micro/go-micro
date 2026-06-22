@@ -170,7 +170,7 @@ func WithMemory(m Memory) Option {
 	return func(o *Options) { o.Memory = m }
 }
 
-// WrapTool registers a tool-execution wrapper, the tool-side analogue of
+// WrapTool registers a tool-execution wrapper, the tool-side analog of
 // a client/server middleware wrapper. Each wrapper takes the next handler
 // and returns a new one; code before the next(...) call runs before the
 // tool executes, code after runs after. Use it for logging, metrics,

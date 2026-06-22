@@ -349,7 +349,7 @@ func (n *natsBroker) setOption(opts ...broker.Option) {
 		o(&n.opts)
 	}
 
-	n.Once.Do(func() {
+	n.Do(func() {
 		n.nopts = natsp.GetDefaultOptions()
 		n.poolSize = 1 // Default to single connection (no pooling)
 		n.poolIdleTimeout = 5 * time.Minute

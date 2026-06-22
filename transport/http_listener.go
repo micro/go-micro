@@ -52,7 +52,7 @@ func (h *httpTransportListener) Accept(fn func(Socket)) error {
 	}
 
 	// insecure connection use h2c
-	if !(h.ht.opts.Secure || h.ht.opts.TLSConfig != nil) {
+	if !h.ht.opts.Secure && h.ht.opts.TLSConfig == nil {
 		srv.Handler = h2c.NewHandler(mux, &http2.Server{})
 	}
 

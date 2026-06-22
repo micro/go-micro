@@ -126,7 +126,7 @@ func (j *jsonValue) Int(def int) int {
 }
 
 func (j *jsonValue) String(def string) string {
-	return j.Json.MustString(def)
+	return j.MustString(def)
 }
 
 func (j *jsonValue) Float64(def float64) float64 {
@@ -170,11 +170,11 @@ func (j *jsonValue) StringSlice(def []string) []string {
 			return sl
 		}
 	}
-	return j.Json.MustStringArray(def)
+	return j.MustStringArray(def)
 }
 
 func (j *jsonValue) StringMap(def map[string]string) map[string]string {
-	m, err := j.Json.Map()
+	m, err := j.Map()
 	if err != nil {
 		return def
 	}
@@ -189,7 +189,7 @@ func (j *jsonValue) StringMap(def map[string]string) map[string]string {
 }
 
 func (j *jsonValue) Scan(v interface{}) error {
-	b, err := j.Json.MarshalJSON()
+	b, err := j.MarshalJSON()
 	if err != nil {
 		return err
 	}
@@ -200,7 +200,7 @@ func (j *jsonValue) Bytes() []byte {
 	b, err := j.Json.Bytes()
 	if err != nil {
 		// try return marshaled
-		b, err = j.Json.MarshalJSON()
+		b, err = j.MarshalJSON()
 		if err != nil {
 			return []byte{}
 		}

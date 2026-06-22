@@ -43,7 +43,7 @@ func TestErrors(t *testing.T) {
 			Id:     "test",
 			Code:   500,
 			Detail: "Internal server error",
-			Status: http.StatusText(500),
+			Status: http.StatusText(http.StatusInternalServerError),
 		},
 	}
 
@@ -105,19 +105,19 @@ func TestAppend(t *testing.T) {
 			Id:     "test1",
 			Code:   500,
 			Detail: "Internal server error",
-			Status: http.StatusText(500),
+			Status: http.StatusText(http.StatusInternalServerError),
 		},
 		{
 			Id:     "test2",
 			Code:   400,
 			Detail: "Bad Request",
-			Status: http.StatusText(400),
+			Status: http.StatusText(http.StatusBadRequest),
 		},
 		{
 			Id:     "test3",
 			Code:   404,
 			Detail: "Not Found",
-			Status: http.StatusText(404),
+			Status: http.StatusText(http.StatusNotFound),
 		},
 	}
 
@@ -135,19 +135,19 @@ func TestHasErrors(t *testing.T) {
 			Id:     "test1",
 			Code:   500,
 			Detail: "Internal server error",
-			Status: http.StatusText(500),
+			Status: http.StatusText(http.StatusInternalServerError),
 		},
 		{
 			Id:     "test2",
 			Code:   400,
 			Detail: "Bad Request",
-			Status: http.StatusText(400),
+			Status: http.StatusText(http.StatusBadRequest),
 		},
 		{
 			Id:     "test3",
 			Code:   404,
 			Detail: "Not Found",
-			Status: http.StatusText(404),
+			Status: http.StatusText(http.StatusNotFound),
 		},
 	}
 

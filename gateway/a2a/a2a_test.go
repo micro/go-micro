@@ -69,7 +69,7 @@ func TestAgentCardFromRegistry(t *testing.T) {
 		t.Fatalf("get card: %v", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("card status = %d", resp.StatusCode)
 	}
 	var card AgentCard
