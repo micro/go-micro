@@ -51,6 +51,8 @@ guides:
   - title: Migration Guides
     url: /docs/guides/migration/
 project:
+  - title: Commercial Support
+    url: /docs/support.html
   - title: ADR Index
     url: /docs/architecture/
   - title: Contributing
@@ -79,4 +81,5 @@ search_order:
   - /docs/architecture/
   - /docs/contributing.html
   - /docs/roadmap.html
+  - /docs/support.html
   - /docs/server.html
