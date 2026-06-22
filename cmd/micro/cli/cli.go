@@ -52,6 +52,10 @@ func init() {
 					Name:  "no-mcp",
 					Usage: "Disable MCP gateway integration in generated code",
 				},
+				&cli.BoolFlag{
+					Name:  "proto",
+					Usage: "Use Protocol Buffers (requires protoc); default is reflection-based, no protoc needed",
+				},
 				&cli.StringFlag{
 					Name:  "template",
 					Usage: "Service template: default, crud, pubsub, api",

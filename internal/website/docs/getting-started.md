@@ -29,6 +29,8 @@ curl -fsSL https://go-micro.dev/install.sh | sh
 go install go-micro.dev/v6/cmd/micro@latest
 ```
 
+> If `@latest` reports a version constraint conflict, pin the current major version explicitly, e.g. `go install go-micro.dev/v6/cmd/micro@v6.1.0` (see [releases](https://github.com/micro/go-micro/releases)).
+
 ## Quick Start: Generate from a Prompt
 
 Describe what you need. The AI designs services, writes handlers, compiles, and starts them:
@@ -118,7 +120,9 @@ func main() {
 - **MCP Tools** at `http://localhost:8080/mcp/tools`
 - **Hot Reload** — auto-rebuild on file changes
 
-Templates are available for common patterns:
+`micro new` scaffolds a reflection-based service by default — plain Go types, no code generation, so `go run .` works with nothing else installed. If you prefer Protocol Buffers, add `--proto` (this requires the `protoc` toolchain; the command tells you what to install).
+
+Templates are available for common patterns. These use Protocol Buffers, so they need the `protoc` toolchain (`protoc`, `protoc-gen-go`, `protoc-gen-micro` — `micro new` prints the install commands if they're missing):
 
 ```bash
 micro new contacts --template crud
