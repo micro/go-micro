@@ -11,4 +11,12 @@ require (
 	google.golang.org/protobuf latest
 )
 `
+
+	// ModuleNoProto is the default go.mod: no protobuf dependencies.
+	ModuleNoProto = `module {{.Dir}}
+
+go 1.22
+
+require go-micro.dev/v6 latest
+`
 )

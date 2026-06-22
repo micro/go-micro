@@ -47,6 +47,43 @@ func (e *{{title .Alias}}) Stream(ctx context.Context, req *pb.StreamingRequest,
 }
 `
 
+	// HandlerNoProto is the default handler: plain Go request/response types
+	// registered by reflection. No generated protobuf code, so no protoc.
+	HandlerNoProto = `package handler
+
+import (
+	"context"
+
+	log "go-micro.dev/v6/logger"
+)
+
+// Request is the input to {{title .Alias}}.Call.
+type Request struct {
+	Name string ` + "`json:\"name\" description:\"Name to greet (required)\"`" + `
+}
+
+// Response is the output of {{title .Alias}}.Call.
+type Response struct {
+	Msg string ` + "`json:\"msg\"`" + `
+}
+
+type {{title .Alias}} struct{}
+
+// Return a new handler.
+func New() *{{title .Alias}} {
+	return &{{title .Alias}}{}
+}
+
+// Call greets a person by name and returns a welcome message.
+//
+// @example {"name": "Alice"}
+func (e *{{title .Alias}}) Call(ctx context.Context, req *Request, rsp *Response) error {
+	log.Info("Received {{title .Alias}}.Call request")
+	rsp.Msg = "Hello " + req.Name
+	return nil
+}
+`
+
 	SubscriberSRV = `package subscriber
 
 import (

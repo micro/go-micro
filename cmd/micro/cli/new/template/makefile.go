@@ -1,5 +1,61 @@
 package template
 
+// MakefileNoProto is the default Makefile: no proto target, nothing to
+// generate, so the service builds and runs with no protoc toolchain.
+var MakefileNoProto = `.PHONY: build run dev test test-coverage clean docker lint fmt deps
+
+# Build the service
+build:
+	go build -o bin/{{.Alias}} .
+
+# Run the service
+run:
+	go run .
+
+# Run with hot reload (requires air: go install github.com/air-verse/air@latest)
+dev:
+	air
+
+# Run tests
+test:
+	go test -v ./...
+
+# Run tests with coverage
+test-coverage:
+	go test -v -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+
+# List MCP tools exposed by this service
+mcp-tools:
+	micro mcp list
+
+# Start MCP server for Claude Code
+mcp-serve:
+	micro mcp serve
+
+# Clean build artifacts
+clean:
+	rm -rf bin/ coverage.out coverage.html
+
+# Build Docker image
+docker:
+	docker build -t {{.Alias}}:latest .
+
+# Lint code
+lint:
+	golangci-lint run ./...
+
+# Format code
+fmt:
+	go fmt ./...
+	goimports -w .
+
+# Update dependencies
+deps:
+	go mod tidy
+	go mod download
+`
+
 var Makefile = `.PHONY: proto build run test clean docker
 
 # Generate protobuf files

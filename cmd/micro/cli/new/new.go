@@ -24,17 +24,6 @@ import (
 	tmpl "go-micro.dev/v6/cmd/micro/cli/new/template"
 )
 
-func protoComments(goDir, alias string) []string {
-	return []string{
-		"\ndownload protoc zip packages (protoc-$VERSION-$PLATFORM.zip) and install:\n",
-		"visit https://github.com/protocolbuffers/protobuf/releases",
-		"\ncompile the proto file " + alias + ".proto:\n",
-		"cd " + alias,
-		"go mod tidy",
-		"make proto\n",
-	}
-}
-
 type config struct {
 	// foo
 	Alias string
@@ -162,13 +151,6 @@ func Run(ctx *cli.Context) error {
 		return nil
 	}
 
-	// Check for protoc
-	if _, err := exec.LookPath("protoc"); err != nil {
-		fmt.Println("WARNING: protoc is not installed or not in your PATH.")
-		fmt.Println("Please install protoc from https://github.com/protocolbuffers/protobuf/releases")
-		fmt.Println("After installing, re-run 'make proto' in your service directory if needed.")
-	}
-
 	var goPath string
 	var goDir string
 
@@ -191,8 +173,11 @@ func Run(ctx *cli.Context) error {
 	noMCP := ctx.Bool("no-mcp")
 	templateName := ctx.String("template")
 
-	// Select templates based on --template flag
-	mainTmpl, handlerTmpl, protoTmpl := selectTemplates(templateName, noMCP)
+	// The default template is protoless: handlers are registered by
+	// reflection, so the service builds and runs with no protoc toolchain.
+	// --proto opts into Protocol Buffers; the named templates (crud, pubsub,
+	// api) are proto-based and imply it.
+	useProto := ctx.Bool("proto") || (templateName != "" && templateName != "default")
 
 	c := config{
 		Alias:     dir,
@@ -201,19 +186,39 @@ func Run(ctx *cli.Context) error {
 		GoDir:     goDir,
 		GoPath:    goPath,
 		UseGoPath: false,
-		Files: []file{
+	}
+
+	if useProto {
+		mainTmpl, handlerTmpl, protoTmpl := selectTemplates(templateName, noMCP)
+		c.Files = []file{
 			{"main.go", mainTmpl},
 			{"handler/" + dir + ".go", handlerTmpl},
 			{"proto/" + dir + ".proto", protoTmpl},
 			{"Makefile", tmpl.Makefile},
 			{"README.md", tmpl.Readme},
 			{".gitignore", tmpl.GitIgnore},
-		},
+		}
+	} else {
+		mainTmpl := tmpl.MainNoProto
+		if noMCP {
+			mainTmpl = tmpl.MainNoProtoNoMCP
+		}
+		c.Files = []file{
+			{"main.go", mainTmpl},
+			{"handler/" + dir + ".go", tmpl.HandlerNoProto},
+			{"Makefile", tmpl.MakefileNoProto},
+			{"README.md", tmpl.ReadmeNoProto},
+			{".gitignore", tmpl.GitIgnore},
+		}
 	}
 
 	// set gomodule
 	if os.Getenv("GO111MODULE") != "off" {
-		c.Files = append(c.Files, file{"go.mod", tmpl.Module})
+		mod := tmpl.ModuleNoProto
+		if useProto {
+			mod = tmpl.Module
+		}
+		c.Files = append(c.Files, file{"go.mod", mod})
 	}
 
 	// create the files
@@ -221,17 +226,28 @@ func Run(ctx *cli.Context) error {
 		return err
 	}
 
-	// Run go mod tidy and make proto
-	fmt.Println("\nRunning 'go mod tidy' and 'make proto'...")
+	// Resolve dependencies.
+	fmt.Println("\nRunning 'go mod tidy'...")
 	if err := runInDir(dir, "go mod tidy"); err != nil {
 		fmt.Printf("Error running 'go mod tidy': %v\n", err)
 	}
-	if err := runInDir(dir, "make proto"); err != nil {
-		fmt.Printf("Error running 'make proto': %v\n", err)
+
+	// Generate protobuf code only when the proto workflow is used, and only
+	// when the toolchain is present. Otherwise print install instructions
+	// rather than failing with a cryptic error.
+	if useProto {
+		if missing := missingProtoTools(); len(missing) > 0 {
+			printProtoInstall(dir, missing)
+		} else {
+			fmt.Println("Running 'make proto'...")
+			if err := runInDir(dir, "make proto"); err != nil {
+				fmt.Printf("Error running 'make proto': %v\n", err)
+			}
+		}
 	}
 
 	// Print updated tree including generated files
-	fmt.Println("\nProject structure after 'make proto':")
+	fmt.Println("\nProject structure:")
 	printTree(dir)
 
 	fmt.Println()
@@ -279,6 +295,33 @@ func selectTemplates(name string, noMCP bool) (mainTmpl, handlerTmpl, protoTmpl 
 		}
 		return mainTmpl, tmpl.HandlerSRV, tmpl.ProtoSRV
 	}
+}
+
+// missingProtoTools returns the protobuf tools needed by `make proto` that
+// are not on the PATH.
+func missingProtoTools() []string {
+	var missing []string
+	for _, tool := range []string{"protoc", "protoc-gen-go", "protoc-gen-micro"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			missing = append(missing, tool)
+		}
+	}
+	return missing
+}
+
+// printProtoInstall tells the user exactly what to install to generate the
+// protobuf code, instead of failing with a cryptic plugin error.
+func printProtoInstall(dir string, missing []string) {
+	fmt.Println()
+	fmt.Printf("  \033[33m!\033[0m This service uses Protocol Buffers, but these tools are missing: %s\n", strings.Join(missing, ", "))
+	fmt.Println()
+	fmt.Println("  Install them:")
+	fmt.Println("    protoc            https://github.com/protocolbuffers/protobuf/releases (or via your package manager)")
+	fmt.Println("    protoc-gen-go     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest")
+	fmt.Println("    protoc-gen-micro  go install go-micro.dev/v6/cmd/protoc-gen-micro@latest")
+	fmt.Println()
+	fmt.Printf("  Then generate the code:\n    cd %s && make proto && go run .\n", dir)
+	fmt.Println()
 }
 
 func runInDir(dir, cmd string) error {
