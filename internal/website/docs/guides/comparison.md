@@ -182,9 +182,16 @@ Go, Java, Kotlin); [`adk-go`](https://github.com/google/adk-go) is the Go
 implementation. It's model-agnostic (optimized for Gemini), speaks MCP and A2A,
 and supports multi-agent systems, evaluation, and deployment to Cloud Run / GKE.
 
-This is a different category of tool, and that difference is the whole point.
-**ADK gives you an agent.** **Go Micro gives you the distributed system the agent
-lives in** — where an agent is just another service in your mesh.
+They overlap on agents but solve different problems. ADK is a library for building
+an agent process — you define an agent, its tools, and a model, then run and deploy
+it. It does not provide service discovery, inter-service RPC, or pub/sub; that's out
+of scope, and you bring your own.
+
+In Go Micro an agent is built as an ordinary service: it registers in the registry,
+is callable by RPC (`Agent.Chat`) and over A2A, and other services and agents
+discover and call it the same way they call anything else. Its endpoints are exposed
+as MCP tools automatically. So once you have more than one agent or service, Go Micro
+also gives you the discovery, RPC, pub/sub, config, and deployment around them.
 
 | | Go Micro | Google ADK |
 |---|----------|------------|
