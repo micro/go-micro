@@ -8,6 +8,7 @@ var http2BufPool = sync.Pool{
 	},
 }
 
+// getHTTP2BufPool returns the HTTP2 buffer pool.
 func getHTTP2BufPool() *sync.Pool {
 	return &http2BufPool
 }
