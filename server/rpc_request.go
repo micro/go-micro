@@ -4,8 +4,8 @@ import (
 	"bytes"
 
 	"go-micro.dev/v6/codec"
-	"go-micro.dev/v6/transport"
 	"go-micro.dev/v6/internal/util/buf"
+	"go-micro.dev/v6/transport"
 )
 
 type rpcRequest struct {

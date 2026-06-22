@@ -28,7 +28,7 @@ Examples:
 Agents are discovered from the registry (the ones advertising type=agent);
 an Agent Card is generated for each from its registry metadata, and
 incoming A2A tasks are translated to the agent's Agent.Chat RPC. This is
-the agent-side analogue of 'micro mcp', which exposes services as tools.`,
+the agent-side analog of 'micro mcp', which exposes services as tools.`,
 		Subcommands: []*cli.Command{
 			{
 				Name:  "serve",

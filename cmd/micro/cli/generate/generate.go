@@ -521,7 +521,7 @@ func buildProto(dehyphen, titleName string, svc ServiceSpec) string {
 	for _, ep := range svc.Endpoints {
 		switch ep.Name {
 		case "Create":
-			b.WriteString(fmt.Sprintf("message CreateRequest {\n"))
+			b.WriteString("message CreateRequest {\n")
 			n := 1
 			for _, f := range svc.Fields {
 				if f.Name == "id" || f.Name == "created" || f.Name == "updated" {
@@ -545,7 +545,7 @@ func buildProto(dehyphen, titleName string, svc ServiceSpec) string {
 			}
 			b.WriteString(fmt.Sprintf("}\n\nmessage UpdateResponse {\n\t%sRecord record = 1;\n}\n\n", titleName))
 		case "Delete":
-			b.WriteString(fmt.Sprintf("message DeleteRequest {\n\tstring id = 1;\n}\n\nmessage DeleteResponse {\n\tbool deleted = 1;\n}\n\n"))
+			b.WriteString("message DeleteRequest {\n\tstring id = 1;\n}\n\nmessage DeleteResponse {\n\tbool deleted = 1;\n}\n\n")
 		case "List":
 			b.WriteString(fmt.Sprintf("message ListRequest {\n\tint64 limit = 1;\n\tint64 offset = 2;\n\tstring query = 3;\n}\n\nmessage ListResponse {\n\trepeated %sRecord records = 1;\n\tint64 total = 2;\n}\n\n", titleName))
 		default:

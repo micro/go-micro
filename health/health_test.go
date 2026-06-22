@@ -107,7 +107,7 @@ func TestHealthHandler(t *testing.T) {
 		return nil
 	})
 
-	req := httptest.NewRequest("GET", "/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 
 	Handler().ServeHTTP(w, req)
@@ -132,7 +132,7 @@ func TestHealthHandlerUnhealthy(t *testing.T) {
 		return errors.New("unhealthy")
 	})
 
-	req := httptest.NewRequest("GET", "/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 
 	Handler().ServeHTTP(w, req)
@@ -145,7 +145,7 @@ func TestHealthHandlerUnhealthy(t *testing.T) {
 func TestLiveHandler(t *testing.T) {
 	Reset()
 
-	req := httptest.NewRequest("GET", "/health/live", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health/live", nil)
 	w := httptest.NewRecorder()
 
 	LiveHandler().ServeHTTP(w, req)
@@ -162,7 +162,7 @@ func TestReadyHandler(t *testing.T) {
 		return nil
 	})
 
-	req := httptest.NewRequest("GET", "/health/ready", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 	w := httptest.NewRecorder()
 
 	ReadyHandler().ServeHTTP(w, req)
@@ -242,7 +242,7 @@ func TestTCPCheckFailing(t *testing.T) {
 
 func TestHTTPCheck(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
@@ -259,7 +259,7 @@ func TestHTTPCheck(t *testing.T) {
 
 func TestHTTPCheckFailing(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
 
@@ -310,7 +310,7 @@ func TestRegisterHandlers(t *testing.T) {
 	RegisterHandlers(mux)
 
 	// Test /health
-	req := httptest.NewRequest("GET", "/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -318,7 +318,7 @@ func TestRegisterHandlers(t *testing.T) {
 	}
 
 	// Test /health/live
-	req = httptest.NewRequest("GET", "/health/live", nil)
+	req = httptest.NewRequest(http.MethodGet, "/health/live", nil)
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
@@ -326,7 +326,7 @@ func TestRegisterHandlers(t *testing.T) {
 	}
 
 	// Test /health/ready
-	req = httptest.NewRequest("GET", "/health/ready", nil)
+	req = httptest.NewRequest(http.MethodGet, "/health/ready", nil)
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {

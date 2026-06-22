@@ -17,12 +17,12 @@ import (
 	"github.com/google/uuid"
 	"go-micro.dev/v6/codec/json"
 	merr "go-micro.dev/v6/errors"
-	"go-micro.dev/v6/registry"
-	"go-micro.dev/v6/registry/cache"
-	"go-micro.dev/v6/transport/headers"
 	maddr "go-micro.dev/v6/internal/util/addr"
 	mnet "go-micro.dev/v6/internal/util/net"
 	mls "go-micro.dev/v6/internal/util/tls"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/registry/cache"
+	"go-micro.dev/v6/transport/headers"
 	"golang.org/x/net/http2"
 )
 
@@ -288,7 +288,7 @@ func (h *httpBroker) run(l net.Listener) {
 }
 
 func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if req.Method != "POST" {
+	if req.Method != http.MethodPost {
 		err := merr.BadRequest("go.micro.broker", "Method not allowed")
 		http.Error(w, err.Error(), http.StatusMethodNotAllowed)
 		return
@@ -300,7 +300,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	b, err := io.ReadAll(req.Body)
 	if err != nil {
 		errr := merr.InternalServerError("go.micro.broker", "Error reading request body: %v", err)
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(errr.Error()))
 		return
 	}
@@ -308,7 +308,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var m *Message
 	if err = h.opts.Codec.Unmarshal(b, &m); err != nil {
 		errr := merr.InternalServerError("go.micro.broker", "Error parsing request body: %v", err)
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(errr.Error()))
 		return
 	}
@@ -318,7 +318,7 @@ func (h *httpBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if len(topic) == 0 {
 		errr := merr.InternalServerError("go.micro.broker", "Topic not found")
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(errr.Error()))
 		return
 	}

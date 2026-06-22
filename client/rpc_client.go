@@ -14,15 +14,15 @@ import (
 	"go-micro.dev/v6/codec"
 	raw "go-micro.dev/v6/codec/bytes"
 	merrors "go-micro.dev/v6/errors"
+	"go-micro.dev/v6/internal/util/buf"
+	"go-micro.dev/v6/internal/util/net"
+	"go-micro.dev/v6/internal/util/pool"
 	log "go-micro.dev/v6/logger"
 	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/transport"
 	"go-micro.dev/v6/transport/headers"
-	"go-micro.dev/v6/internal/util/buf"
-	"go-micro.dev/v6/internal/util/net"
-	"go-micro.dev/v6/internal/util/pool"
 )
 
 const (

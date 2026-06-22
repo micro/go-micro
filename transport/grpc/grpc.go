@@ -7,10 +7,10 @@ import (
 	"net"
 
 	"go-micro.dev/v6/cmd"
-	"go-micro.dev/v6/transport"
 	maddr "go-micro.dev/v6/internal/util/addr"
 	mnet "go-micro.dev/v6/internal/util/net"
 	mtls "go-micro.dev/v6/internal/util/tls"
+	"go-micro.dev/v6/transport"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 

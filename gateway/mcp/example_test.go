@@ -14,8 +14,7 @@ import (
 // Example_withMCP shows the simplest way to add MCP to a service using WithMCP
 func Example_withMCP() {
 	// One line to make your service AI-accessible
-	service := micro.NewService("myservice", WithMCP(":3000"),
-	)
+	service := micro.NewService("myservice", WithMCP(":3000"))
 	service.Init()
 	service.Run()
 }
@@ -23,7 +22,7 @@ func Example_withMCP() {
 // Example_inlineGateway shows how to add MCP gateway to an existing service
 // with full control over options
 func Example_inlineGateway() {
-	service := micro.NewService("myservice", )
+	service := micro.NewService("myservice")
 	service.Init()
 
 	// Add MCP gateway alongside your service
@@ -53,7 +52,7 @@ func Example_standaloneGateway() {
 
 // Example_withAuthentication shows how to add authentication
 func Example_withAuthentication() {
-	service := micro.NewService("myservice", )
+	service := micro.NewService("myservice")
 	service.Init()
 
 	go func() {
@@ -81,7 +80,7 @@ func Example_customContext() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	service := micro.NewService("myservice", )
+	service := micro.NewService("myservice")
 	service.Init()
 
 	go func() {
@@ -102,7 +101,7 @@ func Example_customContext() {
 // limiting and audit logging to the MCP gateway. Services register scope
 // requirements via endpoint metadata ("scopes" key, comma-separated).
 func Example_withScopesAndTracing() {
-	service := micro.NewService("blog", )
+	service := micro.NewService("blog")
 	service.Init()
 
 	// Use JWT auth provider

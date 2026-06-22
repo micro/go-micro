@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"sync"
 
-	log "go-micro.dev/v6/logger"
 	signalutil "go-micro.dev/v6/internal/util/signal"
+	log "go-micro.dev/v6/logger"
 )
 
 // Group runs multiple services in a single binary with shared
@@ -32,7 +32,7 @@ func (g *Group) Add(svcs ...Service) {
 }
 
 // Run starts all services concurrently and blocks until a signal
-// is received or the context is cancelled, then stops all services.
+// is received or the context is canceled, then stops all services.
 func (g *Group) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -277,7 +277,7 @@ func TCPCheck(addr string, timeout time.Duration) CheckFunc {
 func HTTPCheck(url string, timeout time.Duration) CheckFunc {
 	return func(ctx context.Context) error {
 		client := &http.Client{Timeout: timeout}
-		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			return err
 		}

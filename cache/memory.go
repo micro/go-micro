@@ -14,8 +14,8 @@ type memCache struct {
 }
 
 func (c *memCache) Get(ctx context.Context, key string) (interface{}, time.Time, error) {
-	c.RWMutex.RLock()
-	defer c.RWMutex.RUnlock()
+	c.RLock()
+	defer c.RUnlock()
 
 	item, found := c.items[key]
 	if !found {
@@ -37,8 +37,8 @@ func (c *memCache) Put(ctx context.Context, key string, val interface{}, d time.
 		e = time.Now().Add(d).UnixNano()
 	}
 
-	c.RWMutex.Lock()
-	defer c.RWMutex.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	c.items[key] = Item{
 		Value:      val,
@@ -49,8 +49,8 @@ func (c *memCache) Put(ctx context.Context, key string, val interface{}, d time.
 }
 
 func (c *memCache) Delete(ctx context.Context, key string) error {
-	c.RWMutex.Lock()
-	defer c.RWMutex.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	_, found := c.items[key]
 	if !found {

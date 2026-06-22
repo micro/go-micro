@@ -5,7 +5,7 @@
 // for each from its registry metadata, and incoming A2A tasks are
 // translated to the agent's existing Agent.Chat RPC.
 //
-// This is the agent-side analogue of the MCP gateway: MCP exposes your
+// This is the agent-side analog of the MCP gateway: MCP exposes your
 // services as tools, A2A exposes your agents as agents. Cards are derived
 // from the registry the same way MCP tools are — there is nothing to
 // publish.

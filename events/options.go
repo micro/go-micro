@@ -104,7 +104,7 @@ func (s ConsumeOptions) GetRetryLimit() int {
 // WriteOptions contains all the options which can be provided when writing an event to a store
 type WriteOptions struct {
 	// TTL is the duration the event should be recorded for, a zero value TTL indicates the event should
-	// be stored indefinately
+	// be stored indefinitely
 	TTL time.Duration
 }
 

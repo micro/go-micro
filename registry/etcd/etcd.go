@@ -139,13 +139,13 @@ func decode(ds []byte) *registry.Service {
 }
 
 func nodePath(s, id string) string {
-	service := strings.Replace(s, "/", "-", -1)
-	node := strings.Replace(id, "/", "-", -1)
+	service := strings.ReplaceAll(s, "/", "-")
+	node := strings.ReplaceAll(id, "/", "-")
 	return path.Join(prefix, service, node)
 }
 
 func servicePath(s string) string {
-	return path.Join(prefix, strings.Replace(s, "/", "-", -1))
+	return path.Join(prefix, strings.ReplaceAll(s, "/", "-"))
 }
 
 func (e *etcdRegistry) Init(opts ...registry.Option) error {

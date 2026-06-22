@@ -9,9 +9,9 @@ import (
 
 	"golang.org/x/sync/singleflight"
 
+	util "go-micro.dev/v6/internal/util/registry"
 	log "go-micro.dev/v6/logger"
 	"go-micro.dev/v6/registry"
-	util "go-micro.dev/v6/internal/util/registry"
 )
 
 // Cache is the registry cache interface.
@@ -441,7 +441,7 @@ func (c *cache) run(service string) {
 		time.Sleep(time.Duration(j) * time.Millisecond)
 
 		// create new watcher
-		w, err := c.Registry.Watch(registry.WatchService(service))
+		w, err := c.Watch(registry.WatchService(service))
 		if err != nil {
 			if c.quit() {
 				return

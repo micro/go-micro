@@ -153,7 +153,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 	}
 
 	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/chat/completions"
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -168,7 +168,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 	defer httpResp.Body.Close()
 
 	respBody, _ := io.ReadAll(httpResp.Body)
-	if httpResp.StatusCode != 200 {
+	if httpResp.StatusCode != http.StatusOK {
 		return nil, nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
 	}
 
@@ -259,7 +259,7 @@ func (p *Provider) GenerateImage(ctx context.Context, req *ai.ImageRequest, opts
 	}
 
 	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/generateImage"
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -273,7 +273,7 @@ func (p *Provider) GenerateImage(ctx context.Context, req *ai.ImageRequest, opts
 	defer httpResp.Body.Close()
 
 	respBody, _ := io.ReadAll(httpResp.Body)
-	if httpResp.StatusCode != 200 {
+	if httpResp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
 	}
 
@@ -315,7 +315,7 @@ func (p *Provider) GenerateImage(ctx context.Context, req *ai.ImageRequest, opts
 }
 
 func (p *Provider) pollPrediction(ctx context.Context, url string) (*ai.ImageResponse, error) {
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +395,7 @@ func (p *Provider) GenerateVideo(ctx context.Context, req *ai.VideoRequest, opts
 	}
 
 	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/generateVideo"
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewReader(reqBody))
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -409,7 +409,7 @@ func (p *Provider) GenerateVideo(ctx context.Context, req *ai.VideoRequest, opts
 	defer httpResp.Body.Close()
 
 	respBody, _ := io.ReadAll(httpResp.Body)
-	if httpResp.StatusCode != 200 {
+	if httpResp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
 	}
 
@@ -450,7 +450,7 @@ func (p *Provider) GenerateVideo(ctx context.Context, req *ai.VideoRequest, opts
 }
 
 func (p *Provider) pollVideo(ctx context.Context, url string) (*ai.VideoResponse, error) {
-	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}

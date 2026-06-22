@@ -131,7 +131,7 @@ func AgentTool(name, description string, properties map[string]any, handler Tool
 func AgentA2A(addr string) AgentOption { return agent.WithA2A(addr) }
 
 // AgentWrapTool registers a tool-execution wrapper — the tool-side
-// analogue of a client/server middleware wrapper. Each wrapper takes the
+// analog of a client/server middleware wrapper. Each wrapper takes the
 // next handler and returns a new one; run code before next(...) for
 // "before", after it for "after". Use it for logging, metrics, retries,
 // or policy. Wrappers run outside the built-in guardrails, so they see

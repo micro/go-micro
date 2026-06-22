@@ -9,7 +9,7 @@ type buffer struct {
 }
 
 func (b *buffer) Close() error {
-	b.Buffer.Reset()
+	b.Reset()
 	return nil
 }
 

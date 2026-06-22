@@ -137,8 +137,8 @@ type Stream interface {
 // the same mental model carries over from services to tools.
 type ToolHandler func(ctx context.Context, call ToolCall) ToolResult
 
-// ToolWrapper wraps a ToolHandler to add behaviour around execution —
-// logging, metrics, retries, guardrails. It is the tool-side analogue of
+// ToolWrapper wraps a ToolHandler to add behavior around execution —
+// logging, metrics, retries, guardrails. It is the tool-side analog of
 // client.CallWrapper and server.HandlerWrapper: a wrapper takes the next
 // handler and returns a new one, and code before the next(...) call runs
 // before the tool, code after runs after.

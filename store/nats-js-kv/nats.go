@@ -110,7 +110,7 @@ func (n *natsStore) setOption(opts ...store.Option) {
 		o(&n.opts)
 	}
 
-	n.Once.Do(func() {
+	n.Do(func() {
 		n.nopts = nats.GetDefaultOptions()
 	})
 

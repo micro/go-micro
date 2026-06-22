@@ -195,7 +195,7 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 	ctx, span := t.server.startToolSpan(t.ctx, params.Name, "stdio", traceID)
 	defer span.End()
 
-	// Authenticate and authorise (if Auth is configured)
+	// Authenticate and authorize (if Auth is configured)
 	var account *auth.Account
 	if t.server.opts.Auth != nil {
 		token := params.Token

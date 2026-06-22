@@ -78,7 +78,7 @@ func FormatServiceUsage(srv *registry.Service, c *cli.Context) string {
 	if len(subcommand) > 0 && subcommand != "--help" {
 		result += fmt.Sprintf("NAME:\n\tmicro %v %v\n\n", alias, subcommand)
 		result += fmt.Sprintf("USAGE:\n\tmicro %v %v [flags]\n\n", alias, subcommand)
-		result += fmt.Sprintf("FLAGS:\n")
+		result += "FLAGS:\n"
 
 		for i, command := range commands {
 			if command == subcommand {
@@ -383,7 +383,7 @@ func FlagsToRequest(flags map[string][]string, req *registry.Value) (map[string]
 		default:
 			return value, nil
 		}
-		return nil, nil
+
 	}
 
 	result := objx.MustFromJSON("{}")
@@ -425,7 +425,7 @@ func FlagsToRequest(flags map[string][]string, req *registry.Value) (map[string]
 				}
 			}
 		}
-		path := strings.Replace(key, "-", ".", -1)
+		path := strings.ReplaceAll(key, "-", ".")
 		result.Set(path, parsed)
 	}
 

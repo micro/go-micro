@@ -33,7 +33,7 @@ func newMockServer(rg *mockRegistry, l net.Listener) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc(rg.url, func(w http.ResponseWriter, r *http.Request) {
 		if rg.err != nil {
-			http.Error(w, rg.err.Error(), 500)
+			http.Error(w, rg.err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(rg.status)

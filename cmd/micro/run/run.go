@@ -25,8 +25,8 @@ import (
 	"go-micro.dev/v6/cmd/micro/cli/generate"
 	"go-micro.dev/v6/cmd/micro/run/config"
 	"go-micro.dev/v6/cmd/micro/run/watcher"
-	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/cmd/micro/server"
+	"go-micro.dev/v6/registry"
 
 	_ "go-micro.dev/v6/ai/anthropic"
 	_ "go-micro.dev/v6/ai/atlascloud"
@@ -178,7 +178,7 @@ func waitForHealth(port int, timeout time.Duration) bool {
 		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/health", port))
 		if err == nil {
 			resp.Body.Close()
-			if resp.StatusCode == 200 {
+			if resp.StatusCode == http.StatusOK {
 				return true
 			}
 		}
@@ -802,7 +802,7 @@ func runWithPrompt(c *cli.Context, prompt string) error {
 	fmt.Println()
 
 	if !confirmGenerate() {
-		fmt.Println("  Cancelled.")
+		fmt.Println("  Canceled.")
 		return nil
 	}
 

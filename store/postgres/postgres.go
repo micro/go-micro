@@ -40,7 +40,7 @@ import (
 var (
 	DefaultDatabase = "micro"
 	DefaultTable    = "micro"
-	ErrNoConnection = errors.New("Database connection not initialised")
+	ErrNoConnection = errors.New("Database connection not initialized")
 )
 
 var (
@@ -247,7 +247,7 @@ func (s *sqlStore) configure() error {
 	// get DB
 	database, table := s.getDB(s.options.Database, s.options.Table)
 
-	// initialise the database
+	// initialize the database
 	return s.initDB(database, table)
 }
 

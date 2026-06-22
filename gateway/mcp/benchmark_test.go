@@ -70,7 +70,7 @@ func BenchmarkListTools(b *testing.B) {
 	for _, numTools := range []int{10, 50, 100} {
 		b.Run(toolCountLabel(numTools), func(b *testing.B) {
 			s := benchServer(numTools, Options{})
-			req := httptest.NewRequest("GET", "/mcp/tools", nil)
+			req := httptest.NewRequest(http.MethodGet, "/mcp/tools", nil)
 
 			b.ResetTimer()
 			b.ReportAllocs()
@@ -88,7 +88,7 @@ func BenchmarkListTools(b *testing.B) {
 // BenchmarkListToolsParallel measures concurrent tool listing.
 func BenchmarkListToolsParallel(b *testing.B) {
 	s := benchServer(50, Options{})
-	req := httptest.NewRequest("GET", "/mcp/tools", nil)
+	req := httptest.NewRequest(http.MethodGet, "/mcp/tools", nil)
 
 	b.ResetTimer()
 	b.ReportAllocs()

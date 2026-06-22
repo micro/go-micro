@@ -75,20 +75,20 @@ func (g *micro) P(args ...interface{}) { g.gen.P(args...) }
 func (g *micro) Generate(file *generator.FileDescriptor) {
 	// Check if any messages have @model annotation
 	hasModels := false
-	for i := range file.FileDescriptorProto.MessageType {
+	for i := range file.MessageType {
 		if g.isModelMessage(i) {
 			hasModels = true
 			break
 		}
 	}
 
-	if len(file.FileDescriptorProto.Service) == 0 && !hasModels {
+	if len(file.Service) == 0 && !hasModels {
 		return
 	}
 
 	g.P("// Reference imports to suppress errors if they are not otherwise used.")
 	g.P("var _ ", contextPkg, ".Context")
-	if len(file.FileDescriptorProto.Service) > 0 {
+	if len(file.Service) > 0 {
 		g.P("var _ ", clientPkg, ".Option")
 		g.P("var _ ", serverPkg, ".Option")
 	}
@@ -97,12 +97,12 @@ func (g *micro) Generate(file *generator.FileDescriptor) {
 	}
 	g.P()
 
-	for i, service := range file.FileDescriptorProto.Service {
+	for i, service := range file.Service {
 		g.generateService(file, service, i)
 	}
 
 	// Generate model structs for @model annotated messages
-	for i, msg := range file.FileDescriptorProto.MessageType {
+	for i, msg := range file.MessageType {
 		if g.isModelMessage(i) {
 			g.generateModel(msg, i)
 		}
@@ -111,9 +111,9 @@ func (g *micro) Generate(file *generator.FileDescriptor) {
 
 // GenerateImports generates the import declaration for this file.
 func (g *micro) GenerateImports(file *generator.FileDescriptor, imports map[generator.GoImportPath]generator.GoPackageName) {
-	hasServices := len(file.FileDescriptorProto.Service) > 0
+	hasServices := len(file.Service) > 0
 	hasModels := false
-	for i := range file.FileDescriptorProto.MessageType {
+	for i := range file.MessageType {
 		if g.isModelMessage(i) {
 			hasModels = true
 			break

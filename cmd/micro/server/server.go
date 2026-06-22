@@ -415,7 +415,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		w.Header().Set("Content-Type", "text/css; charset=utf-8")
 		f, err := HTML.Open("web/styles.css")
 		if err != nil {
-			w.WriteHeader(404)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		defer f.Close()
@@ -426,7 +426,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
 		f, err := HTML.Open("web/main.js")
 		if err != nil {
-			w.WriteHeader(404)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		defer f.Close()
@@ -438,7 +438,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		services, err := registry.ListServices()
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 			return
 		}
@@ -495,7 +495,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 	}))
 
 	mux.HandleFunc("/mcp/call", wrap(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
+		if r.Method != http.MethodPost {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
@@ -558,7 +558,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 	// Agent settings endpoints
 	mux.HandleFunc("/api/agent/settings", wrap(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.Method == "GET" {
+		if r.Method == http.MethodGet {
 			recs, _ := storeInst.Read("agent/settings")
 			if len(recs) == 0 {
 				json.NewEncoder(w).Encode(map[string]string{})
@@ -573,7 +573,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			json.NewEncoder(w).Encode(settings)
 			return
 		}
-		if r.Method == "POST" {
+		if r.Method == http.MethodPost {
 			var settings map[string]string
 			if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -592,7 +592,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 	// Agent prompt endpoint — sends user prompt to LLM with tool definitions
 	mux.HandleFunc("/api/agent/prompt", wrap(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		if r.Method != "POST" {
+		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			json.NewEncoder(w).Encode(map[string]string{"error": "method not allowed"})
 			return
@@ -955,14 +955,14 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			// Do NOT include SidebarEndpoints on this page
 			homeDir, err := os.UserHomeDir()
 			if err != nil {
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Could not get home directory"))
 				return
 			}
 			logsDir := homeDir + "/micro/logs"
 			dirEntries, err := os.ReadDir(logsDir)
 			if err != nil {
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Could not list logs directory: " + err.Error()))
 				return
 			}
@@ -980,27 +980,27 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			// Do NOT include SidebarEndpoints on this page
 			service := strings.TrimPrefix(path, "/logs/")
 			if service == "" {
-				w.WriteHeader(404)
+				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte("Service not specified"))
 				return
 			}
 			homeDir, err := os.UserHomeDir()
 			if err != nil {
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Could not get home directory"))
 				return
 			}
 			logFilePath := homeDir + "/micro/logs/" + service + ".log"
 			f, err := os.Open(logFilePath)
 			if err != nil {
-				w.WriteHeader(404)
+				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte("Could not open log file for service: " + service))
 				return
 			}
 			defer f.Close()
 			logBytes, err := io.ReadAll(f)
 			if err != nil {
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Could not read log file for service: " + service))
 				return
 			}
@@ -1012,14 +1012,14 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			// Do NOT include SidebarEndpoints on this page
 			homeDir, err := os.UserHomeDir()
 			if err != nil {
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Could not get home directory"))
 				return
 			}
 			pidDir := homeDir + "/micro/run"
 			dirEntries, err := os.ReadDir(pidDir)
 			if err != nil {
-				w.WriteHeader(500)
+				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("Could not list pid directory: " + err.Error()))
 				return
 			}
@@ -1093,8 +1093,8 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			if len(parts) == 1 {
 				s, err := registry.GetService(service)
 				if err != nil || len(s) == 0 {
-					w.WriteHeader(404)
-					w.Write([]byte(fmt.Sprintf("Service not found: %s", service)))
+					w.WriteHeader(http.StatusNotFound)
+					fmt.Fprintf(w, "Service not found: %s", service)
 					return
 				}
 				endpoints := []map[string]string{}
@@ -1120,7 +1120,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 				endpoint := parts[1] // Use the actual endpoint name from the URL, e.g. Foo.Bar
 				s, err := registry.GetService(service)
 				if err != nil || len(s) == 0 {
-					w.WriteHeader(404)
+					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte("Service not found: " + service))
 					return
 				}
@@ -1132,11 +1132,11 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					}
 				}
 				if ep == nil {
-					w.WriteHeader(404)
+					w.WriteHeader(http.StatusNotFound)
 					w.Write([]byte("Endpoint not found"))
 					return
 				}
-				if r.Method == "GET" {
+				if r.Method == http.MethodGet {
 					// Build form fields from endpoint request values
 					var inputs []map[string]string
 					if ep.Request != nil && len(ep.Request.Values) > 0 {
@@ -1160,7 +1160,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 					})
 					return
 				}
-				if r.Method == "POST" {
+				if r.Method == http.MethodPost {
 					// Check endpoint scopes
 					endpointKey := fmt.Sprintf("%s.%s", service, endpoint)
 					if !checkEndpointScopes(w, r, endpointKey) {
@@ -1193,7 +1193,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 				}
 			}
 		}
-		w.WriteHeader(404)
+		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Not found"))
 	}))
 
@@ -1224,7 +1224,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			}
 			success := false
 
-			if r.Method == "POST" {
+			if r.Method == http.MethodPost {
 				endpoint := r.FormValue("endpoint")
 				scopesStr := r.FormValue("scopes")
 				if endpoint != "" {
@@ -1282,7 +1282,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 
 		// Bulk set scopes for endpoints matching a pattern
 		mux.HandleFunc("/auth/scopes/bulk", authMw(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != "POST" {
+			if r.Method != http.MethodPost {
 				http.Redirect(w, r, "/auth/scopes", http.StatusSeeOther)
 				return
 			}
@@ -1341,14 +1341,15 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			} else {
 				user = nil
 			}
-			if r.Method == "POST" {
+			if r.Method == http.MethodPost {
 				id := r.FormValue("id")
 				typeStr := r.FormValue("type")
 				scopesStr := r.FormValue("scopes")
 				accType := "user"
-				if typeStr == "admin" {
+				switch typeStr {
+				case "admin":
 					accType = "admin"
-				} else if typeStr == "service" {
+				case "service":
 					accType = "service"
 				}
 				scopes := []string{"*"}
@@ -1412,7 +1413,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			} else {
 				user = nil
 			}
-			if r.Method == "POST" {
+			if r.Method == http.MethodPost {
 				if del := r.FormValue("delete"); del != "" {
 					// Delete user
 					storeInst.Delete("auth/" + del)
@@ -1460,17 +1461,17 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 			_ = renderPage(w, tmpls.authUsers, map[string]any{"Title": "Users", "Users": users, "User": user})
 		}))
 		mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == "GET" {
+			if r.Method == http.MethodGet {
 				loginTmpl, err := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
 				if err != nil {
-					w.WriteHeader(500)
+					w.WriteHeader(http.StatusInternalServerError)
 					w.Write([]byte("Template error: " + err.Error()))
 					return
 				}
 				_ = loginTmpl.Execute(w, map[string]any{"Title": "Login", "Error": "", "User": getUser(r), "HideSidebar": true})
 				return
 			}
-			if r.Method == "POST" {
+			if r.Method == http.MethodPost {
 				id := r.FormValue("id")
 				pass := r.FormValue("password")
 				recKey := "auth/" + id
@@ -1510,7 +1511,7 @@ You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
 			}
-			w.WriteHeader(405)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			w.Write([]byte("Method not allowed"))
 		})
 	} // end if authEnabled

@@ -152,7 +152,6 @@ func Listen(entries chan<- *ServiceEntry, exit chan struct{}) error {
 		}
 	}
 
-	return nil
 }
 
 // Lookup is the same as Query, however it uses all the default parameters.

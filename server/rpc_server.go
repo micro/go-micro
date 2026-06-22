@@ -15,15 +15,15 @@ import (
 
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/codec"
+	"go-micro.dev/v6/internal/util/addr"
+	"go-micro.dev/v6/internal/util/backoff"
+	mnet "go-micro.dev/v6/internal/util/net"
+	"go-micro.dev/v6/internal/util/socket"
 	log "go-micro.dev/v6/logger"
 	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/transport"
 	"go-micro.dev/v6/transport/headers"
-	"go-micro.dev/v6/internal/util/addr"
-	"go-micro.dev/v6/internal/util/backoff"
-	mnet "go-micro.dev/v6/internal/util/net"
-	"go-micro.dev/v6/internal/util/socket"
 )
 
 type rpcServer struct {

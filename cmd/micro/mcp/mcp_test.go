@@ -51,7 +51,7 @@ func TestParseTool(t *testing.T) {
 func TestExportFormats(t *testing.T) {
 	// Test that export formats are recognized
 	formats := []string{"langchain", "openapi", "json"}
-	
+
 	for _, format := range formats {
 		t.Run(format, func(t *testing.T) {
 			// This is a basic test to ensure the format strings are defined
@@ -66,7 +66,7 @@ func TestExportFormats(t *testing.T) {
 func TestDocsFormats(t *testing.T) {
 	// Test that docs formats are recognized
 	formats := []string{"markdown", "json"}
-	
+
 	for _, format := range formats {
 		t.Run(format, func(t *testing.T) {
 			// This is a basic test to ensure the format strings are defined
