@@ -1,0 +1,37 @@
+name: Lint
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - "**"
+jobs:
+  golangci:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so only-new-issues can diff against the base.
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24
+          check-latest: true
+          cache: true
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.5.0
+          # Enforce on new/changed code. The existing tree has a known
+          # backlog that's being cleaned up separately; this keeps new code
+          # clean without a flag-day fix.
+          only-new-issues: true
