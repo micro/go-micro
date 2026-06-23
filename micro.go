@@ -209,6 +209,35 @@ func FlowLLM(prompt string) FlowStepFunc { return flow.LLM(prompt) }
 // agent over RPC, storing its reply.
 func FlowDispatch(agent string) FlowStepFunc { return flow.Dispatch(agent) }
 
+// FlowLoopOption configures a FlowLoop.
+type FlowLoopOption = flow.LoopOption
+
+// FlowLoopCondition decides whether a FlowLoop should stop, given the latest
+// state and the iteration just completed.
+type FlowLoopCondition = flow.LoopCondition
+
+// FlowLoop is a step action that runs body repeatedly until a stop condition
+// is met or the iteration cap is reached — the agentic loop, with a
+// guaranteed ceiling so it can't run away. Compose it as a FlowStep's Run.
+func FlowLoop(body FlowStepFunc, opts ...FlowLoopOption) FlowStepFunc {
+	return flow.Loop(body, opts...)
+}
+
+// FlowLoopMax sets a loop's hard iteration cap — the budget guardrail.
+func FlowLoopMax(n int) FlowLoopOption { return flow.LoopMax(n) }
+
+// FlowUntil stops a loop when cond returns true (a code-defined exit).
+func FlowUntil(cond FlowLoopCondition) FlowLoopOption { return flow.Until(cond) }
+
+// FlowUntilLLM stops a loop when the flow's model judges the goal met — the
+// supervised "Ralph" loop. Requires a flow model (set FlowProvider/FlowAPIKey).
+func FlowUntilLLM(question string) FlowLoopOption { return flow.UntilLLM(question) }
+
+// FlowOnIteration runs fn after each loop iteration (progress/observability).
+func FlowOnIteration(fn func(iter int, state FlowState)) FlowLoopOption {
+	return flow.OnIteration(fn)
+}
+
 // StoreCheckpoint returns a store-backed Checkpoint whose run keys are
 // namespaced under scope (pass the flow name so each flow's runs stay in
 // their own keyspace). A nil store uses the default store.
