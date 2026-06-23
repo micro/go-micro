@@ -8,6 +8,8 @@ Build an agent and it gets a model, memory, and tools, manages your services, an
 
 <a href="https://go-micro.dev/blog/3"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Anthropic_logo.svg" height="26" /></a>
 &nbsp;&nbsp;
+<a href="https://openai.com"><img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" height="26" /></a>
+&nbsp;&nbsp;
 <a href="https://go-micro.dev/blog/8"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
 
 **Want to support Go Micro and see your logo here?** [Become a sponsor](https://discord.gg/WeMU5AGxD) — reach out on Discord.
