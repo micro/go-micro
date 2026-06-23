@@ -34,6 +34,8 @@ examples:
 guides:
   - title: Agents and Workflows
     url: /docs/guides/agents-and-workflows.html
+  - title: Agent Loops
+    url: /docs/guides/agent-loops.html
   - title: Plan & Delegate
     url: /docs/guides/plan-delegate.html
   - title: Agent Guardrails
