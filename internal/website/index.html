@@ -1,3 +1,5 @@
+---
+---
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -161,18 +163,7 @@
   </head>
   <body>
 
-    <nav class="nav">
-      <a class="nav-brand" href="/">
-        <img src="https://raw.githubusercontent.com/micro/go-micro/master/logo.png" alt="Go Micro" style="border-radius: 8px;" />
-        Go Micro
-      </a>
-      <div class="nav-links">
-        <a href="/docs/">Docs</a>
-        <a href="/blog/">Blog</a>
-        <a href="/support">Support</a>
-        <a href="https://github.com/micro/go-micro">GitHub</a>
-      </div>
-    </nav>
+    {% include marketing-nav.html %}
 
     <section class="hero">
       <div class="hero-inner">
@@ -294,15 +285,7 @@
       </div>
     </section>
 
-    <footer class="footer">
-      <div>&copy; 2026 Go Micro. Apache 2.0 Licensed.</div>
-      <div>
-        <a href="/docs/">Docs</a> &middot;
-        <a href="/blog/">Blog</a> &middot;
-        <a href="https://github.com/micro/go-micro">GitHub</a> &middot;
-        <a href="/support">Support</a>
-      </div>
-    </footer>
+    {% include marketing-footer.html %}
 
   </body>
 </html>

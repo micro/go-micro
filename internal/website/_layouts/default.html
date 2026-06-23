@@ -104,10 +104,7 @@
     </a>
     <button class="menu-toggle" id="menuToggle">Menu</button>
     <div class="nav-links">
-      <a href="/docs/">Docs</a>
-      <a href="/blog/">Blog</a>
-      <a href="/support">Support</a>
-      <a href="https://github.com/micro/go-micro">GitHub</a>
+      {% include nav-links.html %}
     </div>
   </nav>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -171,10 +168,7 @@
   <footer class="site-footer">
     <div>&copy; {{ site.time | date: '%Y' }} Go Micro. Apache 2.0 Licensed.</div>
     <div>
-      <a href="/docs/">Docs</a> &middot;
-      <a href="/blog/">Blog</a> &middot;
-      <a href="https://github.com/micro/go-micro">GitHub</a> &middot;
-      <a href="/support">Support</a>
+      {% include footer-links.html %}
     </div>
   </footer>
   <script>
