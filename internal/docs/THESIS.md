@@ -27,6 +27,33 @@ Value is unlocked in order, and each layer needs the one beneath it:
 A harness that stops at "a model in a loop" is incomplete. The point is the whole
 lifecycle — capability, intelligence, and orchestration as one runtime.
 
+## Where we fit — complementary, not competing
+
+"Agent = Model + Harness" ([LangChain](https://www.langchain.com/blog/the-anatomy-of-an-agent-harness))
+is the right frame, but *harness* has two layers, and we own the second:
+
+- **The intra-agent harness** — the runtime around a *single model*: system prompt,
+  tools, context compaction, sandbox, self-verification, and the continuation
+  ("Ralph") loop. LangChain / LangGraph, deepagents, and Claude Code do this well.
+  **We do not compete here.**
+- **The operational harness** — the distributed substrate agents *operate inside*:
+  services as typed tools, discovery and RPC, durable and resumable runs,
+  observability, scheduling, and the protocols agents use to reach each other. The
+  place a single agent becomes part of a system, and many agents, services, and
+  workflows compose. **This is Go Micro's focus.**
+
+They stack. An intra-agent harness produces an agent; Go Micro is where that agent
+runs as a first-class service and gets composed into workflows with other services
+and agents. They plug together through open protocols — a LangGraph or deepagents
+agent is reachable over A2A and consumes Go Micro tools over MCP, and the reverse.
+We make those agents better neighbours, not obsolete.
+
+So the focus is deliberately narrow: **the operational harness for Go, and the
+services → agents → workflows lifecycle** — not a model-orchestration framework, not
+a graph DSL, not a prompt layer. Lead with interop and the distributed substrate;
+treat LangChain-class tools as complements to build alongside, never as targets to
+replace.
+
 ## Why now
 
 The frontier is moving from chat to **scheduled, looping, work-performing agents**:
