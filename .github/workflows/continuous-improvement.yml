@@ -4,8 +4,9 @@ name: Continuous Improvement
 # (see internal/docs/CONTINUOUS_IMPROVEMENT.md).
 #
 # A Claude Max subscription provides no API key for CI, so the loop is driven by
-# Codex rather than Claude Code: on a cadence this posts an @codex instruction on
-# the tracker issue (#3024), and Codex runs one improvement increment + opens a PR.
+# Codex rather than Claude Code: on a cadence this opens a fresh tracking issue and
+# posts an @codex instruction on it, and Codex runs one improvement increment + opens
+# a PR. (See the per-issue rationale below.)
 #
 # Codex does NOT respond to comments authored by the github-actions bot, so the
 # dispatch is GATED on a CODEX_TRIGGER_TOKEN secret (a PAT for a user account Codex
@@ -13,11 +14,13 @@ name: Continuous Improvement
 # piling up @codex comments that Codex silently ignores. The moment the secret is
 # added the loop activates with no further change.
 #
-# Each dispatch asks Codex for a UNIQUE branch (codex/improvement-<run_number>).
-# Codex derives a branch name from the dispatch text, so an identical generic
-# prompt every hour would collide on one branch name — the prior increment's
-# branch (until auto-merged + deleted) blocks the next PR from opening. The
-# per-run id keeps every increment on its own branch.
+# Each run opens a FRESH issue and dispatches Codex there, rather than re-commenting
+# on one tracker issue. Codex derives its PR branch name from the triggering issue's
+# context, so repeated dispatches on a single issue all collapse onto one branch name
+# (codex/github-mention-<that-issue-slug>) — the first increment opens a PR, the rest
+# collide on the occupied branch and silently fail to open one. A unique issue per
+# run gives each increment its own branch and a clean PR. The dispatch asks Codex to
+# "Closes #<issue>" so each tracking issue auto-closes when its PR merges.
 
 on:
   workflow_dispatch: {}
@@ -35,10 +38,12 @@ jobs:
   dispatch:
     runs-on: ubuntu-latest
     steps:
-      - name: Ask Codex to run one increment
+      - name: Open a fresh increment issue and dispatch Codex
         env:
           GH_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN || github.token }}
           HAS_TRIGGER_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN != '' }}
+          REPO: ${{ github.repository }}
+          RUN_NUMBER: ${{ github.run_number }}
         run: |
           if [ "$HAS_TRIGGER_TOKEN" != "true" ]; then
             echo "CODEX_TRIGGER_TOKEN is not set — skipping dispatch."
@@ -47,5 +52,11 @@ jobs:
             echo "a user account Codex follows) to activate the loop."
             exit 0
           fi
-          gh issue comment 3024 --repo "${{ github.repository }}" --body \
-          "@codex Run continuous-improvement increment #${{ github.run_number }} per internal/docs/CONTINUOUS_IMPROVEMENT.md, aligned to the North Star in internal/docs/THESIS.md (the holistic services → agents → workflows lifecycle). Pick the single highest-value roadmap/issue/improvement-radar item that advances that thesis, implement it, verify \`go build ./...\`, \`go test ./...\`, and \`golangci-lint run ./...\`, and open a PR against master from a NEW branch named \`codex/improvement-${{ github.run_number }}\` (do not reuse an existing branch). One concern per PR; stay out of brand/positioning copy and breaking public API."
+          # A unique issue per run → Codex derives a unique branch → no collisions.
+          ISSUE_URL=$(gh issue create --repo "$REPO" \
+            --title "Continuous improvement increment #$RUN_NUMBER" \
+            --body "Autonomous continuous-improvement increment. North Star: internal/docs/THESIS.md; charter: internal/docs/CONTINUOUS_IMPROVEMENT.md. Tracker: #3024.")
+          ISSUE_NUM="${ISSUE_URL##*/}"
+          echo "Opened issue #$ISSUE_NUM — dispatching Codex."
+          gh issue comment "$ISSUE_NUM" --repo "$REPO" --body \
+          "@codex Run one continuous-improvement increment per internal/docs/CONTINUOUS_IMPROVEMENT.md, aligned to the North Star in internal/docs/THESIS.md (the holistic services → agents → workflows lifecycle). Pick the single highest-value roadmap/issue/improvement-radar item that advances that thesis, implement it, verify \`go build ./...\`, \`go test ./...\`, and \`golangci-lint run ./...\`, and open a PR against master that includes \"Closes #$ISSUE_NUM\" in the description. One concern per PR; stay out of brand/positioning copy and breaking public API."
