@@ -18,6 +18,18 @@ bar for review, tests, or design taste.
 5. **No blind merges.** Codex output is treated like any contributor output:
    reviewed by a maintainer, backed by tests, and checked for public API impact.
 
+## Coordination with Claude Code
+
+Go Micro is maintained by two AI tools — **Codex** (you) and **Claude Code** (its guide is [CLAUDE.md](CLAUDE.md)) — plus the human maintainer, who routes work and owns every merge.
+
+- **Lanes / branches.** You work on `codex/*` branches; Claude Code on `claude/*`. Never push to a branch the other owns, and never have both agents on one branch at once.
+- **Base PRs on `master`.** Don't stack a PR on another agent's in-flight branch — if that base squash-merges, your changes can be orphaned. If the code you need isn't merged yet, wait, then branch off `master`. To improve a PR that hasn't merged, push to that PR's branch rather than opening a separate stacked PR — keep the change one mergeable unit.
+- **One concern per PR.** Keep each PR single-purpose so a reviewer can read it in one sitting; don't bundle unrelated changes (e.g. a feature plus a docs rebrand).
+- **Cross-review before merge.** Claude Code reviews your PRs; you review its with `@codex review`. A fresh pass from the other model catches what the author misses.
+- **Dispatch.** Maintainers (or Claude Code) start your tasks with `@codex <instruction>` on the relevant issue/PR — that's your context. `@codex review` is review; any other instruction is a *task*. You run one task at a time: take the current one to a clean, green PR before the next is dispatched.
+- **CI is the gate.** `go build`, `go test`, `golangci-lint` (blocking), and `make harness` must pass; never merge red. `internal/harness/` and `examples/` are excluded from errcheck; everything else gets the full set.
+- **Backlog = GitHub issues**, each a scoped brief with acceptance criteria.
+
 ## Best uses
 
 ### 1. PR review and triage

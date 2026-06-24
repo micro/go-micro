@@ -137,6 +137,18 @@ Build compelling demos showing agents interacting with go-micro services in real
 - **[internal/docs/IMPLEMENTATION_SUMMARY.md](internal/docs/IMPLEMENTATION_SUMMARY.md)** - Implementation notes
 - **[CHANGELOG.md](CHANGELOG.md)** - What changed and when
 
+## Coordination with Codex
+
+Go Micro is maintained by two AI tools — **Claude Code** (you) and **Codex** (its playbook is [CODEX.md](CODEX.md)) — plus the human maintainer, who routes work and owns every merge. To work side by side without collisions:
+
+- **Lanes / branches.** You work on `claude/*` branches; Codex on `codex/*`. Never push to Codex's branch, and never have both agents committing the same branch at once.
+- **Base PRs on `master`; don't stack on Codex's in-flight branch.** If that base squash-merges, your commit gets orphaned (this happened — the #3007 fixes had to be re-landed). If the code you need isn't merged yet, wait for it, then branch off `master`. To improve an *open* Codex PR, fix it in place (once Codex is done with the branch, or via an `@codex` comment on the PR) rather than a separate stacked PR.
+- **One concern per PR.** Single-purpose PRs; don't bundle (e.g.) a feature with a docs change.
+- **Cross-review.** Review Codex's PRs before merge — mechanical fixes you can land yourself (based on `master`), but design/scope/positioning calls go to the human; don't silently rewrite Codex's intent. Codex reviews yours via `@codex review`.
+- **Dispatching Codex.** Start a task by commenting `@codex <instruction>` on an issue/PR (that issue/PR is its context). `@codex review` is reserved for review; any other instruction starts a *task*. It's consequential (spends a Codex task slot, pushes commits) and **serial** (one task at a time) — so dispatch one task at a time, only on the human's go-ahead, and never write a literal `@codex` in a comment unless you intend to trigger it (write "Codex" in prose otherwise).
+- **CI is the gate.** `go build`, `go test`, `golangci-lint` (blocking), and `make harness` must pass before merge. `internal/harness/` and `examples/` are excluded from errcheck; everything else gets the full set.
+- **Backlog = GitHub issues**, each a scoped, self-contained brief with acceptance criteria.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines. Key points:
