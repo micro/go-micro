@@ -108,6 +108,7 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 	h = a.loopWrap(h)
 	h = a.stepWrap(h)
 	h = a.planWrap(h)
+	h = a.traceTool(h)
 	for i := len(a.opts.wrappers) - 1; i >= 0; i-- {
 		h = a.opts.wrappers[i](h)
 	}
@@ -260,6 +261,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 		WithRegistry(a.opts.Registry),
 		WithClient(a.opts.Client),
 		WithStore(a.opts.Store),
+		TraceProvider(a.opts.TraceProvider),
 	)
 	// Record lineage so the sub-agent's tool calls carry this run as parent.
 	sub.parentRunID = a.runID

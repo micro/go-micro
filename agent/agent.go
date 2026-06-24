@@ -130,6 +130,9 @@ func (a *agentImpl) setup() {
 	a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
 	modelOpts = append(modelOpts, ai.WithToolHandler(a.toolHandler()))
 	a.model = ai.New(a.opts.Provider, modelOpts...)
+	if a.opts.TraceProvider != nil && a.model != nil {
+		a.model = a.tracedModel(a.model)
+	}
 
 	// Memory is pluggable. Use the configured one, otherwise the default
 	// store-backed memory — except ephemeral sub-agents, which keep an
@@ -182,6 +185,8 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 		ParentID: a.parentRunID,
 		Agent:    a.opts.Name,
 	})
+	ctx, endRun := a.startRun(ctx, message)
+	defer func() { endRun(err) }()
 
 	resp, err := ai.GenerateWithRetry(ctx, a.model, &ai.Request{
 		Prompt:       message,

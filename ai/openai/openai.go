@@ -179,6 +179,11 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 
 	// Parse response
 	var chatResp struct {
+		Usage struct {
+			PromptTokens     int `json:"prompt_tokens"`
+			CompletionTokens int `json:"completion_tokens"`
+			TotalTokens      int `json:"total_tokens"`
+		} `json:"usage"`
 		Choices []struct {
 			Message struct {
 				Content   string `json:"content"`
@@ -204,6 +209,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 	choice := chatResp.Choices[0]
 	response := &ai.Response{
 		Reply: choice.Message.Content,
+		Usage: ai.Usage{InputTokens: chatResp.Usage.PromptTokens, OutputTokens: chatResp.Usage.CompletionTokens, TotalTokens: chatResp.Usage.TotalTokens},
 	}
 
 	// Extract tool calls
