@@ -79,7 +79,7 @@ func Builtins(opts ...Option) (tools []ai.Tool, handle func(name string, input m
 			r := a.handlePlan(ai.ToolCall{Name: name, Input: input})
 			return r.Value, r.Content, true
 		case toolDelegate:
-			r := a.handleDelegate(ai.ToolCall{Name: name, Input: input})
+			r := a.handleDelegate(context.Background(), ai.ToolCall{Name: name, Input: input})
 			return r.Value, r.Content, true
 		}
 		return nil, "", false
@@ -129,7 +129,7 @@ func (a *agentImpl) baseHandler() ai.ToolHandler {
 			}
 		}
 		if call.Name == toolDelegate {
-			return a.handleDelegate(call)
+			return a.handleDelegate(ctx, call)
 		}
 		return rpc(ctx, call)
 	}
@@ -213,7 +213,7 @@ func (a *agentImpl) handlePlan(call ai.ToolCall) ai.ToolResult {
 // if 'to' names a registered agent, it is called via RPC. Otherwise an
 // ephemeral sub-agent is created with a fresh, isolated context, asked
 // the subtask, and its reply returned.
-func (a *agentImpl) handleDelegate(call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 	input := call.Input
 	task, _ := input["task"].(string)
 	if task == "" {
@@ -223,7 +223,7 @@ func (a *agentImpl) handleDelegate(call ai.ToolCall) ai.ToolResult {
 
 	// An external agent on another framework, addressed by A2A URL.
 	if strings.HasPrefix(to, "http://") || strings.HasPrefix(to, "https://") {
-		reply, err := a2a.NewClient(to).Send(context.Background(), task)
+		reply, err := a2a.NewClient(to).Send(ctx, task)
 		if err != nil {
 			return errResult(call.ID, "delegate to A2A agent "+to+": "+err.Error())
 		}
@@ -234,7 +234,7 @@ func (a *agentImpl) handleDelegate(call ai.ToolCall) ai.ToolResult {
 
 	// Delegate-first: an existing agent that owns the domain handles it.
 	if to != "" && a.isAgent(to) {
-		reply, err := a.callAgentRPC(context.Background(), to, task)
+		reply, err := a.callAgentRPC(ctx, to, task)
 		if err != nil {
 			return errResult(call.ID, "delegate to agent "+to+": "+err.Error())
 		}
@@ -264,7 +264,7 @@ func (a *agentImpl) handleDelegate(call ai.ToolCall) ai.ToolResult {
 	// Record lineage so the sub-agent's tool calls carry this run as parent.
 	sub.parentRunID = a.runID
 
-	resp, err := sub.Ask(context.Background(), task)
+	resp, err := sub.Ask(ctx, task)
 	if err != nil {
 		return errResult(call.ID, "sub-agent: "+err.Error())
 	}
