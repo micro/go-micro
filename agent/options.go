@@ -8,6 +8,7 @@ import (
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Option configures an Agent.
@@ -73,6 +74,10 @@ type Options struct {
 	// A2AAddress, if set, makes Run serve this agent over the A2A protocol
 	// on that address directly (no separate gateway), e.g. ":4000".
 	A2AAddress string
+
+	// TraceProvider enables OpenTelemetry spans for agent runs, model calls,
+	// and tool calls. Nil disables instrumentation.
+	TraceProvider trace.TracerProvider
 
 	// tools are developer-registered custom tools (see WithTool).
 	tools []customTool
@@ -235,4 +240,10 @@ func WithTool(name, description string, properties map[string]any, handler ToolF
 			handler: handler,
 		})
 	}
+}
+
+// TraceProvider enables OpenTelemetry tracing for agent runs. When nil,
+// agent tracing and run timeline recording are disabled.
+func TraceProvider(tp trace.TracerProvider) Option {
+	return func(o *Options) { o.TraceProvider = tp }
 }

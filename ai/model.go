@@ -48,6 +48,13 @@ type Message struct {
 	Content any    // Can be string or structured content
 }
 
+// Usage describes token counts returned by model providers.
+type Usage struct {
+	InputTokens  int `json:"input_tokens,omitempty"`
+	OutputTokens int `json:"output_tokens,omitempty"`
+	TotalTokens  int `json:"total_tokens,omitempty"`
+}
+
 // Response represents the response from a model
 type Response struct {
 	// Reply is the text response from the model
@@ -56,6 +63,8 @@ type Response struct {
 	ToolCalls []ToolCall
 	// Answer is the final answer after tool execution (if tools were used)
 	Answer string
+	// Usage contains provider token usage when available.
+	Usage Usage
 }
 
 // ToolCall represents a request to call a tool and its result
