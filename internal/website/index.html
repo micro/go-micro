@@ -115,6 +115,7 @@
 
       /* Two-column layout */
       .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: center; overflow: hidden; }
+      .two-col > * { min-width: 0; } /* let grid items shrink so wide <pre> can't blow out the row */
       .two-col img { width: 100%; max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
       .two-col-text h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
       .two-col-text p { color: #555; line-height: 1.7; }
@@ -158,6 +159,8 @@
         .two-col-text pre { font-size: 0.75rem; }
         .nav-links { gap: 0.75rem; font-size: 0.8rem; }
         .footer { flex-direction: column; text-align: center; }
+        /* wrap code blocks instead of overflowing/scrolling, so they fit the viewport */
+        .hero pre, .two-col-text pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: visible; }
       }
     </style>
   </head>
