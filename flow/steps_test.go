@@ -129,6 +129,49 @@ func TestFlowStepRetryOverride(t *testing.T) {
 	}
 }
 
+// A canceled run stops retrying immediately instead of burning the whole
+// retry budget, and surfaces the context error.
+func TestFlowStepRetryStopsOnCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var attempts int
+	step := Step{Name: "cancelaware", Run: func(_ context.Context, in State) (State, error) {
+		attempts++
+		cancel() // the run is canceled while this step is in flight
+		return in, errors.New("transient")
+	}}
+
+	f := New("cancelretry",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "cancelretry")),
+		Retry(5), // would be 6 tries without the cancellation check
+		Steps(step),
+	)
+
+	err := f.Execute(ctx, "")
+	if err == nil {
+		t.Fatal("expected the canceled run to fail")
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("want a context.Canceled error, got %v", err)
+	}
+	if attempts != 1 {
+		t.Errorf("cancellation should stop retries after the first attempt, got %d", attempts)
+	}
+}
+
+// A step with no Run function is reported as a configuration error rather
+// than panicking the run.
+func TestFlowStepNilRun(t *testing.T) {
+	f := New("nilstep",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "nilstep")),
+		Steps(Step{Name: "missing"}),
+	)
+	err := f.Execute(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected an error for a step with no Run function")
+	}
+}
+
 func TestStateSetScan(t *testing.T) {
 	var s State
 	type payload struct {
