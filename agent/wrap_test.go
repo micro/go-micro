@@ -146,7 +146,8 @@ func TestWrapToolSeesRunInfo(t *testing.T) {
 		}),
 	)
 
-	if _, err := a.Ask(context.Background(), "go"); err != nil {
+	resp, err := a.Ask(context.Background(), "go")
+	if err != nil {
 		t.Fatalf("Ask: %v", err)
 	}
 	if !ok {
@@ -157,6 +158,12 @@ func TestWrapToolSeesRunInfo(t *testing.T) {
 	}
 	if got.RunID == "" {
 		t.Error("RunInfo.RunID is empty")
+	}
+	if resp.RunID != got.RunID {
+		t.Errorf("Response.RunID = %q, want wrapper RunID %q", resp.RunID, got.RunID)
+	}
+	if resp.ParentID != "" {
+		t.Errorf("Response.ParentID = %q, want empty", resp.ParentID)
 	}
 }
 

@@ -52,6 +52,12 @@ type Response struct {
 	Reply     string
 	ToolCalls []ai.ToolCall
 	Agent     string
+
+	// RunID correlates this Ask with tool calls, trace spans, and the
+	// persisted run timeline. ParentID is set when this response belongs
+	// to a delegated sub-agent run.
+	RunID    string
+	ParentID string
 }
 
 type agentImpl struct {
@@ -221,6 +227,8 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 		Reply:     reply,
 		ToolCalls: resp.ToolCalls,
 		Agent:     a.opts.Name,
+		RunID:     a.runID,
+		ParentID:  a.parentRunID,
 	}, nil
 }
 
