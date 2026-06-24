@@ -1,0 +1,49 @@
+name: Continuous Improvement
+
+# Durable, session-independent backbone for the autonomous improvement loop.
+# See internal/docs/CONTINUOUS_IMPROVEMENT.md for the charter.
+#
+# REQUIRES an ANTHROPIC_API_KEY repo secret — until that's set this workflow
+# is a safe no-op. Verify the Claude Code install/flags against current docs
+# before relying on it; the loop's correctness gate is build + test + lint.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "29 */6 * * *" # every 6h, off-minute (tune as needed)
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: continuous-improvement
+  cancel-in-progress: false
+
+jobs:
+  improve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          check-latest: true
+          cache: true
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+      - name: Run one improvement increment
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "ANTHROPIC_API_KEY not set — skipping. Add the repo secret to enable the loop."
+            exit 0
+          fi
+          claude -p "Run ONE continuous-improvement increment for go-micro per internal/docs/CONTINUOUS_IMPROVEMENT.md: pick the single highest-value roadmap/issue/radar item, implement it or dispatch to Codex, verify build+test+lint, open a PR and merge it, then print a one-line digest. Full autonomy, no approvals; correctness is the only gate; one concern per PR; stay out of brand/positioning copy and breaking public API." \
+            --permission-mode acceptEdits \
+            --allowedTools "Bash,Edit,Write,Read,Glob,Grep"
