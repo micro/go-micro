@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"text/template"
 	"time"
 
@@ -149,6 +150,12 @@ func (c *storeCheckpoint) List(ctx context.Context) ([]Run, error) {
 			runs = append(runs, run)
 		}
 	}
+	sort.SliceStable(runs, func(i, j int) bool {
+		if runs[i].Started.Equal(runs[j].Started) {
+			return runs[i].ID < runs[j].ID
+		}
+		return runs[i].Started.Before(runs[j].Started)
+	})
 	return runs, nil
 }
 
