@@ -145,3 +145,35 @@ func TestStateSetScan(t *testing.T) {
 		t.Errorf("round-trip failed: %+v", got)
 	}
 }
+
+func TestFlowStepStopsRetryingWhenContextCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	var attempts int
+	step := Step{Name: "cancel", Run: func(_ context.Context, in State) (State, error) {
+		attempts++
+		cancel()
+		return in, errors.New("transient")
+	}}
+
+	f := New("cancel-retry",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "cancel-retry")),
+		Retry(5),
+		Steps(step),
+	)
+	if err := f.Execute(ctx, ""); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Execute error = %v, want context.Canceled", err)
+	}
+	if attempts != 1 {
+		t.Errorf("canceled flow should not retry; got %d attempts", attempts)
+	}
+}
+
+func TestFlowStepRequiresRunFunc(t *testing.T) {
+	f := New("nil-step",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "nil-step")),
+		Steps(Step{Name: "missing"}),
+	)
+	if err := f.Execute(context.Background(), ""); err == nil {
+		t.Fatal("expected missing Run function error")
+	}
+}
