@@ -1,10 +1,9 @@
-name: Universe (E2E)
+name: Harness (E2E)
 
-# Spins up a mini go-micro world end-to-end — services, a durable flow
-# that crashes and resumes, and an agent — then shuts it down. Everything
-# is real except the LLM, which is mocked, so the default job is
-# deterministic and needs no secrets. A second job runs the same scenario
-# against a live model when an API key secret is configured.
+# Runs the end-to-end harnesses for agents, services, flows, and provider
+# conformance. The default job uses deterministic mock LLMs and needs no
+# secrets. A second job runs the same harnesses against any live providers
+# whose API key secrets are configured.
 
 on:
   push:
@@ -16,8 +15,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  universe:
-    name: Mini universe (mock LLM)
+  harness:
+    name: Harnesses (mock LLM)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,12 +33,12 @@ jobs:
       - name: Plan-delegate harness
         run: go run ./internal/harness/plan-delegate
 
-  universe-live:
-    name: Mini universe (live LLM, if key present)
+  harness-live:
+    name: Provider harnesses (live LLM, if keys present)
     runs-on: ubuntu-latest
     # Only on the daily schedule or a manual run — never automatically on
     # every push/PR, so changes don't quietly burn API credits. Trigger it
-    # by hand (Actions → Universe → Run workflow) when changing the agent,
+    # by hand (Actions → Harness → Run workflow) when changing the agent,
     # flow, or AI internals and you want a real-model check.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
@@ -48,12 +47,13 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - name: Universe against a live model (AtlasCloud)
+      - name: Provider conformance against configured live models
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
-        run: |
-          if [ -z "$ATLASCLOUD_API_KEY" ]; then
-            echo "No ATLASCLOUD_API_KEY secret configured — skipping the live run."
-            exit 0
-          fi
-          go run ./internal/harness/universe -provider atlascloud
+        run: go run ./internal/harness/provider-conformance

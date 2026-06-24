@@ -1,8 +1,8 @@
 # Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v6?tab=doc) [![Go Report Card](https://goreportcard.com/badge/github.com/go-micro/go-micro)](https://goreportcard.com/report/github.com/go-micro/go-micro)
 
-Go Micro is a framework for building agents and services in Go.
+Go Micro is an **agent harness** and service framework for Go.
 
-Build an agent and it gets a model, memory, and tools, manages your services, and is reachable over [MCP](https://modelcontextprotocol.io/) and [A2A](https://a2a-protocol.org). Write services and they register, discover each other, and every endpoint is automatically an AI-callable tool. Orchestrate the deterministic parts with flows. Agents, services, and flows are all Go code — the same primitives, the same deployment — because an agent is a distributed system, and building one is building a service.
+A harness is the runtime around an agent: the tools it can call, the memory it keeps, the guardrails that bound it, the workflows that trigger it, the services it depends on, and the protocols other agents use to reach it. Go Micro gives you that harness as Go code. Build an agent and it gets a model, memory, tools, planning, delegation, guardrails, and service discovery; it is reachable over [MCP](https://modelcontextprotocol.io/) and [A2A](https://a2a-protocol.org). Write services and every endpoint becomes an AI-callable tool. Orchestrate the deterministic parts with durable flows. Agents, services, and flows share one runtime because an agent is a distributed system, and building one is building a service.
 
 ## Sponsors
 
@@ -21,6 +21,7 @@ Running Go Micro in production, or building on it and want help? Paid **support,
 ## Contents
 
 - [Quick Start](#quick-start)
+- [Why an Agent Harness](#why-an-agent-harness)
 - [Writing Services](#writing-services)
 - [Building Agents](#building-agents) — [Plan & Delegate](#plan--delegate), [Pluggable](#batteries-included-pluggable), [Paid tools (x402)](#paid-tools-x402), [A2A](#reachable-by-other-agents-a2a)
 - [Features](#features)
@@ -116,6 +117,20 @@ When you need a capability that doesn't exist, the agent generates a new service
 
 Edit the generated code by hand at any time — re-running preserves your changes. [Read more](https://go-micro.dev/blog/13).
 
+## Why an Agent Harness
+
+The first wave of agent frameworks helped developers put a model in a loop. The next problem is operating that loop: connecting it to real tools, scoping what it can touch, preserving state, routing work to specialists, recovering from failures, observing what happened, and letting other agents call it. That is harness work.
+
+Go Micro's answer is to make the harness the same thing you already deploy:
+
+- **Tools are services** — endpoint metadata becomes tool schema; RPC executes the call.
+- **Agents are services** — they register, discover, load-balance, and expose `Agent.Chat`.
+- **Workflows are durable code paths** — use flows when the path is known; dispatch to agents when it is not.
+- **Safety lives at execution** — `MaxSteps`, `LoopLimit`, `ApproveTool`, and tool wrappers run where actions happen.
+- **Interop is built in** — MCP for tools, A2A for agents, x402 for paid tools.
+
+Use Go Micro when the agent has to operate a system, not just answer a prompt.
+
 ## Writing Services
 
 Under the hood, a service is a struct with methods. Doc comments and `@example` tags become tool descriptions for AI agents automatically.
@@ -200,7 +215,7 @@ micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
 
 ### Plan & Delegate
 
-Every agent gets two built-in capabilities, exposed as tools — no extra setup, no harness:
+Every agent gets two built-in harness capabilities, exposed as tools — no extra setup or separate graph runtime:
 
 - **`plan`** — for multi-step work, the agent records an ordered plan in its store-backed memory and stays oriented across turns.
 - **`delegate`** — the agent hands a self-contained subtask to another agent. If a registered agent already owns the relevant services, the hand-off goes over RPC to that agent; otherwise a focused, short-lived sub-agent is created for the subtask with its own isolated context.

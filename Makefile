@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: test test-race test-coverage harness lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: test test-race test-coverage harness provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -18,6 +18,8 @@ help:
 	@echo "  make test-race     - Run tests with race detector"
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
+	@echo "  make harness       - Run deterministic end-to-end harnesses"
+	@echo "  make provider-conformance - Run harnesses against configured live providers"
 	@echo "  make fmt           - Format code"
 	@echo "  make install-tools - Install development tools"
 	@echo "  make proto         - Generate protobuf code"
@@ -46,6 +48,11 @@ harness:
 	go run ./internal/harness/universe
 	go run ./internal/harness/agent-flow
 	go run ./internal/harness/plan-delegate
+
+# Run the same harnesses against every configured live provider. Providers
+# without API keys are skipped; configured providers must pass.
+provider-conformance:
+	go run ./internal/harness/provider-conformance
 
 # Run linter
 lint:

@@ -5,11 +5,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Go Micro - An AI-native framework for building agents, services, and flows in Go." />
+    <meta name="description" content="Go Micro - An agent harness and service framework for Go." />
     <meta name="go-import" content="go-micro.dev/v6 git https://github.com/micro/go-micro">
     <meta name="go-import" content="go-micro.dev/v5 git https://github.com/micro/go-micro">
     <meta name="go-source" content="go-micro.dev/v6 https://github.com/micro/go-micro https://github.com/micro/go-micro/tree/master{/dir} https://github.com/micro/go-micro/blob/master{/dir}/{file}#L{line}">
-    <title>Go Micro - Build Agents and Services in Go</title>
+    <title>Go Micro - Agent Harness for Go</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html { overflow-x: hidden; }
@@ -167,8 +167,8 @@
 
     <section class="hero">
       <div class="hero-inner">
-        <h1>Build Agents and Services in Go</h1>
-        <p class="tagline">An AI-native framework for agents, services, and workflows.</p>
+        <h1>An Agent Harness for Go</h1>
+        <p class="tagline">Tools, memory, guardrails, workflows, and services — one runtime for agents that do real work.</p>
         <pre>curl -fsSL https://go-micro.dev/install.sh | sh</pre>
         <div class="hero-buttons">
           <a href="/docs/getting-started.html" class="btn btn-primary">Get Started</a>
@@ -183,20 +183,20 @@
 
     <section class="section-alt">
       <div class="section">
-        <h2>Everything You Need</h2>
-        <p class="subtitle">AI generation and orchestration on top of a production microservices framework.</p>
+        <h2>The Runtime Around the Agent</h2>
+        <p class="subtitle">Go Micro moved from a service framework to an agent harness: the production pieces agents need once they leave the demo.</p>
         <div class="features">
           <div class="feature">
-            <strong>Agents</strong>
-            <p>A model, memory, and tools that manage your services. Plan, delegate, guardrails — built in, no harness.</p>
+            <strong>Agent Harness</strong>
+            <p>A model, memory, tools, plan/delegate, guardrails, and execution middleware around every agent.</p>
           </div>
           <div class="feature">
-            <strong>Services</strong>
-            <p>Build services in Go or generate them from a prompt. They register and discover each other automatically.</p>
+            <strong>Services as Tools</strong>
+            <p>Build services in Go or generate them from a prompt. Their endpoints become typed tools automatically.</p>
           </div>
           <div class="feature">
-            <strong>Flows</strong>
-            <p>Event-driven, durable workflows. Ordered steps that checkpoint and resume after a crash.</p>
+            <strong>Durable Workflows</strong>
+            <p>Use fixed, checkpointed code paths for deterministic work; hand off to agents when the path is dynamic.</p>
           </div>
           <div class="feature">
             <strong>MCP Gateway</strong>
@@ -220,8 +220,8 @@
           <img src="/images/generated/mcp-agent.jpg" alt="AI agent calling microservices via MCP" />
         </div>
         <div class="two-col-text">
-          <h2>Describe, Run, Chat</h2>
-          <p>Tell it what you need. The AI designs services, generates an agent, and drops you into an interactive console. Talk to the agent — it orchestrates across services automatically.</p>
+          <h2>From Prompt Loop to Operating Harness</h2>
+          <p>Tell it what you need. The AI designs services, generates an agent, and drops you into an interactive console. The harness gives that agent tools, memory, guardrails, and workflows so it can operate across services.</p>
           <pre><span class="kw">$</span> <span class="fn">micro run</span> <span class="str">--prompt "task management system"</span>
 <span class="kw">&gt;</span> Create a project called Launch, add tasks, assign to Alice</pre>
           <p><a href="/blog/16" class="btn btn-primary" style="margin-top: 0.75rem; display: inline-block;">Learn About Agents</a></p>
@@ -233,8 +233,8 @@
       <div class="section">
         <div class="two-col">
           <div class="two-col-text">
-            <h2>Pluggable Architecture</h2>
-            <p>Services connect through a registry for discovery and a broker for events. Swap any component without changing your service code — go from mDNS to Consul, or HTTP to gRPC, with a single option.</p>
+            <h2>Distributed Systems for Agents</h2>
+            <p>Agents need the same substrate services do: discovery, RPC, events, state, auth, observability, and deployment. Swap any component without changing your code — go from mDNS to Consul, or HTTP to gRPC, with a single option.</p>
           </div>
           <div>
             <img src="/images/generated/architecture.jpg" alt="Go Micro architecture diagram" />
