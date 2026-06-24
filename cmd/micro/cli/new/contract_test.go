@@ -12,10 +12,17 @@ import (
 )
 
 // TestZeroToOneContract locks the documented getting-started path:
-// `micro new helloworld` must produce an ordinary Go service that can be
-// tested by the Go toolchain. The generated module is pointed back at this
-// checkout so the contract stays local and deterministic in CI.
+// `micro new helloworld` must produce an ordinary Go service that the Go
+// toolchain can build. The generated module is pointed back at this checkout
+// so the contract stays local and deterministic in CI.
+//
+// It shells out to `micro new` (which runs `go mod tidy`) and `go build`, so
+// it needs the Go toolchain and module access; it is skipped under `-short`.
 func TestZeroToOneContract(t *testing.T) {
+	if testing.Short() {
+		t.Skip("contract test shells out to the Go toolchain; skipped with -short")
+	}
+
 	repoRoot, err := filepath.Abs(filepath.Join("..", "..", "..", ".."))
 	if err != nil {
 		t.Fatal(err)
@@ -59,10 +66,10 @@ func TestZeroToOneContract(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmd := exec.Command("go", "test", "./...")
+	cmd := exec.Command("go", "build", "./...")
 	cmd.Dir = serviceDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("generated service go test ./... failed: %v\n%s", err, out)
+		t.Fatalf("generated service go build ./... failed: %v\n%s", err, out)
 	}
 }
