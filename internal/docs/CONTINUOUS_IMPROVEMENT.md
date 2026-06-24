@@ -68,8 +68,12 @@ Grounded in real signal, never speculative rewrites. Each cycle draws from:
   alive. Convenient, but the remote environment is reclaimed on inactivity and
   recurring jobs expire after 7 days, so it is **not** a durable scheduler.
 - **GitHub Actions (durable)** — a scheduled workflow that runs the loop
-  independently of any session. This is the real backbone; it needs an
-  `ANTHROPIC_API_KEY` repo secret. See `.github/workflows/continuous-improvement.yml`.
+  independently of any session. This is the real backbone; it opens a fresh
+  tracking issue for each increment and dispatches Codex there, so every run gets
+  a unique Codex-derived branch and a PR that closes its tracking issue. It needs
+  a `CODEX_TRIGGER_TOKEN` repo secret from a user account Codex responds to;
+  without that secret the workflow deliberately no-ops to avoid ignored bot
+  comments. See `.github/workflows/continuous-improvement.yml`.
 
 ## Stop / redirect
 
