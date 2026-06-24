@@ -1,20 +1,22 @@
 name: Continuous Improvement
 
-# Durable, session-independent backbone for the autonomous improvement loop.
-# See internal/docs/CONTINUOUS_IMPROVEMENT.md for the charter.
+# Durable backbone for the autonomous improvement loop
+# (see internal/docs/CONTINUOUS_IMPROVEMENT.md).
 #
-# REQUIRES an ANTHROPIC_API_KEY repo secret — until that's set this workflow
-# is a safe no-op. Verify the Claude Code install/flags against current docs
-# before relying on it; the loop's correctness gate is build + test + lint.
+# A Claude Max subscription provides no API key for CI, so the loop is driven by
+# Codex rather than Claude Code: on a cadence this posts an @codex instruction on
+# the tracker issue (#3024), and Codex runs one improvement increment + opens a PR.
+#
+# NOTE: this posts as the github-actions bot. If Codex only responds to a human
+# account, add a CODEX_TRIGGER_TOKEN secret (a PAT for a user Codex follows) — the
+# step below already prefers it over the default token.
 
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: "29 */6 * * *" # every 6h, off-minute (tune as needed)
+    - cron: "29 */12 * * *" # twice daily, off-minute (tune as needed)
 
 permissions:
-  contents: write
-  pull-requests: write
   issues: write
 
 concurrency:
@@ -22,28 +24,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  improve:
+  dispatch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-          check-latest: true
-          cache: true
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
-      - name: Run one improvement increment
+      - name: Ask Codex to run one increment
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN || github.token }}
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "ANTHROPIC_API_KEY not set — skipping. Add the repo secret to enable the loop."
-            exit 0
-          fi
-          claude -p "Run ONE continuous-improvement increment for go-micro per internal/docs/CONTINUOUS_IMPROVEMENT.md: pick the single highest-value roadmap/issue/radar item, implement it or dispatch to Codex, verify build+test+lint, open a PR and merge it, then print a one-line digest. Full autonomy, no approvals; correctness is the only gate; one concern per PR; stay out of brand/positioning copy and breaking public API." \
-            --permission-mode acceptEdits \
-            --allowedTools "Bash,Edit,Write,Read,Glob,Grep"
+          gh issue comment 3024 --repo "${{ github.repository }}" --body \
+          "@codex Run one continuous-improvement increment per internal/docs/CONTINUOUS_IMPROVEMENT.md: pick the single highest-value roadmap/issue/improvement-radar item, implement it, verify \`go build ./...\`, \`go test ./...\`, and \`golangci-lint run ./...\`, and open a PR against master. One concern per PR; stay out of brand/positioning copy and breaking public API."
