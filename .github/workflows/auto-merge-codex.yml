@@ -1,0 +1,42 @@
+name: Auto-merge Codex PRs
+
+# Part of the autonomous improvement loop (internal/docs/CONTINUOUS_IMPROVEMENT.md).
+# Merges Codex's PRs once CI is green — no human involvement; CI (build, test,
+# golangci-lint, harnesses) is the only gate. Scoped to PRs that are BOTH
+# codex-labelled AND from a codex/* branch, so nothing else can auto-merge.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # sweep every 15 min
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-codex
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge green Codex PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr list --repo "$REPO" --label codex --state open \
+            --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("codex/")) | .number' \
+          | while read -r pr; do
+              [ -z "$pr" ] && continue
+              if gh pr checks "$pr" --repo "$REPO" >/dev/null 2>&1; then
+                echo "Checks green on #$pr — merging."
+                gh pr merge "$pr" --repo "$REPO" --squash --delete-branch \
+                  || echo "skip #$pr (not mergeable — conflicts?)"
+              else
+                echo "skip #$pr (checks pending/failing)"
+              fi
+            done

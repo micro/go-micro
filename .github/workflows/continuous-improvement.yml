@@ -14,7 +14,7 @@ name: Continuous Improvement
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: "29 */12 * * *" # twice daily, off-minute (tune as needed)
+    - cron: "29 * * * *" # hourly, off-minute (tune as needed)
 
 permissions:
   issues: write
