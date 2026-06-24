@@ -87,7 +87,11 @@ A service is a Go struct with methods. Doc comments and `@example` tags become t
 ```go
 package main
 
-import "go-micro.dev/v6"
+import (
+    "context"
+
+    "go-micro.dev/v6"
+)
 
 type Request struct {
     Name string `json:"name"`

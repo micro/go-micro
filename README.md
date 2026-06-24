@@ -98,7 +98,7 @@ Then talk to your services from the console:
 → task_Task_Create({"title":"Write code","project_id":"p1..."})
 → task_Task_Create({"title":"Ship it","project_id":"p1..."})
 
-Created Work category and added 'Finish report' task to it.
+Created project Launch and added three tasks to it.
 ```
 
 When you need a capability that doesn't exist, the agent generates a new service mid-conversation:
@@ -124,6 +124,8 @@ Under the hood, a service is a struct with methods. Doc comments and `@example` 
 package main
 
 import (
+    "context"
+
     "go-micro.dev/v6"
 )
 
