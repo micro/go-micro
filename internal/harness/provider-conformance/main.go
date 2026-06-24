@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -106,7 +107,26 @@ func runHarness(provider, harness string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "go", "run", "./internal/harness/"+harness, "-provider", provider)
+	// Build the harness to a temp binary and run that, rather than `go run`:
+	// `go run` launches the compiled binary as a child it does not kill on
+	// context cancellation, so a harness that starts local services could
+	// outlive the timeout. Running the binary ourselves keeps the timeout
+	// honest — canceling the context kills the process that does the work.
+	binDir, err := os.MkdirTemp("", "harness-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(binDir)
+	binPath := filepath.Join(binDir, harness)
+
+	build := exec.CommandContext(ctx, "go", "build", "-o", binPath, "./internal/harness/"+harness)
+	build.Stdout = os.Stdout
+	build.Stderr = os.Stderr
+	if err := build.Run(); err != nil {
+		return fmt.Errorf("build: %w", err)
+	}
+
+	cmd := exec.CommandContext(ctx, binPath, "-provider", provider)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = localRPCEnv(os.Environ())
