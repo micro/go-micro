@@ -390,13 +390,24 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 }
 
 // runStep runs one step, retrying on error up to the resolved retry count.
+// A step with no Run function is a configuration error, and a canceled run
+// stops retrying immediately rather than burning the rest of its budget.
 func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, error) {
+	if step.Run == nil {
+		return in, 0, fmt.Errorf("flow: step %q has no Run function", step.Name)
+	}
 	retries := f.opts.Retry
 	if step.Retry > 0 {
 		retries = step.Retry
 	}
 	var lastErr error
 	for attempt := 1; attempt <= retries+1; attempt++ {
+		// Stop the moment the run's context is canceled or its deadline
+		// passes — a canceled run shouldn't keep retrying, and the context
+		// error is surfaced so callers can detect cancellation upstream.
+		if err := ctx.Err(); err != nil {
+			return in, attempt - 1, err
+		}
 		out, err := step.Run(ctx, in)
 		if err == nil {
 			return out, attempt, nil
