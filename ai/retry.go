@@ -78,16 +78,27 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 			return nil, err
 		}
 
-		if policy.Backoff > 0 {
-			t := time.NewTimer(policy.Backoff)
-			select {
-			case <-ctx.Done():
-				if !t.Stop() {
-					<-t.C
-				}
-				return nil, ctx.Err()
-			case <-t.C:
+		// Always back off between retries — exponential and capped — so an
+		// opt-in retry can never become a tight loop hammering the provider,
+		// even if Backoff was left at zero.
+		backoff := policy.Backoff
+		if backoff <= 0 {
+			backoff = 200 * time.Millisecond
+		}
+		if shift := attempt - 1; shift > 0 {
+			backoff <<= shift
+		}
+		if backoff > 30*time.Second {
+			backoff = 30 * time.Second
+		}
+		t := time.NewTimer(backoff)
+		select {
+		case <-ctx.Done():
+			if !t.Stop() {
+				<-t.C
 			}
+			return nil, ctx.Err()
+		case <-t.C:
 		}
 	}
 	return nil, &RetryError{Attempts: policy.MaxAttempts, Err: last}
