@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"time"
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
@@ -42,6 +43,13 @@ type Options struct {
 	Store        store.Store
 	HistoryLimit int
 
+	// ModelTimeout bounds each provider Generate call (0 disables).
+	ModelTimeout time.Duration
+	// ModelMaxAttempts bounds provider Generate attempts including the first call.
+	ModelMaxAttempts int
+	// ModelRetryBackoff is the delay between transient provider failures.
+	ModelRetryBackoff time.Duration
+
 	// Memory is the agent's conversation memory. Nil = the default
 	// store-backed memory (durable across restarts).
 	Memory Memory
@@ -71,10 +79,13 @@ type Options struct {
 
 func newOptions(opts ...Option) Options {
 	o := Options{
-		Registry:     registry.DefaultRegistry,
-		Client:       client.DefaultClient,
-		Store:        store.DefaultStore,
-		HistoryLimit: 50,
+		Registry:          registry.DefaultRegistry,
+		Client:            client.DefaultClient,
+		Store:             store.DefaultStore,
+		HistoryLimit:      50,
+		ModelTimeout:      30 * time.Second,
+		ModelMaxAttempts:  3,
+		ModelRetryBackoff: 100 * time.Millisecond,
 		// On by default and lenient: identical repeated calls are a
 		// no-progress loop, never useful. Set LoopLimit(0) to disable.
 		LoopLimit: 3,
@@ -153,6 +164,19 @@ func ApproveTool(fn ApproveFunc) Option {
 // no-progress loop. 0 disables loop detection.
 func LoopLimit(n int) Option {
 	return func(o *Options) { o.LoopLimit = n }
+}
+
+// ModelCallTimeout sets the timeout for each provider Generate call.
+func ModelCallTimeout(d time.Duration) Option {
+	return func(o *Options) { o.ModelTimeout = d }
+}
+
+// ModelRetry sets the provider retry budget and backoff for transient failures.
+func ModelRetry(maxAttempts int, backoff time.Duration) Option {
+	return func(o *Options) {
+		o.ModelMaxAttempts = maxAttempts
+		o.ModelRetryBackoff = backoff
+	}
 }
 
 // WithA2A makes Run serve the agent over the A2A protocol on addr (e.g.

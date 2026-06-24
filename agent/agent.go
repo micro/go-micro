@@ -183,11 +183,15 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 		Agent:    a.opts.Name,
 	})
 
-	resp, err := a.model.Generate(ctx, &ai.Request{
+	resp, err := ai.GenerateWithRetry(ctx, a.model, &ai.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
 		Tools:        toolList,
 		Messages:     a.mem.Messages(),
+	}, ai.GeneratePolicy{
+		Timeout:     a.opts.ModelTimeout,
+		MaxAttempts: a.opts.ModelMaxAttempts,
+		Backoff:     a.opts.ModelRetryBackoff,
 	})
 	if err != nil {
 		return nil, err

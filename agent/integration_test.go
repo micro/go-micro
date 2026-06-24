@@ -15,7 +15,7 @@ import (
 // fakeGen drives the fake provider's Generate. Tests set it and reset
 // it with a deferred cleanup. Tests in this package are not parallel,
 // so a package-level hook is safe.
-var fakeGen func(opts ai.Options, req *ai.Request) (*ai.Response, error)
+var fakeGen func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error)
 
 type fakeModel struct{ opts ai.Options }
 
@@ -28,7 +28,7 @@ func (m *fakeModel) Init(opts ...ai.Option) error {
 func (m *fakeModel) Options() ai.Options { return m.opts }
 func (m *fakeModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
 	if fakeGen != nil {
-		return fakeGen(m.opts, req)
+		return fakeGen(ctx, m.opts, req)
 	}
 	return &ai.Response{Reply: "ok"}, nil
 }
@@ -71,7 +71,7 @@ func newTestAgent(opts ...Option) *agentImpl {
 // plan tool persists the plan to memory.
 func TestAskExposesAndRunsPlan(t *testing.T) {
 	var sawPlan, sawDelegate bool
-	fakeGen = func(opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
 		for _, tl := range req.Tools {
 			switch tl.Name {
 			case toolPlan:
@@ -112,7 +112,7 @@ func TestAskExposesAndRunsPlan(t *testing.T) {
 // Delegating with no matching agent creates an ephemeral sub-agent with
 // a fresh, isolated context (no builtin tools) and returns its reply.
 func TestDelegateEphemeral(t *testing.T) {
-	fakeGen = func(opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
 		if strings.Contains(req.SystemPrompt, "sub-agent") {
 			for _, tl := range req.Tools {
 				if tl.Name == toolPlan || tl.Name == toolDelegate {
@@ -126,7 +126,7 @@ func TestDelegateEphemeral(t *testing.T) {
 	defer func() { fakeGen = nil }()
 
 	a := newTestAgent(Name("root"))
-	content := a.handleDelegate(ai.ToolCall{Name: "delegate", Input: map[string]any{"task": "summarize the report"}}).Content
+	content := a.handleDelegate(context.Background(), ai.ToolCall{Name: "delegate", Input: map[string]any{"task": "summarize the report"}}).Content
 	if !strings.Contains(content, "subtask complete") {
 		t.Errorf("delegate should return the sub-agent's reply; got %q", content)
 	}
@@ -154,14 +154,14 @@ func TestDelegateToRegisteredAgent(t *testing.T) {
 	}
 
 	// fakeGen guards against the ephemeral path being taken by mistake.
-	fakeGen = func(opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
 		t.Error("delegate to a registered agent must not spawn a sub-agent")
 		return &ai.Response{}, nil
 	}
 	defer func() { fakeGen = nil }()
 
 	a := newTestAgent(Name("root"), WithRegistry(reg), WithClient(fc))
-	content := a.handleDelegate(ai.ToolCall{Name: "delegate", Input: map[string]any{"task": "notify alice", "to": "comms"}}).Content
+	content := a.handleDelegate(context.Background(), ai.ToolCall{Name: "delegate", Input: map[string]any{"task": "notify alice", "to": "comms"}}).Content
 
 	if calledService != "comms" || calledEndpoint != "Agent.Chat" {
 		t.Errorf("expected RPC to comms Agent.Chat, got %s %s", calledService, calledEndpoint)
@@ -174,7 +174,7 @@ func TestDelegateToRegisteredAgent(t *testing.T) {
 // Delegate requires a task.
 func TestDelegateRequiresTask(t *testing.T) {
 	a := newTestAgent(Name("root"))
-	content := a.handleDelegate(ai.ToolCall{Name: "delegate", Input: map[string]any{}}).Content
+	content := a.handleDelegate(context.Background(), ai.ToolCall{Name: "delegate", Input: map[string]any{}}).Content
 	if !strings.Contains(content, "error") {
 		t.Errorf("delegate with no task should error; got %q", content)
 	}
