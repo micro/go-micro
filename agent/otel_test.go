@@ -2,7 +2,9 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
+	"time"
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/store"
@@ -78,5 +80,39 @@ func TestAgentOpenTelemetryNoopWhenUnconfigured(t *testing.T) {
 	}
 	if _, ok := a.(*agentImpl).model.(*tracedModel); ok {
 		t.Fatal("model should not be wrapped when TraceProvider is nil")
+	}
+}
+
+func TestLoadRunEventsSortsTimelineKeys(t *testing.T) {
+	st := store.NewMemoryStore()
+	scoped := store.Scope(st, "agent", "runner")
+	runID := "run-1"
+	events := []RunEvent{
+		{Time: time.Unix(0, 3), RunID: runID, Agent: "runner", Kind: "tool", Name: "third"},
+		{Time: time.Unix(0, 1), RunID: runID, Agent: "runner", Kind: "run", Name: "first"},
+		{Time: time.Unix(0, 2), RunID: runID, Agent: "runner", Kind: "model", Name: "second"},
+	}
+	for _, e := range events {
+		b, err := json.Marshal(e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := "runs/" + runID + "/" + e.Time.Format("20060102150405.000000000") + "-" + e.Kind
+		if err := scoped.Write(&store.Record{Key: key, Value: b}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := LoadRunEvents(st, "runner", runID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("got %d events, want 3", len(got))
+	}
+	for i, want := range []string{"first", "second", "third"} {
+		if got[i].Name != want {
+			t.Fatalf("event %d = %q, want %q (timeline: %#v)", i, got[i].Name, want, got)
+		}
 	}
 }
