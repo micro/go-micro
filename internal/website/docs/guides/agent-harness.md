@@ -35,7 +35,7 @@ your stack — the harness *is* the stack.
 | Planning / delegation | Built-in `plan` and `delegate` tools on every agent | Shipped |
 | Discovery & RPC | Registry + client; agents and services find and call each other | Shipped |
 | Interop | MCP (tools), A2A (agents), x402 (paid tools) | Shipped |
-| Resilience | Deadlines, timeouts, retry/backoff across the loop | In progress |
+| Resilience | Per-call timeout with context propagation; opt-in retry/backoff (`ModelRetry`) across the loop | Shipped |
 | Durable runs | Checkpoint and resume an agent run (flows already do) | In progress |
 | Observability | `RunInfo` → OpenTelemetry spans; run history on the CLI | In progress |
 | Streaming | `ai.Stream` through chat, agent, and A2A | In progress |
