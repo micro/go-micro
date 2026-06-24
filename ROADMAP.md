@@ -1,8 +1,11 @@
 # Go Micro Roadmap
 
-Go Micro is a framework for building **agents and services** in Go. An agent is a
-distributed system — it discovers services, calls them, holds state, and recovers
-from failure — so building an agent is building a service. The roadmap has two
+Go Micro is an **agent harness** and service framework for Go. A harness is the
+runtime around an agent — the tools, memory, guardrails, workflows, state,
+discovery, and protocols it needs to operate a system rather than just answer a
+prompt. An agent is a distributed system — it discovers services, calls them,
+holds state, and recovers from failure — so the harness is the runtime services
+already have, and building an agent is building a service. The roadmap has two
 jobs: make **agentic development** excellent, and make the **developer experience**
 around it excellent.
 
