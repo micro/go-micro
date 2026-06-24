@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"go-micro.dev/v6/store"
 )
@@ -169,6 +170,36 @@ func TestFlowStepNilRun(t *testing.T) {
 	err := f.Execute(context.Background(), "")
 	if err == nil {
 		t.Fatal("expected an error for a step with no Run function")
+	}
+}
+
+func TestStoreCheckpointListReturnsRunsInStartedOrder(t *testing.T) {
+	cp := StoreCheckpoint(store.NewMemoryStore(), "ordered")
+	ctx := context.Background()
+	base := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
+	runs := []Run{
+		{ID: "run-c", Flow: "ordered", Status: "failed", Started: base.Add(2 * time.Minute)},
+		{ID: "run-a", Flow: "ordered", Status: "failed", Started: base},
+		{ID: "run-b", Flow: "ordered", Status: "failed", Started: base.Add(time.Minute)},
+	}
+	for _, run := range runs {
+		if err := cp.Save(ctx, run); err != nil {
+			t.Fatalf("Save(%s): %v", run.ID, err)
+		}
+	}
+
+	got, err := cp.List(ctx)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("List returned %d runs, want 3", len(got))
+	}
+	want := []string{"run-a", "run-b", "run-c"}
+	for i, id := range want {
+		if got[i].ID != id {
+			t.Fatalf("run %d = %q, want %q (all runs: %+v)", i, got[i].ID, id, got)
+		}
 	}
 }
 
