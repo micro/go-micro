@@ -24,7 +24,8 @@
     .nav-links { display:flex; align-items:center; gap:1.25rem; font-size:.9rem; }
     .nav-links a { color:#555; font-weight:500; }
     .nav-links a:hover { color: var(--accent); text-decoration:none; }
-    .menu-toggle { display:none; background: var(--accent); color:#fff; border:none; padding:.4rem .7rem; border-radius:4px; cursor:pointer; font-size:.85rem; }
+    .nav-left { display:flex; align-items:center; gap:.5rem; }
+    .menu-toggle { display:none; background:none; border:none; color: var(--accent); cursor:pointer; font-size:1.4rem; line-height:1; padding:0 .25rem; }
 
     /* Layout */
     .layout { display:flex; align-items:flex-start; max-width: 1100px; margin:0 auto; padding:0 1.25rem 4rem; }
@@ -98,8 +99,10 @@
 </head>
 <body>
   <nav class="site-nav">
-    <a class="nav-brand" href="/">Go Micro</a>
-    <button class="menu-toggle" id="menuToggle">Menu</button>
+    <div class="nav-left">
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle sidebar">☰</button>
+      <a class="nav-brand" href="/">Go Micro</a>
+    </div>
     <div class="nav-links">
       {% include nav-links.html %}
     </div>
