@@ -5,6 +5,11 @@ it** — the framework's own thesis (an agent operating a system) pointed at its
 Claude Code drives the loop; Codex executes scoped tasks; the human sets direction
 and can stop or revert anything at any time.
 
+> **North Star.** Every increment must advance the thesis in [`THESIS.md`](THESIS.md):
+> a holistic agent harness and service framework encapsulating the lifecycle of
+> **services → agents → workflows**. Judge each change against it — work that
+> doesn't move toward that lifecycle isn't an improvement, however clean.
+
 ## Autonomy
 
 Full autonomy, **no approval gates**. Each increment: Claude Code picks the work,
