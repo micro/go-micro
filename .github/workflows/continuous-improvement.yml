@@ -7,9 +7,11 @@ name: Continuous Improvement
 # Codex rather than Claude Code: on a cadence this posts an @codex instruction on
 # the tracker issue (#3024), and Codex runs one improvement increment + opens a PR.
 #
-# NOTE: this posts as the github-actions bot. If Codex only responds to a human
-# account, add a CODEX_TRIGGER_TOKEN secret (a PAT for a user Codex follows) — the
-# step below already prefers it over the default token.
+# Codex does NOT respond to comments authored by the github-actions bot, so the
+# dispatch is GATED on a CODEX_TRIGGER_TOKEN secret (a PAT for a user account Codex
+# follows). Until that secret is set the workflow runs but no-ops — this avoids
+# piling up @codex comments that Codex silently ignores. The moment the secret is
+# added the loop activates with no further change.
 
 on:
   workflow_dispatch: {}
@@ -30,6 +32,14 @@ jobs:
       - name: Ask Codex to run one increment
         env:
           GH_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN || github.token }}
+          HAS_TRIGGER_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN != '' }}
         run: |
+          if [ "$HAS_TRIGGER_TOKEN" != "true" ]; then
+            echo "CODEX_TRIGGER_TOKEN is not set — skipping dispatch."
+            echo "Codex ignores comments from the github-actions bot, so posting now"
+            echo "would only create noise. Add a CODEX_TRIGGER_TOKEN secret (a PAT for"
+            echo "a user account Codex follows) to activate the loop."
+            exit 0
+          fi
           gh issue comment 3024 --repo "${{ github.repository }}" --body \
           "@codex Run one continuous-improvement increment per internal/docs/CONTINUOUS_IMPROVEMENT.md, aligned to the North Star in internal/docs/THESIS.md (the holistic services → agents → workflows lifecycle). Pick the single highest-value roadmap/issue/improvement-radar item that advances that thesis, implement it, verify \`go build ./...\`, \`go test ./...\`, and \`golangci-lint run ./...\`, and open a PR against master. One concern per PR; stay out of brand/positioning copy and breaking public API."
