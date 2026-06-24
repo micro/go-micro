@@ -9,7 +9,7 @@ Every Go Micro agent has two built-in capabilities, on top of the service tools 
 - **`plan`** — record an ordered plan in memory before doing multi-step work.
 - **`delegate`** — hand a self-contained subtask to another agent.
 
-They are exposed to the model as ordinary tools. There is no harness, graph, or workflow engine to configure — the agent calls them the same way it calls a service endpoint. They are added automatically to every agent, so you don't wire anything up. `micro chat` exposes them too, so you get planning and delegation even when talking to your services directly.
+They are exposed to the model as ordinary tools. There is no separate graph runtime to configure — these harness capabilities are tools, and the agent calls them the same way it calls a service endpoint. They are added automatically to every agent, so you don't wire anything up. `micro chat` exposes them too, so you get planning and delegation even when talking to your services directly.
 
 ## Prerequisites
 

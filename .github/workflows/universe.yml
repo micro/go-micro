@@ -48,12 +48,13 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - name: Universe against a live model (AtlasCloud)
+      - name: Provider conformance against configured live models
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
-        run: |
-          if [ -z "$ATLASCLOUD_API_KEY" ]; then
-            echo "No ATLASCLOUD_API_KEY secret configured — skipping the live run."
-            exit 0
-          fi
-          go run ./internal/harness/universe -provider atlascloud
+        run: go run ./internal/harness/provider-conformance

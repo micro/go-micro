@@ -184,8 +184,9 @@ and supports multi-agent systems, evaluation, and deployment to Cloud Run / GKE.
 
 They overlap on agents but solve different problems. ADK is a library for building
 an agent process — you define an agent, its tools, and a model, then run and deploy
-it. It does not provide service discovery, inter-service RPC, or pub/sub; that's out
-of scope, and you bring your own.
+it. Go Micro is the harness around agents once they operate real systems: service
+discovery, inter-service RPC, pub/sub, durable flows, tool execution, and deployment.
+Those pieces are out of scope for ADK, and you bring your own.
 
 In Go Micro an agent is built as an ordinary service: it registers in the registry,
 is callable by RPC (`Agent.Chat`) and over A2A, and other services and agents
@@ -195,14 +196,14 @@ also gives you the discovery, RPC, pub/sub, config, and deployment around them.
 
 | | Go Micro | Google ADK |
 |---|----------|------------|
-| **Primary unit** | A service (an agent is a service with an LLM inside) | An agent |
+| **Primary unit** | A harnessed service (an agent is a service with an LLM inside) | An agent |
 | **Service discovery / registry** | Built-in (mDNS, Consul, etcd) | Not in scope |
 | **Inter-service RPC, load balancing, pub/sub** | Built-in | Not in scope |
 | **MCP** | Every service endpoint is automatically an MCP tool (no extra code) | MCP tools, wired explicitly |
 | **A2A** | Agents are A2A-reachable services | Supported |
 | **Deterministic orchestration** | Flows | Graph workflows |
 | **Multi-agent** | Agents discover & call each other via the registry; `plan`/`delegate` built in | Composition, routing, workflow patterns |
-| **Evaluation suite** | Not built in | Yes (criteria, user/env simulation, metrics) |
+| **Evaluation suite** | Harnesses/conformance today; first-class evaluation is a gap | Yes (criteria, user/env simulation, metrics) |
 | **Context engineering** | Store-backed memory | "Context as source code" (auto filter/summarize/token tracking) |
 | **Languages** | Go | Python, TypeScript, Go, Java, Kotlin |
 | **Backing** | Community | Google |
@@ -213,8 +214,8 @@ also gives you the discovery, RPC, pub/sub, config, and deployment around them.
 - You want a cross-language A2A ecosystem with Google's backing
 
 ### When to choose Go Micro
-- Your agents and services should be **the same thing** — registered, discoverable,
-  load-balanced, and deployed the same way
+- You want an **agent harness** where agents and services are the same thing —
+  registered, discoverable, load-balanced, and deployed the same way
 - You want your existing services to become agent tools with **zero extra code**
   (every endpoint is an MCP tool automatically)
 - You're building in Go and want one set of primitives for services, agents, and flows

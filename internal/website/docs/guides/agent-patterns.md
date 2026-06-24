@@ -396,7 +396,7 @@ docker run -p 3000:3000 ghcr.io/micro/micro-mcp-gateway \
 
 ## Pattern 9: Planning and Delegation
 
-Built into the `Agent` abstraction. Every agent gets two tools — `plan` and `delegate` — with no extra setup. They are plain tools, not a separate harness or graph.
+Built into the `Agent` abstraction. Every agent gets two harness tools — `plan` and `delegate` — with no extra setup. They are plain tools, not a separate graph runtime.
 
 ```
 Conductor ──plan──→ (records ordered steps in memory)
@@ -467,7 +467,7 @@ If agents don't know what errors are possible, they can't handle them gracefully
 
 ### Don't: Build Agent Logic into Services
 
-Keep services as pure business logic. Let the agent (or the agent framework) handle orchestration, retries, and decision-making. Your service should just do one thing well.
+Keep services as pure business logic. Let the agent harness handle orchestration, retries, and decision-making. Your service should just do one thing well.
 
 ## Next Steps
 

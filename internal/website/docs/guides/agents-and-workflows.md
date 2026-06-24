@@ -9,7 +9,7 @@ Go Micro's AI primitives map directly onto the taxonomy in Anthropic's [Building
 - **Workflows** — "LLMs and tools orchestrated through **predefined code paths**." Deterministic.
 - **Agents** — "LLMs **dynamically direct their own processes** and tool usage." Model-driven.
 
-Go Micro has both, plus the building block they're made of — and expresses them as plain services and tools, with no graph DSL. That's deliberate: the same post advises finding "the simplest solution possible" and being "cautious with frameworks… they obscure the underlying mechanics."
+Go Micro has both, plus the harness they run inside — and expresses them as plain services and tools, with no graph DSL. That's deliberate: the same post advises finding "the simplest solution possible" and being "cautious with frameworks… they obscure the underlying mechanics."
 
 ## The building block: the augmented LLM
 
@@ -132,11 +132,11 @@ micro.NewAgent("conductor",
 )
 ```
 
-These are guardrails, not a framework — a counter and a callback on the path every tool call already takes. For anything that must be predictable, still prefer a **workflow**, and test agents against the [integration harness](https://github.com/micro/go-micro/tree/master/internal/harness/plan-delegate).
+These are harness guardrails, not a separate policy engine — a counter and a callback on the path every tool call already takes. For anything that must be predictable, still prefer a **workflow**, and test agents against the [integration harness](https://github.com/micro/go-micro/tree/master/internal/harness/plan-delegate).
 
 ## Why no graph DSL
 
-Anthropic: "be cautious with frameworks… understand the underlying code." Go Micro's answer is that there is no separate framework to understand — workflows and agents are services, and tool use is RPC. `plan` and `delegate` are tools, not a harness. The patterns above are code you can read, not a DSL you have to learn. That's the [direction we took going all in on AI](/blog/14).
+Anthropic: "be cautious with frameworks… understand the underlying code." Go Micro's answer is that there is no separate framework to understand — the harness is the service runtime. Workflows and agents are services, and tool use is RPC. `plan` and `delegate` are tools, not a graph DSL. The patterns above are code you can read, not a DSL you have to learn. That's the [direction we took going all in on AI](/blog/14).
 
 ## See also
 
