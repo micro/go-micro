@@ -45,9 +45,13 @@ type Options struct {
 
 	// ModelTimeout bounds each provider Generate call (0 disables).
 	ModelTimeout time.Duration
-	// ModelMaxAttempts bounds provider Generate attempts including the first call.
+	// ModelMaxAttempts bounds provider Generate attempts including the first
+	// call. Default 1 — retries are opt-in (enable with ModelRetry). A Generate
+	// runs the whole tool-execution turn, so auto-retrying it would re-run
+	// already-executed, possibly side-effecting tool calls; keep it explicit.
 	ModelMaxAttempts int
-	// ModelRetryBackoff is the delay between transient provider failures.
+	// ModelRetryBackoff is the base delay between transient provider failures
+	// (grows exponentially per attempt when retries are enabled).
 	ModelRetryBackoff time.Duration
 
 	// Memory is the agent's conversation memory. Nil = the default
@@ -84,7 +88,7 @@ func newOptions(opts ...Option) Options {
 		Store:             store.DefaultStore,
 		HistoryLimit:      50,
 		ModelTimeout:      30 * time.Second,
-		ModelMaxAttempts:  3,
+		ModelMaxAttempts:  1, // retries opt-in via ModelRetry (see field doc)
 		ModelRetryBackoff: 100 * time.Millisecond,
 		// On by default and lenient: identical repeated calls are a
 		// no-progress loop, never useful. Set LoopLimit(0) to disable.
