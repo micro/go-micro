@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"time"
 
 	"go-micro.dev/v6/ai"
@@ -186,6 +187,7 @@ func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
 	if err != nil {
 		return nil, err
 	}
+	sort.Strings(keys)
 	events := make([]RunEvent, 0, len(keys))
 	for _, k := range keys {
 		recs, err := st.Read(k)
