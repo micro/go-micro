@@ -80,13 +80,15 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 	start := time.Now()
 	a.recordRunEvent(RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", Name: message})
 	return ctx, func(err error) {
-		span.SetAttributes(attribute.Int64(AttrLatencyMS, time.Since(start).Milliseconds()))
+		latency := time.Since(start).Milliseconds()
+		span.SetAttributes(attribute.Int64(AttrLatencyMS, latency))
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", Error: err.Error()})
+			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error()})
 		} else {
 			span.SetStatus(codes.Ok, "")
+			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency})
 		}
 		span.End()
 	}

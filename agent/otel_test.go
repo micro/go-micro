@@ -63,6 +63,16 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	if len(keys) == 0 {
 		t.Fatal("expected run events to be recorded")
 	}
+	summaries, err := ListRunSummaries(st, "runner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("got %d summaries, want 1", len(summaries))
+	}
+	if summaries[0].LastKind != "done" {
+		t.Fatalf("LastKind = %q, want done", summaries[0].LastKind)
+	}
 }
 
 func TestAgentOpenTelemetryNoopWhenUnconfigured(t *testing.T) {
