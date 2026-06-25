@@ -38,6 +38,7 @@ func main() {
 	providersFlag := flag.String("providers", "anthropic,openai,gemini,groq,mistral,together,atlascloud", "comma-separated providers to check; use mock for deterministic local checks")
 	harnessesFlag := flag.String("harnesses", "universe,agent-flow,plan-delegate", "comma-separated harness names under internal/harness")
 	timeoutFlag := flag.Duration("timeout", 10*time.Minute, "timeout per provider/harness run")
+	requireConfiguredFlag := flag.Bool("require-configured", false, "fail when a selected live provider is missing an API key")
 	flag.Parse()
 
 	providers := splitCSV(*providersFlag)
@@ -50,8 +51,14 @@ func main() {
 	var ran, skipped, failed int
 	for _, provider := range providers {
 		if provider != "mock" && providerKey(provider) == "" {
-			fmt.Printf("- %s: skipped (set MICRO_AI_API_KEY or %s)\n", provider, providerEnv[provider])
-			skipped++
+			msg := fmt.Sprintf("set MICRO_AI_API_KEY or %s", providerEnv[provider])
+			if *requireConfiguredFlag {
+				fmt.Printf("FAIL %s: missing API key (%s)\n", provider, msg)
+				failed++
+			} else {
+				fmt.Printf("- %s: skipped (%s)\n", provider, msg)
+				skipped++
+			}
 			continue
 		}
 
