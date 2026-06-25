@@ -207,23 +207,27 @@ func waitFor(reg registry.Registry, names ...string) {
 func main() {
 	provider := flag.String("provider", "mock", "LLM provider: mock (default), anthropic, openai, ...")
 	flag.Parse()
+	os.Exit(runUniverse(*provider))
+}
 
+func runUniverse(provider string) int {
+	failures = 0
 	apiKey := ""
-	if *provider == "mock" {
+	if provider == "mock" {
 		ai.Register("mock", newMock)
-	} else if apiKey = providerKey(*provider); apiKey == "" {
-		fmt.Printf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env\n", *provider)
-		os.Exit(2)
+	} else if apiKey = providerKey(provider); apiKey == "" {
+		fmt.Printf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env\n", provider)
+		return 2
 	}
 
-	fmt.Printf("\n\033[1mUNIVERSE — booting a mini go-micro world (provider: %s)\033[0m\n\n", *provider)
+	fmt.Printf("\n\033[1mUNIVERSE — booting a mini go-micro world (provider: %s)\033[0m\n\n", provider)
 
 	// Infrastructure — all in-memory, all real.
 	reg := registry.NewMemoryRegistry()
 	br := broker.NewMemoryBroker()
 	if err := br.Connect(); err != nil {
 		fmt.Println("broker connect:", err)
-		os.Exit(2)
+		return 2
 	}
 	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))))
 	st := store.NewMemoryStore()
@@ -231,7 +235,7 @@ func main() {
 	// Services.
 	inv, pay, ord, ntf := new(Inventory), new(Payment), new(Orders), new(Notify)
 	for name, h := range map[string]any{"inventory": inv, "payment": pay, "orders": ord, "notify": ntf} {
-		svc := service.New(service.Name(name), service.Registry(reg), service.Client(cl))
+		svc := service.New(service.Name(name), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 		svc.Handle(h)
 		go svc.Run()
 	}
@@ -243,7 +247,8 @@ func main() {
 		agent.Name("concierge"),
 		agent.Services("notify"),
 		agent.Prompt("You notify buyers when their order is confirmed."),
-		agent.Provider(*provider), agent.APIKey(apiKey),
+		agent.Address("127.0.0.1:0"),
+		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.MaxSteps(5),
 		agent.WrapTool(func(next ai.ToolHandler) ai.ToolHandler {
 			return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
@@ -272,7 +277,7 @@ func main() {
 	)
 	if err := checkout.Register(reg, br, cl); err != nil {
 		fmt.Println("flow register:", err)
-		os.Exit(2)
+		return 2
 	}
 	defer checkout.Stop()
 
@@ -282,7 +287,7 @@ func main() {
 	fmt.Println("\033[1m> event:\033[0m events.order.placed {\"order\":\"order-1\"}")
 	if err := br.Publish("events.order.placed", &broker.Message{Body: []byte(`{"order":"order-1"}`)}); err != nil {
 		fmt.Println("publish:", err)
-		os.Exit(2)
+		return 2
 	}
 
 	// Wait for the run to be checkpointed as failed at "charge".
@@ -352,7 +357,8 @@ func main() {
 
 	if failures > 0 {
 		fmt.Printf("\n\033[31m✗ universe failed: %d assertion(s)\033[0m\n", failures)
-		os.Exit(1)
+		return 1
 	}
 	fmt.Println("\n\033[32m✓ universe: booted, survived a crash, resumed, and shut down cleanly\033[0m")
+	return 0
 }

@@ -39,6 +39,7 @@ type Options struct {
 	Provider     string
 	Model        string
 	APIKey       string
+	Address      string
 	Registry     registry.Registry
 	Client       client.Client
 	Store        store.Store
@@ -133,6 +134,13 @@ func Model(m string) Option {
 // APIKey sets the API key for the LLM provider.
 func APIKey(k string) Option {
 	return func(o *Options) { o.APIKey = k }
+}
+
+// Address sets the network address for the agent's service endpoint.
+// Use "127.0.0.1:0" in local harnesses/tests to bind an ephemeral loopback
+// port and avoid advertising the default service address.
+func Address(addr string) Option {
+	return func(o *Options) { o.Address = addr }
 }
 
 // WithRegistry sets the service registry.

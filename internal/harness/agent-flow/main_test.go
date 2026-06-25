@@ -36,14 +36,14 @@ func TestEventTriggersAgentNoPrompt(t *testing.T) {
 	mem := store.NewMemoryStore()
 
 	wsSvc := new(WorkspaceService)
-	ws := service.New(service.Name("workspace"), service.Registry(reg), service.Client(cl))
+	ws := service.New(service.Name("workspace"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := ws.Handle(wsSvc); err != nil {
 		t.Fatalf("handle workspace: %v", err)
 	}
 	go ws.Run()
 
 	ntSvc := new(NotifyService)
-	nt := service.New(service.Name("notify"), service.Registry(reg), service.Client(cl))
+	nt := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := nt.Handle(ntSvc); err != nil {
 		t.Fatalf("handle notify: %v", err)
 	}
@@ -51,6 +51,7 @@ func TestEventTriggersAgentNoPrompt(t *testing.T) {
 
 	onboarder := agent.New(
 		agent.Name("onboarder"),
+		agent.Address("127.0.0.1:0"),
 		agent.Services("workspace", "notify"),
 		agent.Prompt("You onboard new users. Create their workspace and send a welcome message."),
 		agent.Provider("mock"),
