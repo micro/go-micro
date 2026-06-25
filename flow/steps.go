@@ -111,16 +111,25 @@ func StoreCheckpoint(s store.Store, scope string) Checkpoint {
 	return &storeCheckpoint{store: store.Scope(s, "flow", scope)}
 }
 
-func (c *storeCheckpoint) Save(_ context.Context, run Run) error {
+func (c *storeCheckpoint) Save(ctx context.Context, run Run) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	run.Updated = time.Now()
 	b, err := json.Marshal(run)
 	if err != nil {
 		return err
 	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return c.store.Write(&store.Record{Key: run.ID, Value: b})
 }
 
-func (c *storeCheckpoint) Load(_ context.Context, runID string) (Run, bool, error) {
+func (c *storeCheckpoint) Load(ctx context.Context, runID string) (Run, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return Run{}, false, err
+	}
 	recs, err := c.store.Read(runID)
 	if err == store.ErrNotFound || len(recs) == 0 {
 		return Run{}, false, nil
@@ -135,11 +144,17 @@ func (c *storeCheckpoint) Load(_ context.Context, runID string) (Run, bool, erro
 	return run, true, nil
 }
 
-func (c *storeCheckpoint) Delete(_ context.Context, runID string) error {
+func (c *storeCheckpoint) Delete(ctx context.Context, runID string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	return c.store.Delete(runID)
 }
 
 func (c *storeCheckpoint) List(ctx context.Context) ([]Run, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	keys, err := c.store.List()
 	if err != nil {
 		return nil, err

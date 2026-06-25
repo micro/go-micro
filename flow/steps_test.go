@@ -333,6 +333,27 @@ func TestStoreCheckpointListReturnsRunsInStartedOrder(t *testing.T) {
 	}
 }
 
+func TestStoreCheckpointHonorsCanceledContext(t *testing.T) {
+	cp := StoreCheckpoint(store.NewMemoryStore(), "canceled")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	run := Run{ID: "canceled", Started: time.Now()}
+
+	if err := cp.Save(ctx, run); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Save error = %v, want context.Canceled", err)
+	}
+	if _, ok, err := cp.Load(ctx, run.ID); !errors.Is(err, context.Canceled) || ok {
+		t.Fatalf("Load ok, error = %v, %v; want false, context.Canceled", ok, err)
+	}
+	if err := cp.Delete(ctx, run.ID); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Delete error = %v, want context.Canceled", err)
+	}
+	if _, err := cp.List(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("List error = %v, want context.Canceled", err)
+	}
+}
+
 func TestStateSetScan(t *testing.T) {
 	var s State
 	type payload struct {
