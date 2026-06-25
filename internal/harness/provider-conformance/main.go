@@ -19,6 +19,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
@@ -41,6 +42,10 @@ func main() {
 
 	providers := splitCSV(*providersFlag)
 	harnesses := splitCSV(*harnessesFlag)
+	if err := validateSelection(providers, harnesses); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
 
 	var ran, skipped, failed int
 	for _, provider := range providers {
@@ -65,6 +70,66 @@ func main() {
 	if failed > 0 {
 		os.Exit(1)
 	}
+}
+
+func validateSelection(providers, harnesses []string) error {
+	if len(providers) == 0 {
+		return fmt.Errorf("no providers selected")
+	}
+	if len(harnesses) == 0 {
+		return fmt.Errorf("no harnesses selected")
+	}
+
+	for _, provider := range providers {
+		if provider == "mock" {
+			continue
+		}
+		if _, ok := providerEnv[provider]; !ok {
+			return fmt.Errorf("unknown provider %q (known: %s)", provider, knownProviders())
+		}
+	}
+
+	for _, harness := range harnesses {
+		if strings.Contains(harness, string(os.PathSeparator)) || harness == "." || harness == ".." {
+			return fmt.Errorf("invalid harness name %q", harness)
+		}
+		info, err := os.Stat(filepath.Join(repoRoot(), "internal", "harness", harness))
+		if err != nil {
+			return fmt.Errorf("unknown harness %q: %w", harness, err)
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("harness %q is not a directory", harness)
+		}
+	}
+
+	return nil
+}
+
+func repoRoot() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "."
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(wd, "go.mod")); err == nil {
+			return wd
+		}
+		parent := filepath.Dir(wd)
+		if parent == wd {
+			return "."
+		}
+		wd = parent
+	}
+}
+
+func knownProviders() string {
+	providers := make([]string, 0, len(providerEnv)+1)
+	providers = append(providers, "mock")
+	for provider := range providerEnv {
+		providers = append(providers, provider)
+	}
+	slices.Sort(providers)
+	return strings.Join(providers, ",")
 }
 
 func splitCSV(s string) []string {
@@ -120,6 +185,7 @@ func runHarness(provider, harness string, timeout time.Duration) error {
 	binPath := filepath.Join(binDir, harness)
 
 	build := exec.CommandContext(ctx, "go", "build", "-o", binPath, "./internal/harness/"+harness)
+	build.Dir = repoRoot()
 	build.Stdout = os.Stdout
 	build.Stderr = os.Stderr
 	if err := build.Run(); err != nil {
