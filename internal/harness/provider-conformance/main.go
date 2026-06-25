@@ -22,6 +22,15 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"go-micro.dev/v6/ai"
+	_ "go-micro.dev/v6/ai/anthropic"
+	_ "go-micro.dev/v6/ai/atlascloud"
+	_ "go-micro.dev/v6/ai/gemini"
+	_ "go-micro.dev/v6/ai/groq"
+	_ "go-micro.dev/v6/ai/mistral"
+	_ "go-micro.dev/v6/ai/openai"
+	_ "go-micro.dev/v6/ai/together"
 )
 
 var providerEnv = map[string]string{
@@ -39,6 +48,7 @@ func main() {
 	harnessesFlag := flag.String("harnesses", "universe,agent-flow,plan-delegate", "comma-separated harness names under internal/harness")
 	timeoutFlag := flag.Duration("timeout", 10*time.Minute, "timeout per provider/harness run")
 	requireConfiguredFlag := flag.Bool("require-configured", false, "fail when a selected live provider is missing an API key")
+	capabilitiesFlag := flag.Bool("capabilities", true, "print the registered provider capability matrix before running conformance")
 	flag.Parse()
 
 	providers := splitCSV(*providersFlag)
@@ -46,6 +56,10 @@ func main() {
 	if err := validateSelection(providers, harnesses); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
+	}
+
+	if *capabilitiesFlag {
+		printCapabilityMatrix()
 	}
 
 	var ran, skipped, failed int
@@ -77,6 +91,22 @@ func main() {
 	if failed > 0 {
 		os.Exit(1)
 	}
+}
+
+func printCapabilityMatrix() {
+	fmt.Println("Provider capability matrix:")
+	fmt.Println("provider     model  image  video")
+	for _, row := range ai.CapabilityRows() {
+		fmt.Printf("%-12s %-5s  %-5s  %-5s\n", row.Provider, yesNo(row.Model), yesNo(row.Image), yesNo(row.Video))
+	}
+	fmt.Println()
+}
+
+func yesNo(ok bool) string {
+	if ok {
+		return "yes"
+	}
+	return "no"
 }
 
 func validateSelection(providers, harnesses []string) error {
