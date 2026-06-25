@@ -207,18 +207,19 @@ func main() {
 	mem := store.NewMemoryStore()
 
 	wsSvc := new(WorkspaceService)
-	ws := service.New(service.Name("workspace"), service.Registry(reg), service.Client(cl))
+	ws := service.New(service.Name("workspace"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	ws.Handle(wsSvc)
 	go ws.Run()
 
 	ntSvc := new(NotifyService)
-	nt := service.New(service.Name("notify"), service.Registry(reg), service.Client(cl))
+	nt := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	nt.Handle(ntSvc)
 	go nt.Run()
 
 	// The onboarder agent, registered so the flow can reach it over RPC.
 	onboarder := agent.New(
 		agent.Name("onboarder"),
+		agent.Address("127.0.0.1:0"),
 		agent.Services("workspace", "notify"),
 		agent.Prompt("You onboard new users. Create their workspace and send a welcome message."),
 		agent.Provider(*provider),

@@ -261,6 +261,7 @@ func (a *agentImpl) Run() error {
 
 	a.server = server.NewServer(
 		server.Name(a.opts.Name),
+		server.Address(a.opts.Address),
 		server.Registry(a.opts.Registry),
 		server.Metadata(map[string]string{
 			"type":     "agent",

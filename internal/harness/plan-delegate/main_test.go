@@ -47,14 +47,14 @@ func TestPlanDelegateEndToEnd(t *testing.T) {
 
 	// Real services on the shared registry/client.
 	taskSvc := new(TaskService)
-	task := service.New(service.Name("task"), service.Registry(reg), service.Client(cl))
+	task := service.New(service.Name("task"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := task.Handle(taskSvc); err != nil {
 		t.Fatalf("handle task: %v", err)
 	}
 	go task.Run()
 
 	notifySvc := new(NotifyService)
-	notify := service.New(service.Name("notify"), service.Registry(reg), service.Client(cl))
+	notify := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := notify.Handle(notifySvc); err != nil {
 		t.Fatalf("handle notify: %v", err)
 	}
@@ -63,6 +63,7 @@ func TestPlanDelegateEndToEnd(t *testing.T) {
 	// Real comms agent (owns notify), registered so delegate reaches it over RPC.
 	comms := agent.New(
 		agent.Name("comms"),
+		agent.Address("127.0.0.1:0"),
 		agent.Services("notify"),
 		agent.Prompt("You handle outbound notifications."),
 		agent.Provider("mock"),
@@ -80,6 +81,7 @@ func TestPlanDelegateEndToEnd(t *testing.T) {
 	// Real conductor agent (owns task), driven programmatically.
 	conductor := agent.New(
 		agent.Name("conductor"),
+		agent.Address("127.0.0.1:0"),
 		agent.Services("task"),
 		agent.Prompt("Plan first, create tasks, delegate notifications to the comms agent."),
 		agent.Provider("mock"),
@@ -128,14 +130,14 @@ func TestFlowDispatchesToAgentEndToEnd(t *testing.T) {
 	mem := store.NewMemoryStore()
 
 	taskSvc := new(TaskService)
-	task := service.New(service.Name("task"), service.Registry(reg), service.Client(cl))
+	task := service.New(service.Name("task"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := task.Handle(taskSvc); err != nil {
 		t.Fatalf("handle task: %v", err)
 	}
 	go task.Run()
 
 	notifySvc := new(NotifyService)
-	notify := service.New(service.Name("notify"), service.Registry(reg), service.Client(cl))
+	notify := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := notify.Handle(notifySvc); err != nil {
 		t.Fatalf("handle notify: %v", err)
 	}
@@ -143,6 +145,7 @@ func TestFlowDispatchesToAgentEndToEnd(t *testing.T) {
 
 	comms := agent.New(
 		agent.Name("comms"),
+		agent.Address("127.0.0.1:0"),
 		agent.Services("notify"),
 		agent.Prompt("You handle outbound notifications."),
 		agent.Provider("mock"),
@@ -157,6 +160,7 @@ func TestFlowDispatchesToAgentEndToEnd(t *testing.T) {
 	// so the flow can reach it over RPC.
 	conductor := agent.New(
 		agent.Name("conductor"),
+		agent.Address("127.0.0.1:0"),
 		agent.Services("task"),
 		agent.Prompt("Plan first, create tasks, delegate notifications to the comms agent."),
 		agent.Provider("mock"),
