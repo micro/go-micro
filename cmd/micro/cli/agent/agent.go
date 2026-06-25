@@ -4,6 +4,8 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/urfave/cli/v2"
 	goagent "go-micro.dev/v6/agent"
@@ -17,15 +19,18 @@ func init() {
 		Name:      "runs",
 		Usage:     "Show recorded agent runs",
 		ArgsUsage: "[agent] [run-id]",
+		Flags: []cli.Flag{
+			&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
+		},
 		Action: func(c *cli.Context) error {
 			name := c.Args().First()
 			if name == "" {
 				return fmt.Errorf("usage: micro runs [agent] [run-id]")
 			}
 			if runID := c.Args().Get(1); runID != "" {
-				return printRunHistory(name, runID)
+				return printRunHistory(name, runID, c.Bool("json"))
 			}
-			return printRunIndex(name)
+			return printRunIndex(name, c.Bool("json"))
 		},
 	})
 
@@ -97,13 +102,19 @@ func init() {
 				Name:      "history",
 				Usage:     "Show an agent's stored conversation and run history",
 				ArgsUsage: "[name] [run-id]",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
+				},
 				Action: func(c *cli.Context) error {
 					name := c.Args().First()
 					if name == "" {
 						return fmt.Errorf("usage: micro agent history [name] [run-id]")
 					}
 					if runID := c.Args().Get(1); runID != "" {
-						return printRunHistory(name, runID)
+						return printRunHistory(name, runID, c.Bool("json"))
+					}
+					if c.Bool("json") {
+						return printRunIndex(name, true)
 					}
 					// Read from the agent's scoped state store (database
 					// "agent", table = name) — available whether or not the
@@ -117,40 +128,58 @@ func init() {
 							fmt.Printf("  \033[2m%s:\033[0m %v\n", m.Role, m.Content)
 						}
 					}
-					return printRunIndex(name)
+					return printRunIndex(name, c.Bool("json"))
 				},
 			},
 		},
 	})
 }
 
-func printRunIndex(name string) error {
+func printRunIndex(name string, asJSON bool) error {
 	runs, err := goagent.ListRunSummaries(store.DefaultStore, name)
 	if err != nil {
 		return err
 	}
+	return writeRunIndex(os.Stdout, name, runs, asJSON)
+}
+
+func writeRunIndex(w io.Writer, name string, runs []goagent.RunSummary, asJSON bool) error {
+	if asJSON {
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(runs)
+	}
 	if len(runs) == 0 {
-		fmt.Printf("  No runs recorded for agent %q.\n", name)
+		fmt.Fprintf(w, "  No runs recorded for agent %q.\n", name)
 		return nil
 	}
-	fmt.Println("  Runs:")
+	fmt.Fprintln(w, "  Runs:")
 	for _, run := range runs {
 		line := fmt.Sprintf("    %s  events=%d  last=%s  updated=%s", run.RunID, run.Events, run.LastKind, run.UpdatedAt.Format("2006-01-02 15:04:05"))
 		if run.LastError != "" {
 			line += "  error=" + run.LastError
 		}
-		fmt.Println(line)
+		fmt.Fprintln(w, line)
 	}
 	return nil
 }
 
-func printRunHistory(name, runID string) error {
+func printRunHistory(name, runID string, asJSON bool) error {
 	events, err := goagent.LoadRunEvents(store.DefaultStore, name, runID)
 	if err != nil {
 		return err
 	}
+	return writeRunHistory(os.Stdout, name, runID, events, asJSON)
+}
+
+func writeRunHistory(w io.Writer, name, runID string, events []goagent.RunEvent, asJSON bool) error {
+	if asJSON {
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(events)
+	}
 	if len(events) == 0 {
-		fmt.Printf("  No run %q for agent %q.\n", runID, name)
+		fmt.Fprintf(w, "  No run %q for agent %q.\n", runID, name)
 		return nil
 	}
 	for _, e := range events {
@@ -173,7 +202,7 @@ func printRunHistory(name, runID string) error {
 		if e.Error != "" {
 			line += " error=" + e.Error
 		}
-		fmt.Println(line)
+		fmt.Fprintln(w, line)
 	}
 	return nil
 }
