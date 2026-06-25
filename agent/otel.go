@@ -124,7 +124,13 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 	info, _ := ai.RunInfoFrom(ctx)
 	provider := m.String()
 	model := m.Options().Model
-	ctx, span := m.a.tracer().Start(ctx, spanNameModelCall, trace.WithAttributes(attribute.String(AttrProvider, provider), attribute.String(AttrModel, model)))
+	ctx, span := m.a.tracer().Start(ctx, spanNameModelCall, trace.WithAttributes(
+		attribute.String(AttrRunID, info.RunID),
+		attribute.String(AttrParentRunID, info.ParentID),
+		attribute.String(AttrAgentName, info.Agent),
+		attribute.String(AttrProvider, provider),
+		attribute.String(AttrModel, model),
+	))
 	start := time.Now()
 	resp, err := m.Model.Generate(ctx, req, opts...)
 	dur := time.Since(start).Milliseconds()
@@ -169,7 +175,13 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 	}
 	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		info, _ := ai.RunInfoFrom(ctx)
-		ctx, span := a.tracer().Start(ctx, spanNameToolCall, trace.WithAttributes(attribute.String(AttrToolName, call.Name), attribute.Bool(AttrDelegate, call.Name == toolDelegate)))
+		ctx, span := a.tracer().Start(ctx, spanNameToolCall, trace.WithAttributes(
+			attribute.String(AttrRunID, info.RunID),
+			attribute.String(AttrParentRunID, info.ParentID),
+			attribute.String(AttrAgentName, info.Agent),
+			attribute.String(AttrToolName, call.Name),
+			attribute.Bool(AttrDelegate, call.Name == toolDelegate),
+		))
 		start := time.Now()
 		res := next(ctx, call)
 		dur := time.Since(start).Milliseconds()
