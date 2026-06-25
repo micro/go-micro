@@ -21,6 +21,32 @@ ai/
     └── yourprovider_test.go  # Unit tests
 ```
 
+
+## Discover registered provider capabilities
+
+Go Micro exposes the provider interfaces registered in the current build, so
+runtime tooling and docs can report what is actually available after blank
+imports are linked in:
+
+```go
+matrix := ai.CapabilityMatrix()
+for provider, caps := range matrix {
+    fmt.Printf("%s: chat=%t image=%t video=%t\n", provider, caps.Model, caps.Image, caps.Video)
+}
+```
+
+The built-in providers currently register these capability interfaces:
+
+| Provider | Chat/text (`ai.Model`) | Image (`ai.ImageModel`) | Video (`ai.VideoModel`) |
+| --- | --- | --- | --- |
+| `anthropic` | Yes | No | No |
+| `atlascloud` | Yes | Yes | Yes |
+| `gemini` | Yes | No | No |
+| `groq` | Yes | No | No |
+| `mistral` | Yes | No | No |
+| `openai` | Yes | Yes | No |
+| `together` | Yes | No | No |
+
 ## Step 1: Implement the `ai.Model` Interface
 
 Every provider must satisfy `ai.Model`:
