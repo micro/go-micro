@@ -1,5 +1,7 @@
 package flow
 
+import "time"
+
 // Options configures a Flow.
 type Options struct {
 	// TriggerTopic is the broker topic that triggers this flow.
@@ -32,6 +34,9 @@ type Options struct {
 	// Retry is the flow-level retry count applied to each step (0 = no
 	// retry). A Step's own Retry field overrides this.
 	Retry int
+	// RetryBackoff is the delay between failed step attempts. Zero means
+	// retry immediately; cancellation/deadline stops the wait early.
+	RetryBackoff time.Duration
 	// Checkpoint is the durability backend for stepped runs. Nil with
 	// steps present means a store-backed default; set it to swap backends.
 	Checkpoint Checkpoint
@@ -106,6 +111,13 @@ func Steps(steps ...Step) Option {
 // retry). A Step's own Retry field overrides this.
 func Retry(n int) Option {
 	return func(o *Options) { o.Retry = n }
+}
+
+// RetryBackoff sets the delay between failed step attempts. A zero
+// duration preserves immediate retries. If the run context is canceled
+// while waiting, the context error is returned instead of retrying.
+func RetryBackoff(d time.Duration) Option {
+	return func(o *Options) { o.RetryBackoff = d }
 }
 
 // WithCheckpoint sets the durability backend. With a checkpoint, a run is

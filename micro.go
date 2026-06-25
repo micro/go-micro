@@ -3,6 +3,7 @@ package micro
 
 import (
 	"context"
+	"time"
 
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
@@ -188,6 +189,9 @@ func FlowSteps(steps ...FlowStep) FlowOption { return flow.Steps(steps...) }
 // FlowRetry sets the flow-level retry count per step (a Step's own Retry
 // overrides it).
 func FlowRetry(n int) FlowOption { return flow.Retry(n) }
+
+// FlowRetryBackoff sets the delay between failed step attempts.
+func FlowRetryBackoff(d time.Duration) FlowOption { return flow.RetryBackoff(d) }
 
 // FlowWithCheckpoint sets the durability backend for stepped runs.
 // Stepped flows default to a store-backed checkpoint.
