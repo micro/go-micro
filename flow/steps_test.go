@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/store"
 )
 
@@ -83,6 +84,33 @@ func TestFlowCheckpointResume(t *testing.T) {
 	}
 	if pend, _ := f.Pending(context.Background()); len(pend) != 0 {
 		t.Errorf("expected no pending runs after a successful resume, got %d", len(pend))
+	}
+}
+
+func TestFlowStepContextIncludesRunInfo(t *testing.T) {
+	var got ai.RunInfo
+	step := Step{Name: "inspect", Run: func(ctx context.Context, in State) (State, error) {
+		var ok bool
+		got, ok = ai.RunInfoFrom(ctx)
+		if !ok {
+			t.Fatal("RunInfo missing from step context")
+		}
+		in.Data = []byte("ok")
+		return in, nil
+	}}
+
+	f := New("correlated",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "correlated")),
+		Steps(step),
+	)
+	if err := f.Execute(context.Background(), "start"); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if got.Agent != "correlated" {
+		t.Fatalf("RunInfo.Agent = %q, want correlated", got.Agent)
+	}
+	if got.RunID == "" {
+		t.Fatal("RunInfo.RunID is empty")
 	}
 }
 
