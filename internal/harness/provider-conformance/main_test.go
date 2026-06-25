@@ -3,6 +3,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"go-micro.dev/v6/ai"
 )
 
 func TestValidateSelectionAcceptsKnownProviderAndHarness(t *testing.T) {
@@ -28,5 +30,25 @@ func TestValidateSelectionRejectsUnsafeHarnessName(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), `invalid harness name "../agent-flow"`) {
 		t.Fatalf("validateSelection error = %q, want invalid harness message", err)
+	}
+}
+
+func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
+	rows := ai.CapabilityRows()
+	if len(rows) == 0 {
+		t.Fatal("CapabilityRows returned no providers")
+	}
+
+	var foundOpenAI bool
+	for _, row := range rows {
+		if row.Provider == "openai" {
+			foundOpenAI = true
+			if !row.Model || !row.Image || row.Video {
+				t.Fatalf("openai capabilities = %#v, want model+image only", row.Capabilities)
+			}
+		}
+	}
+	if !foundOpenAI {
+		t.Fatalf("CapabilityRows = %#v, want openai row", rows)
 	}
 }
