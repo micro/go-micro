@@ -8,6 +8,7 @@ import (
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/store"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
@@ -46,14 +47,31 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	}
 	spans := exp.GetSpans().Snapshots()
 	want := map[string]bool{spanNameRun: false, spanNameModelCall: false, spanNameToolCall: false}
+	var runID string
 	for _, s := range spans {
 		if _, ok := want[s.Name()]; ok {
 			want[s.Name()] = true
+		}
+		attrs := spanAttributes(s.Attributes())
+		if s.Name() == spanNameRun {
+			runID = attrs[AttrRunID]
 		}
 	}
 	for name, seen := range want {
 		if !seen {
 			t.Fatalf("span %s not emitted; got %d spans", name, len(spans))
+		}
+	}
+	if runID == "" {
+		t.Fatal("run span missing run id attribute")
+	}
+	for _, s := range spans {
+		if s.Name() != spanNameModelCall && s.Name() != spanNameToolCall {
+			continue
+		}
+		attrs := spanAttributes(s.Attributes())
+		if attrs[AttrRunID] != runID || attrs[AttrAgentName] != "runner" {
+			t.Fatalf("%s missing run correlation attributes: %#v", s.Name(), attrs)
 		}
 	}
 	keys, err := store.Scope(st, "agent", "runner").List(store.ListPrefix("runs/"))
@@ -89,6 +107,14 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	if len(events) == 0 || events[0].TraceID == "" || events[0].SpanID == "" {
 		t.Fatalf("events missing trace correlation: %#v", events)
 	}
+}
+
+func spanAttributes(attrs []attribute.KeyValue) map[string]string {
+	out := make(map[string]string, len(attrs))
+	for _, attr := range attrs {
+		out[string(attr.Key)] = attr.Value.AsString()
+	}
+	return out
 }
 
 func TestAgentOpenTelemetryNoopWhenUnconfigured(t *testing.T) {
