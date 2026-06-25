@@ -2,6 +2,13 @@ package ai
 
 import "sort"
 
+// CapabilityRow is one deterministic row in a provider capability matrix.
+type CapabilityRow struct {
+	// Provider is the registered provider name.
+	Provider string
+	Capabilities
+}
+
 // Capabilities describes the AI interfaces a provider has registered.
 // It is intentionally based on package registration rather than external
 // provider marketing claims, so it reflects what this build can actually use.
@@ -27,9 +34,10 @@ func ProviderCapabilities(provider string) Capabilities {
 	}
 }
 
-// CapabilityMatrix returns a stable snapshot of all registered AI providers and
-// the interfaces they support. The returned map is a copy and can be modified by
-// callers without mutating the registry.
+// CapabilityMatrix returns a snapshot of all registered AI providers and the
+// interfaces they support. The returned map is a copy and can be modified by
+// callers without mutating the registry. Use CapabilityRows when rendering a
+// deterministic table or report.
 func CapabilityMatrix() map[string]Capabilities {
 	names := map[string]struct{}{}
 	for name := range providers {
@@ -47,6 +55,21 @@ func CapabilityMatrix() map[string]Capabilities {
 		matrix[name] = ProviderCapabilities(name)
 	}
 	return matrix
+}
+
+// CapabilityRows returns a deterministic capability support matrix for every
+// registered AI provider. It is the ordered form of CapabilityMatrix, intended
+// for CLIs, docs generators, and conformance reports that need stable output.
+func CapabilityRows() []CapabilityRow {
+	names := RegisteredProviders("")
+	rows := make([]CapabilityRow, 0, len(names))
+	for _, name := range names {
+		rows = append(rows, CapabilityRow{
+			Provider:     name,
+			Capabilities: ProviderCapabilities(name),
+		})
+	}
+	return rows
 }
 
 // RegisteredProviders returns the registered provider names in sorted order.

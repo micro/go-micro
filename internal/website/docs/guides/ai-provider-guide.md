@@ -29,9 +29,8 @@ runtime tooling and docs can report what is actually available after blank
 imports are linked in:
 
 ```go
-matrix := ai.CapabilityMatrix()
-for provider, caps := range matrix {
-    fmt.Printf("%s: chat=%t image=%t video=%t\n", provider, caps.Model, caps.Image, caps.Video)
+for _, row := range ai.CapabilityRows() {
+    fmt.Printf("%s: chat=%t image=%t video=%t\n", row.Provider, row.Model, row.Image, row.Video)
 }
 ```
 
