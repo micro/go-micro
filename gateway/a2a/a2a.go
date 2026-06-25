@@ -415,7 +415,7 @@ func (d *dispatcher) serve(w http.ResponseWriter, r *http.Request, invoke Invoke
 
 	switch req.Method {
 	case "message/send":
-		d.send(w, req, invoke)
+		d.send(requestContext(r.Context()), w, req, invoke)
 	case "tasks/get":
 		d.get(w, req)
 	case "tasks/cancel":
@@ -432,7 +432,7 @@ type sendParams struct {
 	Message Message `json:"message"`
 }
 
-func (d *dispatcher) send(w http.ResponseWriter, req rpcRequest, invoke Invoke) {
+func (d *dispatcher) send(ctx context.Context, w http.ResponseWriter, req rpcRequest, invoke Invoke) {
 	var p sendParams
 	if err := json.Unmarshal(req.Params, &p); err != nil {
 		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
@@ -444,7 +444,7 @@ func (d *dispatcher) send(w http.ResponseWriter, req rpcRequest, invoke Invoke) 
 		return
 	}
 
-	reply, err := invoke(r2ctx(), text)
+	reply, err := invoke(ctx, text)
 	contextID := p.Message.ContextID
 	if contextID == "" {
 		contextID = uuid.New().String()
@@ -542,6 +542,29 @@ func textArtifact(text string) Artifact {
 	}
 }
 
+// requestContext carries request cancellation and deadlines into the downstream
+// agent call without leaking HTTP transport context values into the go-micro
+// client stack.
+func requestContext(parent context.Context) context.Context {
+	if err := parent.Err(); err != nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		return ctx
+	}
+	ctx := context.Background()
+	var cancel context.CancelFunc
+	if deadline, ok := parent.Deadline(); ok {
+		ctx, cancel = context.WithDeadline(ctx, deadline)
+	} else {
+		ctx, cancel = context.WithCancel(ctx)
+	}
+	go func() {
+		<-parent.Done()
+		cancel()
+	}()
+	return ctx
+}
+
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -554,7 +577,3 @@ func writeRPC(w http.ResponseWriter, id json.RawMessage, result any, e *rpcError
 	}
 	writeJSON(w, http.StatusOK, rpcResponse{JSONRPC: "2.0", ID: id, Result: result, Error: e})
 }
-
-// r2ctx returns a background context for the agent call. (Kept as a seam
-// so request-scoped context/deadlines can be threaded later.)
-func r2ctx() context.Context { return context.Background() }
