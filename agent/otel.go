@@ -56,6 +56,17 @@ type RunEvent struct {
 
 type Usage = ai.Usage
 
+// RunListOptions controls how recorded agent run summaries are returned.
+// Zero values preserve the full deterministic run list.
+type RunListOptions struct {
+	// Status, when set, keeps only runs with the matching status
+	// (for example "running", "done", "error", or "refused").
+	Status string
+	// Limit, when positive, returns the most recently updated runs up to
+	// the limit. Limited results are ordered newest first.
+	Limit int
+}
+
 // RunSummary is a compact index entry for a recorded agent run.
 type RunSummary struct {
 	RunID      string    `json:"run_id"`
@@ -212,6 +223,12 @@ func (a *agentImpl) recordRunEvent(e RunEvent) {
 
 // ListRunSummaries returns a deterministic summary of recorded runs for agentName.
 func ListRunSummaries(s store.Store, agentName string) ([]RunSummary, error) {
+	return ListRunSummariesWithOptions(s, agentName, RunListOptions{})
+}
+
+// ListRunSummariesWithOptions returns summaries of recorded runs for agentName,
+// optionally filtered by status and limited to the most recently updated runs.
+func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOptions) ([]RunSummary, error) {
 	st := store.Scope(s, "agent", agentName)
 	keys, err := st.List(store.ListPrefix("runs/"))
 	if err != nil {
@@ -272,7 +289,18 @@ func ListRunSummaries(s store.Store, agentName string) ([]RunSummary, error) {
 				summary.LastError = e.Error
 			}
 		}
+		if opts.Status != "" && summary.Status != opts.Status {
+			continue
+		}
 		summaries = append(summaries, summary)
+	}
+	if opts.Limit > 0 {
+		sort.SliceStable(summaries, func(i, j int) bool {
+			return summaries[i].UpdatedAt.After(summaries[j].UpdatedAt)
+		})
+		if len(summaries) > opts.Limit {
+			summaries = summaries[:opts.Limit]
+		}
 	}
 	return summaries, nil
 }

@@ -177,3 +177,31 @@ func TestListRunSummaries(t *testing.T) {
 		t.Fatalf("unexpected run-b summary: %#v", got[1])
 	}
 }
+
+func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
+	st := store.NewMemoryStore()
+	scoped := store.Scope(st, "agent", "runner")
+	events := []RunEvent{
+		{Time: time.Unix(0, 1), RunID: "run-old", Agent: "runner", Kind: "run"},
+		{Time: time.Unix(0, 2), RunID: "run-old", Agent: "runner", Kind: "done"},
+		{Time: time.Unix(0, 3), RunID: "run-new", Agent: "runner", Kind: "run"},
+		{Time: time.Unix(0, 4), RunID: "run-new", Agent: "runner", Kind: "error", Error: "boom"},
+	}
+	for _, e := range events {
+		b, err := json.Marshal(e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := scoped.Write(&store.Record{Key: "runs/" + e.RunID + "/" + e.Time.Format("20060102150405.000000000") + "-" + e.Kind, Value: b}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := ListRunSummariesWithOptions(st, "runner", RunListOptions{Status: "error", Limit: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].RunID != "run-new" || got[0].Status != "error" {
+		t.Fatalf("filtered summaries = %#v", got)
+	}
+}

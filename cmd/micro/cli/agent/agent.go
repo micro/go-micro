@@ -19,9 +19,7 @@ func init() {
 		Name:      "runs",
 		Usage:     "Show recorded agent runs",
 		ArgsUsage: "[agent] [run-id]",
-		Flags: []cli.Flag{
-			&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
-		},
+		Flags:     runFlags(),
 		Action: func(c *cli.Context) error {
 			name := c.Args().First()
 			if name == "" {
@@ -30,7 +28,7 @@ func init() {
 			if runID := c.Args().Get(1); runID != "" {
 				return printRunHistory(name, runID, c.Bool("json"))
 			}
-			return printRunIndex(name, c.Bool("json"))
+			return printRunIndex(name, runOptions(c), c.Bool("json"))
 		},
 	})
 
@@ -102,9 +100,7 @@ func init() {
 				Name:      "history",
 				Usage:     "Show an agent's stored conversation and run history",
 				ArgsUsage: "[name] [run-id]",
-				Flags: []cli.Flag{
-					&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
-				},
+				Flags:     runFlags(),
 				Action: func(c *cli.Context) error {
 					name := c.Args().First()
 					if name == "" {
@@ -114,7 +110,7 @@ func init() {
 						return printRunHistory(name, runID, c.Bool("json"))
 					}
 					if c.Bool("json") {
-						return printRunIndex(name, true)
+						return printRunIndex(name, runOptions(c), true)
 					}
 					// Read from the agent's scoped state store (database
 					// "agent", table = name) — available whether or not the
@@ -128,15 +124,27 @@ func init() {
 							fmt.Printf("  \033[2m%s:\033[0m %v\n", m.Role, m.Content)
 						}
 					}
-					return printRunIndex(name, c.Bool("json"))
+					return printRunIndex(name, runOptions(c), c.Bool("json"))
 				},
 			},
 		},
 	})
 }
 
-func printRunIndex(name string, asJSON bool) error {
-	runs, err := goagent.ListRunSummaries(store.DefaultStore, name)
+func runFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
+		&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, error, refused)"},
+		&cli.IntFlag{Name: "limit", Usage: "Show the most recently updated N runs"},
+	}
+}
+
+func runOptions(c *cli.Context) goagent.RunListOptions {
+	return goagent.RunListOptions{Status: c.String("status"), Limit: c.Int("limit")}
+}
+
+func printRunIndex(name string, opts goagent.RunListOptions, asJSON bool) error {
+	runs, err := goagent.ListRunSummariesWithOptions(store.DefaultStore, name, opts)
 	if err != nil {
 		return err
 	}
