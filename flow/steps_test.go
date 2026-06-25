@@ -86,6 +86,80 @@ func TestFlowCheckpointResume(t *testing.T) {
 	}
 }
 
+func TestFlowResumePendingResumesOldestRunsUntilFailure(t *testing.T) {
+	mem := store.NewMemoryStore()
+	ctx := context.Background()
+	var calls int
+	step := Step{Name: "work", Run: func(_ context.Context, in State) (State, error) {
+		calls++
+		if in.String() == "block" {
+			return in, errors.New("still blocked")
+		}
+		in.Data = []byte(in.String() + "-done")
+		return in, nil
+	}}
+	f := New("resume-pending", WithCheckpoint(StoreCheckpoint(mem, "resume-pending")), Steps(step))
+
+	base := time.Date(2026, 6, 24, 12, 0, 0, 0, time.UTC)
+	runs := []Run{
+		{
+			ID:      "run-ok",
+			Flow:    "resume-pending",
+			State:   State{Stage: "work", Data: []byte("ok")},
+			Steps:   []StepRecord{{Name: "work", Status: "failed", Error: "temporary"}},
+			Status:  "failed",
+			Started: base,
+		},
+		{
+			ID:      "run-blocked",
+			Flow:    "resume-pending",
+			State:   State{Stage: "work", Data: []byte("block")},
+			Steps:   []StepRecord{{Name: "work", Status: "failed", Error: "temporary"}},
+			Status:  "failed",
+			Started: base.Add(time.Minute),
+		},
+		{
+			ID:      "run-later",
+			Flow:    "resume-pending",
+			State:   State{Stage: "work", Data: []byte("later")},
+			Steps:   []StepRecord{{Name: "work", Status: "failed", Error: "temporary"}},
+			Status:  "failed",
+			Started: base.Add(2 * time.Minute),
+		},
+	}
+	for _, run := range runs {
+		if err := f.checkpoint.Save(ctx, run); err != nil {
+			t.Fatalf("Save(%s): %v", run.ID, err)
+		}
+	}
+
+	failedRun, err := f.ResumePending(ctx)
+	if err == nil {
+		t.Fatal("expected ResumePending to stop at the blocked run")
+	}
+	if failedRun != "run-blocked" {
+		t.Fatalf("failed run = %q, want run-blocked", failedRun)
+	}
+	if calls != 2 {
+		t.Fatalf("ResumePending should stop before later runs; got %d calls", calls)
+	}
+
+	run, ok, err := f.checkpoint.Load(ctx, "run-ok")
+	if err != nil || !ok {
+		t.Fatalf("Load(run-ok) ok=%v err=%v", ok, err)
+	}
+	if run.Status != "done" || run.State.String() != "ok-done" {
+		t.Fatalf("run-ok not resumed successfully: %+v", run)
+	}
+	run, ok, err = f.checkpoint.Load(ctx, "run-later")
+	if err != nil || !ok {
+		t.Fatalf("Load(run-later) ok=%v err=%v", ok, err)
+	}
+	if run.Status != "failed" {
+		t.Fatalf("run-later should not be resumed after a failure, got %+v", run)
+	}
+}
+
 // A flow-level Retry re-runs a failing step until it succeeds.
 func TestFlowStepRetry(t *testing.T) {
 	var attempts int

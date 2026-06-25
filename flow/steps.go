@@ -323,6 +323,27 @@ func (f *Flow) Resume(ctx context.Context, runID string) error {
 	return err
 }
 
+// ResumePending resumes every checkpointed run for this flow that has not
+// completed yet, in the same oldest-first order returned by Pending.
+//
+// It is a convenience for service startup and recovery loops: after a process
+// restart, call ResumePending to drain the durable backlog without having to
+// list and resume each run manually. If any run fails again, ResumePending
+// stops and returns that run id with the error so callers can log, alert, or
+// retry later without hiding the failing run.
+func (f *Flow) ResumePending(ctx context.Context) (string, error) {
+	runs, err := f.Pending(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, run := range runs {
+		if err := f.Resume(ctx, run.ID); err != nil {
+			return run.ID, err
+		}
+	}
+	return "", nil
+}
+
 // Pending returns this flow's runs that have not completed — the ones a
 // process restart should resume.
 func (f *Flow) Pending(ctx context.Context) ([]Run, error) {
