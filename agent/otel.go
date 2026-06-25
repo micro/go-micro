@@ -41,6 +41,8 @@ type RunEvent struct {
 	Time      time.Time `json:"time"`
 	RunID     string    `json:"run_id"`
 	ParentID  string    `json:"parent_id,omitempty"`
+	TraceID   string    `json:"trace_id,omitempty"`
+	SpanID    string    `json:"span_id,omitempty"`
 	Agent     string    `json:"agent"`
 	Kind      string    `json:"kind"`
 	Name      string    `json:"name,omitempty"`
@@ -59,6 +61,8 @@ type RunSummary struct {
 	RunID     string    `json:"run_id"`
 	Agent     string    `json:"agent"`
 	ParentID  string    `json:"parent_id,omitempty"`
+	TraceID   string    `json:"trace_id,omitempty"`
+	SpanID    string    `json:"span_id,omitempty"`
 	StartedAt time.Time `json:"started_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Events    int       `json:"events"`
@@ -78,17 +82,17 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 	ctx, span := a.tracer().Start(ctx, spanNameRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(
 		attribute.String(AttrRunID, info.RunID), attribute.String(AttrParentRunID, info.ParentID), attribute.String(AttrAgentName, info.Agent)))
 	start := time.Now()
-	a.recordRunEvent(RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", Name: message})
+	a.recordSpanEvent(span, RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", Name: message})
 	return ctx, func(err error) {
 		latency := time.Since(start).Milliseconds()
 		span.SetAttributes(attribute.Int64(AttrLatencyMS, latency))
 		if err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error()})
+			a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error()})
 		} else {
 			span.SetStatus(codes.Ok, "")
-			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency})
+			a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency})
 		}
 		span.End()
 	}
@@ -129,7 +133,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 	if err != nil {
 		e.Error = err.Error()
 	}
-	m.a.recordRunEvent(e)
+	m.a.recordSpanEvent(span, e)
 	return resp, err
 }
 
@@ -170,7 +174,7 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 			span.SetStatus(codes.Ok, "")
 		}
 		span.End()
-		a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resErr})
+		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resErr})
 		return res
 	}
 }
@@ -185,6 +189,14 @@ func resultError(res ai.ToolResult) string {
 		}
 	}
 	return ""
+}
+
+func (a *agentImpl) recordSpanEvent(span trace.Span, e RunEvent) {
+	if sc := span.SpanContext(); sc.IsValid() {
+		e.TraceID = sc.TraceID().String()
+		e.SpanID = sc.SpanID().String()
+	}
+	a.recordRunEvent(e)
 }
 
 func (a *agentImpl) recordRunEvent(e RunEvent) {
@@ -231,6 +243,8 @@ func ListRunSummaries(s store.Store, agentName string) ([]RunSummary, error) {
 			RunID:     id,
 			Agent:     first.Agent,
 			ParentID:  first.ParentID,
+			TraceID:   first.TraceID,
+			SpanID:    first.SpanID,
 			StartedAt: first.Time,
 			UpdatedAt: last.Time,
 			Events:    len(events),
@@ -243,6 +257,12 @@ func ListRunSummaries(s store.Store, agentName string) ([]RunSummary, error) {
 			}
 			if e.ParentID != "" {
 				summary.ParentID = e.ParentID
+			}
+			if e.TraceID != "" {
+				summary.TraceID = e.TraceID
+			}
+			if e.SpanID != "" {
+				summary.SpanID = e.SpanID
 			}
 			if e.Error != "" {
 				summary.LastError = e.Error
