@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"go-micro.dev/v6/ai"
@@ -52,6 +53,18 @@ type RunEvent struct {
 }
 
 type Usage = ai.Usage
+
+// RunSummary is a compact index entry for a recorded agent run.
+type RunSummary struct {
+	RunID     string    `json:"run_id"`
+	Agent     string    `json:"agent"`
+	ParentID  string    `json:"parent_id,omitempty"`
+	StartedAt time.Time `json:"started_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Events    int       `json:"events"`
+	LastKind  string    `json:"last_kind,omitempty"`
+	LastError string    `json:"last_error,omitempty"`
+}
 
 func (a *agentImpl) tracer() trace.Tracer {
 	return a.opts.TraceProvider.Tracer(agentInstrumentationName)
@@ -179,6 +192,63 @@ func (a *agentImpl) recordRunEvent(e RunEvent) {
 	b, _ := json.Marshal(e)
 	key := fmt.Sprintf("runs/%s/%020d-%s", e.RunID, e.Time.UnixNano(), e.Kind)
 	_ = a.stateStore().Write(&store.Record{Key: key, Value: b})
+}
+
+// ListRunSummaries returns a deterministic summary of recorded runs for agentName.
+func ListRunSummaries(s store.Store, agentName string) ([]RunSummary, error) {
+	st := store.Scope(s, "agent", agentName)
+	keys, err := st.List(store.ListPrefix("runs/"))
+	if err != nil {
+		return nil, err
+	}
+	runs := map[string]bool{}
+	for _, k := range keys {
+		parts := strings.Split(k, "/")
+		if len(parts) >= 2 && parts[1] != "" {
+			runs[parts[1]] = true
+		}
+	}
+	ids := make([]string, 0, len(runs))
+	for id := range runs {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	summaries := make([]RunSummary, 0, len(ids))
+	for _, id := range ids {
+		events, err := LoadRunEvents(s, agentName, id)
+		if err != nil {
+			return nil, err
+		}
+		if len(events) == 0 {
+			continue
+		}
+		first := events[0]
+		last := events[len(events)-1]
+		summary := RunSummary{
+			RunID:     id,
+			Agent:     first.Agent,
+			ParentID:  first.ParentID,
+			StartedAt: first.Time,
+			UpdatedAt: last.Time,
+			Events:    len(events),
+			LastKind:  last.Kind,
+			LastError: last.Error,
+		}
+		for _, e := range events {
+			if e.Agent != "" {
+				summary.Agent = e.Agent
+			}
+			if e.ParentID != "" {
+				summary.ParentID = e.ParentID
+			}
+			if e.Error != "" {
+				summary.LastError = e.Error
+			}
+		}
+		summaries = append(summaries, summary)
+	}
+	return summaries, nil
 }
 
 func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
