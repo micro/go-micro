@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
@@ -72,7 +73,10 @@ Examples:
 				Name:      "runs",
 				Usage:     "Show durable run history for a flow",
 				ArgsUsage: "[name]",
-				Action:    flowRuns,
+				Flags: []cli.Flag{
+					&cli.BoolFlag{Name: "json", Usage: "Print durable run history as JSON for automation"},
+				},
+				Action: flowRuns,
 			},
 		},
 	})
@@ -129,6 +133,15 @@ func flowRuns(c *cli.Context) error {
 		fmt.Printf("  No runs recorded for flow %q.\n", name)
 		return nil
 	}
+	return writeFlowRuns(os.Stdout, runs, c.Bool("json"))
+}
+
+func writeFlowRuns(w io.Writer, runs []aiflow.Run, asJSON bool) error {
+	if asJSON {
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(runs)
+	}
 	for _, r := range runs {
 		id := r.ID
 		if len(id) > 8 {
@@ -138,7 +151,15 @@ func flowRuns(c *cli.Context) error {
 		if stage == "" {
 			stage = "-"
 		}
-		fmt.Printf("  %s  %-8s stage=%-12s (%d steps)\n", id, r.Status, stage, len(r.Steps))
+		fmt.Fprintf(w, "  %s  %-8s stage=%-12s updated=%s (%d steps)\n",
+			id, r.Status, stage, r.Updated.Format("2006-01-02T15:04:05Z07:00"), len(r.Steps))
+		for _, step := range r.Steps {
+			fmt.Fprintf(w, "    - %-12s %-11s attempts=%d", step.Name, step.Status, step.Attempts)
+			if step.Error != "" {
+				fmt.Fprintf(w, " error=%q", step.Error)
+			}
+			fmt.Fprintln(w)
+		}
 	}
 	return nil
 }
