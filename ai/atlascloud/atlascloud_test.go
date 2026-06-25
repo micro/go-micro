@@ -2,6 +2,7 @@ package atlascloud
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"go-micro.dev/v6/ai"
@@ -88,8 +89,8 @@ func TestProvider_Stream_NotImplemented(t *testing.T) {
 	}
 
 	_, err := p.Stream(context.Background(), req)
-	if err == nil {
-		t.Error("Expected error for unimplemented streaming, got nil")
+	if !errors.Is(err, ai.ErrStreamingUnsupported) {
+		t.Fatalf("Stream error = %v, want ErrStreamingUnsupported", err)
 	}
 }
 

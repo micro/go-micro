@@ -2,6 +2,7 @@ package together
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"go-micro.dev/v6/ai"
@@ -40,8 +41,8 @@ func TestProvider_Generate_NoAPIKey(t *testing.T) {
 }
 
 func TestProvider_Stream_NotImplemented(t *testing.T) {
-	if _, err := NewProvider().Stream(context.Background(), &ai.Request{Prompt: "hi"}); err == nil {
-		t.Error("expected error")
+	if _, err := NewProvider().Stream(context.Background(), &ai.Request{Prompt: "hi"}); !errors.Is(err, ai.ErrStreamingUnsupported) {
+		t.Fatalf("Stream error = %v, want ErrStreamingUnsupported", err)
 	}
 }
 

@@ -143,7 +143,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 }
 
 func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, fmt.Errorf("streaming not yet implemented for atlascloud provider")
+	return nil, fmt.Errorf("%w: atlascloud provider", ai.ErrStreamingUnsupported)
 }
 
 func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Response, map[string]any, error) {
