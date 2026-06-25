@@ -109,6 +109,42 @@ func TestMessageSendAndGet(t *testing.T) {
 	}
 }
 
+func TestMessageSendUsesRequestContext(t *testing.T) {
+	d := newDispatcher()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{
+		"jsonrpc":"2.0","id":1,"method":"message/send",
+		"params":{"message":{"role":"user","kind":"message","messageId":"m1",
+			"parts":[{"kind":"text","text":"ping"}]}}}`))
+	req = req.WithContext(ctx)
+	rr := httptest.NewRecorder()
+
+	d.serve(rr, req, func(ctx context.Context, text string) (string, error) {
+		if err := ctx.Err(); err != nil {
+			return "", err
+		}
+		return "unexpected success", nil
+	})
+
+	var resp struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}
+	if err := json.NewDecoder(rr.Result().Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Error != nil {
+		t.Fatalf("rpc error: %+v", resp.Error)
+	}
+	if resp.Result.Status.State != stateFailed {
+		t.Fatalf("task state = %q, want failed", resp.Result.Status.State)
+	}
+	if len(resp.Result.Artifacts) != 1 || textOf(resp.Result.Artifacts[0].Parts) != "error: context canceled" {
+		t.Fatalf("artifact = %+v, want context cancellation", resp.Result.Artifacts)
+	}
+}
+
 func TestUnknownMethod(t *testing.T) {
 	ts, cleanup := newGatewayWithAgent(t)
 	defer cleanup()
