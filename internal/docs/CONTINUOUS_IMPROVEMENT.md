@@ -69,11 +69,57 @@ Grounded in real signal, never speculative rewrites. Each cycle draws from:
   recurring jobs expire after 7 days, so it is **not** a durable scheduler.
 - **GitHub Actions (durable)** — a scheduled workflow that runs the loop
   independently of any session. This is the real backbone; it opens a fresh
-  tracking issue for each increment and dispatches Codex there, so every run gets
-  a unique Codex-derived branch and a PR that closes its tracking issue. It needs
-  a `CODEX_TRIGGER_TOKEN` repo secret from a user account Codex responds to;
+  tracking issue for each increment and dispatches Codex there. It needs a
+  `CODEX_TRIGGER_TOKEN` repo secret from a user account Codex responds to;
   without that secret the workflow deliberately no-ops to avoid ignored bot
-  comments. See `.github/workflows/continuous-improvement.yml`.
+  comments. See `.github/workflows/continuous-improvement.yml` and the mechanics
+  below.
+
+## How the durable loop works (mechanics)
+
+Hard-won wiring — change any one piece and the loop silently stops producing
+merged PRs. Each scheduled run:
+
+1. **Opens a fresh issue per increment** (`Continuous improvement increment #N`)
+   and posts the `@codex` instruction on it. *Why a fresh issue:* Codex derives
+   its branch name from the triggering issue's context, so re-using one tracker
+   issue collapses every run onto one branch name and only the first PR opens —
+   the rest collide and silently fail.
+2. **Posts as a user, not the Actions bot.** Codex ignores `@codex` comments
+   authored by `github-actions[bot]`, so the dispatch uses `CODEX_TRIGGER_TOKEN`
+   (a PAT for a user account Codex follows). No token → the step no-ops.
+3. **Codex opens the PR itself with `gh` — never `make_pr`.** In the Codex Cloud
+   sandbox the `make_pr` tool is a **no-op stub**: it records the PR title/body
+   for the manual "Create PR" button and never pushes a branch or calls the API.
+   So the dispatch and [`AGENTS.md`](../../AGENTS.md) tell Codex to do it by hand:
+
+   ```sh
+   git switch -c codex/increment-<issue>     # unique branch, codex/ prefix
+   git push -u origin codex/increment-<issue>
+   gh pr create --base master --label codex --title "…" --body "… Closes #<issue>"
+   gh pr merge  --squash --auto --delete-branch
+   ```
+
+   This requires the Codex setup script to install `gh` and run `gh auth
+   setup-git` (so `git push` is authenticated) with a write-scoped token.
+4. **Merges via GitHub native auto-merge, gated by branch protection.** `master`
+   requires the CI status checks (build, tests, golangci-lint) and **0 approving
+   reviews**. `gh pr merge --auto` enables auto-merge; GitHub lands the PR the
+   moment checks pass and deletes the branch. `Closes #<issue>` auto-closes the
+   tracking issue. There is **no merge sweep workflow** — branch protection is
+   the gate.
+
+### Do-not-break list
+
+- **Don't re-add required approvals** to `master` — it blocks every autonomous
+  merge. The intended gate is **green CI only**.
+- **Don't point the dispatch at one standing tracker issue** — one issue per run.
+- **Don't tell Codex to use `make_pr`** (or imply a token "isn't a substitute"):
+  it cannot open a PR. `gh` is the only path.
+- **Don't manually re-implement a Codex increment during the summary→PR lag**
+  (Codex posts an optimistic "opened a PR" comment ~30–45 min before the PR
+  actually appears). Re-doing it creates duplicate PRs and stale branches that
+  then block the next run. Wait for the PR, or let it ride.
 
 ## Stop / redirect
 
