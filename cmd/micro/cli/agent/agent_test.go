@@ -45,13 +45,14 @@ func TestWriteRunIndexHumanIncludesStatusAndDuration(t *testing.T) {
 		Events:     2,
 		Status:     "done",
 		LastKind:   "tool",
+		ParentID:   "parent-run",
 	}}
 	var out bytes.Buffer
 	if err := writeRunIndex(&out, "runner", runs, false); err != nil {
 		t.Fatal(err)
 	}
 	line := out.String()
-	for _, want := range []string{"run-1", "status=done", "events=2", "duration=1.2s", "last=tool"} {
+	for _, want := range []string{"run-1", "status=done", "events=2", "duration=1.2s", "last=tool", "parent=parent-run"} {
 		if !strings.Contains(line, want) {
 			t.Fatalf("human output %q missing %q", line, want)
 		}
@@ -70,6 +71,7 @@ func TestWriteRunHistoryHumanAndJSON(t *testing.T) {
 		LatencyMS: 42,
 		Tokens:    ai.Usage{TotalTokens: 5},
 		TraceID:   "1234567890abcdef",
+		ParentID:  "parent-run",
 	}}
 
 	var human bytes.Buffer
@@ -77,7 +79,7 @@ func TestWriteRunHistoryHumanAndJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	line := human.String()
-	for _, want := range []string{"12:34:56.007 tool", "probe", "oteltest/unit-model", "42ms", "tokens=5", "trace=1234567890ab"} {
+	for _, want := range []string{"12:34:56.007 tool", "probe", "oteltest/unit-model", "42ms", "tokens=5", "parent=parent-run", "trace=1234567890ab"} {
 		if !strings.Contains(line, want) {
 			t.Fatalf("human output %q missing %q", line, want)
 		}
