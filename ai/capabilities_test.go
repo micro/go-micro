@@ -34,6 +34,22 @@ func TestRegisteredProviders(t *testing.T) {
 	}
 }
 
+func TestCapabilityRows(t *testing.T) {
+	got := ai.CapabilityRows()
+	want := []ai.CapabilityRow{
+		{Provider: "anthropic", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "atlascloud", Capabilities: ai.Capabilities{Model: true, Image: true, Video: true}},
+		{Provider: "gemini", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "groq", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "mistral", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "openai", Capabilities: ai.Capabilities{Model: true, Image: true}},
+		{Provider: "together", Capabilities: ai.Capabilities{Model: true}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("CapabilityRows() = %#v, want %#v", got, want)
+	}
+}
+
 func TestCapabilityMatrix(t *testing.T) {
 	matrix := ai.CapabilityMatrix()
 
