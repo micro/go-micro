@@ -383,6 +383,7 @@ func (f *Flow) Pending(ctx context.Context) ([]Run, error) {
 func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	steps := f.opts.Steps
 	ctx = withDeps(ctx, &runDeps{client: f.client, model: f.model, tools: f.toolSet})
+	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: run.ID, Agent: f.name})
 
 	start := stepIndex(steps, run.State.Stage)
 	if start < 0 {
