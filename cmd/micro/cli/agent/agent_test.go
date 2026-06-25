@@ -13,13 +13,15 @@ import (
 
 func TestWriteRunIndexJSON(t *testing.T) {
 	runs := []goagent.RunSummary{{
-		RunID:     "run-1",
-		Agent:     "runner",
-		StartedAt: time.Unix(0, 1),
-		UpdatedAt: time.Unix(0, 2),
-		Events:    2,
-		LastKind:  "tool",
-		TraceID:   "1234567890abcdef",
+		RunID:      "run-1",
+		Agent:      "runner",
+		StartedAt:  time.Unix(0, 1),
+		UpdatedAt:  time.Unix(0, 2),
+		DurationMS: 1234,
+		Events:     2,
+		Status:     "done",
+		LastKind:   "tool",
+		TraceID:    "1234567890abcdef",
 	}}
 	var out bytes.Buffer
 	if err := writeRunIndex(&out, "runner", runs, true); err != nil {
@@ -31,6 +33,28 @@ func TestWriteRunIndexJSON(t *testing.T) {
 	}
 	if len(got) != 1 || got[0].RunID != "run-1" || got[0].LastKind != "tool" {
 		t.Fatalf("decoded summaries = %#v", got)
+	}
+}
+
+func TestWriteRunIndexHumanIncludesStatusAndDuration(t *testing.T) {
+	runs := []goagent.RunSummary{{
+		RunID:      "run-1",
+		Agent:      "runner",
+		UpdatedAt:  time.Date(2026, 6, 25, 12, 34, 56, 0, time.UTC),
+		DurationMS: 1234,
+		Events:     2,
+		Status:     "done",
+		LastKind:   "tool",
+	}}
+	var out bytes.Buffer
+	if err := writeRunIndex(&out, "runner", runs, false); err != nil {
+		t.Fatal(err)
+	}
+	line := out.String()
+	for _, want := range []string{"run-1", "status=done", "events=2", "duration=1.2s", "last=tool"} {
+		if !strings.Contains(line, want) {
+			t.Fatalf("human output %q missing %q", line, want)
+		}
 	}
 }
 

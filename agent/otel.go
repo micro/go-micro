@@ -58,16 +58,18 @@ type Usage = ai.Usage
 
 // RunSummary is a compact index entry for a recorded agent run.
 type RunSummary struct {
-	RunID     string    `json:"run_id"`
-	Agent     string    `json:"agent"`
-	ParentID  string    `json:"parent_id,omitempty"`
-	TraceID   string    `json:"trace_id,omitempty"`
-	SpanID    string    `json:"span_id,omitempty"`
-	StartedAt time.Time `json:"started_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Events    int       `json:"events"`
-	LastKind  string    `json:"last_kind,omitempty"`
-	LastError string    `json:"last_error,omitempty"`
+	RunID      string    `json:"run_id"`
+	Agent      string    `json:"agent"`
+	ParentID   string    `json:"parent_id,omitempty"`
+	TraceID    string    `json:"trace_id,omitempty"`
+	SpanID     string    `json:"span_id,omitempty"`
+	StartedAt  time.Time `json:"started_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	DurationMS int64     `json:"duration_ms,omitempty"`
+	Events     int       `json:"events"`
+	Status     string    `json:"status,omitempty"`
+	LastKind   string    `json:"last_kind,omitempty"`
+	LastError  string    `json:"last_error,omitempty"`
 }
 
 func (a *agentImpl) tracer() trace.Tracer {
@@ -240,16 +242,18 @@ func ListRunSummaries(s store.Store, agentName string) ([]RunSummary, error) {
 		first := events[0]
 		last := events[len(events)-1]
 		summary := RunSummary{
-			RunID:     id,
-			Agent:     first.Agent,
-			ParentID:  first.ParentID,
-			TraceID:   first.TraceID,
-			SpanID:    first.SpanID,
-			StartedAt: first.Time,
-			UpdatedAt: last.Time,
-			Events:    len(events),
-			LastKind:  last.Kind,
-			LastError: last.Error,
+			RunID:      id,
+			Agent:      first.Agent,
+			ParentID:   first.ParentID,
+			TraceID:    first.TraceID,
+			SpanID:     first.SpanID,
+			StartedAt:  first.Time,
+			UpdatedAt:  last.Time,
+			DurationMS: last.Time.Sub(first.Time).Milliseconds(),
+			Events:     len(events),
+			Status:     runStatus(events),
+			LastKind:   last.Kind,
+			LastError:  last.Error,
 		}
 		for _, e := range events {
 			if e.Agent != "" {
@@ -271,6 +275,30 @@ func ListRunSummaries(s store.Store, agentName string) ([]RunSummary, error) {
 		summaries = append(summaries, summary)
 	}
 	return summaries, nil
+}
+
+func runStatus(events []RunEvent) string {
+	if len(events) == 0 {
+		return ""
+	}
+	status := "running"
+	for _, e := range events {
+		if e.Error != "" {
+			status = "error"
+		}
+		if e.Refused != "" && status != "error" {
+			status = "refused"
+		}
+		switch e.Kind {
+		case "error":
+			status = "error"
+		case "done":
+			if status == "running" {
+				status = "done"
+			}
+		}
+	}
+	return status
 }
 
 func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {

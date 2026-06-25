@@ -73,6 +73,12 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	if summaries[0].LastKind != "done" {
 		t.Fatalf("LastKind = %q, want done", summaries[0].LastKind)
 	}
+	if summaries[0].Status != "done" {
+		t.Fatalf("Status = %q, want done", summaries[0].Status)
+	}
+	if summaries[0].DurationMS < 0 {
+		t.Fatalf("DurationMS = %d, want non-negative", summaries[0].DurationMS)
+	}
 	if summaries[0].TraceID == "" || summaries[0].SpanID == "" {
 		t.Fatalf("summary missing trace correlation: %#v", summaries[0])
 	}
@@ -164,10 +170,10 @@ func TestListRunSummaries(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("got %d summaries, want 2: %#v", len(got), got)
 	}
-	if got[0].RunID != "run-a" || got[0].TraceID != "trace-a" || got[0].SpanID != "span-a" || got[0].Events != 2 || got[0].LastKind != "tool" || !got[0].UpdatedAt.Equal(time.Unix(0, 2)) {
+	if got[0].RunID != "run-a" || got[0].TraceID != "trace-a" || got[0].SpanID != "span-a" || got[0].Events != 2 || got[0].Status != "running" || got[0].DurationMS != 0 || got[0].LastKind != "tool" || !got[0].UpdatedAt.Equal(time.Unix(0, 2)) {
 		t.Fatalf("unexpected run-a summary: %#v", got[0])
 	}
-	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 2 || got[1].LastKind != "error" || got[1].LastError != "boom" {
+	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 2 || got[1].Status != "error" || got[1].DurationMS != 0 || got[1].LastKind != "error" || got[1].LastError != "boom" {
 		t.Fatalf("unexpected run-b summary: %#v", got[1])
 	}
 }
