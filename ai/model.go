@@ -4,6 +4,7 @@ package ai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 )
 
@@ -133,7 +134,12 @@ func RunInfoFrom(ctx context.Context) (RunInfo, bool) {
 	return r, ok
 }
 
-// Stream is the interface for streaming responses (future implementation)
+// ErrStreamingUnsupported is returned by providers that implement the Model
+// interface but do not yet support token streaming. Use errors.Is so callers
+// can distinguish an unsupported capability from transient provider failures.
+var ErrStreamingUnsupported = errors.New("ai: streaming unsupported")
+
+// Stream is the interface for streaming responses.
 type Stream interface {
 	// Recv receives the next chunk of the response
 	Recv() (*Response, error)

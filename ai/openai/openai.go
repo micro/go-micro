@@ -142,7 +142,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 // Stream generates a streaming response (not yet implemented)
 func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, fmt.Errorf("streaming not yet implemented for openai provider")
+	return nil, fmt.Errorf("%w: openai provider", ai.ErrStreamingUnsupported)
 }
 
 // callAPI makes an HTTP request to the OpenAI API
