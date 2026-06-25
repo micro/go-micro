@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,5 +74,31 @@ func TestAskRetriesTransientErrorsThenSurfacesStructuredError(t *testing.T) {
 	}
 	if attempts != 2 {
 		t.Fatalf("model attempts = %d, want 2", attempts)
+	}
+}
+
+func TestCanceledAskContextSkipsToolExecution(t *testing.T) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler == nil {
+			t.Fatal("missing tool handler")
+		}
+		canceled, cancel := context.WithCancel(ctx)
+		cancel()
+		res := opts.ToolHandler(canceled, ai.ToolCall{ID: "call-1", Name: toolPlan, Input: map[string]any{
+			"steps": []any{map[string]any{"task": "should not persist", "status": "pending"}},
+		}})
+		if !strings.Contains(res.Content, context.Canceled.Error()) {
+			t.Fatalf("tool result = %q, want cancellation error", res.Content)
+		}
+		return &ai.Response{Reply: "ok"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("cancel-tools"))
+	if _, err := a.Ask(context.Background(), "try a canceled tool"); err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if plan := a.loadPlan(); plan != "" {
+		t.Fatalf("plan persisted after canceled tool context: %q", plan)
 	}
 }

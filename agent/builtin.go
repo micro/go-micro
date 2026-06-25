@@ -108,11 +108,27 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 	h = a.loopWrap(h)
 	h = a.stepWrap(h)
 	h = a.planWrap(h)
+	h = contextWrap(h)
 	h = a.traceTool(h)
 	for i := len(a.opts.wrappers) - 1; i >= 0; i-- {
 		h = a.opts.wrappers[i](h)
 	}
 	return h
+}
+
+// contextWrap stops tool execution promptly when the Ask context has
+// already been canceled or its deadline has expired. This keeps guardrail
+// bookkeeping and side-effecting tools from running after the caller has
+// abandoned the agent run.
+func contextWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		select {
+		case <-ctx.Done():
+			return errResult(call.ID, ctx.Err().Error())
+		default:
+		}
+		return next(ctx, call)
+	}
 }
 
 // baseHandler executes a tool call: a developer custom tool, the built-in
