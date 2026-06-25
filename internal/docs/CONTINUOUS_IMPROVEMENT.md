@@ -121,6 +121,29 @@ merged PRs. Each scheduled run:
   actually appears). Re-doing it creates duplicate PRs and stale branches that
   then block the next run. Wait for the PR, or let it ride.
 
+## Overseer passes (DevRel + Architect)
+
+The hourly loop ships increments; two periodic passes keep the *whole* heading in
+the right direction. Both use the same mechanism (fresh issue → `@codex` →
+output) but produce direction and coherence, not just code.
+
+- **DevRel — daily** (`.github/workflows/devrel-review.yml`). Audits the public
+  surface (README, website landing + docs, blog) for coherence with the North
+  Star, README crispness, and blog-worthy material. **Autonomy boundary:** safe
+  factual-alignment and crispness fixes auto-merge like any increment;
+  brand/positioning copy and blog drafts are *surfaced in a report* for the
+  human, never auto-merged.
+- **Architect — every few days** (`.github/workflows/architecture-review.yml`).
+  Reviews the framework/harness against the thesis: API coherence, lifecycle
+  gaps, drift/sprawl. **Its output is an assessment plus scoped follow-up
+  issues** that feed the hourly increment loop — it does **not** make breaking or
+  architectural changes itself (those stay with the human).
+
+Together they close the loop: the architect decides *what* should change and files
+issues, the increment loop *builds* them, and DevRel keeps the public story
+honest. Cadence is tunable in each workflow's `cron`. Codex is serial, so these
+passes queue behind any in-flight increment rather than running concurrently.
+
 ## Stop / redirect
 
 - In-session: `CronDelete <id>` (or end the session).

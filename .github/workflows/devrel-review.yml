@@ -1,0 +1,47 @@
+name: DevRel Review
+
+# Daily higher-altitude coherence pass over the PUBLIC surface — README,
+# website (landing + docs), and blog — part of the autonomous loop
+# (internal/docs/CONTINUOUS_IMPROVEMENT.md). The hourly increment loop ships
+# code; this keeps the story coherent: docs/website aligned, README crisp, and
+# a steady supply of things worth blogging about.
+#
+# Like the increment loop it opens a fresh issue and dispatches Codex via
+# CODEX_TRIGGER_TOKEN (Codex ignores Actions-bot comments). Autonomy boundary:
+# SAFE factual-alignment and crispness fixes auto-merge; brand/positioning copy
+# and blog drafts are surfaced in the report for the human, never auto-merged.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 7 * * *" # daily, 07:00 UTC (tunable)
+
+permissions:
+  issues: write
+
+concurrency:
+  group: devrel-review
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open a DevRel review issue and dispatch Codex
+        env:
+          GH_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN || github.token }}
+          HAS_TRIGGER_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN != '' }}
+          REPO: ${{ github.repository }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          if [ "$HAS_TRIGGER_TOKEN" != "true" ]; then
+            echo "CODEX_TRIGGER_TOKEN is not set — skipping (Codex ignores Actions-bot comments)."
+            exit 0
+          fi
+          ISSUE_URL=$(gh issue create --repo "$REPO" \
+            --title "DevRel coherence review #$RUN_NUMBER" \
+            --body "Daily DevRel / coherence pass over README, website (landing + docs), and the blog. North Star: internal/docs/THESIS.md.")
+          ISSUE_NUM="${ISSUE_URL##*/}"
+          echo "Opened issue #$ISSUE_NUM — dispatching Codex (DevRel)."
+          gh issue comment "$ISSUE_NUM" --repo "$REPO" --body \
+          "@codex Act as DevRel for go-micro. Audit the PUBLIC surface — \`README.md\`, \`internal/website/\` (landing \`index.html\` + \`docs/\`), and the blog under \`internal/website/blog/\` — for coherence with the North Star in internal/docs/THESIS.md (an agent harness and service framework; the services → agents → workflows lifecycle). Look for: (1) places where README / website / docs contradict each other, are stale, or describe behavior that has since changed (cross-check against the code and recent merged PRs / CHANGELOG.md); (2) whether the README is crisp and leads with the harness positioning; (3) one to three genuinely blog-worthy items from recently shipped work. Then do BOTH of these: (A) post a concise findings report as a comment on this issue (#$ISSUE_NUM) — what is aligned, what drifted, what you fixed, and the blog ideas; (B) for SAFE factual-alignment and crispness fixes only (NOT brand/marketing/positioning rewrites), open one PR: \`git switch -c codex/devrel-$ISSUE_NUM\`, \`git push -u origin codex/devrel-$ISSUE_NUM\`, \`gh pr create --base master --label codex --title \"<title>\" --body \"<summary, including 'Closes #$ISSUE_NUM'>\"\`, then \`gh pr merge --squash --auto --delete-branch\`. Leave brand/positioning copy and blog drafts for the human — describe them in the report, do NOT open auto-merging PRs for them. Do not use the make_pr tool (it is a no-op stub). If you touch code, verify go build/test/golangci-lint. Stay out of breaking public-API changes."
