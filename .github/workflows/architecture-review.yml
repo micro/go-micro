@@ -1,0 +1,48 @@
+name: Architecture Review
+
+# Periodic high-altitude review of the whole framework and harness against the
+# North Star (internal/docs/THESIS.md) — part of the autonomous loop
+# (internal/docs/CONTINUOUS_IMPROVEMENT.md). Where DevRel watches the public
+# story, the architect watches the system: API coherence, lifecycle gaps, and
+# whether recent increments are converging on the thesis or sprawling.
+#
+# The architect's OUTPUT is an assessment plus scoped follow-up issues that feed
+# the hourly increment loop — NOT large refactors. Breaking public-API and
+# architectural changes stay with the human (see CONTINUOUS_IMPROVEMENT.md).
+#
+# Opens a fresh issue and dispatches Codex via CODEX_TRIGGER_TOKEN.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 8 */3 * *" # roughly every 3 days, 08:00 UTC (tunable)
+
+permissions:
+  issues: write
+
+concurrency:
+  group: architecture-review
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open an architecture review issue and dispatch Codex
+        env:
+          GH_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN || github.token }}
+          HAS_TRIGGER_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN != '' }}
+          REPO: ${{ github.repository }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          if [ "$HAS_TRIGGER_TOKEN" != "true" ]; then
+            echo "CODEX_TRIGGER_TOKEN is not set — skipping (Codex ignores Actions-bot comments)."
+            exit 0
+          fi
+          ISSUE_URL=$(gh issue create --repo "$REPO" \
+            --title "Architecture review #$RUN_NUMBER" \
+            --body "Periodic architecture / harness review against the North Star in internal/docs/THESIS.md. Output: an assessment plus scoped follow-up issues for the increment loop.")
+          ISSUE_NUM="${ISSUE_URL##*/}"
+          echo "Opened issue #$ISSUE_NUM — dispatching Codex (Architect)."
+          gh issue comment "$ISSUE_NUM" --repo "$REPO" --body \
+          "@codex Act as the architect for go-micro. Review the overall framework and harness against the North Star in internal/docs/THESIS.md (services → agents → workflows as one runtime) and the roadmap in ROADMAP.md. Assess: API coherence and consistency across the core packages (agent, ai, flow, gateway/mcp, gateway/a2a, model, server, store, registry), gaps or missing pieces in the services → agents → workflows lifecycle, duplication or drift, and whether recent increments (scan recently merged PRs) are converging on the thesis or sprawling. Then: (A) post a concise architectural assessment as a comment on this issue (#$ISSUE_NUM) — strengths, the top risks/gaps, and a recommended direction for the next increments; (B) file concrete, scoped follow-up issues for the highest-value gaps so the hourly increment loop can pick them up — \`gh issue create --label codex --label enhancement --title \"<scoped task>\" --body \"<goal, scope, acceptance criteria>\"\` (each must be a single, self-contained, CI-verifiable chunk). Do NOT make breaking public-API or architectural changes yourself — your output is the assessment and the issues. A small, safe doc/comment correction may be a PR (\`git switch -c codex/architect-$ISSUE_NUM\` … \`gh pr create --base master --label codex …\` … \`gh pr merge --squash --auto --delete-branch\`). Do not use the make_pr tool (it is a no-op stub)."
