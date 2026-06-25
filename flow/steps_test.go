@@ -204,6 +204,62 @@ func TestFlowStepRetryOverride(t *testing.T) {
 	}
 }
 
+func TestFlowStepRetryBackoffWaitsBetweenAttempts(t *testing.T) {
+	var attempts int
+	step := Step{Name: "transient", Run: func(_ context.Context, in State) (State, error) {
+		attempts++
+		if attempts == 1 {
+			return in, errors.New("transient")
+		}
+		in.Data = []byte("ok")
+		return in, nil
+	}}
+
+	f := New("retry-backoff",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "retry-backoff")),
+		Retry(1),
+		RetryBackoff(10*time.Millisecond),
+		Steps(step),
+	)
+	start := time.Now()
+	if err := f.Execute(context.Background(), ""); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("want 2 attempts, got %d", attempts)
+	}
+	if elapsed := time.Since(start); elapsed < 10*time.Millisecond {
+		t.Fatalf("retry backoff was not observed; elapsed %s", elapsed)
+	}
+}
+
+func TestFlowStepRetryBackoffStopsOnCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	var attempts int
+	step := Step{Name: "cancelbackoff", Run: func(_ context.Context, in State) (State, error) {
+		attempts++
+		cancel()
+		return in, errors.New("transient")
+	}}
+
+	f := New("cancel-backoff",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "cancel-backoff")),
+		Retry(1),
+		RetryBackoff(time.Hour),
+		Steps(step),
+	)
+	err := f.Execute(ctx, "")
+	if err == nil {
+		t.Fatal("expected the canceled run to fail")
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("want a context.Canceled error, got %v", err)
+	}
+	if attempts != 1 {
+		t.Errorf("cancellation should stop during backoff before retrying, got %d attempts", attempts)
+	}
+}
+
 // A canceled run stops retrying immediately instead of burning the whole
 // retry budget, and surfaces the context error.
 func TestFlowStepRetryStopsOnCancel(t *testing.T) {

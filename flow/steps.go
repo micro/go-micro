@@ -441,6 +441,13 @@ func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, er
 			return out, attempt, nil
 		}
 		lastErr = err
+		if attempt <= retries && f.opts.RetryBackoff > 0 {
+			select {
+			case <-time.After(f.opts.RetryBackoff):
+			case <-ctx.Done():
+				return in, attempt, ctx.Err()
+			}
+		}
 	}
 	return in, retries + 1, lastErr
 }
