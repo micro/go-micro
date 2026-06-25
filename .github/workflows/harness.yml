@@ -2,8 +2,9 @@ name: Harness (E2E)
 
 # Runs the end-to-end harnesses for agents, services, flows, and provider
 # conformance. The default job uses deterministic mock LLMs and needs no
-# secrets. A second job runs the same harnesses against any live providers
-# whose API key secrets are configured.
+# secrets. A second job runs the same harnesses against the live provider set and
+# fails if any selected provider secret is missing, so scheduled conformance
+# cannot silently degrade.
 
 on:
   push:
@@ -34,7 +35,7 @@ jobs:
         run: go run ./internal/harness/plan-delegate
 
   harness-live:
-    name: Provider harnesses (live LLM, if keys present)
+    name: Provider harnesses (live LLM conformance)
     runs-on: ubuntu-latest
     # Only on the daily schedule or a manual run — never automatically on
     # every push/PR, so changes don't quietly burn API credits. Trigger it
@@ -47,7 +48,7 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - name: Provider conformance against configured live models
+      - name: Provider conformance against live models
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -56,4 +57,4 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
-        run: go run ./internal/harness/provider-conformance
+        run: go run ./internal/harness/provider-conformance -require-configured
