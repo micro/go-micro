@@ -4,8 +4,6 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/urfave/cli/v2"
 	goagent "go-micro.dev/v6/agent"
@@ -127,30 +125,21 @@ func init() {
 }
 
 func printRunIndex(name string) error {
-	st := store.Scope(store.DefaultStore, "agent", name)
-	keys, err := st.List(store.ListPrefix("runs/"))
+	runs, err := goagent.ListRunSummaries(store.DefaultStore, name)
 	if err != nil {
 		return err
-	}
-	runs := map[string]bool{}
-	for _, k := range keys {
-		parts := strings.Split(k, "/")
-		if len(parts) >= 2 {
-			runs[parts[1]] = true
-		}
 	}
 	if len(runs) == 0 {
 		fmt.Printf("  No runs recorded for agent %q.\n", name)
 		return nil
 	}
-	ids := make([]string, 0, len(runs))
-	for id := range runs {
-		ids = append(ids, id)
-	}
-	sort.Strings(ids)
 	fmt.Println("  Runs:")
-	for _, id := range ids {
-		fmt.Printf("    %s\n", id)
+	for _, run := range runs {
+		line := fmt.Sprintf("    %s  events=%d  last=%s  updated=%s", run.RunID, run.Events, run.LastKind, run.UpdatedAt.Format("2006-01-02 15:04:05"))
+		if run.LastError != "" {
+			line += "  error=" + run.LastError
+		}
+		fmt.Println(line)
 	}
 	return nil
 }

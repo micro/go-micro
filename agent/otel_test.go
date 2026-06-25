@@ -116,3 +116,38 @@ func TestLoadRunEventsSortsTimelineKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestListRunSummaries(t *testing.T) {
+	st := store.NewMemoryStore()
+	scoped := store.Scope(st, "agent", "runner")
+	events := []RunEvent{
+		{Time: time.Unix(0, 1), RunID: "run-a", Agent: "runner", Kind: "run", Name: "first"},
+		{Time: time.Unix(0, 2), RunID: "run-a", Agent: "runner", Kind: "tool", Name: "probe"},
+		{Time: time.Unix(0, 3), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "run", Name: "second"},
+		{Time: time.Unix(0, 4), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "error", Error: "boom"},
+	}
+	for _, e := range events {
+		b, err := json.Marshal(e)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := "runs/" + e.RunID + "/" + e.Time.Format("20060102150405.000000000") + "-" + e.Kind
+		if err := scoped.Write(&store.Record{Key: key, Value: b}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := ListRunSummaries(st, "runner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("got %d summaries, want 2: %#v", len(got), got)
+	}
+	if got[0].RunID != "run-a" || got[0].Events != 2 || got[0].LastKind != "tool" || !got[0].UpdatedAt.Equal(time.Unix(0, 2)) {
+		t.Fatalf("unexpected run-a summary: %#v", got[0])
+	}
+	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 2 || got[1].LastKind != "error" || got[1].LastError != "boom" {
+		t.Fatalf("unexpected run-b summary: %#v", got[1])
+	}
+}
