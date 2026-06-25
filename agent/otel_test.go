@@ -73,6 +73,16 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	if summaries[0].LastKind != "done" {
 		t.Fatalf("LastKind = %q, want done", summaries[0].LastKind)
 	}
+	if summaries[0].TraceID == "" || summaries[0].SpanID == "" {
+		t.Fatalf("summary missing trace correlation: %#v", summaries[0])
+	}
+	events, err := LoadRunEvents(st, "runner", summaries[0].RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) == 0 || events[0].TraceID == "" || events[0].SpanID == "" {
+		t.Fatalf("events missing trace correlation: %#v", events)
+	}
 }
 
 func TestAgentOpenTelemetryNoopWhenUnconfigured(t *testing.T) {
@@ -131,7 +141,7 @@ func TestListRunSummaries(t *testing.T) {
 	st := store.NewMemoryStore()
 	scoped := store.Scope(st, "agent", "runner")
 	events := []RunEvent{
-		{Time: time.Unix(0, 1), RunID: "run-a", Agent: "runner", Kind: "run", Name: "first"},
+		{Time: time.Unix(0, 1), RunID: "run-a", Agent: "runner", TraceID: "trace-a", SpanID: "span-a", Kind: "run", Name: "first"},
 		{Time: time.Unix(0, 2), RunID: "run-a", Agent: "runner", Kind: "tool", Name: "probe"},
 		{Time: time.Unix(0, 3), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "run", Name: "second"},
 		{Time: time.Unix(0, 4), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "error", Error: "boom"},
@@ -154,7 +164,7 @@ func TestListRunSummaries(t *testing.T) {
 	if len(got) != 2 {
 		t.Fatalf("got %d summaries, want 2: %#v", len(got), got)
 	}
-	if got[0].RunID != "run-a" || got[0].Events != 2 || got[0].LastKind != "tool" || !got[0].UpdatedAt.Equal(time.Unix(0, 2)) {
+	if got[0].RunID != "run-a" || got[0].TraceID != "trace-a" || got[0].SpanID != "span-a" || got[0].Events != 2 || got[0].LastKind != "tool" || !got[0].UpdatedAt.Equal(time.Unix(0, 2)) {
 		t.Fatalf("unexpected run-a summary: %#v", got[0])
 	}
 	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 2 || got[1].LastKind != "error" || got[1].LastError != "boom" {

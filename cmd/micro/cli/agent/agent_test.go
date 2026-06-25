@@ -19,6 +19,7 @@ func TestWriteRunIndexJSON(t *testing.T) {
 		UpdatedAt: time.Unix(0, 2),
 		Events:    2,
 		LastKind:  "tool",
+		TraceID:   "1234567890abcdef",
 	}}
 	var out bytes.Buffer
 	if err := writeRunIndex(&out, "runner", runs, true); err != nil {
@@ -44,6 +45,7 @@ func TestWriteRunHistoryHumanAndJSON(t *testing.T) {
 		Model:     "unit-model",
 		LatencyMS: 42,
 		Tokens:    ai.Usage{TotalTokens: 5},
+		TraceID:   "1234567890abcdef",
 	}}
 
 	var human bytes.Buffer
@@ -51,7 +53,7 @@ func TestWriteRunHistoryHumanAndJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	line := human.String()
-	for _, want := range []string{"12:34:56.007 tool", "probe", "oteltest/unit-model", "42ms", "tokens=5"} {
+	for _, want := range []string{"12:34:56.007 tool", "probe", "oteltest/unit-model", "42ms", "tokens=5", "trace=1234567890ab"} {
 		if !strings.Contains(line, want) {
 			t.Fatalf("human output %q missing %q", line, want)
 		}

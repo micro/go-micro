@@ -156,6 +156,9 @@ func writeRunIndex(w io.Writer, name string, runs []goagent.RunSummary, asJSON b
 	fmt.Fprintln(w, "  Runs:")
 	for _, run := range runs {
 		line := fmt.Sprintf("    %s  events=%d  last=%s  updated=%s", run.RunID, run.Events, run.LastKind, run.UpdatedAt.Format("2006-01-02 15:04:05"))
+		if run.TraceID != "" {
+			line += "  trace=" + shortTraceID(run.TraceID)
+		}
 		if run.LastError != "" {
 			line += "  error=" + run.LastError
 		}
@@ -196,6 +199,9 @@ func writeRunHistory(w io.Writer, name, runID string, events []goagent.RunEvent,
 		if e.Tokens.TotalTokens > 0 {
 			line += fmt.Sprintf(" tokens=%d", e.Tokens.TotalTokens)
 		}
+		if e.TraceID != "" {
+			line += " trace=" + shortTraceID(e.TraceID)
+		}
 		if e.Refused != "" {
 			line += " refused=" + e.Refused
 		}
@@ -205,4 +211,11 @@ func writeRunHistory(w io.Writer, name, runID string, events []goagent.RunEvent,
 		fmt.Fprintln(w, line)
 	}
 	return nil
+}
+
+func shortTraceID(id string) string {
+	if len(id) <= 12 {
+		return id
+	}
+	return id[:12]
 }
