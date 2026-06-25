@@ -18,18 +18,20 @@ When a Codex task makes repository changes and the requested outcome is a PR:
    ```
 5. Stage the intended files and commit on that branch.
 6. Open the pull request yourself with the GitHub CLI, which is installed in the
-   environment and whose `origin` points at this repository:
+   environment and whose `origin` points at this repository, then enable
+   auto-merge so GitHub merges it once the required CI checks pass:
 
    ```sh
    git push -u origin HEAD
    gh pr create --base master --label codex \
      --title "<concise title>" \
      --body "<summary of the change and testing, including 'Closes #<issue>'>"
+   gh pr merge --squash --auto --delete-branch
    ```
 
-The branch **must** start with `codex/` and the PR **must** carry the `codex`
-label — the auto-merge sweep only matches PRs that satisfy both, so a branch
-named `work` (or any non-`codex/` branch) will never be merged.
+The branch should start with `codex/` and the PR should carry the `codex`
+label. Auto-merge waits for the required status checks (build, tests,
+golangci-lint) — never merge a PR manually before CI is green.
 
 Do not just say that a PR was opened, and do **not** rely on the `make_pr` tool:
 in this environment `make_pr` only records the title/body and never pushes a
