@@ -71,3 +71,54 @@ func TestPendingFlowRunsFiltersCompletedRuns(t *testing.T) {
 		t.Fatalf("pending runs = %+v", got)
 	}
 }
+
+func TestFilterFlowRunsStatus(t *testing.T) {
+	runs := []aiflow.Run{
+		{ID: "run-1", Status: "done"},
+		{ID: "run-2", Status: "failed"},
+		{ID: "run-3", Status: "running"},
+		{ID: "run-4", Status: "failed"},
+	}
+
+	got := filterFlowRuns(runs, flowRunOptions{Status: "failed"})
+	if len(got) != 2 {
+		t.Fatalf("filterFlowRuns returned %d runs, want 2: %+v", len(got), got)
+	}
+	if got[0].ID != "run-2" || got[1].ID != "run-4" {
+		t.Fatalf("failed runs = %+v", got)
+	}
+}
+
+func TestFilterFlowRunsLimitKeepsNewestRuns(t *testing.T) {
+	runs := []aiflow.Run{
+		{ID: "run-1", Status: "done"},
+		{ID: "run-2", Status: "failed"},
+		{ID: "run-3", Status: "running"},
+	}
+
+	got := filterFlowRuns(runs, flowRunOptions{Limit: 2})
+	if len(got) != 2 {
+		t.Fatalf("filterFlowRuns returned %d runs, want 2: %+v", len(got), got)
+	}
+	if got[0].ID != "run-2" || got[1].ID != "run-3" {
+		t.Fatalf("limited runs = %+v", got)
+	}
+}
+
+func TestFilterFlowRunsCombinesPendingStatusAndLimit(t *testing.T) {
+	runs := []aiflow.Run{
+		{ID: "run-1", Status: "failed"},
+		{ID: "run-2", Status: "done"},
+		{ID: "run-3", Status: "failed"},
+		{ID: "run-4", Status: "running"},
+		{ID: "run-5", Status: "failed"},
+	}
+
+	got := filterFlowRuns(runs, flowRunOptions{Pending: true, Status: "failed", Limit: 2})
+	if len(got) != 2 {
+		t.Fatalf("filterFlowRuns returned %d runs, want 2: %+v", len(got), got)
+	}
+	if got[0].ID != "run-3" || got[1].ID != "run-5" {
+		t.Fatalf("filtered runs = %+v", got)
+	}
+}
