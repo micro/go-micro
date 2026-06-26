@@ -7,6 +7,7 @@ on:
     types:
       - opened
       - reopened
+      - synchronize
     branches:
       - "**"
 jobs:
