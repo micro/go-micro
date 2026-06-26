@@ -88,6 +88,16 @@ The command also prints the registered model, image, and video provider
 capabilities before running conformance. Disable that with `-capabilities=false`
 when you only want pass/fail output.
 
+For automation, add `-summary-json` to capture the selected providers,
+harnesses, registered capability rows, and pass/skip/fail results in a stable
+machine-readable file:
+
+```sh
+go run ./internal/harness/provider-conformance \
+  -providers mock \
+  -summary-json provider-conformance-summary.json
+```
+
 ## Related docs
 
 - [The Agent Harness](agent-harness.html)

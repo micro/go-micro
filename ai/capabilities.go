@@ -5,7 +5,7 @@ import "sort"
 // CapabilityRow is one deterministic row in a provider capability matrix.
 type CapabilityRow struct {
 	// Provider is the registered provider name.
-	Provider string
+	Provider string `json:"provider"`
 	Capabilities
 }
 
@@ -14,11 +14,11 @@ type CapabilityRow struct {
 // provider marketing claims, so it reflects what this build can actually use.
 type Capabilities struct {
 	// Model reports whether ai.New can construct a chat/text model provider.
-	Model bool
+	Model bool `json:"model"`
 	// Image reports whether ai.NewImage can construct an image model provider.
-	Image bool
+	Image bool `json:"image"`
 	// Video reports whether ai.NewVideo can construct a video model provider.
-	Video bool
+	Video bool `json:"video"`
 }
 
 // ProviderCapabilities reports the capabilities registered for provider.

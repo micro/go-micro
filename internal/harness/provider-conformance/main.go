@@ -14,6 +14,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -49,6 +50,7 @@ func main() {
 	timeoutFlag := flag.Duration("timeout", 10*time.Minute, "timeout per provider/harness run")
 	requireConfiguredFlag := flag.Bool("require-configured", false, "fail when a selected live provider is missing an API key")
 	capabilitiesFlag := flag.Bool("capabilities", true, "print the registered provider capability matrix before running conformance")
+	summaryJSONFlag := flag.String("summary-json", "", "write a machine-readable conformance summary to this path")
 	flag.Parse()
 
 	providers := splitCSV(*providersFlag)
@@ -63,15 +65,18 @@ func main() {
 	}
 
 	var ran, skipped, failed int
+	var results []conformanceResult
 	for _, provider := range providers {
 		if provider != "mock" && providerKey(provider) == "" {
 			msg := fmt.Sprintf("set MICRO_AI_API_KEY or %s", providerEnv[provider])
 			if *requireConfiguredFlag {
 				fmt.Printf("FAIL %s: missing API key (%s)\n", provider, msg)
 				failed++
+				results = append(results, conformanceResult{Provider: provider, Status: statusFailed, Error: "missing API key: " + msg})
 			} else {
 				fmt.Printf("- %s: skipped (%s)\n", provider, msg)
 				skipped++
+				results = append(results, conformanceResult{Provider: provider, Status: statusSkipped, Error: msg})
 			}
 			continue
 		}
@@ -81,16 +86,65 @@ func main() {
 			if err := runHarness(provider, harness, *timeoutFlag); err != nil {
 				fmt.Printf("FAIL %s / %s: %v\n", provider, harness, err)
 				failed++
+				results = append(results, conformanceResult{Provider: provider, Harness: harness, Status: statusFailed, Error: err.Error()})
 				continue
 			}
 			ran++
+			results = append(results, conformanceResult{Provider: provider, Harness: harness, Status: statusPassed})
 		}
 	}
 
 	fmt.Printf("\nprovider conformance: %d passed, %d skipped providers, %d failed\n", ran, skipped, failed)
+	if *summaryJSONFlag != "" {
+		summary := conformanceSummary{
+			Providers:    providers,
+			Harnesses:    harnesses,
+			Capabilities: ai.CapabilityRows(),
+			Results:      results,
+			Passed:       ran,
+			Skipped:      skipped,
+			Failed:       failed,
+		}
+		if err := writeSummaryJSON(*summaryJSONFlag, summary); err != nil {
+			fmt.Fprintf(os.Stderr, "write summary: %v\n", err)
+			os.Exit(1)
+		}
+	}
 	if failed > 0 {
 		os.Exit(1)
 	}
+}
+
+const (
+	statusPassed  = "passed"
+	statusSkipped = "skipped"
+	statusFailed  = "failed"
+)
+
+type conformanceResult struct {
+	Provider string `json:"provider"`
+	Harness  string `json:"harness,omitempty"`
+	Status   string `json:"status"`
+	Error    string `json:"error,omitempty"`
+}
+
+type conformanceSummary struct {
+	Providers    []string            `json:"providers"`
+	Harnesses    []string            `json:"harnesses"`
+	Capabilities []ai.CapabilityRow  `json:"capabilities"`
+	Results      []conformanceResult `json:"results"`
+	Passed       int                 `json:"passed"`
+	Skipped      int                 `json:"skipped"`
+	Failed       int                 `json:"failed"`
+}
+
+func writeSummaryJSON(path string, summary conformanceSummary) error {
+	b, err := json.MarshalIndent(summary, "", "  ")
+	if err != nil {
+		return err
+	}
+	b = append(b, '\n')
+	return os.WriteFile(path, b, 0o644)
 }
 
 func printCapabilityMatrix() {
