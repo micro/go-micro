@@ -56,6 +56,32 @@ func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
 	}
 }
 
+func TestWriteCapabilityMarkdown(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "capabilities.md")
+	rows := []ai.CapabilityRow{
+		{Provider: "mock", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "vision", Capabilities: ai.Capabilities{Image: true, Video: true}},
+	}
+	if err := writeCapabilityMarkdown(path, rows); err != nil {
+		t.Fatalf("writeCapabilityMarkdown returned error: %v", err)
+	}
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read capabilities markdown: %v", err)
+	}
+	got := string(b)
+	for _, want := range []string{
+		"| Provider | Model | Image | Video |",
+		"| mock | ✅ | — | — |",
+		"| vision | — | ✅ | ✅ |",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("capabilities markdown = %q, want row %q", got, want)
+		}
+	}
+}
+
 func TestWriteSummaryJSON(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "summary.json")
 	summary := conformanceSummary{
