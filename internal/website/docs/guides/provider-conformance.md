@@ -1,5 +1,4 @@
 ---
-title: Provider Conformance Matrix
 layout: default
 ---
 
@@ -88,3 +87,10 @@ go run ./internal/harness/provider-conformance \
 The command also prints the registered model, image, and video provider
 capabilities before running conformance. Disable that with `-capabilities=false`
 when you only want pass/fail output.
+
+## Related docs
+
+- [The Agent Harness](agent-harness.html)
+- [Agents and Workflows](agents-and-workflows.html)
+- [AI Provider Guide](ai-provider-guide.html)
+- [Roadmap](/docs/roadmap.html)

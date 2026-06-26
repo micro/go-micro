@@ -117,7 +117,7 @@ func spanAttributes(attrs []attribute.KeyValue) map[string]string {
 	return out
 }
 
-func TestAgentOpenTelemetryNoopWhenUnconfigured(t *testing.T) {
+func TestAgentRunTimelineRecordsModelAndToolWithoutTraceProvider(t *testing.T) {
 	st := store.NewMemoryStore()
 	a := New(Name("runner-noop"), Provider("oteltest"), WithStore(st), WithTool("probe", "probe", nil, func(context.Context, map[string]any) (string, error) { return "ok", nil }))
 	if _, err := a.Ask(context.Background(), "hello"); err != nil {
@@ -127,11 +127,37 @@ func TestAgentOpenTelemetryNoopWhenUnconfigured(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(keys) != 0 {
-		t.Fatalf("expected no run timeline without TraceProvider, got %v", keys)
+	if len(keys) == 0 {
+		t.Fatal("expected run timeline without TraceProvider")
 	}
-	if _, ok := a.(*agentImpl).model.(*tracedModel); ok {
-		t.Fatal("model should not be wrapped when TraceProvider is nil")
+	summaries, err := ListRunSummaries(st, "runner-noop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("got %d summaries, want 1", len(summaries))
+	}
+	if summaries[0].Status != "done" || summaries[0].LastKind != "done" {
+		t.Fatalf("unexpected summary without TraceProvider: %#v", summaries[0])
+	}
+	if summaries[0].TraceID != "" || summaries[0].SpanID != "" {
+		t.Fatalf("unexpected trace correlation without TraceProvider: %#v", summaries[0])
+	}
+	events, err := LoadRunEvents(st, "runner-noop", summaries[0].RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{"run": false, "model": false, "tool": false, "done": false}
+	for _, e := range events {
+		seen[e.Kind] = true
+		if e.TraceID != "" || e.SpanID != "" {
+			t.Fatalf("event has trace correlation without TraceProvider: %#v", e)
+		}
+	}
+	for kind, ok := range seen {
+		if !ok {
+			t.Fatalf("missing %s event in timeline: %#v", kind, events)
+		}
 	}
 }
 
@@ -210,7 +236,7 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 	events := []RunEvent{
 		{Time: time.Unix(0, 1), RunID: "run-old", Agent: "runner", Kind: "run"},
 		{Time: time.Unix(0, 2), RunID: "run-old", Agent: "runner", Kind: "done"},
-		{Time: time.Unix(0, 3), RunID: "run-new", Agent: "runner", Kind: "run"},
+		{Time: time.Unix(0, 3), RunID: "run-new", Agent: "runner", TraceID: "abcdef1234567890", Kind: "run"},
 		{Time: time.Unix(0, 4), RunID: "run-new", Agent: "runner", Kind: "error", Error: "boom"},
 	}
 	for _, e := range events {
@@ -223,7 +249,7 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 		}
 	}
 
-	got, err := ListRunSummariesWithOptions(st, "runner", RunListOptions{Status: "error", Limit: 1})
+	got, err := ListRunSummariesWithOptions(st, "runner", RunListOptions{Status: "error", TraceID: "abcdef", Limit: 1})
 	if err != nil {
 		t.Fatal(err)
 	}

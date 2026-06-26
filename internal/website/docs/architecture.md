@@ -66,8 +66,7 @@ import (
 )
 
 func main() {
-    service := micro.NewService(
-        micro.Name("example"),
+    service := micro.NewService("example",
     )
     service.Init()
     if err := service.Run(); err != nil {

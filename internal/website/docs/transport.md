@@ -31,11 +31,9 @@ import (
     grpcClient "go-micro.dev/v6/client/grpc"
 )
 
-// Important: Server must be specified before Name
-service := micro.NewService(
+service := micro.NewService("myservice",
     micro.Server(grpcServer.NewServer()),
     micro.Client(grpcClient.NewClient()),
-    micro.Name("myservice"),
 )
 ```
 
@@ -59,7 +57,7 @@ import (
 
 func main() {
     t := grpc.NewTransport()
-    service := micro.NewService(
+    service := micro.NewService("transport-example",
         micro.Transport(t),
     )
     service.Init()
@@ -76,7 +74,7 @@ import (
 
 func main() {
     t := tnats.NewTransport()
-    service := micro.NewService(micro.Transport(t))
+    service := micro.NewService("transport-example", micro.Transport(t))
     service.Init()
     service.Run()
 }

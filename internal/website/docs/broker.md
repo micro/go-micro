@@ -38,7 +38,7 @@ import (
 )
 
 func main() {
-    service := micro.NewService()
+    service := micro.NewService("publisher")
     service.Init()
 
     // Publish a message
@@ -73,7 +73,7 @@ import (
 
 func main() {
     b := bnats.NewNatsBroker()
-    svc := micro.NewService(micro.Broker(b))
+    svc := micro.NewService("publisher", micro.Broker(b))
     svc.Init()
     svc.Run()
 }
@@ -88,7 +88,7 @@ import (
 
 func main() {
     b := rabbitmq.NewBroker()
-    svc := micro.NewService(micro.Broker(b))
+    svc := micro.NewService("publisher", micro.Broker(b))
     svc.Init()
     svc.Run()
 }

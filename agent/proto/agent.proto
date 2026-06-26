@@ -17,6 +17,11 @@ message ChatResponse {
 	string reply = 1;
 	string agent = 2;
 	repeated ToolCall tool_calls = 3;
+
+	// run_id correlates this chat response with tool calls, traces, and run history.
+	string run_id = 4;
+	// parent_id is set when this response belongs to a delegated sub-agent run.
+	string parent_id = 5;
 }
 
 message ToolCall {

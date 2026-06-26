@@ -18,7 +18,7 @@ import (
 
 func main() {
     reg := consul.NewConsulRegistry()
-    svc := micro.NewService(micro.Registry(reg))
+    svc := micro.NewService("consul-registry", micro.Registry(reg))
     svc.Init()
     svc.Run()
 }

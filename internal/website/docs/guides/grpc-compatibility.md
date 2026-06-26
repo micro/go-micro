@@ -19,8 +19,7 @@ The gRPC **transport** uses the gRPC protocol as a communication layer, similar 
 import "go-micro.dev/v6/transport/grpc"
 
 t := grpc.NewTransport()
-service := micro.NewService(
-    micro.Name("helloworld"),
+service := micro.NewService("helloworld",
     micro.Transport(t),
 )
 ```
@@ -42,14 +41,11 @@ import (
     grpcClient "go-micro.dev/v6/client/grpc"
 )
 
-service := micro.NewService(
-    micro.Server(grpcServer.NewServer()),  // Server must come before Name
+service := micro.NewService("helloworld",
+    micro.Server(grpcServer.NewServer()),
     micro.Client(grpcClient.NewClient()),
-    micro.Name("helloworld"),
 )
 ```
-
-> **Important**: The `micro.Server()` option must be specified **before** `micro.Name()`. This is because `micro.Name()` sets the name on the current server, and if `micro.Server()` comes after, it replaces the server with a new one that has no name set.
 
 ## When to Use Which
 
@@ -123,9 +119,8 @@ func (s *Say) Hello(ctx context.Context, req *pb.Request, rsp *pb.Response) erro
 func main() {
     // Create service with gRPC server for native gRPC compatibility
     // Note: Server must be set before Name to ensure the name is applied to the gRPC server
-    service := micro.NewService(
+    service := micro.NewService("helloworld",
         micro.Server(grpcServer.NewServer()),
-        micro.Name("helloworld"),
         micro.Address(":8080"),
     )
 
@@ -158,9 +153,8 @@ import (
 
 func main() {
     // Create service with gRPC client
-    service := micro.NewService(
+    service := micro.NewService("helloworld.client",
         micro.Client(grpcClient.NewClient()),
-        micro.Name("helloworld.client"),
     )
     service.Init()
 
@@ -207,10 +201,9 @@ import (
 )
 
 func main() {
-    service := micro.NewService(
-        micro.Server(grpcServer.NewServer()),  // Server first
+    service := micro.NewService("helloworld",
+        micro.Server(grpcServer.NewServer()),
         micro.Client(grpcClient.NewClient()),
-        micro.Name("helloworld"),              // Name after Server
         micro.Address(":8080"),
     )
 
@@ -239,7 +232,7 @@ ERROR:
 ```go
 // Wrong - uses transport
 t := grpc.NewTransport()
-service := micro.NewService(
+service := micro.NewService("helloworld",
     micro.Transport(t),
 )
 ```
@@ -250,7 +243,7 @@ To:
 // Correct - uses server
 import grpcServer "go-micro.dev/v6/server/grpc"
 
-service := micro.NewService(
+service := micro.NewService("helloworld",
     micro.Server(grpcServer.NewServer()),
 )
 ```
@@ -270,36 +263,12 @@ import "go-micro.dev/v6/server/grpc"
 import "go-micro.dev/v6/client/grpc"
 ```
 
-### Option Ordering Issue
-
-If the gRPC server is working but your service has no name or is not being found in the registry:
-
-**Cause**: The `micro.Server()` option is specified **after** `micro.Name()`.
-
-When options are processed, `micro.Name()` sets the name on the current server. If `micro.Server()` comes later, it replaces the server with a new one that doesn't have the name set.
-
-**Solution**: Always specify `micro.Server()` **before** `micro.Name()`:
-
-```go
-// Wrong - server replaces the one with the name set
-service := micro.NewService(
-    micro.Name("helloworld"),              // Sets name on default server
-    micro.Server(grpcServer.NewServer()),  // Replaces server, name is lost!
-)
-
-// Correct - name is set on the gRPC server
-service := micro.NewService(
-    micro.Server(grpcServer.NewServer()),  // Set server first
-    micro.Name("helloworld"),              // Name is now applied to gRPC server
-)
-```
-
 ### Service Name vs Package Name
 
-When creating a client to call another service, use the **service name** (set via `micro.Name()`), not the proto package name:
+When creating a client to call another service, use the **service name** passed to `micro.NewService`, not the proto package name:
 
 ```go
-// If the server was started with micro.Name("helloworld")
+// If the server was started with micro.NewService("helloworld", ...)
 sayService := pb.NewSayService("helloworld", service.Client())  // Use service name
 
 // NOT the package name from the proto file

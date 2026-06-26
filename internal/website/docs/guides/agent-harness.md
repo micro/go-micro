@@ -71,4 +71,5 @@ harness. When that loop has to touch production, you do.
 - [Agent Loops](agent-loops.html) — run-until-done, with a ceiling
 - [Plan & Delegate](plan-delegate.html)
 - [Agent Guardrails](agent-guardrails.html)
+- [Provider Conformance](provider-conformance.html) — verified provider behavior
 - [Roadmap](/docs/roadmap.html)

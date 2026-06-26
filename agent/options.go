@@ -250,8 +250,9 @@ func WithTool(name, description string, properties map[string]any, handler ToolF
 	}
 }
 
-// TraceProvider enables OpenTelemetry tracing for agent runs. When nil,
-// agent tracing and run timeline recording are disabled.
+// TraceProvider enables OpenTelemetry tracing for agent runs. The persisted
+// run timeline is recorded even when TraceProvider is nil; trace/span IDs are
+// added only when a provider is configured.
 func TraceProvider(tp trace.TracerProvider) Option {
 	return func(o *Options) { o.TraceProvider = tp }
 }

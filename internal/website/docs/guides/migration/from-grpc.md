@@ -128,8 +128,7 @@ func (s *Greeter) SayHello(ctx context.Context, req *pb.HelloRequest, rsp *pb.He
 }
 
 func main() {
-    svc := micro.NewService(
-        micro.Name("greeter"),
+    svc := micro.NewService("greeter",
     )
     svc.Init()
 
@@ -159,7 +158,7 @@ rsp, err := client.SayHello(context.Background(), &pb.HelloRequest{Name: "John"}
 
 **Go Micro client:**
 ```go
-svc := micro.NewService(micro.Name("client"))
+svc := micro.NewService("client")
 svc.Init()
 
 client := pb.NewGreeterService("greeter", svc.Client())
@@ -185,8 +184,7 @@ import (
     grpcserver "go-micro.dev/v6/server/grpc"
 )
 
-svc := micro.NewService(
-    micro.Name("greeter"),
+svc := micro.NewService("greeter",
     micro.Client(grpcclient.NewClient()),
     micro.Server(grpcserver.NewServer()),
 )
@@ -268,8 +266,7 @@ defer client.Agent().ServiceDeregister("greeter-1")
 import "go-micro.dev/v6/registry/consul"
 
 reg := consul.NewConsulRegistry()
-svc := micro.NewService(
-    micro.Name("greeter"),
+svc := micro.NewService("greeter",
     micro.Registry(reg),
 )
 
@@ -293,7 +290,7 @@ svc.Run()
 import "go-micro.dev/v6/selector"
 
 // Client-side load balancing built-in
-svc := micro.NewService(
+svc := micro.NewService("greeter",
     micro.Selector(selector.NewSelector(
         selector.SetStrategy(selector.RoundRobin),
     )),
@@ -362,11 +359,10 @@ lis, _ := net.Listen("tcp", ":50051")
 **Go Micro**: Automatic or explicit
 ```go
 // Let Go Micro choose
-svc := micro.NewService(micro.Name("greeter"))
+svc := micro.NewService("greeter")
 
 // Or specify
-svc := micro.NewService(
-    micro.Name("greeter"),
+svc := micro.NewService("greeter",
     micro.Address(":50051"),
 )
 ```
@@ -390,7 +386,7 @@ Ensure both use protobuf:
 ```go
 import "go-micro.dev/v6/codec/proto"
 
-svc := micro.NewService(
+svc := micro.NewService("greeter",
     micro.Codec("application/protobuf", proto.Marshaler{}),
 )
 ```
