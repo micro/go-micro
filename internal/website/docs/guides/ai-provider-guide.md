@@ -30,21 +30,21 @@ imports are linked in:
 
 ```go
 for _, row := range ai.CapabilityRows() {
-    fmt.Printf("%s: chat=%t image=%t video=%t\n", row.Provider, row.Model, row.Image, row.Video)
+    fmt.Printf("%s: chat=%t image=%t video=%t stream=%t\n", row.Provider, row.Model, row.Image, row.Video, row.Stream)
 }
 ```
 
 The built-in providers currently register these capability interfaces:
 
-| Provider | Chat/text (`ai.Model`) | Image (`ai.ImageModel`) | Video (`ai.VideoModel`) |
-| --- | --- | --- | --- |
-| `anthropic` | Yes | No | No |
-| `atlascloud` | Yes | Yes | Yes |
-| `gemini` | Yes | No | No |
-| `groq` | Yes | No | No |
-| `mistral` | Yes | No | No |
-| `openai` | Yes | Yes | No |
-| `together` | Yes | No | No |
+| Provider | Chat/text (`ai.Model`) | Image (`ai.ImageModel`) | Video (`ai.VideoModel`) | Streaming (`ai.Stream`) |
+| --- | --- | --- | --- | --- |
+| `anthropic` | Yes | No | No | No |
+| `atlascloud` | Yes | Yes | Yes | No |
+| `gemini` | Yes | No | No | No |
+| `groq` | Yes | No | No | No |
+| `mistral` | Yes | No | No | No |
+| `openai` | Yes | Yes | No | No |
+| `together` | Yes | No | No | No |
 
 ## Step 1: Implement the `ai.Model` Interface
 
