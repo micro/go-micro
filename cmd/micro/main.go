@@ -5,6 +5,7 @@ import (
 	"go-micro.dev/v6/cmd"
 
 	_ "go-micro.dev/v6/cmd/micro/a2a"
+	_ "go-micro.dev/v6/cmd/micro/ai"
 	_ "go-micro.dev/v6/cmd/micro/api"
 	_ "go-micro.dev/v6/cmd/micro/chat"
 	_ "go-micro.dev/v6/cmd/micro/cli"
