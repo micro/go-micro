@@ -62,6 +62,10 @@ type RunListOptions struct {
 	// Status, when set, keeps only runs with the matching status
 	// (for example "running", "done", "error", or "refused").
 	Status string
+	// TraceID, when set, keeps only runs correlated with this trace id.
+	// A prefix is accepted so operators can paste the shortened trace id
+	// printed by `micro runs`.
+	TraceID string
 	// Limit, when positive, returns the most recently updated runs up to
 	// the limit. Limited results are ordered newest first.
 	Limit int
@@ -302,6 +306,9 @@ func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOp
 			}
 		}
 		if opts.Status != "" && summary.Status != opts.Status {
+			continue
+		}
+		if opts.TraceID != "" && !strings.HasPrefix(summary.TraceID, opts.TraceID) {
 			continue
 		}
 		summaries = append(summaries, summary)
