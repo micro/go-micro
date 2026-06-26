@@ -35,8 +35,7 @@ func (g *Greeter) Hello(ctx context.Context, req *struct{}, rsp *struct{Msg stri
 }
 
 func main() {
-    service := micro.NewService(
-        micro.Name("greeter"),
+    service := micro.NewService("greeter",
     )
     service.Init()
     micro.RegisterHandler(service.Server(), new(Greeter))

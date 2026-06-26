@@ -128,8 +128,7 @@ func (s *Greeter) SayHello(ctx context.Context, req *pb.HelloRequest, rsp *pb.He
 }
 
 func main() {
-    svc := micro.NewService(
-        micro.Name("greeter"),
+    svc := micro.NewService("greeter",
     )
     svc.Init()
 
@@ -185,8 +184,7 @@ import (
     grpcserver "go-micro.dev/v6/server/grpc"
 )
 
-svc := micro.NewService(
-    micro.Name("greeter"),
+svc := micro.NewService("greeter",
     micro.Client(grpcclient.NewClient()),
     micro.Server(grpcserver.NewServer()),
 )
@@ -268,8 +266,7 @@ defer client.Agent().ServiceDeregister("greeter-1")
 import "go-micro.dev/v6/registry/consul"
 
 reg := consul.NewConsulRegistry()
-svc := micro.NewService(
-    micro.Name("greeter"),
+svc := micro.NewService("greeter",
     micro.Registry(reg),
 )
 
@@ -365,8 +362,7 @@ lis, _ := net.Listen("tcp", ":50051")
 svc := micro.NewService("greeter")
 
 // Or specify
-svc := micro.NewService(
-    micro.Name("greeter"),
+svc := micro.NewService("greeter",
     micro.Address(":50051"),
 )
 ```

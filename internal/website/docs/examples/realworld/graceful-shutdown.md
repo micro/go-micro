@@ -34,8 +34,7 @@ import (
 )
 
 func main() {
-    svc := micro.NewService(
-        micro.Name("myservice"),
+    svc := micro.NewService("myservice",
         micro.BeforeStop(func() error {
             logger.Info("Service stopping, running cleanup...")
             return cleanup()
@@ -233,8 +232,7 @@ func main() {
     app.AddWorker(&Worker{name: "cleanup"})
     app.AddWorker(&Worker{name: "metrics"})
     
-    svc := micro.NewService(
-        micro.Name("myservice"),
+    svc := micro.NewService("myservice",
         micro.BeforeStop(func() error {
             ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
             defer cancel()

@@ -62,8 +62,7 @@ b := nats.NewNatsBroker(
     nats.DrainConnection(),
 )
 
-svc := micro.NewService(
-    micro.Name("myservice"),
+svc := micro.NewService("myservice",
     micro.Version("1.2.3"),
     micro.Registry(reg),
     micro.Broker(b),

@@ -35,8 +35,7 @@ svc := micro.NewService("myservice")
 
 // Production - swap to Consul
 reg := consul.NewConsulRegistry()
-svc := micro.NewService(
-    micro.Name("myservice"),
+svc := micro.NewService("myservice",
     micro.Registry(reg),
 )
 ```

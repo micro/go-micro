@@ -319,8 +319,7 @@ import (
 )
 
 func main() {
-    service := micro.NewService(
-        micro.Name("tasks"),
+    service := micro.NewService("tasks",
         micro.Address(":8081"),
     )
     service.Init()

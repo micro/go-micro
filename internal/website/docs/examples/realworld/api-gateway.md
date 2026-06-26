@@ -79,8 +79,7 @@ func main() {
     }
     defer db.Close()
 
-    svc := micro.NewService(
-        micro.Name("users"),
+    svc := micro.NewService("users",
         micro.Version("1.0.0"),
     )
 
@@ -172,8 +171,7 @@ func main() {
     }
     defer db.Close()
 
-    svc := micro.NewService(
-        micro.Name("orders"),
+    svc := micro.NewService("orders",
         micro.Version("1.0.0"),
     )
 
@@ -254,8 +252,7 @@ func (g *Gateway) CreateOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-    svc := micro.NewService(
-        micro.Name("api.gateway"),
+    svc := micro.NewService("api.gateway",
     )
     svc.Init()
 
