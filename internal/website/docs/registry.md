@@ -53,7 +53,7 @@ import (
 
 func main() {
     reg := consul.NewRegistry()
-    service := micro.NewService(
+    service := micro.NewService("registry-example",
         micro.Registry(reg),
     )
     service.Init()

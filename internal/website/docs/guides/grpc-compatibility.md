@@ -232,7 +232,7 @@ ERROR:
 ```go
 // Wrong - uses transport
 t := grpc.NewTransport()
-service := micro.NewService(
+service := micro.NewService("helloworld",
     micro.Transport(t),
 )
 ```

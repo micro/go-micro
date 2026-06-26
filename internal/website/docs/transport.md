@@ -57,7 +57,7 @@ import (
 
 func main() {
     t := grpc.NewTransport()
-    service := micro.NewService(
+    service := micro.NewService("transport-example",
         micro.Transport(t),
     )
     service.Init()

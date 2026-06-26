@@ -140,7 +140,7 @@ import (
     grpcClient "go-micro.dev/v6/client/grpc"
 )
 
-svc := micro.NewService(
+svc := micro.NewService("myservice",
     micro.Server(grpcServer.NewServer()),
     micro.Client(grpcClient.NewClient()),
 )

@@ -26,7 +26,7 @@ import (
 
 func main() {
     reg := consul.NewConsulRegistry()
-    svc := micro.NewService(
+    svc := micro.NewService("plugin-example",
         micro.Registry(reg),
     )
     svc.Init()
@@ -108,7 +108,7 @@ import (
 )
 
 func main() {
-    svc := micro.NewService(
+    svc := micro.NewService("plugin-example",
         micro.Server(grpcServer.NewServer()),
         micro.Client(grpcClient.NewClient()),
     )

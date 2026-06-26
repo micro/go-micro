@@ -98,7 +98,7 @@ Choose based on your deployment:
 import "go-micro.dev/v6/server/grpc"
 
 // Use gRPC for better performance
-service := micro.NewService(
+service := micro.NewService("performance-example",
     micro.Server(grpc.NewServer()),
 )
 ```

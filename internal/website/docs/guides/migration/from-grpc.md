@@ -290,7 +290,7 @@ svc.Run()
 import "go-micro.dev/v6/selector"
 
 // Client-side load balancing built-in
-svc := micro.NewService(
+svc := micro.NewService("greeter",
     micro.Selector(selector.NewSelector(
         selector.SetStrategy(selector.RoundRobin),
     )),
@@ -386,7 +386,7 @@ Ensure both use protobuf:
 ```go
 import "go-micro.dev/v6/codec/proto"
 
-svc := micro.NewService(
+svc := micro.NewService("greeter",
     micro.Codec("application/protobuf", proto.Marshaler{}),
 )
 ```
