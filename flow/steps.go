@@ -240,7 +240,8 @@ func Dispatch(name string) StepFunc {
 		if d := depsFrom(ctx); d != nil && d.client != nil {
 			cl = d.client
 		}
-		body, _ := json.Marshal(map[string]string{"message": in.String()})
+		info, _ := ai.RunInfoFrom(ctx)
+		body, _ := json.Marshal(map[string]string{"message": in.String(), "parent_id": info.RunID})
 		req := cl.NewRequest(name, "Agent.Chat", &codecbytes.Frame{Data: body})
 		var rsp codecbytes.Frame
 		if err := cl.Call(ctx, req, &rsp); err != nil {
