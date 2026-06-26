@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"sort"
 	"syscall"
 
 	"github.com/urfave/cli/v2"
@@ -76,6 +77,8 @@ Examples:
 				Flags: []cli.Flag{
 					&cli.BoolFlag{Name: "json", Usage: "Print durable run history as JSON for automation"},
 					&cli.BoolFlag{Name: "pending", Usage: "Only show runs that have not completed"},
+					&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, failed)"},
+					&cli.IntFlag{Name: "limit", Usage: "Show the most recently updated N runs"},
 				},
 				Action: flowRuns,
 			},
@@ -130,9 +133,7 @@ func flowRuns(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if c.Bool("pending") {
-		runs = pendingFlowRuns(runs)
-	}
+	runs = filterFlowRuns(runs, flowRunOptions{Pending: c.Bool("pending"), Status: c.String("status"), Limit: c.Int("limit")})
 	if len(runs) == 0 {
 		if c.Bool("pending") {
 			fmt.Printf("  No pending runs recorded for flow %q.\n", name)
@@ -144,17 +145,42 @@ func flowRuns(c *cli.Context) error {
 	return writeFlowRuns(os.Stdout, runs, c.Bool("json"))
 }
 
-func pendingFlowRuns(runs []aiflow.Run) []aiflow.Run {
+type flowRunOptions struct {
+	Pending bool
+	Status  string
+	Limit   int
+}
+
+func filterFlowRuns(runs []aiflow.Run, opts flowRunOptions) []aiflow.Run {
 	if len(runs) == 0 {
 		return nil
 	}
-	pending := make([]aiflow.Run, 0, len(runs))
+	filtered := make([]aiflow.Run, 0, len(runs))
 	for _, run := range runs {
-		if run.Status != "done" {
-			pending = append(pending, run)
+		if opts.Pending && run.Status == "done" {
+			continue
 		}
+		if opts.Status != "" && run.Status != opts.Status {
+			continue
+		}
+		filtered = append(filtered, run)
 	}
-	return pending
+	if opts.Limit > 0 && len(filtered) > opts.Limit {
+		sort.SliceStable(filtered, func(i, j int) bool {
+			if filtered[i].Updated.Equal(filtered[j].Updated) {
+				return filtered[i].Started.Before(filtered[j].Started)
+			}
+			return filtered[i].Updated.Before(filtered[j].Updated)
+		})
+		start := len(filtered) - opts.Limit
+		limited := append([]aiflow.Run(nil), filtered[start:]...)
+		return limited
+	}
+	return filtered
+}
+
+func pendingFlowRuns(runs []aiflow.Run) []aiflow.Run {
+	return filterFlowRuns(runs, flowRunOptions{Pending: true})
 }
 
 func writeFlowRuns(w io.Writer, runs []aiflow.Run, asJSON bool) error {
