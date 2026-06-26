@@ -55,3 +55,19 @@ func TestWriteFlowRunsJSON(t *testing.T) {
 		t.Fatalf("decoded runs = %+v", got)
 	}
 }
+
+func TestPendingFlowRunsFiltersCompletedRuns(t *testing.T) {
+	runs := []aiflow.Run{
+		{ID: "run-1", Status: "done"},
+		{ID: "run-2", Status: "failed"},
+		{ID: "run-3", Status: "running"},
+	}
+
+	got := pendingFlowRuns(runs)
+	if len(got) != 2 {
+		t.Fatalf("pendingFlowRuns returned %d runs, want 2: %+v", len(got), got)
+	}
+	if got[0].ID != "run-2" || got[1].ID != "run-3" {
+		t.Fatalf("pending runs = %+v", got)
+	}
+}
