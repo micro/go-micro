@@ -188,6 +188,16 @@ type Response struct {
 - `ToolCalls`: List of tools the model requested (if any)
 - `Answer`: The final answer after tools are executed (only set if ToolHandler is provided)
 
+## Provider capability matrix
+
+The CLI can print the provider capabilities registered in the current build:
+
+```bash
+micro ai providers
+```
+
+It reports support from Go Micro's provider registry, so the matrix reflects the model, image, and video interfaces available to this binary rather than external provider marketing claims.
+
 ## Supported Providers
 
 ### Anthropic Claude
