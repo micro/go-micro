@@ -4,72 +4,89 @@ layout: default
 
 # Provider Conformance Matrix
 
-Go Micro keeps providers behind one `ai.Model` interface, but production agents
-need to know which behaviors are actually covered by the harness checks. This
-matrix records the provider capabilities that are either verified by
-`internal/harness/provider-conformance` or known to be outside the current
-provider surface.
+Go Micro treats model providers as interchangeable pieces of the same agent
+harness: services expose tools, agents reason over them, and workflows stitch the
+work together. The conformance harness keeps that promise honest by running the
+same deterministic services → agents → workflows scenarios against every
+configured provider.
 
-## How to read the matrix
-
-| Mark | Meaning |
-|---|---|
-| ✅ Verified | Covered by the conformance harness when the provider API key is configured. |
-| ⚠️ Unverified | Implemented in the shared harness path, but not yet checked by a dedicated provider conformance case. |
-| — Unsupported | Not implemented by the provider or by the current shared `ai.Model` interface. |
-
-The live harness runs the same deterministic examples against every configured
-provider:
+The live harness is in `internal/harness/provider-conformance`. It skips
+providers without API keys by default, so it is safe to run locally, and it fails
+when any configured provider breaks the shared contract.
 
 ```sh
 go run ./internal/harness/provider-conformance
 ```
 
-For local development without provider keys, run the mock path:
+For a no-key smoke test of the same harness wiring, run the mock provider:
 
 ```sh
 go run ./internal/harness/provider-conformance -providers mock
 ```
 
-## Matrix
+## Status legend
 
-| Capability | Anthropic | OpenAI | Gemini | Groq | Mistral | Together | Atlas Cloud |
-|---|---|---|---|---|---|---|---|
-| Simple generation | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified |
-| Service tool calls | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified |
-| Multi-step tool use | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified |
-| `plan` | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified |
-| `delegate` | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified | ✅ Verified |
-| Guardrail / stop behavior | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified |
-| Streaming | — Unsupported | — Unsupported | — Unsupported | — Unsupported | — Unsupported | — Unsupported | — Unsupported |
-| Structured errors | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified | ⚠️ Unverified |
+| Status | Meaning |
+| --- | --- |
+| ✅ Verified | Covered by the provider-conformance harness for configured live providers. |
+| ⚠️ Unverified | Implemented in the public API, but not yet exercised by provider conformance. |
+| — Unsupported | Not exposed by that provider integration today. |
 
-## What the current harness verifies
+## Harness coverage by capability
 
-The default conformance run executes these harnesses for every selected provider
-with an API key:
+These rows describe what the conformance harness verifies today. A provider is
+considered conformant when the configured-key run passes all selected harnesses.
 
-- `universe` — service discovery and service-backed tool calls.
-- `agent-flow` — a workflow dispatching work through an agent.
-- `plan-delegate` — the built-in `plan` and `delegate` tools on the agent loop.
+| Capability | Harness coverage | Notes |
+| --- | --- | --- |
+| Simple generation | ✅ Verified | Each harness asks the provider to produce an agent response through `ai.Model`. |
+| Service tool calls | ✅ Verified | Harness services are discovered and invoked as model-selected tools. |
+| Multi-step tool use | ✅ Verified | The `universe` and `plan-delegate` harnesses require more than one service/tool action. |
+| `plan` | ✅ Verified | `plan-delegate` verifies that the conductor agent stores a plan in scoped state. |
+| `delegate` | ✅ Verified | `plan-delegate` verifies agent-to-agent delegation over real RPC. |
+| Guardrail/stop behavior | ✅ Verified | `universe` runs with guardrails enabled and asserts the guarded path completes. |
+| Streaming | ⚠️ Unverified | `ai.Model.Stream` exists on the interface, but end-to-end streaming conformance is a roadmap item. |
+| Structured errors | ⚠️ Unverified | Error handling is covered by normal test suites, but provider conformance does not yet compare structured provider errors. |
 
-That means simple generation, service tool calls, multi-step tool use, planning,
-and delegation are verified together as one services → agents → workflows path.
-Provider keys are optional by default so scheduled or local runs can skip missing
-providers without turning the entire check red; use `-require-configured` when a
-CI job should fail for missing secrets.
+## Provider capability matrix
 
-## Keeping this page current
+This matrix combines the registered provider interfaces with the conformance
+coverage above. The chat/text column is the harness path: when the provider has a
+configured key, the conformance command exercises the verified rows in the
+previous section.
 
-When a provider or harness changes, update this page in the same PR as the
-conformance change. In particular:
+| Provider | Chat/text agent harness | Image | Video | Streaming | Structured errors |
+| --- | --- | --- | --- | --- | --- |
+| `anthropic` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
+| `openai` | ✅ Verified when configured | ✅ Registered | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
+| `gemini` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
+| `groq` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
+| `mistral` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
+| `together` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
+| `atlascloud` | ✅ Verified when configured | ✅ Registered | ✅ Registered | ⚠️ Unverified | ⚠️ Unverified |
 
-- Move a capability from ⚠️ to ✅ only when a provider conformance harness asserts
-  the behaviour for that provider.
-- Move a capability from — to ✅ or ⚠️ only when the `ai` package exposes the
-  relevant interface and at least one provider implements it.
-- Keep provider additions in sync with `ai.CapabilityRows()` and the registered
-  providers imported by `internal/harness/provider-conformance`.
+## Running a focused check
+
+Use `-providers` to select a provider and `-harnesses` to narrow the scenario:
+
+```sh
+go run ./internal/harness/provider-conformance \
+  -providers openai,anthropic \
+  -harnesses agent-flow,plan-delegate
+```
+
+By default missing live-provider keys are reported as skips. Add
+`-require-configured` in CI when a selected provider must be present:
+
+```sh
+go run ./internal/harness/provider-conformance \
+  -providers openai \
+  -require-configured
+```
+
+The command also prints the registered model, image, and video provider
+capabilities before running conformance. Disable that with `-capabilities=false`
+when you only want pass/fail output.
 
 ## Related docs
 
