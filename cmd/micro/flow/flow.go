@@ -75,6 +75,7 @@ Examples:
 				ArgsUsage: "[name]",
 				Flags: []cli.Flag{
 					&cli.BoolFlag{Name: "json", Usage: "Print durable run history as JSON for automation"},
+					&cli.BoolFlag{Name: "pending", Usage: "Only show runs that have not completed"},
 				},
 				Action: flowRuns,
 			},
@@ -129,11 +130,31 @@ func flowRuns(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	if c.Bool("pending") {
+		runs = pendingFlowRuns(runs)
+	}
 	if len(runs) == 0 {
+		if c.Bool("pending") {
+			fmt.Printf("  No pending runs recorded for flow %q.\n", name)
+			return nil
+		}
 		fmt.Printf("  No runs recorded for flow %q.\n", name)
 		return nil
 	}
 	return writeFlowRuns(os.Stdout, runs, c.Bool("json"))
+}
+
+func pendingFlowRuns(runs []aiflow.Run) []aiflow.Run {
+	if len(runs) == 0 {
+		return nil
+	}
+	pending := make([]aiflow.Run, 0, len(runs))
+	for _, run := range runs {
+		if run.Status != "done" {
+			pending = append(pending, run)
+		}
+	}
+	return pending
 }
 
 func writeFlowRuns(w io.Writer, runs []aiflow.Run, asJSON bool) error {
