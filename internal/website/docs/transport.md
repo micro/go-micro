@@ -76,7 +76,7 @@ import (
 
 func main() {
     t := tnats.NewTransport()
-    service := micro.NewService(micro.Transport(t))
+    service := micro.NewService("transport-example", micro.Transport(t))
     service.Init()
     service.Run()
 }

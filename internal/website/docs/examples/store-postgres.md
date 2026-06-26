@@ -20,7 +20,7 @@ import (
 
 func main() {
     st := postgres.NewStore()
-    svc := micro.NewService(micro.Store(st))
+    svc := micro.NewService("postgres-store", micro.Store(st))
     svc.Init()
 
     _ = store.Write(&store.Record{Key: "foo", Value: []byte("bar")})

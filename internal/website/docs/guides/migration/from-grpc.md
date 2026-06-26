@@ -159,7 +159,7 @@ rsp, err := client.SayHello(context.Background(), &pb.HelloRequest{Name: "John"}
 
 **Go Micro client:**
 ```go
-svc := micro.NewService(micro.Name("client"))
+svc := micro.NewService("client")
 svc.Init()
 
 client := pb.NewGreeterService("greeter", svc.Client())
@@ -362,7 +362,7 @@ lis, _ := net.Listen("tcp", ":50051")
 **Go Micro**: Automatic or explicit
 ```go
 // Let Go Micro choose
-svc := micro.NewService(micro.Name("greeter"))
+svc := micro.NewService("greeter")
 
 // Or specify
 svc := micro.NewService(

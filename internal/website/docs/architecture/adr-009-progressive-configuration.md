@@ -29,7 +29,7 @@ Implement **progressive configuration** where:
 
 ### Level 1: Zero Config (Development)
 ```go
-svc := micro.NewService(micro.Name("hello"))
+svc := micro.NewService("hello")
 svc.Run()
 ```
 
