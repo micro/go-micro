@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"go-micro.dev/v6/client"
@@ -25,11 +26,17 @@ func (c *fakeClient) Call(ctx context.Context, req client.Request, rsp interface
 func TestExecuteDispatchesToAgent(t *testing.T) {
 	f := New("welcome", Agent("comms"), Prompt("welcome {{.Data}}"))
 
-	var svc, ep string
+	var svc, ep, parentID string
 	f.client = &fakeClient{
 		Client: client.DefaultClient,
 		callFn: func(req client.Request, rsp interface{}) error {
 			svc, ep = req.Service(), req.Endpoint()
+			reqFrame := req.Body().(*codecbytes.Frame)
+			var body map[string]string
+			if err := json.Unmarshal(reqFrame.Data, &body); err != nil {
+				t.Fatalf("request body: %v", err)
+			}
+			parentID = body["parent_id"]
 			frame := rsp.(*codecbytes.Frame)
 			frame.Data = []byte(`{"reply":"welcomed bob","agent":"comms"}`)
 			return nil
@@ -42,6 +49,9 @@ func TestExecuteDispatchesToAgent(t *testing.T) {
 
 	if svc != "comms" || ep != "Agent.Chat" {
 		t.Errorf("dispatched to %s.%s, want comms.Agent.Chat", svc, ep)
+	}
+	if parentID == "" {
+		t.Fatal("dispatch request parent_id is empty")
 	}
 
 	results := f.Results()

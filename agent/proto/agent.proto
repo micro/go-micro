@@ -11,6 +11,9 @@ service Agent {
 
 message ChatRequest {
 	string message = 1;
+
+	// parent_id correlates this chat with the workflow or agent run that dispatched it.
+	string parent_id = 2;
 }
 
 message ChatResponse {

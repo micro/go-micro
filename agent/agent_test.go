@@ -60,6 +60,29 @@ func TestChatResponseIncludesRunIDs(t *testing.T) {
 	}
 }
 
+func TestChatRequestParentIDPropagatesToResponse(t *testing.T) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		info, ok := ai.RunInfoFrom(ctx)
+		if !ok {
+			t.Fatal("RunInfo missing from model context")
+		}
+		if info.ParentID != "flow-run-123" {
+			t.Fatalf("RunInfo.ParentID = %q, want flow-run-123", info.ParentID)
+		}
+		return &ai.Response{Reply: "ok"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("chat-child"))
+	var rsp pb.ChatResponse
+	if err := a.Chat(context.Background(), &pb.ChatRequest{Message: "hello", ParentId: "flow-run-123"}, &rsp); err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+	if rsp.ParentId != "flow-run-123" {
+		t.Errorf("ParentId = %q, want flow-run-123", rsp.ParentId)
+	}
+}
+
 func TestBuildPrompt(t *testing.T) {
 	// Custom prompt
 	a := New(Name("test"), Prompt("custom prompt")).(*agentImpl)

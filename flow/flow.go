@@ -205,6 +205,9 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		return err
 	}
 
+	runID := uuid.New().String()
+	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: runID, Agent: f.name})
+
 	start := time.Now()
 
 	prompt := data
@@ -277,7 +280,8 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 // callAgent hands the rendered prompt to a registered agent's Agent.Chat
 // endpoint over RPC and returns its reply.
 func (f *Flow) callAgent(ctx context.Context, name, message string) (string, error) {
-	body, _ := json.Marshal(map[string]string{"message": message})
+	info, _ := ai.RunInfoFrom(ctx)
+	body, _ := json.Marshal(map[string]string{"message": message, "parent_id": info.RunID})
 	req := f.client.NewRequest(name, "Agent.Chat", &codecbytes.Frame{Data: body})
 	var rsp codecbytes.Frame
 	if err := f.client.Call(ctx, req, &rsp); err != nil {

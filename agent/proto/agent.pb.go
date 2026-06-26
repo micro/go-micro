@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.21.12
-// source: proto/agent.proto
+// source: agent/proto/agent.proto
 
 package agent
 
@@ -22,15 +22,17 @@ const (
 )
 
 type ChatRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Message string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	// parent_id correlates this chat with the workflow or agent run that dispatched it.
+	ParentId      string `protobuf:"bytes,2,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChatRequest) Reset() {
 	*x = ChatRequest{}
-	mi := &file_proto_agent_proto_msgTypes[0]
+	mi := &file_agent_proto_agent_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +44,7 @@ func (x *ChatRequest) String() string {
 func (*ChatRequest) ProtoMessage() {}
 
 func (x *ChatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_agent_proto_msgTypes[0]
+	mi := &file_agent_proto_agent_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,12 +57,19 @@ func (x *ChatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatRequest.ProtoReflect.Descriptor instead.
 func (*ChatRequest) Descriptor() ([]byte, []int) {
-	return file_proto_agent_proto_rawDescGZIP(), []int{0}
+	return file_agent_proto_agent_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ChatRequest) GetMessage() string {
 	if x != nil {
 		return x.Message
+	}
+	return ""
+}
+
+func (x *ChatRequest) GetParentId() string {
+	if x != nil {
+		return x.ParentId
 	}
 	return ""
 }
@@ -80,7 +89,7 @@ type ChatResponse struct {
 
 func (x *ChatResponse) Reset() {
 	*x = ChatResponse{}
-	mi := &file_proto_agent_proto_msgTypes[1]
+	mi := &file_agent_proto_agent_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -92,7 +101,7 @@ func (x *ChatResponse) String() string {
 func (*ChatResponse) ProtoMessage() {}
 
 func (x *ChatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_agent_proto_msgTypes[1]
+	mi := &file_agent_proto_agent_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -105,7 +114,7 @@ func (x *ChatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatResponse.ProtoReflect.Descriptor instead.
 func (*ChatResponse) Descriptor() ([]byte, []int) {
-	return file_proto_agent_proto_rawDescGZIP(), []int{1}
+	return file_agent_proto_agent_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ChatResponse) GetReply() string {
@@ -155,7 +164,7 @@ type ToolCall struct {
 
 func (x *ToolCall) Reset() {
 	*x = ToolCall{}
-	mi := &file_proto_agent_proto_msgTypes[2]
+	mi := &file_agent_proto_agent_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -167,7 +176,7 @@ func (x *ToolCall) String() string {
 func (*ToolCall) ProtoMessage() {}
 
 func (x *ToolCall) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_agent_proto_msgTypes[2]
+	mi := &file_agent_proto_agent_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -180,7 +189,7 @@ func (x *ToolCall) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCall.ProtoReflect.Descriptor instead.
 func (*ToolCall) Descriptor() ([]byte, []int) {
-	return file_proto_agent_proto_rawDescGZIP(), []int{2}
+	return file_agent_proto_agent_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ToolCall) GetId() string {
@@ -211,13 +220,14 @@ func (x *ToolCall) GetResult() string {
 	return ""
 }
 
-var File_proto_agent_proto protoreflect.FileDescriptor
+var File_agent_proto_agent_proto protoreflect.FileDescriptor
 
-const file_proto_agent_proto_rawDesc = "" +
+const file_agent_proto_agent_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/agent.proto\x12\x05agent\"'\n" +
+	"\x17agent/proto/agent.proto\x12\x05agent\"D\n" +
 	"\vChatRequest\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"\x9e\x01\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\x12\x1b\n" +
+	"\tparent_id\x18\x02 \x01(\tR\bparentId\"\x9e\x01\n" +
 	"\fChatResponse\x12\x14\n" +
 	"\x05reply\x18\x01 \x01(\tR\x05reply\x12\x14\n" +
 	"\x05agent\x18\x02 \x01(\tR\x05agent\x12.\n" +
@@ -234,24 +244,24 @@ const file_proto_agent_proto_rawDesc = "" +
 	"\x04Chat\x12\x12.agent.ChatRequest\x1a\x13.agent.ChatResponse\"\x00B\x0fZ\r./proto;agentb\x06proto3"
 
 var (
-	file_proto_agent_proto_rawDescOnce sync.Once
-	file_proto_agent_proto_rawDescData []byte
+	file_agent_proto_agent_proto_rawDescOnce sync.Once
+	file_agent_proto_agent_proto_rawDescData []byte
 )
 
-func file_proto_agent_proto_rawDescGZIP() []byte {
-	file_proto_agent_proto_rawDescOnce.Do(func() {
-		file_proto_agent_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_agent_proto_rawDesc), len(file_proto_agent_proto_rawDesc)))
+func file_agent_proto_agent_proto_rawDescGZIP() []byte {
+	file_agent_proto_agent_proto_rawDescOnce.Do(func() {
+		file_agent_proto_agent_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_agent_proto_agent_proto_rawDesc), len(file_agent_proto_agent_proto_rawDesc)))
 	})
-	return file_proto_agent_proto_rawDescData
+	return file_agent_proto_agent_proto_rawDescData
 }
 
-var file_proto_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
-var file_proto_agent_proto_goTypes = []any{
+var file_agent_proto_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_agent_proto_agent_proto_goTypes = []any{
 	(*ChatRequest)(nil),  // 0: agent.ChatRequest
 	(*ChatResponse)(nil), // 1: agent.ChatResponse
 	(*ToolCall)(nil),     // 2: agent.ToolCall
 }
-var file_proto_agent_proto_depIdxs = []int32{
+var file_agent_proto_agent_proto_depIdxs = []int32{
 	2, // 0: agent.ChatResponse.tool_calls:type_name -> agent.ToolCall
 	0, // 1: agent.Agent.Chat:input_type -> agent.ChatRequest
 	1, // 2: agent.Agent.Chat:output_type -> agent.ChatResponse
@@ -262,26 +272,26 @@ var file_proto_agent_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_proto_agent_proto_init() }
-func file_proto_agent_proto_init() {
-	if File_proto_agent_proto != nil {
+func init() { file_agent_proto_agent_proto_init() }
+func file_agent_proto_agent_proto_init() {
+	if File_agent_proto_agent_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_agent_proto_rawDesc), len(file_proto_agent_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_agent_proto_rawDesc), len(file_agent_proto_agent_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_proto_agent_proto_goTypes,
-		DependencyIndexes: file_proto_agent_proto_depIdxs,
-		MessageInfos:      file_proto_agent_proto_msgTypes,
+		GoTypes:           file_agent_proto_agent_proto_goTypes,
+		DependencyIndexes: file_agent_proto_agent_proto_depIdxs,
+		MessageInfos:      file_agent_proto_agent_proto_msgTypes,
 	}.Build()
-	File_proto_agent_proto = out.File
-	file_proto_agent_proto_goTypes = nil
-	file_proto_agent_proto_depIdxs = nil
+	File_agent_proto_agent_proto = out.File
+	file_agent_proto_agent_proto_goTypes = nil
+	file_agent_proto_agent_proto_depIdxs = nil
 }

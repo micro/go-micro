@@ -168,6 +168,10 @@ func (a *agentImpl) stateStore() store.Store {
 // Ask sends a message and returns the agent's response.
 // This is the programmatic API for direct use.
 func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) {
+	return a.ask(ctx, message, a.parentRunID)
+}
+
+func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Response, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -188,7 +192,7 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 	a.runID = uuid.New().String()
 	ctx = ai.WithRunInfo(ctx, ai.RunInfo{
 		RunID:    a.runID,
-		ParentID: a.parentRunID,
+		ParentID: parentRunID,
 		Agent:    a.opts.Name,
 	})
 	ctx, endRun := a.startRun(ctx, message)
@@ -228,14 +232,14 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 		ToolCalls: resp.ToolCalls,
 		Agent:     a.opts.Name,
 		RunID:     a.runID,
-		ParentID:  a.parentRunID,
+		ParentID:  parentRunID,
 	}, nil
 }
 
 // Chat implements the proto AgentHandler interface for RPC.
 // @example {"message": "What tasks are overdue?"}
 func (a *agentImpl) Chat(ctx context.Context, req *pb.ChatRequest, rsp *pb.ChatResponse) error {
-	resp, err := a.Ask(ctx, req.Message)
+	resp, err := a.ask(ctx, req.Message, req.ParentId)
 	if err != nil {
 		return err
 	}
