@@ -1,7 +1,11 @@
 package agent
 
 import (
+	"context"
 	"testing"
+
+	pb "go-micro.dev/v6/agent/proto"
+	"go-micro.dev/v6/ai"
 )
 
 func TestNew(t *testing.T) {
@@ -31,6 +35,28 @@ func TestNew(t *testing.T) {
 	}
 	if opts.HistoryLimit != 50 {
 		t.Errorf("HistoryLimit = %d, want 50", opts.HistoryLimit)
+	}
+}
+
+func TestChatResponseIncludesRunIDs(t *testing.T) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		return &ai.Response{Reply: "ok"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("chat-run"))
+	var rsp pb.ChatResponse
+	if err := a.Chat(context.Background(), &pb.ChatRequest{Message: "hello"}, &rsp); err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+	if rsp.RunId == "" {
+		t.Fatal("Chat response RunId is empty")
+	}
+	if rsp.Agent != "chat-run" {
+		t.Errorf("Agent = %q, want chat-run", rsp.Agent)
+	}
+	if rsp.ParentId != "" {
+		t.Errorf("ParentId = %q, want empty", rsp.ParentId)
 	}
 }
 

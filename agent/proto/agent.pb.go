@@ -66,10 +66,14 @@ func (x *ChatRequest) GetMessage() string {
 }
 
 type ChatResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Reply         string                 `protobuf:"bytes,1,opt,name=reply,proto3" json:"reply,omitempty"`
-	Agent         string                 `protobuf:"bytes,2,opt,name=agent,proto3" json:"agent,omitempty"`
-	ToolCalls     []*ToolCall            `protobuf:"bytes,3,rep,name=tool_calls,json=toolCalls,proto3" json:"tool_calls,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Reply     string                 `protobuf:"bytes,1,opt,name=reply,proto3" json:"reply,omitempty"`
+	Agent     string                 `protobuf:"bytes,2,opt,name=agent,proto3" json:"agent,omitempty"`
+	ToolCalls []*ToolCall            `protobuf:"bytes,3,rep,name=tool_calls,json=toolCalls,proto3" json:"tool_calls,omitempty"`
+	// run_id correlates this chat response with tool calls, traces, and run history.
+	RunId string `protobuf:"bytes,4,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// parent_id is set when this response belongs to a delegated sub-agent run.
+	ParentId      string `protobuf:"bytes,5,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -123,6 +127,20 @@ func (x *ChatResponse) GetToolCalls() []*ToolCall {
 		return x.ToolCalls
 	}
 	return nil
+}
+
+func (x *ChatResponse) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *ChatResponse) GetParentId() string {
+	if x != nil {
+		return x.ParentId
+	}
+	return ""
 }
 
 type ToolCall struct {
@@ -199,12 +217,14 @@ const file_proto_agent_proto_rawDesc = "" +
 	"\n" +
 	"\x11proto/agent.proto\x12\x05agent\"'\n" +
 	"\vChatRequest\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\"j\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\x9e\x01\n" +
 	"\fChatResponse\x12\x14\n" +
 	"\x05reply\x18\x01 \x01(\tR\x05reply\x12\x14\n" +
 	"\x05agent\x18\x02 \x01(\tR\x05agent\x12.\n" +
 	"\n" +
-	"tool_calls\x18\x03 \x03(\v2\x0f.agent.ToolCallR\ttoolCalls\"\\\n" +
+	"tool_calls\x18\x03 \x03(\v2\x0f.agent.ToolCallR\ttoolCalls\x12\x15\n" +
+	"\x06run_id\x18\x04 \x01(\tR\x05runId\x12\x1b\n" +
+	"\tparent_id\x18\x05 \x01(\tR\bparentId\"\\\n" +
 	"\bToolCall\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +

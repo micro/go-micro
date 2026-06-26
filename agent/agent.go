@@ -241,6 +241,8 @@ func (a *agentImpl) Chat(ctx context.Context, req *pb.ChatRequest, rsp *pb.ChatR
 	}
 	rsp.Reply = resp.Reply
 	rsp.Agent = resp.Agent
+	rsp.RunId = resp.RunID
+	rsp.ParentId = resp.ParentID
 	for _, tc := range resp.ToolCalls {
 		input, _ := json.Marshal(tc.Input)
 		rsp.ToolCalls = append(rsp.ToolCalls, &pb.ToolCall{
