@@ -31,7 +31,7 @@ Use **mDNS as the default registry** for service discovery.
 
 ```go
 // Default - uses mDNS automatically
-svc := micro.NewService(micro.Name("myservice"))
+svc := micro.NewService("myservice")
 
 // Production - swap to Consul
 reg := consul.NewConsulRegistry()

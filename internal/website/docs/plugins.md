@@ -43,7 +43,7 @@ import (
 
 func main() {
     reg := etcd.NewRegistry()
-    svc := micro.NewService(micro.Registry(reg))
+    svc := micro.NewService("plugin-example", micro.Registry(reg))
     svc.Init()
     svc.Run()
 }
@@ -60,7 +60,7 @@ import (
 
 func main() {
     b := bnats.NewNatsBroker()
-    svc := micro.NewService(micro.Broker(b))
+    svc := micro.NewService("plugin-example", micro.Broker(b))
     svc.Init()
     svc.Run()
 }
@@ -75,7 +75,7 @@ import (
 
 func main() {
     b := rabbitmq.NewBroker()
-    svc := micro.NewService(micro.Broker(b))
+    svc := micro.NewService("plugin-example", micro.Broker(b))
     svc.Init()
     svc.Run()
 }
@@ -90,7 +90,7 @@ import (
 
 func main() {
     t := tnats.NewTransport()
-    svc := micro.NewService(micro.Transport(t))
+    svc := micro.NewService("plugin-example", micro.Transport(t))
     svc.Init()
     svc.Run()
 }
@@ -130,7 +130,7 @@ import (
 
 func main() {
     st := postgres.NewStore()
-    svc := micro.NewService(micro.Store(st))
+    svc := micro.NewService("plugin-example", micro.Store(st))
     svc.Init()
     svc.Run()
 }
@@ -145,7 +145,7 @@ import (
 
 func main() {
     st := natsjskv.NewStore()
-    svc := micro.NewService(micro.Store(st))
+    svc := micro.NewService("plugin-example", micro.Store(st))
     svc.Init()
     svc.Run()
 }
