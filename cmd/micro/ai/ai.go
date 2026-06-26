@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -21,16 +22,32 @@ func init() {
 		Name:  "ai",
 		Usage: "Inspect AI provider support",
 		Subcommands: []*cli.Command{{
-			Name:   "providers",
-			Usage:  "Print the registered AI provider capability matrix",
+			Name:  "providers",
+			Usage: "Print the registered AI provider capability matrix",
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "json",
+					Usage: "Print the capability matrix as JSON",
+				},
+			},
 			Action: providersAction,
 		}},
 	})
 }
 
 func providersAction(c *cli.Context) error {
-	writeProviderMatrix(c.App.Writer, goai.CapabilityRows())
+	rows := goai.CapabilityRows()
+	if c.Bool("json") {
+		return writeProviderJSON(c.App.Writer, rows)
+	}
+	writeProviderMatrix(c.App.Writer, rows)
 	return nil
+}
+
+func writeProviderJSON(w io.Writer, rows []goai.CapabilityRow) error {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(rows)
 }
 
 func writeProviderMatrix(w io.Writer, rows []goai.CapabilityRow) {
