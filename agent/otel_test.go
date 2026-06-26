@@ -117,7 +117,7 @@ func spanAttributes(attrs []attribute.KeyValue) map[string]string {
 	return out
 }
 
-func TestAgentRunTimelineRecordedWithoutTraceProvider(t *testing.T) {
+func TestAgentRunTimelineRecordsModelAndToolWithoutTraceProvider(t *testing.T) {
 	st := store.NewMemoryStore()
 	a := New(Name("runner-noop"), Provider("oteltest"), WithStore(st), WithTool("probe", "probe", nil, func(context.Context, map[string]any) (string, error) { return "ok", nil }))
 	if _, err := a.Ask(context.Background(), "hello"); err != nil {
@@ -143,8 +143,21 @@ func TestAgentRunTimelineRecordedWithoutTraceProvider(t *testing.T) {
 	if summaries[0].TraceID != "" || summaries[0].SpanID != "" {
 		t.Fatalf("unexpected trace correlation without TraceProvider: %#v", summaries[0])
 	}
-	if _, ok := a.(*agentImpl).model.(*tracedModel); ok {
-		t.Fatal("model should not be wrapped when TraceProvider is nil")
+	events, err := LoadRunEvents(st, "runner-noop", summaries[0].RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{"run": false, "model": false, "tool": false, "done": false}
+	for _, e := range events {
+		seen[e.Kind] = true
+		if e.TraceID != "" || e.SpanID != "" {
+			t.Fatalf("event has trace correlation without TraceProvider: %#v", e)
+		}
+	}
+	for kind, ok := range seen {
+		if !ok {
+			t.Fatalf("missing %s event in timeline: %#v", kind, events)
+		}
 	}
 }
 

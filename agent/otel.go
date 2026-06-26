@@ -132,12 +132,26 @@ type tracedModel struct {
 
 func (a *agentImpl) tracedModel(m ai.Model) ai.Model { return &tracedModel{Model: m, a: a} }
 func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
-	if m.a.opts.TraceProvider == nil {
-		return m.Model.Generate(ctx, req, opts...)
-	}
 	info, _ := ai.RunInfoFrom(ctx)
 	provider := m.String()
 	model := m.Options().Model
+	start := time.Now()
+
+	if m.a.opts.TraceProvider == nil {
+		resp, err := m.Model.Generate(ctx, req, opts...)
+		dur := time.Since(start).Milliseconds()
+		usage := ai.Usage{}
+		if resp != nil {
+			usage = resp.Usage
+		}
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, LatencyMS: dur, Tokens: usage}
+		if err != nil {
+			e.Error = err.Error()
+		}
+		m.a.recordRunEvent(e)
+		return resp, err
+	}
+
 	ctx, span := m.a.tracer().Start(ctx, spanNameModelCall, trace.WithAttributes(
 		attribute.String(AttrRunID, info.RunID),
 		attribute.String(AttrParentRunID, info.ParentID),
@@ -145,7 +159,6 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 		attribute.String(AttrProvider, provider),
 		attribute.String(AttrModel, model),
 	))
-	start := time.Now()
 	resp, err := m.Model.Generate(ctx, req, opts...)
 	dur := time.Since(start).Milliseconds()
 	attrs := []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}
@@ -184,11 +197,17 @@ func appendUsage(attrs []attribute.KeyValue, u ai.Usage) []attribute.KeyValue {
 }
 
 func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
-	if a.opts.TraceProvider == nil {
-		return next
-	}
 	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		info, _ := ai.RunInfoFrom(ctx)
+		start := time.Now()
+
+		if a.opts.TraceProvider == nil {
+			res := next(ctx, call)
+			dur := time.Since(start).Milliseconds()
+			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resultError(res)})
+			return res
+		}
+
 		ctx, span := a.tracer().Start(ctx, spanNameToolCall, trace.WithAttributes(
 			attribute.String(AttrRunID, info.RunID),
 			attribute.String(AttrParentRunID, info.ParentID),
@@ -196,7 +215,6 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 			attribute.String(AttrToolName, call.Name),
 			attribute.Bool(AttrDelegate, call.Name == toolDelegate),
 		))
-		start := time.Now()
 		res := next(ctx, call)
 		dur := time.Since(start).Milliseconds()
 		attrs := []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}

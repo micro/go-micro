@@ -136,7 +136,7 @@ func (a *agentImpl) setup() {
 	a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
 	modelOpts = append(modelOpts, ai.WithToolHandler(a.toolHandler()))
 	a.model = ai.New(a.opts.Provider, modelOpts...)
-	if a.opts.TraceProvider != nil && a.model != nil {
+	if a.model != nil {
 		a.model = a.tracedModel(a.model)
 	}
 
