@@ -19,6 +19,10 @@ type Capabilities struct {
 	Image bool `json:"image"`
 	// Video reports whether ai.NewVideo can construct a video model provider.
 	Video bool `json:"video"`
+	// Stream reports whether the provider has registered end-to-end token streaming.
+	// Providers that only satisfy the Model interface with ErrStreamingUnsupported
+	// leave this false until their Stream implementation is usable.
+	Stream bool `json:"stream"`
 }
 
 // ProviderCapabilities reports the capabilities registered for provider.
@@ -26,11 +30,13 @@ func ProviderCapabilities(provider string) Capabilities {
 	_, hasModel := providers[provider]
 	_, hasImage := imageProviders[provider]
 	_, hasVideo := videoProviders[provider]
+	_, hasStream := streamProviders[provider]
 
 	return Capabilities{
-		Model: hasModel,
-		Image: hasImage,
-		Video: hasVideo,
+		Model:  hasModel,
+		Image:  hasImage,
+		Video:  hasVideo,
+		Stream: hasStream,
 	}
 }
 
@@ -47,6 +53,9 @@ func CapabilityMatrix() map[string]Capabilities {
 		names[name] = struct{}{}
 	}
 	for name := range videoProviders {
+		names[name] = struct{}{}
+	}
+	for name := range streamProviders {
 		names[name] = struct{}{}
 	}
 
@@ -72,8 +81,17 @@ func CapabilityRows() []CapabilityRow {
 	return rows
 }
 
+// RegisterStream records that provider has a usable Stream implementation.
+// Providers should call this from init alongside Register once Stream returns
+// chunks instead of ErrStreamingUnsupported.
+func RegisterStream(provider string) {
+	streamProviders[provider] = struct{}{}
+}
+
+var streamProviders = make(map[string]struct{})
+
 // RegisteredProviders returns the registered provider names in sorted order.
-// kind may be "model", "image", "video", or empty for the union of all
+// kind may be "model", "image", "video", "stream", or empty for the union of all
 // provider registries.
 func RegisteredProviders(kind string) []string {
 	names := map[string]struct{}{}
@@ -91,12 +109,18 @@ func RegisteredProviders(kind string) []string {
 			for name := range r {
 				names[name] = struct{}{}
 			}
+		case map[string]struct{}:
+			for name := range r {
+				names[name] = struct{}{}
+			}
 		}
 	}
 
 	switch kind {
 	case "model":
 		add(providers)
+	case "stream":
+		add(streamProviders)
 	case "image":
 		add(imageProviders)
 	case "video":

@@ -32,6 +32,12 @@ func TestRegisteredProviders(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(video) = %#v, want %#v", got, want)
 	}
+
+	got = ai.RegisteredProviders("stream")
+	want = []string{}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("RegisteredProviders(stream) = %#v, want %#v", got, want)
+	}
 }
 
 func TestCapabilityRows(t *testing.T) {
@@ -71,5 +77,19 @@ func TestCapabilityMatrix(t *testing.T) {
 	}
 	if caps := ai.ProviderCapabilities("missing"); caps != (ai.Capabilities{}) {
 		t.Fatalf("ProviderCapabilities(missing) = %#v", caps)
+	}
+}
+
+func TestRegisterStream(t *testing.T) {
+	ai.RegisterStream("test-stream")
+
+	if caps := ai.ProviderCapabilities("test-stream"); caps != (ai.Capabilities{Stream: true}) {
+		t.Fatalf("ProviderCapabilities(test-stream) = %#v", caps)
+	}
+
+	got := ai.RegisteredProviders("stream")
+	want := []string{"test-stream"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("RegisteredProviders(stream) = %#v, want %#v", got, want)
 	}
 }
