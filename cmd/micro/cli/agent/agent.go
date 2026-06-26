@@ -135,12 +135,13 @@ func runFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
 		&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, error, refused)"},
+		&cli.StringFlag{Name: "trace", Usage: "Only show runs whose trace id matches this full id or prefix"},
 		&cli.IntFlag{Name: "limit", Usage: "Show the most recently updated N runs"},
 	}
 }
 
 func runOptions(c *cli.Context) goagent.RunListOptions {
-	return goagent.RunListOptions{Status: c.String("status"), Limit: c.Int("limit")}
+	return goagent.RunListOptions{Status: c.String("status"), TraceID: c.String("trace"), Limit: c.Int("limit")}
 }
 
 func printRunIndex(name string, opts goagent.RunListOptions, asJSON bool) error {

@@ -210,7 +210,7 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 	events := []RunEvent{
 		{Time: time.Unix(0, 1), RunID: "run-old", Agent: "runner", Kind: "run"},
 		{Time: time.Unix(0, 2), RunID: "run-old", Agent: "runner", Kind: "done"},
-		{Time: time.Unix(0, 3), RunID: "run-new", Agent: "runner", Kind: "run"},
+		{Time: time.Unix(0, 3), RunID: "run-new", Agent: "runner", TraceID: "abcdef1234567890", Kind: "run"},
 		{Time: time.Unix(0, 4), RunID: "run-new", Agent: "runner", Kind: "error", Error: "boom"},
 	}
 	for _, e := range events {
@@ -223,7 +223,7 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 		}
 	}
 
-	got, err := ListRunSummariesWithOptions(st, "runner", RunListOptions{Status: "error", Limit: 1})
+	got, err := ListRunSummariesWithOptions(st, "runner", RunListOptions{Status: "error", TraceID: "abcdef", Limit: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
