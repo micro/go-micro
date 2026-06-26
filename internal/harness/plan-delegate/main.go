@@ -23,8 +23,15 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v6"
+	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/selector"
+	"go-micro.dev/v6/service"
+	"go-micro.dev/v6/store"
 )
 
 // ---------------------------------------------------------------------------
@@ -236,52 +243,95 @@ func main() {
 	fmt.Printf("\n\033[1mPlan & Delegate — live integration harness (provider: %s)\033[0m\n", *provider)
 	fmt.Print("Real services, registry, RPC, agent loop, store, delegation.\n\n")
 
+	reg := registry.NewMemoryRegistry()
+	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))))
+	mem := store.NewMemoryStore()
+
 	// Real services.
-	task := micro.NewService("task")
-	task.Handle(new(TaskService))
+	taskSvc := new(TaskService)
+	task := service.New(service.Name("task"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
+	if err := task.Handle(taskSvc); err != nil {
+		fmt.Println("task handle:", err)
+		os.Exit(1)
+	}
 	go task.Run()
 
-	notify := micro.NewService("notify")
-	notify.Handle(new(NotifyService))
+	notifySvc := new(NotifyService)
+	notify := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
+	if err := notify.Handle(notifySvc); err != nil {
+		fmt.Println("notify handle:", err)
+		os.Exit(1)
+	}
 	go notify.Run()
 
 	// Real comms agent (owns notify), registered so delegate reaches it over RPC.
-	comms := micro.NewAgent("comms",
-		micro.AgentServices("notify"),
-		micro.AgentPrompt("You handle outbound notifications. Use the notify service."),
-		micro.AgentProvider(*provider),
-		micro.AgentAPIKey(apiKey),
+	comms := agent.New(
+		agent.Name("comms"),
+		agent.Address("127.0.0.1:0"),
+		agent.Services("notify"),
+		agent.Prompt("You handle outbound notifications. Use the notify service."),
+		agent.Provider(*provider), agent.APIKey(apiKey),
+		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
 	)
 	go comms.Run()
+	defer comms.Stop()
 
-	// Real conductor agent (owns task).
-	conductor := micro.NewAgent("conductor",
-		micro.AgentServices("task"),
-		micro.AgentPrompt("You coordinate launch work. Plan first, create tasks, and delegate notifications to the \"comms\" agent."),
-		micro.AgentProvider(*provider),
-		micro.AgentAPIKey(apiKey),
+	// Real conductor agent (owns task), registered so the flow can reach it over RPC.
+	conductor := agent.New(
+		agent.Name("conductor"),
+		agent.Address("127.0.0.1:0"),
+		agent.Services("task"),
+		agent.Prompt("You coordinate launch work. Plan first, create tasks, and delegate notifications to the \"comms\" agent."),
+		agent.Provider(*provider), agent.APIKey(apiKey),
+		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
 	)
+	go conductor.Run()
+	defer conductor.Stop()
 
-	fmt.Println("waiting for services + comms agent to register...")
-	time.Sleep(3 * time.Second)
+	fmt.Println("waiting for services + agents to register...")
+	waitForService := func(name string) {
+		deadline := time.Now().Add(5 * time.Second)
+		for time.Now().Before(deadline) {
+			if svcs, err := reg.GetService(name); err == nil && len(svcs) > 0 && len(svcs[0].Nodes) > 0 {
+				return
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+	for _, name := range []string{"task", "notify", "comms", "conductor"} {
+		waitForService(name)
+	}
 
-	fmt.Print("\n\033[1m> prompt:\033[0m Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified.\n\n")
+	f := flow.New("zero-to-hero",
+		flow.Agent("conductor"),
+		flow.Prompt("Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified: {{.Data}}"),
+	)
+	if err := f.Register(reg, broker.DefaultBroker, cl); err != nil {
+		fmt.Println("flow register:", err)
+		os.Exit(1)
+	}
 
-	resp, err := conductor.Ask(context.Background(),
-		"Create three launch tasks: Design, Build, and Ship. Then make sure owner@acme.com is notified that the launch plan is ready.")
-	if err != nil {
+	fmt.Print("\n\033[1m> flow:\033[0m services + agents + workflow + plan/delegate, no API key.\n\n")
+	if err := f.Execute(context.Background(), "launch readiness"); err != nil {
 		fmt.Println("\033[31merror:\033[0m", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("\n\033[1m< conductor reply:\033[0m", resp.Reply)
+	if rs := f.Results(); len(rs) > 0 {
+		fmt.Println("\n\033[1m< conductor reply:\033[0m", rs[len(rs)-1].Reply)
+	}
 
 	// Prove plan was persisted to the real store.
-	if recs, _ := conductor.Options().Store.Read("agent/conductor/plan"); len(recs) > 0 {
+	if recs, _ := store.Scope(mem, "agent", "conductor").Read("plan"); len(recs) > 0 {
 		fmt.Printf("\n\033[1mstored plan (agent/conductor/plan):\033[0m %s\n", string(recs[0].Value))
 	} else {
 		fmt.Println("\n\033[31m! plan was not persisted\033[0m")
+		os.Exit(1)
+	}
+	if taskSvc.count() != 3 || notifySvc.count() != 1 {
+		fmt.Printf("\n\033[31m! unexpected side effects: tasks=%d notify=%d\033[0m\n", taskSvc.count(), notifySvc.count())
+		os.Exit(1)
 	}
 
-	fmt.Println("\n\033[32m✓ end-to-end flow complete\033[0m")
+	fmt.Println("\n\033[32m✓ 0→hero flow complete (services → agents → workflow)\033[0m")
 }

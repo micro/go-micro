@@ -31,7 +31,7 @@ jobs:
         run: go run ./internal/harness/universe
       - name: Agent-flow harness
         run: go run ./internal/harness/agent-flow
-      - name: Plan-delegate harness
+      - name: 0→hero plan-delegate workflow harness
         run: go run ./internal/harness/plan-delegate
 
   harness-live:

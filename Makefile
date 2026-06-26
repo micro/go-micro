@@ -47,7 +47,7 @@ test-coverage:
 harness:
 	go run ./internal/harness/universe
 	go run ./internal/harness/agent-flow
-	go run ./internal/harness/plan-delegate
+	go run ./internal/harness/plan-delegate # 0→hero: services + agents + flow + plan/delegate
 
 # Run the same harnesses against every configured live provider. Providers
 # without API keys are skipped; configured providers must pass.
