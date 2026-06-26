@@ -156,10 +156,10 @@ func writeSummaryJSON(path string, summary conformanceSummary) error {
 
 func writeCapabilityMarkdown(path string, rows []ai.CapabilityRow) error {
 	var b strings.Builder
-	b.WriteString("| Provider | Model | Image | Video |\n")
-	b.WriteString("| --- | --- | --- | --- |\n")
+	b.WriteString("| Provider | Model | Image | Video | Streaming |\n")
+	b.WriteString("| --- | --- | --- | --- | --- |\n")
 	for _, row := range rows {
-		fmt.Fprintf(&b, "| %s | %s | %s | %s |\n", row.Provider, mark(row.Model), mark(row.Image), mark(row.Video))
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s |\n", row.Provider, mark(row.Model), mark(row.Image), mark(row.Video), mark(row.Stream))
 	}
 	return os.WriteFile(path, []byte(b.String()), 0o644)
 }
@@ -173,9 +173,9 @@ func mark(ok bool) string {
 
 func printCapabilityMatrix() {
 	fmt.Println("Provider capability matrix:")
-	fmt.Println("provider     model  image  video")
+	fmt.Println("provider     model  image  video  stream")
 	for _, row := range ai.CapabilityRows() {
-		fmt.Printf("%-12s %-5s  %-5s  %-5s\n", row.Provider, yesNo(row.Model), yesNo(row.Image), yesNo(row.Video))
+		fmt.Printf("%-12s %-5s  %-5s  %-5s  %-6s\n", row.Provider, yesNo(row.Model), yesNo(row.Image), yesNo(row.Video), yesNo(row.Stream))
 	}
 	fmt.Println()
 }

@@ -72,9 +72,9 @@ func TestWriteCapabilityMarkdown(t *testing.T) {
 	}
 	got := string(b)
 	for _, want := range []string{
-		"| Provider | Model | Image | Video |",
-		"| mock | ✅ | — | — |",
-		"| vision | — | ✅ | ✅ |",
+		"| Provider | Model | Image | Video | Streaming |",
+		"| mock | ✅ | — | — | — |",
+		"| vision | — | ✅ | ✅ | — |",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("capabilities markdown = %q, want row %q", got, want)
