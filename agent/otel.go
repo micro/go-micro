@@ -92,13 +92,23 @@ func (a *agentImpl) tracer() trace.Tracer {
 }
 
 func (a *agentImpl) startRun(ctx context.Context, message string) (context.Context, func(error)) {
-	if a.opts.TraceProvider == nil {
-		return ctx, func(error) {}
-	}
 	info, _ := ai.RunInfoFrom(ctx)
+	start := time.Now()
+
+	if a.opts.TraceProvider == nil {
+		a.recordRunEvent(RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", Name: message})
+		return ctx, func(err error) {
+			latency := time.Since(start).Milliseconds()
+			if err != nil {
+				a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error()})
+				return
+			}
+			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency})
+		}
+	}
+
 	ctx, span := a.tracer().Start(ctx, spanNameRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(
 		attribute.String(AttrRunID, info.RunID), attribute.String(AttrParentRunID, info.ParentID), attribute.String(AttrAgentName, info.Agent)))
-	start := time.Now()
 	a.recordSpanEvent(span, RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", Name: message})
 	return ctx, func(err error) {
 		latency := time.Since(start).Milliseconds()
@@ -229,7 +239,7 @@ func (a *agentImpl) recordSpanEvent(span trace.Span, e RunEvent) {
 }
 
 func (a *agentImpl) recordRunEvent(e RunEvent) {
-	if a.opts.TraceProvider == nil || e.RunID == "" {
+	if e.RunID == "" {
 		return
 	}
 	b, _ := json.Marshal(e)

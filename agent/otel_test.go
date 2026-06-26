@@ -117,7 +117,7 @@ func spanAttributes(attrs []attribute.KeyValue) map[string]string {
 	return out
 }
 
-func TestAgentOpenTelemetryNoopWhenUnconfigured(t *testing.T) {
+func TestAgentRunTimelineRecordedWithoutTraceProvider(t *testing.T) {
 	st := store.NewMemoryStore()
 	a := New(Name("runner-noop"), Provider("oteltest"), WithStore(st), WithTool("probe", "probe", nil, func(context.Context, map[string]any) (string, error) { return "ok", nil }))
 	if _, err := a.Ask(context.Background(), "hello"); err != nil {
@@ -127,8 +127,21 @@ func TestAgentOpenTelemetryNoopWhenUnconfigured(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(keys) != 0 {
-		t.Fatalf("expected no run timeline without TraceProvider, got %v", keys)
+	if len(keys) == 0 {
+		t.Fatal("expected run timeline without TraceProvider")
+	}
+	summaries, err := ListRunSummaries(st, "runner-noop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("got %d summaries, want 1", len(summaries))
+	}
+	if summaries[0].Status != "done" || summaries[0].LastKind != "done" {
+		t.Fatalf("unexpected summary without TraceProvider: %#v", summaries[0])
+	}
+	if summaries[0].TraceID != "" || summaries[0].SpanID != "" {
+		t.Fatalf("unexpected trace correlation without TraceProvider: %#v", summaries[0])
 	}
 	if _, ok := a.(*agentImpl).model.(*tracedModel); ok {
 		t.Fatal("model should not be wrapped when TraceProvider is nil")
