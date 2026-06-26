@@ -318,6 +318,41 @@ func TestFlowStepRetryStopsOnCancel(t *testing.T) {
 	}
 }
 
+func TestFlowStepNamesMustBeUnique(t *testing.T) {
+	step := Step{Name: "work", Run: func(_ context.Context, in State) (State, error) {
+		return in, nil
+	}}
+	f := New("duplicate-steps",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "duplicate-steps")),
+		Steps(step, step),
+	)
+
+	err := f.Execute(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected duplicate step names to fail validation")
+	}
+	if got, want := err.Error(), `flow: duplicate step name "work"`; got != want {
+		t.Fatalf("error = %q, want %q", got, want)
+	}
+}
+
+func TestFlowStepNamesMustBeNonEmpty(t *testing.T) {
+	f := New("empty-step-name",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "empty-step-name")),
+		Steps(Step{Name: "", Run: func(_ context.Context, in State) (State, error) {
+			return in, nil
+		}}),
+	)
+
+	err := f.Execute(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected an empty step name to fail validation")
+	}
+	if got, want := err.Error(), "flow: step 0 has an empty name"; got != want {
+		t.Fatalf("error = %q, want %q", got, want)
+	}
+}
+
 // A step with no Run function is reported as a configuration error rather
 // than panicking the run.
 func TestFlowStepNilRun(t *testing.T) {

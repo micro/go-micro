@@ -305,6 +305,9 @@ func LLM(prompt string) StepFunc {
 
 // startRun begins a fresh run of the flow's steps with the given input.
 func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
+	if err := validateSteps(f.opts.Steps); err != nil {
+		return Run{}, err
+	}
 	run := Run{
 		ID:      uuid.New().String(),
 		Flow:    f.name,
@@ -321,6 +324,9 @@ func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
 // Resume continues a persisted run by id, picking up at the step it
 // stopped on. Completed runs are a no-op.
 func (f *Flow) Resume(ctx context.Context, runID string) error {
+	if err := validateSteps(f.opts.Steps); err != nil {
+		return err
+	}
 	if f.checkpoint == nil {
 		return fmt.Errorf("flow %s has no checkpoint configured", f.name)
 	}
@@ -479,6 +485,20 @@ func (f *Flow) save(ctx context.Context, run Run) {
 	if err := f.checkpoint.Save(ctx, run); err != nil {
 		f.log.Logf(logger.ErrorLevel, "Flow %s checkpoint save: %v", f.name, err)
 	}
+}
+
+func validateSteps(steps []Step) error {
+	seen := make(map[string]struct{}, len(steps))
+	for i, step := range steps {
+		if step.Name == "" {
+			return fmt.Errorf("flow: step %d has an empty name", i)
+		}
+		if _, ok := seen[step.Name]; ok {
+			return fmt.Errorf("flow: duplicate step name %q", step.Name)
+		}
+		seen[step.Name] = struct{}{}
+	}
+	return nil
 }
 
 func stepIndex(steps []Step, name string) int {
