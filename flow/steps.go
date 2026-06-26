@@ -384,6 +384,9 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	steps := f.opts.Steps
 	ctx = withDeps(ctx, &runDeps{client: f.client, model: f.model, tools: f.toolSet})
 	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: run.ID, Agent: f.name})
+	ctx, finishSpan := f.startRunSpan(ctx, run)
+	var spanErr error
+	defer func() { finishSpan(run, spanErr) }()
 
 	start := stepIndex(steps, run.State.Stage)
 	if start < 0 {
@@ -400,9 +403,10 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 		run.Steps[i].Status = "in_progress"
 		f.save(ctx, run)
 
-		out, attempts, err := f.runStep(ctx, step, run.State)
+		out, attempts, err := f.runStepSpan(ctx, step, run.State)
 		run.Steps[i].Attempts = attempts
 		if err != nil {
+			spanErr = err
 			run.Steps[i].Status = "failed"
 			run.Steps[i].Error = err.Error()
 			run.Status = "failed"

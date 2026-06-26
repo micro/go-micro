@@ -12,6 +12,7 @@ import (
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type serviceKey struct{}
@@ -200,6 +201,9 @@ func FlowWithCheckpoint(c Checkpoint) FlowOption { return flow.WithCheckpoint(c)
 // FlowDeleteOnSuccess removes a run's checkpoint on success (failed runs
 // are always kept). Default: retain all.
 func FlowDeleteOnSuccess() FlowOption { return flow.DeleteOnSuccess() }
+
+// FlowTraceProvider enables OpenTelemetry spans for stepped flow runs and steps.
+func FlowTraceProvider(tp trace.TracerProvider) FlowOption { return flow.TraceProvider(tp) }
 
 // FlowCall is a step action: an RPC to a service endpoint, sending the
 // state data as the request and storing the response.
