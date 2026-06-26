@@ -196,6 +196,12 @@ The CLI can print the provider capabilities registered in the current build:
 micro ai providers
 ```
 
+For automation and docs generation, emit the same matrix as stable JSON:
+
+```bash
+micro ai providers --json
+```
+
 It reports support from Go Micro's provider registry, so the matrix reflects the model, image, and video interfaces available to this binary rather than external provider marketing claims.
 
 ## Supported Providers
