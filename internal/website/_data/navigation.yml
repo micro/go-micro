@@ -50,6 +50,8 @@ guides:
     url: /docs/guides/atlascloud-integration.html
   - title: AI Provider Guide
     url: /docs/guides/ai-provider-guide.html
+  - title: Provider Conformance
+    url: /docs/guides/provider-conformance.html
   - title: Comparison
     url: /docs/guides/comparison.html
   - title: Migration Guides
@@ -80,6 +82,7 @@ search_order:
   - /docs/plugins.html
   - /docs/examples/
   - /docs/examples/realworld/
+  - /docs/guides/provider-conformance.html
   - /docs/guides/comparison.html
   - /docs/guides/migration/
   - /docs/architecture/
