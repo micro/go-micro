@@ -51,6 +51,7 @@ func main() {
 	requireConfiguredFlag := flag.Bool("require-configured", false, "fail when a selected live provider is missing an API key")
 	capabilitiesFlag := flag.Bool("capabilities", true, "print the registered provider capability matrix before running conformance")
 	summaryJSONFlag := flag.String("summary-json", "", "write a machine-readable conformance summary to this path")
+	capabilityMarkdownFlag := flag.String("capabilities-markdown", "", "write the registered provider capability matrix as a Markdown table")
 	flag.Parse()
 
 	providers := splitCSV(*providersFlag)
@@ -62,6 +63,12 @@ func main() {
 
 	if *capabilitiesFlag {
 		printCapabilityMatrix()
+	}
+	if *capabilityMarkdownFlag != "" {
+		if err := writeCapabilityMarkdown(*capabilityMarkdownFlag, ai.CapabilityRows()); err != nil {
+			fmt.Fprintf(os.Stderr, "write capabilities markdown: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	var ran, skipped, failed int
@@ -145,6 +152,23 @@ func writeSummaryJSON(path string, summary conformanceSummary) error {
 	}
 	b = append(b, '\n')
 	return os.WriteFile(path, b, 0o644)
+}
+
+func writeCapabilityMarkdown(path string, rows []ai.CapabilityRow) error {
+	var b strings.Builder
+	b.WriteString("| Provider | Model | Image | Video |\n")
+	b.WriteString("| --- | --- | --- | --- |\n")
+	for _, row := range rows {
+		fmt.Fprintf(&b, "| %s | %s | %s | %s |\n", row.Provider, mark(row.Model), mark(row.Image), mark(row.Video))
+	}
+	return os.WriteFile(path, []byte(b.String()), 0o644)
+}
+
+func mark(ok bool) string {
+	if ok {
+		return "✅"
+	}
+	return "—"
 }
 
 func printCapabilityMatrix() {
