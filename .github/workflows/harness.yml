@@ -27,6 +27,8 @@ jobs:
           cache: true
       - name: Build
         run: go build ./...
+      - name: 0→1 scaffold contract
+        run: go test ./cmd/micro/cli/new -run TestZeroToOneContract -count=1
       - name: Universe end-to-end (asserts; exits non-zero on failure)
         run: go run ./internal/harness/universe
       - name: Agent-flow harness
