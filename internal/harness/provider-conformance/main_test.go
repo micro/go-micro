@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -50,5 +53,38 @@ func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
 	}
 	if !foundOpenAI {
 		t.Fatalf("CapabilityRows = %#v, want openai row", rows)
+	}
+}
+
+func TestWriteSummaryJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "summary.json")
+	summary := conformanceSummary{
+		Providers: []string{"mock"},
+		Harnesses: []string{"provider-conformance"},
+		Results: []conformanceResult{{
+			Provider: "mock",
+			Harness:  "provider-conformance",
+			Status:   statusPassed,
+		}},
+		Passed: 1,
+	}
+	if err := writeSummaryJSON(path, summary); err != nil {
+		t.Fatalf("writeSummaryJSON returned error: %v", err)
+	}
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read summary: %v", err)
+	}
+	if !strings.HasSuffix(string(b), "\n") {
+		t.Fatalf("summary JSON should end with newline: %q", b)
+	}
+
+	var got conformanceSummary
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("summary JSON did not decode: %v", err)
+	}
+	if got.Passed != 1 || len(got.Results) != 1 || got.Results[0].Status != statusPassed {
+		t.Fatalf("summary JSON decoded as %#v, want one passed result", got)
 	}
 }
