@@ -1,6 +1,10 @@
 package flow
 
-import "time"
+import (
+	"time"
+
+	"go.opentelemetry.io/otel/trace"
+)
 
 // Options configures a Flow.
 type Options struct {
@@ -40,6 +44,8 @@ type Options struct {
 	// Checkpoint is the durability backend for stepped runs. Nil with
 	// steps present means a store-backed default; set it to swap backends.
 	Checkpoint Checkpoint
+	// TraceProvider emits OpenTelemetry spans for stepped flow runs.
+	TraceProvider trace.TracerProvider
 	// DeleteOnSuccess removes a run's checkpoint when it completes
 	// successfully. Failed runs are always retained. Default: retain all.
 	DeleteOnSuccess bool
@@ -131,4 +137,9 @@ func WithCheckpoint(c Checkpoint) Option {
 // successfully. Failed runs are always retained. Default: retain all.
 func DeleteOnSuccess() Option {
 	return func(o *Options) { o.DeleteOnSuccess = true }
+}
+
+// TraceProvider enables OpenTelemetry spans for stepped flow runs and steps.
+func TraceProvider(tp trace.TracerProvider) Option {
+	return func(o *Options) { o.TraceProvider = tp }
 }
