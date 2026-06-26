@@ -36,7 +36,7 @@ import (
 )
 
 func main() {
-    service := micro.NewService()
+    service := micro.NewService("store-example")
     service.Init()
 
     // Write a record
@@ -64,7 +64,7 @@ import (
 
 func main() {
     st := postgres.NewStore()
-    svc := micro.NewService(micro.Store(st))
+    svc := micro.NewService("store-example", micro.Store(st))
     svc.Init()
     svc.Run()
 }
@@ -79,7 +79,7 @@ import (
 
 func main() {
     st := natsjskv.NewStore()
-    svc := micro.NewService(micro.Store(st))
+    svc := micro.NewService("store-example", micro.Store(st))
     svc.Init()
     svc.Run()
 }

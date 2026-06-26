@@ -54,8 +54,7 @@ curl -XPOST \
 Set a fixed address:
 
 ```go
-svc := micro.NewService(
-    micro.Name("helloworld"),
+svc := micro.NewService("helloworld",
     micro.Address(":8080"),
 )
 ```

@@ -53,8 +53,7 @@ No code changes required. The framework internally wires the selected implementa
 ## Equivalent Code Configuration
 
 ```go
-service := micro.NewService(
-    micro.Name("helloworld"),
+service := micro.NewService("helloworld",
     micro.Broker(nats.NewBroker()),
     micro.Transport(natstransport.NewTransport()),
     micro.Registry(consul.NewRegistry(registry.Addrs("127.0.0.1:8500"))),

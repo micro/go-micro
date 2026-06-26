@@ -20,7 +20,7 @@ import (
 
 func main() {
     b := bnats.NewNatsBroker()
-    svc := micro.NewService(micro.Broker(b))
+    svc := micro.NewService("nats-pubsub", micro.Broker(b))
     svc.Init()
 
     // subscribe

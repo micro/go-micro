@@ -97,7 +97,7 @@ func (s *MyService) DoThing(ctx context.Context, req *Request, rsp *Response) er
 }
 
 func main() {
-    svc := micro.NewService(micro.Name("myservice"))
+    svc := micro.NewService("myservice")
     svc.Init()
     svc.Handle(new(MyService))
     svc.Run()
@@ -234,11 +234,11 @@ mesh / runtime and let ADK (or any A2A agent) plug into it.
 **Go Micro**: Built-in with plugins
 ```go
 // Zero-config for dev
-svc := micro.NewService(micro.Name("myservice"))
+svc := micro.NewService("myservice")
 
 // Consul for production
 reg := consul.NewRegistry()
-svc := micro.NewService(micro.Registry(reg))
+svc := micro.NewService("myservice", micro.Registry(reg))
 ```
 
 **go-kit**: Bring your own
