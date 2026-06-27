@@ -2,7 +2,9 @@
 
 Go Micro is an **agent harness** and service framework for Go.
 
-A harness is the runtime around an agent: the tools it can call, the memory it keeps, the guardrails that bound it, the workflows that trigger it, the services it depends on, and the protocols other agents use to reach it. Go Micro gives you that harness as Go code. Build an agent and it gets a model, memory, tools, planning, delegation, guardrails, and service discovery; it is reachable over [MCP](https://modelcontextprotocol.io/) and [A2A](https://a2a-protocol.org). Write services and every endpoint becomes an AI-callable tool. Orchestrate the deterministic parts with durable flows. Agents, services, and flows share one runtime because an agent is a distributed system, and building one is building a service.
+A harness is the runtime around an agent: the tools it can call, the memory it keeps, the guardrails that bound it, the workflows that trigger it, the services it depends on, and the protocols other agents use to reach it. 
+
+Go Micro gives you the harness as Go code. Build an agent and it gets a model, memory, tools, planning, delegation, guardrails, and service discovery; it is reachable over [MCP](https://modelcontextprotocol.io/) and [A2A](https://a2a-protocol.org). Write services and every endpoint becomes an AI-callable tool. Orchestrate the deterministic parts with durable flows. Agents, services, and flows share one runtime because an agent is a distributed system, and building one is building a service.
 
 ## Sponsors
 
