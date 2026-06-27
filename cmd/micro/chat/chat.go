@@ -10,7 +10,9 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -79,6 +81,7 @@ Examples:
 			&cli.StringFlag{Name: "model", Usage: "Model name (uses provider default if unset)", EnvVars: []string{"MICRO_AI_MODEL"}},
 			&cli.StringFlag{Name: "base_url", Usage: "Override the provider's base URL", EnvVars: []string{"MICRO_AI_BASE_URL"}},
 			&cli.StringFlag{Name: "prompt", Usage: "Send a single prompt and exit (non-interactive)"},
+			&cli.BoolFlag{Name: "stream", Usage: "Stream model output as it is generated when the provider supports it"},
 		},
 		Action: run,
 	})
@@ -102,6 +105,7 @@ type session struct {
 	sysPrompt string
 	procs     []*exec.Cmd
 	agents    map[string]agentInfo
+	stream    bool
 
 	// Built-in agent capabilities (plan, delegate), shared with the
 	// agent package so the direct-service fallback has the same tools a
@@ -311,6 +315,7 @@ func run(c *cli.Context) error {
 	modelName := c.String("model")
 	baseURL := c.String("base_url")
 	singlePrompt := c.String("prompt")
+	streamOutput := c.Bool("stream")
 
 	if provider == "" {
 		provider = ai.AutoDetectProvider(baseURL)
@@ -347,6 +352,7 @@ func run(c *cli.Context) error {
 		hist:          ai.NewHistory(50),
 		builtinTools:  builtinTools,
 		builtinHandle: builtinHandle,
+		stream:        streamOutput,
 	}
 	s.refreshTools()
 
@@ -449,12 +455,21 @@ func (s *session) ask(ctx context.Context, prompt string) error {
 	// Fallback: direct service access (no agents)
 	s.hist.Add("user", prompt)
 
-	resp, err := s.model.Generate(ctx, &ai.Request{
+	req := &ai.Request{
 		Prompt:       prompt,
 		SystemPrompt: s.sysPrompt,
 		Tools:        s.toolList,
 		Messages:     s.hist.Messages(),
-	})
+	}
+	if s.stream {
+		if err := s.askStream(ctx, req); err == nil {
+			return nil
+		} else if !errors.Is(err, ai.ErrStreamingUnsupported) {
+			return err
+		}
+	}
+
+	resp, err := s.model.Generate(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -485,6 +500,34 @@ func (s *session) ask(ctx context.Context, prompt string) error {
 	if resp.Answer != "" {
 		fmt.Println()
 		fmt.Println(resp.Answer)
+	}
+	return nil
+}
+
+func (s *session) askStream(ctx context.Context, req *ai.Request) error {
+	stream, err := s.model.Stream(ctx, req)
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+	var reply strings.Builder
+	for {
+		chunk, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if chunk == nil || chunk.Reply == "" {
+			continue
+		}
+		fmt.Print(chunk.Reply)
+		reply.WriteString(chunk.Reply)
+	}
+	if reply.Len() > 0 {
+		fmt.Println()
+		s.hist.Add("assistant", reply.String())
 	}
 	return nil
 }

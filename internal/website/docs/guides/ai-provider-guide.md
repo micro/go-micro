@@ -43,7 +43,7 @@ The built-in providers currently register these capability interfaces:
 | `gemini` | Yes | No | No | No |
 | `groq` | Yes | No | No | No |
 | `mistral` | Yes | No | No | No |
-| `openai` | Yes | Yes | No | No |
+| `openai` | Yes | Yes | No | Yes |
 | `together` | Yes | No | No | No |
 
 ## Step 1: Implement the `ai.Model` Interface

@@ -29,6 +29,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -36,6 +37,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
 	codecbytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/registry"
@@ -92,6 +94,9 @@ func New(opts Options) *Gateway {
 // to Agent.Chat (the gateway) or an in-process Ask (an embedded agent).
 type Invoke func(ctx context.Context, text string) (string, error)
 
+// StreamInvoke runs an agent for one message and returns streaming output chunks.
+type StreamInvoke func(ctx context.Context, text string) (ai.Stream, error)
+
 // NewAgentHandler returns an http.Handler that serves the A2A protocol
 // for a single agent: its Agent Card at / and /.well-known/agent.json,
 // and the JSON-RPC endpoint at /. invoke runs the agent. This is what an
@@ -104,6 +109,19 @@ func NewAgentHandler(card AgentCard, invoke Invoke) http.Handler {
 	mux.HandleFunc("GET /{$}", serveCard)
 	mux.HandleFunc("GET /.well-known/agent.json", serveCard)
 	mux.HandleFunc("POST /{$}", func(w http.ResponseWriter, r *http.Request) { d.serve(w, r, invoke) })
+	return mux
+}
+
+// NewAgentStreamHandler is like NewAgentHandler, but serves A2A message/stream
+// by forwarding model chunks as server-sent task updates when stream is non-nil.
+func NewAgentStreamHandler(card AgentCard, invoke Invoke, stream StreamInvoke) http.Handler {
+	d := newDispatcher()
+	mux := http.NewServeMux()
+	card.URL = strings.TrimRight(card.URL, "/")
+	serveCard := func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, http.StatusOK, card) }
+	mux.HandleFunc("GET /{$}", serveCard)
+	mux.HandleFunc("GET /.well-known/agent.json", serveCard)
+	mux.HandleFunc("POST /{$}", func(w http.ResponseWriter, r *http.Request) { d.serveWithStream(w, r, invoke, stream) })
 	return mux
 }
 
@@ -404,6 +422,10 @@ type dispatcher struct {
 func newDispatcher() *dispatcher { return &dispatcher{tasks: map[string]*Task{}} }
 
 func (d *dispatcher) serve(w http.ResponseWriter, r *http.Request, invoke Invoke) {
+	d.serveWithStream(w, r, invoke, nil)
+}
+
+func (d *dispatcher) serveWithStream(w http.ResponseWriter, r *http.Request, invoke Invoke, streamInvoke StreamInvoke) {
 	var req rpcRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeRPC(w, nil, nil, &rpcError{Code: errParse, Message: "parse error"})
@@ -418,6 +440,10 @@ func (d *dispatcher) serve(w http.ResponseWriter, r *http.Request, invoke Invoke
 	case "message/send":
 		d.send(requestContext(r.Context()), w, req, invoke)
 	case "message/stream":
+		if streamInvoke != nil {
+			d.streamChunks(requestContext(r.Context()), w, req, streamInvoke)
+			return
+		}
 		d.stream(requestContext(r.Context()), w, req, invoke)
 	case "tasks/get":
 		d.get(w, req)
@@ -460,6 +486,50 @@ func (d *dispatcher) stream(ctx context.Context, w http.ResponseWriter, req rpcR
 	}
 }
 
+func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, req rpcRequest, invoke StreamInvoke) {
+	var p sendParams
+	if err := json.Unmarshal(req.Params, &p); err != nil {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
+		return
+	}
+	text := textOf(p.Message.Parts)
+	if text == "" {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "message has no text part"})
+		return
+	}
+	stream, err := invoke(ctx, text)
+	if err != nil {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errInternal, Message: err.Error()})
+		return
+	}
+	defer stream.Close()
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	enc := json.NewEncoder(sseWriter{w: w})
+	var reply strings.Builder
+	for {
+		chunk, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Error: &rpcError{Code: errInternal, Message: err.Error()}})
+			return
+		}
+		if chunk == nil || chunk.Reply == "" {
+			continue
+		}
+		reply.WriteString(chunk.Reply)
+		task := taskFromReply(p.Message, reply.String(), stateCompleted)
+		_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task})
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}
+}
+
 func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Invoke) (*Task, *rpcError) {
 	var p sendParams
 	if err := json.Unmarshal(params, &p); err != nil {
@@ -471,32 +541,12 @@ func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Inv
 	}
 
 	reply, err := invoke(ctx, text)
-	contextID := p.Message.ContextID
-	if contextID == "" {
-		contextID = uuid.New().String()
-	}
-	task := &Task{
-		ID:        uuid.New().String(),
-		ContextID: contextID,
-		Kind:      "task",
-		History:   []Message{p.Message},
-		Status:    TaskStatus{Timestamp: time.Now().UTC().Format(time.RFC3339)},
-	}
+	state := stateCompleted
 	if err != nil {
 		reply = "error: " + err.Error()
-		task.Status.State = stateFailed
-	} else {
-		task.Status.State = stateCompleted
+		state = stateFailed
 	}
-	task.Artifacts = []Artifact{textArtifact(reply)}
-	task.History = append(task.History, Message{
-		Role:      "agent",
-		Parts:     []Part{{Kind: "text", Text: reply}},
-		MessageID: uuid.New().String(),
-		TaskID:    task.ID,
-		ContextID: task.ContextID,
-		Kind:      "message",
-	})
+	task := taskFromReply(p.Message, reply, state)
 	d.store(task)
 	return task, nil
 }
@@ -557,6 +607,30 @@ func (d *dispatcher) store(t *Task) {
 		d.order = d.order[1:]
 		delete(d.tasks, oldest)
 	}
+}
+
+func taskFromReply(input Message, reply, state string) *Task {
+	contextID := input.ContextID
+	if contextID == "" {
+		contextID = uuid.New().String()
+	}
+	task := &Task{
+		ID:        uuid.New().String(),
+		ContextID: contextID,
+		Kind:      "task",
+		History:   []Message{input},
+		Status:    TaskStatus{State: state, Timestamp: time.Now().UTC().Format(time.RFC3339)},
+		Artifacts: []Artifact{textArtifact(reply)},
+	}
+	task.History = append(task.History, Message{
+		Role:      "agent",
+		Parts:     []Part{{Kind: "text", Text: reply}},
+		MessageID: uuid.New().String(),
+		TaskID:    task.ID,
+		ContextID: task.ContextID,
+		Kind:      "message",
+	})
+	return task
 }
 
 func textOf(parts []Part) string {

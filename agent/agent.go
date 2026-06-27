@@ -43,6 +43,7 @@ type Agent interface {
 	Init(...Option)
 	Options() Options
 	Ask(ctx context.Context, message string) (*Response, error)
+	Stream(ctx context.Context, message string) (ai.Stream, error)
 	Run() error
 	Stop() error
 	String() string
@@ -170,6 +171,28 @@ func (a *agentImpl) stateStore() store.Store {
 // This is the programmatic API for direct use.
 func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) {
 	return a.ask(ctx, message, a.parentRunID)
+}
+
+// Stream sends a message and returns a streaming model response. Tool-calling
+// agent runs still use Ask; Stream is for chat turns where immediate token
+// delivery is more important than tool orchestration.
+func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.model == nil {
+		a.setup()
+	}
+	toolList, err := a.discoverTools()
+	if err != nil {
+		return nil, fmt.Errorf("discover tools: %w", err)
+	}
+	a.mem.Add("user", message)
+	return a.model.Stream(ctx, &ai.Request{
+		Prompt:       message,
+		SystemPrompt: a.buildPrompt(),
+		Tools:        toolList,
+		Messages:     a.mem.Messages(),
+	})
 }
 
 // Resume returns the response for a checkpointed agent run. Completed runs are
@@ -333,13 +356,13 @@ func (a *agentImpl) Run() error {
 	// Ask in-process — no separate gateway needed to be queried by URL.
 	if a.opts.A2AAddress != "" {
 		card := a2a.Card(a.opts.Name, "http://localhost"+a.opts.A2AAddress, "", a.opts.Services)
-		handler := a2a.NewAgentHandler(card, func(ctx context.Context, text string) (string, error) {
+		handler := a2a.NewAgentStreamHandler(card, func(ctx context.Context, text string) (string, error) {
 			resp, err := a.Ask(ctx, text)
 			if err != nil {
 				return "", err
 			}
 			return resp.Reply, nil
-		})
+		}, a.Stream)
 		go func() {
 			if err := http.ListenAndServe(a.opts.A2AAddress, handler); err != nil {
 				fmt.Printf("agent %s A2A server: %v\n", a.opts.Name, err)
