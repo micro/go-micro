@@ -21,17 +21,20 @@ changes, architectural rewrites. Those go to the human.
 
 ## Now (ranked)
 
-1. **Agent observability spans** (#3182) — export `RunInfo` as OpenTelemetry spans
-   for agent runs, model calls, tool calls, delegation, and failures. Roadmap →
-   *Next* agent observability; now the registry readiness gap (#2956), durable
-   resume, streaming, and provider conformance work have shipped, the biggest
-   remaining seam is production inspectability across the services → agents →
-   workflows runtime.
+1. **End-to-end agent streaming** (#3200) — complete the roadmap streaming slice:
+   usable `ai.Stream` beyond the current OpenAI path, A2A `message/stream` chunk
+   delivery, cancellation/error semantics, and docs so chat and long-task UX are
+   real across the harness boundary. Roadmap → *Next* streaming, but it now ranks
+   first because durable resume, provider conformance, registry readiness, 0→hero,
+   and agent OpenTelemetry have shipped; streaming is the largest remaining seam
+   in the services → agents → workflows interaction loop.
 2. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
-   and failure hooks; first check overlap with the shipped run-timeline /
-   OpenTelemetry work and scope to what's not already covered. Roadmap → *Next*
-   resilience/operability, but ranked after observability so new hooks attach to
-   the same run story instead of creating another seam.
+   and failure hooks; first reconcile the issue with the shipped `AgentWrapTool`,
+   structured refusal reasons, `RunInfo`, and OpenTelemetry spans, then close it or
+   scope only a CI-verifiable gap that wrappers plus tracing cannot express.
+   Roadmap → resilience/operability, but ranked after streaming because most of
+   the originally requested lifecycle metadata now exists and the remaining value
+   is validation/scoping rather than a missing harness primitive.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
