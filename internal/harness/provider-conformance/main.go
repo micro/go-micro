@@ -51,6 +51,7 @@ func main() {
 	requireConfiguredFlag := flag.Bool("require-configured", false, "fail when a selected live provider is missing an API key")
 	capabilitiesFlag := flag.Bool("capabilities", true, "print the registered provider capability matrix before running conformance")
 	summaryJSONFlag := flag.String("summary-json", "", "write a machine-readable conformance summary to this path")
+	summaryMarkdownFlag := flag.String("summary-markdown", "", "write a human-readable conformance summary to this path")
 	capabilityMarkdownFlag := flag.String("capabilities-markdown", "", "write the registered provider capability matrix as a Markdown table")
 	flag.Parse()
 
@@ -102,18 +103,24 @@ func main() {
 	}
 
 	fmt.Printf("\nprovider conformance: %d passed, %d skipped providers, %d failed\n", ran, skipped, failed)
+	summary := conformanceSummary{
+		Providers:    providers,
+		Harnesses:    harnesses,
+		Capabilities: ai.CapabilityRows(),
+		Results:      results,
+		Passed:       ran,
+		Skipped:      skipped,
+		Failed:       failed,
+	}
 	if *summaryJSONFlag != "" {
-		summary := conformanceSummary{
-			Providers:    providers,
-			Harnesses:    harnesses,
-			Capabilities: ai.CapabilityRows(),
-			Results:      results,
-			Passed:       ran,
-			Skipped:      skipped,
-			Failed:       failed,
-		}
 		if err := writeSummaryJSON(*summaryJSONFlag, summary); err != nil {
 			fmt.Fprintf(os.Stderr, "write summary: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	if *summaryMarkdownFlag != "" {
+		if err := writeSummaryMarkdown(*summaryMarkdownFlag, summary); err != nil {
+			fmt.Fprintf(os.Stderr, "write summary markdown: %v\n", err)
 			os.Exit(1)
 		}
 	}
@@ -155,13 +162,45 @@ func writeSummaryJSON(path string, summary conformanceSummary) error {
 }
 
 func writeCapabilityMarkdown(path string, rows []ai.CapabilityRow) error {
+	return os.WriteFile(path, []byte(capabilityMarkdown(rows)), 0o644)
+}
+
+func writeSummaryMarkdown(path string, summary conformanceSummary) error {
+	var b strings.Builder
+	b.WriteString("# Provider conformance summary\n\n")
+	fmt.Fprintf(&b, "Passed: %d. Skipped providers: %d. Failed: %d.\n\n", summary.Passed, summary.Skipped, summary.Failed)
+	b.WriteString("## Capability matrix\n\n")
+	b.WriteString(capabilityMarkdown(summary.Capabilities))
+	b.WriteString("\n## Harness results\n\n")
+	b.WriteString("| Provider | Harness | Status | Detail |\n")
+	b.WriteString("| --- | --- | --- | --- |\n")
+	for _, result := range summary.Results {
+		harness := result.Harness
+		if harness == "" {
+			harness = "—"
+		}
+		fmt.Fprintf(&b, "| %s | %s | %s | %s |\n", result.Provider, harness, result.Status, markdownCell(result.Error))
+	}
+	return os.WriteFile(path, []byte(b.String()), 0o644)
+}
+
+func capabilityMarkdown(rows []ai.CapabilityRow) string {
 	var b strings.Builder
 	b.WriteString("| Provider | Model | Image | Video | Streaming |\n")
 	b.WriteString("| --- | --- | --- | --- | --- |\n")
 	for _, row := range rows {
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s |\n", row.Provider, mark(row.Model), mark(row.Image), mark(row.Video), mark(row.Stream))
 	}
-	return os.WriteFile(path, []byte(b.String()), 0o644)
+	return b.String()
+}
+
+func markdownCell(s string) string {
+	if s == "" {
+		return "—"
+	}
+	s = strings.ReplaceAll(s, "|", "\\|")
+	s = strings.ReplaceAll(s, "\n", "<br>")
+	return s
 }
 
 func mark(ok bool) string {
