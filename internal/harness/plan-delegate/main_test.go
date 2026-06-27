@@ -206,3 +206,16 @@ func TestFlowDispatchesToAgentEndToEnd(t *testing.T) {
 		t.Errorf("notify called %d times, want 1 (flow->agent->delegate->comms chain broken)", n)
 	}
 }
+
+// TestZeroToHeroContract locks the roadmap's second golden path into the
+// ordinary Go test contract. It runs the same executable harness used by
+// `make harness`: services + agents + flow + plan/delegate, with only the
+// LLM replaced by the deterministic mock provider.
+func TestZeroToHeroContract(t *testing.T) {
+	if testing.Short() {
+		t.Skip("0→hero harness boots an end-to-end system; skipped with -short")
+	}
+	if err := runPlanDelegate("mock"); err != nil {
+		t.Fatalf("0→hero harness: %v", err)
+	}
+}
