@@ -23,6 +23,7 @@ import (
 	"github.com/google/uuid"
 	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/store"
@@ -171,6 +172,27 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 	return a.ask(ctx, message, a.parentRunID)
 }
 
+// Resume returns the response for a checkpointed agent run. Completed runs are
+// returned from the checkpoint without calling the model or replaying tool
+// calls; failed or in-progress runs continue from the saved input message.
+func Resume(ctx context.Context, ag Agent, runID string) (*Response, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return nil, fmt.Errorf("agent resume: unsupported agent implementation %T", ag)
+	}
+	return a.resume(ctx, runID)
+}
+
+// Pending returns checkpointed agent runs that have not completed. It mirrors
+// flow.Pending for startup recovery loops that drain durable agent work.
+func Pending(ctx context.Context, ag Agent) ([]flow.Run, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return nil, fmt.Errorf("agent pending: unsupported agent implementation %T", ag)
+	}
+	return a.pending(ctx)
+}
+
 func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Response, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -179,6 +201,10 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 		a.setup()
 	}
 
+	return a.askLocked(ctx, uuid.New().String(), message, parentRunID, nil)
+}
+
+func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID string, existing *flow.Run) (*Response, error) {
 	toolList, err := a.discoverTools()
 	if err != nil {
 		return nil, fmt.Errorf("discover tools: %w", err)
@@ -189,12 +215,16 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 	a.calls = map[string]int{}
 
 	// Correlate this run's tool calls and surface lineage to wrappers.
-	a.runID = uuid.New().String()
+	a.runID = runID
 	ctx = ai.WithRunInfo(ctx, ai.RunInfo{
 		RunID:    a.runID,
 		ParentID: parentRunID,
 		Agent:    a.opts.Name,
 	})
+	run := a.newCheckpointRun(runID, message, parentRunID, existing)
+	if err := a.saveRun(ctx, run); err != nil {
+		return nil, err
+	}
 	ctx, endRun := a.startRun(ctx, message)
 	defer func() { endRun(err) }()
 
@@ -209,6 +239,10 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 		Backoff:     a.opts.ModelRetryBackoff,
 	})
 	if err != nil {
+		run.Status = "failed"
+		run.Steps[0].Status = "failed"
+		run.Steps[0].Error = err.Error()
+		_ = a.saveRun(ctx, run)
 		return nil, err
 	}
 
@@ -227,13 +261,25 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 		reply += resp.Answer
 	}
 
-	return &Response{
+	res := &Response{
 		Reply:     reply,
 		ToolCalls: resp.ToolCalls,
 		Agent:     a.opts.Name,
 		RunID:     a.runID,
 		ParentID:  parentRunID,
-	}, nil
+	}
+	run.Status = "done"
+	run.State.Stage = ""
+	if b, marshalErr := json.Marshal(res); marshalErr == nil {
+		run.State.Data = b
+	}
+	run.Steps[0].Status = "done"
+	run.Steps[0].Attempts++
+	run.Steps[0].Result = reply
+	if err := a.saveRun(ctx, run); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Chat implements the proto AgentHandler interface for RPC.
