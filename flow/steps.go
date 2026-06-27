@@ -331,6 +331,9 @@ func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
 // Resume continues a persisted run by id, picking up at the step it
 // stopped on. Completed runs are a no-op.
 func (f *Flow) Resume(ctx context.Context, runID string) error {
+	ctx, cancel := f.withTimeout(ctx)
+	defer cancel()
+
 	if err := validateSteps(f.opts.Steps); err != nil {
 		return err
 	}
@@ -360,6 +363,9 @@ func (f *Flow) Resume(ctx context.Context, runID string) error {
 // stops and returns that run id with the error so callers can log, alert, or
 // retry later without hiding the failing run.
 func (f *Flow) ResumePending(ctx context.Context) (string, error) {
+	ctx, cancel := f.withTimeout(ctx)
+	defer cancel()
+
 	runs, err := f.Pending(ctx)
 	if err != nil {
 		return "", err

@@ -279,6 +279,50 @@ func TestFlowStepRetryBackoffWaitsBetweenAttempts(t *testing.T) {
 	}
 }
 
+func TestFlowTimeoutStopsRetryBackoff(t *testing.T) {
+	var attempts int
+	step := Step{Name: "slow", Run: func(_ context.Context, in State) (State, error) {
+		attempts++
+		return in, errors.New("transient")
+	}}
+
+	f := New("timeout-backoff",
+		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "timeout-backoff")),
+		Timeout(20*time.Millisecond),
+		Retry(1),
+		RetryBackoff(time.Hour),
+		Steps(step),
+	)
+	err := f.Execute(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected the timed-out run to fail")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("want a context deadline error, got %v", err)
+	}
+	if attempts != 1 {
+		t.Errorf("timeout should stop during backoff before retrying, got %d attempts", attempts)
+	}
+}
+
+func TestFlowTimeoutRespectsExistingDeadline(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+
+	f := New("existing-deadline", Timeout(time.Millisecond))
+	got, stop := f.withTimeout(ctx)
+	defer stop()
+
+	wantDeadline, _ := ctx.Deadline()
+	gotDeadline, ok := got.Deadline()
+	if !ok {
+		t.Fatal("expected the existing deadline to remain set")
+	}
+	if !gotDeadline.Equal(wantDeadline) {
+		t.Fatalf("deadline = %v, want existing deadline %v", gotDeadline, wantDeadline)
+	}
+}
+
 func TestFlowStepRetryBackoffStopsOnCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	var attempts int
