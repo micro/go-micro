@@ -132,9 +132,10 @@ yet terminal, it polls `tasks/get` until it completes.
 
 ## Scope
 
-This is the synchronous JSON-RPC binding:
+This is the JSON-RPC binding for completed-task execution:
 
 - **`message/send`** runs the agent and returns a completed `Task`.
+- **`message/stream`** streams the completed `Task` as an SSE `data:` event, giving A2A clients a streaming-compatible path while the underlying agent call remains synchronous.
 - **`tasks/get`** returns a recent task by id.
 - **Agent Card** discovery, generated from the registry.
 
@@ -142,11 +143,11 @@ Both directions work: the gateway exposes your agents, and `a2a.Client` (via `fl
 
 Not yet supported (advertised as such on the card, so clients negotiate correctly):
 
-- **`message/stream`** (SSE streaming) and `tasks/resubscribe`.
+- **`tasks/resubscribe`** for reconnecting to a live stream.
 - Multi-turn `input-required` tasks.
 - Push notifications.
 
-These are the natural follow-ups; the synchronous binding is what makes a Go Micro agent both reachable from, and able to reach, the A2A ecosystem today.
+These are the natural follow-ups; the completed-task binding is what makes a Go Micro agent both reachable from, and able to reach, the A2A ecosystem today.
 
 ## See also
 
