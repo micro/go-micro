@@ -225,22 +225,19 @@ func providerKey(provider string) string {
 	return os.Getenv(env)
 }
 
-func main() {
-	provider := flag.String("provider", "mock", "LLM provider: mock (default), anthropic, openai, gemini, groq, mistral, together, atlascloud")
-	flag.Parse()
-
+func runPlanDelegate(provider string) error {
 	apiKey := ""
-	if *provider == "mock" {
+	if provider == "mock" {
 		ai.Register("mock", newMock)
 	} else {
-		apiKey = providerKey(*provider)
+		apiKey = providerKey(provider)
 		if apiKey == "" {
-			fmt.Printf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env\n", *provider)
-			return
+			fmt.Printf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env\n", provider)
+			return nil
 		}
 	}
 
-	fmt.Printf("\n\033[1mPlan & Delegate — live integration harness (provider: %s)\033[0m\n", *provider)
+	fmt.Printf("\n\033[1mPlan & Delegate — live integration harness (provider: %s)\033[0m\n", provider)
 	fmt.Print("Real services, registry, RPC, agent loop, store, delegation.\n\n")
 
 	reg := registry.NewMemoryRegistry()
@@ -251,16 +248,14 @@ func main() {
 	taskSvc := new(TaskService)
 	task := service.New(service.Name("task"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := task.Handle(taskSvc); err != nil {
-		fmt.Println("task handle:", err)
-		os.Exit(1)
+		return fmt.Errorf("task handle: %w", err)
 	}
 	go task.Run()
 
 	notifySvc := new(NotifyService)
 	notify := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := notify.Handle(notifySvc); err != nil {
-		fmt.Println("notify handle:", err)
-		os.Exit(1)
+		return fmt.Errorf("notify handle: %w", err)
 	}
 	go notify.Run()
 
@@ -270,7 +265,7 @@ func main() {
 		agent.Address("127.0.0.1:0"),
 		agent.Services("notify"),
 		agent.Prompt("You handle outbound notifications. Use the notify service."),
-		agent.Provider(*provider), agent.APIKey(apiKey),
+		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
 	)
 	go comms.Run()
@@ -282,24 +277,27 @@ func main() {
 		agent.Address("127.0.0.1:0"),
 		agent.Services("task"),
 		agent.Prompt("You coordinate launch work. Plan first, create tasks, and delegate notifications to the \"comms\" agent."),
-		agent.Provider(*provider), agent.APIKey(apiKey),
+		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
 	)
 	go conductor.Run()
 	defer conductor.Stop()
 
 	fmt.Println("waiting for services + agents to register...")
-	waitForService := func(name string) {
+	waitForService := func(name string) error {
 		deadline := time.Now().Add(5 * time.Second)
 		for time.Now().Before(deadline) {
 			if svcs, err := reg.GetService(name); err == nil && len(svcs) > 0 && len(svcs[0].Nodes) > 0 {
-				return
+				return nil
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
+		return fmt.Errorf("service %q never registered", name)
 	}
 	for _, name := range []string{"task", "notify", "comms", "conductor"} {
-		waitForService(name)
+		if err := waitForService(name); err != nil {
+			return err
+		}
 	}
 
 	f := flow.New("zero-to-hero",
@@ -307,14 +305,12 @@ func main() {
 		flow.Prompt("Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified: {{.Data}}"),
 	)
 	if err := f.Register(reg, broker.DefaultBroker, cl); err != nil {
-		fmt.Println("flow register:", err)
-		os.Exit(1)
+		return fmt.Errorf("flow register: %w", err)
 	}
 
 	fmt.Print("\n\033[1m> flow:\033[0m services + agents + workflow + plan/delegate, no API key.\n\n")
 	if err := f.Execute(context.Background(), "launch readiness"); err != nil {
-		fmt.Println("\033[31merror:\033[0m", err)
-		os.Exit(1)
+		return fmt.Errorf("flow execute: %w", err)
 	}
 
 	if rs := f.Results(); len(rs) > 0 {
@@ -325,13 +321,22 @@ func main() {
 	if recs, _ := store.Scope(mem, "agent", "conductor").Read("plan"); len(recs) > 0 {
 		fmt.Printf("\n\033[1mstored plan (agent/conductor/plan):\033[0m %s\n", string(recs[0].Value))
 	} else {
-		fmt.Println("\n\033[31m! plan was not persisted\033[0m")
-		os.Exit(1)
+		return fmt.Errorf("plan was not persisted")
 	}
 	if taskSvc.count() != 3 || notifySvc.count() != 1 {
-		fmt.Printf("\n\033[31m! unexpected side effects: tasks=%d notify=%d\033[0m\n", taskSvc.count(), notifySvc.count())
-		os.Exit(1)
+		return fmt.Errorf("unexpected side effects: tasks=%d notify=%d", taskSvc.count(), notifySvc.count())
 	}
 
 	fmt.Println("\n\033[32m✓ 0→hero flow complete (services → agents → workflow)\033[0m")
+	return nil
+}
+
+func main() {
+	provider := flag.String("provider", "mock", "LLM provider: mock (default), anthropic, openai, gemini, groq, mistral, together, atlascloud")
+	flag.Parse()
+
+	if err := runPlanDelegate(*provider); err != nil {
+		fmt.Println("\033[31merror:\033[0m", err)
+		os.Exit(1)
+	}
 }
