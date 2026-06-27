@@ -21,20 +21,19 @@ changes, architectural rewrites. Those go to the human.
 
 ## Now (ranked)
 
-1. **Cross-provider agent conformance matrix** (#3187) — run the same agent
-   scenario across supported providers behind credential gates, with deterministic
-   local skips and a fake/local provider path. Roadmap → *Now*; highest leverage
-   trust work after streaming shipped because every agent feature depends on
-   provider behavior staying consistent.
-2. **Registry disconnection detection** (#2956) — readiness/health when a service
+1. **Registry disconnection detection** (#2956) — readiness/health when a service
    silently loses its registry connection. Roadmap → *Now* failure/resilience;
-   keeps the service substrate operable because agents depend on discovery.
-3. **Agent observability spans** (#3182) — export `RunInfo` as OpenTelemetry spans
+   keeps the service substrate operable because agents depend on discovery, and
+   it is the remaining open Now item after the conformance matrix shipped.
+2. **Agent observability spans** (#3182) — export `RunInfo` as OpenTelemetry spans
    for agent runs, model calls, tool calls, delegation, and failures. Roadmap →
-   *Next*; makes the now-durable and streaming harness inspectable in production.
-4. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
+   *Next*; makes the now-durable, streaming, and cross-provider-tested harness
+   inspectable in production.
+3. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
    and failure hooks; first check overlap with the shipped run-timeline /
-   OpenTelemetry work and scope to what's not already covered.
+   OpenTelemetry work and scope to what's not already covered. Roadmap → *Next*
+   resilience/operability, but ranked after observability so new hooks attach to
+   the same run story instead of creating another seam.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
