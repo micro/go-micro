@@ -142,6 +142,10 @@ func AgentWrapTool(w ...ai.ToolWrapper) AgentOption {
 	return agent.WrapTool(w...)
 }
 
+// AgentTraceProvider enables OpenTelemetry spans for agent runs, model calls,
+// tool calls, delegation, and failures.
+func AgentTraceProvider(tp trace.TracerProvider) AgentOption { return agent.TraceProvider(tp) }
+
 // NewFlow creates an event-driven LLM orchestration unit.
 //
 //	f := micro.NewFlow("onboard-user",

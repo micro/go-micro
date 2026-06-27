@@ -3,6 +3,8 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,7 +30,11 @@ func (m *otelTestModel) Stream(context.Context, *ai.Request, ...ai.GenerateOptio
 }
 func (m *otelTestModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
 	if m.opts.ToolHandler != nil {
-		_ = m.opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "probe", Input: map[string]any{"ok": true}})
+		if strings.Contains(req.Prompt, "delegate") {
+			_ = m.opts.ToolHandler(ctx, ai.ToolCall{ID: "call-delegate", Name: toolDelegate, Input: map[string]any{"task": "subtask"}})
+		} else if !strings.Contains(req.Prompt, "subtask") {
+			_ = m.opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "probe", Input: map[string]any{"ok": true}})
+		}
 	}
 	return &ai.Response{Reply: "done", Usage: ai.Usage{InputTokens: 2, OutputTokens: 3, TotalTokens: 5}}, nil
 }
@@ -112,9 +118,60 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 func spanAttributes(attrs []attribute.KeyValue) map[string]string {
 	out := make(map[string]string, len(attrs))
 	for _, attr := range attrs {
-		out[string(attr.Key)] = attr.Value.AsString()
+		out[string(attr.Key)] = fmt.Sprint(attr.Value.AsInterface())
 	}
 	return out
+}
+
+func TestAgentOpenTelemetrySpansDelegateLineage(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+	st := store.NewMemoryStore()
+	a := New(Name("conductor"), Provider("oteltest"), WithStore(st), TraceProvider(tp))
+	if _, err := a.Ask(context.Background(), "delegate please"); err != nil {
+		t.Fatal(err)
+	}
+
+	spans := exp.GetSpans().Snapshots()
+	var parentRunID string
+	var delegateSpanID string
+	var subRunSeen bool
+	for _, s := range spans {
+		attrs := spanAttributes(s.Attributes())
+		if s.Name() == spanNameRun && attrs[AttrAgentName] == "conductor" {
+			parentRunID = attrs[AttrRunID]
+		}
+	}
+	if parentRunID == "" {
+		t.Fatal("parent run span missing run id")
+	}
+	for _, s := range spans {
+		attrs := spanAttributes(s.Attributes())
+		if s.Name() == spanNameToolCall && attrs[AttrToolName] == toolDelegate {
+			if attrs[AttrDelegate] != "true" || attrs[AttrRunID] != parentRunID {
+				t.Fatalf("delegate span missing correlation attributes: %#v", attrs)
+			}
+			delegateSpanID = s.SpanContext().SpanID().String()
+		}
+	}
+	if delegateSpanID == "" {
+		t.Fatal("delegate tool span not emitted")
+	}
+	for _, s := range spans {
+		attrs := spanAttributes(s.Attributes())
+		if s.Name() == spanNameRun && attrs[AttrAgentName] == "conductor.sub" {
+			if attrs[AttrParentRunID] != parentRunID {
+				t.Fatalf("sub-agent run parent attr = %q, want %q", attrs[AttrParentRunID], parentRunID)
+			}
+			if s.Parent().SpanID().String() != delegateSpanID {
+				t.Fatalf("sub-agent run parent span = %s, want delegate span %s", s.Parent().SpanID(), delegateSpanID)
+			}
+			subRunSeen = true
+		}
+	}
+	if !subRunSeen {
+		t.Fatalf("sub-agent run span not emitted; got %d spans", len(spans))
+	}
 }
 
 func TestAgentRunTimelineRecordsModelAndToolWithoutTraceProvider(t *testing.T) {

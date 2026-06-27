@@ -37,11 +37,43 @@ your stack — the harness *is* the stack.
 | Interop | MCP (tools), A2A (agents), x402 (paid tools) | Shipped |
 | Resilience | Per-call timeout with context propagation; opt-in retry/backoff (`ModelRetry`) across the loop | Shipped |
 | Durable runs | Checkpoint and resume an agent run (flows already do) | In progress |
-| Observability | `RunInfo` → OpenTelemetry spans; run history on the CLI | In progress |
+| Observability | `RunInfo` → OpenTelemetry spans for runs, model calls, tools, delegation, and failures; persisted run history | Shipped |
 | Streaming | `ai.Stream` through chat, agent, and A2A | In progress |
 
 The "in progress" rows are exactly the roadmap's [Now and Next](/docs/roadmap.html),
 and the work is happening in the open.
+
+## Observing agent runs
+
+Pass an OpenTelemetry tracer provider when you construct an agent to turn the
+agent's `RunInfo` into spans:
+
+```go
+agent := micro.NewAgent("conductor",
+    micro.AgentProvider("anthropic"),
+    micro.AgentTraceProvider(otel.GetTracerProvider()),
+)
+```
+
+A traced `Ask` emits a parent `agent.run` span plus child spans for
+`agent.model.call` and `agent.tool.call`. Delegate tool calls are marked with
+`agent.delegate=true`; ephemeral sub-agents start their own `agent.run` span with
+`agent.run.parent_id` set to the delegating run, so a trace shows the hand-off
+from service-like agent to sub-agent. Failure and refusal outcomes set error
+status on the relevant span and are also recorded in the persisted run timeline.
+
+Important span attributes include:
+
+| Attribute | Meaning |
+|---|---|
+| `agent.run.id` | Stable run correlation ID surfaced as `ai.RunInfo.RunID` |
+| `agent.run.parent_id` | Parent run for delegated sub-agent work |
+| `agent.name` | Agent that owns the run or call |
+| `agent.model.provider` / `agent.model.name` | Provider and configured model for model calls |
+| `agent.tool.name` | Tool invoked by the model |
+| `agent.delegate` | Whether the tool call is a delegation boundary |
+| `agent.latency_ms` | Elapsed time for the run/call |
+| `agent.tokens.*` | Token usage when the provider reports it |
 
 ## Why services are the right substrate
 
