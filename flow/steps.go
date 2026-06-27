@@ -74,13 +74,14 @@ type StepRecord struct {
 // saves and loads. It is retained for success and failure unless the flow
 // opts into cleanup with DeleteOnSuccess.
 type Run struct {
-	ID      string       `json:"id"`
-	Flow    string       `json:"flow"`
-	State   State        `json:"state"`
-	Steps   []StepRecord `json:"steps"`
-	Status  string       `json:"status"` // running | done | failed
-	Started time.Time    `json:"started"`
-	Updated time.Time    `json:"updated"`
+	ID       string       `json:"id"`
+	ParentID string       `json:"parent_id,omitempty"`
+	Flow     string       `json:"flow"`
+	State    State        `json:"state"`
+	Steps    []StepRecord `json:"steps"`
+	Status   string       `json:"status"` // running | done | failed
+	Started  time.Time    `json:"started"`
+	Updated  time.Time    `json:"updated"`
 }
 
 // Checkpoint persists and restores flow runs so a run survives a crash
@@ -309,12 +310,17 @@ func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
 	if err := validateSteps(f.opts.Steps); err != nil {
 		return Run{}, err
 	}
+	parentID := ""
+	if info, ok := ai.RunInfoFrom(ctx); ok {
+		parentID = info.RunID
+	}
 	run := Run{
-		ID:      uuid.New().String(),
-		Flow:    f.name,
-		State:   State{Stage: f.opts.Steps[0].Name, Data: []byte(data)},
-		Status:  "running",
-		Started: time.Now(),
+		ID:       uuid.New().String(),
+		ParentID: parentID,
+		Flow:     f.name,
+		State:    State{Stage: f.opts.Steps[0].Name, Data: []byte(data)},
+		Status:   "running",
+		Started:  time.Now(),
 	}
 	for _, s := range f.opts.Steps {
 		run.Steps = append(run.Steps, StepRecord{Name: s.Name, Status: "pending"})
@@ -390,7 +396,7 @@ func (f *Flow) Pending(ctx context.Context) ([]Run, error) {
 func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	steps := f.opts.Steps
 	ctx = withDeps(ctx, &runDeps{client: f.client, model: f.model, tools: f.toolSet})
-	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: run.ID, Agent: f.name, Flow: f.name})
+	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: run.ID, ParentID: run.ParentID, Agent: f.name, Flow: f.name})
 	ctx, finishSpan := f.startRunSpan(ctx, run)
 	var spanErr error
 	defer func() { finishSpan(run, spanErr) }()
