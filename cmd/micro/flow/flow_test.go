@@ -29,6 +29,7 @@ func TestWriteFlowRunsIncludesStepDetails(t *testing.T) {
 	}
 	got := out.String()
 	for _, want := range []string{
+		"1 run",
 		"12345678  failed   stage=charge",
 		"updated=2026-06-24T12:30:00Z",
 		"- reserve      done        attempts=1",
@@ -37,6 +38,20 @@ func TestWriteFlowRunsIncludesStepDetails(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("output missing %q:\n%s", want, got)
 		}
+	}
+}
+
+func TestValidateFlowRunOptionsRejectsInvalidStatus(t *testing.T) {
+	_, err := validateFlowRunOptions(flowRunOptions{Status: "stuck"})
+	if err == nil || !strings.Contains(err.Error(), "invalid run status") {
+		t.Fatalf("expected invalid status error, got %v", err)
+	}
+}
+
+func TestValidateFlowRunOptionsRejectsNegativeLimit(t *testing.T) {
+	_, err := validateFlowRunOptions(flowRunOptions{Limit: -1})
+	if err == nil || !strings.Contains(err.Error(), "invalid limit") {
+		t.Fatalf("expected invalid limit error, got %v", err)
 	}
 }
 

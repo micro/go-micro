@@ -134,7 +134,11 @@ func flowRuns(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	runs = filterFlowRuns(runs, flowRunOptions{Pending: c.Bool("pending"), Status: c.String("status"), Stage: c.String("stage"), Limit: c.Int("limit")})
+	opts, err := validateFlowRunOptions(flowRunOptions{Pending: c.Bool("pending"), Status: c.String("status"), Stage: c.String("stage"), Limit: c.Int("limit")})
+	if err != nil {
+		return err
+	}
+	runs = filterFlowRuns(runs, opts)
 	if len(runs) == 0 {
 		if c.Bool("pending") {
 			fmt.Printf("  No pending runs recorded for flow %q.\n", name)
@@ -151,6 +155,18 @@ type flowRunOptions struct {
 	Status  string
 	Stage   string
 	Limit   int
+}
+
+func validateFlowRunOptions(opts flowRunOptions) (flowRunOptions, error) {
+	switch opts.Status {
+	case "", "running", "done", "failed":
+	default:
+		return opts, fmt.Errorf("invalid run status %q: expected running, done, or failed", opts.Status)
+	}
+	if opts.Limit < 0 {
+		return opts, fmt.Errorf("invalid limit %d: expected a non-negative value", opts.Limit)
+	}
+	return opts, nil
 }
 
 func filterFlowRuns(runs []aiflow.Run, opts flowRunOptions) []aiflow.Run {
@@ -194,6 +210,7 @@ func writeFlowRuns(w io.Writer, runs []aiflow.Run, asJSON bool) error {
 		enc.SetIndent("", "  ")
 		return enc.Encode(runs)
 	}
+	fmt.Fprintf(w, "  %d run%s\n", len(runs), plural(len(runs)))
 	for _, r := range runs {
 		id := r.ID
 		if len(id) > 8 {
@@ -214,6 +231,13 @@ func writeFlowRuns(w io.Writer, runs []aiflow.Run, asJSON bool) error {
 		}
 	}
 	return nil
+}
+
+func plural(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
 }
 
 func flowFlags() []cli.Flag {
