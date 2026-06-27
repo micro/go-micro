@@ -21,15 +21,13 @@ changes, architectural rewrites. Those go to the human.
 
 ## Now (ranked)
 
-1. **Registry disconnection detection** (#2956) — readiness/health when a service
-   silently loses its registry connection. Roadmap → *Now* failure/resilience;
-   keeps the service substrate operable because agents depend on discovery, and
-   it is the remaining open Now item after the conformance matrix shipped.
-2. **Agent observability spans** (#3182) — export `RunInfo` as OpenTelemetry spans
+1. **Agent observability spans** (#3182) — export `RunInfo` as OpenTelemetry spans
    for agent runs, model calls, tool calls, delegation, and failures. Roadmap →
-   *Next*; makes the now-durable, streaming, and cross-provider-tested harness
-   inspectable in production.
-3. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
+   *Next* agent observability; now the registry readiness gap (#2956), durable
+   resume, streaming, and provider conformance work have shipped, the biggest
+   remaining seam is production inspectability across the services → agents →
+   workflows runtime.
+2. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
    and failure hooks; first check overlap with the shipped run-timeline /
    OpenTelemetry work and scope to what's not already covered. Roadmap → *Next*
    resilience/operability, but ranked after observability so new hooks attach to
