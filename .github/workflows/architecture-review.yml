@@ -1,21 +1,24 @@
 name: Architecture Review
 
-# Periodic high-altitude review of the whole framework and harness against the
-# North Star (internal/docs/THESIS.md) — part of the autonomous loop
-# (internal/docs/CONTINUOUS_IMPROVEMENT.md). Where DevRel watches the public
-# story, the architect watches the system: API coherence, lifecycle gaps, and
-# whether recent increments are converging on the thesis or sprawling.
+# Continuous high-altitude oversight of the whole framework and harness — the
+# "founder lens" of the autonomous loop (internal/docs/CONTINUOUS_IMPROVEMENT.md).
+# Where DevRel watches the public story and the increment loop ships code, the
+# architect watches the SYSTEM and runs alongside the builders: it tracks what is
+# in flight and what just merged, keeps the roadmap priorities live, and judges
+# cohesion (harness <-> framework <-> dev UX), missing pieces, and realignment.
 #
-# The architect's OUTPUT is an assessment plus scoped follow-up issues that feed
-# the hourly increment loop — NOT large refactors. Breaking public-API and
-# architectural changes stay with the human (see CONTINUOUS_IMPROVEMENT.md).
+# Its OUTPUT is the ranked queue in internal/docs/PRIORITIES.md plus an assessment
+# — NOT large refactors. Breaking public-API and architectural changes stay with
+# the human (see CONTINUOUS_IMPROVEMENT.md).
 #
-# Opens a fresh issue and dispatches Codex via CODEX_TRIGGER_TOKEN.
+# Runs hourly, offset before the increment loop (:29) so it re-prioritizes and
+# THEN the loop builds the new top of the queue. Opens a fresh issue and
+# dispatches Codex via CODEX_TRIGGER_TOKEN.
 
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: "0 8 */3 * *" # roughly every 3 days, 08:00 UTC (tunable)
+    - cron: "59 * * * *" # hourly at :59, just before the :29 increment run (tunable)
 
 permissions:
   issues: write
@@ -41,8 +44,8 @@ jobs:
           fi
           ISSUE_URL=$(gh issue create --repo "$REPO" \
             --title "Architecture review #$RUN_NUMBER" \
-            --body "Periodic architecture / harness review against the North Star in internal/docs/THESIS.md. Output: an assessment plus scoped follow-up issues for the increment loop.")
+            --body "Continuous architecture / harness oversight against the North Star in internal/docs/THESIS.md. Output: a re-ranked internal/docs/PRIORITIES.md (only if it changed) plus an assessment.")
           ISSUE_NUM="${ISSUE_URL##*/}"
           echo "Opened issue #$ISSUE_NUM — dispatching Codex (Architect)."
           gh issue comment "$ISSUE_NUM" --repo "$REPO" --body \
-          "@codex Act as the architect for go-micro. Your PRIMARY job is to maintain the ranked work queue in internal/docs/PRIORITIES.md by prioritizing the roadmap (ROADMAP.md, Now → Next → Later) together with an internal scan: gaps or missing pieces in the services → agents → workflows lifecycle, API coherence across the core packages (agent, ai, flow, gateway/mcp, gateway/a2a, model, server, store, registry), duplication/drift, tech debt, and test/DX friction. Each run: (1) review what shipped recently (scan recently merged PRs) and re-rank; (2) make sure every top priority has a scoped, CI-verifiable tracking issue — for gaps not yet tracked, file one with \`gh issue create --label codex --label enhancement --title \"<scoped task>\" --body \"<goal, scope, acceptance criteria>\"\`; (3) rewrite internal/docs/PRIORITIES.md as a SINGLE ordered list, highest-value first, each item linking its issue (#N), with roadmap phase as the primary ordering and internal findings interleaved by value. Open ONE PR for the PRIORITIES.md update: \`git switch -c codex/architect-$ISSUE_NUM\`, \`git push -u origin codex/architect-$ISSUE_NUM\`, \`gh pr create --base master --label codex --title \"<title>\" --body \"<summary, Closes #$ISSUE_NUM>\"\`, then \`gh pr merge --squash --auto --delete-branch\`. Also post a concise architectural assessment as a comment on this issue (#$ISSUE_NUM): strengths, top risks/gaps, and the reasoning behind the new ranking. Do NOT make breaking public-API or architectural changes yourself — propose those in the assessment as notes for the human, never as auto-merged queue items. Do not use the make_pr tool (it is a no-op stub)."
+          "@codex Act as the architect — the founder lens — for go-micro, running continuously alongside the builders. Hold the whole picture: how the harness, the framework, and the developer UX fit together cohesively, what is in flight and what just merged, what to prioritize next on the roadmap, and what is missing or has drifted. Each run: (1) TRACK STATE — scan recently merged PRs and open codex PRs/issues to see what shipped and what is being built right now, so the queue reflects reality (drop done items, don't re-queue in-flight work). (2) ASSESS against the North Star in internal/docs/THESIS.md and ROADMAP.md (Now → Next → Later): coherence and seams across the core packages (agent, ai, flow, gateway/mcp, gateway/a2a, model, server, store, registry), the services → agents → workflows lifecycle, the dev inner loop (scaffold → run → chat → inspect → deploy), missing pieces, duplication/drift, and whether recent work needs realignment. (3) MAINTAIN THE QUEUE in internal/docs/PRIORITIES.md — a SINGLE ordered list, highest-value first, each item linking a scoped CI-verifiable issue (#N); roadmap phase is the primary ordering, internal findings (cohesion gaps, DX friction, missing pieces) interleaved by value. For any prioritized gap that has no issue yet, file one: \`gh issue create --label codex --label enhancement --title \"<scoped task>\" --body \"<goal, scope, acceptance criteria>\"\`. OUTPUT: post a concise assessment as a comment on this issue (#$ISSUE_NUM) — what shipped, what's in flight, the top risks/gaps/missing pieces, and the reasoning behind the ranking. If the ranking actually changed, open ONE PR for PRIORITIES.md: \`git switch -c codex/architect-$ISSUE_NUM\`, \`git push -u origin codex/architect-$ISSUE_NUM\`, \`gh pr create --base master --label codex --title \"<title>\" --body \"<summary, Closes #$ISSUE_NUM>\"\`, then \`gh pr merge --squash --auto --delete-branch\`. If the queue is already accurate and correctly ranked, do NOT open a PR — just close this issue (\`gh issue close $ISSUE_NUM\`). Do NOT make breaking public-API or architectural changes yourself — surface those in the assessment as notes for the human, never as auto-merged changes. Do not use the make_pr tool (it is a no-op stub)."
