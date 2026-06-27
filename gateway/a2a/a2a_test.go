@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -44,6 +46,7 @@ func newGatewayWithAgent(t *testing.T) (*httptest.Server, func()) {
 
 	srv := server.NewServer(
 		server.Name("echo"),
+		server.Address("127.0.0.1:0"),
 		server.Registry(reg),
 		server.Metadata(map[string]string{"type": "agent", "services": ""}),
 	)
@@ -145,6 +148,42 @@ func TestMessageSendUsesRequestContext(t *testing.T) {
 	}
 }
 
+func TestMessageStream(t *testing.T) {
+	ts, cleanup := newGatewayWithAgent(t)
+	defer cleanup()
+
+	body := `{"jsonrpc":"2.0","id":1,"method":"message/stream","params":{"message":{"role":"user","parts":[{"kind":"text","text":"ping"}],"kind":"message"}}}`
+	resp, err := http.Post(ts.URL+"/agents/echo", "application/json", bytes.NewBufferString(body))
+	if err != nil {
+		t.Fatalf("post: %v", err)
+	}
+	defer resp.Body.Close()
+	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
+		t.Fatalf("content-type = %q, want text/event-stream", ct)
+	}
+
+	var line string
+	if _, err := fmt.Fscan(resp.Body, &line); err != nil {
+		t.Fatalf("read event prefix: %v", err)
+	}
+	if line != "data:" {
+		t.Fatalf("event prefix = %q, want data:", line)
+	}
+	var out struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatalf("decode event: %v", err)
+	}
+	if out.Error != nil {
+		t.Fatalf("rpc error: %+v", out.Error)
+	}
+	if out.Result.Status.State != stateCompleted || len(out.Result.Artifacts) != 1 || textOf(out.Result.Artifacts[0].Parts) != "pong" {
+		t.Fatalf("streamed task = %+v", out.Result)
+	}
+}
+
 func TestUnknownMethod(t *testing.T) {
 	ts, cleanup := newGatewayWithAgent(t)
 	defer cleanup()
@@ -152,9 +191,9 @@ func TestUnknownMethod(t *testing.T) {
 	var resp struct {
 		Error *rpcError `json:"error"`
 	}
-	rpc(t, ts.URL+"/agents/echo", `{"jsonrpc":"2.0","id":1,"method":"message/stream","params":{}}`, &resp)
+	rpc(t, ts.URL+"/agents/echo", `{"jsonrpc":"2.0","id":1,"method":"tasks/resubscribe","params":{}}`, &resp)
 	if resp.Error == nil || resp.Error.Code != errMethodNotFound {
-		t.Errorf("expected method-not-found for streaming, got %+v", resp.Error)
+		t.Errorf("expected method-not-found for resubscribe, got %+v", resp.Error)
 	}
 }
 

@@ -18,10 +18,11 @@
 //		BaseURL:  "https://agents.example.com",
 //	})
 //
-// Scope of this version: the synchronous JSON-RPC binding — `message/send`
-// (returns a completed Task), `tasks/get`, and Agent Card discovery.
-// Streaming (`message/stream`), multi-turn `input-required`, and push
-// notifications are advertised as unsupported and are follow-ups.
+// Scope of this version: the JSON-RPC binding — `message/send`
+// (returns a completed Task), `message/stream` (SSE with the completed
+// Task event), `tasks/get`, and Agent Card discovery. Multi-turn
+// `input-required`, `tasks/resubscribe`, and push notifications are
+// advertised as unsupported and are follow-ups.
 package a2a
 
 import (
@@ -314,7 +315,7 @@ func Card(name, url, description string, services []string) AgentCard {
 		URL:             url,
 		Version:         "1.0.0",
 		ProtocolVersion: protocolVersion,
-		Capabilities:    Capabilities{Streaming: false, PushNotifications: false},
+		Capabilities:    Capabilities{Streaming: true, PushNotifications: false},
 		// The agent converses over a single Chat endpoint; advertise that
 		// as one skill, tagged with the services it manages.
 		DefaultInputModes:  []string{"text/plain"},
@@ -416,13 +417,15 @@ func (d *dispatcher) serve(w http.ResponseWriter, r *http.Request, invoke Invoke
 	switch req.Method {
 	case "message/send":
 		d.send(requestContext(r.Context()), w, req, invoke)
+	case "message/stream":
+		d.stream(requestContext(r.Context()), w, req, invoke)
 	case "tasks/get":
 		d.get(w, req)
 	case "tasks/cancel":
 		// v1 tasks complete synchronously, so they're already terminal.
 		writeRPC(w, req.ID, nil, &rpcError{Code: errNotCancelable, Message: "task is not cancelable"})
-	case "message/stream", "tasks/resubscribe":
-		writeRPC(w, req.ID, nil, &rpcError{Code: errMethodNotFound, Message: "streaming is not supported"})
+	case "tasks/resubscribe":
+		writeRPC(w, req.ID, nil, &rpcError{Code: errMethodNotFound, Message: "resubscribe is not supported"})
 	default:
 		writeRPC(w, req.ID, nil, &rpcError{Code: errMethodNotFound, Message: "method not found: " + req.Method})
 	}
@@ -433,15 +436,38 @@ type sendParams struct {
 }
 
 func (d *dispatcher) send(ctx context.Context, w http.ResponseWriter, req rpcRequest, invoke Invoke) {
-	var p sendParams
-	if err := json.Unmarshal(req.Params, &p); err != nil {
-		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
+	task, e := d.run(ctx, req.Params, invoke)
+	if e != nil {
+		writeRPC(w, req.ID, nil, e)
 		return
+	}
+	writeRPC(w, req.ID, task, nil)
+}
+
+func (d *dispatcher) stream(ctx context.Context, w http.ResponseWriter, req rpcRequest, invoke Invoke) {
+	task, e := d.run(ctx, req.Params, invoke)
+	if e != nil {
+		writeRPC(w, req.ID, nil, e)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(sseWriter{w: w}).Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task})
+	if f, ok := w.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Invoke) (*Task, *rpcError) {
+	var p sendParams
+	if err := json.Unmarshal(params, &p); err != nil {
+		return nil, &rpcError{Code: errInvalidParams, Message: "invalid params"}
 	}
 	text := textOf(p.Message.Parts)
 	if text == "" {
-		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "message has no text part"})
-		return
+		return nil, &rpcError{Code: errInvalidParams, Message: "message has no text part"}
 	}
 
 	reply, err := invoke(ctx, text)
@@ -464,7 +490,7 @@ func (d *dispatcher) send(ctx context.Context, w http.ResponseWriter, req rpcReq
 		task.Artifacts = []Artifact{textArtifact(reply)}
 	}
 	d.store(task)
-	writeRPC(w, req.ID, task, nil)
+	return task, nil
 }
 
 type getParams struct {
@@ -563,6 +589,24 @@ func requestContext(parent context.Context) context.Context {
 		cancel()
 	}()
 	return ctx
+}
+
+type sseWriter struct {
+	w http.ResponseWriter
+}
+
+func (s sseWriter) Write(p []byte) (int, error) {
+	if _, err := s.w.Write([]byte("data: ")); err != nil {
+		return 0, err
+	}
+	n, err := s.w.Write(p)
+	if err != nil {
+		return n, err
+	}
+	if _, err := s.w.Write([]byte("\n")); err != nil {
+		return n, err
+	}
+	return n, nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
