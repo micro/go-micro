@@ -6,6 +6,7 @@ import (
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/trace"
@@ -59,6 +60,9 @@ type Options struct {
 	// Memory is the agent's conversation memory. Nil = the default
 	// store-backed memory (durable across restarts).
 	Memory Memory
+	// Checkpoint persists agent Ask runs so callers can resume by run id
+	// after a restart without replaying a run that already completed.
+	Checkpoint flow.Checkpoint
 
 	// MaxSteps bounds the number of tool executions per Ask (0 =
 	// unbounded). Once exceeded, further tool calls are refused and the
@@ -209,6 +213,15 @@ func WithA2A(addr string) Option {
 // in-process, database, or semantic store.
 func WithMemory(m Memory) Option {
 	return func(o *Options) { o.Memory = m }
+}
+
+// WithCheckpoint sets the durability backend for agent Ask runs. The
+// Checkpoint interface is shared with flow so services, agents, and workflows
+// can use one execution history backend. When set, each Ask is saved as a
+// single-step run keyed by run id; Resume returns a completed run's persisted
+// response instead of calling the model again.
+func WithCheckpoint(c flow.Checkpoint) Option {
+	return func(o *Options) { o.Checkpoint = c }
 }
 
 // WrapTool registers a tool-execution wrapper, the tool-side analog of
