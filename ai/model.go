@@ -113,12 +113,17 @@ const (
 // RunInfo describes the agent run a tool call belongs to. The agent
 // attaches it to the context passed to a ToolHandler, so a wrapper can
 // correlate calls within a run and across delegation without coupling to
-// the agent package. Per-call detail (tool name, id) is on the ToolCall;
-// step and attempt counts are naturally counted by the wrapper itself.
+// the agent package. Flows also attach their name and current step so
+// tools and agents called from a workflow can be tied back to the
+// services → agents → workflows lifecycle that invoked them. Per-call
+// detail (tool name, id) is on the ToolCall; attempt counts are naturally
+// counted by the wrapper itself.
 type RunInfo struct {
-	RunID    string // correlation id for this agent run (one per Ask)
+	RunID    string // correlation id for this agent or flow run
 	ParentID string // the run that delegated to this one, if any
 	Agent    string // the agent's name
+	Flow     string // the flow's name, when the call is part of a workflow
+	Step     string // the flow step currently executing, when known
 }
 
 type runInfoKey struct{}

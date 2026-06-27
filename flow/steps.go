@@ -390,7 +390,7 @@ func (f *Flow) Pending(ctx context.Context) ([]Run, error) {
 func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	steps := f.opts.Steps
 	ctx = withDeps(ctx, &runDeps{client: f.client, model: f.model, tools: f.toolSet})
-	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: run.ID, Agent: f.name})
+	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: run.ID, Agent: f.name, Flow: f.name})
 	ctx, finishSpan := f.startRunSpan(ctx, run)
 	var spanErr error
 	defer func() { finishSpan(run, spanErr) }()
@@ -477,6 +477,10 @@ func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, er
 		// error is surfaced so callers can detect cancellation upstream.
 		if err := ctx.Err(); err != nil {
 			return in, attempt - 1, err
+		}
+		if info, ok := ai.RunInfoFrom(ctx); ok {
+			info.Step = step.Name
+			ctx = ai.WithRunInfo(ctx, info)
 		}
 		out, err := step.Run(ctx, in)
 		if err == nil {

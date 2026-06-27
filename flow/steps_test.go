@@ -112,6 +112,12 @@ func TestFlowStepContextIncludesRunInfo(t *testing.T) {
 	if got.RunID == "" {
 		t.Fatal("RunInfo.RunID is empty")
 	}
+	if got.Flow != "correlated" {
+		t.Fatalf("RunInfo.Flow = %q, want correlated", got.Flow)
+	}
+	if got.Step != "inspect" {
+		t.Fatalf("RunInfo.Step = %q, want inspect", got.Step)
+	}
 }
 
 func TestFlowResumePendingResumesOldestRunsUntilFailure(t *testing.T) {
