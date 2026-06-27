@@ -222,7 +222,7 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 	}
 
 	runID := uuid.New().String()
-	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: runID, Agent: f.name})
+	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: runID, Flow: f.name})
 
 	start := time.Now()
 
