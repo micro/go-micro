@@ -116,14 +116,18 @@ const (
 // the agent package. Flows also attach their name and current step so
 // tools and agents called from a workflow can be tied back to the
 // services → agents → workflows lifecycle that invoked them. Per-call
-// detail (tool name, id) is on the ToolCall; attempt counts are naturally
-// counted by the wrapper itself.
+// detail (tool name, id) is on the ToolCall. Attempt and MaxAttempts are
+// set while a model Generate call is in progress, so tools and wrappers can
+// tell which provider attempt produced the call and whether it is part of a
+// retry budget. They are zero when no model-attempt context is known.
 type RunInfo struct {
-	RunID    string // correlation id for this agent or flow run
-	ParentID string // the run that delegated to this one, if any
-	Agent    string // the agent's name
-	Flow     string // the flow's name, when the call is part of a workflow
-	Step     string // the flow step currently executing, when known
+	RunID       string // correlation id for this agent or flow run
+	ParentID    string // the run that delegated to this one, if any
+	Agent       string // the agent's name
+	Flow        string // the flow's name, when the call is part of a workflow
+	Step        string // the flow step currently executing, when known
+	Attempt     int    // current model Generate attempt, starting at 1 when known
+	MaxAttempts int    // configured model Generate attempt budget when known
 }
 
 type runInfoKey struct{}

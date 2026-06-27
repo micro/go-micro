@@ -60,6 +60,11 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		if policy.Timeout > 0 {
 			callCtx, cancel = context.WithTimeout(ctx, policy.Timeout)
 		}
+		if info, ok := RunInfoFrom(callCtx); ok {
+			info.Attempt = attempt
+			info.MaxAttempts = policy.MaxAttempts
+			callCtx = WithRunInfo(callCtx, info)
+		}
 		resp, err := m.Generate(callCtx, req, opts...)
 		cancel()
 		if err == nil {
