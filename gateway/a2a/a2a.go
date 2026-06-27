@@ -483,12 +483,20 @@ func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Inv
 		Status:    TaskStatus{Timestamp: time.Now().UTC().Format(time.RFC3339)},
 	}
 	if err != nil {
+		reply = "error: " + err.Error()
 		task.Status.State = stateFailed
-		task.Artifacts = []Artifact{textArtifact("error: " + err.Error())}
 	} else {
 		task.Status.State = stateCompleted
-		task.Artifacts = []Artifact{textArtifact(reply)}
 	}
+	task.Artifacts = []Artifact{textArtifact(reply)}
+	task.History = append(task.History, Message{
+		Role:      "agent",
+		Parts:     []Part{{Kind: "text", Text: reply}},
+		MessageID: uuid.New().String(),
+		TaskID:    task.ID,
+		ContextID: task.ContextID,
+		Kind:      "message",
+	})
 	d.store(task)
 	return task, nil
 }
