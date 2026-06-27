@@ -134,15 +134,21 @@ output) but produce direction and coherence, not just code.
   brand/positioning copy and blog drafts are *surfaced in a report* for the
   human, never auto-merged.
 - **Architect — every few days** (`.github/workflows/architecture-review.yml`).
-  Reviews the framework/harness against the thesis: API coherence, lifecycle
-  gaps, drift/sprawl. **Its output is an assessment plus scoped follow-up
-  issues** that feed the hourly increment loop — it does **not** make breaking or
-  architectural changes itself (those stay with the human).
+  Prioritizes the **roadmap** (`ROADMAP.md`, Now → Next → Later) against an
+  internal scan (lifecycle gaps, API coherence, drift/sprawl, tech debt, test/DX
+  friction) and maintains the ranked work queue in
+  [`PRIORITIES.md`](PRIORITIES.md): it re-ranks each run, ensures every top item
+  has a scoped tracking issue, and posts an assessment explaining the ranking. **Its
+  output is the prioritized queue plus the assessment** — it does **not** make
+  breaking or architectural changes itself (those stay with the human).
 
-Together they close the loop: the architect decides *what* should change and files
-issues, the increment loop *builds* them, and DevRel keeps the public story
-honest. Cadence is tunable in each workflow's `cron`. Codex is serial, so these
-passes queue behind any in-flight increment rather than running concurrently.
+The two loops are coupled through `PRIORITIES.md`: the **architect decides *what***
+(roadmap + internal priorities, ranked, issue-linked) and the **hourly increment
+loop builds the top open item** — falling back to its own judgment only if the
+queue is empty. DevRel keeps the public story honest alongside. So work is
+roadmap-driven by default, not a fresh guess every hour. Cadence is tunable in each
+workflow's `cron`; the human can reorder `PRIORITIES.md` or its issues at any time
+to redirect. Codex is serial, so these passes queue behind any in-flight increment.
 
 ## Stop / redirect
 
