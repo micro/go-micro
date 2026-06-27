@@ -104,6 +104,12 @@ func TestMessageSendAndGet(t *testing.T) {
 	if len(task.Artifacts) != 1 || textOf(task.Artifacts[0].Parts) != "pong" {
 		t.Fatalf("artifact = %+v, want text 'pong'", task.Artifacts)
 	}
+	if len(task.History) != 2 || task.History[1].Role != "agent" || textOf(task.History[1].Parts) != "pong" {
+		t.Fatalf("history = %+v, want user turn followed by agent reply", task.History)
+	}
+	if task.History[1].TaskID != task.ID || task.History[1].ContextID != task.ContextID {
+		t.Fatalf("agent history linkage = task %q/%q context %q/%q", task.History[1].TaskID, task.ID, task.History[1].ContextID, task.ContextID)
+	}
 
 	got := rpcTask(t, ts.URL+"/agents/echo", `{
 		"jsonrpc":"2.0","id":2,"method":"tasks/get","params":{"id":"`+task.ID+`"}}`)
@@ -145,6 +151,9 @@ func TestMessageSendUsesRequestContext(t *testing.T) {
 	}
 	if len(resp.Result.Artifacts) != 1 || textOf(resp.Result.Artifacts[0].Parts) != "error: context canceled" {
 		t.Fatalf("artifact = %+v, want context cancellation", resp.Result.Artifacts)
+	}
+	if len(resp.Result.History) != 2 || resp.Result.History[1].Role != "agent" || textOf(resp.Result.History[1].Parts) != "error: context canceled" {
+		t.Fatalf("history = %+v, want failed agent reply recorded", resp.Result.History)
 	}
 }
 
