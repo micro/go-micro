@@ -17,6 +17,7 @@ const (
 	spanNameFlowStep = "flow.step"
 
 	AttrFlowRunID     = "flow.run.id"
+	AttrFlowParentID  = "flow.run.parent_id"
 	AttrFlowName      = "flow.name"
 	AttrFlowStepName  = "flow.step.name"
 	AttrFlowStatus    = "flow.status"
@@ -34,6 +35,7 @@ func (f *Flow) startRunSpan(ctx context.Context, run Run) (context.Context, func
 	}
 	ctx, span := f.tracer().Start(ctx, spanNameFlowRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(
 		attribute.String(AttrFlowRunID, run.ID),
+		attribute.String(AttrFlowParentID, run.ParentID),
 		attribute.String(AttrFlowName, f.name),
 		attribute.String(AttrFlowStatus, run.Status),
 	))
@@ -60,6 +62,7 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 	info, _ := ai.RunInfoFrom(ctx)
 	ctx, span := f.tracer().Start(ctx, spanNameFlowStep, trace.WithAttributes(
 		attribute.String(AttrFlowRunID, info.RunID),
+		attribute.String(AttrFlowParentID, info.ParentID),
 		attribute.String(AttrFlowName, f.name),
 		attribute.String(AttrFlowStepName, step.Name),
 	))

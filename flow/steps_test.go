@@ -99,11 +99,13 @@ func TestFlowStepContextIncludesRunInfo(t *testing.T) {
 		return in, nil
 	}}
 
+	mem := store.NewMemoryStore()
 	f := New("correlated",
-		WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "correlated")),
+		WithCheckpoint(StoreCheckpoint(mem, "correlated")),
 		Steps(step),
 	)
-	if err := f.Execute(context.Background(), "start"); err != nil {
+	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{RunID: "agent-run-1", Agent: "planner"})
+	if err := f.Execute(ctx, "start"); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
 	if got.Agent != "correlated" {
@@ -115,8 +117,18 @@ func TestFlowStepContextIncludesRunInfo(t *testing.T) {
 	if got.Flow != "correlated" {
 		t.Fatalf("RunInfo.Flow = %q, want correlated", got.Flow)
 	}
+	if got.ParentID != "agent-run-1" {
+		t.Fatalf("RunInfo.ParentID = %q, want agent-run-1", got.ParentID)
+	}
 	if got.Step != "inspect" {
 		t.Fatalf("RunInfo.Step = %q, want inspect", got.Step)
+	}
+	runs, err := StoreCheckpoint(mem, "correlated").List(context.Background())
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(runs) != 1 || runs[0].ParentID != "agent-run-1" {
+		t.Fatalf("persisted parent id = %+v, want agent-run-1", runs)
 	}
 }
 

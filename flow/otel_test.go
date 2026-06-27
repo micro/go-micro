@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -19,7 +20,8 @@ func TestFlowOpenTelemetrySpans(t *testing.T) {
 		return in, nil
 	}}
 	f := New("observed", WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "observed")), TraceProvider(tp), Steps(step))
-	if err := f.Execute(context.Background(), "start"); err != nil {
+	ctx := withTestRunInfo(context.Background(), "agent-run-otel")
+	if err := f.Execute(ctx, "start"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -32,12 +34,12 @@ func TestFlowOpenTelemetrySpans(t *testing.T) {
 		case spanNameFlowRun:
 			seen[spanNameFlowRun] = true
 			runID = attrs[AttrFlowRunID]
-			if attrs[AttrFlowName] != "observed" || attrs[AttrFlowStatus] != "done" {
+			if attrs[AttrFlowName] != "observed" || attrs[AttrFlowStatus] != "done" || attrs[AttrFlowParentID] != "agent-run-otel" {
 				t.Fatalf("run span attributes = %#v", attrs)
 			}
 		case spanNameFlowStep:
 			seen[spanNameFlowStep] = true
-			if attrs[AttrFlowName] != "observed" || attrs[AttrFlowStepName] != "inspect" {
+			if attrs[AttrFlowName] != "observed" || attrs[AttrFlowStepName] != "inspect" || attrs[AttrFlowParentID] != "agent-run-otel" {
 				t.Fatalf("step span attributes = %#v", attrs)
 			}
 		}
@@ -67,4 +69,8 @@ func flowSpanAttributes(attrs []attribute.KeyValue) map[string]string {
 		out[string(attr.Key)] = attr.Value.AsString()
 	}
 	return out
+}
+
+func withTestRunInfo(ctx context.Context, runID string) context.Context {
+	return ai.WithRunInfo(ctx, ai.RunInfo{RunID: runID, Agent: "planner"})
 }
