@@ -408,7 +408,10 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 		step := steps[i]
 		run.State.Stage = step.Name
 		run.Steps[i].Status = "in_progress"
-		f.save(ctx, run)
+		if err := f.save(ctx, run); err != nil {
+			spanErr = err
+			return run, err
+		}
 
 		out, attempts, err := f.runStepSpan(ctx, step, run.State)
 		run.Steps[i].Attempts = attempts
@@ -417,7 +420,10 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 			run.Steps[i].Status = "failed"
 			run.Steps[i].Error = err.Error()
 			run.Status = "failed"
-			f.save(ctx, run)
+			if saveErr := f.save(ctx, run); saveErr != nil {
+				spanErr = saveErr
+				return run, fmt.Errorf("%w; additionally failed to checkpoint failed run: %v", err, saveErr)
+			}
 			f.record(resultFromRun(f.opts.TriggerTopic, run))
 			f.log.Logf(logger.ErrorLevel, "Flow %s run %s failed at step %q: %v", f.name, run.ID, step.Name, err)
 			return run, err
@@ -431,13 +437,22 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 		} else {
 			run.State.Stage = ""
 		}
-		f.save(ctx, run)
+		if err := f.save(ctx, run); err != nil {
+			spanErr = err
+			return run, err
+		}
 	}
 
 	run.Status = "done"
-	f.save(ctx, run)
+	if err := f.save(ctx, run); err != nil {
+		spanErr = err
+		return run, err
+	}
 	if f.opts.DeleteOnSuccess && f.checkpoint != nil {
-		_ = f.checkpoint.Delete(ctx, run.ID)
+		if err := f.checkpoint.Delete(ctx, run.ID); err != nil {
+			spanErr = err
+			return run, err
+		}
 	}
 	f.record(resultFromRun(f.opts.TriggerTopic, run))
 	f.log.Logf(logger.InfoLevel, "Flow %s run %s completed (%d steps)", f.name, run.ID, len(steps))
@@ -479,13 +494,15 @@ func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, er
 	return in, retries + 1, lastErr
 }
 
-func (f *Flow) save(ctx context.Context, run Run) {
+func (f *Flow) save(ctx context.Context, run Run) error {
 	if f.checkpoint == nil {
-		return
+		return nil
 	}
 	if err := f.checkpoint.Save(ctx, run); err != nil {
 		f.log.Logf(logger.ErrorLevel, "Flow %s checkpoint save: %v", f.name, err)
+		return fmt.Errorf("flow %s checkpoint save: %w", f.name, err)
 	}
+	return nil
 }
 
 func validateSteps(steps []Step) error {

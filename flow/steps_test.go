@@ -417,6 +417,59 @@ func TestStoreCheckpointHonorsCanceledContext(t *testing.T) {
 	}
 }
 
+type failingCheckpoint struct {
+	err error
+}
+
+func (c failingCheckpoint) Save(context.Context, Run) error { return c.err }
+func (c failingCheckpoint) Load(context.Context, string) (Run, bool, error) {
+	return Run{}, false, c.err
+}
+func (c failingCheckpoint) Delete(context.Context, string) error { return c.err }
+func (c failingCheckpoint) List(context.Context) ([]Run, error)  { return nil, c.err }
+
+func TestFlowCheckpointSaveFailureStopsRun(t *testing.T) {
+	checkpointErr := errors.New("checkpoint unavailable")
+	var ran bool
+	f := New("checkpoint-fails",
+		WithCheckpoint(failingCheckpoint{err: checkpointErr}),
+		Steps(Step{Name: "work", Run: func(_ context.Context, in State) (State, error) {
+			ran = true
+			return in, nil
+		}}),
+	)
+
+	err := f.Execute(context.Background(), "start")
+	if !errors.Is(err, checkpointErr) {
+		t.Fatalf("Execute error = %v, want checkpoint error", err)
+	}
+	if ran {
+		t.Fatal("step ran even though the in-progress checkpoint failed")
+	}
+}
+
+func TestFlowDeleteOnSuccessFailureIsReturned(t *testing.T) {
+	checkpointErr := errors.New("delete unavailable")
+	cp := &deleteFailCheckpoint{Checkpoint: StoreCheckpoint(store.NewMemoryStore(), "delete-fails"), err: checkpointErr}
+	f := New("delete-fails",
+		WithCheckpoint(cp),
+		DeleteOnSuccess(),
+		Steps(appendStep("work")),
+	)
+
+	err := f.Execute(context.Background(), "")
+	if !errors.Is(err, checkpointErr) {
+		t.Fatalf("Execute error = %v, want delete error", err)
+	}
+}
+
+type deleteFailCheckpoint struct {
+	Checkpoint
+	err error
+}
+
+func (c *deleteFailCheckpoint) Delete(context.Context, string) error { return c.err }
+
 func TestStateSetScan(t *testing.T) {
 	var s State
 	type payload struct {
