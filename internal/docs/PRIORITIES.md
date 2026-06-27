@@ -21,17 +21,17 @@ changes, architectural rewrites. Those go to the human.
 
 ## Now (ranked)
 
-1. **Streaming end to end** (#3012) — `ai.Stream` through `micro chat`, the agent
-   RPC, and A2A `message/stream`; scope to chat + one provider first. Roadmap →
-   *Next* and now the highest-value lifecycle seam after durable agent resume
-   shipped.
+1. **Cross-provider agent conformance matrix** (#3187) — run the same agent
+   scenario across supported providers behind credential gates, with deterministic
+   local skips and a fake/local provider path. Roadmap → *Now*; highest leverage
+   trust work after streaming shipped because every agent feature depends on
+   provider behavior staying consistent.
 2. **Registry disconnection detection** (#2956) — readiness/health when a service
-   silently loses its registry connection. Community-requested production
-   reliability; keeps the service substrate operable because agents depend on
-   discovery.
+   silently loses its registry connection. Roadmap → *Now* failure/resilience;
+   keeps the service substrate operable because agents depend on discovery.
 3. **Agent observability spans** (#3182) — export `RunInfo` as OpenTelemetry spans
    for agent runs, model calls, tool calls, delegation, and failures. Roadmap →
-   *Next*; makes the now-durable harness inspectable in production.
+   *Next*; makes the now-durable and streaming harness inspectable in production.
 4. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
    and failure hooks; first check overlap with the shipped run-timeline /
    OpenTelemetry work and scope to what's not already covered.
