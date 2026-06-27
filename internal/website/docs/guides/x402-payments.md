@@ -42,10 +42,10 @@ Because every endpoint is already an MCP tool, the gateway is where you charge. 
 
 ```bash
 micro mcp serve --address :3000 \
-    --x402-pay-to 0xYourAddress \
-    --x402-network solana \
-    --x402-amount 10000 \
-    --x402-facilitator https://facilitator.example
+    --x402_pay_to 0xYourAddress \
+    --x402_network solana \
+    --x402_amount 10000 \
+    --x402_facilitator https://facilitator.example
 ```
 
 ## A shoppable catalog
@@ -69,7 +69,7 @@ Free tools carry no `payment` block. This is the foundation for a tool marketpla
 Different tools can cost different amounts. Pricing is an **operator** concern — the payTo address is the operator's, and amounts change without redeploying anyone's service — so it's configured at the gateway with a file, the same way per-tool scopes and rate limits are. Point the gateway at an x402 config:
 
 ```bash
-micro mcp serve --address :3000 --x402-config x402.json
+micro mcp serve --address :3000 --x402_config x402.json
 ```
 
 ```json
@@ -85,7 +85,7 @@ micro mcp serve --address :3000 --x402-config x402.json
 }
 ```
 
-`amount` is the default (here `"0"` — free unless priced), and `amounts` sets per-tool overrides keyed by tool name. There is no "pricing" abstraction; it's the x402 `amount`, resolved per tool, in the protocol's own vocabulary. The standalone gateway accepts the same file via `--x402-config` or the `X402_CONFIG` environment variable.
+`amount` is the default (here `"0"` — free unless priced), and `amounts` sets per-tool overrides keyed by tool name. There is no "pricing" abstraction; it's the x402 `amount`, resolved per tool, in the protocol's own vocabulary. `micro mcp serve` accepts the file via `--x402_config`; the standalone gateway accepts the same file via `--x402-config` or the `X402_CONFIG` environment variable.
 
 ## Paying for tools (the consumer side)
 

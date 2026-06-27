@@ -34,7 +34,7 @@ about the framework.
 - [Transport](transport.html)
 - [Store](store.html)
 - [Plugins](plugins.html)
-- [Examples](examples/index.md)
+- [Examples](examples/)
 
 ## Development & Deployment
 
@@ -52,9 +52,9 @@ about the framework.
 ## Advanced
 
 - [Framework Comparison](guides/comparison.html)
-- [Architecture Decisions](architecture/index.md)
-- [Real-World Examples](examples/realworld/index.md)
-- [Migration Guides](guides/migration/index.md)
+- [Architecture Decisions](architecture/)
+- [Real-World Examples](examples/realworld/)
+- [Migration Guides](guides/migration/)
 - [Observability](observability.html)
 - [Contributing](contributing.html)
 - [Roadmap](roadmap.html)

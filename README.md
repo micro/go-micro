@@ -255,9 +255,9 @@ Every endpoint is an AI-callable tool — and it can be a *paid* tool. Go Micro 
 
 ```bash
 # Charge for tool calls at the MCP gateway (off unless you set a pay-to address)
-micro mcp serve --x402-pay-to 0xYourAddress --x402-network solana --x402-amount 10000
+micro mcp serve --x402_pay_to 0xYourAddress --x402_network solana --x402_amount 10000
 # Per-tool amounts via a config file
-micro mcp serve --x402-config x402.json
+micro mcp serve --x402_config x402.json
 ```
 
 See the [Payments (x402) guide](internal/website/docs/guides/x402-payments.md).
