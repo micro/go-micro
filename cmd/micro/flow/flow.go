@@ -79,6 +79,7 @@ Examples:
 					&cli.BoolFlag{Name: "pending", Usage: "Only show runs that have not completed"},
 					&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, failed)"},
 					&cli.IntFlag{Name: "limit", Usage: "Show the most recently updated N runs"},
+					&cli.StringFlag{Name: "stage", Usage: "Only show runs currently checkpointed at this stage"},
 				},
 				Action: flowRuns,
 			},
@@ -133,7 +134,7 @@ func flowRuns(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	runs = filterFlowRuns(runs, flowRunOptions{Pending: c.Bool("pending"), Status: c.String("status"), Limit: c.Int("limit")})
+	runs = filterFlowRuns(runs, flowRunOptions{Pending: c.Bool("pending"), Status: c.String("status"), Stage: c.String("stage"), Limit: c.Int("limit")})
 	if len(runs) == 0 {
 		if c.Bool("pending") {
 			fmt.Printf("  No pending runs recorded for flow %q.\n", name)
@@ -148,6 +149,7 @@ func flowRuns(c *cli.Context) error {
 type flowRunOptions struct {
 	Pending bool
 	Status  string
+	Stage   string
 	Limit   int
 }
 
@@ -161,6 +163,9 @@ func filterFlowRuns(runs []aiflow.Run, opts flowRunOptions) []aiflow.Run {
 			continue
 		}
 		if opts.Status != "" && run.Status != opts.Status {
+			continue
+		}
+		if opts.Stage != "" && run.State.Stage != opts.Stage {
 			continue
 		}
 		filtered = append(filtered, run)

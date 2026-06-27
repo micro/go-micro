@@ -89,6 +89,23 @@ func TestFilterFlowRunsStatus(t *testing.T) {
 	}
 }
 
+func TestFilterFlowRunsStage(t *testing.T) {
+	runs := []aiflow.Run{
+		{ID: "run-1", Status: "failed", State: aiflow.State{Stage: "reserve"}},
+		{ID: "run-2", Status: "failed", State: aiflow.State{Stage: "charge"}},
+		{ID: "run-3", Status: "running", State: aiflow.State{Stage: "charge"}},
+		{ID: "run-4", Status: "done", State: aiflow.State{}},
+	}
+
+	got := filterFlowRuns(runs, flowRunOptions{Stage: "charge"})
+	if len(got) != 2 {
+		t.Fatalf("filterFlowRuns returned %d runs, want 2: %+v", len(got), got)
+	}
+	if got[0].ID != "run-2" || got[1].ID != "run-3" {
+		t.Fatalf("charge-stage runs = %+v", got)
+	}
+}
+
 func TestFilterFlowRunsLimitKeepsNewestRuns(t *testing.T) {
 	runs := []aiflow.Run{
 		{ID: "run-1", Status: "done"},
