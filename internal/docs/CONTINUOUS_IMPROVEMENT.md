@@ -133,14 +133,18 @@ output) but produce direction and coherence, not just code.
   factual-alignment and crispness fixes auto-merge like any increment;
   brand/positioning copy and blog drafts are *surfaced in a report* for the
   human, never auto-merged.
-- **Architect — every few days** (`.github/workflows/architecture-review.yml`).
-  Prioritizes the **roadmap** (`ROADMAP.md`, Now → Next → Later) against an
-  internal scan (lifecycle gaps, API coherence, drift/sprawl, tech debt, test/DX
-  friction) and maintains the ranked work queue in
-  [`PRIORITIES.md`](PRIORITIES.md): it re-ranks each run, ensures every top item
-  has a scoped tracking issue, and posts an assessment explaining the ranking. **Its
-  output is the prioritized queue plus the assessment** — it does **not** make
-  breaking or architectural changes itself (those stay with the human).
+- **Architect — continuous (hourly)** (`.github/workflows/architecture-review.yml`).
+  The *founder lens*, running alongside the builders. Each run it **tracks live
+  state** (what just merged, what's in flight), **prioritizes the roadmap**
+  (`ROADMAP.md`, Now → Next → Later) against an internal scan (lifecycle gaps, API
+  coherence and seams, dev-UX friction, missing pieces, drift/realignment), and
+  **maintains the ranked queue** in [`PRIORITIES.md`](PRIORITIES.md) — re-ranking
+  to reflect reality, backing each top item with a scoped issue, and posting an
+  assessment. It runs at `:59`, just before the `:29` increment, so it
+  re-prioritizes and *then* the loop builds the new top. **Its output is the
+  prioritized queue plus the assessment** — it does **not** make breaking or
+  architectural changes itself (those stay with the human). To avoid churn it only
+  opens a PR when the ranking actually changes.
 
 The two loops are coupled through `PRIORITIES.md`: the **architect decides *what***
 (roadmap + internal priorities, ranked, issue-linked) and the **hourly increment

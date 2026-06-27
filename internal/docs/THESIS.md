@@ -4,6 +4,39 @@ This is the North Star for the project and for the autonomous improvement loop
 (see `CONTINUOUS_IMPROVEMENT.md`). Every change should move toward it; work that
 doesn't isn't an improvement, however clean.
 
+## Mission — the problem we solve
+
+Go Micro started in 2015 because building distributed systems in Go was too hard:
+too much boilerplate, too many decisions before a single endpoint runs. The
+mission was to **make building distributed systems simple** — sane defaults,
+pluggable, out of the developer's way.
+
+Agents are distributed systems too. The moment an agent discovers services, calls
+them, holds state, and recovers from failure, it *is* a distributed system — the
+exact problem Go Micro already solved for services. So the mission hasn't
+changed, only extended:
+
+> **Make building agentic, distributed software in Go simple — make building an
+> agent as easy as building a service, on one runtime, because an agent is a
+> distributed system.**
+
+That is the problem we solve, and it is the question every priority is judged
+against: *does this make the services → agents → workflows lifecycle simpler, more
+cohesive, and more operable — or is it scope that doesn't serve that?* It is
+evolution, not a pivot: the decade of services work is the foundation, and the
+agent layer is that foundation leveraged for the AI era.
+
+## The canon
+
+The vision isn't only in this file. The years of focus and context live in the
+**corpus** — the [blog](../website/blog/) (the actual thinking, e.g. `/blog/14`
+"Going All In on AI" and `/blog/27` "Back from the Dead"), the
+[`README`](../../README.md), and the [website](../website/). Those are the canon;
+this North Star is their **distillation** and must stay faithful to them. When the
+two diverge, that's a signal — either the work has drifted from the mission, or the
+North Star has drifted from the lived story and needs re-grounding in the corpus.
+The architect re-derives alignment from the canon, not from this file alone.
+
 ## Thesis
 
 Go Micro is an **agent harness and service framework** — one runtime that, holistically,
