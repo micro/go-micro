@@ -2,6 +2,7 @@
 package openai
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -20,6 +21,7 @@ func init() {
 	ai.RegisterImage("openai", func(opts ...ai.Option) ai.ImageModel {
 		return NewProvider(opts...)
 	})
+	ai.RegisterStream("openai")
 }
 
 // Provider implements the ai.Model interface for OpenAI
@@ -140,9 +142,88 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	return resp, nil
 }
 
-// Stream generates a streaming response (not yet implemented)
+// Stream generates a streaming response from the OpenAI chat completions API.
 func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, fmt.Errorf("%w: openai provider", ai.ErrStreamingUnsupported)
+	messages := []map[string]any{
+		{"role": "system", "content": req.SystemPrompt},
+		{"role": "user", "content": req.Prompt},
+	}
+	apiReq := map[string]any{
+		"model":    p.opts.Model,
+		"messages": messages,
+		"stream":   true,
+	}
+	reqBody, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal stream request: %w", err)
+	}
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/chat/completions"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stream request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("stream API request failed: %w", err)
+	}
+	if httpResp.StatusCode != http.StatusOK {
+		defer httpResp.Body.Close()
+		respBody, _ := io.ReadAll(httpResp.Body)
+		return nil, fmt.Errorf("stream API error (%s): %s", httpResp.Status, string(respBody))
+	}
+	return &openAIStream{body: httpResp.Body, scanner: bufio.NewScanner(httpResp.Body)}, nil
+}
+
+type openAIStream struct {
+	body    io.ReadCloser
+	scanner *bufio.Scanner
+	closed  bool
+}
+
+func (s *openAIStream) Recv() (*ai.Response, error) {
+	for s.scanner.Scan() {
+		line := strings.TrimSpace(s.scanner.Text())
+		if line == "" || strings.HasPrefix(line, ":") {
+			continue
+		}
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			return nil, io.EOF
+		}
+		var chunk struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
+		}
+		if len(chunk.Choices) == 0 || chunk.Choices[0].Delta.Content == "" {
+			continue
+		}
+		return &ai.Response{Reply: chunk.Choices[0].Delta.Content}, nil
+	}
+	if err := s.scanner.Err(); err != nil {
+		return nil, err
+	}
+	return nil, io.EOF
+}
+
+func (s *openAIStream) Close() error {
+	if s.closed {
+		return nil
+	}
+	s.closed = true
+	return s.body.Close()
 }
 
 // callAPI makes an HTTP request to the OpenAI API
