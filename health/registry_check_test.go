@@ -89,3 +89,60 @@ func TestRegistryCheckMarksNotReady(t *testing.T) {
 		t.Error("service should be not-ready when the registry check is down")
 	}
 }
+
+func TestRegistryServiceCheckHealthy(t *testing.T) {
+	reg := registry.NewMemoryRegistry()
+	service := &registry.Service{
+		Name:  "orders",
+		Nodes: []*registry.Node{{Id: "orders-1"}},
+	}
+	if err := reg.Register(service); err != nil {
+		t.Fatalf("register service: %v", err)
+	}
+
+	check := RegistryServiceCheck(reg, "orders", "orders-1")
+	if err := check(context.Background()); err != nil {
+		t.Fatalf("registered service node should pass: %v", err)
+	}
+}
+
+func TestRegistryServiceCheckMissingNode(t *testing.T) {
+	reg := registry.NewMemoryRegistry()
+	service := &registry.Service{
+		Name:  "orders",
+		Nodes: []*registry.Node{{Id: "orders-1"}},
+	}
+	if err := reg.Register(service); err != nil {
+		t.Fatalf("register service: %v", err)
+	}
+
+	check := RegistryServiceCheck(reg, "orders", "orders-2")
+	err := check(context.Background())
+	if err == nil {
+		t.Fatal("missing service node should fail")
+	}
+	if !strings.Contains(err.Error(), "missing node orders-2") {
+		t.Errorf("error should describe the missing node: %v", err)
+	}
+}
+
+func TestRegistryServiceCheckMissingService(t *testing.T) {
+	check := RegistryServiceCheck(registry.NewMemoryRegistry(), "orders", "orders-1")
+	err := check(context.Background())
+	if err == nil {
+		t.Fatal("missing service should fail")
+	}
+	if !strings.Contains(err.Error(), registry.ErrNotFound.Error()) {
+		t.Errorf("error should include registry lookup failure: %v", err)
+	}
+}
+
+func TestRegistryServiceCheckMarksNotReady(t *testing.T) {
+	Reset()
+	defer Reset()
+
+	Register("registry-service", RegistryServiceCheck(registry.NewMemoryRegistry(), "orders", "orders-1"))
+	if IsReady(context.Background()) {
+		t.Error("service should be not-ready when its registry node is missing")
+	}
+}

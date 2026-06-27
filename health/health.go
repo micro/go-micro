@@ -314,7 +314,8 @@ func DNSCheck(host string) CheckFunc {
 //
 // The lookup runs under the check's timeout, so an unreachable registry
 // (for example an etcd that has gone away) is reported as down rather
-// than blocking the probe.
+// than blocking the probe. Registries that honor ListContext also receive
+// the check context directly.
 func RegistryCheck(reg registry.Registry) CheckFunc {
 	return func(ctx context.Context) error {
 		if reg == nil {
@@ -322,7 +323,7 @@ func RegistryCheck(reg registry.Registry) CheckFunc {
 		}
 		errc := make(chan error, 1)
 		go func() {
-			_, err := reg.ListServices()
+			_, err := reg.ListServices(registry.ListContext(ctx))
 			errc <- err
 		}()
 		select {
@@ -333,6 +334,54 @@ func RegistryCheck(reg registry.Registry) CheckFunc {
 			return nil
 		case <-ctx.Done():
 			return fmt.Errorf("registry %s check timed out: %w", reg.String(), ctx.Err())
+		}
+	}
+}
+
+// RegistryServiceCheck creates a check that verifies the local service
+// registration is visible in the registry. RegistryCheck only proves the
+// registry is reachable; this check also catches the common failure mode
+// where the process is alive and the registry answers, but this service's
+// node lease/record has disappeared and other services can no longer
+// discover it.
+//
+// Pass the service name and node ID used during registration. The default
+// RPC server node ID is service.Options().Name + "-" + service.Options().Id.
+func RegistryServiceCheck(reg registry.Registry, serviceName, nodeID string) CheckFunc {
+	return func(ctx context.Context) error {
+		if reg == nil {
+			return errors.New("no registry configured")
+		}
+		if serviceName == "" {
+			return errors.New("no service name configured")
+		}
+		if nodeID == "" {
+			return errors.New("no service node configured")
+		}
+
+		errc := make(chan error, 1)
+		go func() {
+			services, err := reg.GetService(serviceName, registry.GetContext(ctx))
+			if err != nil {
+				errc <- fmt.Errorf("registry %s lookup %s failed: %w", reg.String(), serviceName, err)
+				return
+			}
+			for _, service := range services {
+				for _, node := range service.Nodes {
+					if node.Id == nodeID {
+						errc <- nil
+						return
+					}
+				}
+			}
+			errc <- fmt.Errorf("registry %s missing node %s for service %s", reg.String(), nodeID, serviceName)
+		}()
+
+		select {
+		case err := <-errc:
+			return err
+		case <-ctx.Done():
+			return fmt.Errorf("registry %s service check timed out: %w", reg.String(), ctx.Err())
 		}
 	}
 }
