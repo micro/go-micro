@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	pb "go-micro.dev/v6/agent/proto"
+	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
@@ -191,6 +193,106 @@ func TestMessageStream(t *testing.T) {
 	if out.Result.Status.State != stateCompleted || len(out.Result.Artifacts) != 1 || textOf(out.Result.Artifacts[0].Parts) != "pong" {
 		t.Fatalf("streamed task = %+v", out.Result)
 	}
+}
+
+type sliceStream struct {
+	chunks []string
+	err    error
+}
+
+func (s *sliceStream) Recv() (*ai.Response, error) {
+	if len(s.chunks) == 0 {
+		if s.err != nil {
+			err := s.err
+			s.err = nil
+			return nil, err
+		}
+		return nil, io.EOF
+	}
+	next := s.chunks[0]
+	s.chunks = s.chunks[1:]
+	return &ai.Response{Reply: next}, nil
+}
+
+func (s *sliceStream) Close() error { return nil }
+
+func TestMessageStreamChunksStoreFinalTask(t *testing.T) {
+	d := newDispatcher()
+	body := `{"jsonrpc":"2.0","id":1,"method":"message/stream","params":{"message":{"role":"user","parts":[{"kind":"text","text":"ping"}],"kind":"message"}}}`
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	rr := httptest.NewRecorder()
+
+	d.serveWithStream(rr, req, nil, func(ctx context.Context, text string) (ai.Stream, error) {
+		if text != "ping" {
+			t.Fatalf("stream text = %q, want ping", text)
+		}
+		return &sliceStream{chunks: []string{"po", "ng"}}, nil
+	})
+
+	if ct := rr.Result().Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
+		t.Fatalf("content-type = %q, want text/event-stream", ct)
+	}
+	var events []struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}
+	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		line = strings.TrimPrefix(line, "data: ")
+		var event struct {
+			Result Task      `json:"result"`
+			Error  *rpcError `json:"error"`
+		}
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			t.Fatalf("decode event %q: %v", line, err)
+		}
+		events = append(events, event)
+	}
+	if len(events) != 3 {
+		t.Fatalf("events = %d, want 3; body %s", len(events), rr.Body.String())
+	}
+	for i, event := range events {
+		if event.Error != nil {
+			t.Fatalf("event %d error: %+v", i, event.Error)
+		}
+		if event.Result.ID != events[0].Result.ID || event.Result.ContextID != events[0].Result.ContextID {
+			t.Fatalf("event %d changed task identity: %+v vs %+v", i, event.Result, events[0].Result)
+		}
+	}
+	if events[0].Result.Status.State != stateWorking || textOf(events[0].Result.Artifacts[0].Parts) != "po" {
+		t.Fatalf("first event = %+v, want working po", events[0].Result)
+	}
+	final := events[len(events)-1].Result
+	if final.Status.State != stateCompleted || textOf(final.Artifacts[0].Parts) != "pong" {
+		t.Fatalf("final event = %+v, want completed pong", final)
+	}
+
+	got := rpcTaskFromDispatcher(t, d, final.ID)
+	if got.ID != final.ID || got.Status.State != stateCompleted || textOf(got.Artifacts[0].Parts) != "pong" {
+		t.Fatalf("stored task = %+v, want final", got)
+	}
+}
+
+func rpcTaskFromDispatcher(t *testing.T, d *dispatcher, id string) Task {
+	t.Helper()
+	body := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"tasks/get","params":{"id":"%s"}}`, id)
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	rr := httptest.NewRecorder()
+	d.serve(rr, req, nil)
+	var resp struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}
+	if err := json.NewDecoder(rr.Result().Body).Decode(&resp); err != nil {
+		t.Fatalf("decode tasks/get: %v", err)
+	}
+	if resp.Error != nil {
+		t.Fatalf("tasks/get error: %+v", resp.Error)
+	}
+	return resp.Result
 }
 
 func TestUnknownMethod(t *testing.T) {

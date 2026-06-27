@@ -229,6 +229,7 @@ type Task struct {
 const (
 	stateCompleted = "completed"
 	stateFailed    = "failed"
+	stateWorking   = "working"
 )
 
 // JSON-RPC envelopes.
@@ -508,25 +509,40 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 	w.Header().Set("Connection", "keep-alive")
 	w.WriteHeader(http.StatusOK)
 	enc := json.NewEncoder(sseWriter{w: w})
+	flush := func() {
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}
+	taskID := uuid.New().String()
+	contextID := p.Message.ContextID
+	if contextID == "" {
+		contextID = uuid.New().String()
+	}
 	var reply strings.Builder
 	for {
 		chunk, err := stream.Recv()
 		if err == io.EOF {
-			break
+			task := taskFromReplyWithIDs(p.Message, reply.String(), stateCompleted, taskID, contextID)
+			d.store(task)
+			_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task})
+			flush()
+			return
 		}
 		if err != nil {
-			_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Error: &rpcError{Code: errInternal, Message: err.Error()}})
+			task := taskFromReplyWithIDs(p.Message, "error: "+err.Error(), stateFailed, taskID, contextID)
+			d.store(task)
+			_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task, Error: &rpcError{Code: errInternal, Message: err.Error()}})
+			flush()
 			return
 		}
 		if chunk == nil || chunk.Reply == "" {
 			continue
 		}
 		reply.WriteString(chunk.Reply)
-		task := taskFromReply(p.Message, reply.String(), stateCompleted)
+		task := taskFromReplyWithIDs(p.Message, reply.String(), stateWorking, taskID, contextID)
 		_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task})
-		if f, ok := w.(http.Flusher); ok {
-			f.Flush()
-		}
+		flush()
 	}
 }
 
@@ -614,8 +630,12 @@ func taskFromReply(input Message, reply, state string) *Task {
 	if contextID == "" {
 		contextID = uuid.New().String()
 	}
+	return taskFromReplyWithIDs(input, reply, state, uuid.New().String(), contextID)
+}
+
+func taskFromReplyWithIDs(input Message, reply, state, taskID, contextID string) *Task {
 	task := &Task{
-		ID:        uuid.New().String(),
+		ID:        taskID,
 		ContextID: contextID,
 		Kind:      "task",
 		History:   []Message{input},
