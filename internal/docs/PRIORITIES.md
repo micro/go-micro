@@ -21,20 +21,13 @@ changes, architectural rewrites. Those go to the human.
 
 ## Now (ranked)
 
-1. **End-to-end agent streaming** (#3200) — complete the roadmap streaming slice:
-   usable `ai.Stream` beyond the current OpenAI path, A2A `message/stream` chunk
-   delivery, cancellation/error semantics, and docs so chat and long-task UX are
-   real across the harness boundary. Roadmap → *Next* streaming, but it now ranks
-   first because durable resume, provider conformance, registry readiness, 0→hero,
-   and agent OpenTelemetry have shipped; streaming is the largest remaining seam
-   in the services → agents → workflows interaction loop.
-2. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
+1. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
    and failure hooks; first reconcile the issue with the shipped `AgentWrapTool`,
-   structured refusal reasons, `RunInfo`, and OpenTelemetry spans, then close it or
-   scope only a CI-verifiable gap that wrappers plus tracing cannot express.
-   Roadmap → resilience/operability, but ranked after streaming because most of
-   the originally requested lifecycle metadata now exists and the remaining value
-   is validation/scoping rather than a missing harness primitive.
+   structured refusal reasons, `RunInfo`, OpenTelemetry spans, durable resume, and
+   A2A streaming task lifecycle, then close it or scope only a CI-verifiable gap
+   that those primitives cannot express. Roadmap → resilience/operability; now
+   ranked first because streaming shipped and this is the remaining open Now-phase
+   reliability seam for long-running agents and workflows.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
