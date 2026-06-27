@@ -59,4 +59,19 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
-        run: go run ./internal/harness/provider-conformance -require-configured
+        run: |
+          go run ./internal/harness/provider-conformance \
+            -require-configured \
+            -summary-json provider-conformance-summary.json \
+            -summary-markdown provider-conformance-summary.md \
+            -capabilities-markdown provider-capabilities.md
+      - name: Upload provider conformance summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-conformance
+          path: |
+            provider-conformance-summary.json
+            provider-conformance-summary.md
+            provider-capabilities.md
+          if-no-files-found: ignore

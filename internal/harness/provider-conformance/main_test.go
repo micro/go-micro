@@ -82,6 +82,39 @@ func TestWriteCapabilityMarkdown(t *testing.T) {
 	}
 }
 
+func TestWriteSummaryMarkdown(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "summary.md")
+	summary := conformanceSummary{
+		Capabilities: []ai.CapabilityRow{{Provider: "mock", Capabilities: ai.Capabilities{Model: true}}},
+		Results: []conformanceResult{
+			{Provider: "mock", Harness: "agent-flow", Status: statusPassed},
+			{Provider: "live", Status: statusSkipped, Error: "missing | key"},
+		},
+		Passed:  1,
+		Skipped: 1,
+	}
+	if err := writeSummaryMarkdown(path, summary); err != nil {
+		t.Fatalf("writeSummaryMarkdown returned error: %v", err)
+	}
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read summary markdown: %v", err)
+	}
+	got := string(b)
+	for _, want := range []string{
+		"# Provider conformance summary",
+		"Passed: 1. Skipped providers: 1. Failed: 0.",
+		"| mock | ✅ | — | — | — |",
+		"| mock | agent-flow | passed | — |",
+		"| live | — | skipped | missing \\| key |",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("summary markdown = %q, want %q", got, want)
+		}
+	}
+}
+
 func TestWriteSummaryJSON(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "summary.json")
 	summary := conformanceSummary{
