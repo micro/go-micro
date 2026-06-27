@@ -182,6 +182,19 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 // registry. In-flight and past runs remain in the store; Stop only ends
 // the flow's liveness, mirroring how a service leaves the registry when
 // it shuts down.
+func (f *Flow) withTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if f.opts.Timeout <= 0 {
+		return ctx, func() {}
+	}
+	if _, ok := ctx.Deadline(); ok {
+		return ctx, func() {}
+	}
+	return context.WithTimeout(ctx, f.opts.Timeout)
+}
+
 func (f *Flow) Stop() error {
 	if f.sub != nil {
 		_ = f.sub.Unsubscribe()
@@ -199,6 +212,9 @@ func (f *Flow) Stop() error {
 // called automatically on each broker event, but can also be
 // invoked directly for testing or one-shot use.
 func (f *Flow) Execute(ctx context.Context, data string) error {
+	ctx, cancel := f.withTimeout(ctx)
+	defer cancel()
+
 	// Stepped flows run the ordered, checkpointed step loop.
 	if len(f.opts.Steps) > 0 {
 		_, err := f.startRun(ctx, data)

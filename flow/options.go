@@ -24,6 +24,9 @@ type Options struct {
 	BaseURL string
 	// HistoryLimit is the max messages per flow execution.
 	HistoryLimit int
+	// Timeout bounds one flow execution when the caller did not already
+	// provide a context deadline. Zero means no flow-level timeout.
+	Timeout time.Duration
 	// OnResult is called after each execution with the result.
 	OnResult func(Result)
 	// Agent, if set, names a registered agent the flow hands each event
@@ -92,6 +95,13 @@ func BaseURL(url string) Option {
 // HistoryLimit sets the max messages per execution.
 func HistoryLimit(n int) Option {
 	return func(o *Options) { o.HistoryLimit = n }
+}
+
+// Timeout bounds one flow execution when the caller did not already
+// provide a context deadline. It applies to broker-triggered runs,
+// Execute calls, resumed stepped runs, and retry backoff waits.
+func Timeout(d time.Duration) Option {
+	return func(o *Options) { o.Timeout = d }
 }
 
 // OnResult sets a callback for each execution result.
