@@ -21,21 +21,21 @@ changes, architectural rewrites. Those go to the human.
 
 ## Now (ranked)
 
-1. **0→hero contract test** (#3013) — CI-verify the second golden path (services +
-   an agent + a flow + `plan`/`delegate`, on the deterministic `mock` provider).
-   Roadmap → *Now* (getting-started contract).
-2. **Provider conformance capability matrix** (#3014) — publish providers ×
-   capabilities (verified / unverified / unsupported), ideally fed by the
-   conformance harness. Roadmap → *Now* (hardening).
-3. **Durable agent loop** (#3010) — checkpoint and resume an agent run via
-   `flow.Checkpoint` (the deadline/timeout dependency has landed). Roadmap → *Next*.
-4. **Streaming end to end** (#3012) — `ai.Stream` through `micro chat`, the agent
-   RPC, and A2A `message/stream`; scope to chat + one provider first. Roadmap → *Next*.
-5. **Registry disconnection detection** (#2956) — readiness/health when a service
-   silently loses its registry connection. Community-requested production reliability.
-6. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry, and
-   failure hooks; first check overlap with the shipped run-timeline / OpenTelemetry
-   work and scope to what's not already covered.
+1. **Durable agent loop** (#3010) — checkpoint and resume an agent run via
+   `flow.Checkpoint` so long-running agents survive restarts without replaying
+   completed tool calls. Roadmap → *Next*; promoted because the Now hardening
+   items (0→hero and provider matrix) have shipped, and durability is the biggest
+   remaining harness-operability gap.
+2. **Streaming end to end** (#3012) — `ai.Stream` through `micro chat`, the agent
+   RPC, and A2A `message/stream`; scope to chat + one provider first. Roadmap →
+   *Next*.
+3. **Registry disconnection detection** (#2956) — readiness/health when a service
+   silently loses its registry connection. Community-requested production
+   reliability; keeps the service substrate operable because agents depend on
+   discovery.
+4. **Execution lifecycle hooks & metadata** (#2980) — before/after-tool, retry,
+   and failure hooks; first check overlap with the shipped run-timeline /
+   OpenTelemetry work and scope to what's not already covered.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
