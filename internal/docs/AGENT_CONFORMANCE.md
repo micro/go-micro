@@ -28,3 +28,12 @@ consistent across providers.
 
 The companion `TestAgentProviderConformanceFakeError` keeps provider error
 propagation covered locally without relying on external credentials.
+
+## Scheduled CI
+
+The daily/manual `Harness (E2E)` workflow runs the same matrix with
+`GO_MICRO_AGENT_CONFORMANCE_LIVE=1` and the provider secrets exported. Providers
+whose keys are absent still skip cleanly, while any configured provider must pass
+the shared tool-calling scenario. This keeps scheduled conformance key-gated: PR
+checks stay deterministic and no-key environments remain green, but maintained
+provider credentials exercise the live matrix regularly.
