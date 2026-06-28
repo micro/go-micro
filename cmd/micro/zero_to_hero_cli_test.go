@@ -19,12 +19,15 @@ func TestZeroToHeroCLIBoundaries(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"run", "chat", "flow"} {
+	for _, want := range []string{"run", "chat", "flow", "inspect"} {
 		if !commands[want] {
 			t.Fatalf("missing %q command", want)
 		}
 	}
 	if !subcommands["flow"]["runs"] {
 		t.Fatal("missing inspect boundary: flow runs")
+	}
+	if !subcommands["inspect"]["agent"] || !subcommands["inspect"]["flow"] {
+		t.Fatal("missing inspect boundary: inspect agent/flow")
 	}
 }
