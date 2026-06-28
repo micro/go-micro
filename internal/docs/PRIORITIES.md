@@ -21,12 +21,13 @@ changes, architectural rewrites. Those go to the human.
 
 ## Now (ranked)
 
-1. **Harden agent model-call resilience** ([#3233](https://github.com/micro/go-micro/issues/3233)) — complete the remaining hardening seam from the roadmap: deadline/cancellation propagation, bounded retry/backoff, and inspectable timeout/rate-limit/cancellation outcomes for the agent loop. This is the highest-value next item because durable runs, streaming, observability, memory, HITL, x402, and A2A continuation now exist; the shared operational harness still needs to fail safely under real provider conditions.
+1. **Add cross-provider agent conformance checks** ([#3240](https://github.com/micro/go-micro/issues/3240)) — the resilience seam closed, so the next highest-value hardening gap is proving one representative agent/tool scenario across providers with key-gated CI/scheduled checks. This protects the harness promise that agents behave consistently on one runtime even as provider adapters evolve.
 2. **CI-verify the 0-to-1 getting-started path** ([#3234](https://github.com/micro/go-micro/issues/3234)) — add a deterministic no-key check for scaffold → run/build → call so the README/blog promise that building a service stays effortless cannot regress while the agent stack deepens.
+3. **CI-verify the 0-to-hero agent workflow** ([#3241](https://github.com/micro/go-micro/issues/3241)) — after the basic service contract is guarded, make the full services → agents → workflows story executable in CI with a maintained no-secret reference scenario for run → chat → inspect boundaries.
 
 ## Later (ranked)
 
-3. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications and multi-turn continuation shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
+4. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications and multi-turn continuation shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
