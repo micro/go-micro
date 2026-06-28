@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Later (ranked)
 
-1. **Add agent memory summarization and retrieval** ([#3273](https://github.com/micro/go-micro/issues/3273)) — with A2A resubscribe/input-required handoffs now shipped, the highest-value remaining roadmap gap is durable memory beyond a fixed context buffer: compact older turns/tool results and retrieve relevant prior facts using the existing agent/store primitives so longer-running agents remain coherent without becoming a separate product layer.
+1. **Add human-in-the-loop pause and resume for agent runs** ([#3278](https://github.com/micro/go-micro/issues/3278)) — after memory summarization/retrieval shipped, the highest-value remaining roadmap gap is making long-running agents safer and more operable by letting a run enter an input-required pause, persist enough state to survive the boundary, and resume with human input using the existing agent/store/flow/A2A semantics rather than a separate orchestration layer.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
