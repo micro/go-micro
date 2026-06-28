@@ -2,66 +2,36 @@
 
 ## What Changed
 
-The TLS configuration in go-micro now includes a security deprecation warning.
+Go Micro v6 verifies TLS certificates by default. This completes the v5 security
+migration where verification was opt-in.
 
-## Current Behavior (v5.x)
+## Current Behavior (v6.x)
 
-**Default**: TLS certificate verification is **disabled** for backward compatibility
-- This maintains existing behavior to avoid breaking production deployments
-- A deprecation warning is logged once per process startup
+**Default**: TLS certificate verification is **enabled**.
+- `MICRO_TLS_SECURE` was a v5 opt-in flag and is no longer used.
+- For local development with untrusted self-signed certificates, opt out
+  explicitly with `MICRO_TLS_INSECURE=true` or an explicit insecure TLS config.
 
-**Why**: Changing the default to secure would be a **breaking change** that could disrupt:
-- Production systems during routine upgrades
-- Distributed systems with mixed versions
-- Services using self-signed certificates
+## Production Recommendation
 
-## How to Enable Security (Recommended)
-
-### Option 1: Environment Variable
-
-```bash
-export MICRO_TLS_SECURE=true
-```
-
-### Option 2: Use SecureConfig
-
-```go
-import (
-    "go-micro.dev/v6/broker"
-    mls "go-micro.dev/v6/util/tls"
-)
-
-broker := broker.NewHttpBroker(
-    broker.TLSConfig(mls.SecureConfig()),
-)
-```
+For production deployments:
+1. Use CA-signed certificates or distribute your private CA to every host.
+2. Remove old `MICRO_TLS_SECURE` settings from v5-era manifests.
+3. Do not set `MICRO_TLS_INSECURE=true` in production.
+4. Consider service mesh mTLS (Istio, Linkerd) if certificate lifecycle should be
+   managed outside the application.
 
 ## Migration Timeline
 
-- **v5.x (Current)**: Insecure by default, opt-in security via `MICRO_TLS_SECURE=true`
-- **v6.x (Future)**: Secure by default (breaking change with major version bump)
-
-## Why This Approach?
-
-This addresses the concerns raised about:
-
-1. **Major version requirements**: No breaking change in v5, deferred to v6
-2. **Cross-host compatibility**: All hosts use same default behavior
-3. **Production safety**: Existing deployments continue working during upgrades
-4. **Migration path**: Clear opt-in path with documentation
+- **v5.x**: Insecure by default, opt-in security via `MICRO_TLS_SECURE=true`.
+- **v6.x current**: Secure by default; use `MICRO_TLS_INSECURE=true` only for an
+  explicit development opt-out.
 
 ## Documentation
 
-See [SECURITY_MIGRATION.md](SECURITY_MIGRATION.html) for detailed migration guide.
-
-## Security Recommendation
-
-For production deployments:
-1. Test with `MICRO_TLS_SECURE=true` in staging
-2. Use proper CA-signed certificates
-3. Consider service mesh (Istio, Linkerd) for automatic mTLS
-4. Plan migration before v6 release
+See [SECURITY_MIGRATION.md](SECURITY_MIGRATION.html) for the detailed migration
+guide.
 
 ## Questions?
 
-Open an issue on GitHub or check the documentation at https://go-micro.dev/docs/
+Open an issue on GitHub or check the documentation at https://go-micro.dev/docs/.
