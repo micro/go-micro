@@ -19,13 +19,15 @@ redirect the loop; direction always wins.
 items the loop can auto-merge): brand/positioning copy, breaking public-API
 changes, architectural rewrites. Those go to the human.
 
-## Now (ranked)
+## Next (ranked)
 
-1. **CI-verify the 0-to-hero agent workflow** ([#3241](https://github.com/micro/go-micro/issues/3241)) — with the basic 0→1 service contract now guarded, make the full services → agents → workflows story executable in CI with a maintained no-secret reference scenario for run → chat → inspect boundaries.
+1. **Add durable checkpoint/resume support to agent runs** ([#3254](https://github.com/micro/go-micro/issues/3254)) — with both 0→1 and 0→hero now CI-verified, make long-running agents as resumable as flows so the harness can safely run scheduled and looping work without replaying completed tool side effects.
+2. **Broaden provider-backed AI streaming conformance** ([#3255](https://github.com/micro/go-micro/issues/3255)) — keep streaming coherent from provider adapters through chat and A2A by testing chunks, completion, cancellation, and error propagation across supported providers.
+3. **Export agent RunInfo as OpenTelemetry spans** ([#3256](https://github.com/micro/go-micro/issues/3256)) — connect the existing run/model/tool metadata to standard tracing so developers can inspect agent behavior with the same operational tools they use for services.
 
 ## Later (ranked)
 
-2. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications and multi-turn continuation shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
+4. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications and multi-turn continuation shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
