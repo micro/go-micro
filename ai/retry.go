@@ -13,9 +13,28 @@ type StatusCoder interface {
 	StatusCode() int
 }
 
+// ErrorKind classifies provider-boundary failures into stable buckets callers
+// can inspect without parsing provider-specific error strings.
+type ErrorKind string
+
+const (
+	ErrorKindUnknown     ErrorKind = "unknown"
+	ErrorKindCanceled    ErrorKind = "canceled"
+	ErrorKindTimeout     ErrorKind = "timeout"
+	ErrorKindRateLimited ErrorKind = "rate_limited"
+	ErrorKindUnavailable ErrorKind = "unavailable"
+	ErrorKindProvider    ErrorKind = "provider"
+)
+
+// ClassifiedError is implemented by errors that expose a stable ErrorKind.
+type ClassifiedError interface {
+	ErrorKind() ErrorKind
+}
+
 // RetryError is returned when Generate is retried and still fails.
 type RetryError struct {
 	Attempts int
+	Kind     ErrorKind
 	Err      error
 }
 
@@ -23,7 +42,7 @@ func (e *RetryError) Error() string {
 	if e == nil {
 		return ""
 	}
-	return fmt.Sprintf("ai generate failed after %d attempt(s): %v", e.Attempts, e.Err)
+	return fmt.Sprintf("ai generate failed after %d attempt(s) (%s): %v", e.Attempts, e.ErrorKind(), e.Err)
 }
 
 func (e *RetryError) Unwrap() error {
@@ -31,6 +50,13 @@ func (e *RetryError) Unwrap() error {
 		return nil
 	}
 	return e.Err
+}
+
+func (e *RetryError) ErrorKind() ErrorKind {
+	if e == nil || e.Kind == "" {
+		return ErrorKindUnknown
+	}
+	return e.Kind
 }
 
 // GeneratePolicy controls timeout and retry behavior for a model call.
@@ -76,9 +102,10 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
-		if attempt == policy.MaxAttempts || !IsTransientError(err) {
-			if attempt > 1 || IsTransientError(err) {
-				return nil, &RetryError{Attempts: attempt, Err: err}
+		transient := IsTransientError(err)
+		if attempt == policy.MaxAttempts || !transient {
+			if attempt > 1 || transient {
+				return nil, &RetryError{Attempts: attempt, Kind: ClassifyError(err), Err: err}
 			}
 			return nil, err
 		}
@@ -106,25 +133,57 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		case <-t.C:
 		}
 	}
-	return nil, &RetryError{Attempts: policy.MaxAttempts, Err: last}
+	return nil, &RetryError{Attempts: policy.MaxAttempts, Kind: ClassifyError(last), Err: last}
 }
 
-// IsTransientError reports whether err is worth retrying at the provider boundary.
-func IsTransientError(err error) bool {
+// ClassifyError maps provider and context failures to stable operational kinds.
+func ClassifyError(err error) ErrorKind {
 	if err == nil {
-		return false
+		return ""
+	}
+	var classified ClassifiedError
+	if errors.As(err, &classified) {
+		if kind := classified.ErrorKind(); kind != "" {
+			return kind
+		}
 	}
 	if errors.Is(err, context.Canceled) {
-		return false
+		return ErrorKindCanceled
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
-		return true
+		return ErrorKindTimeout
 	}
 	var sc StatusCoder
 	if errors.As(err, &sc) {
 		code := sc.StatusCode()
-		return code == 429 || code >= 500
+		switch {
+		case code == 429:
+			return ErrorKindRateLimited
+		case code >= 500:
+			return ErrorKindUnavailable
+		case code > 0:
+			return ErrorKindProvider
+		}
 	}
 	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "rate limit") || strings.Contains(msg, "too many requests") || strings.Contains(msg, "timeout") || strings.Contains(msg, "temporar")
+	switch {
+	case strings.Contains(msg, "rate limit") || strings.Contains(msg, "too many requests"):
+		return ErrorKindRateLimited
+	case strings.Contains(msg, "timeout") || strings.Contains(msg, "deadline"):
+		return ErrorKindTimeout
+	case strings.Contains(msg, "temporar") || strings.Contains(msg, "unavailable"):
+		return ErrorKindUnavailable
+	default:
+		return ErrorKindUnknown
+	}
+}
+
+// IsTransientError reports whether err is worth retrying at the provider boundary.
+func IsTransientError(err error) bool {
+	switch ClassifyError(err) {
+	case ErrorKindTimeout, ErrorKindRateLimited, ErrorKindUnavailable:
+		return true
+	default:
+		return false
+	}
 }

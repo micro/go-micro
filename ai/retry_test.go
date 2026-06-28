@@ -133,3 +133,51 @@ func TestGenerateWithRetryAddsAttemptMetadataToRunInfo(t *testing.T) {
 		}
 	}
 }
+
+type statusErr int
+
+func (e statusErr) Error() string   { return "provider status" }
+func (e statusErr) StatusCode() int { return int(e) }
+
+func TestClassifyErrorDistinguishesOperationalOutcomes(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want ErrorKind
+	}{
+		{name: "canceled", err: context.Canceled, want: ErrorKindCanceled},
+		{name: "timeout", err: context.DeadlineExceeded, want: ErrorKindTimeout},
+		{name: "rate limit status", err: statusErr(429), want: ErrorKindRateLimited},
+		{name: "unavailable status", err: statusErr(503), want: ErrorKindUnavailable},
+		{name: "provider status", err: statusErr(400), want: ErrorKindProvider},
+		{name: "rate limit text", err: errors.New("rate limit exceeded"), want: ErrorKindRateLimited},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ClassifyError(tt.err); got != tt.want {
+				t.Fatalf("ClassifyError() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGenerateWithRetryExposesRetryErrorKind(t *testing.T) {
+	model := retryModel{generate: func(context.Context, *Request, ...GenerateOption) (*Response, error) {
+		return nil, statusErr(429)
+	}}
+
+	_, err := GenerateWithRetry(context.Background(), model, &Request{Prompt: "hi"}, GeneratePolicy{
+		MaxAttempts: 2,
+		Backoff:     time.Millisecond,
+	})
+	var retryErr *RetryError
+	if !errors.As(err, &retryErr) {
+		t.Fatalf("error = %T %[1]v, want RetryError", err)
+	}
+	if retryErr.ErrorKind() != ErrorKindRateLimited {
+		t.Fatalf("retry kind = %q, want %q", retryErr.ErrorKind(), ErrorKindRateLimited)
+	}
+	if !errors.Is(err, statusErr(429)) {
+		t.Fatalf("retry error does not unwrap provider status: %v", err)
+	}
+}
