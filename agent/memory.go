@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -123,16 +124,30 @@ func (m *storeMemory) Recall(query string, limit int) []ai.Message {
 		limit = 5
 	}
 	terms := recallTerms(query)
-	var out []ai.Message
-	for i := len(m.archive) - 1; i >= 0 && len(out) < limit; i-- {
+	type match struct {
+		msg   ai.Message
+		score int
+		index int
+	}
+	matches := make([]match, 0, len(m.archive))
+	for i := len(m.archive) - 1; i >= 0; i-- {
 		msg := m.archive[i]
-		text := strings.ToLower(fmt.Sprint(msg.Content))
-		for _, term := range terms {
-			if strings.Contains(text, term) {
-				out = append(out, msg)
-				break
-			}
+		if score := recallScore(msg, terms); score > 0 {
+			matches = append(matches, match{msg: msg, score: score, index: i})
 		}
+	}
+	sort.SliceStable(matches, func(i, j int) bool {
+		if matches[i].score != matches[j].score {
+			return matches[i].score > matches[j].score
+		}
+		return matches[i].index > matches[j].index
+	})
+	if len(matches) > limit {
+		matches = matches[:limit]
+	}
+	out := make([]ai.Message, 0, len(matches))
+	for _, match := range matches {
+		out = append(out, match.msg)
 	}
 	return out
 }
@@ -226,6 +241,17 @@ func compactText(s string, max int) string {
 		return s[:max] + "…"
 	}
 	return s
+}
+
+func recallScore(msg ai.Message, terms []string) int {
+	text := strings.ToLower(fmt.Sprint(msg.Content))
+	score := 0
+	for _, term := range terms {
+		if strings.Contains(text, term) {
+			score++
+		}
+	}
+	return score
 }
 
 func recallTerms(query string) []string {
