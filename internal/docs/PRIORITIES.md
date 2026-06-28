@@ -21,16 +21,12 @@ changes, architectural rewrites. Those go to the human.
 
 ## Later (ranked)
 
-1. **x402 spend caps and live facilitator conformance** (#3211) — enforce paid-tool
-   budgets and add credential-gated live facilitator checks. Roadmap → x402 paid
-   remote tools; ranked first because memory compaction and human-in-the-loop
-   pause/resume have shipped, leaving paid-tool trust as the highest-value
-   operability seam before agents perform longer-running or paid work.
-2. **A2A push notifications and multi-turn task support** (#3212) — extend the A2A
+1. **A2A push notifications and multi-turn task support** (#3212) — extend the A2A
    gateway/client path beyond streaming lifecycle updates into push and multi-turn
-   task state. Roadmap → A2A push notifications and multi-turn tasks; ranked after
-   x402 hardening because interop depth compounds best once local run and paid-tool
-   execution are bounded, inspectable, and budgeted.
+   task state. Roadmap → A2A push notifications and multi-turn tasks; now the
+   highest-value remaining item because x402 spend caps and live facilitator
+   conformance have shipped, leaving deeper agent-to-agent task continuity as the
+   clearest remaining interop gap for long-running, cross-runtime work.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
