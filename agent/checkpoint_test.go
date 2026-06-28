@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"go-micro.dev/v6/ai"
@@ -45,6 +46,58 @@ func TestResumeCompletedCheckpointDoesNotReplayModel(t *testing.T) {
 	}
 	if calls != 1 {
 		t.Fatalf("model calls after Resume = %d, want 1", calls)
+	}
+}
+
+func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewStore(), "tool-resume-agent")
+	toolRuns := 0
+	first := true
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler != nil {
+			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.charge", Input: map[string]any{"order": "42"}})
+			if res.Content != "charged" {
+				t.Fatalf("tool result = %q, want charged", res.Content)
+			}
+		}
+		if first {
+			first = false
+			return nil, errors.New("model connection dropped after tool")
+		}
+		return &ai.Response{Reply: "finished from checkpoint"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("tool-resume-agent"), WithCheckpoint(cp),
+		WithTool("external.charge", "charge once", nil, func(context.Context, map[string]any) (string, error) {
+			toolRuns++
+			return "charged", nil
+		}))
+	_, err := a.Ask(ctx, "charge order 42")
+	if err == nil {
+		t.Fatal("Ask succeeded, want simulated failure")
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after failed Ask = %d, want 1", toolRuns)
+	}
+
+	runs, err := Pending(ctx, a)
+	if err != nil {
+		t.Fatalf("Pending: %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("Pending returned %d runs, want 1", len(runs))
+	}
+	resp, err := Resume(ctx, a, runs[0].ID)
+	if err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if resp.Reply != "finished from checkpoint" {
+		t.Fatalf("Resume reply = %q", resp.Reply)
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after Resume = %d, want completed tool was not replayed", toolRuns)
 	}
 }
 

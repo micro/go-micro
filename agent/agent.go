@@ -92,6 +92,11 @@ type agentImpl struct {
 	// Ask. The model provider only sees a refused tool result; the agent
 	// converts it into a durable paused run instead of completing the run.
 	pause *approvalPause
+
+	// currentRun points at the checkpoint record for the Ask currently
+	// holding mu. Tool execution updates it so resumed runs can reuse
+	// completed tool results without replaying side effects.
+	currentRun *flow.Run
 }
 
 // New creates a new Agent.
@@ -253,6 +258,8 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		Agent:    a.opts.Name,
 	})
 	run := a.newCheckpointRun(runID, message, parentRunID, existing)
+	a.currentRun = &run
+	defer func() { a.currentRun = nil }()
 	if err := a.saveRun(ctx, run); err != nil {
 		return nil, err
 	}
@@ -283,6 +290,9 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		run.Status = "failed"
 		run.Steps[0].Status = "failed"
 		run.Steps[0].Error = err.Error()
+		if a.currentRun != nil {
+			run.Steps = a.currentRun.Steps
+		}
 		_ = a.saveRun(ctx, run)
 		return nil, err
 	}
@@ -325,6 +335,12 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	run.State.Stage = ""
 	if b, marshalErr := json.Marshal(res); marshalErr == nil {
 		run.State.Data = b
+	}
+	if a.currentRun != nil {
+		run.Steps = a.currentRun.Steps
+	}
+	if len(run.Steps) == 0 {
+		run.Steps = []flow.StepRecord{{Name: agentAskStep}}
 	}
 	run.Steps[0].Status = "done"
 	run.Steps[0].Attempts++
