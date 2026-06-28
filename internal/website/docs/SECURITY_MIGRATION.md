@@ -2,58 +2,64 @@
 
 ## Overview
 
-This document provides guidance for migrating to secure TLS certificate verification in go-micro v5.
+Go Micro v6 verifies TLS certificates by default. This guide is for teams
+upgrading from v5, where TLS verification was disabled by default for backward
+compatibility.
 
-## Current Status (v5)
+## Current Status (v6)
 
-**Default Behavior**: TLS certificate verification is **disabled** by default (`InsecureSkipVerify: true`)
+**Default Behavior**: TLS certificate verification is **enabled** by default
+(`InsecureSkipVerify: false`).
 
-**Reason**: Backward compatibility with existing deployments to avoid breaking production systems during routine upgrades.
+**What changed from v5**: v5 allowed `MICRO_TLS_SECURE=true` to opt into
+certificate verification. In v6, secure verification is the default and
+`MICRO_TLS_SECURE` is no longer used.
 
-**Security Risk**: The default behavior is vulnerable to man-in-the-middle (MITM) attacks.
+**Development escape hatch**: for local self-signed certificates only, set
+`MICRO_TLS_INSECURE=true` or provide an explicit insecure TLS config.
 
-## Migration Path
+## Migration Path from v5
 
-### Option 1: Enable Secure Mode (RECOMMENDED)
+### 1. Remove the old opt-in flag
 
-Set the environment variable to enable certificate verification:
+Delete any use of the v5-only environment variable:
 
 ```bash
-export MICRO_TLS_SECURE=true
+unset MICRO_TLS_SECURE
 ```
 
-This enables proper TLS certificate verification while maintaining compatibility with v5.
+No replacement is required for production: verification is already on in v6.
 
-### Option 2: Use SecureConfig Directly
+### 2. Use the default secure config
 
-In your code, explicitly use the secure configuration:
+Most services need no TLS-specific code. If you configure TLS explicitly, use a standard `crypto/tls` config with verification enabled:
 
 ```go
 import (
+    "crypto/tls"
     "go-micro.dev/v6/broker"
-    mls "go-micro.dev/v6/util/tls"
 )
 
-// Create broker with secure TLS config
+// Create broker with certificate verification enabled.
 b := broker.NewHttpBroker(
-    broker.TLSConfig(mls.SecureConfig()),
+    broker.TLSConfig(&tls.Config{MinVersion: tls.VersionTLS12}),
 )
 ```
 
-### Option 3: Provide Custom TLS Configuration
+### 3. Provide a custom trust root when needed
 
-For fine-grained control, provide your own TLS configuration:
+For private CAs, provide your own TLS configuration:
 
 ```go
 import (
     "crypto/tls"
     "crypto/x509"
     "go-micro.dev/v6/broker"
-    "io/ioutil"
+    "os"
 )
 
 // Load CA certificates
-caCert, err := ioutil.ReadFile("/path/to/ca-cert.pem")
+caCert, err := os.ReadFile("/path/to/ca-cert.pem")
 if err != nil {
     log.Fatal(err)
 }
@@ -73,51 +79,60 @@ b := broker.NewHttpBroker(
 )
 ```
 
+### 4. Use insecure mode only for local development
+
+If a development environment still uses self-signed certificates that are not in
+your trust store, opt out explicitly:
+
+```bash
+export MICRO_TLS_INSECURE=true
+```
+
+or in code:
+
+```go
+broker.TLSConfig(&tls.Config{InsecureSkipVerify: true, MinVersion: tls.VersionTLS12})
+```
+
+Do not use insecure mode in production.
+
 ## Production Deployment Strategy
 
 ### Rolling Upgrade Considerations
 
-The current implementation maintains backward compatibility, allowing safe rolling upgrades:
+The default changed at the v6 major-version boundary. Before rolling v6 into a
+fleet that uses TLS, verify that:
 
-1. **Mixed Version Deployments**: v5 instances can communicate regardless of TLS security settings
-2. **No Immediate Breaking Changes**: Systems continue working with existing behavior
-3. **Gradual Migration**: Enable security incrementally across your infrastructure
+1. All services present certificates trusted by their peers.
+2. Private or self-signed CAs are installed consistently on every host.
+3. Certificates include the DNS names or IP subject alternative names used by
+   clients.
+4. Any deliberate development-only insecure settings are excluded from
+   production manifests.
 
 ### Recommended Approach
 
-1. **Test in Staging**:
-   ```bash
-   # In staging environment
-   export MICRO_TLS_SECURE=true
-   ```
-   
-2. **Deploy with Feature Flag**: Use environment-based configuration for gradual rollout
-
-3. **Monitor for Issues**: Watch for TLS handshake failures or certificate validation errors
-
-4. **Full Production Rollout**: Once validated, enable across all services
+1. **Test in Staging** with the same certificate chain and service names used in
+   production.
+2. **Remove v5 flags** such as `MICRO_TLS_SECURE`; they no longer control v6.
+3. **Monitor for Issues**: watch for TLS handshake failures or certificate
+   validation errors.
+4. **Use explicit insecure mode only in dev** when a short-lived environment
+   cannot yet provide trusted certificates.
 
 ### Multi-Host/Multi-Process Considerations
 
-**Certificate Trust**: When enabling secure mode, ensure:
+**Certificate Trust**: With secure mode as the default, ensure:
 
-1. All hosts trust the same root CAs
-2. Self-signed certificates are properly distributed if used
-3. Certificate validity periods are monitored
-4. Certificate chains are complete
+1. All hosts trust the same root CAs.
+2. Self-signed certificates are properly distributed if used.
+3. Certificate validity periods are monitored.
+4. Certificate chains are complete.
 
 **Service Mesh Alternative**: Consider using a service mesh (Istio, Linkerd, etc.) for:
 - Automatic mTLS between services
 - Certificate management and rotation
 - No application code changes required
-
-## Future Changes (v6)
-
-In go-micro v6, the default will change to **secure by default**:
-
-- `InsecureSkipVerify: false` (certificate verification enabled)
-- Breaking change requiring major version bump
-- Migration completed before v6 release avoids disruption
 
 ## Testing Your Migration
 
@@ -127,14 +142,12 @@ In go-micro v6, the default will change to **secure by default**:
 package main
 
 import (
+    "crypto/tls"
     "fmt"
-    mls "go-micro.dev/v6/util/tls"
-    "os"
 )
 
 func main() {
-    os.Setenv("MICRO_TLS_SECURE", "true")
-    config := mls.Config()
+    config := &tls.Config{MinVersion: tls.VersionTLS12}
     fmt.Printf("InsecureSkipVerify: %v (should be false)\n", config.InsecureSkipVerify)
 }
 ```
@@ -155,7 +168,7 @@ Create a test service and verify it:
 **Solution**:
 1. Add the CA certificate to the trusted root CAs
 2. Use a properly signed certificate
-3. For development only: Use `InsecureConfig()` explicitly
+3. For development only: use `MICRO_TLS_INSECURE=true` or an explicit insecure TLS config
 
 ### Issue: "x509: certificate has expired"
 
@@ -166,24 +179,17 @@ Create a test service and verify it:
 2. Implement certificate rotation
 3. Monitor certificate expiry dates
 
-### Issue: Services can't communicate after enabling secure mode
+### Issue: Services can't communicate after upgrading to v6
 
-**Cause**: Mixed certificate authorities or missing certificates
+**Cause**: Certificates that v5 accepted by default are now verified.
 
 **Solution**:
-1. Ensure all services use certificates from the same CA
+1. Ensure all services use certificates from a trusted CA
 2. Distribute CA certificates to all nodes
 3. Verify certificate SANs match service addresses
+4. Use insecure mode only as a temporary local-development workaround
 
 ## Questions?
 
-For issues or questions about TLS security migration, please:
-- Open an issue on GitHub
-- Check the documentation at https://go-micro.dev/docs/
-- Review the security guidelines
-
-## Security Resources
-
-- [OWASP TLS Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Transport_Layer_Protection_Cheat_Sheet.html)
-- [Go TLS Documentation](https://pkg.go.dev/crypto/tls)
-- [Certificate Best Practices](https://www.ssl.com/guide/ssl-best-practices/)
+For issues or questions about TLS security migration, open an issue on GitHub or
+check the documentation at https://go-micro.dev/docs/.
