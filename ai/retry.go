@@ -13,6 +13,12 @@ type StatusCoder interface {
 	StatusCode() int
 }
 
+// RetryAfterCoder is implemented by provider errors that expose a server
+// supplied retry delay, such as HTTP Retry-After on a 429/503 response.
+type RetryAfterCoder interface {
+	RetryAfter() time.Duration
+}
+
 // ErrorKind classifies provider-boundary failures into stable buckets callers
 // can inspect without parsing provider-specific error strings.
 type ErrorKind string
@@ -113,16 +119,7 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		// Always back off between retries — exponential and capped — so an
 		// opt-in retry can never become a tight loop hammering the provider,
 		// even if Backoff was left at zero.
-		backoff := policy.Backoff
-		if backoff <= 0 {
-			backoff = 200 * time.Millisecond
-		}
-		if shift := attempt - 1; shift > 0 {
-			backoff <<= shift
-		}
-		if backoff > 30*time.Second {
-			backoff = 30 * time.Second
-		}
+		backoff := retryBackoff(err, attempt, policy.Backoff)
 		t := time.NewTimer(backoff)
 		select {
 		case <-ctx.Done():
@@ -134,6 +131,30 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		}
 	}
 	return nil, &RetryError{Attempts: policy.MaxAttempts, Kind: ClassifyError(last), Err: last}
+}
+
+func retryBackoff(err error, attempt int, base time.Duration) time.Duration {
+	backoff := base
+	if backoff <= 0 {
+		backoff = 200 * time.Millisecond
+	}
+	if shift := attempt - 1; shift > 0 {
+		backoff <<= shift
+	}
+	if backoff > 30*time.Second {
+		backoff = 30 * time.Second
+	}
+
+	var retryAfter RetryAfterCoder
+	if errors.As(err, &retryAfter) {
+		if delay := retryAfter.RetryAfter(); delay > backoff {
+			backoff = delay
+		}
+	}
+	if backoff > 30*time.Second {
+		return 30 * time.Second
+	}
+	return backoff
 }
 
 // ClassifyError maps provider and context failures to stable operational kinds.
