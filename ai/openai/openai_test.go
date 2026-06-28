@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"go-micro.dev/v6/ai"
 )
@@ -123,6 +124,58 @@ func TestProvider_Stream(t *testing.T) {
 	}
 	if _, err := stream.Recv(); !errors.Is(err, io.EOF) {
 		t.Fatalf("final error = %v, want EOF", err)
+	}
+}
+
+func TestProvider_StreamPropagatesMalformedChunk(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("data: {bad json}\n\n"))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL))
+	stream, err := p.Stream(context.Background(), &ai.Request{Prompt: "Hello"})
+	if err != nil {
+		t.Fatalf("Stream returned error: %v", err)
+	}
+	defer stream.Close()
+
+	if _, err := stream.Recv(); err == nil {
+		t.Fatal("Recv returned nil error for malformed chunk")
+	}
+}
+
+func TestProvider_StreamCloseReleasesResponse(t *testing.T) {
+	released := make(chan struct{})
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"hel\"}}]}\n\n"))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		<-r.Context().Done()
+		close(released)
+	}))
+	defer ts.Close()
+
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL))
+	stream, err := p.Stream(context.Background(), &ai.Request{Prompt: "Hello"})
+	if err != nil {
+		t.Fatalf("Stream returned error: %v", err)
+	}
+	first, err := stream.Recv()
+	if err != nil || first.Reply != "hel" {
+		t.Fatalf("first chunk = %#v, %v; want hel", first, err)
+	}
+	if err := stream.Close(); err != nil {
+		t.Fatalf("Close returned error: %v", err)
+	}
+
+	select {
+	case <-released:
+	case <-time.After(time.Second):
+		t.Fatal("server did not observe closed stream request")
 	}
 }
 

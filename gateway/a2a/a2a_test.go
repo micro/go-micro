@@ -359,6 +359,79 @@ func TestMessageStreamChunksStoreFinalTask(t *testing.T) {
 	}
 }
 
+type contextStream struct {
+	ctx    context.Context
+	closed chan struct{}
+}
+
+func (s *contextStream) Recv() (*ai.Response, error) {
+	<-s.ctx.Done()
+	return nil, s.ctx.Err()
+}
+
+func (s *contextStream) Close() error {
+	close(s.closed)
+	return nil
+}
+
+func TestMessageStreamChunksPropagatesCancellationAndClosesStream(t *testing.T) {
+	d := newDispatcher()
+	ctx, cancel := context.WithCancel(context.Background())
+	closed := make(chan struct{})
+	body := `{"jsonrpc":"2.0","id":1,"method":"message/stream","params":{"message":{"role":"user","parts":[{"kind":"text","text":"ping"}],"kind":"message"}}}`
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body)).WithContext(ctx)
+	rr := httptest.NewRecorder()
+	cancel()
+
+	d.serveWithStream(rr, req, nil, func(ctx context.Context, text string) (ai.Stream, error) {
+		if text != "ping" {
+			t.Fatalf("stream text = %q, want ping", text)
+		}
+		return &contextStream{ctx: ctx, closed: closed}, nil
+	})
+
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		t.Fatal("stream was not closed")
+	}
+
+	var events []struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}
+	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		line = strings.TrimPrefix(line, "data: ")
+		var event struct {
+			Result Task      `json:"result"`
+			Error  *rpcError `json:"error"`
+		}
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			t.Fatalf("decode event %q: %v", line, err)
+		}
+		events = append(events, event)
+	}
+	if len(events) != 1 {
+		t.Fatalf("events = %d, want 1; body %s", len(events), rr.Body.String())
+	}
+	event := events[0]
+	if event.Error == nil || event.Error.Code != errInternal || event.Error.Message != context.Canceled.Error() {
+		t.Fatalf("error = %+v, want context cancellation", event.Error)
+	}
+	if event.Result.Status.State != stateFailed || textOf(event.Result.Artifacts[0].Parts) != "error: context canceled" {
+		t.Fatalf("failed task = %+v, want context cancellation artifact", event.Result)
+	}
+
+	got := rpcTaskFromDispatcher(t, d, event.Result.ID)
+	if got.Status.State != stateFailed || textOf(got.Artifacts[0].Parts) != "error: context canceled" {
+		t.Fatalf("stored task = %+v, want failed cancellation", got)
+	}
+}
+
 func rpcTaskFromDispatcher(t *testing.T, d *dispatcher, id string) Task {
 	t.Helper()
 	body := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"tasks/get","params":{"id":"%s"}}`, id)
