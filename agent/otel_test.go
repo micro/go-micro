@@ -71,6 +71,16 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	if runID == "" {
 		t.Fatal("run span missing run id attribute")
 	}
+	var runEvents []trace.Event
+	for _, s := range spans {
+		if s.Name() == spanNameRun {
+			runEvents = s.Events()
+			break
+		}
+	}
+	if !spanEventHasRunInfo(runEvents, "agent.run", runID, "runner") || !spanEventHasRunInfo(runEvents, "agent.done", runID, "runner") {
+		t.Fatalf("run span missing run-info events: %#v", runEvents)
+	}
 	for _, s := range spans {
 		if s.Name() != spanNameModelCall && s.Name() != spanNameToolCall {
 			continue
@@ -113,6 +123,19 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	if len(events) == 0 || events[0].TraceID == "" || events[0].SpanID == "" {
 		t.Fatalf("events missing trace correlation: %#v", events)
 	}
+}
+
+func spanEventHasRunInfo(events []trace.Event, name, runID, agentName string) bool {
+	for _, event := range events {
+		if event.Name != name {
+			continue
+		}
+		attrs := spanAttributes(event.Attributes)
+		if attrs[AttrRunID] == runID && attrs[AttrAgentName] == agentName {
+			return true
+		}
+	}
+	return false
 }
 
 func spanAttributes(attrs []attribute.KeyValue) map[string]string {
