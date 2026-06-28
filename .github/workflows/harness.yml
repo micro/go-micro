@@ -3,8 +3,8 @@ name: Harness (E2E)
 # Runs the end-to-end harnesses for agents, services, flows, and provider
 # conformance. The default job uses deterministic mock LLMs and needs no
 # secrets. A second job runs the same harnesses against the live provider set and
-# fails if any selected provider secret is missing, so scheduled conformance
-# cannot silently degrade.
+# skips providers whose secrets are absent, so scheduled conformance
+# remains safe in no-key forks while still failing configured providers that drift.
 
 on:
   push:
@@ -50,6 +50,17 @@ jobs:
         with:
           go-version: stable
           cache: true
+      - name: Agent provider conformance matrix
+        env:
+          GO_MICRO_AGENT_CONFORMANCE_LIVE: "1"
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
+        run: go test ./agent -run TestAgentProviderConformanceMatrix -count=1 -v
       - name: Provider conformance against live models
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -61,7 +72,6 @@ jobs:
           ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
         run: |
           go run ./internal/harness/provider-conformance \
-            -require-configured \
             -summary-json provider-conformance-summary.json \
             -summary-markdown provider-conformance-summary.md \
             -capabilities-markdown provider-capabilities.md
