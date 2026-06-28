@@ -100,7 +100,22 @@ c := &x402.Client{
 resp, err := c.Do(req) // a 402 is paid and retried; over-budget calls error instead
 ```
 
-`Payer` is an interface (`Pay(ctx, Requirements) (payment string, error)`) — the consumer counterpart to `Facilitator`. The budget accumulates across calls, so a long-running agent can be handed a fixed allowance for a task. (The agent-level `AgentMaxSpend` option, wiring this into the agent loop next to `MaxSteps`/`ApproveTool`, is the next step.)
+`Payer` is an interface (`Pay(ctx, Requirements) (payment string, error)`) — the consumer counterpart to `Facilitator`. The budget accumulates across calls, so a long-running agent can be handed a fixed allowance for a task. Budget is reserved before payment is created, which means parallel paid calls cannot race past the cap; if payment creation or verification fails, the reservation is released. (The agent-level `AgentMaxSpend` option, wiring this into the agent loop next to `MaxSteps`/`ApproveTool`, is the next step.)
+
+### Live facilitator conformance
+
+The regular test suite uses in-process facilitators and does not need network credentials. To smoke-test a hosted facilitator, run the opt-in live conformance test with a real payment payload and matching requirements:
+
+```sh
+GO_MICRO_X402_LIVE_FACILITATOR_URL=https://facilitator.example \
+GO_MICRO_X402_LIVE_PAYMENT='...' \
+GO_MICRO_X402_LIVE_PAY_TO=0xYourAddress \
+GO_MICRO_X402_LIVE_NETWORK=base \
+GO_MICRO_X402_LIVE_AMOUNT=1 \
+go test ./wrapper/x402 -run TestLiveFacilitatorConformance -count=1
+```
+
+Leave those variables unset in normal CI; the live test skips unless the facilitator URL, payment payload, and pay-to address are all provided.
 
 ## Notes
 

@@ -83,7 +83,9 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	reqd := ch.Accepts[0]
 	amount, _ := strconv.ParseInt(reqd.MaxAmountRequired, 10, 64)
 
-	// Spend cap: refuse before paying if this would exceed the budget.
+	// Spend cap: reserve before paying so concurrent calls cannot all pass
+	// the check and overspend the caller's allowance. Roll the reservation
+	// back if payment construction, replay, or verification fails.
 	c.mu.Lock()
 	if c.Budget > 0 && c.spent+amount > c.Budget {
 		spent := c.spent
@@ -91,13 +93,26 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("x402: paying %d for %s would exceed budget (spent %d of %d)",
 			amount, reqd.Resource, spent, c.Budget)
 	}
+	c.spent += amount
 	c.mu.Unlock()
+	reserved := true
+	rollback := func() {
+		if !reserved {
+			return
+		}
+		c.mu.Lock()
+		c.spent -= amount
+		c.mu.Unlock()
+		reserved = false
+	}
 
 	if c.Payer == nil {
+		rollback()
 		return nil, fmt.Errorf("x402: payment required for %s but no Payer configured", reqd.Resource)
 	}
 	payment, err := c.Payer.Pay(req.Context(), reqd)
 	if err != nil {
+		rollback()
 		return nil, fmt.Errorf("x402: pay: %w", err)
 	}
 
@@ -108,6 +123,7 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	}
 	retry, err := http.NewRequestWithContext(req.Context(), req.Method, req.URL.String(), rbody)
 	if err != nil {
+		rollback()
 		return nil, err
 	}
 	for k, v := range req.Header {
@@ -117,14 +133,14 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 
 	resp2, err := c.httpClient().Do(retry)
 	if err != nil {
+		rollback()
 		return nil, err
 	}
 	if resp2.StatusCode == http.StatusPaymentRequired {
+		rollback()
 		return resp2, fmt.Errorf("x402: payment for %s was rejected", reqd.Resource)
 	}
 
-	c.mu.Lock()
-	c.spent += amount
-	c.mu.Unlock()
+	reserved = false
 	return resp2, nil
 }
