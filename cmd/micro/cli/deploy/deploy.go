@@ -42,14 +42,28 @@ func Deploy(c *cli.Context) error {
 		return showDeployHelp()
 	}
 
+	target, remotePath := resolveDeployTarget(c, target, cfg)
+
+	return deploySSH(c, target, cfg, remotePath)
+}
+
+func resolveDeployTarget(c *cli.Context, target string, cfg *config.Config) (string, string) {
+	remotePath := c.String("path")
+	if remotePath == "" {
+		remotePath = defaultRemotePath
+	}
+
 	// Check if target is a named target from config
 	if cfg != nil {
 		if dt, ok := cfg.Deploy[target]; ok {
 			target = dt.SSH
+			if dt.Path != "" && !c.IsSet("path") {
+				remotePath = dt.Path
+			}
 		}
 	}
 
-	return deploySSH(c, target, cfg)
+	return target, remotePath
 }
 
 func showDeployHelp() error {
@@ -82,7 +96,7 @@ func showDeployTargets(cfg *config.Config) error {
 	return fmt.Errorf("%s", sb.String())
 }
 
-func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
+func deploySSH(c *cli.Context, target string, cfg *config.Config, remotePath string) error {
 	dir := c.Args().Get(1)
 	if dir == "" {
 		dir = "."
@@ -98,7 +112,6 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config) error {
 		cfg, _ = config.Load(absDir)
 	}
 
-	remotePath := c.String("path")
 	if remotePath == "" {
 		remotePath = defaultRemotePath
 	}
