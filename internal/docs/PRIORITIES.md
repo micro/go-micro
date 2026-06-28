@@ -21,9 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Developer experience (ranked)
 
-1. **Schedule cross-provider agent conformance** ([#3295](https://github.com/micro/go-micro/issues/3295)) — after the 0→hero reference and provider-focused unit coverage shipped, the highest-value remaining Now-roadmap hardening gap is a scheduled, key-gated provider matrix that proves the same agent/tool workflow keeps working across supported models without blocking contributors who lack secrets.
-2. **Harden agent failure and cancellation semantics** ([#3296](https://github.com/micro/go-micro/issues/3296)) — the harness is increasingly durable, streaming, observable, and human-in-the-loop; the next operability seam is making timeouts, cancellation, rate-limit errors, and retry/backoff behavior predictable across agent, AI provider, service-tool, and flow boundaries.
-3. **Expose run inspection in the CLI inner loop** ([#3297](https://github.com/micro/go-micro/issues/3297)) — the canon promises scaffold → run → chat → inspect → deploy, and recent work has strengthened scaffold/run/chat/deploy; inspection remains the most visible DX gap for turning agent/flow activity into actionable breadcrumbs during local development.
+1. **Harden agent failure and cancellation semantics** ([#3296](https://github.com/micro/go-micro/issues/3296)) — cross-provider conformance scheduling has shipped, leaving failure/resilience as the highest-value Now-roadmap gap. The harness now has stronger streaming and run-inspection foundations, so the next coherence risk is inconsistent timeout, cancellation, rate-limit, and retry/backoff behavior across agent, AI provider, service-tool, and flow boundaries.
+2. **Expose run inspection in the CLI inner loop** ([#3297](https://github.com/micro/go-micro/issues/3297)) — the canon promises scaffold → run → chat → inspect → deploy, and recent work added run timelines, trace correlation, and a `micro runs` foothold; this remains the most visible DX gap until local agent/flow activity is documented and CI-tested as an actionable inspect step.
+3. **Add durable agent run checkpoint and resume** ([#3306](https://github.com/micro/go-micro/issues/3306)) — once the remaining Now hardening/inspection seams are closed, the highest-value Next-roadmap item is making agent loops resumable like flows so long-running work can survive restarts without unsafe replay or hidden state loss.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
