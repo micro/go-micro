@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -432,6 +433,120 @@ func TestMessageStreamChunksPropagatesCancellationAndClosesStream(t *testing.T) 
 	}
 }
 
+func TestTasksResubscribeStreamsCurrentAndSubsequentEvents(t *testing.T) {
+	d := newDispatcher()
+	initial := &Task{ID: "task-1", ContextID: "ctx-1", Kind: "task", Status: TaskStatus{State: stateWorking, Timestamp: time.Now().UTC().Format(time.RFC3339)}}
+	d.store(initial)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(`{"jsonrpc":"2.0","id":1,"method":"tasks/resubscribe","params":{"id":"task-1"}}`)).WithContext(ctx)
+	rw := newFlushRecorder()
+	done := make(chan struct{})
+	go func() {
+		d.serve(rw, req, nil)
+		close(done)
+	}()
+
+	first := rw.next(t)
+	if first.Result.ID != initial.ID || first.Result.Status.State != stateWorking {
+		t.Fatalf("first resubscribe event = %+v, want current working task", first.Result)
+	}
+
+	final := &Task{ID: "task-1", ContextID: "ctx-1", Kind: "task", Status: TaskStatus{State: stateCompleted, Timestamp: time.Now().UTC().Format(time.RFC3339)}, Artifacts: []Artifact{textArtifact("done")}}
+	d.store(final)
+	second := rw.next(t)
+	if second.Result.ID != final.ID || second.Result.Status.State != stateCompleted || textOf(second.Result.Artifacts[0].Parts) != "done" {
+		t.Fatalf("second resubscribe event = %+v, want completed update", second.Result)
+	}
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("resubscribe did not return after terminal update")
+	}
+}
+
+func TestInputRequiredErrorCreatesContinuableTask(t *testing.T) {
+	d := newDispatcher()
+	first := rpcTaskFromBody(t, d, `{
+		"jsonrpc":"2.0","id":1,"method":"message/send",
+		"params":{"message":{"role":"user","kind":"message","messageId":"m1",
+			"parts":[{"kind":"text","text":"start approval"}]}}}`, func(_ context.Context, text string) (string, error) {
+		return "", errors.New("agent run run-1 paused for approval: waiting for operator")
+	})
+	if first.Status.State != stateInputRequired {
+		t.Fatalf("state = %q, want input-required", first.Status.State)
+	}
+	if textOf(first.Artifacts[0].Parts) != "agent run run-1 paused for approval: waiting for operator" {
+		t.Fatalf("artifact = %+v, want handoff message", first.Artifacts)
+	}
+
+	body := fmt.Sprintf(`{
+		"jsonrpc":"2.0","id":2,"method":"message/send",
+		"params":{"message":{"role":"user","kind":"message","messageId":"m2","taskId":"%s","contextId":"%s",
+			"parts":[{"kind":"text","text":"approved"}]}}}`, first.ID, first.ContextID)
+	continued := rpcTaskFromBody(t, d, body, func(_ context.Context, text string) (string, error) {
+		return "continued after " + text, nil
+	})
+	if continued.ID != first.ID || continued.ContextID != first.ContextID {
+		t.Fatalf("continued identity = %s/%s, want %s/%s", continued.ID, continued.ContextID, first.ID, first.ContextID)
+	}
+	if continued.Status.State != stateCompleted || len(continued.History) != 4 {
+		t.Fatalf("continued task = %+v, want completed task with prior input-required history", continued)
+	}
+	if textOf(continued.History[1].Parts) != "agent run run-1 paused for approval: waiting for operator" || textOf(continued.History[3].Parts) != "continued after approved" {
+		t.Fatalf("continued history = %+v", continued.History)
+	}
+}
+
+type flushRecorder struct {
+	*httptest.ResponseRecorder
+	ch chan string
+}
+
+func newFlushRecorder() *flushRecorder {
+	return &flushRecorder{ResponseRecorder: httptest.NewRecorder(), ch: make(chan string, 16)}
+}
+
+func (r *flushRecorder) Flush() {
+	body := r.Body.String()
+	r.Body.Reset()
+	for _, line := range strings.Split(strings.TrimSpace(body), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			r.ch <- line
+		}
+	}
+}
+
+func (r *flushRecorder) next(t *testing.T) struct {
+	Result Task      `json:"result"`
+	Error  *rpcError `json:"error"`
+} {
+	t.Helper()
+	select {
+	case line := <-r.ch:
+		line = strings.TrimPrefix(line, "data: ")
+		var event struct {
+			Result Task      `json:"result"`
+			Error  *rpcError `json:"error"`
+		}
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			t.Fatalf("decode event %q: %v", line, err)
+		}
+		if event.Error != nil {
+			t.Fatalf("event error: %+v", event.Error)
+		}
+		return event
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for SSE event")
+	}
+	return struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}{}
+}
+
 func rpcTaskFromDispatcher(t *testing.T, d *dispatcher, id string) Task {
 	t.Helper()
 	body := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"tasks/get","params":{"id":"%s"}}`, id)
@@ -481,9 +596,9 @@ func TestUnknownMethod(t *testing.T) {
 	var resp struct {
 		Error *rpcError `json:"error"`
 	}
-	rpc(t, ts.URL+"/agents/echo", `{"jsonrpc":"2.0","id":1,"method":"tasks/resubscribe","params":{}}`, &resp)
+	rpc(t, ts.URL+"/agents/echo", `{"jsonrpc":"2.0","id":1,"method":"unknown","params":{}}`, &resp)
 	if resp.Error == nil || resp.Error.Code != errMethodNotFound {
-		t.Errorf("expected method-not-found for resubscribe, got %+v", resp.Error)
+		t.Errorf("expected method-not-found, got %+v", resp.Error)
 	}
 }
 
