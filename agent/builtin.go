@@ -102,8 +102,9 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 
 	// Innermost first: base, then guardrails (approve → loop → step →
 	// plan), then developer wrappers outermost. Wrapping reverses order,
-	// so the result runs plan → step → loop → approve → base.
+	// so the result runs plan → step → loop → approve → checkpoint → base.
 	h := a.baseHandler()
+	h = a.checkpointToolWrap(h)
 	h = a.approveWrap(h)
 	h = a.loopWrap(h)
 	h = a.stepWrap(h)
