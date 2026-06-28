@@ -172,17 +172,11 @@ This is the JSON-RPC binding for task execution:
 - **`tasks/get`** returns a recent task by id.
 - **Multi-turn continuation** keeps task state when a new message includes the previous `taskId`.
 - **`tasks/pushNotificationConfig/set` / `get`** stores and reads a task callback for best-effort update delivery.
+- **`tasks/resubscribe`** reconnects to an existing task stream, immediately emits the current task snapshot, then streams subsequent updates until the task reaches a terminal state.
+- **`input-required`** task state carries human-input handoffs (for example checkpointed approval pauses) in task status, artifacts, and history; continue the task by sending a follow-up message with the same `taskId` and `contextId`.
 - **Agent Card** discovery, generated from the registry.
 
-Both directions work: the gateway exposes your agents, and `a2a.Client` (via `flow.A2A` or `delegate` to a URL) calls external ones.
-
-Not yet supported (advertised as such on the card, so clients negotiate correctly):
-
-- **`tasks/resubscribe`** for reconnecting to a live stream.
-- Multi-turn `input-required` tasks.
-
-These are the natural follow-ups; the task binding is what makes a Go Micro
-agent both reachable from, and able to reach, the A2A ecosystem today.
+Both directions work: the gateway exposes your agents, and `a2a.Client` (via `flow.A2A` or `delegate` to a URL) calls external ones. The task binding is what makes a Go Micro agent both reachable from, and able to reach, the A2A ecosystem today.
 
 ## See also
 

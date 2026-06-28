@@ -21,8 +21,8 @@
 // Scope of this version: the JSON-RPC binding — `message/send`
 // (returns a completed Task), `message/stream` (SSE with the completed
 // Task event), `tasks/get`, multi-turn task continuation, push
-// notification delivery, and Agent Card discovery. `input-required` and
-// `tasks/resubscribe` are advertised as unsupported and are follow-ups.
+// notification delivery, input-required handoffs, `tasks/resubscribe`,
+// and Agent Card discovery.
 package a2a
 
 import (
@@ -236,9 +236,10 @@ type PushNotificationConfig struct {
 
 // Task states (JSON-RPC binding wire values).
 const (
-	stateCompleted = "completed"
-	stateFailed    = "failed"
-	stateWorking   = "working"
+	stateCompleted     = "completed"
+	stateFailed        = "failed"
+	stateWorking       = "working"
+	stateInputRequired = "input-required"
 )
 
 // JSON-RPC envelopes.
@@ -427,11 +428,12 @@ type dispatcher struct {
 	mu          sync.Mutex
 	tasks       map[string]*Task
 	pushConfigs map[string]PushNotificationConfig
+	watchers    map[string]map[chan *Task]struct{}
 	order       []string // task ids in insertion order, for bounded eviction
 }
 
 func newDispatcher() *dispatcher {
-	return &dispatcher{tasks: map[string]*Task{}, pushConfigs: map[string]PushNotificationConfig{}}
+	return &dispatcher{tasks: map[string]*Task{}, pushConfigs: map[string]PushNotificationConfig{}, watchers: map[string]map[chan *Task]struct{}{}}
 }
 
 func (d *dispatcher) serve(w http.ResponseWriter, r *http.Request, invoke Invoke) {
@@ -468,7 +470,7 @@ func (d *dispatcher) serveWithStream(w http.ResponseWriter, r *http.Request, inv
 		// v1 tasks complete synchronously, so they're already terminal.
 		writeRPC(w, req.ID, nil, &rpcError{Code: errNotCancelable, Message: "task is not cancelable"})
 	case "tasks/resubscribe":
-		writeRPC(w, req.ID, nil, &rpcError{Code: errMethodNotFound, Message: "resubscribe is not supported"})
+		d.resubscribe(requestContext(r.Context()), w, req)
 	default:
 		writeRPC(w, req.ID, nil, &rpcError{Code: errMethodNotFound, Message: "method not found: " + req.Method})
 	}
@@ -557,6 +559,7 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 		}
 		reply.WriteString(chunk.Reply)
 		task := taskFromReplyWithIDs(p.Message, reply.String(), stateWorking, taskID, contextID)
+		d.store(task)
 		_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task})
 		flush()
 	}
@@ -577,6 +580,10 @@ func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Inv
 	if err != nil {
 		reply = "error: " + err.Error()
 		state = stateFailed
+		if isInputRequiredError(err) {
+			reply = err.Error()
+			state = stateInputRequired
+		}
 	}
 	task := d.taskFromReply(p.Message, reply, state)
 	d.store(task)
@@ -585,6 +592,49 @@ func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Inv
 
 type getParams struct {
 	ID string `json:"id"`
+}
+
+func (d *dispatcher) resubscribe(ctx context.Context, w http.ResponseWriter, req rpcRequest) {
+	var p getParams
+	if err := json.Unmarshal(req.Params, &p); err != nil || p.ID == "" {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
+		return
+	}
+	ch, task, unsubscribe := d.subscribe(p.ID)
+	if task == nil {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errTaskNotFound, Message: "task not found"})
+		return
+	}
+	defer unsubscribe()
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	enc := json.NewEncoder(sseWriter{w: w})
+	flush := func() {
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}
+	writeEvent := func(t *Task) bool {
+		_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: t})
+		flush()
+		return isTerminal(t.Status.State)
+	}
+	if writeEvent(task) {
+		return
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case next := <-ch:
+			if writeEvent(next) {
+				return
+			}
+		}
+	}
 }
 
 func (d *dispatcher) get(w http.ResponseWriter, req rpcRequest) {
@@ -672,16 +722,57 @@ func (g *Gateway) callAgent(ctx context.Context, name, message string) (string, 
 
 func (d *dispatcher) store(t *Task) {
 	d.mu.Lock()
+	_, exists := d.tasks[t.ID]
 	d.tasks[t.ID] = t
-	d.order = append(d.order, t.ID)
+	if !exists {
+		d.order = append(d.order, t.ID)
+	}
 	for len(d.order) > maxTasks {
 		oldest := d.order[0]
 		d.order = d.order[1:]
 		delete(d.tasks, oldest)
 		delete(d.pushConfigs, oldest)
 	}
+	for ch := range d.watchers[t.ID] {
+		select {
+		case ch <- t:
+		default:
+		}
+	}
 	d.mu.Unlock()
 	go d.deliverPush(t.ID, t)
+}
+
+func (d *dispatcher) subscribe(taskID string) (chan *Task, *Task, func()) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	task := d.tasks[taskID]
+	if task == nil {
+		return nil, nil, func() {}
+	}
+	ch := make(chan *Task, 8)
+	if d.watchers[taskID] == nil {
+		d.watchers[taskID] = map[chan *Task]struct{}{}
+	}
+	d.watchers[taskID][ch] = struct{}{}
+	return ch, task, func() {
+		d.mu.Lock()
+		delete(d.watchers[taskID], ch)
+		if len(d.watchers[taskID]) == 0 {
+			delete(d.watchers, taskID)
+		}
+		close(ch)
+		d.mu.Unlock()
+	}
+}
+
+func isTerminal(state string) bool {
+	return state == stateCompleted || state == stateFailed || state == stateInputRequired
+}
+
+func isInputRequiredError(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "input-required") || strings.Contains(msg, "input required") || strings.Contains(msg, "paused for approval")
 }
 
 func (d *dispatcher) taskFromReply(input Message, reply, state string) *Task {
