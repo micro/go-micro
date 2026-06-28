@@ -19,9 +19,10 @@ redirect the loop; direction always wins.
 items the loop can auto-merge): brand/positioning copy, breaking public-API
 changes, architectural rewrites. Those go to the human.
 
-## Later (ranked)
+## Developer experience (ranked)
 
-1. **Add human-in-the-loop pause and resume for agent runs** ([#3278](https://github.com/micro/go-micro/issues/3278)) — after memory summarization/retrieval shipped, the highest-value remaining roadmap gap is making long-running agents safer and more operable by letting a run enter an input-required pause, persist enough state to survive the boundary, and resume with human input using the existing agent/store/flow/A2A semantics rather than a separate orchestration layer.
+1. **CI-verify the deploy inner-loop contract** ([#3283](https://github.com/micro/go-micro/issues/3283)) — the roadmap's hardening and agentic-depth items have shipped, so the highest-value remaining seam is the last step of the promised CLI lifecycle: scaffold → run → chat → inspect → deploy. `micro deploy` exists, but the 0→hero guard currently checks run/chat/flow and inspect boundaries, not the deploy handoff; a hermetic deploy contract keeps the operational harness story cohesive without needing a real remote host.
+2. **Maintain a real-world 0-to-hero reference example** ([#3284](https://github.com/micro/go-micro/issues/3284)) — after the deploy boundary is guarded, the next developer-experience gap is a living example that proves services, agents, flows, and interop compose into an actual system. This should double as documentation and CI smoke coverage so the lived story stays aligned with the README, website, and blog canon.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
