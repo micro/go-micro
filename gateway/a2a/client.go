@@ -60,14 +60,37 @@ func (c *Client) Card(ctx context.Context) (*AgentCard, error) {
 // If the agent returns a task that isn't yet terminal, Send polls
 // tasks/get until it completes or ctx is done.
 func (c *Client) Send(ctx context.Context, text string) (string, error) {
-	res, err := c.call(ctx, "message/send", sendParams{Message: Message{
+	task, err := c.SendMessage(ctx, Message{
 		Role:      "user",
 		Kind:      "message",
 		MessageID: uuid.New().String(),
 		Parts:     []Part{{Kind: "text", Text: text}},
-	}})
+	})
 	if err != nil {
 		return "", err
+	}
+	if task.Status.State != stateCompleted {
+		return "", fmt.Errorf("remote task %s ended in state %q", task.ID, task.Status.State)
+	}
+	return artifactsText(task.Artifacts), nil
+}
+
+// SendMessage sends an A2A message and returns the resulting terminal task.
+// To continue a multi-turn task, pass a Message with TaskID and ContextID set
+// to a prior task's id and context id.
+func (c *Client) SendMessage(ctx context.Context, message Message) (*Task, error) {
+	if message.MessageID == "" {
+		message.MessageID = uuid.New().String()
+	}
+	if message.Kind == "" {
+		message.Kind = "message"
+	}
+	if message.Role == "" {
+		message.Role = "user"
+	}
+	res, err := c.call(ctx, "message/send", sendParams{Message: message})
+	if err != nil {
+		return nil, err
 	}
 
 	// The result is a Message or a Task; the "kind" field disambiguates.
@@ -79,33 +102,61 @@ func (c *Client) Send(ctx context.Context, text string) (string, error) {
 	if probe.Kind == "message" {
 		var m Message
 		if err := json.Unmarshal(res, &m); err != nil {
-			return "", err
+			return nil, err
 		}
-		return textOf(m.Parts), nil
+		return &Task{
+			ID:        m.TaskID,
+			ContextID: m.ContextID,
+			Kind:      "task",
+			Status:    TaskStatus{State: stateCompleted, Timestamp: time.Now().UTC().Format(time.RFC3339)},
+			Artifacts: []Artifact{textArtifact(textOf(m.Parts))},
+			History:   []Message{m},
+		}, nil
 	}
 
 	var task Task
 	if err := json.Unmarshal(res, &task); err != nil {
-		return "", err
+		return nil, err
 	}
 	for !terminal(task.Status.State) {
 		select {
 		case <-ctx.Done():
-			return "", ctx.Err()
+			return nil, ctx.Err()
 		case <-time.After(300 * time.Millisecond):
 		}
 		got, err := c.call(ctx, "tasks/get", getParams{ID: task.ID})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		if err := json.Unmarshal(got, &task); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
-	if task.Status.State != stateCompleted {
-		return "", fmt.Errorf("remote task %s ended in state %q", task.ID, task.Status.State)
+	return &task, nil
+}
+
+// SetPushNotificationConfig asks the remote agent to POST updates for taskID to cfg.URL.
+func (c *Client) SetPushNotificationConfig(ctx context.Context, taskID string, cfg PushNotificationConfig) error {
+	_, err := c.call(ctx, "tasks/pushNotificationConfig/set", pushConfigParams{
+		ID:                     taskID,
+		PushNotificationConfig: cfg,
+	})
+	return err
+}
+
+// PushNotificationConfig returns the remote push notification config for taskID.
+func (c *Client) PushNotificationConfig(ctx context.Context, taskID string) (PushNotificationConfig, error) {
+	res, err := c.call(ctx, "tasks/pushNotificationConfig/get", getParams{ID: taskID})
+	if err != nil {
+		return PushNotificationConfig{}, err
 	}
-	return artifactsText(task.Artifacts), nil
+	var out struct {
+		PushNotificationConfig PushNotificationConfig `json:"pushNotificationConfig"`
+	}
+	if err := json.Unmarshal(res, &out); err != nil {
+		return PushNotificationConfig{}, err
+	}
+	return out.PushNotificationConfig, nil
 }
 
 // call performs one JSON-RPC request and returns the raw result.

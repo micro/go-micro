@@ -20,9 +20,9 @@
 //
 // Scope of this version: the JSON-RPC binding — `message/send`
 // (returns a completed Task), `message/stream` (SSE with the completed
-// Task event), `tasks/get`, and Agent Card discovery. Multi-turn
-// `input-required`, `tasks/resubscribe`, and push notifications are
-// advertised as unsupported and are follow-ups.
+// Task event), `tasks/get`, multi-turn task continuation, push
+// notification delivery, and Agent Card discovery. `input-required` and
+// `tasks/resubscribe` are advertised as unsupported and are follow-ups.
 package a2a
 
 import (
@@ -225,6 +225,15 @@ type Task struct {
 	Kind      string     `json:"kind"` // "task"
 }
 
+// PushNotificationConfig tells the gateway where to POST task updates for a
+// task. The gateway stores one config per task and delivers best-effort JSON
+// task snapshots whenever that task changes.
+type PushNotificationConfig struct {
+	URL            string            `json:"url"`
+	Token          string            `json:"token,omitempty"`
+	Authentication map[string]string `json:"authentication,omitempty"`
+}
+
 // Task states (JSON-RPC binding wire values).
 const (
 	stateCompleted = "completed"
@@ -334,7 +343,7 @@ func Card(name, url, description string, services []string) AgentCard {
 		URL:             url,
 		Version:         "1.0.0",
 		ProtocolVersion: protocolVersion,
-		Capabilities:    Capabilities{Streaming: true, PushNotifications: false},
+		Capabilities:    Capabilities{Streaming: true, PushNotifications: true},
 		// The agent converses over a single Chat endpoint; advertise that
 		// as one skill, tagged with the services it manages.
 		DefaultInputModes:  []string{"text/plain"},
@@ -415,12 +424,15 @@ func (g *Gateway) handleRPC(w http.ResponseWriter, r *http.Request) {
 // retains recent tasks for tasks/get. It is shared by the gateway (one
 // per registry) and embedded agents (one per agent).
 type dispatcher struct {
-	mu    sync.Mutex
-	tasks map[string]*Task
-	order []string // task ids in insertion order, for bounded eviction
+	mu          sync.Mutex
+	tasks       map[string]*Task
+	pushConfigs map[string]PushNotificationConfig
+	order       []string // task ids in insertion order, for bounded eviction
 }
 
-func newDispatcher() *dispatcher { return &dispatcher{tasks: map[string]*Task{}} }
+func newDispatcher() *dispatcher {
+	return &dispatcher{tasks: map[string]*Task{}, pushConfigs: map[string]PushNotificationConfig{}}
+}
 
 func (d *dispatcher) serve(w http.ResponseWriter, r *http.Request, invoke Invoke) {
 	d.serveWithStream(w, r, invoke, nil)
@@ -448,6 +460,10 @@ func (d *dispatcher) serveWithStream(w http.ResponseWriter, r *http.Request, inv
 		d.stream(requestContext(r.Context()), w, req, invoke)
 	case "tasks/get":
 		d.get(w, req)
+	case "tasks/pushNotificationConfig/set":
+		d.setPushConfig(w, req)
+	case "tasks/pushNotificationConfig/get":
+		d.getPushConfig(w, req)
 	case "tasks/cancel":
 		// v1 tasks complete synchronously, so they're already terminal.
 		writeRPC(w, req.ID, nil, &rpcError{Code: errNotCancelable, Message: "task is not cancelable"})
@@ -562,7 +578,7 @@ func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Inv
 		reply = "error: " + err.Error()
 		state = stateFailed
 	}
-	task := taskFromReply(p.Message, reply, state)
+	task := d.taskFromReply(p.Message, reply, state)
 	d.store(task)
 	return task, nil
 }
@@ -585,6 +601,47 @@ func (d *dispatcher) get(w http.ResponseWriter, req rpcRequest) {
 		return
 	}
 	writeRPC(w, req.ID, task, nil)
+}
+
+type pushConfigParams struct {
+	ID                     string                 `json:"id"`
+	PushNotificationConfig PushNotificationConfig `json:"pushNotificationConfig"`
+}
+
+func (d *dispatcher) setPushConfig(w http.ResponseWriter, req rpcRequest) {
+	var p pushConfigParams
+	if err := json.Unmarshal(req.Params, &p); err != nil || p.ID == "" || p.PushNotificationConfig.URL == "" {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
+		return
+	}
+	d.mu.Lock()
+	task := d.tasks[p.ID]
+	if task != nil {
+		d.pushConfigs[p.ID] = p.PushNotificationConfig
+	}
+	d.mu.Unlock()
+	if task == nil {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errTaskNotFound, Message: "task not found"})
+		return
+	}
+	writeRPC(w, req.ID, map[string]any{"id": p.ID, "pushNotificationConfig": p.PushNotificationConfig}, nil)
+	go d.deliverPush(p.ID, task)
+}
+
+func (d *dispatcher) getPushConfig(w http.ResponseWriter, req rpcRequest) {
+	var p getParams
+	if err := json.Unmarshal(req.Params, &p); err != nil || p.ID == "" {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
+		return
+	}
+	d.mu.Lock()
+	cfg, ok := d.pushConfigs[p.ID]
+	d.mu.Unlock()
+	if !ok {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errTaskNotFound, Message: "push notification config not found"})
+		return
+	}
+	writeRPC(w, req.ID, map[string]any{"id": p.ID, "pushNotificationConfig": cfg}, nil)
 }
 
 // ---------------------------------------------------------------------------
@@ -615,30 +672,55 @@ func (g *Gateway) callAgent(ctx context.Context, name, message string) (string, 
 
 func (d *dispatcher) store(t *Task) {
 	d.mu.Lock()
-	defer d.mu.Unlock()
 	d.tasks[t.ID] = t
 	d.order = append(d.order, t.ID)
 	for len(d.order) > maxTasks {
 		oldest := d.order[0]
 		d.order = d.order[1:]
 		delete(d.tasks, oldest)
+		delete(d.pushConfigs, oldest)
 	}
+	d.mu.Unlock()
+	go d.deliverPush(t.ID, t)
 }
 
-func taskFromReply(input Message, reply, state string) *Task {
+func (d *dispatcher) taskFromReply(input Message, reply, state string) *Task {
 	contextID := input.ContextID
+	taskID := input.TaskID
+	var history []Message
+	if taskID != "" {
+		d.mu.Lock()
+		prev := d.tasks[taskID]
+		if prev != nil {
+			contextID = prev.ContextID
+			history = append(history, prev.History...)
+		}
+		d.mu.Unlock()
+	}
+	if taskID == "" {
+		taskID = uuid.New().String()
+	}
 	if contextID == "" {
 		contextID = uuid.New().String()
 	}
-	return taskFromReplyWithIDs(input, reply, state, uuid.New().String(), contextID)
+	return taskFromReplyWithIDsAndHistory(input, reply, state, taskID, contextID, history)
 }
 
 func taskFromReplyWithIDs(input Message, reply, state, taskID, contextID string) *Task {
+	return taskFromReplyWithIDsAndHistory(input, reply, state, taskID, contextID, nil)
+}
+
+func taskFromReplyWithIDsAndHistory(input Message, reply, state, taskID, contextID string, history []Message) *Task {
+	input.TaskID = taskID
+	input.ContextID = contextID
+	if input.Kind == "" {
+		input.Kind = "message"
+	}
 	task := &Task{
 		ID:        taskID,
 		ContextID: contextID,
 		Kind:      "task",
-		History:   []Message{input},
+		History:   append(append([]Message{}, history...), input),
 		Status:    TaskStatus{State: state, Timestamp: time.Now().UTC().Format(time.RFC3339)},
 		Artifacts: []Artifact{textArtifact(reply)},
 	}
@@ -651,6 +733,33 @@ func taskFromReplyWithIDs(input Message, reply, state, taskID, contextID string)
 		Kind:      "message",
 	})
 	return task
+}
+
+func (d *dispatcher) deliverPush(taskID string, task *Task) {
+	d.mu.Lock()
+	cfg, ok := d.pushConfigs[taskID]
+	d.mu.Unlock()
+	if !ok || cfg.URL == "" || task == nil {
+		return
+	}
+	body, err := json.Marshal(task)
+	if err != nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cfg.URL, strings.NewReader(string(body)))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if cfg.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+cfg.Token)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err == nil && resp.Body != nil {
+		_ = resp.Body.Close()
+	}
 }
 
 func textOf(parts []Part) string {
