@@ -16,6 +16,8 @@ type Options struct {
 	BaseURL string
 	// ToolHandler handles tool calls (optional, for automatic tool execution)
 	ToolHandler ToolHandler
+	// MaxTokens caps the length of the response (0 = provider default)
+	MaxTokens int
 }
 
 // GenerateOptions for generate call
@@ -89,5 +91,13 @@ func WithTools(t *Tools) Option {
 		if t != nil {
 			o.ToolHandler = t.Handler()
 		}
+	}
+}
+
+// WithMaxTokens caps the number of tokens in the response. 0 leaves the
+// provider default in place.
+func WithMaxTokens(n int) Option {
+	return func(o *Options) {
+		o.MaxTokens = n
 	}
 }
