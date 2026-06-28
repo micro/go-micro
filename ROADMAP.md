@@ -15,7 +15,8 @@ The full, current roadmap lives at **[go-micro.dev/docs/roadmap](https://go-micr
 ## Where we are (v6)
 
 Services, agents (`plan`/`delegate`, guardrails, memory, tool middleware), durable
-flows, the MCP and A2A gateways (both directions), x402 paid tools, secure by
+flows, the MCP and A2A gateways (both directions, including A2A streaming,
+push notifications, and multi-turn continuation), x402 paid tools, secure by
 default.
 
 ## Principles
@@ -41,14 +42,14 @@ default.
 ## Next — agentic depth
 
 - **Durable agent loop** — resume a long run via `Checkpoint` (flows already do).
-- **Streaming** — `ai.Stream` + A2A `message/stream`, end to end.
+- **Streaming** — broaden provider-backed `ai.Stream` coverage and keep chat/A2A streaming end to end.
 - **Agent observability** — `RunInfo` → OpenTelemetry spans.
 
 ## Later
 
 - Memory management (summarization, retrieval/RAG); human-in-the-loop pause/resume;
-  x402 live-facilitator conformance and paid remote tools with spend caps; A2A
-  streaming, push notifications, and multi-turn tasks.
+  richer A2A live-stream reconnection (`tasks/resubscribe`) and `input-required`
+  handoffs.
 
 ## Developer experience (ongoing)
 
