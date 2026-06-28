@@ -21,13 +21,12 @@ changes, architectural rewrites. Those go to the human.
 
 ## Next (ranked)
 
-1. **Add durable checkpoint/resume support to agent runs** ([#3254](https://github.com/micro/go-micro/issues/3254)) — with both 0→1 and 0→hero now CI-verified, make long-running agents as resumable as flows so the harness can safely run scheduled and looping work without replaying completed tool side effects.
-2. **Broaden provider-backed AI streaming conformance** ([#3255](https://github.com/micro/go-micro/issues/3255)) — keep streaming coherent from provider adapters through chat and A2A by testing chunks, completion, cancellation, and error propagation across supported providers.
-3. **Export agent RunInfo as OpenTelemetry spans** ([#3256](https://github.com/micro/go-micro/issues/3256)) — connect the existing run/model/tool metadata to standard tracing so developers can inspect agent behavior with the same operational tools they use for services.
+1. **Broaden provider-backed AI streaming conformance** ([#3255](https://github.com/micro/go-micro/issues/3255)) — keep streaming coherent from provider adapters through chat and A2A by testing chunks, completion, cancellation, and error propagation across supported providers.
+2. **Export agent RunInfo as OpenTelemetry spans** ([#3256](https://github.com/micro/go-micro/issues/3256)) — connect the existing run/model/tool metadata to standard tracing so developers can inspect agent behavior with the same operational tools they use for services.
 
 ## Later (ranked)
 
-4. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications and multi-turn continuation shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
+3. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications and multi-turn continuation shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
