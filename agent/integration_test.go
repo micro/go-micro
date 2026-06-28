@@ -179,3 +179,46 @@ func TestDelegateRequiresTask(t *testing.T) {
 		t.Errorf("delegate with no task should error; got %q", content)
 	}
 }
+
+func TestCompactingMemorySummarizesAndRecallsArchivedContext(t *testing.T) {
+	var sawSummary, sawRecall bool
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		for _, msg := range req.Messages {
+			text := msg.Content.(string)
+			if strings.Contains(text, "Conversation memory summary") && strings.Contains(text, "alpha project") {
+				sawSummary = true
+			}
+			if strings.Contains(text, "alpha project budget is 42") {
+				sawRecall = true
+			}
+		}
+		return &ai.Response{Reply: "ok"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("memory"), CompactMemory(4, 2), MemoryRecallLimit(3))
+	turns := []string{
+		"alpha project budget is 42",
+		"beta project owner is sam",
+		"gamma project deadline is monday",
+		"delta project status is green",
+		"epsilon project risk is low",
+	}
+	for _, turn := range turns {
+		if _, err := a.Ask(context.Background(), turn); err != nil {
+			t.Fatalf("Ask(%q): %v", turn, err)
+		}
+	}
+	if got := len(a.mem.Messages()); got > 4 {
+		t.Fatalf("compacted memory retained %d messages, want <= 4", got)
+	}
+	if _, err := a.Ask(context.Background(), "what was the alpha budget?"); err != nil {
+		t.Fatalf("Ask recall: %v", err)
+	}
+	if !sawSummary {
+		t.Error("model request did not include a deterministic compacted summary")
+	}
+	if !sawRecall {
+		t.Error("model request did not recall archived matching context")
+	}
+}

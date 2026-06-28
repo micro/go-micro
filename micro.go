@@ -110,17 +110,35 @@ func AgentApproveTool(fn ApproveFunc) AgentOption { return agent.ApproveTool(fn)
 // Memory is an agent's pluggable conversation memory.
 type Memory = agent.Memory
 
+// MemoryRecall is implemented by memory backends that retrieve prior context.
+type MemoryRecall = agent.MemoryRecall
+
 // ToolFunc handles a custom agent tool call.
 type ToolFunc = agent.ToolFunc
 
 // NewMemory returns the default store-backed agent memory.
 func NewMemory(s store.Store, key string, limit int) Memory { return agent.NewMemory(s, key, limit) }
 
+// NewCompactingMemory returns store-backed memory with deterministic
+// summarization and retrieval controls.
+func NewCompactingMemory(s store.Store, key string, maxMessages, keepRecent int) Memory {
+	return agent.NewCompactingMemory(s, key, maxMessages, keepRecent)
+}
+
 // NewInMemory returns non-persistent agent memory.
 func NewInMemory(limit int) Memory { return agent.NewInMemory(limit) }
 
 // AgentMemory sets the agent's conversation memory (default: store-backed).
 func AgentMemory(m Memory) AgentOption { return agent.WithMemory(m) }
+
+// AgentCompactMemory enables deterministic default-memory compaction and
+// retrieval for long-running agents.
+func AgentCompactMemory(maxMessages, keepRecent int) AgentOption {
+	return agent.CompactMemory(maxMessages, keepRecent)
+}
+
+// AgentMemoryRecallLimit bounds recalled archived turns injected per Ask.
+func AgentMemoryRecallLimit(n int) AgentOption { return agent.MemoryRecallLimit(n) }
 
 // AgentTool registers a custom tool the agent can call, beyond its services.
 func AgentTool(name, description string, properties map[string]any, handler ToolFunc) AgentOption {

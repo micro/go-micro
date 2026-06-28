@@ -60,6 +60,13 @@ type Options struct {
 	// Memory is the agent's conversation memory. Nil = the default
 	// store-backed memory (durable across restarts).
 	Memory Memory
+	// MemoryCompaction enables deterministic compaction/retrieval on the
+	// default store-backed memory. Custom Memory implementations can expose
+	// retrieval by implementing MemoryRecall.
+	MemoryCompaction MemoryCompaction
+	// MemoryRecallLimit bounds recalled archived turns injected into a model
+	// request (0 disables recall injection).
+	MemoryRecallLimit int
 	// Checkpoint persists agent Ask runs so callers can resume by run id
 	// after a restart without replaying a run that already completed.
 	Checkpoint flow.Checkpoint
@@ -213,6 +220,25 @@ func WithA2A(addr string) Option {
 // in-process, database, or semantic store.
 func WithMemory(m Memory) Option {
 	return func(o *Options) { o.Memory = m }
+}
+
+// CompactMemory enables deterministic, store-backed memory compaction for the
+// default agent memory. Older turns are summarized once active context exceeds
+// maxMessages, keepRecent newest turns remain verbatim, and recalled archived
+// turns are injected into matching future asks.
+func CompactMemory(maxMessages, keepRecent int) Option {
+	return func(o *Options) {
+		o.MemoryCompaction = MemoryCompaction{MaxMessages: maxMessages, KeepRecent: keepRecent}
+		if o.MemoryRecallLimit == 0 {
+			o.MemoryRecallLimit = 5
+		}
+	}
+}
+
+// MemoryRecallLimit sets how many archived turns a memory backend may inject
+// into a model request for the current Ask. Use 0 to disable retrieval.
+func MemoryRecallLimit(n int) Option {
+	return func(o *Options) { o.MemoryRecallLimit = n }
 }
 
 // WithCheckpoint sets the durability backend for agent Ask runs. The

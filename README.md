@@ -237,7 +237,7 @@ Just as a service composes pluggable abstractions (registry, broker, store), an 
 ```go
 agent := micro.NewAgent("assistant",
     micro.AgentProvider("anthropic"),                 // model — swap the provider
-    micro.AgentMemory(micro.NewInMemory(50)),         // memory — default is store-backed & durable
+    micro.AgentCompactMemory(40, 12),                 // memory — durable, summarized, recallable
     micro.AgentTool("weather", "Get the weather for a city",
         map[string]any{"city": map[string]any{"type": "string"}},
         func(ctx context.Context, in map[string]any) (string, error) {
@@ -247,7 +247,7 @@ agent := micro.NewAgent("assistant",
 )
 ```
 
-**Memory** is durable and store-backed by default (Postgres, NATS KV, or file), so an agent picks up where it left off after a restart — or supply your own with `AgentMemory`. **Tools** are your services automatically, plus any function you register with `AgentTool`.
+**Memory** is durable and store-backed by default (Postgres, NATS KV, or file), so an agent picks up where it left off after a restart — or supply your own with `AgentMemory`. Long-running agents can opt into `AgentCompactMemory(maxMessages, keepRecent)`: older turns are collapsed into a deterministic summary, recent turns stay verbatim, and relevant archived turns are recalled on future asks without replaying the whole conversation. **Tools** are your services automatically, plus any function you register with `AgentTool`.
 
 ### Paid tools (x402)
 
