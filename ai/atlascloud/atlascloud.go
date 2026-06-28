@@ -103,6 +103,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		"model":    p.opts.Model,
 		"messages": messages,
 	}
+	if p.opts.MaxTokens > 0 {
+		apiReq["max_tokens"] = p.opts.MaxTokens
+	}
 
 	if len(tools) > 0 {
 		apiReq["tools"] = tools
