@@ -253,7 +253,38 @@ func (a *agentImpl) recordSpanEvent(span trace.Span, e RunEvent) {
 		e.TraceID = sc.TraceID().String()
 		e.SpanID = sc.SpanID().String()
 	}
+	span.AddEvent("agent."+e.Kind, trace.WithTimestamp(e.Time), trace.WithAttributes(runEventAttributes(e)...))
 	a.recordRunEvent(e)
+}
+
+func runEventAttributes(e RunEvent) []attribute.KeyValue {
+	attrs := []attribute.KeyValue{
+		attribute.String(AttrRunID, e.RunID),
+		attribute.String(AttrAgentName, e.Agent),
+	}
+	if e.ParentID != "" {
+		attrs = append(attrs, attribute.String(AttrParentRunID, e.ParentID))
+	}
+	if e.Name != "" {
+		attrs = append(attrs, attribute.String("agent.event.name", e.Name))
+	}
+	if e.Provider != "" {
+		attrs = append(attrs, attribute.String(AttrProvider, e.Provider))
+	}
+	if e.Model != "" {
+		attrs = append(attrs, attribute.String(AttrModel, e.Model))
+	}
+	if e.LatencyMS > 0 {
+		attrs = append(attrs, attribute.Int64(AttrLatencyMS, e.LatencyMS))
+	}
+	attrs = appendUsage(attrs, e.Tokens)
+	if e.Refused != "" {
+		attrs = append(attrs, attribute.Bool(AttrGuardrailBlock, true), attribute.String(AttrRefusal, e.Refused))
+	}
+	if e.Error != "" {
+		attrs = append(attrs, attribute.String("agent.error", e.Error))
+	}
+	return attrs
 }
 
 func (a *agentImpl) recordRunEvent(e RunEvent) {
