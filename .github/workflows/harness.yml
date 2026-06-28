@@ -75,6 +75,20 @@ jobs:
             -summary-json provider-conformance-summary.json \
             -summary-markdown provider-conformance-summary.md \
             -capabilities-markdown provider-capabilities.md
+      - name: Publish provider conformance summary
+        if: always()
+        run: |
+          if [ -f provider-conformance-summary.md ]; then
+            cat provider-conformance-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f provider-capabilities.md ]; then
+            {
+              echo
+              echo "## Registered provider capabilities"
+              echo
+              cat provider-capabilities.md
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Upload provider conformance summary
         if: always()
         uses: actions/upload-artifact@v4
