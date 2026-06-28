@@ -150,6 +150,8 @@ func (a *agentImpl) setup() {
 		a.mem = a.opts.Memory
 	case a.ephemeral:
 		a.mem = NewInMemory(a.opts.HistoryLimit)
+	case a.opts.MemoryCompaction.MaxMessages > 0:
+		a.mem = NewCompactingMemory(a.stateStore(), "history", a.opts.MemoryCompaction.MaxMessages, a.opts.MemoryCompaction.KeepRecent)
 	default:
 		a.mem = NewMemory(a.stateStore(), "history", a.opts.HistoryLimit)
 	}
@@ -251,11 +253,21 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	ctx, endRun := a.startRun(ctx, message)
 	defer func() { endRun(err) }()
 
+	messages := a.mem.Messages()
+	if recall, ok := a.mem.(MemoryRecall); ok && a.opts.MemoryRecallLimit > 0 {
+		if recalled := recall.Recall(message, a.opts.MemoryRecallLimit); len(recalled) > 0 {
+			messages = append([]ai.Message{{
+				Role:    "system",
+				Content: "Relevant recalled memory follows; use it as durable prior context without assuming the whole conversation was replayed.",
+			}}, append(recalled, messages...)...)
+		}
+	}
+
 	resp, err := ai.GenerateWithRetry(ctx, a.model, &ai.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
 		Tools:        toolList,
-		Messages:     a.mem.Messages(),
+		Messages:     messages,
 	}, ai.GeneratePolicy{
 		Timeout:     a.opts.ModelTimeout,
 		MaxAttempts: a.opts.ModelMaxAttempts,
