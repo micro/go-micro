@@ -164,9 +164,10 @@ func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.Gener
 		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
 	}
 	apiReq := map[string]any{
-		"model":    p.opts.Model,
-		"messages": messages,
-		"stream":   true,
+		"model":          p.opts.Model,
+		"messages":       messages,
+		"stream":         true,
+		"stream_options": map[string]any{"include_usage": true},
 	}
 	if p.opts.MaxTokens > 0 {
 		apiReq["max_tokens"] = p.opts.MaxTokens
@@ -221,14 +222,27 @@ func (s *atlasStream) Recv() (*ai.Response, error) {
 					Content string `json:"content"`
 				} `json:"delta"`
 			} `json:"choices"`
+			Usage *struct {
+				PromptTokens     int `json:"prompt_tokens"`
+				CompletionTokens int `json:"completion_tokens"`
+				TotalTokens      int `json:"total_tokens"`
+			} `json:"usage"`
 		}
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
 		}
-		if len(chunk.Choices) == 0 || chunk.Choices[0].Delta.Content == "" {
-			continue
+		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
+			return &ai.Response{Reply: chunk.Choices[0].Delta.Content}, nil
 		}
-		return &ai.Response{Reply: chunk.Choices[0].Delta.Content}, nil
+		// Final chunk (after include_usage) carries token usage and no content.
+		if chunk.Usage != nil {
+			return &ai.Response{Usage: ai.Usage{
+				InputTokens:  chunk.Usage.PromptTokens,
+				OutputTokens: chunk.Usage.CompletionTokens,
+				TotalTokens:  chunk.Usage.TotalTokens,
+			}}, nil
+		}
+		continue
 	}
 	if err := s.scanner.Err(); err != nil {
 		return nil, err
