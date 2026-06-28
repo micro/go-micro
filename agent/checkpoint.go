@@ -13,6 +13,7 @@ import (
 const (
 	agentAskStep      = "ask"
 	agentApprovalStep = "approval"
+	agentInputStep    = "input-required"
 )
 
 func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, existing *flow.Run) flow.Run {
@@ -51,6 +52,17 @@ func (a *agentImpl) saveRun(ctx context.Context, run flow.Run) error {
 	return nil
 }
 
+// Resume returns the response for a checkpointed agent run. Completed runs are
+// returned from the checkpoint without calling the model or replaying tool
+// calls; failed or in-progress runs continue from the saved input message.
+func Resume(ctx context.Context, ag Agent, runID string) (*Response, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return nil, fmt.Errorf("agent resume: unsupported agent implementation %T", ag)
+	}
+	return a.resume(ctx, runID)
+}
+
 func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error) {
 	if a.opts.Checkpoint == nil {
 		return nil, fmt.Errorf("agent %s has no checkpoint configured", a.opts.Name)
@@ -63,6 +75,9 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 		return nil, fmt.Errorf("agent run %s not found", runID)
 	}
 	if run.Status == "paused" {
+		if run.State.Stage == agentInputStep {
+			return nil, fmt.Errorf("agent run %s is input-required; resume with ResumeInput", runID)
+		}
 		run.Status = "running"
 		run.State.Stage = agentAskStep
 	}
@@ -81,6 +96,51 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 		a.setup()
 	}
 	return a.askLocked(ctx, run.ID, message, parentID, &run)
+}
+
+// ResumeInput resumes a checkpointed agent run that paused via the built-in
+// request_input tool. The supplied input is appended to the original request so
+// the same run can continue with durable checkpoint and completed tool history.
+func ResumeInput(ctx context.Context, ag Agent, runID, input string) (*Response, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return nil, fmt.Errorf("agent resume input: unsupported agent implementation %T", ag)
+	}
+	return a.resumeInput(ctx, runID, input)
+}
+
+func (a *agentImpl) resumeInput(ctx context.Context, runID, input string) (*Response, error) {
+	if a.opts.Checkpoint == nil {
+		return nil, fmt.Errorf("agent %s has no checkpoint configured", a.opts.Name)
+	}
+	run, ok, err := a.opts.Checkpoint.Load(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("agent run %s not found", runID)
+	}
+	if run.Status != "paused" || run.State.Stage != agentInputStep {
+		return nil, fmt.Errorf("agent run %s is not waiting for human input", runID)
+	}
+	var p inputPause
+	if err := run.State.Scan(&p); err != nil {
+		return nil, fmt.Errorf("agent run %s input state decode: %w", runID, err)
+	}
+	message := p.OriginalMessage
+	if message == "" {
+		message = string(run.State.Data)
+	}
+	message += "\n\nHuman input: " + input
+	run.Status = "running"
+	run.State.Stage = agentAskStep
+	run.State.Data = []byte(message)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.model == nil {
+		a.setup()
+	}
+	return a.askLocked(ctx, run.ID, message, run.ParentID, &run)
 }
 
 func (a *agentImpl) pending(ctx context.Context) ([]flow.Run, error) {
