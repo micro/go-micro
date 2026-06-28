@@ -77,7 +77,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	// Build initial request
 	apiReq := map[string]any{
 		"model":      p.opts.Model,
-		"max_tokens": 8192,
+		"max_tokens": anthropicMaxTokens(p.opts),
 		"system":     req.SystemPrompt,
 		"messages":   threadAnthropicMessages(req),
 	}
@@ -124,7 +124,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 		followUpReq := map[string]any{
 			"model":      p.opts.Model,
-			"max_tokens": 8192,
+			"max_tokens": anthropicMaxTokens(p.opts),
 			"system":     req.SystemPrompt,
 			"messages":   messages,
 		}
@@ -281,4 +281,11 @@ func threadAnthropicMessages(req *ai.Request) []map[string]any {
 		msgs = append(msgs, map[string]any{"role": "user", "content": req.Prompt})
 	}
 	return msgs
+}
+
+func anthropicMaxTokens(o ai.Options) int {
+	if o.MaxTokens > 0 {
+		return o.MaxTokens
+	}
+	return 8192
 }
