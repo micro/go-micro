@@ -85,7 +85,12 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	// Build messages
 	messages := []map[string]any{
 		{"role": "system", "content": req.SystemPrompt},
-		{"role": "user", "content": req.Prompt},
+	}
+	for _, m := range req.Messages {
+		messages = append(messages, map[string]any{"role": m.Role, "content": m.Content})
+	}
+	if req.Prompt != "" {
+		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
 	}
 
 	// Build initial request
@@ -146,7 +151,12 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
 	messages := []map[string]any{
 		{"role": "system", "content": req.SystemPrompt},
-		{"role": "user", "content": req.Prompt},
+	}
+	for _, m := range req.Messages {
+		messages = append(messages, map[string]any{"role": m.Role, "content": m.Content})
+	}
+	if req.Prompt != "" {
+		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
 	}
 	apiReq := map[string]any{
 		"model":    p.opts.Model,

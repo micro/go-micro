@@ -91,7 +91,12 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 	messages := []map[string]any{
 		{"role": "system", "content": req.SystemPrompt},
-		{"role": "user", "content": req.Prompt},
+	}
+	for _, m := range req.Messages {
+		messages = append(messages, map[string]any{"role": m.Role, "content": m.Content})
+	}
+	if req.Prompt != "" {
+		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
 	}
 
 	apiReq := map[string]any{

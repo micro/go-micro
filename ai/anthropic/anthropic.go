@@ -79,9 +79,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		"model":      p.opts.Model,
 		"max_tokens": 8192,
 		"system":     req.SystemPrompt,
-		"messages": []map[string]any{
-			{"role": "user", "content": req.Prompt},
-		},
+		"messages":   threadAnthropicMessages(req),
 	}
 
 	if len(anthropicTools) > 0 {
@@ -101,10 +99,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 	// Tool execution loop: execute tools, send results back, repeat
 	// until the model responds with text only (no more tool calls)
-	messages := []map[string]any{
-		{"role": "user", "content": req.Prompt},
-		{"role": "assistant", "content": cleanContent(rawContent)},
-	}
+	messages := append(threadAnthropicMessages(req),
+		map[string]any{"role": "assistant", "content": cleanContent(rawContent)},
+	)
 
 	pendingCalls := resp.ToolCalls
 
@@ -269,4 +266,19 @@ func cleanContent(raw any) any {
 		}
 	}
 	return cleaned
+}
+
+
+// threadAnthropicMessages builds the Anthropic messages array from the
+// conversation history (req.Messages) followed by the current prompt. The
+// system prompt is sent separately via the top-level "system" field.
+func threadAnthropicMessages(req *ai.Request) []map[string]any {
+	msgs := make([]map[string]any, 0, len(req.Messages)+1)
+	for _, m := range req.Messages {
+		msgs = append(msgs, map[string]any{"role": m.Role, "content": m.Content})
+	}
+	if req.Prompt != "" {
+		msgs = append(msgs, map[string]any{"role": "user", "content": req.Prompt})
+	}
+	return msgs
 }
