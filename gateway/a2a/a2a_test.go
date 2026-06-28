@@ -120,6 +120,89 @@ func TestMessageSendAndGet(t *testing.T) {
 	}
 }
 
+func TestMessageSendContinuesExistingTask(t *testing.T) {
+	d := newDispatcher()
+	first := rpcTaskFromBody(t, d, `{
+		"jsonrpc":"2.0","id":1,"method":"message/send",
+		"params":{"message":{"role":"user","kind":"message","messageId":"m1",
+			"parts":[{"kind":"text","text":"first"}]}}}`, func(_ context.Context, text string) (string, error) {
+		return "reply to " + text, nil
+	})
+
+	secondBody := fmt.Sprintf(`{
+		"jsonrpc":"2.0","id":2,"method":"message/send",
+		"params":{"message":{"role":"user","kind":"message","messageId":"m2","taskId":"%s","contextId":"%s",
+			"parts":[{"kind":"text","text":"second"}]}}}`, first.ID, first.ContextID)
+	second := rpcTaskFromBody(t, d, secondBody, func(_ context.Context, text string) (string, error) {
+		return "reply to " + text, nil
+	})
+
+	if second.ID != first.ID || second.ContextID != first.ContextID {
+		t.Fatalf("continued task identity = %s/%s, want %s/%s", second.ID, second.ContextID, first.ID, first.ContextID)
+	}
+	if len(second.History) != 4 {
+		t.Fatalf("continued history len = %d, want 4: %+v", len(second.History), second.History)
+	}
+	if textOf(second.History[0].Parts) != "first" || textOf(second.History[2].Parts) != "second" {
+		t.Fatalf("continued history did not preserve turns: %+v", second.History)
+	}
+
+	got := rpcTaskFromDispatcher(t, d, first.ID)
+	if got.ID != first.ID || len(got.History) != 4 {
+		t.Fatalf("stored continued task = %+v", got)
+	}
+}
+
+func TestPushNotificationConfigDeliversTaskUpdates(t *testing.T) {
+	d := newDispatcher()
+	updates := make(chan Task, 2)
+	push := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("Authorization"); got != "Bearer secret" {
+			t.Errorf("authorization = %q, want bearer token", got)
+		}
+		var task Task
+		if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
+			t.Errorf("decode push task: %v", err)
+			return
+		}
+		updates <- task
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	defer push.Close()
+
+	task := rpcTaskFromBody(t, d, `{
+		"jsonrpc":"2.0","id":1,"method":"message/send",
+		"params":{"message":{"role":"user","kind":"message","messageId":"m1",
+			"parts":[{"kind":"text","text":"ping"}]}}}`, func(_ context.Context, text string) (string, error) {
+		return "pong", nil
+	})
+
+	body := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"tasks/pushNotificationConfig/set","params":{"id":"%s","pushNotificationConfig":{"url":"%s","token":"secret"}}}`, task.ID, push.URL)
+	var setResp struct {
+		Result struct {
+			ID                     string                 `json:"id"`
+			PushNotificationConfig PushNotificationConfig `json:"pushNotificationConfig"`
+		} `json:"result"`
+		Error *rpcError `json:"error"`
+	}
+	rpcDispatcher(t, d, body, nil, &setResp)
+	if setResp.Error != nil {
+		t.Fatalf("set push config error: %+v", setResp.Error)
+	}
+	if setResp.Result.ID != task.ID || setResp.Result.PushNotificationConfig.URL != push.URL {
+		t.Fatalf("set push config result = %+v", setResp.Result)
+	}
+
+	select {
+	case got := <-updates:
+		if got.ID != task.ID || got.Status.State != stateCompleted || textOf(got.Artifacts[0].Parts) != "pong" {
+			t.Fatalf("push update = %+v, want completed task", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for push update")
+	}
+}
+
 func TestMessageSendUsesRequestContext(t *testing.T) {
 	d := newDispatcher()
 	ctx, cancel := context.WithCancel(context.Background())
@@ -293,6 +376,29 @@ func rpcTaskFromDispatcher(t *testing.T, d *dispatcher, id string) Task {
 		t.Fatalf("tasks/get error: %+v", resp.Error)
 	}
 	return resp.Result
+}
+
+func rpcTaskFromBody(t *testing.T, d *dispatcher, body string, invoke Invoke) Task {
+	t.Helper()
+	var resp struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}
+	rpcDispatcher(t, d, body, invoke, &resp)
+	if resp.Error != nil {
+		t.Fatalf("rpc error: %+v", resp.Error)
+	}
+	return resp.Result
+}
+
+func rpcDispatcher(t *testing.T, d *dispatcher, body string, invoke Invoke, v any) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	rr := httptest.NewRecorder()
+	d.serve(rr, req, invoke)
+	if err := json.NewDecoder(rr.Result().Body).Decode(v); err != nil {
+		t.Fatalf("decode dispatcher response: %v", err)
+	}
 }
 
 func TestUnknownMethod(t *testing.T) {

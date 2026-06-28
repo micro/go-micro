@@ -66,7 +66,7 @@ A card looks like:
   "url": "https://agents.example.com/agents/task-mgr",
   "version": "1.0.0",
   "protocolVersion": "0.3.0",
-  "capabilities": { "streaming": false, "pushNotifications": false },
+  "capabilities": { "streaming": true, "pushNotifications": true },
   "defaultInputModes": ["text/plain"],
   "defaultOutputModes": ["text/plain"],
   "skills": [{ "id": "chat", "name": "Chat", "tags": ["task", "project"] }]
@@ -100,7 +100,40 @@ curl -s https://agents.example.com/agents/task-mgr \
 }
 ```
 
-Retrieve a task later with `tasks/get` (`params: { "id": "…" }`).
+Retrieve a task later with `tasks/get` (`params: { "id": "…" }`). To continue
+the same piece of work, send another `message/send` with the previous `taskId`
+and `contextId`. The gateway preserves the task id, context id, and prior
+history, then appends the new user turn and agent reply. That makes a remote
+A2A task fit the Go Micro lifecycle: services are still invoked through the
+agent's normal tools, the agent keeps task context across turns, and a workflow
+can poll one task id as the conversation progresses.
+
+## Push notifications
+
+Operators can register a task callback with
+`tasks/pushNotificationConfig/set`:
+
+```bash
+curl -s https://agents.example.com/agents/task-mgr \
+  -H 'content-type: application/json' \
+  -d '{
+    "jsonrpc": "2.0", "id": 2,
+    "method": "tasks/pushNotificationConfig/set",
+    "params": {
+      "id": "task-id",
+      "pushNotificationConfig": {
+        "url": "https://workflow.example.com/a2a/tasks",
+        "token": "optional-bearer-token"
+      }
+    }
+  }'
+```
+
+The gateway stores one callback per retained task and POSTs the latest task
+snapshot to that URL whenever the task changes. Delivery is best effort: failures
+do not fail the agent turn, and there is no retry queue in the in-memory gateway.
+Use `tasks/get` as the source of truth after a missed callback or receiver
+outage. If a token is configured, it is sent as `Authorization: Bearer <token>`.
 
 ## Calling out to other agents
 
@@ -132,11 +165,13 @@ yet terminal, it polls `tasks/get` until it completes.
 
 ## Scope
 
-This is the JSON-RPC binding for completed-task execution:
+This is the JSON-RPC binding for task execution:
 
 - **`message/send`** runs the agent and returns a completed `Task`.
 - **`message/stream`** streams the completed `Task` as an SSE `data:` event, giving A2A clients a streaming-compatible path while the underlying agent call remains synchronous.
 - **`tasks/get`** returns a recent task by id.
+- **Multi-turn continuation** keeps task state when a new message includes the previous `taskId`.
+- **`tasks/pushNotificationConfig/set` / `get`** stores and reads a task callback for best-effort update delivery.
 - **Agent Card** discovery, generated from the registry.
 
 Both directions work: the gateway exposes your agents, and `a2a.Client` (via `flow.A2A` or `delegate` to a URL) calls external ones.
@@ -145,9 +180,9 @@ Not yet supported (advertised as such on the card, so clients negotiate correctl
 
 - **`tasks/resubscribe`** for reconnecting to a live stream.
 - Multi-turn `input-required` tasks.
-- Push notifications.
 
-These are the natural follow-ups; the completed-task binding is what makes a Go Micro agent both reachable from, and able to reach, the A2A ecosystem today.
+These are the natural follow-ups; the task binding is what makes a Go Micro
+agent both reachable from, and able to reach, the A2A ecosystem today.
 
 ## See also
 
