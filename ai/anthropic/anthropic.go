@@ -268,7 +268,6 @@ func cleanContent(raw any) any {
 	return cleaned
 }
 
-
 // threadAnthropicMessages builds the Anthropic messages array from the
 // conversation history (req.Messages) followed by the current prompt. The
 // system prompt is sent separately via the top-level "system" field.
