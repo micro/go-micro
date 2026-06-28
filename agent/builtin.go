@@ -200,6 +200,11 @@ func (a *agentImpl) loopWrap(next ai.ToolHandler) ai.ToolHandler {
 }
 
 // approveWrap gates each action before it runs (ApproveTool).
+type approvalPause struct {
+	Tool    string
+	Message string
+}
+
 func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
 	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		if a.opts.Approve != nil {
@@ -208,6 +213,7 @@ func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
 				if reason != "" {
 					msg += ": " + reason
 				}
+				a.pause = &approvalPause{Tool: call.Name, Message: msg}
 				return refused(call.ID, ai.RefusedApproval, msg)
 			}
 		}
