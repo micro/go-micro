@@ -212,37 +212,39 @@ func waitFor(reg registry.Registry, names ...string) {
 	}
 }
 
-func main() {
-	provider := flag.String("provider", "mock", "LLM provider: mock (default), anthropic, openai, ...")
-	flag.Parse()
-
+func runSupport(provider string) error {
 	apiKey := ""
-	if *provider == "mock" {
+	if provider == "mock" {
 		ai.Register("mock", newMock)
-	} else if apiKey = providerKey(*provider); apiKey == "" {
-		fmt.Printf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env\n", *provider)
-		os.Exit(1)
+	} else if apiKey = providerKey(provider); apiKey == "" {
+		return fmt.Errorf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env", provider)
 	}
 
-	fmt.Printf("\n\033[1mSupport desk (provider: %s)\033[0m\n\n", *provider)
+	fmt.Printf("\n\033[1mSupport desk (provider: %s)\033[0m\n\n", provider)
 
 	// Shared in-memory infrastructure so the demo runs in one process.
 	reg := registry.NewMemoryRegistry()
 	br := broker.NewMemoryBroker()
 	if err := br.Connect(); err != nil {
-		fmt.Println("broker connect:", err)
-		os.Exit(1)
+		return fmt.Errorf("broker connect: %w", err)
 	}
 	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))))
 
 	// Services.
 	tickets := new(TicketService)
 	notify := new(NotifyService)
+	var services []service.Service
 	for name, h := range map[string]any{"customers": new(CustomerService), "tickets": tickets, "notify": notify} {
-		svc := service.New(service.Name(name), service.Registry(reg), service.Client(cl))
+		svc := service.New(service.Name(name), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl), service.HandleSignal(false))
 		_ = svc.Handle(h)
+		services = append(services, svc)
 		go svc.Run()
 	}
+	defer func() {
+		for _, svc := range services {
+			_ = svc.Server().Stop()
+		}
+	}()
 
 	// The support agent manages the three services. The approval gate is
 	// the human-in-the-loop: it can read and triage freely, but emailing a
@@ -250,10 +252,11 @@ func main() {
 	// it for a person or a policy; here we approve and log.
 	support := agent.New(
 		agent.Name("support"),
+		agent.Address("127.0.0.1:0"),
 		agent.Services("customers", "tickets", "notify"),
 		agent.Prompt("You are a support agent. For each ticket, look up the customer, set an "+
 			"appropriate priority, and reply to them. Escalate billing issues."),
-		agent.Provider(*provider), agent.APIKey(apiKey),
+		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.ApproveTool(func(tool string, input map[string]any) (bool, string) {
 			if strings.Contains(tool, "Send") {
 				fmt.Printf("  \033[33m▣ approval gate\033[0m %s(%v) — approved\n", tool, input["to"])
@@ -275,8 +278,7 @@ func main() {
 		flow.Prompt("A new support ticket arrived: {{.Data}}. Handle it."),
 	)
 	if err := intake.Register(reg, br, cl); err != nil {
-		fmt.Println("flow register:", err)
-		os.Exit(1)
+		return fmt.Errorf("flow register: %w", err)
 	}
 	defer intake.Stop()
 
@@ -287,8 +289,7 @@ func main() {
 	fmt.Println("\033[1m> event:\033[0m events.ticket.created", string(body))
 	fmt.Println()
 	if err := br.Publish("events.ticket.created", &broker.Message{Body: body}); err != nil {
-		fmt.Println("publish:", err)
-		os.Exit(1)
+		return fmt.Errorf("publish: %w", err)
 	}
 
 	// Wait for the agent to act.
@@ -305,7 +306,18 @@ func main() {
 	}
 	if notify.sent >= 1 {
 		fmt.Println("\n\033[32m✓ ticket triaged and the customer was replied to — triggered by an event\033[0m")
-	} else {
-		fmt.Println("\n\033[31m✗ the agent did not complete the triage\033[0m")
+		return nil
+	}
+	fmt.Println("\n\033[31m✗ the agent did not complete the triage\033[0m")
+	return fmt.Errorf("support agent did not complete triage")
+}
+
+func main() {
+	provider := flag.String("provider", "mock", "LLM provider: mock (default), anthropic, openai, ...")
+	flag.Parse()
+
+	if err := runSupport(*provider); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
