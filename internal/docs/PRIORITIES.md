@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Later (ranked)
 
-1. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications, multi-turn continuation, streaming conformance, checkpointing, and RunInfo→OpenTelemetry spans shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
+1. **Add agent memory summarization and retrieval** ([#3273](https://github.com/micro/go-micro/issues/3273)) — with A2A resubscribe/input-required handoffs now shipped, the highest-value remaining roadmap gap is durable memory beyond a fixed context buffer: compact older turns/tool results and retrieve relevant prior facts using the existing agent/store primitives so longer-running agents remain coherent without becoming a separate product layer.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
