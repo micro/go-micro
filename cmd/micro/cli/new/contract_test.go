@@ -1,20 +1,23 @@
 package new
 
 import (
+	"errors"
 	"flag"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/urfave/cli/v2"
 )
 
 // TestZeroToOneContract locks the documented getting-started path:
 // `micro new helloworld` must produce an ordinary Go service that the Go
-// toolchain can build. The generated module is pointed back at this checkout
-// so the contract stays local and deterministic in CI.
+// toolchain can build, run long enough to start, and call through its generated
+// handler. The generated module is pointed back at this checkout so the
+// contract stays local and deterministic in CI.
 //
 // It shells out to `micro new` (which runs `go mod tidy`) and `go build`, so
 // it needs the Go toolchain and module access; it is skipped under `-short`.
@@ -29,6 +32,8 @@ func TestZeroToOneContract(t *testing.T) {
 
 	generated.replaceModule(t)
 	generated.build(t)
+	generated.run(t)
+	generated.call(t, "Alice", "Hello Alice")
 }
 
 // TestZeroToOneNoMCPContract keeps the MCP opt-out path honest. Some services
@@ -48,6 +53,8 @@ func TestZeroToOneNoMCPContract(t *testing.T) {
 
 	generated.replaceModule(t)
 	generated.build(t)
+	generated.run(t)
+	generated.call(t, "Bob", "Hello Bob")
 }
 
 type generatedService struct {
@@ -119,5 +126,76 @@ func (g generatedService) build(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("generated service go build ./... failed: %v\n%s", err, out)
+	}
+}
+
+func (g generatedService) run(t *testing.T) {
+	t.Helper()
+
+	bin := filepath.Join(g.dir, "service-contract")
+	build := exec.Command("go", "build", "-o", bin, ".")
+	build.Dir = g.dir
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("generated service go build -o service-contract . failed: %v\n%s", err, out)
+	}
+
+	cmd := exec.Command(bin)
+	cmd.Dir = g.dir
+	var out strings.Builder
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Start(); err != nil {
+		t.Fatalf("generated service failed to start: %v\n%s", err, out.String())
+	}
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+
+	select {
+	case err := <-done:
+		t.Fatalf("generated service exited early: %v\n%s", err, out.String())
+	case <-time.After(2 * time.Second):
+	}
+
+	if err := cmd.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		t.Fatalf("failed to stop generated service: %v\n%s", err, out.String())
+	}
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("generated service did not stop after kill\n%s", out.String())
+	}
+}
+
+func (g generatedService) call(t *testing.T, name, want string) {
+	t.Helper()
+
+	testPath := filepath.Join(g.dir, "handler", "contract_test.go")
+	testSrc := `package handler
+
+import (
+	"context"
+	"testing"
+)
+
+func TestGeneratedCallContract(t *testing.T) {
+	rsp := new(Response)
+	if err := New().Call(context.Background(), &Request{Name: "` + name + `"}, rsp); err != nil {
+		t.Fatal(err)
+	}
+	if rsp.Msg != "` + want + `" {
+		t.Fatalf("Call response = %q, want %q", rsp.Msg, "` + want + `")
+	}
+}
+`
+	if err := os.WriteFile(testPath, []byte(testSrc), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cmd := exec.Command("go", "test", "./handler", "-run", "TestGeneratedCallContract", "-count=1")
+	cmd.Dir = g.dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("generated service call contract failed: %v\n%s", err, out)
 	}
 }
