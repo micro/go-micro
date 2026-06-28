@@ -21,9 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Developer experience (ranked)
 
-1. **Harden agent failure and cancellation semantics** ([#3296](https://github.com/micro/go-micro/issues/3296)) — cross-provider conformance scheduling has shipped, leaving failure/resilience as the highest-value Now-roadmap gap. The harness now has stronger streaming and run-inspection foundations, so the next coherence risk is inconsistent timeout, cancellation, rate-limit, and retry/backoff behavior across agent, AI provider, service-tool, and flow boundaries.
-2. **Expose run inspection in the CLI inner loop** ([#3297](https://github.com/micro/go-micro/issues/3297)) — the canon promises scaffold → run → chat → inspect → deploy, and recent work added run timelines, trace correlation, and a `micro runs` foothold; this remains the most visible DX gap until local agent/flow activity is documented and CI-tested as an actionable inspect step.
-3. **Add durable agent run checkpoint and resume** ([#3306](https://github.com/micro/go-micro/issues/3306)) — once the remaining Now hardening/inspection seams are closed, the highest-value Next-roadmap item is making agent loops resumable like flows so long-running work can survive restarts without unsafe replay or hidden state loss.
+1. **Expose run inspection in the CLI inner loop** ([#3297](https://github.com/micro/go-micro/issues/3297)) — the canon promises scaffold → run → chat → inspect → deploy, and recent work added run timelines, trace correlation, and a `micro runs` foothold; with conformance scheduling, failure/backoff hardening, the deploy contract, and the support reference now shipped, this is the highest-value remaining DX seam in the Now/ongoing roadmap until local agent/flow activity is documented and CI-tested as an actionable inspect step.
+2. **Add durable agent run checkpoint and resume** ([#3306](https://github.com/micro/go-micro/issues/3306)) — once the remaining inspection seam is closed, the highest-value Next-roadmap item is making agent loops resumable like flows so long-running work can survive restarts without unsafe replay or hidden state loss.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
