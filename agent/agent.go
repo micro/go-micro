@@ -87,6 +87,11 @@ type agentImpl struct {
 	// Both are surfaced to tool wrappers via ai.RunInfo on the context.
 	runID       string
 	parentRunID string
+
+	// pause records a guardrail approval pause raised during the current
+	// Ask. The model provider only sees a refused tool result; the agent
+	// converts it into a durable paused run instead of completing the run.
+	pause *approvalPause
 }
 
 // New creates a new Agent.
@@ -238,6 +243,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	a.mem.Add("user", message)
 	a.steps = 0
 	a.calls = map[string]int{}
+	a.pause = nil
 
 	// Correlate this run's tool calls and surface lineage to wrappers.
 	a.runID = runID
@@ -279,6 +285,18 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		run.Steps[0].Error = err.Error()
 		_ = a.saveRun(ctx, run)
 		return nil, err
+	}
+	if a.pause != nil && a.opts.Checkpoint != nil {
+		run.Status = "paused"
+		run.State.Stage = agentApprovalStep
+		run.State.Data = []byte(message)
+		run.Steps[0].Status = "paused"
+		run.Steps[0].Error = a.pause.Message
+		run.Steps[0].Result = a.pause.Tool
+		if err := a.saveRun(ctx, run); err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("agent run %s paused for approval: %s", run.ID, a.pause.Message)
 	}
 
 	if resp.Reply != "" {

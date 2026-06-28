@@ -9,7 +9,10 @@ import (
 	"go-micro.dev/v6/flow"
 )
 
-const agentAskStep = "ask"
+const (
+	agentAskStep      = "ask"
+	agentApprovalStep = "approval"
+)
 
 func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, existing *flow.Run) flow.Run {
 	now := time.Now()
@@ -56,6 +59,10 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 	}
 	if !ok {
 		return nil, fmt.Errorf("agent run %s not found", runID)
+	}
+	if run.Status == "paused" {
+		run.Status = "running"
+		run.State.Stage = agentAskStep
 	}
 	if run.Status == "done" {
 		var resp Response
