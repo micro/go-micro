@@ -21,7 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Developer experience (ranked)
 
-1. **Maintain a real-world 0-to-hero reference example** ([#3284](https://github.com/micro/go-micro/issues/3284)) — with the hardening, agentic-depth, and deploy inner-loop contract items now shipped, the highest-value remaining gap is a living example that proves services, agents, flows, and interop compose into an actual system. This should double as documentation and CI smoke coverage so the lived story stays aligned with the README, website, and blog canon.
+1. **Schedule cross-provider agent conformance** ([#3295](https://github.com/micro/go-micro/issues/3295)) — after the 0→hero reference and provider-focused unit coverage shipped, the highest-value remaining Now-roadmap hardening gap is a scheduled, key-gated provider matrix that proves the same agent/tool workflow keeps working across supported models without blocking contributors who lack secrets.
+2. **Harden agent failure and cancellation semantics** ([#3296](https://github.com/micro/go-micro/issues/3296)) — the harness is increasingly durable, streaming, observable, and human-in-the-loop; the next operability seam is making timeouts, cancellation, rate-limit errors, and retry/backoff behavior predictable across agent, AI provider, service-tool, and flow boundaries.
+3. **Expose run inspection in the CLI inner loop** ([#3297](https://github.com/micro/go-micro/issues/3297)) — the canon promises scaffold → run → chat → inspect → deploy, and recent work has strengthened scaffold/run/chat/deploy; inspection remains the most visible DX gap for turning agent/flow activity into actionable breadcrumbs during local development.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
