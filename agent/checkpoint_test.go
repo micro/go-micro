@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"go-micro.dev/v6/ai"
@@ -115,6 +116,64 @@ func TestPendingReturnsUnfinishedAgentRuns(t *testing.T) {
 	}
 	if len(runs) != 1 || runs[0].ID != "run-1" {
 		t.Fatalf("Pending = %#v, want run-1", runs)
+	}
+}
+
+func TestHumanInputPauseResumesSameRunWithInput(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewStore(), "input-agent")
+	calls := 0
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		calls++
+		if calls == 1 {
+			if opts.ToolHandler != nil {
+				opts.ToolHandler(ctx, ai.ToolCall{ID: "input-1", Name: toolHumanInput, Input: map[string]any{"prompt": "Which region should I deploy to?"}})
+			}
+			return &ai.Response{Reply: "waiting"}, nil
+		}
+		if !strings.Contains(req.Prompt, "Human input: us-east-1") {
+			t.Fatalf("resumed prompt = %q, want human input", req.Prompt)
+		}
+		return &ai.Response{Reply: "deploying to us-east-1"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("input-agent"), WithCheckpoint(cp))
+	_, err := a.Ask(ctx, "deploy the service")
+	if err == nil {
+		t.Fatal("Ask succeeded, want input-required pause")
+	}
+	runs, err := Pending(ctx, a)
+	if err != nil {
+		t.Fatalf("Pending: %v", err)
+	}
+	if len(runs) != 1 || runs[0].Status != "paused" || runs[0].State.Stage != agentInputStep {
+		t.Fatalf("paused runs = %#v, want one input-required run", runs)
+	}
+	var pause inputPause
+	if err := runs[0].State.Scan(&pause); err != nil {
+		t.Fatalf("Scan pause: %v", err)
+	}
+	if pause.OriginalMessage != "deploy the service" || pause.Prompt != "Which region should I deploy to?" {
+		t.Fatalf("pause = %#v", pause)
+	}
+
+	if _, err := Resume(ctx, a, runs[0].ID); err == nil || !strings.Contains(err.Error(), "ResumeInput") {
+		t.Fatalf("Resume input-required err = %v, want guidance", err)
+	}
+	resp, err := ResumeInput(ctx, a, runs[0].ID, "us-east-1")
+	if err != nil {
+		t.Fatalf("ResumeInput: %v", err)
+	}
+	if resp.RunID != runs[0].ID || resp.Reply != "deploying to us-east-1" {
+		t.Fatalf("response = %#v", resp)
+	}
+	loaded, ok, err := cp.Load(ctx, runs[0].ID)
+	if err != nil || !ok {
+		t.Fatalf("Load resumed run ok=%v err=%v", ok, err)
+	}
+	if loaded.Status != "done" {
+		t.Fatalf("resumed run status = %q, want done", loaded.Status)
 	}
 }
 

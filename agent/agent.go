@@ -207,17 +207,6 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 	})
 }
 
-// Resume returns the response for a checkpointed agent run. Completed runs are
-// returned from the checkpoint without calling the model or replaying tool
-// calls; failed or in-progress runs continue from the saved input message.
-func Resume(ctx context.Context, ag Agent, runID string) (*Response, error) {
-	a, ok := ag.(*agentImpl)
-	if !ok {
-		return nil, fmt.Errorf("agent resume: unsupported agent implementation %T", ag)
-	}
-	return a.resume(ctx, runID)
-}
-
 // Pending returns checkpointed agent runs that have not completed. It mirrors
 // flow.Pending for startup recovery loops that drain durable agent work.
 func Pending(ctx context.Context, ag Agent) ([]flow.Run, error) {
@@ -300,6 +289,10 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		run.Status = "paused"
 		run.State.Stage = agentApprovalStep
 		run.State.Data = []byte(message)
+		if a.pause.Tool == toolHumanInput {
+			run.State.Stage = agentInputStep
+			_ = run.State.Set(inputPause{OriginalMessage: message, Prompt: a.pause.Message})
+		}
 		run.Steps[0].Status = "paused"
 		run.Steps[0].Error = a.pause.Message
 		run.Steps[0].Result = a.pause.Tool

@@ -20,8 +20,9 @@ import (
 // the discovered service tools. There is no separate harness or graph:
 // the LLM calls them like any other tool.
 const (
-	toolPlan     = "plan"
-	toolDelegate = "delegate"
+	toolPlan       = "plan"
+	toolDelegate   = "delegate"
+	toolHumanInput = "request_input"
 )
 
 // builtinTools returns the tool definitions exposed to the model in
@@ -38,6 +39,18 @@ func builtinTools() []ai.Tool {
 					"type": "array",
 					"description": "Ordered plan steps. Each step has a 'task' (string) and a " +
 						"'status' (one of: pending, in_progress, done).",
+				},
+			},
+		},
+		{
+			Name:         toolHumanInput,
+			OriginalName: toolHumanInput,
+			Description: "Pause this agent run when you need missing information, a decision, or other human input before you can continue. " +
+				"The run is checkpointed as input-required and can be resumed with the human response without losing completed tool history.",
+			Properties: map[string]any{
+				"prompt": map[string]any{
+					"type":        "string",
+					"description": "The specific question, decision, or instruction needed from the human operator.",
 				},
 			},
 		},
@@ -77,6 +90,9 @@ func Builtins(opts ...Option) (tools []ai.Tool, handle func(name string, input m
 		switch name {
 		case toolPlan:
 			r := a.handlePlan(ai.ToolCall{Name: name, Input: input})
+			return r.Value, r.Content, true
+		case toolHumanInput:
+			r := a.handleHumanInput(ai.ToolCall{Name: name, Input: input})
 			return r.Value, r.Content, true
 		case toolDelegate:
 			r := a.handleDelegate(context.Background(), ai.ToolCall{Name: name, Input: input})
@@ -146,6 +162,9 @@ func (a *agentImpl) baseHandler() ai.ToolHandler {
 				return ai.ToolResult{ID: call.ID, Value: out, Content: out}
 			}
 		}
+		if call.Name == toolHumanInput {
+			return a.handleHumanInput(call)
+		}
 		if call.Name == toolDelegate {
 			return a.handleDelegate(ctx, call)
 		}
@@ -206,6 +225,11 @@ type approvalPause struct {
 	Message string
 }
 
+type inputPause struct {
+	OriginalMessage string `json:"original_message"`
+	Prompt          string `json:"prompt"`
+}
+
 func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
 	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		if a.opts.Approve != nil {
@@ -231,6 +255,17 @@ func (a *agentImpl) handlePlan(call ai.ToolCall) ai.ToolResult {
 	}
 	_ = a.stateStore().Write(&store.Record{Key: planKey, Value: data})
 	return ai.ToolResult{ID: call.ID, Value: call.Input, Content: string(data)}
+}
+
+// handleHumanInput records that the model needs operator input before it can continue.
+func (a *agentImpl) handleHumanInput(call ai.ToolCall) ai.ToolResult {
+	prompt, _ := call.Input["prompt"].(string)
+	prompt = strings.TrimSpace(prompt)
+	if prompt == "" {
+		prompt = "human input required"
+	}
+	a.pause = &approvalPause{Tool: toolHumanInput, Message: prompt}
+	return refused(call.ID, ai.RefusedApproval, "input-required: "+prompt)
 }
 
 // handleDelegate hands a subtask to another agent. Delegate-first:

@@ -11,15 +11,15 @@ import (
 
 func TestBuiltinTools(t *testing.T) {
 	tools := builtinTools()
-	if len(tools) != 2 {
-		t.Fatalf("builtinTools() = %d tools, want 2", len(tools))
+	if len(tools) != 3 {
+		t.Fatalf("builtinTools() = %d tools, want 3", len(tools))
 	}
 	names := map[string]bool{}
 	for _, tl := range tools {
 		names[tl.Name] = true
 	}
-	if !names[toolPlan] || !names[toolDelegate] {
-		t.Errorf("builtin tools = %v, want plan and delegate", names)
+	if !names[toolPlan] || !names[toolDelegate] || !names[toolHumanInput] {
+		t.Errorf("builtin tools = %v, want plan, request_input, and delegate", names)
 	}
 }
 
@@ -109,8 +109,8 @@ func TestBuiltinsAccessor(t *testing.T) {
 		WithRegistry(registry.NewMemoryRegistry()),
 	)
 
-	if len(tools) != 2 {
-		t.Fatalf("Builtins() returned %d tools, want 2", len(tools))
+	if len(tools) != 3 {
+		t.Fatalf("Builtins() returned %d tools, want 3", len(tools))
 	}
 
 	// A name that isn't a built-in falls through (ok == false).
