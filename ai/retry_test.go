@@ -139,6 +139,14 @@ type statusErr int
 func (e statusErr) Error() string   { return "provider status" }
 func (e statusErr) StatusCode() int { return int(e) }
 
+type retryAfterErr struct {
+	delay time.Duration
+}
+
+func (e retryAfterErr) Error() string             { return "rate limit exceeded" }
+func (e retryAfterErr) StatusCode() int           { return 429 }
+func (e retryAfterErr) RetryAfter() time.Duration { return e.delay }
+
 func TestClassifyErrorDistinguishesOperationalOutcomes(t *testing.T) {
 	tests := []struct {
 		name string
@@ -179,5 +187,37 @@ func TestGenerateWithRetryExposesRetryErrorKind(t *testing.T) {
 	}
 	if !errors.Is(err, statusErr(429)) {
 		t.Fatalf("retry error does not unwrap provider status: %v", err)
+	}
+}
+
+func TestGenerateWithRetryHonorsRetryAfterWhenLongerThanBackoff(t *testing.T) {
+	attempts := 0
+	model := retryModel{generate: func(context.Context, *Request, ...GenerateOption) (*Response, error) {
+		attempts++
+		if attempts == 1 {
+			return nil, retryAfterErr{delay: 25 * time.Millisecond}
+		}
+		return &Response{Reply: "ok"}, nil
+	}}
+
+	start := time.Now()
+	resp, err := GenerateWithRetry(context.Background(), model, &Request{Prompt: "hi"}, GeneratePolicy{
+		MaxAttempts: 2,
+		Backoff:     time.Millisecond,
+	})
+	if err != nil {
+		t.Fatalf("GenerateWithRetry returned error: %v", err)
+	}
+	if resp.Reply != "ok" {
+		t.Fatalf("reply = %q, want ok", resp.Reply)
+	}
+	if elapsed := time.Since(start); elapsed < 20*time.Millisecond {
+		t.Fatalf("retry delay = %s, want RetryAfter delay to dominate base backoff", elapsed)
+	}
+}
+
+func TestGenerateWithRetryCapsRetryAfter(t *testing.T) {
+	if got := retryBackoff(retryAfterErr{delay: time.Minute}, 1, time.Millisecond); got != 30*time.Second {
+		t.Fatalf("retryBackoff() = %s, want 30s cap", got)
 	}
 }
