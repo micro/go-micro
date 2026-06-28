@@ -21,12 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Later (ranked)
 
-1. **A2A push notifications and multi-turn task support** (#3212) — extend the A2A
-   gateway/client path beyond streaming lifecycle updates into push and multi-turn
-   task state. Roadmap → A2A push notifications and multi-turn tasks; now the
-   highest-value remaining item because x402 spend caps and live facilitator
-   conformance have shipped, leaving deeper agent-to-agent task continuity as the
-   clearest remaining interop gap for long-running, cross-runtime work.
+No open queued items. The previous top item, **A2A push notifications and
+multi-turn task support** (#3212), is closed; the next architecture-review pass
+should seed a fresh issue-backed item from the roadmap and improvement radar.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._

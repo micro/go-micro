@@ -13,7 +13,7 @@ The foundation is in place:
 - **Services** — register, discover, RPC, events; every endpoint is automatically an MCP tool.
 - **Agents** — a model with memory and tools that manages services, with `plan`, `delegate`, and guardrails (`MaxSteps`, `LoopLimit`, `ApproveTool`) built in, plus tool-execution middleware (`WrapTool`) and run metadata.
 - **Flows** — durable, event-driven workflows: ordered steps that checkpoint and resume after a crash.
-- **Interop** — the MCP gateway (services as tools) and the A2A gateway (agents as agents, both directions), both generated from the registry; x402 for paid tools.
+- **Interop** — the MCP gateway (services as tools) and the A2A gateway (agents as agents, both directions, including A2A streaming, push notifications, and multi-turn continuation), both generated from the registry; x402 for paid tools.
 - **Secure by default** — TLS verification on, state scoped per component.
 
 ## Principles
@@ -37,15 +37,14 @@ The priority is that what exists works everywhere, under real conditions.
 ## Next — agentic depth
 
 - **Durable agent loop.** Flows resume; the agent's own loop does not yet. Reuse `Checkpoint` so a long-running agent survives a restart and continues.
-- **Streaming.** `ai.Stream` is stubbed across providers; real chat and long-task UX need it, end to end through A2A `message/stream`.
+- **Streaming.** Broaden provider-backed `ai.Stream` coverage and keep chat plus A2A `message/stream` working end to end for real chat and long-task UX.
 - **Agent observability.** Wire the new `RunInfo` into OpenTelemetry spans so a run — steps, tool calls, delegation — is traceable. This is also what anyone running it in production will need.
 
 ## Later
 
 - **Memory management** — summarization and retrieval (RAG) beyond a fixed buffer.
 - **Human-in-the-loop** — pause and resume mid-run (`input-required`), beyond the binary `ApproveTool` gate.
-- **x402** — conformance against a live facilitator; paid remote tools as agent tools with spend caps.
-- **A2A** — streaming, push notifications, multi-turn tasks.
+- **A2A** — richer live-stream reconnection (`tasks/resubscribe`) and `input-required` handoffs.
 
 ## Developer experience (ongoing)
 
