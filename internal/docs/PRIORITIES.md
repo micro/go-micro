@@ -21,26 +21,16 @@ changes, architectural rewrites. Those go to the human.
 
 ## Later (ranked)
 
-1. **Agent memory compaction and retrieval controls** (#3209) — add explicit,
-   store-backed summarization/retrieval behavior for long-running agents so
-   durable, streaming, observable runs do not become context-growth demos.
-   Roadmap → memory management; ranked first because the Now/Next reliability
-   work has shipped and long-lived agents need bounded, recoverable context before
-   deeper autonomous workflows can be trustworthy.
-2. **Human-in-the-loop pause/resume for agent runs** (#3210) — persist a paused
-   approval/intervention point and resume safely through the existing
-   guardrail/run-inspection path. Roadmap → human-in-the-loop pause/resume; ranked
-   second because it turns guardrails from one-shot refusals into an operable
-   workflow primitive without changing the public architecture.
-3. **x402 spend caps and live facilitator conformance** (#3211) — enforce paid-tool
+1. **x402 spend caps and live facilitator conformance** (#3211) — enforce paid-tool
    budgets and add credential-gated live facilitator checks. Roadmap → x402 paid
-   remote tools; ranked after memory and pause/resume because it hardens a narrower
-   paid-tool seam but is important for trust once agents can act for longer.
-4. **A2A push notifications and multi-turn task support** (#3212) — extend the A2A
+   remote tools; ranked first because memory compaction and human-in-the-loop
+   pause/resume have shipped, leaving paid-tool trust as the highest-value
+   operability seam before agents perform longer-running or paid work.
+2. **A2A push notifications and multi-turn task support** (#3212) — extend the A2A
    gateway/client path beyond streaming lifecycle updates into push and multi-turn
    task state. Roadmap → A2A push notifications and multi-turn tasks; ranked after
-   local run operability because interop depth compounds best once the local run
-   lifecycle is bounded and inspectable.
+   x402 hardening because interop depth compounds best once local run and paid-tool
+   execution are bounded, inspectable, and budgeted.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
