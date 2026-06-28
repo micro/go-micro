@@ -62,6 +62,46 @@ func TestWithMemoryUsed(t *testing.T) {
 	}
 }
 
+func TestCompactingMemoryRecallRanksSpecificMatches(t *testing.T) {
+	m := NewCompactingMemory(store.NewMemoryStore(), "agent/rank/history", 3, 1).(MemoryRecall)
+	writer := m.(Memory)
+	writer.Add("user", "alpha budget is 42")
+	writer.Add("assistant", "noted")
+	writer.Add("user", "beta budget is 7")
+	writer.Add("assistant", "noted")
+	writer.Add("user", "alpha owner is sam")
+
+	recalled := m.Recall("alpha budget", 2)
+	if len(recalled) == 0 {
+		t.Fatal("expected recalled messages")
+	}
+	if got := recalled[0].Content.(string); !strings.Contains(got, "alpha budget is 42") {
+		t.Fatalf("top recall = %q, want alpha budget match", got)
+	}
+}
+
+func TestCompactingMemoryArchivePersistsAndReloads(t *testing.T) {
+	st := store.NewMemoryStore()
+	m := NewCompactingMemory(st, "agent/reload/history", 3, 1)
+	m.Add("user", "alpha budget is 42")
+	m.Add("assistant", "noted")
+	m.Add("user", "beta budget is 7")
+	m.Add("assistant", "noted")
+
+	reloaded := NewCompactingMemory(st, "agent/reload/history", 3, 1)
+	recall, ok := reloaded.(MemoryRecall)
+	if !ok {
+		t.Fatal("compacting memory should support recall")
+	}
+	recalled := recall.Recall("alpha budget", 1)
+	if len(recalled) != 1 {
+		t.Fatalf("recalled %d messages, want 1", len(recalled))
+	}
+	if got := recalled[0].Content.(string); !strings.Contains(got, "alpha budget is 42") {
+		t.Fatalf("reloaded recall = %q, want alpha budget", got)
+	}
+}
+
 // A custom tool is offered to the model and dispatched to its handler.
 func TestWithToolExposedAndDispatched(t *testing.T) {
 	var got map[string]any
