@@ -118,3 +118,62 @@ func TestClientFreeEndpoint(t *testing.T) {
 		t.Errorf("free call should spend nothing, got %d", c.Spent())
 	}
 }
+
+// Concurrent callers reserve budget before paying, so a spend cap cannot be
+// overshot by parallel tool calls that all observe the same pre-spend balance.
+func TestClientBudgetReservedConcurrently(t *testing.T) {
+	srv := paidServer("10000")
+	defer srv.Close()
+
+	c := &Client{Payer: &mockPayer{}, Budget: 10000}
+	errCh := make(chan error, 2)
+	for i := 0; i < 2; i++ {
+		go func() {
+			req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
+			resp, err := c.Do(req)
+			if resp != nil {
+				resp.Body.Close()
+			}
+			errCh <- err
+		}()
+	}
+
+	var paid, refused int
+	for i := 0; i < 2; i++ {
+		if err := <-errCh; err != nil {
+			refused++
+		} else {
+			paid++
+		}
+	}
+	if paid != 1 || refused != 1 {
+		t.Fatalf("paid=%d refused=%d, want one paid and one refused", paid, refused)
+	}
+	if c.Spent() != 10000 {
+		t.Errorf("spent = %d, want 10000", c.Spent())
+	}
+}
+
+// A reserved budget slot is released when payment cannot be produced, so a
+// transient payer failure does not permanently consume an agent's allowance.
+func TestClientBudgetReservationRollsBackOnPayError(t *testing.T) {
+	srv := paidServer("10000")
+	defer srv.Close()
+
+	c := &Client{Payer: payerFunc(func(context.Context, Requirements) (string, error) {
+		return "", context.Canceled
+	}), Budget: 10000}
+	req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
+	if _, err := c.Do(req); err == nil {
+		t.Fatal("expected pay error")
+	}
+	if c.Spent() != 0 {
+		t.Errorf("failed payment should roll back spend, got %d", c.Spent())
+	}
+}
+
+type payerFunc func(context.Context, Requirements) (string, error)
+
+func (f payerFunc) Pay(ctx context.Context, req Requirements) (string, error) {
+	return f(ctx, req)
+}
