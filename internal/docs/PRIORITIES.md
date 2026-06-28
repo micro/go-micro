@@ -19,13 +19,9 @@ redirect the loop; direction always wins.
 items the loop can auto-merge): brand/positioning copy, breaking public-API
 changes, architectural rewrites. Those go to the human.
 
-## Next (ranked)
-
-1. **Export agent RunInfo as OpenTelemetry spans** ([#3256](https://github.com/micro/go-micro/issues/3256)) — connect the existing run/model/tool metadata to standard tracing so developers can inspect agent behavior with the same operational tools they use for services.
-
 ## Later (ranked)
 
-2. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications and multi-turn continuation shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
+1. **Add A2A resubscribe and input-required handoff support** ([#3235](https://github.com/micro/go-micro/issues/3235)) — after push notifications, multi-turn continuation, streaming conformance, checkpointing, and RunInfo→OpenTelemetry spans shipped, finish the remaining long-running A2A interoperability gap: reconnecting to live task streams and carrying human-input-required handoffs through the gateway.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
