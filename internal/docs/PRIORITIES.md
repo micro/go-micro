@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add a maintained 0-to-hero reference example** ([#3368](https://github.com/micro/go-micro/issues/3368)) — keep the mission legible in code, not only docs: one CI-verifiable example should walk scaffold → run → chat → inspect across typed services, an agent, and a durable flow. This closes the remaining DX/coherence seam between the README promise, website roadmap, and the lived developer inner loop.
+1. **Add a deploy checkpoint to the 0→hero contract** ([#3381](https://github.com/micro/go-micro/issues/3381)) — close the last explicit inner-loop seam between the roadmap promise and the CI harness by verifying scaffold → run → chat → inspect → deploy without secrets or real remote infrastructure. This keeps the services → agents → workflows story operable all the way to the deployment boundary.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
