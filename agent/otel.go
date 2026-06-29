@@ -37,6 +37,7 @@ const (
 	AttrDelegate       = "agent.delegate"
 	AttrGuardrailBlock = "agent.guardrail.block"
 	AttrRefusal        = "agent.refusal"
+	AttrInputChars     = "agent.input.chars"
 )
 
 type RunEvent struct {
@@ -56,6 +57,7 @@ type RunEvent struct {
 	Tokens      Usage     `json:"tokens,omitempty"`
 	Refused     string    `json:"refused,omitempty"`
 	Error       string    `json:"error,omitempty"`
+	InputChars  int       `json:"input_chars,omitempty"`
 }
 
 type Usage = ai.Usage
@@ -98,9 +100,13 @@ func (a *agentImpl) tracer() trace.Tracer {
 func (a *agentImpl) startRun(ctx context.Context, message string) (context.Context, func(error)) {
 	info, _ := ai.RunInfoFrom(ctx)
 	start := time.Now()
+	runEvent := RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", InputChars: len(message)}
+	if a.opts.TraceInputs {
+		runEvent.Name = message
+	}
 
 	if a.opts.TraceProvider == nil {
-		a.recordRunEvent(RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", Name: message})
+		a.recordRunEvent(runEvent)
 		return ctx, func(err error) {
 			latency := time.Since(start).Milliseconds()
 			if err != nil {
@@ -113,7 +119,7 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 
 	ctx, span := a.tracer().Start(ctx, spanNameRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(
 		attribute.String(AttrRunID, info.RunID), attribute.String(AttrParentRunID, info.ParentID), attribute.String(AttrAgentName, info.Agent)))
-	a.recordSpanEvent(span, RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", Name: message})
+	a.recordSpanEvent(span, runEvent)
 	return ctx, func(err error) {
 		latency := time.Since(start).Milliseconds()
 		span.SetAttributes(attribute.Int64(AttrLatencyMS, latency))
@@ -292,6 +298,9 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 	}
 	if e.LatencyMS > 0 {
 		attrs = append(attrs, attribute.Int64(AttrLatencyMS, e.LatencyMS))
+	}
+	if e.InputChars > 0 {
+		attrs = append(attrs, attribute.Int(AttrInputChars, e.InputChars))
 	}
 	attrs = appendUsage(attrs, e.Tokens)
 	if e.Refused != "" {

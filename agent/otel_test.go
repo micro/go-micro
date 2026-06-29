@@ -132,6 +132,75 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	}
 }
 
+func TestAgentRunObservabilityRedactsInputByDefault(t *testing.T) {
+	secret := "deploy production with token sk-secret"
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+	st := store.NewMemoryStore()
+	a := New(Name("redactor"), Provider("oteltest"), WithStore(st), TraceProvider(tp))
+	if _, err := a.Ask(context.Background(), secret); err != nil {
+		t.Fatal(err)
+	}
+
+	spans := exp.GetSpans().Snapshots()
+	var sawInputChars bool
+	for _, s := range spans {
+		for _, event := range s.Events() {
+			attrs := spanAttributes(event.Attributes)
+			if attrs["agent.event.name"] == secret {
+				t.Fatalf("span event leaked raw input: %#v", event)
+			}
+			if attrs[AttrInputChars] == fmt.Sprint(len(secret)) {
+				sawInputChars = true
+			}
+		}
+	}
+	if !sawInputChars {
+		t.Fatal("run event missing redacted input length attribute")
+	}
+
+	summaries, err := ListRunSummaries(st, "redactor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := LoadRunEvents(st, "redactor", summaries[0].RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, event := range events {
+		if event.Name == secret {
+			t.Fatalf("persisted run event leaked raw input: %#v", event)
+		}
+		if event.Kind == "run" && event.InputChars != len(secret) {
+			t.Fatalf("run event InputChars = %d, want %d", event.InputChars, len(secret))
+		}
+	}
+}
+
+func TestAgentTraceInputsOptInRecordsInput(t *testing.T) {
+	message := "operator-approved diagnostic prompt"
+	st := store.NewMemoryStore()
+	a := New(Name("input-opt-in"), Provider("oteltest"), WithStore(st), TraceInputs(true))
+	if _, err := a.Ask(context.Background(), message); err != nil {
+		t.Fatal(err)
+	}
+
+	summaries, err := ListRunSummaries(st, "input-opt-in")
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := LoadRunEvents(st, "input-opt-in", summaries[0].RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, event := range events {
+		if event.Kind == "run" && event.Name == message {
+			return
+		}
+	}
+	t.Fatalf("opt-in run event did not record message: %#v", events)
+}
+
 type failingOtelModel struct{ opts ai.Options }
 
 func (m *failingOtelModel) Init(opts ...ai.Option) error {
