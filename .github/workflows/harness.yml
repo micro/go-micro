@@ -33,6 +33,8 @@ jobs:
         run: go run ./internal/harness/universe
       - name: Agent-flow harness
         run: go run ./internal/harness/agent-flow
+      - name: Provider conformance (mock)
+        run: go run ./internal/harness/provider-conformance -providers mock
       - name: 0→hero run/chat/inspect reference scenario
         run: ./internal/harness/zero-to-hero-ci/run.sh
 
@@ -50,17 +52,6 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - name: Agent provider conformance matrix
-        env:
-          GO_MICRO_AGENT_CONFORMANCE_LIVE: "1"
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
-          ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
-        run: go test ./agent -run TestAgentProviderConformanceMatrix -count=1 -v
       - name: Provider conformance against live models
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
