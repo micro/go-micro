@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add a deploy checkpoint to the 0→hero contract** ([#3381](https://github.com/micro/go-micro/issues/3381)) — close the last explicit inner-loop seam between the roadmap promise and the CI harness by verifying scaffold → run → chat → inspect → deploy without secrets or real remote infrastructure. This keeps the services → agents → workflows story operable all the way to the deployment boundary.
+1. **Add scheduled cross-provider agent conformance** ([#3386](https://github.com/micro/go-micro/issues/3386)) — harden the top Now-phase risk by running the same CI-verifiable agent scenario across every supported provider, gated on provider keys and scheduled, so tool calling, multi-step execution, plan/delegate, and guardrails do not drift by model backend. This keeps the service-as-tool harness dependable before adding more depth on top.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
