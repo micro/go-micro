@@ -22,12 +22,14 @@ import (
 	"strings"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/ai/internal/openaiapi"
 )
 
 func init() {
 	ai.Register("groq", func(opts ...ai.Option) ai.Model {
 		return NewProvider(opts...)
 	})
+	ai.RegisterStream("groq")
 }
 
 type Provider struct {
@@ -119,7 +121,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 }
 
 func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, fmt.Errorf("%w: groq provider", ai.ErrStreamingUnsupported)
+	return openaiapi.Stream(ctx, p.opts, req, "/v1/chat/completions")
 }
 
 func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Response, map[string]any, error) {

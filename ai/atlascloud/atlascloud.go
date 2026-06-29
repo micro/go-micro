@@ -43,6 +43,7 @@ func init() {
 	ai.RegisterVideo("atlascloud", func(opts ...ai.Option) ai.VideoModel {
 		return NewProvider(opts...)
 	})
+	ai.RegisterStream("atlascloud")
 }
 
 // Provider implements the ai.Model interface for Atlas Cloud.

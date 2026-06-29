@@ -34,7 +34,7 @@ func TestRegisteredProviders(t *testing.T) {
 	}
 
 	got = ai.RegisteredProviders("stream")
-	want = []string{"openai"}
+	want = []string{"atlascloud", "groq", "mistral", "openai", "together"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(stream) = %#v, want %#v", got, want)
 	}
@@ -44,12 +44,12 @@ func TestCapabilityRows(t *testing.T) {
 	got := ai.CapabilityRows()
 	want := []ai.CapabilityRow{
 		{Provider: "anthropic", Capabilities: ai.Capabilities{Model: true}},
-		{Provider: "atlascloud", Capabilities: ai.Capabilities{Model: true, Image: true, Video: true}},
+		{Provider: "atlascloud", Capabilities: ai.Capabilities{Model: true, Image: true, Video: true, Stream: true}},
 		{Provider: "gemini", Capabilities: ai.Capabilities{Model: true}},
-		{Provider: "groq", Capabilities: ai.Capabilities{Model: true}},
-		{Provider: "mistral", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "groq", Capabilities: ai.Capabilities{Model: true, Stream: true}},
+		{Provider: "mistral", Capabilities: ai.Capabilities{Model: true, Stream: true}},
 		{Provider: "openai", Capabilities: ai.Capabilities{Model: true, Image: true, Stream: true}},
-		{Provider: "together", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "together", Capabilities: ai.Capabilities{Model: true, Stream: true}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("CapabilityRows() = %#v, want %#v", got, want)
@@ -72,7 +72,7 @@ func TestCapabilityMatrix(t *testing.T) {
 	if caps := ai.ProviderCapabilities("openai"); caps != (ai.Capabilities{Model: true, Image: true, Stream: true}) {
 		t.Fatalf("ProviderCapabilities(openai) = %#v", caps)
 	}
-	if caps := ai.ProviderCapabilities("atlascloud"); caps != (ai.Capabilities{Model: true, Image: true, Video: true}) {
+	if caps := ai.ProviderCapabilities("atlascloud"); caps != (ai.Capabilities{Model: true, Image: true, Video: true, Stream: true}) {
 		t.Fatalf("ProviderCapabilities(atlascloud) = %#v", caps)
 	}
 	if caps := ai.ProviderCapabilities("missing"); caps != (ai.Capabilities{}) {
@@ -88,7 +88,7 @@ func TestRegisterStream(t *testing.T) {
 	}
 
 	got := ai.RegisteredProviders("stream")
-	want := []string{"openai", "test-stream"}
+	want := []string{"atlascloud", "groq", "mistral", "openai", "test-stream", "together"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(stream) = %#v, want %#v", got, want)
 	}
