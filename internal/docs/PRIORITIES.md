@@ -21,8 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Harden agent loop failure handling** ([#3391](https://github.com/micro/go-micro/issues/3391)) — now that scheduled cross-provider agent conformance shipped, close the next Now-phase reliability gap: context deadlines, cancellation, provider timeouts/rate limits, retry/backoff boundaries, and safe mid-run failure semantics across model calls, tool execution, plan/delegate, and guardrails. This makes the service-as-tool harness operable under real provider conditions before layering more agentic depth on top.
-2. **CI-verify 0-to-1 and 0-to-hero developer flows** ([#3392](https://github.com/micro/go-micro/issues/3392)) — preserve the getting-started contract as an executable harness covering scaffold → run → call plus the multi-service/agent path through chat, inspection, and deploy dry-run where practical. This keeps the CLI-first inner loop aligned with the README, website, and roadmap while the harness evolves.
+1. **CI-verify 0-to-1 and 0-to-hero developer flows** ([#3392](https://github.com/micro/go-micro/issues/3392)) — with cross-provider conformance and agent-loop failure handling now shipped, preserve the last open Now-phase contract as an executable harness covering scaffold → run → call plus the multi-service/agent path through chat, inspection, and deploy dry-run where practical. This keeps the CLI-first inner loop aligned with the README, website, and roadmap while the harness evolves.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
