@@ -36,14 +36,13 @@ The priority is that what exists works everywhere, under real conditions.
 
 ## Next — agentic depth
 
-- **Durable agent loop.** Flows resume; the agent's own loop does not yet. Reuse `Checkpoint` so a long-running agent survives a restart and continues.
 - **Streaming.** Broaden provider-backed `ai.Stream` coverage and keep chat plus A2A `message/stream` working end to end for real chat and long-task UX.
 - **Agent observability.** Wire the new `RunInfo` into OpenTelemetry spans so a run — steps, tool calls, delegation — is traceable. This is also what anyone running it in production will need.
 
 ## Later
 
 - **Memory management** — summarization and retrieval (RAG) beyond a fixed buffer.
-- **Human-in-the-loop** — pause and resume mid-run (`input-required`), beyond the binary `ApproveTool` gate.
+- **Human-in-the-loop** — broaden pause/resume UX around `input-required` runs and approvals.
 - **A2A** — richer live-stream reconnection (`tasks/resubscribe`) and `input-required` handoffs.
 
 ## Developer experience (ongoing)

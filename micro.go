@@ -23,11 +23,17 @@ type Service = service.Service
 // Agent is the interface for an AI agent that manages services.
 type Agent = agent.Agent
 
+// AgentResponse is what an agent returns from Ask or a resumed run.
+type AgentResponse = agent.Response
+
 // AgentOption configures an Agent.
 type AgentOption = agent.Option
 
 // Flow is an event-driven LLM orchestration unit.
 type Flow = flow.Flow
+
+// FlowRun is a checkpointed flow or agent run record.
+type FlowRun = flow.Run
 
 // FlowOption configures a Flow.
 type FlowOption = flow.Option
@@ -163,6 +169,26 @@ func AgentWrapTool(w ...ai.ToolWrapper) AgentOption {
 // AgentTraceProvider enables OpenTelemetry spans for agent runs, model calls,
 // tool calls, delegation, and failures.
 func AgentTraceProvider(tp trace.TracerProvider) AgentOption { return agent.TraceProvider(tp) }
+
+// AgentWithCheckpoint sets the durability backend for agent Ask runs.
+// It uses the same Checkpoint interface as flows so services, agents,
+// and workflows can share one execution history backend.
+func AgentWithCheckpoint(c Checkpoint) AgentOption { return agent.WithCheckpoint(c) }
+
+// AgentPending returns checkpointed agent runs that have not completed.
+// Use it at process startup to discover agent work that should be resumed.
+func AgentPending(ctx context.Context, a Agent) ([]FlowRun, error) { return agent.Pending(ctx, a) }
+
+// AgentResume resumes a checkpointed agent run by id. Completed runs return
+// the persisted response without calling the model or replaying tool calls.
+func AgentResume(ctx context.Context, a Agent, runID string) (*AgentResponse, error) {
+	return agent.Resume(ctx, a, runID)
+}
+
+// AgentResumeInput resumes a checkpointed agent run waiting for human input.
+func AgentResumeInput(ctx context.Context, a Agent, runID, input string) (*AgentResponse, error) {
+	return agent.ResumeInput(ctx, a, runID, input)
+}
 
 // NewFlow creates an event-driven LLM orchestration unit.
 //
