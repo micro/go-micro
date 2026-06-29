@@ -3,12 +3,14 @@ package mcp
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 // NewHandler returns an http.Handler serving the MCP protocol over HTTP as
-// JSON-RPC 2.0 (initialize, ping, tools/list, tools/call), backed by the
-// resolver. Mount it on your own server (e.g. POST /mcp): the gateway provides
-// the protocol; you keep your routes, middleware and any human-facing docs page.
+// JSON-RPC 2.0 (initialize, ping, notifications/*, tools/list, tools/call),
+// backed by the resolver. Mount it on your own server (e.g. POST /mcp): the
+// gateway provides the protocol; you keep your routes, middleware and any
+// human-facing docs page.
 func NewHandler(r Resolver) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodPost {
@@ -25,6 +27,13 @@ func NewHandler(r Resolver) http.Handler {
 			writeRPCError(w, nil, ParseError, "Parse error", err.Error())
 			return
 		}
+
+		// Notifications (and any id-less request) expect no response body.
+		if strings.HasPrefix(rpc.Method, "notifications/") || len(rpc.ID) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		ctx := req.Context()
 		switch rpc.Method {
 		case "initialize":
@@ -57,14 +66,24 @@ func NewHandler(r Resolver) http.Handler {
 				writeRPCError(w, rpc.ID, InvalidParams, "Invalid params", err.Error())
 				return
 			}
-			result, err := r.Call(ctx, p.Name, p.Arguments)
+			res, err := r.Call(ctx, p.Name, p.Arguments)
 			if err != nil {
-				writeRPCError(w, rpc.ID, InternalError, "Tool call failed", err.Error())
+				// Protocol/pre-check failure -> JSON-RPC error. An *RPCError
+				// carries a specific code; anything else is InternalError.
+				if rpcErr, ok := err.(*RPCError); ok {
+					writeRPCError(w, rpc.ID, rpcErr.Code, rpcErr.Message, rpcErr.Data)
+				} else {
+					writeRPCError(w, rpc.ID, InternalError, "Tool call failed", err.Error())
+				}
 				return
 			}
-			writeRPCResult(w, rpc.ID, map[string]interface{}{
-				"content": []map[string]interface{}{{"type": "text", "text": result}},
-			})
+			result := map[string]interface{}{
+				"content": []map[string]interface{}{{"type": "text", "text": res.Text}},
+			}
+			if res.IsError {
+				result["isError"] = true
+			}
+			writeRPCResult(w, rpc.ID, result)
 		default:
 			writeRPCError(w, rpc.ID, MethodNotFound, "Method not found", rpc.Method)
 		}
@@ -76,7 +95,7 @@ func writeRPCResult(w http.ResponseWriter, id json.RawMessage, result interface{
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"jsonrpc": "2.0", "id": rawOrNull(id), "result": result})
 }
 
-func writeRPCError(w http.ResponseWriter, id json.RawMessage, code int, msg, data string) {
+func writeRPCError(w http.ResponseWriter, id json.RawMessage, code int, msg string, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"jsonrpc": "2.0", "id": rawOrNull(id), "error": map[string]interface{}{"code": code, "message": msg, "data": data}})
 }
