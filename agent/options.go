@@ -91,6 +91,11 @@ type Options struct {
 	// and tool calls. Nil disables instrumentation.
 	TraceProvider trace.TracerProvider
 
+	// TraceInputs controls whether agent observability records include raw
+	// user messages. It is false by default so spans and persisted run
+	// timelines carry correlation and shape without leaking prompts.
+	TraceInputs bool
+
 	// tools are developer-registered custom tools (see WithTool).
 	tools []customTool
 	// wrappers are developer-registered tool-execution wrappers
@@ -294,4 +299,12 @@ func WithTool(name, description string, properties map[string]any, handler ToolF
 // added only when a provider is configured.
 func TraceProvider(tp trace.TracerProvider) Option {
 	return func(o *Options) { o.TraceProvider = tp }
+}
+
+// TraceInputs opts in to recording raw user messages on agent run events.
+// By default inputs are redacted from OpenTelemetry spans and persisted run
+// timelines; use this only when the observability backend is approved to store
+// prompt content.
+func TraceInputs(enabled bool) Option {
+	return func(o *Options) { o.TraceInputs = enabled }
 }
