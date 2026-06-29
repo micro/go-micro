@@ -21,9 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Developer experience (ranked)
 
-1. **Add durable agent run checkpoint and resume** ([#3306](https://github.com/micro/go-micro/issues/3306)) — the CLI inspection foothold has shipped, so the highest-value Next-roadmap seam is making agent loops resumable like flows: long-running work must survive restarts without unsafe replay or hidden state loss before deeper streaming and observability can be trusted.
-2. **Broaden provider-backed AI streaming coverage** ([#3315](https://github.com/micro/go-micro/issues/3315)) — after checkpoint/resume, extend tested `ai.Stream` coverage across remaining providers so `micro chat`, A2A streaming, and long-running agent interactions behave consistently instead of depending on adapter-specific gaps.
-3. **Emit agent RunInfo as OpenTelemetry spans** ([#3316](https://github.com/micro/go-micro/issues/3316)) — once runs are durable and streaming paths are consistent, turn agent run timelines into correlated spans so operators can inspect model calls, tool calls, failures, and run IDs through the same observability surface as services and flows.
+1. **Broaden provider-backed AI streaming coverage** ([#3315](https://github.com/micro/go-micro/issues/3315)) — durable agent resume APIs have shipped, so the highest-value Next-roadmap seam is making `ai.Stream` behave consistently across providers; `micro chat`, A2A streaming, and long-running agent interactions should not depend on adapter-specific gaps.
+2. **Emit agent RunInfo as OpenTelemetry spans** ([#3316](https://github.com/micro/go-micro/issues/3316)) — once streaming paths are consistent, turn agent run timelines into correlated spans so operators can inspect model calls, tool calls, failures, and run IDs through the same observability surface as services and flows.
+3. **Add memory compaction and retrieval for long-running agents** ([#3321](https://github.com/micro/go-micro/issues/3321)) — after the Next-roadmap streaming and observability seams, tackle the leading Later-roadmap gap: bounded, store-backed memory that keeps long agent runs useful without making Go Micro a prompt-layer framework.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
