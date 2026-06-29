@@ -19,7 +19,11 @@ func NewStream(opts ...Option) (Stream, error) {
 	for _, o := range opts {
 		o(&options)
 	}
-	return &mem{store: store.NewMemoryStore()}, nil
+	st := options.Store
+	if st == nil {
+		st = store.NewMemoryStore()
+	}
+	return &mem{store: st}, nil
 }
 
 type subscriber struct {

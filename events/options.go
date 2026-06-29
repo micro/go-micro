@@ -1,10 +1,24 @@
 package events
 
-import "time"
+import (
+	"time"
 
-type Options struct{}
+	"go-micro.dev/v6/store"
+)
+
+type Options struct {
+	// Store persists published events for durability and replay. If nil, an
+	// in-memory store is used and events do not survive a restart.
+	Store store.Store
+}
 
 type Option func(o *Options)
+
+// WithStore backs the stream with a durable store (e.g. the file store), so
+// published events persist and can be replayed across restarts.
+func WithStore(s store.Store) Option {
+	return func(o *Options) { o.Store = s }
+}
 
 type StoreOptions struct {
 	TTL    time.Duration
