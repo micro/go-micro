@@ -80,10 +80,11 @@ A workflow as ordered, checkpointed steps that survives a crash and resumes wher
 - **Checkpoint** — each step is persisted; on `Resume`, completed steps are not re-run (no duplicate side effects)
 
 ### [support](./support/)
-A real-world support desk — the "zero to hero" shape in one runnable file:
-- **services** (`customers`, `tickets`, `notify`) become the agent's tools automatically
-- **flow** turns a `ticket.created` event into work for the agent (the event is the prompt)
-- **guardrail** — the agent triages freely but can't email a customer without passing the approval gate
+A maintained 0-to-hero reference path in one runnable file:
+- **scaffold** typed `customers`, `tickets`, and `notify` services
+- **run/chat** with a support agent that uses those services as tools
+- **inspect** the event-driven `intake` flow and approval gate
+- **CI** keeps the deterministic mock-model journey runnable with `go test ./examples/support`
 
 ## Coming Soon
 
