@@ -95,7 +95,7 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 	if a.model == nil {
 		a.setup()
 	}
-	return a.askLocked(ctx, run.ID, message, parentID, &run)
+	return a.askLocked(ctx, run.ID, message, parentID, &run, false)
 }
 
 // ResumeInput resumes a checkpointed agent run that paused via the built-in
@@ -140,7 +140,7 @@ func (a *agentImpl) resumeInput(ctx context.Context, runID, input string) (*Resp
 	if a.model == nil {
 		a.setup()
 	}
-	return a.askLocked(ctx, run.ID, message, run.ParentID, &run)
+	return a.askLocked(ctx, run.ID, message, run.ParentID, &run, true)
 }
 
 func (a *agentImpl) pending(ctx context.Context) ([]flow.Run, error) {
