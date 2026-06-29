@@ -102,6 +102,72 @@ func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
 	}
 }
 
+func TestResumeFailedCheckpointDoesNotDuplicateCompactedMemory(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	cp := flow.StoreCheckpoint(st, "memory-resume-agent")
+	failRetry := true
+	var sawRecall bool
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		for _, msg := range req.Messages {
+			if text, ok := msg.Content.(string); ok && strings.Contains(text, "alpha code is 42") {
+				sawRecall = true
+			}
+		}
+		if strings.Contains(req.Prompt, "use alpha code") && failRetry {
+			failRetry = false
+			return nil, errors.New("model connection dropped")
+		}
+		return &ai.Response{Reply: "ok"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("memory-resume-agent"), WithStore(st), WithCheckpoint(cp), CompactMemory(4, 1), MemoryRecallLimit(2))
+	for _, msg := range []string{"alpha code is 42", "beta note", "gamma note"} {
+		if _, err := a.Ask(ctx, msg); err != nil {
+			t.Fatalf("Ask(%q): %v", msg, err)
+		}
+	}
+
+	_, err := a.Ask(ctx, "use alpha code now")
+	if err == nil {
+		t.Fatal("Ask succeeded, want simulated provider failure")
+	}
+	if got := countMemoryContent(a.mem.Messages(), "use alpha code now"); got != 1 {
+		t.Fatalf("failed Ask stored prompt %d times, want 1", got)
+	}
+
+	runs, err := Pending(ctx, a)
+	if err != nil {
+		t.Fatalf("Pending: %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("Pending returned %d runs, want 1", len(runs))
+	}
+	if _, err := Resume(ctx, a, runs[0].ID); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if got := countMemoryContent(a.mem.Messages(), "use alpha code now"); got != 1 {
+		t.Fatalf("resumed failed Ask stored prompt %d times, want no duplicate", got)
+	}
+	if !sawRecall {
+		t.Fatal("resume did not retrieve archived compacted memory")
+	}
+	if got := len(a.mem.Messages()); got > 4 {
+		t.Fatalf("compacted memory retained %d messages after resume, want <= 4", got)
+	}
+}
+
+func countMemoryContent(messages []ai.Message, needle string) int {
+	var count int
+	for _, msg := range messages {
+		if text, ok := msg.Content.(string); ok && strings.Contains(text, needle) {
+			count++
+		}
+	}
+	return count
+}
+
 func TestPendingReturnsUnfinishedAgentRuns(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewStore(), "pending-agent")

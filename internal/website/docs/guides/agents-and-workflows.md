@@ -83,6 +83,44 @@ a := micro.NewAgent("conductor",
 a.Ask(ctx, "Plan the launch, create the tasks, and have comms notify the owner.")
 ```
 
+### Long-running memory
+
+Agents use store-backed conversation memory by default, scoped under the agent's
+name. That makes short restarts boring: the next `Ask` reloads the retained
+history from the same store backend you already use for services and flows.
+Long-running agents can also keep model context bounded without losing useful
+prior context:
+
+```go
+a := micro.NewAgent("conductor",
+    micro.AgentServices("task"),
+    micro.AgentProvider("anthropic"),
+    micro.AgentCompactMemory(40, 12),      // max active messages, recent messages kept verbatim
+    micro.AgentMemoryRecallLimit(5),       // archived turns recalled per Ask
+)
+```
+
+`AgentCompactMemory(maxMessages, keepRecent)` switches the default memory to a
+deterministic compactor. Once active history grows past `maxMessages`, older
+turns move into the durable archive, a provider-neutral summary is injected into
+active context, and the newest `keepRecent` messages stay verbatim. On future
+asks, archived turns whose text matches the current request are recalled ahead of
+the active context. The built-in retrieval is intentionally simple and
+credential-free for CI; teams that need embeddings or a vector database can still
+provide their own `AgentMemory` implementation.
+
+This is harness memory, not prompt-layer orchestration: services remain the
+capabilities, agents remain the dynamic decision makers, and flows remain the
+durable predefined paths. Compaction only keeps a scheduled or looping agent from
+turning every past turn into model context while still letting it remember facts
+that matter to the current service → agent → workflow run.
+
+Checkpointed agent runs and compacted memory share the same store-backed shape.
+If a provider call fails after the prompt has been recorded, `agent.Resume` uses
+the checkpointed run id and does not append that same user turn a second time;
+completed tool results and recalled archived memory remain available for the
+retry.
+
 ## The patterns — most are already here
 
 Anthropic lists five workflow patterns. Go Micro implements the two richest ones natively, as services and tools, and the rest are ordinary compositions:

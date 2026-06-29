@@ -28,7 +28,10 @@ func TestManualResolverHandler(t *testing.T) {
 	ts := httptest.NewServer(NewHandler(res))
 	defer ts.Close()
 	rpc := func(body string) (int, map[string]interface{}) {
-		resp, _ := http.Post(ts.URL, "application/json", strings.NewReader(body))
+		resp, err := http.Post(ts.URL, "application/json", strings.NewReader(body))
+		if err != nil {
+			t.Fatalf("post rpc: %v", err)
+		}
 		defer resp.Body.Close()
 		var out map[string]interface{}
 		json.NewDecoder(resp.Body).Decode(&out)

@@ -225,16 +225,18 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 		a.setup()
 	}
 
-	return a.askLocked(ctx, uuid.New().String(), message, parentRunID, nil)
+	return a.askLocked(ctx, uuid.New().String(), message, parentRunID, nil, true)
 }
 
-func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID string, existing *flow.Run) (*Response, error) {
+func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID string, existing *flow.Run, addUserMessage bool) (*Response, error) {
 	toolList, err := a.discoverTools()
 	if err != nil {
 		return nil, fmt.Errorf("discover tools: %w", err)
 	}
 
-	a.mem.Add("user", message)
+	if addUserMessage {
+		a.mem.Add("user", message)
+	}
 	a.steps = 0
 	a.calls = map[string]int{}
 	a.pause = nil
