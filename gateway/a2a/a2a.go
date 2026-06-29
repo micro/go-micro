@@ -140,8 +140,11 @@ func (g *Gateway) Handler() http.Handler {
 	// Per-agent card (served at the agent's url and at its well-known path).
 	mux.HandleFunc("GET /agents/{name}", g.handleCard)
 	mux.HandleFunc("GET /agents/{name}/.well-known/agent.json", g.handleCard)
+	mux.HandleFunc("GET /agents/{name}/skills/{skill}", g.handleSkillCard)
+	mux.HandleFunc("GET /agents/{name}/skills/{skill}/.well-known/agent.json", g.handleSkillCard)
 	// Per-agent JSON-RPC endpoint.
 	mux.HandleFunc("POST /agents/{name}", g.handleRPC)
+	mux.HandleFunc("POST /agents/{name}/skills/{skill}", g.handleSkillRPC)
 	// Top-level well-known: serve the single agent's card if there's
 	// exactly one, otherwise point to the directory.
 	mux.HandleFunc("GET /.well-known/agent.json", g.handleWellKnown)
@@ -338,23 +341,17 @@ func Card(name, url, description string, services []string) AgentCard {
 			description = "Go Micro agent"
 		}
 	}
+	skills := skillsFromServices(services)
 	return AgentCard{
-		Name:            name,
-		Description:     description,
-		URL:             url,
-		Version:         "1.0.0",
-		ProtocolVersion: protocolVersion,
-		Capabilities:    Capabilities{Streaming: true, PushNotifications: true},
-		// The agent converses over a single Chat endpoint; advertise that
-		// as one skill, tagged with the services it manages.
+		Name:               name,
+		Description:        description,
+		URL:                url,
+		Version:            "1.0.0",
+		ProtocolVersion:    protocolVersion,
+		Capabilities:       Capabilities{Streaming: true, PushNotifications: true},
 		DefaultInputModes:  []string{"text/plain"},
 		DefaultOutputModes: []string{"text/plain"},
-		Skills: []Skill{{
-			ID:          "chat",
-			Name:        "Chat",
-			Description: "Converse with the agent to operate its services.",
-			Tags:        services,
-		}},
+		Skills:             skills,
 	}
 }
 
@@ -369,6 +366,19 @@ func (g *Gateway) lookupCard(name string) (AgentCard, bool) {
 		return AgentCard{}, false
 	}
 	return g.card(name, meta), true
+}
+
+func (g *Gateway) lookupSkillCard(name, skillID string) (AgentCard, Skill, bool) {
+	card, ok := g.lookupCard(name)
+	if !ok {
+		return AgentCard{}, Skill{}, false
+	}
+	for _, skill := range card.Skills {
+		if skill.ID == skillID {
+			return card, skill, true
+		}
+	}
+	return AgentCard{}, Skill{}, false
 }
 
 // ---------------------------------------------------------------------------
@@ -390,6 +400,17 @@ func (g *Gateway) handleCard(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	writeJSON(w, http.StatusOK, card)
+}
+
+func (g *Gateway) handleSkillCard(w http.ResponseWriter, r *http.Request) {
+	card, skill, ok := g.lookupSkillCard(r.PathValue("name"), r.PathValue("skill"))
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	card.URL = g.opts.BaseURL + "/agents/" + r.PathValue("name") + "/skills/" + skill.ID
+	card.Skills = []Skill{skill}
 	writeJSON(w, http.StatusOK, card)
 }
 
@@ -418,6 +439,18 @@ func (g *Gateway) handleRPC(w http.ResponseWriter, r *http.Request) {
 	}
 	g.disp.serve(w, r, func(ctx context.Context, text string) (string, error) {
 		return g.callAgent(ctx, name, text)
+	})
+}
+
+func (g *Gateway) handleSkillRPC(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	_, skill, ok := g.lookupSkillCard(name, r.PathValue("skill"))
+	if !ok {
+		writeRPC(w, nil, nil, &rpcError{Code: errInvalidParams, Message: "unknown agent skill: " + name + "/" + r.PathValue("skill")})
+		return
+	}
+	g.disp.serve(w, r, func(ctx context.Context, text string) (string, error) {
+		return g.callAgent(ctx, name, skillPrompt(skill, text))
 	})
 }
 
@@ -851,6 +884,68 @@ func (d *dispatcher) deliverPush(taskID string, task *Task) {
 	if err == nil && resp.Body != nil {
 		_ = resp.Body.Close()
 	}
+}
+
+func skillsFromServices(services []string) []Skill {
+	if len(services) == 0 {
+		return []Skill{{ID: "chat", Name: "Chat", Description: "Converse with the agent to operate its services."}}
+	}
+	seen := map[string]bool{}
+	var skills []Skill
+	for _, service := range services {
+		service = strings.TrimSpace(service)
+		if service == "" {
+			continue
+		}
+		id := skillID(service)
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		skills = append(skills, Skill{
+			ID:          id,
+			Name:        skillName(service),
+			Description: fmt.Sprintf("Operate the %s service through this agent.", service),
+			Tags:        []string{service},
+		})
+	}
+	if len(skills) == 0 {
+		return []Skill{{ID: "chat", Name: "Chat", Description: "Converse with the agent to operate its services."}}
+	}
+	return skills
+}
+
+func skillID(service string) string {
+	service = strings.ToLower(strings.TrimSpace(service))
+	var b strings.Builder
+	dash := false
+	for _, r := range service {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+			dash = false
+			continue
+		}
+		if !dash && b.Len() > 0 {
+			b.WriteByte('-')
+			dash = true
+		}
+	}
+	return strings.Trim(b.String(), "-")
+}
+
+func skillName(service string) string {
+	parts := strings.FieldsFunc(service, func(r rune) bool { return r == '-' || r == '_' || r == '.' || r == '/' || r == ' ' })
+	for i, part := range parts {
+		if part == "" {
+			continue
+		}
+		parts[i] = strings.ToUpper(part[:1]) + part[1:]
+	}
+	return strings.Join(parts, " ")
+}
+
+func skillPrompt(skill Skill, text string) string {
+	return fmt.Sprintf("Use the %q skill (%s) for this request.\n\n%s", skill.Name, skill.ID, text)
 }
 
 func textOf(parts []Part) string {

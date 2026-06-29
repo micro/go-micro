@@ -69,9 +69,17 @@ A card looks like:
   "capabilities": { "streaming": true, "pushNotifications": true },
   "defaultInputModes": ["text/plain"],
   "defaultOutputModes": ["text/plain"],
-  "skills": [{ "id": "chat", "name": "Chat", "tags": ["task", "project"] }]
+  "skills": [
+    { "id": "task", "name": "Task", "tags": ["task"] },
+    { "id": "project", "name": "Project", "tags": ["project"] }
+  ]
 }
 ```
+
+Each managed service is advertised as its own typed skill. Clients can call the
+whole agent at `/agents/task-mgr`, or address one skill directly at
+`/agents/task-mgr/skills/task`; the skill endpoint serves a focused card and
+routes the request to the same agent with that skill selected.
 
 ## Calling an agent
 

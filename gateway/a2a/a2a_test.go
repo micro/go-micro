@@ -51,7 +51,7 @@ func newGatewayWithAgent(t *testing.T) (*httptest.Server, func()) {
 		server.Name("echo"),
 		server.Address("127.0.0.1:0"),
 		server.Registry(reg),
-		server.Metadata(map[string]string{"type": "agent", "services": ""}),
+		server.Metadata(map[string]string{"type": "agent", "services": "task,project"}),
 	)
 	if err := pb.RegisterAgentHandler(srv, echoAgent{}); err != nil {
 		t.Fatalf("register agent handler: %v", err)
@@ -88,8 +88,40 @@ func TestAgentCardFromRegistry(t *testing.T) {
 	if card.URL != "http://gw/agents/echo" {
 		t.Errorf("card url = %q", card.URL)
 	}
-	if card.ProtocolVersion == "" || len(card.Skills) == 0 {
-		t.Errorf("card missing protocolVersion or skills: %+v", card)
+	if card.ProtocolVersion == "" {
+		t.Errorf("card missing protocolVersion: %+v", card)
+	}
+	if got := skillIDs(card.Skills); strings.Join(got, ",") != "task,project" {
+		t.Errorf("skill IDs = %v, want [task project]", got)
+	}
+}
+
+func TestSkillEndpointServesFocusedCardAndRoutesRPC(t *testing.T) {
+	ts, cleanup := newGatewayWithAgent(t)
+	defer cleanup()
+
+	resp, err := http.Get(ts.URL + "/agents/echo/skills/task/.well-known/agent.json")
+	if err != nil {
+		t.Fatalf("get skill card: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("skill card status = %d", resp.StatusCode)
+	}
+	var card AgentCard
+	if err := json.NewDecoder(resp.Body).Decode(&card); err != nil {
+		t.Fatalf("decode skill card: %v", err)
+	}
+	if card.URL != "http://gw/agents/echo/skills/task" || len(card.Skills) != 1 || card.Skills[0].ID != "task" {
+		t.Fatalf("skill card = %+v, want task-only card at skill URL", card)
+	}
+
+	task := rpcTask(t, ts.URL+"/agents/echo/skills/task", `{
+		"jsonrpc":"2.0","id":1,"method":"message/send",
+		"params":{"message":{"role":"user","kind":"message","messageId":"m1",
+			"parts":[{"kind":"text","text":"ping"}]}}}`)
+	if task.Status.State != stateCompleted || textOf(task.Artifacts[0].Parts) != "pong" {
+		t.Fatalf("skill task = %+v, want completed pong", task)
 	}
 }
 
@@ -643,4 +675,12 @@ func rpcTask(t *testing.T, url, body string) Task {
 		t.Fatalf("rpc error: %+v", resp.Error)
 	}
 	return resp.Result
+}
+
+func skillIDs(skills []Skill) []string {
+	ids := make([]string, 0, len(skills))
+	for _, skill := range skills {
+		ids = append(ids, skill.ID)
+	}
+	return ids
 }
