@@ -21,8 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Developer experience (ranked)
 
-1. **Expose run inspection in the CLI inner loop** ([#3297](https://github.com/micro/go-micro/issues/3297)) — the canon promises scaffold → run → chat → inspect → deploy, and recent work added run timelines, trace correlation, and a `micro runs` foothold; with conformance scheduling, failure/backoff hardening, the deploy contract, and the support reference now shipped, this is the highest-value remaining DX seam in the Now/ongoing roadmap until local agent/flow activity is documented and CI-tested as an actionable inspect step.
-2. **Add durable agent run checkpoint and resume** ([#3306](https://github.com/micro/go-micro/issues/3306)) — once the remaining inspection seam is closed, the highest-value Next-roadmap item is making agent loops resumable like flows so long-running work can survive restarts without unsafe replay or hidden state loss.
+1. **Add durable agent run checkpoint and resume** ([#3306](https://github.com/micro/go-micro/issues/3306)) — the CLI inspection foothold has shipped, so the highest-value Next-roadmap seam is making agent loops resumable like flows: long-running work must survive restarts without unsafe replay or hidden state loss before deeper streaming and observability can be trusted.
+2. **Broaden provider-backed AI streaming coverage** ([#3315](https://github.com/micro/go-micro/issues/3315)) — after checkpoint/resume, extend tested `ai.Stream` coverage across remaining providers so `micro chat`, A2A streaming, and long-running agent interactions behave consistently instead of depending on adapter-specific gaps.
+3. **Emit agent RunInfo as OpenTelemetry spans** ([#3316](https://github.com/micro/go-micro/issues/3316)) — once runs are durable and streaming paths are consistent, turn agent run timelines into correlated spans so operators can inspect model calls, tool calls, failures, and run IDs through the same observability surface as services and flows.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
