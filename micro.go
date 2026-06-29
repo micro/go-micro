@@ -26,6 +26,9 @@ type Agent = agent.Agent
 // AgentResponse is what an agent returns from Ask or a resumed run.
 type AgentResponse = agent.Response
 
+// AgentStream is a stream of tool execution events followed by final-answer chunks.
+type AgentStream = agent.AgentStream
+
 // AgentOption configures an Agent.
 type AgentOption = agent.Option
 
@@ -188,6 +191,12 @@ func AgentResume(ctx context.Context, a Agent, runID string) (*AgentResponse, er
 // AgentResumeInput resumes a checkpointed agent run waiting for human input.
 func AgentResumeInput(ctx context.Context, a Agent, runID, input string) (*AgentResponse, error) {
 	return agent.ResumeInput(ctx, a, runID, input)
+}
+
+// AgentResumeStreamAsk resumes a checkpointed agent run by id and streams the
+// resulting tool events and final answer.
+func AgentResumeStreamAsk(ctx context.Context, a Agent, runID string) (AgentStream, error) {
+	return agent.ResumeStreamAsk(ctx, a, runID)
 }
 
 // NewFlow creates an event-driven LLM orchestration unit.

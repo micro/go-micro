@@ -122,6 +122,19 @@ database "agent", table "{name}":
   history    — conversation history
 ```
 
+## Durable Ask / StreamAsk runs
+
+Agents can opt into the same checkpoint backend used by flows with
+`micro.AgentWithCheckpoint(...)`. When enabled, each `Ask` or `StreamAsk` run is
+persisted with its input, terminal status, response, and tool-call records. If
+the process or transport drops after a tool has completed but before the model
+returns a final answer, restart the agent with the same checkpoint store and
+call `micro.AgentResume(ctx, ag, runID)` or
+`micro.AgentResumeStreamAsk(ctx, ag, runID)`.
+Completed tool calls are served from the checkpoint instead of being executed
+again, while guardrails such as `MaxSteps`, loop detection, approval pauses, and
+`request_input` pauses continue to apply to the resumed run.
+
 ## Built-in Capabilities
 
 Beyond its scoped service tools, every agent gets two built-in tools. They are not service endpoints — they are capabilities the agent has over itself and over other agents. They are plain tools wired into the agent's tool handler; there is no separate harness, loop engine, or graph. The LLM calls them exactly like any other tool.
