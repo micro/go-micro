@@ -139,6 +139,10 @@ func (a *agentImpl) String() string {
 }
 
 func (a *agentImpl) setup() {
+	a.setupWithToolHandler(nil)
+}
+
+func (a *agentImpl) setupWithToolHandler(handler ai.ToolHandler) {
 	var modelOpts []ai.Option
 	modelOpts = append(modelOpts, ai.WithAPIKey(a.opts.APIKey))
 	if a.opts.Model != "" {
@@ -146,10 +150,17 @@ func (a *agentImpl) setup() {
 	}
 
 	a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
-	modelOpts = append(modelOpts, ai.WithToolHandler(a.toolHandler()))
+	if handler == nil {
+		handler = a.toolHandler()
+	}
+	modelOpts = append(modelOpts, ai.WithToolHandler(handler))
 	a.model = ai.New(a.opts.Provider, modelOpts...)
 	if a.model != nil {
 		a.model = a.tracedModel(a.model)
+	}
+
+	if a.mem != nil {
+		return
 	}
 
 	// Memory is pluggable. Use the configured one, otherwise the default
