@@ -46,7 +46,7 @@ var providerEnv = map[string]string{
 
 func main() {
 	providersFlag := flag.String("providers", "anthropic,openai,gemini,groq,mistral,together,atlascloud", "comma-separated providers to check; use mock for deterministic local checks")
-	harnessesFlag := flag.String("harnesses", "universe,agent-flow,plan-delegate", "comma-separated harness names under internal/harness")
+	harnessesFlag := flag.String("harnesses", "agent,universe,agent-flow,plan-delegate", "comma-separated harness names under internal/harness; agent runs the provider tool-call conformance test")
 	timeoutFlag := flag.Duration("timeout", 10*time.Minute, "timeout per provider/harness run")
 	requireConfiguredFlag := flag.Bool("require-configured", false, "fail when a selected live provider is missing an API key")
 	capabilitiesFlag := flag.Bool("capabilities", true, "print the registered provider capability matrix before running conformance")
@@ -244,6 +244,9 @@ func validateSelection(providers, harnesses []string) error {
 	}
 
 	for _, harness := range harnesses {
+		if harness == "agent" {
+			continue
+		}
 		if strings.Contains(harness, string(os.PathSeparator)) || harness == "." || harness == ".." {
 			return fmt.Errorf("invalid harness name %q", harness)
 		}
@@ -323,6 +326,10 @@ func localRPCEnv(env []string) []string {
 }
 
 func runHarness(provider, harness string, timeout time.Duration) error {
+	if harness == "agent" {
+		return runAgentConformance(provider, timeout)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -350,6 +357,31 @@ func runHarness(provider, harness string, timeout time.Duration) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = localRPCEnv(os.Environ())
+	if err := cmd.Run(); err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("timed out after %s", timeout)
+		}
+		return err
+	}
+	return nil
+}
+
+func runAgentConformance(provider string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	testProvider := provider
+	if provider == "mock" {
+		testProvider = "fake"
+	}
+	cmd := exec.CommandContext(ctx, "go", "test", "./agent", "-run", "TestAgentProviderConformanceMatrix", "-count=1", "-v")
+	cmd.Dir = repoRoot()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = localRPCEnv(append(os.Environ(),
+		"GO_MICRO_AGENT_CONFORMANCE_LIVE=1",
+		"GO_MICRO_AGENT_CONFORMANCE_PROVIDERS="+testProvider,
+	))
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			return fmt.Errorf("timed out after %s", timeout)

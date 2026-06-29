@@ -33,12 +33,27 @@ func TestAgentProviderConformanceMatrix(t *testing.T) {
 		{name: "together", key: "TOGETHER_API_KEY", model: "GO_MICRO_CONFORMANCE_TOGETHER_MODEL", live: true},
 	}
 
+	selected := selectedConformanceProviders(os.Getenv("GO_MICRO_AGENT_CONFORMANCE_PROVIDERS"))
 	for _, provider := range providers {
 		provider := provider
+		if len(selected) > 0 && !selected[provider.name] {
+			continue
+		}
 		t.Run(provider.name, func(t *testing.T) {
 			runAgentConformanceScenario(t, provider)
 		})
 	}
+}
+
+func selectedConformanceProviders(csv string) map[string]bool {
+	out := map[string]bool{}
+	for _, part := range strings.Split(csv, ",") {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out[part] = true
+		}
+	}
+	return out
 }
 
 func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {

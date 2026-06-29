@@ -7,9 +7,10 @@ suite is safe for local development, forks, and scheduled CI.
 
 ## What it exercises
 
-`go run ./internal/harness/provider-conformance` fans out over the harnesses in
-`internal/harness`:
+`go run ./internal/harness/provider-conformance` fans out over the provider-facing
+agent test and the harnesses in `internal/harness`:
 
+- `agent` — provider tool-call conformance through `agent.Ask`, including run metadata propagation.
 - `universe` — service discovery plus agent tool calls over the real runtime.
 - `agent-flow` — a workflow event that drives an agent to call services.
 - `plan-delegate` — plan persistence plus agent-to-agent delegation and service
@@ -59,13 +60,14 @@ go run ./internal/harness/provider-conformance \
 ## Scheduled CI behavior
 
 The `Harness (E2E)` workflow runs on pushes and pull requests with deterministic
-mock LLMs. On the daily schedule and manual dispatch it also runs the live
+mock LLMs, including `provider-conformance -providers mock`. On the daily schedule and manual dispatch it also runs the live
 provider conformance job. That job:
 
-1. reads the provider keys from repository secrets,
-2. skips providers whose secrets are absent,
-3. fails when any configured provider fails a harness, and
-4. uploads JSON and Markdown coverage artifacts for the run.
+1. runs the same `agent`, `universe`, `agent-flow`, and `plan-delegate` harness list,
+2. reads the provider keys from repository secrets,
+3. skips providers whose secrets are absent,
+4. fails when any configured provider fails a harness, and
+5. uploads JSON and Markdown coverage artifacts for the run.
 
 The job also appends the Markdown summary and capability matrix to the GitHub
 Actions step summary, making configured, skipped, and failed provider coverage
