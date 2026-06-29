@@ -43,6 +43,9 @@ func Deploy(c *cli.Context) error {
 	}
 
 	target, remotePath := resolveDeployTarget(c, target, cfg)
+	if c.Bool("dry-run") {
+		return printDeployPlan(c, target, cfg, remotePath)
+	}
 
 	return deploySSH(c, target, cfg, remotePath)
 }
@@ -96,6 +99,81 @@ func showDeployTargets(cfg *config.Config) error {
 	return fmt.Errorf("%s", sb.String())
 }
 
+func printDeployPlan(c *cli.Context, target string, cfg *config.Config, remotePath string) error {
+	dir := c.Args().Get(1)
+	if dir == "" {
+		dir = "."
+	}
+
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	if cfg == nil {
+		cfg, _ = config.Load(absDir)
+	}
+	if remotePath == "" {
+		remotePath = defaultRemotePath
+	}
+
+	services, err := deployServices(absDir, cfg, c.String("service"))
+	if err != nil {
+		return err
+	}
+
+	fmt.Println()
+	fmt.Println("  \033[1mmicro deploy --dry-run\033[0m")
+	fmt.Println()
+	fmt.Printf("  Target      \033[36m%s\033[0m\n", target)
+	fmt.Printf("  Remote path %s\n", remotePath)
+	fmt.Printf("  Services    %s\n", strings.Join(services, ", "))
+	fmt.Println()
+	fmt.Println("  Plan:")
+	fmt.Println("    1. Build linux/amd64 service binaries")
+	fmt.Printf("    2. Copy binaries to %s/bin/\n", remotePath)
+	fmt.Println("    3. Enable and restart micro@<service> systemd units")
+	fmt.Println("    4. Check service health")
+	fmt.Println()
+	fmt.Println("  No SSH, rsync, systemd, or remote deployment was performed.")
+	return nil
+}
+
+func deployServices(absDir string, cfg *config.Config, filterService string) ([]string, error) {
+	if filterService != "" && cfg != nil {
+		found := false
+		for _, svc := range cfg.Services {
+			if svc.Name == filterService {
+				found = true
+				break
+			}
+		}
+		if !found && len(cfg.Services) > 0 {
+			return nil, fmt.Errorf("service '%s' not found in configuration", filterService)
+		}
+	}
+
+	if cfg != nil && len(cfg.Services) > 0 {
+		sorted, err := cfg.TopologicalSort()
+		if err != nil {
+			return nil, err
+		}
+		services := make([]string, 0, len(sorted))
+		for _, svc := range sorted {
+			if filterService == "" || svc.Name == filterService {
+				services = append(services, svc.Name)
+			}
+		}
+		return services, nil
+	}
+
+	services := []string{filepath.Base(absDir)}
+	if filterService != "" && filterService != services[0] {
+		return nil, fmt.Errorf("service '%s' not found (only '%s' available)", filterService, services[0])
+	}
+	return services, nil
+}
+
 func deploySSH(c *cli.Context, target string, cfg *config.Config, remotePath string) error {
 	dir := c.Args().Get(1)
 	if dir == "" {
@@ -121,19 +199,10 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config, remotePath str
 	fmt.Println()
 	fmt.Printf("  Target     \033[36m%s\033[0m\n\n", target)
 
-	// Early validation: Check if the requested service exists before SSH checks
-	filterService := c.String("service")
-	if filterService != "" && cfg != nil {
-		found := false
-		for _, svc := range cfg.Services {
-			if svc.Name == filterService {
-				found = true
-				break
-			}
-		}
-		if !found && len(cfg.Services) > 0 {
-			return fmt.Errorf("service '%s' not found in configuration", filterService)
-		}
+	// Early validation: resolve services before SSH checks.
+	services, err := deployServices(absDir, cfg, c.String("service"))
+	if err != nil {
+		return err
 	}
 
 	// Step 1: Check SSH connectivity
@@ -153,28 +222,6 @@ func deploySSH(c *cli.Context, target string, cfg *config.Config, remotePath str
 	fmt.Println("\u2713")
 
 	// Step 3: Build binaries
-	var services []string
-	if cfg != nil && len(cfg.Services) > 0 {
-		sorted, err := cfg.TopologicalSort()
-		if err != nil {
-			return err
-		}
-		for _, svc := range sorted {
-			// If --service flag is provided, only include that service
-			if filterService == "" || svc.Name == filterService {
-				services = append(services, svc.Name)
-			}
-		}
-	} else {
-		// Single service project
-		services = []string{filepath.Base(absDir)}
-
-		// If --service flag was provided for a single-service project, validate it matches
-		if filterService != "" && filterService != services[0] {
-			return fmt.Errorf("service '%s' not found (only '%s' available)", filterService, services[0])
-		}
-	}
-
 	fmt.Printf("  Building binaries...       ")
 	if err := buildBinaries(absDir, cfg, c.Bool("build"), services); err != nil {
 		fmt.Println("\u2717")
@@ -492,6 +539,10 @@ The deploy process:
 			&cli.StringFlag{
 				Name:  "service",
 				Usage: "Deploy only a specific service (for multi-service projects)",
+			},
+			&cli.BoolFlag{
+				Name:  "dry-run",
+				Usage: "Print the deployment plan without building, connecting, copying, or restarting services",
 			},
 		},
 	})
