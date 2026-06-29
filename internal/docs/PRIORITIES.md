@@ -21,8 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **gateway/a2a: multiple typed skills per agent card** ([#3342](https://github.com/micro/go-micro/issues/3342)) — the A2A gateway now has the full task lifecycle (send/stream/get/cancel/resubscribe, push config, multi-turn, input-required); the remaining interop gap is skill granularity. `Card` only ever advertises one synthetic "chat" skill with services flattened into tags. Let an agent advertise N typed skills and route per skill, so domain-routing agents expose their real capabilities over A2A through the gateway instead of a hand-rolled handler.
-2. **Add a maintained 0-to-hero reference example** ([#3368](https://github.com/micro/go-micro/issues/3368)) — keep the mission legible in code, not only docs: one CI-verifiable example should walk scaffold → run → chat → inspect across typed services, an agent, and a durable flow. This closes the remaining DX/coherence seam between the README promise, website roadmap, and the lived developer inner loop.
+1. **Add a maintained 0-to-hero reference example** ([#3368](https://github.com/micro/go-micro/issues/3368)) — keep the mission legible in code, not only docs: one CI-verifiable example should walk scaffold → run → chat → inspect across typed services, an agent, and a durable flow. This closes the remaining DX/coherence seam between the README promise, website roadmap, and the lived developer inner loop.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
