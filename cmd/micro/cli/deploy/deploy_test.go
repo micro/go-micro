@@ -17,6 +17,7 @@ func newDeployTestContext(t *testing.T, args ...string) *cli.Context {
 	set.String("ssh", "", "")
 	set.String("service", "", "")
 	set.Bool("build", false, "")
+	set.Bool("dry-run", false, "")
 	if err := set.Parse(args); err != nil {
 		t.Fatalf("parse flags: %v", err)
 	}
@@ -116,5 +117,51 @@ deploy prod
 	}
 	if prod.SSH != "deploy@prod.example.com" || prod.Path != "/srv/micro" {
 		t.Fatalf("deploy target = %#v", prod)
+	}
+}
+
+func TestDeployDryRunPlansConfiguredTargetWithoutRemoteSideEffects(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(dir+"/micro.mu", []byte(`service api
+    path ./api
+
+deploy prod
+    ssh deploy@prod.example.com
+    path /srv/micro
+`), 0644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	oldwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(oldwd); err != nil {
+			t.Errorf("restore cwd: %v", err)
+		}
+	})
+
+	ctx := newDeployTestContext(t, "--dry-run", "prod")
+	if err := Deploy(ctx); err != nil {
+		t.Fatalf("dry-run deploy: %v", err)
+	}
+}
+
+func TestDeployDryRunValidatesRequestedService(t *testing.T) {
+	ctx := newDeployTestContext(t, "--dry-run", "--service", "missing", "prod")
+	cfg := &config.Config{Services: map[string]*config.Service{
+		"api": {Name: "api", Path: "./api"},
+	}}
+
+	err := printDeployPlan(ctx, "deploy@prod.example.com", cfg, defaultRemotePath)
+	if err == nil {
+		t.Fatal("expected dry-run to validate service names")
+	}
+	if !strings.Contains(err.Error(), "service 'missing' not found in configuration") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
