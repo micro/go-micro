@@ -21,9 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Developer experience (ranked)
 
-1. **Broaden provider-backed AI streaming coverage** ([#3315](https://github.com/micro/go-micro/issues/3315)) — durable agent resume APIs have shipped, so the highest-value Next-roadmap seam is making `ai.Stream` behave consistently across providers; `micro chat`, A2A streaming, and long-running agent interactions should not depend on adapter-specific gaps.
-2. **Emit agent RunInfo as OpenTelemetry spans** ([#3316](https://github.com/micro/go-micro/issues/3316)) — once streaming paths are consistent, turn agent run timelines into correlated spans so operators can inspect model calls, tool calls, failures, and run IDs through the same observability surface as services and flows.
-3. **Add memory compaction and retrieval for long-running agents** ([#3321](https://github.com/micro/go-micro/issues/3321)) — after the Next-roadmap streaming and observability seams, tackle the leading Later-roadmap gap: bounded, store-backed memory that keeps long agent runs useful without making Go Micro a prompt-layer framework.
+1. **Emit agent RunInfo as OpenTelemetry spans** ([#3316](https://github.com/micro/go-micro/issues/3316)) — provider-backed streaming just broadened across the OpenAI-compatible path, so the highest-value remaining Next-roadmap seam is making agent execution operable: model calls, tool calls, failures, and run IDs should correlate with the same traces as services and flows.
+2. **Add memory compaction and retrieval for long-running agents** ([#3321](https://github.com/micro/go-micro/issues/3321)) — after run timelines become observable, tackle the leading Later-roadmap gap: bounded, store-backed memory that keeps long agent runs useful without turning Go Micro into a prompt-layer framework.
+3. **Add human-in-the-loop pause and resume for agent workflows** ([#3329](https://github.com/micro/go-micro/issues/3329)) — once agents are observable and memory-bounded, close the next operability gap for scheduled/looping work: durable pending-input states that let humans approve or provide context and then resume the same service/agent/workflow runtime.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
