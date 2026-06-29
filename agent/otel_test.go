@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -11,9 +12,12 @@ import (
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
+
+const codesError = codes.Error
 
 type otelTestModel struct{ opts ai.Options }
 
@@ -89,6 +93,9 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 		if attrs[AttrRunID] != runID || attrs[AttrAgentName] != "runner" {
 			t.Fatalf("%s missing run correlation attributes: %#v", s.Name(), attrs)
 		}
+		if s.Name() == spanNameModelCall && (attrs[AttrAttempt] != "1" || attrs[AttrMaxAttempts] != "1") {
+			t.Fatalf("model span missing attempt attributes: %#v", attrs)
+		}
 	}
 	keys, err := store.Scope(st, "agent", "runner").List(store.ListPrefix("runs/"))
 	if err != nil {
@@ -122,6 +129,77 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	}
 	if len(events) == 0 || events[0].TraceID == "" || events[0].SpanID == "" {
 		t.Fatalf("events missing trace correlation: %#v", events)
+	}
+}
+
+type failingOtelModel struct{ opts ai.Options }
+
+func (m *failingOtelModel) Init(opts ...ai.Option) error {
+	for _, o := range opts {
+		o(&m.opts)
+	}
+	return nil
+}
+func (m *failingOtelModel) Options() ai.Options { return m.opts }
+func (m *failingOtelModel) String() string      { return "otelfail" }
+func (m *failingOtelModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+	return nil, nil
+}
+func (m *failingOtelModel) Generate(context.Context, *ai.Request, ...ai.GenerateOption) (*ai.Response, error) {
+	return nil, errors.New("provider exploded")
+}
+
+func init() {
+	ai.Register("otelfail", func(opts ...ai.Option) ai.Model { return &failingOtelModel{opts: ai.NewOptions(opts...)} })
+}
+
+func TestAgentOpenTelemetrySpansModelFailure(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+	st := store.NewMemoryStore()
+	a := New(Name("failing-runner"), Provider("otelfail"), WithStore(st), TraceProvider(tp))
+	if _, err := a.Ask(context.Background(), "hello"); err == nil {
+		t.Fatal("Ask succeeded, want provider error")
+	}
+
+	spans := exp.GetSpans().Snapshots()
+	var sawRunError, sawModelError bool
+	for _, s := range spans {
+		attrs := spanAttributes(s.Attributes())
+		switch s.Name() {
+		case spanNameRun:
+			if attrs[AttrAgentName] == "failing-runner" && s.Status().Code == codesError {
+				sawRunError = true
+			}
+		case spanNameModelCall:
+			if attrs[AttrAgentName] == "failing-runner" && attrs[AttrAttempt] == "1" && s.Status().Code == codesError {
+				sawModelError = true
+			}
+		}
+	}
+	if !sawRunError || !sawModelError {
+		t.Fatalf("missing error spans: run=%v model=%v spans=%d", sawRunError, sawModelError, len(spans))
+	}
+
+	summaries, err := ListRunSummaries(st, "failing-runner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 || summaries[0].Status != "error" || summaries[0].LastError == "" {
+		t.Fatalf("unexpected failure summary: %#v", summaries)
+	}
+	events, err := LoadRunEvents(st, "failing-runner", summaries[0].RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sawModelEvent bool
+	for _, event := range events {
+		if event.Kind == "model" && event.Attempt == 1 && event.MaxAttempts == 1 && event.Error != "" {
+			sawModelEvent = true
+		}
+	}
+	if !sawModelEvent {
+		t.Fatalf("missing failed model event with attempt metadata: %#v", events)
 	}
 }
 

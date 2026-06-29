@@ -31,6 +31,8 @@ const (
 	AttrInputTokens    = "agent.tokens.input"
 	AttrOutputTokens   = "agent.tokens.output"
 	AttrTotalTokens    = "agent.tokens.total"
+	AttrAttempt        = "agent.model.attempt"
+	AttrMaxAttempts    = "agent.model.max_attempts"
 	AttrToolName       = "agent.tool.name"
 	AttrDelegate       = "agent.delegate"
 	AttrGuardrailBlock = "agent.guardrail.block"
@@ -38,20 +40,22 @@ const (
 )
 
 type RunEvent struct {
-	Time      time.Time `json:"time"`
-	RunID     string    `json:"run_id"`
-	ParentID  string    `json:"parent_id,omitempty"`
-	TraceID   string    `json:"trace_id,omitempty"`
-	SpanID    string    `json:"span_id,omitempty"`
-	Agent     string    `json:"agent"`
-	Kind      string    `json:"kind"`
-	Name      string    `json:"name,omitempty"`
-	Provider  string    `json:"provider,omitempty"`
-	Model     string    `json:"model,omitempty"`
-	LatencyMS int64     `json:"latency_ms,omitempty"`
-	Tokens    Usage     `json:"tokens,omitempty"`
-	Refused   string    `json:"refused,omitempty"`
-	Error     string    `json:"error,omitempty"`
+	Time        time.Time `json:"time"`
+	RunID       string    `json:"run_id"`
+	ParentID    string    `json:"parent_id,omitempty"`
+	TraceID     string    `json:"trace_id,omitempty"`
+	SpanID      string    `json:"span_id,omitempty"`
+	Agent       string    `json:"agent"`
+	Kind        string    `json:"kind"`
+	Name        string    `json:"name,omitempty"`
+	Provider    string    `json:"provider,omitempty"`
+	Model       string    `json:"model,omitempty"`
+	Attempt     int       `json:"attempt,omitempty"`
+	MaxAttempts int       `json:"max_attempts,omitempty"`
+	LatencyMS   int64     `json:"latency_ms,omitempty"`
+	Tokens      Usage     `json:"tokens,omitempty"`
+	Refused     string    `json:"refused,omitempty"`
+	Error       string    `json:"error,omitempty"`
 }
 
 type Usage = ai.Usage
@@ -144,7 +148,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 		if resp != nil {
 			usage = resp.Usage
 		}
-		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, LatencyMS: dur, Tokens: usage}
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
 		if err != nil {
 			e.Error = err.Error()
 		}
@@ -162,6 +166,12 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 	resp, err := m.Model.Generate(ctx, req, opts...)
 	dur := time.Since(start).Milliseconds()
 	attrs := []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}
+	if info.Attempt > 0 {
+		attrs = append(attrs, attribute.Int(AttrAttempt, info.Attempt))
+	}
+	if info.MaxAttempts > 0 {
+		attrs = append(attrs, attribute.Int(AttrMaxAttempts, info.MaxAttempts))
+	}
 	usage := ai.Usage{}
 	if resp != nil {
 		usage = resp.Usage
@@ -175,7 +185,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 		span.SetStatus(codes.Ok, "")
 	}
 	span.End()
-	e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, LatencyMS: dur, Tokens: usage}
+	e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
 	if err != nil {
 		e.Error = err.Error()
 	}
@@ -273,6 +283,12 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 	}
 	if e.Model != "" {
 		attrs = append(attrs, attribute.String(AttrModel, e.Model))
+	}
+	if e.Attempt > 0 {
+		attrs = append(attrs, attribute.Int(AttrAttempt, e.Attempt))
+	}
+	if e.MaxAttempts > 0 {
+		attrs = append(attrs, attribute.Int(AttrMaxAttempts, e.MaxAttempts))
 	}
 	if e.LatencyMS > 0 {
 		attrs = append(attrs, attribute.Int64(AttrLatencyMS, e.LatencyMS))
