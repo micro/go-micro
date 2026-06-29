@@ -34,3 +34,11 @@ calls that tool, Go Micro persists the run with status `paused` and stage
 `input-required`. Plain `agent.Resume` continues to support completed, failed,
 and approval-paused runs; input-required runs are resumed with
 `agent.ResumeInput` so the human response is explicit.
+
+## Cancellation and deadlines
+
+`ResumeInput` uses the caller's `context.Context` for checkpoint reads, writes,
+and the resumed model/tool turn. If the context is canceled or its deadline
+expires before the resume is committed, the call returns the context error and
+the checkpointed run remains `paused` at `input-required`; list it with
+`agent.Pending` and retry with a fresh context once the operator is ready.

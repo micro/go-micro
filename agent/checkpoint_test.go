@@ -243,6 +243,51 @@ func TestHumanInputPauseResumesSameRunWithInput(t *testing.T) {
 	}
 }
 
+func TestHumanInputResumeHonorsCanceledContextAndLeavesRunPending(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewStore(), "input-cancel-agent")
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler != nil {
+			opts.ToolHandler(ctx, ai.ToolCall{ID: "input-1", Name: toolHumanInput, Input: map[string]any{"prompt": "Approve deploy?"}})
+		}
+		return &ai.Response{Reply: "waiting"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("input-cancel-agent"), WithCheckpoint(cp))
+	if _, err := a.Ask(ctx, "deploy the service"); err == nil {
+		t.Fatal("Ask succeeded, want input-required pause")
+	}
+	runs, err := Pending(ctx, a)
+	if err != nil {
+		t.Fatalf("Pending: %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("Pending returned %d runs, want 1: %#v", len(runs), runs)
+	}
+
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, err := ResumeInput(canceled, a, runs[0].ID, "yes"); !errors.Is(err, context.Canceled) {
+		t.Fatalf("ResumeInput canceled err = %v, want context.Canceled", err)
+	}
+
+	loaded, ok, err := cp.Load(ctx, runs[0].ID)
+	if err != nil || !ok {
+		t.Fatalf("Load paused run ok=%v err=%v", ok, err)
+	}
+	if loaded.Status != "paused" || loaded.State.Stage != agentInputStep {
+		t.Fatalf("run status/stage after canceled resume = %s/%s, want paused/%s", loaded.Status, loaded.State.Stage, agentInputStep)
+	}
+	var pause inputPause
+	if err := loaded.State.Scan(&pause); err != nil {
+		t.Fatalf("Scan pause after canceled resume: %v", err)
+	}
+	if pause.OriginalMessage != "deploy the service" || pause.Prompt != "Approve deploy?" {
+		t.Fatalf("pause after canceled resume = %#v", pause)
+	}
+}
+
 func TestApprovalDenialPausesCheckpointedRunAndResumeContinues(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewStore(), "approval-agent")
