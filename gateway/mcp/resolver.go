@@ -90,7 +90,7 @@ func (m *ManualResolver) Call(ctx context.Context, name string, args map[string]
 	fn, ok := m.funcs[name]
 	m.mu.RUnlock()
 	if !ok {
-		return nil, &RPCError{Code: InvalidParams, Message: "Tool not found", Data: name}
+		return nil, &RPCError{Code: InvalidParams, Message: "Tool not found: " + name, Data: name}
 	}
 	return fn(ctx, args)
 }

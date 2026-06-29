@@ -6,12 +6,33 @@ import (
 	"strings"
 )
 
+// HandlerOption configures NewHandler.
+type HandlerOption func(*handlerOptions)
+
+type handlerOptions struct {
+	serverName, serverVersion, protocolVersion string
+}
+
+// WithServerInfo sets the name/version advertised in the initialize response.
+func WithServerInfo(name, version string) HandlerOption {
+	return func(o *handlerOptions) { o.serverName, o.serverVersion = name, version }
+}
+
+// WithProtocolVersion sets the MCP protocol version advertised in initialize.
+func WithProtocolVersion(v string) HandlerOption {
+	return func(o *handlerOptions) { o.protocolVersion = v }
+}
+
 // NewHandler returns an http.Handler serving the MCP protocol over HTTP as
 // JSON-RPC 2.0 (initialize, ping, notifications/*, tools/list, tools/call),
 // backed by the resolver. Mount it on your own server (e.g. POST /mcp): the
 // gateway provides the protocol; you keep your routes, middleware and any
 // human-facing docs page.
-func NewHandler(r Resolver) http.Handler {
+func NewHandler(r Resolver, opts ...HandlerOption) http.Handler {
+	o := handlerOptions{serverName: "go-micro-mcp", serverVersion: "1.0.0", protocolVersion: "2024-11-05"}
+	for _, fn := range opts {
+		fn(&o)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -38,9 +59,9 @@ func NewHandler(r Resolver) http.Handler {
 		switch rpc.Method {
 		case "initialize":
 			writeRPCResult(w, rpc.ID, map[string]interface{}{
-				"protocolVersion": "2024-11-05",
+				"protocolVersion": o.protocolVersion,
 				"capabilities":    map[string]interface{}{"tools": map[string]interface{}{}},
-				"serverInfo":      map[string]interface{}{"name": "go-micro-mcp", "version": "1.0.0"},
+				"serverInfo":      map[string]interface{}{"name": o.serverName, "version": o.serverVersion},
 			})
 		case "ping":
 			writeRPCResult(w, rpc.ID, map[string]interface{}{})
