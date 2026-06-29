@@ -149,7 +149,12 @@ func (a *agentImpl) setupWithToolHandler(handler ai.ToolHandler) {
 		modelOpts = append(modelOpts, ai.WithModel(a.opts.Model))
 	}
 
-	a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
+	// Reuse the existing tools instance: its name map is populated by
+	// discoverTools, and rebuilding it here would orphan a base handler that
+	// already captured the old instance (breaking StreamAsk tool resolution).
+	if a.tools == nil {
+		a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
+	}
 	if handler == nil {
 		handler = a.toolHandler()
 	}
