@@ -47,9 +47,10 @@ test-coverage:
 # This mirrors the default CI path so local dogfooding catches scaffold,
 # run/chat/inspect, and 0→hero regressions before a PR is opened.
 harness:
-	go test ./cmd/micro/cli/new -run TestZeroToOneContract -count=1
+	go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
 	./internal/harness/zero-to-hero-ci/run.sh
 	go run ./internal/harness/agent-flow
+	go run ./internal/harness/provider-conformance -providers mock
 
 # Run the same harnesses against every configured live provider. Providers
 # without API keys are skipped; configured providers must pass.

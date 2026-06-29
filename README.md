@@ -64,6 +64,14 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
   -H 'Content-Type: application/json' -d '{"name":"World"}'
 ```
 
+This scaffold → run → call path is covered by the no-secret CI harness. To run
+the same local contract (including the 0→hero services → agents → workflows path,
+chat/inspect CLI boundaries, and deploy dry-run), use:
+
+```bash
+make harness
+```
+
 ### Generate from a prompt — with an LLM key
 
 Set a provider key, describe what you want, and the AI designs services, writes handlers, compiles, and starts them:

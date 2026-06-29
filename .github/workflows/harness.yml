@@ -27,16 +27,8 @@ jobs:
           cache: true
       - name: Build
         run: go build ./...
-      - name: 0→1 scaffold contract
-        run: go test ./cmd/micro/cli/new -run TestZeroToOneContract -count=1
-      - name: Universe end-to-end (asserts; exits non-zero on failure)
-        run: go run ./internal/harness/universe
-      - name: Agent-flow harness
-        run: go run ./internal/harness/agent-flow
-      - name: Provider conformance (mock)
-        run: go run ./internal/harness/provider-conformance -providers mock
-      - name: 0→hero run/chat/inspect reference scenario
-        run: ./internal/harness/zero-to-hero-ci/run.sh
+      - name: 0→1 and 0→hero developer-flow harness
+        run: make harness
 
   harness-live:
     name: Provider harnesses (live LLM conformance)

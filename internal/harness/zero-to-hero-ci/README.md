@@ -18,8 +18,8 @@ scripted so CI can run it on every push without external services or model keys.
    remote infrastructure.
 
 After the CLI boundary smoke checks, the script runs the deterministic harnesses
-that boot real services, agents, workflows, store-backed run history, and A2A
-with only the LLM mocked.
+that boot real services, agents, workflows, store-backed run history, plan/delegate,
+and A2A with only the LLM mocked.
 
 ## Local and CI entry points
 
@@ -31,7 +31,8 @@ contract locally with:
 make harness
 ```
 
-That target intentionally exercises the documented getting-started path before
-the 0→hero scenario, so the public scaffold → run/chat → inspect → deploy lifecycle stays
-executable outside CI as well. Live provider checks remain separate and gated by
-configured API keys (`make provider-conformance` or the scheduled/manual CI job).
+That target intentionally exercises both 0→1 scaffold variants, the 0→hero
+scenario, the event-driven agent-flow harness, and mock provider conformance, so
+the public scaffold → run/chat → inspect → deploy lifecycle stays executable
+outside CI as well. Live provider checks remain separate and gated by configured
+API keys (`make provider-conformance` or the scheduled/manual CI job).
