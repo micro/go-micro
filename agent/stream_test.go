@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/store"
 )
 
 func TestStreamAskEmitsToolEventsAndFinalTokens(t *testing.T) {
@@ -77,6 +79,87 @@ func TestStreamAskHelperRejectsUnsupportedAgent(t *testing.T) {
 	_, err := StreamAsk(context.Background(), unsupportedAgent{}, "hello")
 	if err == nil {
 		t.Fatal("StreamAsk helper should reject unsupported implementations")
+	}
+}
+
+func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewStore(), "stream-resume-agent")
+	toolRuns := 0
+	first := true
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler != nil {
+			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "charge", Input: map[string]any{"order": "42"}})
+			if res.Content != "charged" {
+				t.Fatalf("tool result = %q, want charged", res.Content)
+			}
+		}
+		if first {
+			first = false
+			return nil, errors.New("stream disconnected after tool")
+		}
+		return &ai.Response{Reply: "finished from streamed checkpoint"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("stream-resume-agent"), WithCheckpoint(cp),
+		WithTool("charge", "charge once", nil, func(context.Context, map[string]any) (string, error) {
+			toolRuns++
+			return "charged", nil
+		}))
+	stream, err := a.StreamAsk(ctx, "charge order 42")
+	if err != nil {
+		t.Fatalf("StreamAsk: %v", err)
+	}
+	for {
+		_, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			break
+		}
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after failed StreamAsk = %d, want 1", toolRuns)
+	}
+	runs, err := Pending(ctx, a)
+	if err != nil {
+		t.Fatalf("Pending: %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("Pending returned %d runs, want 1", len(runs))
+	}
+
+	resumed, err := ResumeStreamAsk(ctx, a, runs[0].ID)
+	if err != nil {
+		t.Fatalf("ResumeStreamAsk: %v", err)
+	}
+	var toolEvents int
+	var done *Response
+	for {
+		event, err := resumed.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("resumed Recv: %v", err)
+		}
+		if event.Type == StreamEventToolStart || event.Type == StreamEventToolEnd {
+			toolEvents++
+		}
+		if event.Type == StreamEventDone {
+			done = event.Response
+		}
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after ResumeStreamAsk = %d, want completed tool was not replayed", toolRuns)
+	}
+	if toolEvents != 2 {
+		t.Fatalf("resumed tool events = %d, want start/end for replayed checkpoint result", toolEvents)
+	}
+	if done == nil || done.Reply != "finished from streamed checkpoint" || done.RunID != runs[0].ID {
+		t.Fatalf("done response = %#v", done)
 	}
 }
 
