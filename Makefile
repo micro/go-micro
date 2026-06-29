@@ -18,7 +18,7 @@ help:
 	@echo "  make test-race     - Run tests with race detector"
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
-	@echo "  make harness       - Run deterministic end-to-end harnesses"
+	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
 	@echo "  make provider-conformance - Run harnesses against configured live providers"
 	@echo "  make fmt           - Format code"
 	@echo "  make install-tools - Install development tools"
@@ -42,12 +42,14 @@ test-coverage:
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report: coverage.html"
 
-# Run the end-to-end harnesses (deterministic, mock LLM — no API key).
-# The universe harness exits non-zero on assertion failure.
+# Run the documented getting-started contracts plus the deterministic
+# services → agents → workflows harnesses (mock LLM — no API key).
+# This mirrors the default CI path so local dogfooding catches scaffold,
+# run/chat/inspect, and 0→hero regressions before a PR is opened.
 harness:
-	go run ./internal/harness/universe
+	go test ./cmd/micro/cli/new -run TestZeroToOneContract -count=1
+	./internal/harness/zero-to-hero-ci/run.sh
 	go run ./internal/harness/agent-flow
-	go run ./internal/harness/plan-delegate # 0→hero: services + agents + flow + plan/delegate
 
 # Run the same harnesses against every configured live provider. Providers
 # without API keys are skipped; configured providers must pass.
