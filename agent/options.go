@@ -56,6 +56,10 @@ type Options struct {
 	// ModelRetryBackoff is the base delay between transient provider failures
 	// (grows exponentially per attempt when retries are enabled).
 	ModelRetryBackoff time.Duration
+	// ToolTimeout bounds each tool execution (0 disables). The timeout is
+	// applied before custom tools, delegate, and service RPC calls so context
+	// deadlines propagate consistently through the agent loop.
+	ToolTimeout time.Duration
 
 	// Memory is the agent's conversation memory. Nil = the default
 	// store-backed memory (durable across restarts).
@@ -112,6 +116,7 @@ func newOptions(opts ...Option) Options {
 		ModelTimeout:      30 * time.Second,
 		ModelMaxAttempts:  1, // retries opt-in via ModelRetry (see field doc)
 		ModelRetryBackoff: 100 * time.Millisecond,
+		ToolTimeout:       30 * time.Second,
 		// On by default and lenient: identical repeated calls are a
 		// no-progress loop, never useful. Set LoopLimit(0) to disable.
 		LoopLimit: 3,
@@ -202,6 +207,14 @@ func LoopLimit(n int) Option {
 // ModelCallTimeout sets the timeout for each provider Generate call.
 func ModelCallTimeout(d time.Duration) Option {
 	return func(o *Options) { o.ModelTimeout = d }
+}
+
+// ToolCallTimeout sets the timeout for each tool execution. It bounds custom
+// tools, built-in delegate calls, and service RPC tools with the same context
+// deadline so mid-run cancellation and slow tools produce safe error results
+// instead of unbounded agent runs. Set 0 to disable.
+func ToolCallTimeout(d time.Duration) Option {
+	return func(o *Options) { o.ToolTimeout = d }
 }
 
 // ModelRetry sets the provider retry budget and backoff for transient failures.

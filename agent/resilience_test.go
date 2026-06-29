@@ -102,3 +102,30 @@ func TestCanceledAskContextSkipsToolExecution(t *testing.T) {
 		t.Fatalf("plan persisted after canceled tool context: %q", plan)
 	}
 }
+
+func TestToolCallTimeoutPropagatesDeadlineToCustomTool(t *testing.T) {
+	var sawDeadline bool
+	a := newTestAgent(
+		Name("tool-timeout"),
+		ToolCallTimeout(10*time.Millisecond),
+		WithTool("slow", "slow tool", nil, func(ctx context.Context, input map[string]any) (string, error) {
+			if _, ok := ctx.Deadline(); ok {
+				sawDeadline = true
+			}
+			<-ctx.Done()
+			return "", ctx.Err()
+		}),
+	)
+
+	start := time.Now()
+	content := toolContent(a.toolHandler(), "slow", nil)
+	if !sawDeadline {
+		t.Fatal("custom tool did not receive a deadline")
+	}
+	if !strings.Contains(content, context.DeadlineExceeded.Error()) {
+		t.Fatalf("tool result = %q, want deadline exceeded", content)
+	}
+	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
+		t.Fatalf("tool call took %s, want bounded timeout", elapsed)
+	}
+}

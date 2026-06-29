@@ -113,13 +113,14 @@ func Builtins(opts ...Option) (tools []ai.Tool, handle func(name string, input m
 // prevents runaway recursion).
 func (a *agentImpl) toolHandler() ai.ToolHandler {
 	if a.ephemeral {
-		return a.tools.Handler()
+		return a.toolTimeoutWrap(a.tools.Handler())
 	}
 
 	// Innermost first: base, then guardrails (approve → loop → step →
 	// plan), then developer wrappers outermost. Wrapping reverses order,
 	// so the result runs plan → step → loop → approve → checkpoint → base.
 	h := a.baseHandler()
+	h = a.toolTimeoutWrap(h)
 	h = a.checkpointToolWrap(h)
 	h = a.approveWrap(h)
 	h = a.loopWrap(h)
@@ -145,6 +146,21 @@ func contextWrap(next ai.ToolHandler) ai.ToolHandler {
 		default:
 		}
 		return next(ctx, call)
+	}
+}
+
+// toolTimeoutWrap gives each tool execution its own deadline while preserving
+// caller cancellation. Handlers still execute synchronously; tools that honor
+// context (custom tools, delegate RPC/A2A, and go-micro RPC clients) return
+// promptly with a bounded error result when the deadline expires.
+func (a *agentImpl) toolTimeoutWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		if a.opts.ToolTimeout <= 0 {
+			return next(ctx, call)
+		}
+		toolCtx, cancel := context.WithTimeout(ctx, a.opts.ToolTimeout)
+		defer cancel()
+		return next(toolCtx, call)
 	}
 }
 
@@ -319,6 +335,9 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 		WithRegistry(a.opts.Registry),
 		WithClient(a.opts.Client),
 		WithStore(a.opts.Store),
+		ModelCallTimeout(a.opts.ModelTimeout),
+		ModelRetry(a.opts.ModelMaxAttempts, a.opts.ModelRetryBackoff),
+		ToolCallTimeout(a.opts.ToolTimeout),
 		TraceProvider(a.opts.TraceProvider),
 	)
 	// Record lineage so the sub-agent's tool calls carry this run as parent.
