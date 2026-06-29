@@ -36,12 +36,45 @@ your stack — the harness *is* the stack.
 | Discovery & RPC | Registry + client; agents and services find and call each other | Shipped |
 | Interop | MCP (tools), A2A (agents), x402 (paid tools) | Shipped |
 | Resilience | Per-call timeout with context propagation; opt-in retry/backoff (`ModelRetry`) across the loop | Shipped |
-| Durable runs | Checkpoint and resume an agent run (flows already do) | In progress |
+| Durable runs | Checkpoint and resume an agent run with the same checkpoint backend flows use | Shipped |
 | Observability | `RunInfo` → OpenTelemetry spans for runs, model calls, tools, delegation, and failures; persisted run history | Shipped |
 | Streaming | `ai.Stream` through chat, agent, and A2A | In progress |
 
 The "in progress" rows are exactly the roadmap's [Now and Next](/docs/roadmap.html),
 and the work is happening in the open.
+
+## Durable agent runs
+
+Agents can persist their execution history to the same `Checkpoint` backend as
+flows. A checkpointed `Ask` records the run id, original prompt, model result,
+and completed tool calls. If the process restarts after a tool succeeds but
+before the model finishes, `AgentResume` continues the same run and returns the
+recorded tool result instead of re-running the side effect. If a run already
+completed, resume returns the persisted response without calling the model.
+
+```go
+agent := micro.NewAgent("conductor",
+    micro.AgentProvider("anthropic"),
+    micro.AgentWithCheckpoint(checkpoint),
+)
+
+resp, err := agent.Ask(ctx, "charge order 42 and send a receipt")
+if err != nil {
+    // On startup, or after a transient failure, discover unfinished work:
+    pending, _ := micro.AgentPending(ctx, agent)
+    for _, run := range pending {
+        _, _ = micro.AgentResume(ctx, agent, run.ID)
+    }
+}
+_ = resp
+```
+
+For human-in-the-loop runs that pause through the built-in `request_input` tool,
+resume with the operator's response:
+
+```go
+_, err := micro.AgentResumeInput(ctx, agent, runID, "Deploy to us-east-1")
+```
 
 ## Observing agent runs
 
