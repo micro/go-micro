@@ -178,7 +178,7 @@ func (a *agentImpl) setupWithToolHandler(handler ai.ToolHandler) {
 	case a.ephemeral:
 		a.mem = NewInMemory(a.opts.HistoryLimit)
 	case a.opts.MemoryCompaction.MaxMessages > 0:
-		a.mem = NewCompactingMemory(a.stateStore(), "history", a.opts.MemoryCompaction.MaxMessages, a.opts.MemoryCompaction.KeepRecent)
+		a.mem = NewCompactingMemoryWithOptions(a.stateStore(), "history", a.opts.MemoryCompaction)
 	default:
 		a.mem = NewMemory(a.stateStore(), "history", a.opts.HistoryLimit)
 	}

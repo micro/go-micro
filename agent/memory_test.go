@@ -3,9 +3,11 @@ package agent
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 
+	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -93,6 +95,36 @@ func TestCompactingMemoryArchivePersistsAndReloads(t *testing.T) {
 	if !ok {
 		t.Fatal("compacting memory should support recall")
 	}
+	recalled := recall.Recall("alpha budget", 1)
+	if len(recalled) != 1 {
+		t.Fatalf("recalled %d messages, want 1", len(recalled))
+	}
+	if got := recalled[0].Content.(string); !strings.Contains(got, "alpha budget is 42") {
+		t.Fatalf("reloaded recall = %q, want alpha budget", got)
+	}
+}
+
+func TestCompactingMemoryUsesCustomSummarizerAndReloadsRecall(t *testing.T) {
+	st := store.NewMemoryStore()
+	m := NewCompactingMemoryWithOptions(st, "agent/custom/history", MemoryCompaction{
+		MaxMessages: 3,
+		KeepRecent:  1,
+		Summarize: func(msgs []ai.Message) ai.Message {
+			return ai.Message{Role: "system", Content: "custom summary count=" + strconv.Itoa(len(msgs))}
+		},
+	})
+	m.Add("user", "alpha budget is 42")
+	m.Add("assistant", "noted")
+	m.Add("user", "beta budget is 7")
+	m.Add("assistant", "noted")
+
+	msgs := m.Messages()
+	if len(msgs) == 0 || msgs[0].Content != "custom summary count=3" {
+		t.Fatalf("summary = %#v, want custom summarizer output", msgs)
+	}
+
+	reloaded := NewCompactingMemoryWithOptions(st, "agent/custom/history", MemoryCompaction{MaxMessages: 3, KeepRecent: 1})
+	recall := reloaded.(MemoryRecall)
 	recalled := recall.Recall("alpha budget", 1)
 	if len(recalled) != 1 {
 		t.Fatalf("recalled %d messages, want 1", len(recalled))

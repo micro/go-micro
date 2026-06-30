@@ -246,11 +246,20 @@ func WithMemory(m Memory) Option {
 // turns are injected into matching future asks.
 func CompactMemory(maxMessages, keepRecent int) Option {
 	return func(o *Options) {
-		o.MemoryCompaction = MemoryCompaction{MaxMessages: maxMessages, KeepRecent: keepRecent}
+		o.MemoryCompaction.MaxMessages = maxMessages
+		o.MemoryCompaction.KeepRecent = keepRecent
 		if o.MemoryRecallLimit == 0 {
 			o.MemoryRecallLimit = 5
 		}
 	}
+}
+
+// MemorySummarizer sets the deterministic summarization hook used by the
+// default compacting memory. It is optional; without it, compacted memory uses
+// a provider-neutral text summary. The hook receives the older messages being
+// removed from active context and returns the replacement summary message.
+func MemorySummarizer(fn MemorySummaryFunc) Option {
+	return func(o *Options) { o.MemoryCompaction.Summarize = fn }
 }
 
 // MemoryRecallLimit sets how many archived turns a memory backend may inject
