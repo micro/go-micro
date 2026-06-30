@@ -16,14 +16,16 @@ const (
 	spanNameFlowRun  = "flow.run"
 	spanNameFlowStep = "flow.step"
 
-	AttrFlowRunID     = "flow.run.id"
-	AttrFlowParentID  = "flow.run.parent_id"
-	AttrFlowName      = "flow.name"
-	AttrFlowStepName  = "flow.step.name"
-	AttrFlowStatus    = "flow.status"
-	AttrFlowAttempts  = "flow.step.attempts"
-	AttrFlowLatencyMS = "flow.latency_ms"
-	AttrFlowErrorKind = "flow.error.kind"
+	AttrFlowRunID              = "flow.run.id"
+	AttrFlowParentID           = "flow.run.parent_id"
+	AttrFlowName               = "flow.name"
+	AttrFlowStepName           = "flow.step.name"
+	AttrFlowStatus             = "flow.status"
+	AttrFlowAttempts           = "flow.step.attempts"
+	AttrFlowLatencyMS          = "flow.latency_ms"
+	AttrFlowErrorKind          = "flow.error.kind"
+	AttrFlowVerificationStatus = "flow.verification.status"
+	AttrFlowVerificationNote   = "flow.verification.note"
 )
 
 func (f *Flow) tracer() trace.Tracer {
@@ -57,7 +59,7 @@ func (f *Flow) startRunSpan(ctx context.Context, run Run) (context.Context, func
 	}
 }
 
-func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int, error) {
+func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int, Verification, error) {
 	if f.opts.TraceProvider == nil {
 		return f.runStep(ctx, step, in)
 	}
@@ -69,11 +71,20 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 		attribute.String(AttrFlowStepName, step.Name),
 	))
 	start := time.Now()
-	out, attempts, err := f.runStep(ctx, step, in)
+	out, attempts, verification, err := f.runStep(ctx, step, in)
 	span.SetAttributes(
 		attribute.Int(AttrFlowAttempts, attempts),
 		attribute.Int64(AttrFlowLatencyMS, time.Since(start).Milliseconds()),
 	)
+	if verification.Passed {
+		span.SetAttributes(attribute.String(AttrFlowVerificationStatus, "passed"))
+	}
+	if verification.Feedback != "" {
+		span.SetAttributes(attribute.String(AttrFlowVerificationNote, verification.Feedback))
+		if !verification.Passed {
+			span.SetAttributes(attribute.String(AttrFlowVerificationStatus, "failed"))
+		}
+	}
 	if err != nil {
 		span.RecordError(err)
 		span.SetAttributes(attribute.String(AttrFlowErrorKind, string(ai.ClassifyError(err))))
@@ -82,5 +93,5 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 		span.SetStatus(codes.Ok, "")
 	}
 	span.End()
-	return out, attempts, err
+	return out, attempts, verification, err
 }
