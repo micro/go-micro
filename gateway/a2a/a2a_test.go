@@ -91,6 +91,9 @@ func TestAgentCardFromRegistry(t *testing.T) {
 	if card.ProtocolVersion == "" {
 		t.Errorf("card missing protocolVersion: %+v", card)
 	}
+	if !card.Capabilities.TaskResubscribe || !card.Capabilities.InputRequired {
+		t.Errorf("card capabilities = %+v, want task resubscribe and input-required advertised", card.Capabilities)
+	}
 	if got := skillIDs(card.Skills); strings.Join(got, ",") != "task,project" {
 		t.Errorf("skill IDs = %v, want [task project]", got)
 	}

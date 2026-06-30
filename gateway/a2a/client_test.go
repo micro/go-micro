@@ -3,8 +3,10 @@ package a2a
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -108,5 +110,59 @@ func TestClientContinuesTaskAndConfiguresPush(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for push update")
+	}
+}
+
+func TestClientResubscribeStreamsRetainedAndLiveTask(t *testing.T) {
+	d := newDispatcher()
+	initial := &Task{ID: "task-1", ContextID: "ctx-1", Kind: "task", Status: TaskStatus{State: stateWorking, Timestamp: time.Now().UTC().Format(time.RFC3339)}}
+	d.store(initial)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		d.serve(w, r, func(context.Context, string) (string, error) { return "", nil })
+	}))
+	defer ts.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	tasks, errs := NewClient(ts.URL).Resubscribe(ctx, initial.ID)
+
+	first := <-tasks
+	if first.ID != initial.ID || first.Status.State != stateWorking {
+		t.Fatalf("first resubscribe task = %+v, want retained working task", first)
+	}
+	final := &Task{ID: initial.ID, ContextID: initial.ContextID, Kind: "task", Status: TaskStatus{State: stateCompleted, Timestamp: time.Now().UTC().Format(time.RFC3339)}, Artifacts: []Artifact{textArtifact("done")}}
+	d.store(final)
+	second := <-tasks
+	if second.ID != final.ID || second.Status.State != stateCompleted || textOf(second.Artifacts[0].Parts) != "done" {
+		t.Fatalf("second resubscribe task = %+v, want live completed task", second)
+	}
+	if _, ok := <-tasks; ok {
+		t.Fatal("resubscribe task channel stayed open after terminal update")
+	}
+	select {
+	case err := <-errs:
+		if err != nil {
+			t.Fatalf("resubscribe error = %v", err)
+		}
+	default:
+	}
+}
+
+func TestClientSendMessageReturnsInputRequiredTask(t *testing.T) {
+	card := Card("solo", "http://localhost:4000", "", []string{"task"})
+	h := NewAgentHandler(card, func(context.Context, string) (string, error) {
+		return "", errors.New("input-required: provide approval code")
+	})
+	ts := httptest.NewServer(h)
+	defer ts.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	task, err := NewClient(ts.URL).SendMessage(ctx, Message{Parts: []Part{{Kind: "text", Text: "approve?"}}})
+	if err != nil {
+		t.Fatalf("SendMessage: %v", err)
+	}
+	if task.Status.State != stateInputRequired || !strings.Contains(textOf(task.Artifacts[0].Parts), "provide approval code") {
+		t.Fatalf("task = %+v, want input-required handoff", task)
 	}
 }

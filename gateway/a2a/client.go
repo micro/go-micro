@@ -1,11 +1,13 @@
 package a2a
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -135,6 +137,77 @@ func (c *Client) SendMessage(ctx context.Context, message Message) (*Task, error
 	return &task, nil
 }
 
+// Resubscribe reconnects to a retained or active task stream and returns task
+// snapshots as the remote agent emits updates. The returned channel is closed
+// when the task reaches a terminal state or ctx is canceled.
+func (c *Client) Resubscribe(ctx context.Context, taskID string) (<-chan Task, <-chan error) {
+	tasks := make(chan Task, 8)
+	errs := make(chan error, 1)
+	go func() {
+		defer close(tasks)
+		defer close(errs)
+		body, _ := json.Marshal(map[string]any{
+			"jsonrpc": "2.0",
+			"id":      uuid.New().String(),
+			"method":  "tasks/resubscribe",
+			"params":  getParams{ID: taskID},
+		})
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.url, bytes.NewReader(body))
+		if err != nil {
+			errs <- err
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "text/event-stream")
+		resp, err := c.http.Do(req)
+		if err != nil {
+			errs <- err
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			errs <- fmt.Errorf("tasks/resubscribe: status %d", resp.StatusCode)
+			return
+		}
+		scanner := bufio.NewScanner(resp.Body)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if !strings.HasPrefix(line, "data:") {
+				continue
+			}
+			payload := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			if payload == "" {
+				continue
+			}
+			var out struct {
+				Result Task      `json:"result"`
+				Error  *rpcError `json:"error"`
+			}
+			if err := json.Unmarshal([]byte(payload), &out); err != nil {
+				errs <- err
+				return
+			}
+			if out.Error != nil {
+				errs <- fmt.Errorf("a2a tasks/resubscribe: %s (%d)", out.Error.Message, out.Error.Code)
+				return
+			}
+			select {
+			case <-ctx.Done():
+				errs <- ctx.Err()
+				return
+			case tasks <- out.Result:
+			}
+			if terminal(out.Result.Status.State) {
+				return
+			}
+		}
+		if err := scanner.Err(); err != nil {
+			errs <- err
+		}
+	}()
+	return tasks, errs
+}
+
 // SetPushNotificationConfig asks the remote agent to POST updates for taskID to cfg.URL.
 func (c *Client) SetPushNotificationConfig(ctx context.Context, taskID string, cfg PushNotificationConfig) error {
 	_, err := c.call(ctx, "tasks/pushNotificationConfig/set", pushConfigParams{
@@ -193,7 +266,7 @@ func (c *Client) call(ctx context.Context, method string, params any) (json.RawM
 
 func terminal(state string) bool {
 	switch state {
-	case "completed", "failed", "canceled", "rejected":
+	case "completed", "failed", "canceled", "rejected", "input-required":
 		return true
 	}
 	return false

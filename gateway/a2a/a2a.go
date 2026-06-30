@@ -180,6 +180,8 @@ type Provider struct {
 type Capabilities struct {
 	Streaming         bool `json:"streaming"`
 	PushNotifications bool `json:"pushNotifications"`
+	TaskResubscribe   bool `json:"taskResubscribe"`
+	InputRequired     bool `json:"inputRequired"`
 }
 
 // Skill is a capability advertised on the Agent Card.
@@ -349,7 +351,7 @@ func Card(name, url, description string, services []string) AgentCard {
 		URL:                url,
 		Version:            "1.0.0",
 		ProtocolVersion:    protocolVersion,
-		Capabilities:       Capabilities{Streaming: true, PushNotifications: true},
+		Capabilities:       Capabilities{Streaming: true, PushNotifications: true, TaskResubscribe: true, InputRequired: true},
 		DefaultInputModes:  []string{"text/plain"},
 		DefaultOutputModes: []string{"text/plain"},
 		Skills:             skills,
