@@ -15,6 +15,9 @@ agent test and the harnesses in `internal/harness`:
 - `agent-flow` — a workflow event that drives an agent to call services.
 - `plan-delegate` — plan persistence plus agent-to-agent delegation and service
   calls.
+- `a2a-stream-fallback` — A2A `message/stream` through the gateway, including
+  fallback from unsupported provider streaming to the tool-calling `Ask` path while
+  preserving run metadata.
 
 The command also emits the registered provider capability matrix so the run shows
 which providers advertise model, image, video, and streaming support.
@@ -63,7 +66,7 @@ The `Harness (E2E)` workflow runs on pushes and pull requests with deterministic
 mock LLMs, including `provider-conformance -providers mock`. On the daily schedule and manual dispatch it also runs the live
 provider conformance job. That job:
 
-1. runs the same `agent`, `universe`, `agent-flow`, and `plan-delegate` harness list,
+1. runs the same `agent`, `universe`, `agent-flow`, `plan-delegate`, and `a2a-stream-fallback` harness list,
 2. reads the provider keys from repository secrets,
 3. skips providers whose secrets are absent,
 4. fails when any configured provider fails a harness, and
