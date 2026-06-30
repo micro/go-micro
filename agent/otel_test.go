@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -385,6 +386,74 @@ func TestAgentRunTimelineRecordsModelAndToolWithoutTraceProvider(t *testing.T) {
 		if !ok {
 			t.Fatalf("missing %s event in timeline: %#v", kind, events)
 		}
+	}
+}
+
+func TestAgentCheckpointAndResumeTimelineEvents(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+	st := store.NewMemoryStore()
+	cp := flow.StoreCheckpoint(st, "resume-otel-agent")
+	first := true
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if first {
+			first = false
+			return nil, errors.New("temporary provider failure")
+		}
+		return &ai.Response{Reply: "resumed"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("resume-otel-agent"), WithStore(st), WithCheckpoint(cp), TraceProvider(tp))
+	_, err := a.Ask(context.Background(), "resume me")
+	if err == nil {
+		t.Fatal("Ask succeeded, want simulated failure")
+	}
+
+	runs, err := cp.List(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("checkpointed runs = %d, want 1", len(runs))
+	}
+	resp, err := Resume(context.Background(), a, runs[0].ID)
+	if err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if resp.Reply != "resumed" {
+		t.Fatalf("reply = %q, want resumed", resp.Reply)
+	}
+
+	events, err := LoadRunEvents(st, "resume-otel-agent", runs[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{"checkpoint": false, "resume": false}
+	for _, e := range events {
+		if _, ok := seen[e.Kind]; ok {
+			seen[e.Kind] = true
+		}
+	}
+	for kind, ok := range seen {
+		if !ok {
+			t.Fatalf("missing %s event in timeline: %#v", kind, events)
+		}
+	}
+
+	var resumeSpanEvent bool
+	for _, s := range exp.GetSpans().Snapshots() {
+		if s.Name() != spanNameRun {
+			continue
+		}
+		for _, e := range s.Events() {
+			if e.Name == "agent.resume" {
+				resumeSpanEvent = true
+			}
+		}
+	}
+	if !resumeSpanEvent {
+		t.Fatal("run span missing agent.resume event")
 	}
 }
 

@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	pb "go-micro.dev/v6/agent/proto"
@@ -271,6 +272,9 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		return nil, err
 	}
 	ctx, endRun := a.startRun(ctx, message)
+	if existing != nil {
+		a.recordTimelineEvent(ctx, RunEvent{Time: time.Now(), RunID: runID, ParentID: parentRunID, Agent: a.opts.Name, Kind: "resume", Name: run.State.Stage})
+	}
 	defer func() { endRun(err) }()
 
 	messages := a.mem.Messages()
