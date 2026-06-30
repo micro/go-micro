@@ -181,6 +181,43 @@ func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, ev
 	return a.askLocked(ctx, run.ID, string(run.State.Data), run.ParentID, &run, false)
 }
 
+type agentStreamAdapter struct {
+	stream AgentStream
+}
+
+func (s *agentStreamAdapter) Recv() (*ai.Response, error) {
+	for {
+		event, err := s.stream.Recv()
+		if err != nil {
+			return nil, err
+		}
+		if event == nil {
+			continue
+		}
+		switch event.Type {
+		case StreamEventToken:
+			if event.Token == "" {
+				continue
+			}
+			return &ai.Response{Reply: event.Token}, nil
+		case StreamEventDone:
+			return nil, io.EOF
+		}
+	}
+}
+
+func (s *agentStreamAdapter) Close() error {
+	return s.stream.Close()
+}
+
+func (a *agentImpl) streamAskAI(ctx context.Context, message string) (ai.Stream, error) {
+	stream, err := a.StreamAsk(ctx, message)
+	if err != nil {
+		return nil, err
+	}
+	return &agentStreamAdapter{stream: stream}, nil
+}
+
 type agentStream struct {
 	events <-chan *StreamEvent
 	done   <-chan struct{}
