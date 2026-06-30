@@ -21,9 +21,11 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add a CI-verifiable agent verification loop** ([#3481](https://github.com/micro/go-micro/issues/3481)) — A2A task resubscribe/input-required handoffs have shipped, closing the last named Later A2A continuity seam for this pass. The highest-value open gap is now the verification/grader loop called out by the current canon: scheduled, looping, work-performing agents need a way to grade outputs, feed failures back through existing retry/supervision paths, and surface the result through RunInfo/trace boundaries without turning Go Micro into a graph DSL.
+1. **Add cross-provider agent conformance harness** ([#3491](https://github.com/micro/go-micro/issues/3491)) — the verification loop shipped in #3489, so the next highest-value Now-phase gap is confidence that the same services → agents → workflows contract works across providers. The README and website sell one harness with pluggable providers, while the roadmap calls out that each provider has its own tool-call loop; a shared no-secret/live-key conformance scenario is the fastest way to prevent provider drift from undermining the 0→hero path.
 
-2. **Add a scheduled agent run harness contract** ([#3486](https://github.com/micro/go-micro/issues/3486)) — once verification exists, the next cohesive operational-harness step is to make the event/cadence side of “scheduled, looping, work-performing agents” CI-verifiable. This should compose existing services, agents, flows, store-backed memory, and run inspection so the scaffold → run → chat → inspect lifecycle extends to unattended work without adding a hosted scheduler or breaking public APIs.
+2. **Harden agent loop failure and cancellation semantics** ([#3492](https://github.com/micro/go-micro/issues/3492)) — once provider behavior is comparable, the remaining Now-phase operational risk is whether real runs fail safely: timeouts, rate limits, cancellation, deadline propagation, retry/backoff, and inspectable terminal state. This keeps the harness dependable under production conditions without adding a new product surface.
+
+3. **Add a scheduled agent run harness contract** ([#3486](https://github.com/micro/go-micro/issues/3486)) — scheduled, looping, work-performing agents remain the right Next-phase cohesion target after hardening. This should compose existing services, agents, flows, store-backed memory, verification, and run inspection so the scaffold → run → chat → inspect lifecycle extends to unattended work without adding a hosted scheduler or breaking public APIs.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
