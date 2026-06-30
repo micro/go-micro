@@ -235,13 +235,13 @@ LLM / Chain / Parallel / Cycle / Graph agents, function tools, MCP, A2A, AG-UI, 
 memory and RAG, evaluation, agent self-evolution, and OpenTelemetry. It's a serious,
 well-resourced project.
 
-They overlap heavily on agents but make a different bet. tRPC-Agent-Go is an **agent
+They overlap heavily on agents but take a different approach. tRPC-Agent-Go is an **agent
 SDK you run alongside your services** — you compose agents and tools into graphs and
 conditional workflows, and your microservices (tRPC) live separately and are called
 into. Go Micro starts from the premise that **an agent is a service** — one runtime
 where every endpoint is automatically a tool, an agent registers and is discovered and
 load-balanced like anything else, and workflows are durable code paths rather than a
-graph DSL. The bet is that the line between "your services" and "your agents" is
+graph DSL. The premise is that the line between "your services" and "your agents" is
 accidental complexity; remove it and there's less to wire and keep in sync.
 
 | | Go Micro | tRPC-Agent-Go |
