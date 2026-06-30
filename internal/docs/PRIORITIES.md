@@ -21,9 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Resume durable agent runs from checkpoints** ([#3401](https://github.com/micro/go-micro/issues/3401)) — with the Now-phase getting-started contract closed by #3399, the highest-value Next-phase gap is making agent work survive restarts the way flows already do. This tightens the services → agents → workflows lifecycle around real, long-running work: checkpoint enough run state to resume safely, preserve guardrails/cancellation/deadlines, and prove completed tool calls are not duplicated.
-2. **Broaden end-to-end agent streaming coverage** ([#3402](https://github.com/micro/go-micro/issues/3402)) — streaming is the next developer-visible seam after durability: provider tokens need to move consistently through `ai.Stream`, `micro chat`, `Agent.Chat`, and A2A streaming. CI-safe local coverage plus provider-gated conformance should lock down chunk ordering, terminal/error events, and fallback behavior.
-3. **Emit OpenTelemetry spans for agent runs** ([#3403](https://github.com/micro/go-micro/issues/3403)) — once long runs can resume and stream, operators need the same run story in traces that developers see via `micro runs`: lifecycle boundaries, model/tool calls, approvals, retries, failures, and cancellation correlated by run ID without leaking sensitive payloads.
+1. **Broaden end-to-end agent streaming coverage** ([#3402](https://github.com/micro/go-micro/issues/3402)) — with durable agent checkpoint/resume guarded by #3406, streaming is now the highest-value Next-phase developer-visible seam: provider tokens need to move consistently through `ai.Stream`, `micro chat`, `Agent.Chat`, and A2A streaming. CI-safe local coverage plus provider-gated conformance should lock down chunk ordering, terminal/error events, and fallback behavior.
+2. **Emit OpenTelemetry spans for agent runs** ([#3403](https://github.com/micro/go-micro/issues/3403)) — once long runs can resume and stream, operators need the same run story in traces that developers see via `micro runs`: lifecycle boundaries, model/tool calls, approvals, retries, failures, and cancellation correlated by run ID without leaking sensitive payloads.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
