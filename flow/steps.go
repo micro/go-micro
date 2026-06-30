@@ -63,11 +63,12 @@ type Step struct {
 
 // StepRecord is the recorded outcome of one step within a run.
 type StepRecord struct {
-	Name     string `json:"name"`
-	Status   string `json:"status"` // pending | in_progress | done | failed
-	Attempts int    `json:"attempts"`
-	Result   string `json:"result,omitempty"`
-	Error    string `json:"error,omitempty"`
+	Name      string `json:"name"`
+	Status    string `json:"status"` // pending | in_progress | done | failed
+	Attempts  int    `json:"attempts"`
+	Result    string `json:"result,omitempty"`
+	Error     string `json:"error,omitempty"`
+	ErrorKind string `json:"error_kind,omitempty"`
 }
 
 // Run is the persisted record of one flow execution — what a Checkpoint
@@ -431,6 +432,7 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 			spanErr = err
 			run.Steps[i].Status = "failed"
 			run.Steps[i].Error = err.Error()
+			run.Steps[i].ErrorKind = string(ai.ClassifyError(err))
 			run.Status = "failed"
 			if saveErr := f.save(ctx, run); saveErr != nil {
 				spanErr = saveErr
@@ -555,6 +557,7 @@ func resultFromRun(trigger string, run Run) Result {
 		r.ToolCalls = append(r.ToolCalls, s.Name+":"+s.Status)
 		if s.Error != "" {
 			r.Error = s.Error
+			r.ErrorKind = s.ErrorKind
 		}
 	}
 	if run.Status == "done" {

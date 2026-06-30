@@ -23,6 +23,7 @@ const (
 	AttrFlowStatus    = "flow.status"
 	AttrFlowAttempts  = "flow.step.attempts"
 	AttrFlowLatencyMS = "flow.latency_ms"
+	AttrFlowErrorKind = "flow.error.kind"
 )
 
 func (f *Flow) tracer() trace.Tracer {
@@ -47,6 +48,7 @@ func (f *Flow) startRunSpan(ctx context.Context, run Run) (context.Context, func
 		)
 		if err != nil {
 			span.RecordError(err)
+			span.SetAttributes(attribute.String(AttrFlowErrorKind, string(ai.ClassifyError(err))))
 			span.SetStatus(codes.Error, err.Error())
 		} else {
 			span.SetStatus(codes.Ok, "")
@@ -74,6 +76,7 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 	)
 	if err != nil {
 		span.RecordError(err)
+		span.SetAttributes(attribute.String(AttrFlowErrorKind, string(ai.ClassifyError(err))))
 		span.SetStatus(codes.Error, err.Error())
 	} else {
 		span.SetStatus(codes.Ok, "")

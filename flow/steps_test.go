@@ -548,3 +548,37 @@ func TestStateSetScan(t *testing.T) {
 		t.Errorf("round-trip failed: %+v", got)
 	}
 }
+
+func TestFlowFailureRecordsErrorKind(t *testing.T) {
+	cp := StoreCheckpoint(store.NewMemoryStore(), "failure-kind")
+	f := New("failure-kind",
+		WithCheckpoint(cp),
+		Steps(Step{Name: "limited", Run: func(_ context.Context, in State) (State, error) {
+			return in, errors.New("rate limit exceeded")
+		}}),
+	)
+
+	err := f.Execute(context.Background(), "payload")
+	if err == nil {
+		t.Fatal("Execute error = nil, want failure")
+	}
+
+	runs, listErr := cp.List(context.Background())
+	if listErr != nil {
+		t.Fatalf("List: %v", listErr)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("runs = %d, want 1", len(runs))
+	}
+	if got := runs[0].Steps[0].ErrorKind; got != string(ai.ErrorKindRateLimited) {
+		t.Fatalf("step error kind = %q, want %q", got, ai.ErrorKindRateLimited)
+	}
+
+	results := f.Results()
+	if len(results) != 1 {
+		t.Fatalf("results = %d, want 1", len(results))
+	}
+	if got := results[0].ErrorKind; got != string(ai.ErrorKindRateLimited) {
+		t.Fatalf("result error kind = %q, want %q", got, ai.ErrorKindRateLimited)
+	}
+}
