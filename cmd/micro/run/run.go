@@ -498,10 +498,13 @@ func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, 
 		fmt.Printf("  Dashboard   \033[36mhttp://localhost%s\033[0m\n", gw.Addr())
 		fmt.Printf("  API         \033[36mhttp://localhost%s/api/{service}/{method}\033[0m\n", gw.Addr())
 		fmt.Printf("  Agent       \033[36mhttp://localhost%s/agent\033[0m\n", gw.Addr())
+		// MCP tools are served on the gateway by default — every endpoint is an
+		// AI-callable tool, so surface it rather than hiding it behind a flag.
+		fmt.Printf("  MCP Tools   \033[36mhttp://localhost%s/mcp/tools\033[0m\n", gw.Addr())
 		fmt.Printf("  Health      \033[36mhttp://localhost%s/health\033[0m\n", gw.Addr())
 		if mcpAddr != "" {
-			fmt.Printf("  MCP         \033[36mhttp://localhost%s\033[0m\n", mcpAddr)
-			fmt.Printf("  MCP Tools   \033[36mhttp://localhost%s/mcp/tools\033[0m\n", mcpAddr)
+			// Optional standalone MCP protocol server (e.g. for MCP clients).
+			fmt.Printf("  MCP Server  \033[36mhttp://localhost%s\033[0m (full MCP protocol)\n", mcpAddr)
 			fmt.Printf("  WebSocket   \033[36mws://localhost%s/mcp/ws\033[0m\n", mcpAddr)
 		}
 	}
