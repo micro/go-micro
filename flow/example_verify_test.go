@@ -25,3 +25,21 @@ func ExampleVerify() {
 	fmt.Println(strings.Contains(out.String(), `"verification_passed":true`))
 	// Output: true
 }
+
+func ExampleAnalyze() {
+	runs := []flow.Run{{
+		ID: "run-1",
+		Steps: []flow.StepRecord{{
+			Name:   "draft",
+			Status: "done",
+			Result: `{"verification_passed":false,"verification_feedback":"add a source"}`,
+		}},
+	}}
+
+	report := flow.Analyze(runs)
+	fmt.Println(report.Candidates[0].Step)
+	fmt.Println(report.Candidates[0].SampleFeedback[0])
+	// Output:
+	// draft
+	// add a source
+}
