@@ -298,12 +298,15 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		Backoff:     a.opts.ModelRetryBackoff,
 	})
 	if err != nil {
-		run.Status = "failed"
-		run.Steps[0].Status = "failed"
-		run.Steps[0].Error = err.Error()
+		run.Status = agentRunFailureStatus(err)
 		if a.currentRun != nil {
 			run.Steps = a.currentRun.Steps
 		}
+		if len(run.Steps) == 0 {
+			run.Steps = []flow.StepRecord{{Name: agentAskStep}}
+		}
+		run.Steps[0].Status = run.Status
+		run.Steps[0].Error = err.Error()
 		_ = a.saveRun(ctx, run)
 		return nil, err
 	}

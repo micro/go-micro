@@ -171,10 +171,23 @@ func (a *agentImpl) pending(ctx context.Context) ([]flow.Run, error) {
 
 func terminalAgentRunStatus(status string) bool {
 	switch status {
-	case "done", "canceled", "expired":
+	case "done", "canceled", "timeout", "rate_limited", "expired":
 		return true
 	default:
 		return false
+	}
+}
+
+func agentRunFailureStatus(err error) string {
+	switch ai.ClassifyError(err) {
+	case ai.ErrorKindCanceled:
+		return "canceled"
+	case ai.ErrorKindTimeout:
+		return "timeout"
+	case ai.ErrorKindRateLimited:
+		return "rate_limited"
+	default:
+		return "failed"
 	}
 }
 
