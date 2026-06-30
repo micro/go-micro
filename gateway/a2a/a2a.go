@@ -28,6 +28,7 @@ package a2a
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -489,7 +490,7 @@ func (d *dispatcher) serveWithStream(w http.ResponseWriter, r *http.Request, inv
 		d.send(requestContext(r.Context()), w, req, invoke)
 	case "message/stream":
 		if streamInvoke != nil {
-			d.streamChunks(requestContext(r.Context()), w, req, streamInvoke)
+			d.streamChunks(requestContext(r.Context()), w, req, streamInvoke, invoke)
 			return
 		}
 		d.stream(requestContext(r.Context()), w, req, invoke)
@@ -538,7 +539,7 @@ func (d *dispatcher) stream(ctx context.Context, w http.ResponseWriter, req rpcR
 	}
 }
 
-func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, req rpcRequest, invoke StreamInvoke) {
+func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, req rpcRequest, invoke StreamInvoke, fallback Invoke) {
 	var p sendParams
 	if err := json.Unmarshal(req.Params, &p); err != nil {
 		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
@@ -551,6 +552,10 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 	}
 	stream, err := invoke(ctx, text)
 	if err != nil {
+		if errors.Is(err, ai.ErrStreamingUnsupported) && fallback != nil {
+			d.stream(ctx, w, req, fallback)
+			return
+		}
 		writeRPC(w, req.ID, nil, &rpcError{Code: errInternal, Message: err.Error()})
 		return
 	}
