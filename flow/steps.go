@@ -52,23 +52,53 @@ func (s State) String() string { return string(s.Data) }
 // returns the next state.
 type StepFunc func(ctx context.Context, in State) (State, error)
 
-// Step is one unit of a flow — a named action with an optional retry
-// override. There is one Step kind; the action is the Run func, and the
-// Call/LLM/Agent helpers produce the common ones.
+// Verifier grades a step output before the flow advances. Returning
+// Passed=false converts the grade into a retryable VerificationError, so
+// the existing step retry/supervision path can feed Feedback into the next
+// attempt through ai.RunInfo.VerificationFeedback.
+type Verifier func(ctx context.Context, out State) (Verification, error)
+
+// Verification is the verifier's deterministic grade for one step attempt.
+type Verification struct {
+	Passed   bool
+	Feedback string
+}
+
+// VerificationError reports a failed grade. It is returned from runStep so
+// existing retry, checkpoint, and trace paths handle verifier failures the
+// same way they handle step execution failures.
+type VerificationError struct {
+	Step     string
+	Feedback string
+}
+
+func (e *VerificationError) Error() string {
+	if e.Feedback == "" {
+		return fmt.Sprintf("flow: verification failed for step %q", e.Step)
+	}
+	return fmt.Sprintf("flow: verification failed for step %q: %s", e.Step, e.Feedback)
+}
+
+// Step is one unit of a flow — a named action with optional retry and
+// verification hooks. There is one Step kind; the action is the Run func,
+// and the Call/LLM/Agent helpers produce the common ones.
 type Step struct {
-	Name  string
-	Run   StepFunc
-	Retry int // per-step override of the flow's retry (0 = use the flow default)
+	Name   string
+	Run    StepFunc
+	Retry  int      // per-step override of the flow's retry (0 = use the flow default)
+	Verify Verifier // optional grade; failed grades retry the step with feedback in RunInfo
 }
 
 // StepRecord is the recorded outcome of one step within a run.
 type StepRecord struct {
-	Name      string `json:"name"`
-	Status    string `json:"status"` // pending | in_progress | done | failed
-	Attempts  int    `json:"attempts"`
-	Result    string `json:"result,omitempty"`
-	Error     string `json:"error,omitempty"`
-	ErrorKind string `json:"error_kind,omitempty"`
+	Name               string `json:"name"`
+	Status             string `json:"status"` // pending | in_progress | done | failed
+	Attempts           int    `json:"attempts"`
+	Result             string `json:"result,omitempty"`
+	Error              string `json:"error,omitempty"`
+	ErrorKind          string `json:"error_kind,omitempty"`
+	VerificationStatus string `json:"verification_status,omitempty"` // passed | failed
+	VerificationNote   string `json:"verification_note,omitempty"`
 }
 
 // Run is the persisted record of one flow execution — what a Checkpoint
@@ -426,8 +456,9 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 			return run, err
 		}
 
-		out, attempts, err := f.runStepSpan(ctx, step, run.State)
+		out, attempts, verification, err := f.runStepSpan(ctx, step, run.State)
 		run.Steps[i].Attempts = attempts
+		applyVerificationRecord(&run.Steps[i], verification)
 		if err != nil {
 			spanErr = err
 			run.Steps[i].Status = "failed"
@@ -476,40 +507,65 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 // runStep runs one step, retrying on error up to the resolved retry count.
 // A step with no Run function is a configuration error, and a canceled run
 // stops retrying immediately rather than burning the rest of its budget.
-func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, error) {
+func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, Verification, error) {
 	if step.Run == nil {
-		return in, 0, fmt.Errorf("flow: step %q has no Run function", step.Name)
+		return in, 0, Verification{}, fmt.Errorf("flow: step %q has no Run function", step.Name)
 	}
 	retries := f.opts.Retry
 	if step.Retry > 0 {
 		retries = step.Retry
 	}
 	var lastErr error
+	var lastVerification Verification
+	var feedback string
 	for attempt := 1; attempt <= retries+1; attempt++ {
 		// Stop the moment the run's context is canceled or its deadline
 		// passes — a canceled run shouldn't keep retrying, and the context
 		// error is surfaced so callers can detect cancellation upstream.
 		if err := ctx.Err(); err != nil {
-			return in, attempt - 1, err
+			return in, attempt - 1, lastVerification, err
 		}
+		attemptCtx := ctx
 		if info, ok := ai.RunInfoFrom(ctx); ok {
 			info.Step = step.Name
-			ctx = ai.WithRunInfo(ctx, info)
+			info.VerificationFeedback = feedback
+			attemptCtx = ai.WithRunInfo(ctx, info)
 		}
-		out, err := step.Run(ctx, in)
+		out, err := step.Run(attemptCtx, in)
+		if err == nil && step.Verify != nil {
+			lastVerification, err = step.Verify(attemptCtx, out)
+			if err == nil && !lastVerification.Passed {
+				err = &VerificationError{Step: step.Name, Feedback: lastVerification.Feedback}
+			}
+		}
 		if err == nil {
-			return out, attempt, nil
+			return out, attempt, lastVerification, nil
 		}
 		lastErr = err
+		if verr, ok := err.(*VerificationError); ok {
+			feedback = verr.Feedback
+		}
 		if attempt <= retries && f.opts.RetryBackoff > 0 {
 			select {
 			case <-time.After(f.opts.RetryBackoff):
 			case <-ctx.Done():
-				return in, attempt, ctx.Err()
+				return in, attempt, lastVerification, ctx.Err()
 			}
 		}
 	}
-	return in, retries + 1, lastErr
+	return in, retries + 1, lastVerification, lastErr
+}
+
+func applyVerificationRecord(record *StepRecord, verification Verification) {
+	if verification.Passed {
+		record.VerificationStatus = "passed"
+	}
+	if verification.Feedback != "" {
+		record.VerificationNote = truncate(verification.Feedback, 200)
+		if !verification.Passed {
+			record.VerificationStatus = "failed"
+		}
+	}
 }
 
 func (f *Flow) save(ctx context.Context, run Run) error {

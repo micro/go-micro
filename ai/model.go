@@ -121,13 +121,14 @@ const (
 // tell which provider attempt produced the call and whether it is part of a
 // retry budget. They are zero when no model-attempt context is known.
 type RunInfo struct {
-	RunID       string // correlation id for this agent or flow run
-	ParentID    string // the run that delegated to this one, if any
-	Agent       string // the agent's name
-	Flow        string // the flow's name, when the call is part of a workflow
-	Step        string // the flow step currently executing, when known
-	Attempt     int    // current model Generate attempt, starting at 1 when known
-	MaxAttempts int    // configured model Generate attempt budget when known
+	RunID                string // correlation id for this agent or flow run
+	ParentID             string // the run that delegated to this one, if any
+	Agent                string // the agent's name
+	Flow                 string // the flow's name, when the call is part of a workflow
+	Step                 string // the flow step currently executing, when known
+	Attempt              int    // current model Generate attempt, starting at 1 when known
+	MaxAttempts          int    // configured model Generate attempt budget when known
+	VerificationFeedback string // feedback from the previous failed verifier attempt, when retrying a flow step
 }
 
 type runInfoKey struct{}
