@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: test test-race test-coverage harness provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: test test-race test-coverage harness provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
 	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
+	@echo "  make provider-conformance-mock - Run cross-provider harness with deterministic mock provider"
 	@echo "  make provider-conformance - Run harnesses against configured live providers"
 	@echo "  make fmt           - Format code"
 	@echo "  make install-tools - Install development tools"
@@ -50,6 +51,12 @@ harness:
 	go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
 	./internal/harness/zero-to-hero-ci/run.sh
 	go run ./internal/harness/agent-flow
+	$(MAKE) provider-conformance-mock
+
+# Run the shared provider conformance contract with the deterministic mock
+# provider. This is the no-secret path used by CI and local dogfooding to keep
+# provider-facing agent/tool semantics covered on every machine.
+provider-conformance-mock:
 	go run ./internal/harness/provider-conformance -providers mock
 
 # Run the same harnesses against every configured live provider. Providers
