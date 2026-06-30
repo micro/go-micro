@@ -24,6 +24,12 @@ type Memory interface {
 	Clear()
 }
 
+// MemorySummaryFunc turns older conversation messages into a compact
+// replacement message for active context. It is called while the default
+// memory is locked, so implementations should be deterministic and avoid
+// calling back into the same memory instance.
+type MemorySummaryFunc func([]ai.Message) ai.Message
+
 // MemoryCompaction configures deterministic, store-backed context compaction
 // for the default memory implementation. When the retained conversation grows
 // past MaxMessages, older turns are collapsed into a summary message while the
@@ -31,6 +37,7 @@ type Memory interface {
 type MemoryCompaction struct {
 	MaxMessages int
 	KeepRecent  int
+	Summarize   MemorySummaryFunc
 }
 
 // MemoryRecall is implemented by memory backends that can retrieve durable
@@ -54,6 +61,14 @@ func NewMemory(s store.Store, key string, limit int) Memory {
 // turns into a deterministic summary when the conversation exceeds maxMessages,
 // and lets callers recall relevant prior turns with Recall.
 func NewCompactingMemory(s store.Store, key string, maxMessages, keepRecent int) Memory {
+	return NewCompactingMemoryWithOptions(s, key, MemoryCompaction{MaxMessages: maxMessages, KeepRecent: keepRecent})
+}
+
+// NewCompactingMemoryWithOptions returns store-backed memory configured with
+// explicit compaction options, including an optional summarization hook.
+func NewCompactingMemoryWithOptions(s store.Store, key string, compaction MemoryCompaction) Memory {
+	maxMessages := compaction.MaxMessages
+	keepRecent := compaction.KeepRecent
 	if keepRecent <= 0 {
 		keepRecent = maxMessages / 2
 	}
@@ -69,6 +84,7 @@ func NewCompactingMemory(s store.Store, key string, maxMessages, keepRecent int)
 		compaction: MemoryCompaction{
 			MaxMessages: maxMessages,
 			KeepRecent:  keepRecent,
+			Summarize:   compaction.Summarize,
 		},
 	}
 	m.load()
@@ -213,14 +229,25 @@ func (m *storeMemory) compact() {
 	older := msgs[:cut]
 	recent := msgs[cut:]
 	m.archive = append(m.archive, older...)
-	summary := ai.Message{
-		Role:    "system",
-		Content: fmt.Sprintf("Conversation memory summary: %s", summarizeMessages(older)),
+	summarize := m.compaction.Summarize
+	if summarize == nil {
+		summarize = defaultMemorySummary
+	}
+	summary := summarize(older)
+	if summary.Role == "" {
+		summary.Role = "system"
 	}
 	m.hist.Reset()
 	m.hist.Add(summary.Role, summary.Content)
 	for _, msg := range recent {
 		m.hist.Add(msg.Role, msg.Content)
+	}
+}
+
+func defaultMemorySummary(msgs []ai.Message) ai.Message {
+	return ai.Message{
+		Role:    "system",
+		Content: fmt.Sprintf("Conversation memory summary: %s", summarizeMessages(msgs)),
 	}
 }
 
