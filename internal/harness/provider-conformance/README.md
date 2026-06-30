@@ -52,7 +52,8 @@ Provider keys are read from `MICRO_AI_API_KEY` or the provider-specific variable
 | AtlasCloud | `ATLASCLOUD_API_KEY` |
 
 Use `-require-configured` when you want a selected provider without a key to fail
-instead of skip:
+instead of skip. This is useful for manually checking that a required provider
+secret is actually wired into CI before relying on that provider as covered:
 
 ```sh
 go run ./internal/harness/provider-conformance \
@@ -63,8 +64,12 @@ go run ./internal/harness/provider-conformance \
 ## Scheduled CI behavior
 
 The `Harness (E2E)` workflow runs on pushes and pull requests with deterministic
-mock LLMs, including `provider-conformance -providers mock`. On the daily schedule and manual dispatch it also runs the live
-provider conformance job. That job:
+mock LLMs, including `provider-conformance -providers mock`. On the daily
+schedule and manual dispatch it also runs the live provider conformance job. A
+manual dispatch can narrow `providers` or `harnesses`, and can set
+`require_configured=true` to fail fast when an expected repository secret is
+missing; scheduled runs keep the safe default and report missing keys as skips.
+That job:
 
 1. runs the same `agent`, `universe`, `agent-flow`, `plan-delegate`, and `a2a-stream-fallback` harness list,
 2. reads the provider keys from repository secrets,

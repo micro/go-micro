@@ -36,6 +36,18 @@ func TestValidateSelectionRejectsUnsafeHarnessName(t *testing.T) {
 	}
 }
 
+func TestDefaultProvidersTracksLiveProviderSet(t *testing.T) {
+	got := defaultProviders()
+	for _, want := range []string{"anthropic", "openai", "gemini", "groq", "mistral", "together", "atlascloud"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("defaultProviders() = %q, want %q", got, want)
+		}
+	}
+	if strings.Contains(got, "mock") {
+		t.Fatalf("defaultProviders() = %q, should not include mock in live scheduled defaults", got)
+	}
+}
+
 func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
 	rows := ai.CapabilityRows()
 	if len(rows) == 0 {
@@ -105,6 +117,8 @@ func TestWriteSummaryMarkdown(t *testing.T) {
 	for _, want := range []string{
 		"# Provider conformance summary",
 		"Passed: 1. Skipped providers: 1. Failed: 0.",
+		"Providers: —.",
+		"Harnesses: —.",
 		"| mock | ✅ | — | — | — |",
 		"| mock | agent-flow | passed | — |",
 		"| live | — | skipped | missing \\| key |",
@@ -112,6 +126,14 @@ func TestWriteSummaryMarkdown(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("summary markdown = %q, want %q", got, want)
 		}
+	}
+}
+
+func TestMarkdownListEscapesBackticks(t *testing.T) {
+	got := markdownList([]string{"agent", "bad`name"})
+	want := "`agent`, `bad\\`name`"
+	if got != want {
+		t.Fatalf("markdownList() = %q, want %q", got, want)
 	}
 }
 

@@ -14,6 +14,20 @@ on:
   schedule:
     - cron: "17 6 * * *" # daily, so the world is exercised even without changes
   workflow_dispatch:
+    inputs:
+      providers:
+        description: "Comma-separated providers for live conformance (default: all supported)"
+        required: false
+        default: "anthropic,openai,gemini,groq,mistral,together,atlascloud"
+      harnesses:
+        description: "Comma-separated harnesses for live conformance"
+        required: false
+        default: "agent,universe,agent-flow,plan-delegate,a2a-stream-fallback"
+      require_configured:
+        description: "Fail selected live providers that do not have repository secrets"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   harness:
@@ -54,10 +68,22 @@ jobs:
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
         run: |
-          go run ./internal/harness/provider-conformance \
-            -summary-json provider-conformance-summary.json \
-            -summary-markdown provider-conformance-summary.md \
+          PROVIDERS="${{ github.event.inputs.providers || 'anthropic,openai,gemini,groq,mistral,together,atlascloud' }}"
+          HARNESSES="${{ github.event.inputs.harnesses || 'agent,universe,agent-flow,plan-delegate,a2a-stream-fallback' }}"
+          REQUIRE_CONFIGURED="${{ github.event.inputs.require_configured || 'false' }}"
+
+          args=(
+            -providers "$PROVIDERS"
+            -harnesses "$HARNESSES"
+            -summary-json provider-conformance-summary.json
+            -summary-markdown provider-conformance-summary.md
             -capabilities-markdown provider-capabilities.md
+          )
+          if [ "$REQUIRE_CONFIGURED" = "true" ]; then
+            args+=( -require-configured )
+          fi
+
+          go run ./internal/harness/provider-conformance "${args[@]}"
       - name: Publish provider conformance summary
         if: always()
         run: |

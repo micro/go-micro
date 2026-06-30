@@ -34,6 +34,8 @@ import (
 	_ "go-micro.dev/v6/ai/together"
 )
 
+const defaultHarnesses = "agent,universe,agent-flow,plan-delegate,a2a-stream-fallback"
+
 var providerEnv = map[string]string{
 	"anthropic":  "ANTHROPIC_API_KEY",
 	"openai":     "OPENAI_API_KEY",
@@ -45,8 +47,8 @@ var providerEnv = map[string]string{
 }
 
 func main() {
-	providersFlag := flag.String("providers", "anthropic,openai,gemini,groq,mistral,together,atlascloud", "comma-separated providers to check; use mock for deterministic local checks")
-	harnessesFlag := flag.String("harnesses", "agent,universe,agent-flow,plan-delegate,a2a-stream-fallback", "comma-separated harness names under internal/harness; agent runs the provider tool-call conformance test")
+	providersFlag := flag.String("providers", defaultProviders(), "comma-separated providers to check; use mock for deterministic local checks")
+	harnessesFlag := flag.String("harnesses", defaultHarnesses, "comma-separated harness names under internal/harness; agent runs the provider tool-call conformance test")
 	timeoutFlag := flag.Duration("timeout", 10*time.Minute, "timeout per provider/harness run")
 	requireConfiguredFlag := flag.Bool("require-configured", false, "fail when a selected live provider is missing an API key")
 	capabilitiesFlag := flag.Bool("capabilities", true, "print the registered provider capability matrix before running conformance")
@@ -169,6 +171,8 @@ func writeSummaryMarkdown(path string, summary conformanceSummary) error {
 	var b strings.Builder
 	b.WriteString("# Provider conformance summary\n\n")
 	fmt.Fprintf(&b, "Passed: %d. Skipped providers: %d. Failed: %d.\n\n", summary.Passed, summary.Skipped, summary.Failed)
+	fmt.Fprintf(&b, "Providers: %s.\n\n", markdownList(summary.Providers))
+	fmt.Fprintf(&b, "Harnesses: %s.\n\n", markdownList(summary.Harnesses))
 	b.WriteString("## Capability matrix\n\n")
 	b.WriteString(capabilityMarkdown(summary.Capabilities))
 	b.WriteString("\n## Harness results\n\n")
@@ -192,6 +196,17 @@ func capabilityMarkdown(rows []ai.CapabilityRow) string {
 		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s |\n", row.Provider, mark(row.Model), mark(row.Image), mark(row.Video), mark(row.Stream))
 	}
 	return b.String()
+}
+
+func markdownList(values []string) string {
+	if len(values) == 0 {
+		return "—"
+	}
+	escaped := make([]string, 0, len(values))
+	for _, value := range values {
+		escaped = append(escaped, "`"+strings.ReplaceAll(value, "`", "\\`")+"`")
+	}
+	return strings.Join(escaped, ", ")
 }
 
 func markdownCell(s string) string {
@@ -277,6 +292,15 @@ func repoRoot() string {
 		}
 		wd = parent
 	}
+}
+
+func defaultProviders() string {
+	providers := make([]string, 0, len(providerEnv))
+	for provider := range providerEnv {
+		providers = append(providers, provider)
+	}
+	slices.Sort(providers)
+	return strings.Join(providers, ",")
 }
 
 func knownProviders() string {
