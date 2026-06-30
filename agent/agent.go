@@ -423,7 +423,7 @@ func (a *agentImpl) Run() error {
 				return "", err
 			}
 			return resp.Reply, nil
-		}, a.Stream)
+		}, a.streamAskAI)
 		go func() {
 			if err := http.ListenAndServe(a.opts.A2AAddress, handler); err != nil {
 				fmt.Printf("agent %s A2A server: %v\n", a.opts.Name, err)
