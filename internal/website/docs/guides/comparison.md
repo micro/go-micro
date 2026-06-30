@@ -227,6 +227,53 @@ and an ADK agent (in any language) can call each other over A2A, and either can
 consume the other's MCP tools. A common pattern is to run Go Micro as the service
 mesh / runtime and let ADK (or any A2A agent) plug into it.
 
+## vs tRPC-Agent-Go
+
+[tRPC-Agent-Go](https://github.com/trpc-group/trpc-agent-go) (maintained by tRPC-Group,
+validated inside Tencent) is a production-grade Go framework for agent systems:
+LLM / Chain / Parallel / Cycle / Graph agents, function tools, MCP, A2A, AG-UI, Redis
+memory and RAG, evaluation, agent self-evolution, and OpenTelemetry. It's a serious,
+well-resourced project.
+
+They overlap heavily on agents but make a different bet. tRPC-Agent-Go is an **agent
+SDK you run alongside your services** — you compose agents and tools into graphs and
+conditional workflows, and your microservices (tRPC) live separately and are called
+into. Go Micro starts from the premise that **an agent is a service** — one runtime
+where every endpoint is automatically a tool, an agent registers and is discovered and
+load-balanced like anything else, and workflows are durable code paths rather than a
+graph DSL. The bet is that the line between "your services" and "your agents" is
+accidental complexity; remove it and there's less to wire and keep in sync.
+
+| | Go Micro | tRPC-Agent-Go |
+|---|----------|---------------|
+| **Primary unit** | A harnessed service (an agent is a service with an LLM inside) | An agent |
+| **Orchestration** | Durable `flow` steps + `Loop` — plain code paths | Graph / Chain / Parallel / Cycle agents (graph DSL) |
+| **Services as tools** | Every endpoint is automatically an MCP tool | Function tools + MCP, wired explicitly |
+| **Service runtime** | Built in — agents *are* services (registry, RPC, load balancing, pub/sub) | Runs alongside your existing service stack (tRPC) |
+| **MCP / A2A** | Both, generated from the registry | Both |
+| **Evaluation / self-evolution** | Verification loop on the roadmap; not yet first-class | First-class today |
+| **Memory / RAG** | Store-backed memory (Postgres, NATS KV, file); RAG on the roadmap | In-memory / Redis memory; RAG today |
+| **Observability** | OpenTelemetry run timelines, `micro runs` | OpenTelemetry, Langfuse examples |
+| **Backing** | Independent, community | tRPC-Group / Tencent |
+
+### When to choose tRPC-Agent-Go
+- You want a graph/workflow DSL for composing agents and tools
+- You're on tRPC, or want to add agents alongside an existing service stack
+- You want first-class evaluation and self-evolution today, with a large team behind it
+
+### When to choose Go Micro
+- You want one runtime where services, agents, and flows are the same primitives —
+  registered, discoverable, and deployed the same way
+- You want your existing services to become agent tools with zero extra code
+- You prefer durable flows and plain code paths over a graph DSL, in a small,
+  independent framework you can hold in your head
+
+### They interoperate
+
+Both speak **MCP** and **A2A**, so a Go Micro agent and a tRPC-Agent-Go agent can call
+each other over A2A, and either can consume the other's MCP tools. You can run Go Micro
+as the service-and-agent runtime and still reach an agent built on tRPC-Agent-Go.
+
 ## Feature Deep Dive
 
 ### Service Discovery
