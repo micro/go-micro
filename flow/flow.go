@@ -76,6 +76,7 @@ type Result struct {
 	Answer    string    `json:"answer,omitempty"`
 	ToolCalls []string  `json:"tool_calls,omitempty"`
 	Error     string    `json:"error,omitempty"`
+	ErrorKind string    `json:"error_kind,omitempty"`
 	Timestamp time.Time `json:"timestamp"`
 	Duration  float64   `json:"duration_seconds"`
 }
@@ -246,6 +247,7 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		result.Duration = time.Since(start).Seconds()
 		if err != nil {
 			result.Error = err.Error()
+			result.ErrorKind = string(ai.ClassifyError(err))
 			f.record(result)
 			return err
 		}
@@ -261,6 +263,7 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 	if err != nil {
 		result.Duration = time.Since(start).Seconds()
 		result.Error = err.Error()
+		result.ErrorKind = string(ai.ClassifyError(err))
 		f.record(result)
 		return fmt.Errorf("discover tools: %w", err)
 	}
@@ -274,6 +277,7 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 
 	if err != nil {
 		result.Error = err.Error()
+		result.ErrorKind = string(ai.ClassifyError(err))
 		f.record(result)
 		return err
 	}
