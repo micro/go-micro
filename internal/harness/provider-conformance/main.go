@@ -46,7 +46,7 @@ var providerEnv = map[string]string{
 
 func main() {
 	providersFlag := flag.String("providers", "anthropic,openai,gemini,groq,mistral,together,atlascloud", "comma-separated providers to check; use mock for deterministic local checks")
-	harnessesFlag := flag.String("harnesses", "agent,universe,agent-flow,plan-delegate", "comma-separated harness names under internal/harness; agent runs the provider tool-call conformance test")
+	harnessesFlag := flag.String("harnesses", "agent,universe,agent-flow,plan-delegate,a2a-stream-fallback", "comma-separated harness names under internal/harness; agent runs the provider tool-call conformance test")
 	timeoutFlag := flag.Duration("timeout", 10*time.Minute, "timeout per provider/harness run")
 	requireConfiguredFlag := flag.Bool("require-configured", false, "fail when a selected live provider is missing an API key")
 	capabilitiesFlag := flag.Bool("capabilities", true, "print the registered provider capability matrix before running conformance")
