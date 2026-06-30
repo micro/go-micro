@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Flow hill-climbing loop from run traces** ([#3439](https://github.com/micro/go-micro/issues/3439)) — verification/grader flows shipped in #3443, and there are no open codex PRs currently carrying follow-up work. The highest-value remaining lifecycle gap is to use the run/trace foundation plus the new grader signal to analyze failures over time and propose prompt/grader improvements. This keeps the services → agents → workflows story operable by turning durable, observable runs into a product-facing proof of continuous workflow improvement rather than leaving evaluation as a one-off step.
+1. **Make long agent runs resumable from checkpoints** ([#3449](https://github.com/micro/go-micro/issues/3449)) — the flow grader loop shipped in #3443 and the run-trace analyzer shipped in #3447, closing the previous top queue item (#3439). With flow durability and optimization now proving the workflow side, the highest-value remaining lifecycle seam is agent-run durability: long agent loops should persist enough progress to resume without replaying completed tool side effects. This aligns the services → agents → workflows runtime by giving agents the same operable recovery posture that flows already have, while staying scoped to a non-breaking, CI-verifiable checkpoint/resume contract.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
