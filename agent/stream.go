@@ -153,6 +153,9 @@ func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, ev
 		}
 		return &resp, nil
 	}
+	if terminalAgentRunStatus(run.Status) {
+		return nil, errors.New("agent: checkpointed run is terminal with status " + run.Status)
+	}
 
 	a.mu.Lock()
 	defer a.mu.Unlock()

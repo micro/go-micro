@@ -185,6 +185,35 @@ func TestPendingReturnsUnfinishedAgentRuns(t *testing.T) {
 	}
 }
 
+func TestPendingSkipsTerminalCanceledAndExpiredAgentRuns(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewStore(), "terminal-agent")
+	for _, run := range []flow.Run{
+		{ID: "active", Flow: "terminal-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("retry me")}},
+		{ID: "done", Flow: "terminal-agent", Status: "done", State: flow.State{Stage: agentAskStep, Data: []byte("done")}},
+		{ID: "canceled", Flow: "terminal-agent", Status: "canceled", State: flow.State{Stage: agentAskStep, Data: []byte("canceled")}},
+		{ID: "expired", Flow: "terminal-agent", Status: "expired", State: flow.State{Stage: agentAskStep, Data: []byte("expired")}},
+	} {
+		if err := cp.Save(ctx, run); err != nil {
+			t.Fatalf("Save(%s): %v", run.ID, err)
+		}
+	}
+
+	a := newTestAgent(Name("terminal-agent"), WithCheckpoint(cp))
+	runs, err := Pending(ctx, a)
+	if err != nil {
+		t.Fatalf("Pending: %v", err)
+	}
+	if len(runs) != 1 || runs[0].ID != "active" {
+		t.Fatalf("Pending = %#v, want only active failed run", runs)
+	}
+	for _, id := range []string{"canceled", "expired"} {
+		if _, err := Resume(ctx, a, id); err == nil || !strings.Contains(err.Error(), "terminal") {
+			t.Fatalf("Resume(%s) err = %v, want terminal status error", id, err)
+		}
+	}
+}
+
 func TestHumanInputPauseResumesSameRunWithInput(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewStore(), "input-agent")

@@ -88,6 +88,9 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 		}
 		return &resp, nil
 	}
+	if terminalAgentRunStatus(run.Status) {
+		return nil, fmt.Errorf("agent run %s is terminal with status %q", runID, run.Status)
+	}
 	message := string(run.State.Data)
 	parentID := run.ParentID
 	a.mu.Lock()
@@ -153,11 +156,20 @@ func (a *agentImpl) pending(ctx context.Context) ([]flow.Run, error) {
 	}
 	out := runs[:0]
 	for _, run := range runs {
-		if run.Flow == a.opts.Name && run.Status != "done" {
+		if run.Flow == a.opts.Name && !terminalAgentRunStatus(run.Status) {
 			out = append(out, run)
 		}
 	}
 	return out, nil
+}
+
+func terminalAgentRunStatus(status string) bool {
+	switch status {
+	case "done", "canceled", "expired":
+		return true
+	default:
+		return false
+	}
 }
 
 func (a *agentImpl) checkpointToolWrap(next ai.ToolHandler) ai.ToolHandler {
