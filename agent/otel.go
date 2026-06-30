@@ -68,7 +68,8 @@ type Usage = ai.Usage
 // Zero values preserve the full deterministic run list.
 type RunListOptions struct {
 	// Status, when set, keeps only runs with the matching status
-	// (for example "running", "done", "error", or "refused").
+	// (for example "running", "done", "canceled", "timeout",
+	// "rate_limited", "error", or "refused").
 	Status string
 	// TraceID, when set, keeps only runs correlated with this trace id.
 	// A prefix is accepted so operators can paste the shortened trace id
@@ -81,18 +82,19 @@ type RunListOptions struct {
 
 // RunSummary is a compact index entry for a recorded agent run.
 type RunSummary struct {
-	RunID      string    `json:"run_id"`
-	Agent      string    `json:"agent"`
-	ParentID   string    `json:"parent_id,omitempty"`
-	TraceID    string    `json:"trace_id,omitempty"`
-	SpanID     string    `json:"span_id,omitempty"`
-	StartedAt  time.Time `json:"started_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	DurationMS int64     `json:"duration_ms,omitempty"`
-	Events     int       `json:"events"`
-	Status     string    `json:"status,omitempty"`
-	LastKind   string    `json:"last_kind,omitempty"`
-	LastError  string    `json:"last_error,omitempty"`
+	RunID         string    `json:"run_id"`
+	Agent         string    `json:"agent"`
+	ParentID      string    `json:"parent_id,omitempty"`
+	TraceID       string    `json:"trace_id,omitempty"`
+	SpanID        string    `json:"span_id,omitempty"`
+	StartedAt     time.Time `json:"started_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	DurationMS    int64     `json:"duration_ms,omitempty"`
+	Events        int       `json:"events"`
+	Status        string    `json:"status,omitempty"`
+	LastKind      string    `json:"last_kind,omitempty"`
+	LastError     string    `json:"last_error,omitempty"`
+	LastErrorKind string    `json:"last_error_kind,omitempty"`
 }
 
 func (a *agentImpl) tracer() trace.Tracer {
@@ -414,6 +416,9 @@ func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOp
 			if e.Error != "" {
 				summary.LastError = e.Error
 			}
+			if e.ErrorKind != "" {
+				summary.LastErrorKind = e.ErrorKind
+			}
 		}
 		if opts.Status != "" && summary.Status != opts.Status {
 			continue
@@ -440,22 +445,30 @@ func runStatus(events []RunEvent) string {
 	}
 	status := "running"
 	for _, e := range events {
-		if e.Error != "" {
-			status = "error"
-		}
-		if e.Refused != "" && status != "error" {
+		if e.Refused != "" && status == "running" {
 			status = "refused"
 		}
-		switch e.Kind {
-		case "error":
-			status = "error"
-		case "done":
-			if status == "running" {
-				status = "done"
-			}
+		if e.Error != "" || e.Kind == "error" {
+			status = runErrorStatus(e.ErrorKind)
+		}
+		if e.Kind == "done" && status == "running" {
+			status = "done"
 		}
 	}
 	return status
+}
+
+func runErrorStatus(kind string) string {
+	switch ai.ErrorKind(kind) {
+	case ai.ErrorKindCanceled:
+		return "canceled"
+	case ai.ErrorKindTimeout:
+		return "timeout"
+	case ai.ErrorKindRateLimited:
+		return "rate_limited"
+	default:
+		return "error"
+	}
 }
 
 func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
