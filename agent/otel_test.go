@@ -241,7 +241,7 @@ func TestAgentOpenTelemetrySpansModelFailure(t *testing.T) {
 				sawRunError = true
 			}
 		case spanNameModelCall:
-			if attrs[AttrAgentName] == "failing-runner" && attrs[AttrAttempt] == "1" && s.Status().Code == codesError {
+			if attrs[AttrAgentName] == "failing-runner" && attrs[AttrAttempt] == "1" && attrs[AttrErrorKind] == string(ai.ErrorKindUnknown) && s.Status().Code == codesError {
 				sawModelError = true
 			}
 		}
@@ -263,7 +263,7 @@ func TestAgentOpenTelemetrySpansModelFailure(t *testing.T) {
 	}
 	var sawModelEvent bool
 	for _, event := range events {
-		if event.Kind == "model" && event.Attempt == 1 && event.MaxAttempts == 1 && event.Error != "" {
+		if event.Kind == "model" && event.Attempt == 1 && event.MaxAttempts == 1 && event.Error != "" && event.ErrorKind == string(ai.ErrorKindUnknown) {
 			sawModelEvent = true
 		}
 	}

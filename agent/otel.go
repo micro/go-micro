@@ -38,6 +38,7 @@ const (
 	AttrGuardrailBlock = "agent.guardrail.block"
 	AttrRefusal        = "agent.refusal"
 	AttrInputChars     = "agent.input.chars"
+	AttrErrorKind      = "agent.error.kind"
 )
 
 type RunEvent struct {
@@ -57,6 +58,7 @@ type RunEvent struct {
 	Tokens      Usage     `json:"tokens,omitempty"`
 	Refused     string    `json:"refused,omitempty"`
 	Error       string    `json:"error,omitempty"`
+	ErrorKind   string    `json:"error_kind,omitempty"`
 	InputChars  int       `json:"input_chars,omitempty"`
 }
 
@@ -110,7 +112,7 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 		return ctx, func(err error) {
 			latency := time.Since(start).Milliseconds()
 			if err != nil {
-				a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error()})
+				a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))})
 				return
 			}
 			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency})
@@ -124,9 +126,10 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 		latency := time.Since(start).Milliseconds()
 		span.SetAttributes(attribute.Int64(AttrLatencyMS, latency))
 		if err != nil {
+			span.SetAttributes(attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error()})
+			a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))})
 		} else {
 			span.SetStatus(codes.Ok, "")
 			a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency})
@@ -157,6 +160,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
 		if err != nil {
 			e.Error = err.Error()
+			e.ErrorKind = string(ai.ClassifyError(err))
 		}
 		m.a.recordRunEvent(e)
 		return resp, err
@@ -185,6 +189,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 	}
 	span.SetAttributes(attrs...)
 	if err != nil {
+		span.SetAttributes(attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	} else {
@@ -194,6 +199,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 	e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
 	if err != nil {
 		e.Error = err.Error()
+		e.ErrorKind = string(ai.ClassifyError(err))
 	}
 	m.a.recordSpanEvent(span, e)
 	return resp, err
@@ -220,7 +226,8 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		if a.opts.TraceProvider == nil {
 			res := next(ctx, call)
 			dur := time.Since(start).Milliseconds()
-			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resultError(res)})
+			resErr := resultError(res)
+			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
 			return res
 		}
 
@@ -237,8 +244,11 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		if res.Refused != "" {
 			attrs = append(attrs, attribute.Bool(AttrGuardrailBlock, true), attribute.String(AttrRefusal, res.Refused))
 		}
-		span.SetAttributes(attrs...)
 		resErr := resultError(res)
+		if kind := classifyToolError(resErr); kind != "" {
+			attrs = append(attrs, attribute.String(AttrErrorKind, kind))
+		}
+		span.SetAttributes(attrs...)
 		if res.Refused != "" {
 			span.SetStatus(codes.Error, res.Refused)
 		} else if resErr != "" {
@@ -247,7 +257,7 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 			span.SetStatus(codes.Ok, "")
 		}
 		span.End()
-		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resErr})
+		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
 		return res
 	}
 }
@@ -262,6 +272,19 @@ func resultError(res ai.ToolResult) string {
 		}
 	}
 	return ""
+}
+
+func classifyToolError(err string) string {
+	switch {
+	case err == "":
+		return ""
+	case strings.Contains(strings.ToLower(err), "context canceled"):
+		return string(ai.ErrorKindCanceled)
+	case strings.Contains(strings.ToLower(err), "deadline exceeded"):
+		return string(ai.ErrorKindTimeout)
+	default:
+		return string(ai.ErrorKindProvider)
+	}
 }
 
 func (a *agentImpl) recordSpanEvent(span trace.Span, e RunEvent) {
@@ -308,6 +331,9 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 	}
 	if e.Error != "" {
 		attrs = append(attrs, attribute.String("agent.error", e.Error))
+	}
+	if e.ErrorKind != "" {
+		attrs = append(attrs, attribute.String(AttrErrorKind, e.ErrorKind))
 	}
 	return attrs
 }
