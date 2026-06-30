@@ -21,8 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Resume durable agent runs from checkpoints** ([#3401](https://github.com/micro/go-micro/issues/3401)) — streaming just landed via #3410, but the Next-phase durable agent loop is still the highest-value gap in the services → agents → workflows lifecycle: long-running agent work should survive interruption with the same checkpoint discipline flows already have, without duplicating completed tool calls or bypassing cancellation/deadline guardrails.
-2. **Emit OpenTelemetry spans for agent runs** ([#3403](https://github.com/micro/go-micro/issues/3403)) — once long runs can resume and stream, operators need the same run story in traces that developers see via `micro runs`: lifecycle boundaries, model/tool calls, approvals, retries, failures, and cancellation correlated by run ID without leaking sensitive payloads.
+1. **Emit OpenTelemetry spans for agent runs** ([#3403](https://github.com/micro/go-micro/issues/3403)) — durable checkpoint resume landed via #3414, streaming landed via #3410, and the next highest-value gap is making long-running agent work operable: lifecycle boundaries, model/tool calls, approvals, retries, failures, and cancellation should be correlated by run ID in OpenTelemetry without leaking sensitive payloads.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
