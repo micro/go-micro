@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add provider-backed `ai.Stream` conformance coverage** ([#3420](https://github.com/micro/go-micro/issues/3420)) — agent OpenTelemetry shipped via #3418, durable checkpoint resume landed via #3414, and A2A streaming fallback landed via #3410. The next highest-value gap is keeping real chat and A2A `message/stream` behavior reliable across providers: token/event ordering, cancellation, unsupported-provider fallback, and no-secret plus key-gated live-provider CI should all be covered by the same contract.
+1. **Verify agent cancellation and retry semantics end to end** ([#3425](https://github.com/micro/go-micro/issues/3425)) — provider-backed `ai.Stream` conformance shipped via #3423 after agent OpenTelemetry (#3418), durable checkpoint resume (#3414), A2A streaming fallback (#3410), the consolidated developer-flow harness (#3399), and the deploy checkpoint in the 0→hero harness (#3384). The highest-value remaining Now-phase gap is failure and resilience: context deadlines, cancellation, retry/backoff, rate-limit/provider transient errors, and retry exhaustion need one CI-verifiable contract across model calls, agent tool execution/delegation, gateway paths, and flow boundaries so unattended service → agent → workflow runs fail safely and visibly.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
