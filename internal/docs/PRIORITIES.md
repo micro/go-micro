@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Emit OpenTelemetry spans for agent runs** ([#3403](https://github.com/micro/go-micro/issues/3403)) — durable checkpoint resume landed via #3414, streaming landed via #3410, and the next highest-value gap is making long-running agent work operable: lifecycle boundaries, model/tool calls, approvals, retries, failures, and cancellation should be correlated by run ID in OpenTelemetry without leaking sensitive payloads.
+1. **Add provider-backed `ai.Stream` conformance coverage** ([#3420](https://github.com/micro/go-micro/issues/3420)) — agent OpenTelemetry shipped via #3418, durable checkpoint resume landed via #3414, and A2A streaming fallback landed via #3410. The next highest-value gap is keeping real chat and A2A `message/stream` behavior reliable across providers: token/event ordering, cancellation, unsupported-provider fallback, and no-secret plus key-gated live-provider CI should all be covered by the same contract.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
