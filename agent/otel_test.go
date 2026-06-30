@@ -429,7 +429,7 @@ func TestListRunSummaries(t *testing.T) {
 		{Time: time.Unix(0, 1), RunID: "run-a", Agent: "runner", TraceID: "trace-a", SpanID: "span-a", Kind: "run", Name: "first"},
 		{Time: time.Unix(0, 2), RunID: "run-a", Agent: "runner", Kind: "tool", Name: "probe"},
 		{Time: time.Unix(0, 3), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "run", Name: "second"},
-		{Time: time.Unix(0, 4), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "error", Error: "boom"},
+		{Time: time.Unix(0, 4), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "error", Error: "context deadline exceeded", ErrorKind: string(ai.ErrorKindTimeout)},
 	}
 	for _, e := range events {
 		b, err := json.Marshal(e)
@@ -452,8 +452,32 @@ func TestListRunSummaries(t *testing.T) {
 	if got[0].RunID != "run-a" || got[0].TraceID != "trace-a" || got[0].SpanID != "span-a" || got[0].Events != 2 || got[0].Status != "running" || got[0].DurationMS != 0 || got[0].LastKind != "tool" || !got[0].UpdatedAt.Equal(time.Unix(0, 2)) {
 		t.Fatalf("unexpected run-a summary: %#v", got[0])
 	}
-	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 2 || got[1].Status != "error" || got[1].DurationMS != 0 || got[1].LastKind != "error" || got[1].LastError != "boom" {
+	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 2 || got[1].Status != "timeout" || got[1].DurationMS != 0 || got[1].LastKind != "error" || got[1].LastError != "context deadline exceeded" || got[1].LastErrorKind != string(ai.ErrorKindTimeout) {
 		t.Fatalf("unexpected run-b summary: %#v", got[1])
+	}
+}
+
+func TestRunStatusClassifiesOperationalErrorKinds(t *testing.T) {
+	tests := []struct {
+		name string
+		kind ai.ErrorKind
+		want string
+	}{
+		{name: "canceled", kind: ai.ErrorKindCanceled, want: "canceled"},
+		{name: "timeout", kind: ai.ErrorKindTimeout, want: "timeout"},
+		{name: "rate limited", kind: ai.ErrorKindRateLimited, want: "rate_limited"},
+		{name: "provider", kind: ai.ErrorKindProvider, want: "error"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := runStatus([]RunEvent{
+				{Kind: "run"},
+				{Kind: "error", Error: "failed", ErrorKind: string(tt.kind)},
+			})
+			if got != tt.want {
+				t.Fatalf("runStatus() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -464,7 +488,7 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 		{Time: time.Unix(0, 1), RunID: "run-old", Agent: "runner", Kind: "run"},
 		{Time: time.Unix(0, 2), RunID: "run-old", Agent: "runner", Kind: "done"},
 		{Time: time.Unix(0, 3), RunID: "run-new", Agent: "runner", TraceID: "abcdef1234567890", Kind: "run"},
-		{Time: time.Unix(0, 4), RunID: "run-new", Agent: "runner", Kind: "error", Error: "boom"},
+		{Time: time.Unix(0, 4), RunID: "run-new", Agent: "runner", Kind: "error", Error: "rate limit exceeded", ErrorKind: string(ai.ErrorKindRateLimited)},
 	}
 	for _, e := range events {
 		b, err := json.Marshal(e)
@@ -476,11 +500,11 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 		}
 	}
 
-	got, err := ListRunSummariesWithOptions(st, "runner", RunListOptions{Status: "error", TraceID: "abcdef", Limit: 1})
+	got, err := ListRunSummariesWithOptions(st, "runner", RunListOptions{Status: "rate_limited", TraceID: "abcdef", Limit: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].RunID != "run-new" || got[0].Status != "error" {
+	if len(got) != 1 || got[0].RunID != "run-new" || got[0].Status != "rate_limited" {
 		t.Fatalf("filtered summaries = %#v", got)
 	}
 }
