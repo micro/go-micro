@@ -49,6 +49,12 @@ func (a *agentImpl) saveRun(ctx context.Context, run flow.Run) error {
 	if err := a.opts.Checkpoint.Save(ctx, run); err != nil {
 		return fmt.Errorf("agent %s checkpoint save: %w", a.opts.Name, err)
 	}
+	if info, ok := ai.RunInfoFrom(ctx); ok {
+		a.recordTimelineEvent(ctx, RunEvent{
+			Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent,
+			Kind: "checkpoint", Name: run.State.Stage, Status: run.Status,
+		})
+	}
 	return nil
 }
 

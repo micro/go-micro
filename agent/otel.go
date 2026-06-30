@@ -22,23 +22,25 @@ const (
 	spanNameModelCall = "agent.model.call"
 	spanNameToolCall  = "agent.tool.call"
 
-	AttrRunID          = "agent.run.id"
-	AttrParentRunID    = "agent.run.parent_id"
-	AttrAgentName      = "agent.name"
-	AttrProvider       = "agent.model.provider"
-	AttrModel          = "agent.model.name"
-	AttrLatencyMS      = "agent.latency_ms"
-	AttrInputTokens    = "agent.tokens.input"
-	AttrOutputTokens   = "agent.tokens.output"
-	AttrTotalTokens    = "agent.tokens.total"
-	AttrAttempt        = "agent.model.attempt"
-	AttrMaxAttempts    = "agent.model.max_attempts"
-	AttrToolName       = "agent.tool.name"
-	AttrDelegate       = "agent.delegate"
-	AttrGuardrailBlock = "agent.guardrail.block"
-	AttrRefusal        = "agent.refusal"
-	AttrInputChars     = "agent.input.chars"
-	AttrErrorKind      = "agent.error.kind"
+	AttrRunID            = "agent.run.id"
+	AttrParentRunID      = "agent.run.parent_id"
+	AttrAgentName        = "agent.name"
+	AttrProvider         = "agent.model.provider"
+	AttrModel            = "agent.model.name"
+	AttrLatencyMS        = "agent.latency_ms"
+	AttrInputTokens      = "agent.tokens.input"
+	AttrOutputTokens     = "agent.tokens.output"
+	AttrTotalTokens      = "agent.tokens.total"
+	AttrAttempt          = "agent.model.attempt"
+	AttrMaxAttempts      = "agent.model.max_attempts"
+	AttrToolName         = "agent.tool.name"
+	AttrDelegate         = "agent.delegate"
+	AttrGuardrailBlock   = "agent.guardrail.block"
+	AttrRefusal          = "agent.refusal"
+	AttrInputChars       = "agent.input.chars"
+	AttrErrorKind        = "agent.error.kind"
+	AttrCheckpointStatus = "agent.checkpoint.status"
+	AttrCheckpointStage  = "agent.checkpoint.stage"
 )
 
 type RunEvent struct {
@@ -57,6 +59,7 @@ type RunEvent struct {
 	LatencyMS   int64     `json:"latency_ms,omitempty"`
 	Tokens      Usage     `json:"tokens,omitempty"`
 	Refused     string    `json:"refused,omitempty"`
+	Status      string    `json:"status,omitempty"`
 	Error       string    `json:"error,omitempty"`
 	ErrorKind   string    `json:"error_kind,omitempty"`
 	InputChars  int       `json:"input_chars,omitempty"`
@@ -289,6 +292,15 @@ func classifyToolError(err string) string {
 	}
 }
 
+func (a *agentImpl) recordTimelineEvent(ctx context.Context, e RunEvent) {
+	span := trace.SpanFromContext(ctx)
+	if span.SpanContext().IsValid() {
+		a.recordSpanEvent(span, e)
+		return
+	}
+	a.recordRunEvent(e)
+}
+
 func (a *agentImpl) recordSpanEvent(span trace.Span, e RunEvent) {
 	if sc := span.SpanContext(); sc.IsValid() {
 		e.TraceID = sc.TraceID().String()
@@ -336,6 +348,14 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 	}
 	if e.ErrorKind != "" {
 		attrs = append(attrs, attribute.String(AttrErrorKind, e.ErrorKind))
+	}
+	if e.Kind == "checkpoint" {
+		if e.Status != "" {
+			attrs = append(attrs, attribute.String(AttrCheckpointStatus, e.Status))
+		}
+		if e.Name != "" {
+			attrs = append(attrs, attribute.String(AttrCheckpointStage, e.Name))
+		}
 	}
 	return attrs
 }
