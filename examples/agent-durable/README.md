@@ -18,6 +18,19 @@ run and `micro.AgentResume` continues it from the saved checkpoint. The final
 `tool executions: 1` line is the important bit: the reservation tool was not
 called a second time during resume.
 
+## When to use this instead of a durable flow
+
+Use a durable flow when the path is known ahead of time: ordered service calls,
+retries, timers, compensation, and a precise resume stage such as `reserve` or
+`charge`. Use a checkpointed agent run when the path is open-ended and the model
+may choose tools dynamically, but completed tool side effects still must not be
+replayed after a crash or provider failure.
+
+They compose: keep deterministic business process in `flow-durable`, then hand
+off the judgment-heavy step to a checkpointed agent when the workflow needs
+model-directed tool use. Both use the same `Checkpoint` backend, so inspection
+and recovery can share one run-history store.
+
 In a service, use the same pattern at startup:
 
 ```go
