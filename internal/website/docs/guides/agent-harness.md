@@ -69,6 +69,14 @@ if err != nil {
 _ = resp
 ```
 
+Choose the boundary deliberately: use a durable flow when the steps are known
+(`reserve`, `charge`, `confirm`) and each step has deterministic retry/resume
+semantics. Use a checkpointed agent run when the model is deciding which tools to
+call or how many turns it needs, but the side effects of completed tool calls
+still need crash-safe resume. Flows and agents share the same `Checkpoint`
+interface, so a flow can safely dispatch to a checkpointed agent for the
+open-ended part.
+
 For human-in-the-loop runs that pause through the built-in `request_input` tool,
 resume with the operator's response:
 
