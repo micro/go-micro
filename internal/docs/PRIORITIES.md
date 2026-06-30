@@ -21,11 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add cross-provider agent conformance harness** ([#3491](https://github.com/micro/go-micro/issues/3491)) — the verification loop shipped in #3489, so the next highest-value Now-phase gap is confidence that the same services → agents → workflows contract works across providers. The README and website sell one harness with pluggable providers, while the roadmap calls out that each provider has its own tool-call loop; a shared no-secret/live-key conformance scenario is the fastest way to prevent provider drift from undermining the 0→hero path.
+1. **Harden agent loop failure and cancellation semantics** ([#3492](https://github.com/micro/go-micro/issues/3492)) — the cross-provider conformance target shipped in #3495, so the remaining Now-phase operational risk is whether real runs fail safely: timeouts, rate limits, cancellation, deadline propagation, retry/backoff, and inspectable terminal state. This keeps the harness dependable under production conditions without adding a new product surface.
 
-2. **Harden agent loop failure and cancellation semantics** ([#3492](https://github.com/micro/go-micro/issues/3492)) — once provider behavior is comparable, the remaining Now-phase operational risk is whether real runs fail safely: timeouts, rate limits, cancellation, deadline propagation, retry/backoff, and inspectable terminal state. This keeps the harness dependable under production conditions without adding a new product surface.
-
-3. **Add a scheduled agent run harness contract** ([#3486](https://github.com/micro/go-micro/issues/3486)) — scheduled, looping, work-performing agents remain the right Next-phase cohesion target after hardening. This should compose existing services, agents, flows, store-backed memory, verification, and run inspection so the scaffold → run → chat → inspect lifecycle extends to unattended work without adding a hosted scheduler or breaking public APIs.
+2. **Add a scheduled agent run harness contract** ([#3486](https://github.com/micro/go-micro/issues/3486)) — scheduled, looping, work-performing agents remain the right Next-phase cohesion target after hardening. This should compose existing services, agents, flows, store-backed memory, verification, conformance, and run inspection so the scaffold → run → chat → inspect lifecycle extends to unattended work without adding a hosted scheduler or breaking public APIs.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
