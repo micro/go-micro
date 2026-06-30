@@ -16,7 +16,7 @@ Go Micro has three core abstractions:
 
 ## Prerequisites
 
-- **Go 1.21+** for development. The `curl` install below gives you the `micro` binary without Go, but `micro run` compiles your services, so you'll want Go installed to build them.
+- **Go 1.24+** for development. The `curl` install below gives you the `micro` binary without Go, but `micro run` compiles your services, so you'll want Go installed to build them.
 - An **LLM provider key** (Anthropic, OpenAI, Gemini, …) *only* for the AI features — `micro run --prompt`, `micro chat`, and agents. Plain services need no key. Set it before running, e.g. `export ANTHROPIC_API_KEY=sk-ant-...`.
 
 ## Install
