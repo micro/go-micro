@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/store"
 )
 
 func TestAskCancellationAbortsPromptly(t *testing.T) {
@@ -129,3 +131,56 @@ func TestToolCallTimeoutPropagatesDeadlineToCustomTool(t *testing.T) {
 		t.Fatalf("tool call took %s, want bounded timeout", elapsed)
 	}
 }
+
+func TestAskCheckpointRecordsTerminalOperationalFailureStatus(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{name: "canceled", err: context.Canceled, want: "canceled"},
+		{name: "timeout", err: context.DeadlineExceeded, want: "timeout"},
+		{name: "rate limited", err: testStatusError{code: 429}, want: "rate_limited"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cp := flow.StoreCheckpoint(store.NewMemoryStore(), "terminal-"+strings.ReplaceAll(tt.name, " ", "-"))
+			fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+				return nil, tt.err
+			}
+			defer func() { fakeGen = nil }()
+
+			a := newTestAgent(Name("terminal-"+strings.ReplaceAll(tt.name, " ", "-")), WithCheckpoint(cp))
+			_, err := a.Ask(context.Background(), "fail safely")
+			if err == nil {
+				t.Fatal("Ask succeeded, want failure")
+			}
+
+			runs, err := cp.List(context.Background())
+			if err != nil {
+				t.Fatalf("List: %v", err)
+			}
+			if len(runs) != 1 {
+				t.Fatalf("checkpointed runs = %d, want 1", len(runs))
+			}
+			if runs[0].Status != tt.want {
+				t.Fatalf("run status = %q, want %q", runs[0].Status, tt.want)
+			}
+			if len(runs[0].Steps) == 0 || runs[0].Steps[0].Status != tt.want {
+				t.Fatalf("step status = %#v, want %q", runs[0].Steps, tt.want)
+			}
+			if pending, err := Pending(context.Background(), a); err != nil || len(pending) != 0 {
+				t.Fatalf("Pending = %#v, %v; want no terminal run", pending, err)
+			}
+		})
+	}
+}
+
+type testStatusError struct {
+	code int
+}
+
+func (e testStatusError) Error() string { return "provider status error" }
+
+func (e testStatusError) StatusCode() int { return e.code }
