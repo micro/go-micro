@@ -465,6 +465,61 @@ func TestMessageStreamChunksPropagatesCancellationAndClosesStream(t *testing.T) 
 	}
 }
 
+func TestMessageStreamChunksFallsBackWhenUnsupported(t *testing.T) {
+	d := newDispatcher()
+	body := `{"jsonrpc":"2.0","id":1,"method":"message/stream","params":{"message":{"role":"user","parts":[{"kind":"text","text":"ping"}],"kind":"message"}}}`
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	rr := httptest.NewRecorder()
+	var streamed bool
+	var fallbackText string
+
+	d.serveWithStream(rr, req, func(ctx context.Context, text string) (string, error) {
+		fallbackText = text
+		return "pong", nil
+	}, func(ctx context.Context, text string) (ai.Stream, error) {
+		streamed = true
+		return nil, fmt.Errorf("%w: test provider", ai.ErrStreamingUnsupported)
+	})
+
+	if !streamed {
+		t.Fatal("stream invoke was not attempted")
+	}
+	if fallbackText != "ping" {
+		t.Fatalf("fallback text = %q, want ping", fallbackText)
+	}
+	if ct := rr.Result().Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
+		t.Fatalf("content-type = %q, want text/event-stream", ct)
+	}
+	var events []struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}
+	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		line = strings.TrimPrefix(line, "data: ")
+		var event struct {
+			Result Task      `json:"result"`
+			Error  *rpcError `json:"error"`
+		}
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			t.Fatalf("decode event %q: %v", line, err)
+		}
+		events = append(events, event)
+	}
+	if len(events) != 1 {
+		t.Fatalf("events = %d, want 1; body %s", len(events), rr.Body.String())
+	}
+	if events[0].Error != nil {
+		t.Fatalf("fallback event error: %+v", events[0].Error)
+	}
+	if events[0].Result.Status.State != stateCompleted || textOf(events[0].Result.Artifacts[0].Parts) != "pong" {
+		t.Fatalf("fallback task = %+v, want completed pong", events[0].Result)
+	}
+}
+
 func TestTasksResubscribeStreamsCurrentAndSubsequentEvents(t *testing.T) {
 	d := newDispatcher()
 	initial := &Task{ID: "task-1", ContextID: "ctx-1", Kind: "task", Status: TaskStatus{State: stateWorking, Timestamp: time.Now().UTC().Format(time.RFC3339)}}
