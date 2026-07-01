@@ -32,28 +32,32 @@ examples:
   - title: Real-World Examples
     url: /docs/examples/realworld/
 guides:
+  - title: Your First Agent
+    url: /docs/guides/your-first-agent.html
   - title: 0→hero Reference
     url: /docs/guides/zero-to-hero.html
-  - title: The Agent Harness
-    url: /docs/guides/agent-harness.html
-  - title: Agents and Workflows
-    url: /docs/guides/agents-and-workflows.html
-  - title: Agent Loops
-    url: /docs/guides/agent-loops.html
   - title: Plan & Delegate
     url: /docs/guides/plan-delegate.html
   - title: Agent Guardrails
     url: /docs/guides/agent-guardrails.html
-  - title: Payments (x402)
-    url: /docs/guides/x402-payments.html
+  - title: Agents and Workflows
+    url: /docs/guides/agents-and-workflows.html
+  - title: Agent Integration Patterns
+    url: /docs/guides/agent-patterns.html
+  - title: The Agent Harness
+    url: /docs/guides/agent-harness.html
+  - title: Agent Loops
+    url: /docs/guides/agent-loops.html
   - title: Agent2Agent (A2A)
     url: /docs/guides/a2a-protocol.html
-  - title: Atlas Cloud Integration
-    url: /docs/guides/atlascloud-integration.html
   - title: AI Provider Guide
     url: /docs/guides/ai-provider-guide.html
   - title: Provider Conformance
     url: /docs/guides/provider-conformance.html
+  - title: Atlas Cloud Integration
+    url: /docs/guides/atlascloud-integration.html
+  - title: Payments (x402)
+    url: /docs/guides/x402-payments.html
   - title: Comparison
     url: /docs/guides/comparison.html
   - title: Migration Guides
