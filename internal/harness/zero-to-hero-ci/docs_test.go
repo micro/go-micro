@@ -38,6 +38,39 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	}
 }
 
+func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	nav := readFile(t, filepath.Join(root, "internal", "website", "_data", "navigation.yml"))
+
+	orderedGuides := []string{
+		"/docs/guides/your-first-agent.html",
+		"/docs/guides/zero-to-hero.html",
+		"/docs/guides/plan-delegate.html",
+		"/docs/guides/agent-guardrails.html",
+		"/docs/guides/agents-and-workflows.html",
+		"/docs/guides/agent-patterns.html",
+		"/docs/guides/agent-harness.html",
+		"/docs/guides/agent-loops.html",
+	}
+
+	last := -1
+	for _, guide := range orderedGuides {
+		idx := strings.Index(nav, guide)
+		if idx == -1 {
+			t.Fatalf("website navigation does not expose %s", guide)
+		}
+		if idx < last {
+			t.Fatalf("website navigation should lead with hands-on guides; %s appeared out of order", guide)
+		}
+		last = idx
+
+		doc := strings.TrimPrefix(strings.TrimSuffix(guide, ".html"), "/docs/") + ".md"
+		if _, err := os.Stat(filepath.Join(root, "internal", "website", "docs", doc)); err != nil {
+			t.Fatalf("navigation links to missing guide %s: %v", guide, err)
+		}
+	}
+}
+
 func readFile(t *testing.T, name string) string {
 	t.Helper()
 	data, err := os.ReadFile(name)
