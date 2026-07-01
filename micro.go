@@ -128,6 +128,12 @@ type ToolFunc = agent.ToolFunc
 // NewMemory returns the default store-backed agent memory.
 func NewMemory(s store.Store, key string, limit int) Memory { return agent.NewMemory(s, key, limit) }
 
+// NewRetrievalMemory returns store-backed memory with bounded active context
+// and durable retrieval over every prior turn.
+func NewRetrievalMemory(s store.Store, key string, activeLimit int) Memory {
+	return agent.NewRetrievalMemory(s, key, activeLimit)
+}
+
 // NewCompactingMemory returns store-backed memory with deterministic
 // summarization and retrieval controls.
 func NewCompactingMemory(s store.Store, key string, maxMessages, keepRecent int) Memory {
@@ -139,6 +145,10 @@ func NewInMemory(limit int) Memory { return agent.NewInMemory(limit) }
 
 // AgentMemory sets the agent's conversation memory (default: store-backed).
 func AgentMemory(m Memory) AgentOption { return agent.WithMemory(m) }
+
+// AgentRetrievalMemory enables deterministic default-memory retrieval without
+// compaction; activeLimit bounds active context while every turn is archived.
+func AgentRetrievalMemory(activeLimit int) AgentOption { return agent.RetrievalMemory(activeLimit) }
 
 // AgentCompactMemory enables deterministic default-memory compaction and
 // retrieval for long-running agents.

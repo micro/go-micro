@@ -64,6 +64,49 @@ func TestWithMemoryUsed(t *testing.T) {
 	}
 }
 
+func TestRetrievalMemoryArchivesAllTurnsAndRanksRelevant(t *testing.T) {
+	st := store.NewMemoryStore()
+	m := NewRetrievalMemory(st, "agent/retrieval/history", 2)
+	m.Add("user", "alpha budget is 42")
+	m.Add("assistant", "noted")
+	m.Add("user", "beta owner is lee")
+	m.Add("assistant", "tracked")
+	m.Add("user", "alpha owner is sam")
+
+	if got := len(m.Messages()); got != 2 {
+		t.Fatalf("active messages = %d, want bounded history of 2", got)
+	}
+
+	recall, ok := m.(MemoryRecall)
+	if !ok {
+		t.Fatal("retrieval memory should support recall")
+	}
+	recalled := recall.Recall("alpha budget", 2)
+	if len(recalled) == 0 {
+		t.Fatal("expected relevant recalled turns")
+	}
+	if got := recalled[0].Content.(string); !strings.Contains(got, "alpha budget is 42") {
+		t.Fatalf("top recall = %q, want archived alpha budget turn", got)
+	}
+}
+
+func TestRetrievalMemoryPersistsArchiveAcrossReload(t *testing.T) {
+	st := store.NewMemoryStore()
+	m := NewRetrievalMemory(st, "agent/retrieval/reload", 1)
+	m.Add("user", "alpha budget is 42")
+	m.Add("assistant", "noted")
+	m.Add("user", "beta budget is 7")
+
+	reloaded := NewRetrievalMemory(st, "agent/retrieval/reload", 1)
+	recalled := reloaded.(MemoryRecall).Recall("alpha budget", 1)
+	if len(recalled) != 1 {
+		t.Fatalf("recalled %d messages, want 1", len(recalled))
+	}
+	if got := recalled[0].Content.(string); !strings.Contains(got, "alpha budget is 42") {
+		t.Fatalf("reloaded recall = %q, want alpha budget", got)
+	}
+}
+
 func TestCompactingMemoryRecallRanksSpecificMatches(t *testing.T) {
 	m := NewCompactingMemory(store.NewMemoryStore(), "agent/rank/history", 3, 1).(MemoryRecall)
 	writer := m.(Memory)

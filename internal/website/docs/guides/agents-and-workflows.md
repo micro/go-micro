@@ -89,14 +89,32 @@ Agents use store-backed conversation memory by default, scoped under the agent's
 name. That makes short restarts boring: the next `Ask` reloads the retained
 history from the same store backend you already use for services and flows.
 Long-running agents can also keep model context bounded without losing useful
-prior context:
+prior context. If you want retrieval without summaries, enable bounded active
+context plus a durable archive of every turn:
+
+```go
+a := micro.NewAgent("conductor",
+    micro.AgentServices("task"),
+    micro.AgentProvider("anthropic"),
+    micro.AgentRetrievalMemory(40),        // active messages kept in prompt context
+    micro.AgentMemoryRecallLimit(5),       // archived turns recalled per Ask
+)
+```
+
+`AgentRetrievalMemory(activeLimit)` switches the default memory to a store-backed
+retriever. The active conversation is capped at `activeLimit`, every turn is
+archived in the same scoped store used by the agent, and future asks inject
+matching archived turns ahead of active context. The built-in ranking is
+deterministic and credential-free for CI.
+
+When you also want a rolling summary in active context, use compacting memory:
 
 ```go
 a := micro.NewAgent("conductor",
     micro.AgentServices("task"),
     micro.AgentProvider("anthropic"),
     micro.AgentCompactMemory(40, 12),      // max active messages, recent messages kept verbatim
-    micro.AgentMemoryRecallLimit(5),       // archived turns recalled per Ask
+    micro.AgentMemoryRecallLimit(5),       // compacted turns recalled per Ask
 )
 ```
 
@@ -105,8 +123,7 @@ deterministic compactor. Once active history grows past `maxMessages`, older
 turns move into the durable archive, a provider-neutral summary is injected into
 active context, and the newest `keepRecent` messages stay verbatim. On future
 asks, archived turns whose text matches the current request are recalled ahead of
-the active context. The built-in retrieval is intentionally simple and
-credential-free for CI; teams that need embeddings or a vector database can still
+the active context. Teams that need embeddings or a vector database can still
 provide their own `AgentMemory` implementation.
 
 This is harness memory, not prompt-layer orchestration: services remain the

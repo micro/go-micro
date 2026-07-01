@@ -64,6 +64,10 @@ type Options struct {
 	// Memory is the agent's conversation memory. Nil = the default
 	// store-backed memory (durable across restarts).
 	Memory Memory
+	// MemoryRetrievalLimit enables retrieval-backed default memory without
+	// compaction. The active conversation stays bounded to this many messages
+	// while every turn is archived for deterministic recall.
+	MemoryRetrievalLimit int
 	// MemoryCompaction enables deterministic compaction/retrieval on the
 	// default store-backed memory. Custom Memory implementations can expose
 	// retrieval by implementing MemoryRecall.
@@ -238,6 +242,18 @@ func WithA2A(addr string) Option {
 // in-process, database, or semantic store.
 func WithMemory(m Memory) Option {
 	return func(o *Options) { o.Memory = m }
+}
+
+// RetrievalMemory enables deterministic, store-backed retrieval memory for
+// the default agent memory without compaction. Active context is capped at
+// activeLimit messages while every turn is archived in the store for Recall.
+func RetrievalMemory(activeLimit int) Option {
+	return func(o *Options) {
+		o.MemoryRetrievalLimit = activeLimit
+		if o.MemoryRecallLimit == 0 {
+			o.MemoryRecallLimit = 5
+		}
+	}
 }
 
 // CompactMemory enables deterministic, store-backed memory compaction for the
