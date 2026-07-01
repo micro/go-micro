@@ -11,6 +11,16 @@ the services → agents → workflows lifecycle: build capability first, add
 intelligence on top, then keep a clear path toward flows when the work needs to
 run on events or schedules.
 
+## Runnable reference first
+
+If you want to run the lifecycle before copying code, start with the maintained support-desk example from the repository root:
+
+```sh
+go run ./examples/support
+```
+
+It uses a deterministic mock model by default, so it needs no provider key, and it exercises the same shape this guide teaches: services become tools, an agent uses them, and a flow can trigger the work. Use this guide when you are ready to build the smaller 0→1 version yourself.
+
 ## What you'll build
 
 A tiny task assistant:
@@ -201,6 +211,7 @@ agent for judgment, tool use, and handoffs when the path is not known up front.
 
 - Read the [0→hero reference path](zero-to-hero.html) for the CI-verified
   lifecycle contract.
+- Run [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the no-secret 0→hero support-desk lifecycle.
 - Run [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate)
   to see planning and delegation across agents.
 - Read [Agents and Workflows](agents-and-workflows.html) when you are ready to

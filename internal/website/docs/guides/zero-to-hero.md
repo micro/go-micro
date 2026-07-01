@@ -24,6 +24,16 @@ cloud credentials?"
 | Deploy | `micro deploy --dry-run` resolves deploy targets without touching remote infrastructure. | `go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1` |
 | Runtime | Real services, agents, durable flows, store-backed history, delegation, and A2A run with only the model mocked. | `./internal/harness/zero-to-hero-ci/run.sh` and `make provider-conformance-mock` |
 
+## Run the runnable example
+
+From the repository root, start with the support-desk example when you want to see the full lifecycle in one terminal:
+
+```sh
+go run ./examples/support
+```
+
+It starts typed services, a support agent, an event-driven intake flow, and an approval gate with a deterministic mock model. Change one service method, agent prompt, or guardrail decision and run it again to learn the system by modifying a working path.
+
 ## Run the whole no-secret path
 
 From the repository root:
@@ -61,6 +71,11 @@ make provider-conformance-mock
 
 ## Reference scenarios
 
+- [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support)
+  is the runnable support-desk story: customers, tickets, notify, a support
+  agent, an intake flow, and an approval gate in one no-secret example.
+- [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate)
+  is the smallest runnable planning/delegation example for multiple agents.
 - [`internal/harness/plan-delegate`](https://github.com/micro/go-micro/tree/master/internal/harness/plan-delegate)
   is the compact 0→hero scenario: real task and notify services, a conductor
   agent, a comms agent, plan persistence, delegation, and a workflow handoff.
