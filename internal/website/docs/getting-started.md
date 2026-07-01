@@ -31,6 +31,16 @@ go install go-micro.dev/v6/cmd/micro@latest
 
 ## Quick Start: Generate from a Prompt
 
+Prefer to start from a runnable reference? Clone the repository and run the maintained support-desk lifecycle example first:
+
+```bash
+git clone https://github.com/micro/go-micro.git
+cd go-micro
+go run ./examples/support
+```
+
+That example is the no-secret 0→hero path: services expose ticket/customer/notification tools, an agent handles the work, and an event-driven flow triggers the agent. See [Learn by Example](examples/) when you want more runnable starting points.
+
 Describe what you need. The AI designs services, writes handlers, compiles, and starts them:
 
 ```bash
@@ -134,7 +144,7 @@ micro new gateway --template api
 
 ## Building Agents
 
-For a complete service-backed walkthrough, start with [Your First Agent](guides/your-first-agent.html).
+For a complete service-backed walkthrough, start with [Your First Agent](guides/your-first-agent.html). If you want to run before you write, use [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the full services → agents → workflows lifecycle or [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate) for the smallest multi-agent planning/delegation path.
 
 An Agent is an intelligent layer that manages one or more services:
 
@@ -219,6 +229,8 @@ The flow discovers all services as tools and lets the LLM decide which RPCs to c
 
 ## Next Steps
 
+- [Learn by Example](examples/) — runnable examples mapped to services, agents, and workflows
+- [0→hero Reference](guides/zero-to-hero.html) — the maintained no-secret lifecycle contract
 - [AI Integration](ai-integration.html) — how services, agents, MCP, and LLMs fit together
 - [Agent Design](https://github.com/micro/go-micro/blob/master/internal/docs/AGENT_DESIGN.md) — the full agent interface specification
 - [MCP & AI Agents](mcp.html) — MCP gateway, tool discovery, and auth
