@@ -184,3 +184,48 @@ type testStatusError struct {
 func (e testStatusError) Error() string { return "provider status error" }
 
 func (e testStatusError) StatusCode() int { return e.code }
+
+func TestToolRetryRetriesTransientToolErrorsThenSucceeds(t *testing.T) {
+	attempts := 0
+	a := newTestAgent(
+		Name("tool-retry-success"),
+		ToolRetry(3, time.Millisecond),
+		WithTool("flaky", "flaky tool", nil, func(context.Context, map[string]any) (string, error) {
+			attempts++
+			if attempts < 3 {
+				return "", context.DeadlineExceeded
+			}
+			return "ok", nil
+		}),
+	)
+
+	content := toolContent(a.toolHandler(), "flaky", nil)
+	if content != "ok" {
+		t.Fatalf("tool result = %q, want ok", content)
+	}
+	if attempts != 3 {
+		t.Fatalf("attempts = %d, want 3", attempts)
+	}
+}
+
+func TestToolRetryDoesNotRetryGuardrailRefusals(t *testing.T) {
+	attempts := 0
+	a := newTestAgent(
+		Name("tool-retry-refusal"),
+		MaxSteps(1),
+		ToolRetry(3, time.Millisecond),
+		WithTool("counted", "counted tool", nil, func(context.Context, map[string]any) (string, error) {
+			attempts++
+			return "ok", nil
+		}),
+	)
+	h := a.toolHandler()
+	_ = toolContent(h, "counted", nil)
+	content := toolContent(h, "counted", nil)
+	if !strings.Contains(content, "step limit reached") {
+		t.Fatalf("tool result = %q, want step-limit refusal", content)
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts = %d, want only the allowed tool call to execute", attempts)
+	}
+}
