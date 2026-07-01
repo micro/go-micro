@@ -116,6 +116,24 @@ func AgentLoopLimit(n int) AgentOption { return agent.LoopLimit(n) }
 // each action the agent takes.
 func AgentApproveTool(fn ApproveFunc) AgentOption { return agent.ApproveTool(fn) }
 
+// AgentModelCallTimeout sets the timeout for each provider Generate call.
+func AgentModelCallTimeout(d time.Duration) AgentOption { return agent.ModelCallTimeout(d) }
+
+// AgentModelRetry sets the provider retry budget and backoff for transient failures.
+func AgentModelRetry(maxAttempts int, backoff time.Duration) AgentOption {
+	return agent.ModelRetry(maxAttempts, backoff)
+}
+
+// AgentToolCallTimeout sets the timeout for each agent tool execution.
+func AgentToolCallTimeout(d time.Duration) AgentOption { return agent.ToolCallTimeout(d) }
+
+// AgentToolRetry sets the tool retry budget and backoff for transient failures.
+// Attempts include the first call. Retries are opt-in because tools can have
+// side effects; keep handlers idempotent before enabling this.
+func AgentToolRetry(maxAttempts int, backoff time.Duration) AgentOption {
+	return agent.ToolRetry(maxAttempts, backoff)
+}
+
 // Memory is an agent's pluggable conversation memory.
 type Memory = agent.Memory
 

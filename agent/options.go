@@ -60,6 +60,11 @@ type Options struct {
 	// applied before custom tools, delegate, and service RPC calls so context
 	// deadlines propagate consistently through the agent loop.
 	ToolTimeout time.Duration
+	// ToolMaxAttempts bounds tool execution attempts including the first call.
+	// Default 1; retries are opt-in because tools can have side effects.
+	ToolMaxAttempts int
+	// ToolRetryBackoff is the base delay between transient tool failures.
+	ToolRetryBackoff time.Duration
 
 	// Memory is the agent's conversation memory. Nil = the default
 	// store-backed memory (durable across restarts).
@@ -121,6 +126,8 @@ func newOptions(opts ...Option) Options {
 		ModelMaxAttempts:  1, // retries opt-in via ModelRetry (see field doc)
 		ModelRetryBackoff: 100 * time.Millisecond,
 		ToolTimeout:       30 * time.Second,
+		ToolMaxAttempts:   1,
+		ToolRetryBackoff:  100 * time.Millisecond,
 		// On by default and lenient: identical repeated calls are a
 		// no-progress loop, never useful. Set LoopLimit(0) to disable.
 		LoopLimit: 3,
@@ -226,6 +233,16 @@ func ModelRetry(maxAttempts int, backoff time.Duration) Option {
 	return func(o *Options) {
 		o.ModelMaxAttempts = maxAttempts
 		o.ModelRetryBackoff = backoff
+	}
+}
+
+// ToolRetry sets the tool retry budget and backoff for transient failures.
+// Attempts include the first call. Retries are opt-in because tools may have
+// side effects; keep handlers idempotent before enabling this.
+func ToolRetry(maxAttempts int, backoff time.Duration) Option {
+	return func(o *Options) {
+		o.ToolMaxAttempts = maxAttempts
+		o.ToolRetryBackoff = backoff
 	}
 }
 

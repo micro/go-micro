@@ -93,9 +93,10 @@ func (c ToolCall) Scan(v any) error {
 
 // ToolResult represents the result of a tool execution
 type ToolResult struct {
-	ID      string // Tool call ID (for correlation)
-	Value   any    // Structured result (optional)
-	Content string // Tool execution result (JSON string), shown to the model
+	ID       string // Tool call ID (for correlation)
+	Value    any    // Structured result (optional)
+	Content  string // Tool execution result (JSON string), shown to the model
+	Attempts int    `json:"attempts,omitempty"` // Tool execution attempts, set when retried.
 	// Refused names the reason a guardrail blocked the call before it ran
 	// ("max_steps", "loop", "approval"); empty when the call executed. A
 	// tool wrapper can switch on it to build reliability tooling — react to

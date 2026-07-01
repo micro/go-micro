@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"go-micro.dev/v6/ai"
 	codecBytes "go-micro.dev/v6/codec/bytes"
@@ -121,6 +122,7 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 	// so the result runs plan → step → loop → approve → checkpoint → base.
 	h := a.baseHandler()
 	h = a.toolTimeoutWrap(h)
+	h = a.toolRetryWrap(h)
 	h = a.checkpointToolWrap(h)
 	h = a.approveWrap(h)
 	h = a.loopWrap(h)
@@ -162,6 +164,99 @@ func (a *agentImpl) toolTimeoutWrap(next ai.ToolHandler) ai.ToolHandler {
 		defer cancel()
 		return next(toolCtx, call)
 	}
+}
+
+// toolRetryWrap retries transient tool failures with bounded backoff. It is
+// opt-in because tools can have side effects; guardrail refusals and caller
+// cancellation are never retried.
+func (a *agentImpl) toolRetryWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		maxAttempts := a.opts.ToolMaxAttempts
+		if maxAttempts <= 0 {
+			maxAttempts = 1
+		}
+
+		var res ai.ToolResult
+		for attempt := 1; attempt <= maxAttempts; attempt++ {
+			if err := ctx.Err(); err != nil {
+				return errResult(call.ID, err.Error())
+			}
+			res = next(ctx, call)
+			if !retryableToolResult(res) || attempt == maxAttempts || ctx.Err() != nil {
+				return annotateToolAttempts(res, attempt)
+			}
+
+			t := time.NewTimer(toolRetryBackoff(attempt, a.opts.ToolRetryBackoff))
+			select {
+			case <-ctx.Done():
+				if !t.Stop() {
+					<-t.C
+				}
+				return errResult(call.ID, ctx.Err().Error())
+			case <-t.C:
+			}
+		}
+		return annotateToolAttempts(res, maxAttempts)
+	}
+}
+
+func retryableToolResult(res ai.ToolResult) bool {
+	if res.Refused != "" {
+		return false
+	}
+	msg := toolErrorMessage(res)
+	if msg == "" {
+		return false
+	}
+	return ai.IsTransientError(fmt.Errorf("%s", msg))
+}
+
+func toolErrorMessage(res ai.ToolResult) string {
+	if m, ok := res.Value.(map[string]string); ok {
+		return m["error"]
+	}
+	if m, ok := res.Value.(map[string]any); ok {
+		if v, ok := m["error"].(string); ok {
+			return v
+		}
+	}
+	var decoded map[string]string
+	if err := json.Unmarshal([]byte(res.Content), &decoded); err == nil {
+		return decoded["error"]
+	}
+	return ""
+}
+
+func annotateToolAttempts(res ai.ToolResult, attempts int) ai.ToolResult {
+	if attempts <= 1 {
+		return res
+	}
+	res.Attempts = attempts
+	if m, ok := res.Value.(map[string]string); ok {
+		cp := map[string]any{}
+		for k, v := range m {
+			cp[k] = v
+		}
+		cp["attempts"] = attempts
+		res.Value = cp
+		if b, err := json.Marshal(cp); err == nil {
+			res.Content = string(b)
+		}
+	}
+	return res
+}
+
+func toolRetryBackoff(attempt int, base time.Duration) time.Duration {
+	if base <= 0 {
+		base = 200 * time.Millisecond
+	}
+	if shift := attempt - 1; shift > 0 {
+		base <<= shift
+	}
+	if base > 30*time.Second {
+		return 30 * time.Second
+	}
+	return base
 }
 
 // baseHandler executes a tool call: a developer custom tool, the built-in
@@ -338,6 +433,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 		ModelCallTimeout(a.opts.ModelTimeout),
 		ModelRetry(a.opts.ModelMaxAttempts, a.opts.ModelRetryBackoff),
 		ToolCallTimeout(a.opts.ToolTimeout),
+		ToolRetry(a.opts.ToolMaxAttempts, a.opts.ToolRetryBackoff),
 		TraceProvider(a.opts.TraceProvider),
 	)
 	// Record lineage so the sub-agent's tool calls carry this run as parent.
