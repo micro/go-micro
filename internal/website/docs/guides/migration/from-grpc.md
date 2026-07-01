@@ -90,7 +90,7 @@ Update your proto generation:
 
 ```bash
 # Install protoc-gen-micro
-go install go-micro.dev/v6/cmd/protoc-gen-micro@v6
+go install go-micro.dev/v6/cmd/protoc-gen-micro@latest
 
 # Generate both gRPC and Go Micro code
 protoc --proto_path=. \
@@ -100,7 +100,6 @@ protoc --proto_path=. \
   proto/hello.proto
 ```
 
-> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
 
 This generates:
 - `hello.pb.go` - Protocol Buffers types

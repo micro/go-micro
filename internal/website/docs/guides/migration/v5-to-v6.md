@@ -32,7 +32,7 @@ go mod tidy
 Update the CLI too:
 
 ```bash
-go install go-micro.dev/v6/cmd/micro@v6
+go install go-micro.dev/v6/cmd/micro@latest
 ```
 
 ## 2. TLS is verified by default
