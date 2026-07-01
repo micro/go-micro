@@ -36,6 +36,14 @@ import (
 
 const defaultHarnesses = "agent,universe,agent-flow,plan-delegate,a2a-stream-fallback"
 
+var harnessPhases = map[string]string{
+	"agent":               "model call + tool call",
+	"universe":            "service discovery + tool call",
+	"agent-flow":          "workflow event + tool call",
+	"plan-delegate":       "plan persistence + delegation + tool call",
+	"a2a-stream-fallback": "streaming fallback + tool call",
+}
+
 var providerEnv = map[string]string{
 	"anthropic":  "ANTHROPIC_API_KEY",
 	"openai":     "OPENAI_API_KEY",
@@ -92,15 +100,16 @@ func main() {
 		}
 
 		for _, harness := range harnesses {
-			fmt.Printf("\n==> %s / %s\n", provider, harness)
+			phase := harnessPhase(harness)
+			fmt.Printf("\n==> %s / %s (%s)\n", provider, harness, phase)
 			if err := runHarness(provider, harness, *timeoutFlag); err != nil {
-				fmt.Printf("FAIL %s / %s: %v\n", provider, harness, err)
+				fmt.Printf("FAIL %s / %s (%s): %v\n", provider, harness, phase, err)
 				failed++
-				results = append(results, conformanceResult{Provider: provider, Harness: harness, Status: statusFailed, Error: err.Error()})
+				results = append(results, conformanceResult{Provider: provider, Harness: harness, Phase: phase, Status: statusFailed, Error: err.Error()})
 				continue
 			}
 			ran++
-			results = append(results, conformanceResult{Provider: provider, Harness: harness, Status: statusPassed})
+			results = append(results, conformanceResult{Provider: provider, Harness: harness, Phase: phase, Status: statusPassed})
 		}
 	}
 
@@ -140,6 +149,7 @@ const (
 type conformanceResult struct {
 	Provider string `json:"provider"`
 	Harness  string `json:"harness,omitempty"`
+	Phase    string `json:"phase,omitempty"`
 	Status   string `json:"status"`
 	Error    string `json:"error,omitempty"`
 }
@@ -176,14 +186,18 @@ func writeSummaryMarkdown(path string, summary conformanceSummary) error {
 	b.WriteString("## Capability matrix\n\n")
 	b.WriteString(capabilityMarkdown(summary.Capabilities))
 	b.WriteString("\n## Harness results\n\n")
-	b.WriteString("| Provider | Harness | Status | Detail |\n")
-	b.WriteString("| --- | --- | --- | --- |\n")
+	b.WriteString("| Provider | Harness | Phase | Status | Detail |\n")
+	b.WriteString("| --- | --- | --- | --- | --- |\n")
 	for _, result := range summary.Results {
 		harness := result.Harness
 		if harness == "" {
 			harness = "—"
 		}
-		fmt.Fprintf(&b, "| %s | %s | %s | %s |\n", result.Provider, harness, result.Status, markdownCell(result.Error))
+		phase := result.Phase
+		if phase == "" {
+			phase = "—"
+		}
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s |\n", result.Provider, harness, markdownCell(phase), result.Status, markdownCell(result.Error))
 	}
 	return os.WriteFile(path, []byte(b.String()), 0o644)
 }
@@ -207,6 +221,13 @@ func markdownList(values []string) string {
 		escaped = append(escaped, "`"+strings.ReplaceAll(value, "`", "\\`")+"`")
 	}
 	return strings.Join(escaped, ", ")
+}
+
+func harnessPhase(harness string) string {
+	if phase, ok := harnessPhases[harness]; ok {
+		return phase
+	}
+	return "harness"
 }
 
 func markdownCell(s string) string {
