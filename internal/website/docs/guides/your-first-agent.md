@@ -47,6 +47,14 @@ export ANTHROPIC_API_KEY=sk-ant-...
 Plain service calls work without a model key; the key is only needed when the
 agent reasons over tools.
 
+Run the read-only first-agent preflight before starting the walkthrough:
+
+```sh
+micro agent preflight
+```
+
+It checks Go, the `micro` binary, provider-key setup, and the default local gateway port without contacting a provider.
+
 ## 1. Create a workspace
 
 ```sh
