@@ -71,7 +71,7 @@ jobs:
           # conformance harnesses; run it against a stronger tool-use model.
           # Override with an Actions variable ATLASCLOUD_MODEL if the exact
           # catalog id differs (Atlas uses org/model ids).
-          ATLASCLOUD_MODEL: ${{ vars.ATLASCLOUD_MODEL || 'Qwen/Qwen3-235B-A22B' }}
+          ATLASCLOUD_MODEL: ${{ vars.ATLASCLOUD_MODEL || 'minimaxai/minimax-m3' }}
         run: |
           PROVIDERS="${{ github.event.inputs.providers || 'anthropic,openai,gemini,groq,mistral,together,atlascloud' }}"
           HARNESSES="${{ github.event.inputs.harnesses || 'agent,universe,agent-flow,plan-delegate,a2a-stream-fallback' }}"
