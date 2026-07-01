@@ -1,0 +1,76 @@
+name: "Loop: Release (daily patch)"
+
+# Keeps the installable framework tracking the loop's daily improvements. Once a
+# day, if master has new commits since the latest v6 tag, this cuts the next
+# PATCH release (v6.MINOR.PATCH+1) and pushes the tag — which triggers the
+# existing goreleaser workflow (release.yml, tag-triggered) to build the release,
+# binaries, and images.
+#
+# The tag is pushed with a PAT (CODEX_TRIGGER_TOKEN), NOT the default GITHUB_TOKEN:
+# a tag pushed by GITHUB_TOKEN would not trigger release.yml (Actions blocks that
+# recursion). Minor/major bumps stay with the human (notable / breaking releases).
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 23 * * *" # daily 23:00 UTC — captures the day's merges (tunable)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: loop-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need full history + all tags
+      - name: Cut the next patch release if there are new commits
+        env:
+          RELEASE_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "CODEX_TRIGGER_TOKEN is not set — skipping."
+            echo "A tag pushed by the default GITHUB_TOKEN would not trigger the"
+            echo "goreleaser workflow, so a user PAT is required to cut releases."
+            exit 0
+          fi
+          git fetch --tags --force
+
+          LATEST=$(git tag --list 'v6.*.*' --sort=-v:refname | head -1)
+          if [ -z "$LATEST" ]; then
+            echo "no v6.x.x tag found — aborting so nothing weird gets tagged."
+            exit 1
+          fi
+          echo "latest release tag: $LATEST"
+
+          COUNT=$(git rev-list --count "$LATEST"..HEAD)
+          echo "commits on HEAD since $LATEST: $COUNT"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "no new commits since $LATEST — no release today."
+            exit 0
+          fi
+
+          # Bump the patch: v6.MINOR.PATCH -> v6.MINOR.(PATCH+1)
+          ver="${LATEST#v}"          # 6.3.10
+          major="${ver%%.*}"         # 6
+          rest="${ver#*.}"           # 3.10
+          minor="${rest%%.*}"        # 3
+          patch="${rest#*.}"         # 10
+          case "$major.$minor.$patch" in
+            [0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "unexpected tag shape: $LATEST" ; exit 1 ;;
+          esac
+          NEXT="v${major}.${minor}.$((patch + 1))"
+          echo "cutting: $NEXT ($COUNT commits since $LATEST)"
+
+          git config user.name "go-micro release bot"
+          git config user.email "noreply@go-micro.dev"
+          git tag -a "$NEXT" -m "Release $NEXT — automated daily patch ($COUNT commits since $LATEST)"
+          git push "https://x-access-token:${RELEASE_TOKEN}@github.com/${REPO}.git" "$NEXT"
+          echo "Pushed $NEXT. goreleaser (release.yml) will build and publish it."
