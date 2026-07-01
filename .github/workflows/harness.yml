@@ -12,7 +12,7 @@ on:
   pull_request:
     branches: ["**"]
   schedule:
-    - cron: "17 6 * * *" # daily, so the world is exercised even without changes
+    - cron: "17 * * * *" # hourly, so real-model conformance keeps pace with the dev/loop velocity
   workflow_dispatch:
     inputs:
       providers:
