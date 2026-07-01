@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add retrieval-backed agent memory** ([#3514](https://github.com/micro/go-micro/issues/3514)) — the recent loop closed the Now/Next operability seams (scheduled agent harness, `RunInfo` tracing, provider stream conformance, A2A resubscribe/input-required, and durable agent checkpoints), so the next highest-value gap is the roadmap's remaining memory-management layer. Compacting history keeps prompts bounded, but long-running scheduled agents need relevant recall/RAG over prior turns and durable store state to make unattended services → agents → workflows useful without manual context resets.
+1. **Polish the 0-to-hero reference app** ([#3515](https://github.com/micro/go-micro/issues/3515)) — the latest increment shipped retrieval-backed agent memory, closing the last listed memory-management gap. With the core services → agents → workflows primitives now present (scheduled/durable runs, RunInfo tracing, provider stream conformance, A2A resubscribe/input-required, durable checkpoints, and retrieval memory), the highest-value remaining gap is coherence: one maintained, no-secret, CI-verifiable 0→hero reference that proves the whole lifecycle and CLI inner loop from scaffold → run → chat → inspect → deploy. This is the roadmap's ongoing DX contract and the best way to prevent the harness from feeling like separate demos rather than one runtime.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
