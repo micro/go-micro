@@ -23,6 +23,7 @@ about the framework.
 ## Contents
 
 - [Getting Started](getting-started.html)
+- [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
 - [MCP & AI Agents](mcp.html) - Turn services into AI-callable tools with the Model Context Protocol
 - [CLI & Gateway Guide](guides/cli-gateway.html) - Development vs Production modes
 - [Quick Start](quickstart.html)
@@ -44,6 +45,7 @@ about the framework.
 
 ## AI & Agents
 
+- [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
 - [Building AI-Native Services](guides/ai-native-services.html) - End-to-end tutorial for MCP-enabled services
 - [MCP Security Guide](guides/mcp-security.html) - Auth, scopes, rate limiting, and audit logging
 - [Tool Description Best Practices](guides/tool-descriptions.html) - Writing docs that make agents effective
