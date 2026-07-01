@@ -21,11 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add a scheduled agent run harness contract** ([#3486](https://github.com/micro/go-micro/issues/3486)) — with conformance, failure/cancellation hardening, checkpoint resume, memory summarization, and A2A continuity now shipped, the highest-value remaining gap is proving unattended agents as first-class operational-harness workloads. This should compose existing services, agents, flows, store-backed memory, verification, conformance, and run inspection so the scaffold → run → chat → inspect lifecycle extends to scheduled/looping work without adding a hosted scheduler, graph DSL, or breaking public APIs.
+1. **Export agent `RunInfo` as OpenTelemetry spans** ([#3501](https://github.com/micro/go-micro/issues/3501)) — the scheduled/looping agent harness contract has now shipped, so the highest-value remaining gap is making unattended runs operable in the production tracing surface teams already use. Map run lifecycle, scheduled dispatch metadata, checkpoints/resume, tool/delegate steps, and terminal failure/cancellation metadata into OpenTelemetry rather than creating a separate observability surface.
 
-2. **Export agent `RunInfo` as OpenTelemetry spans** ([#3501](https://github.com/micro/go-micro/issues/3501)) — once agents can run unattended, operators need production-grade visibility that lines up with the existing tracing stack. Map run lifecycle, checkpoints/resume, tool/delegate steps, and terminal failure/cancellation metadata into OpenTelemetry rather than creating a separate observability surface.
-
-3. **Broaden provider-backed `ai.Stream` conformance** ([#3502](https://github.com/micro/go-micro/issues/3502)) — A2A/chat streaming is now a visible UX seam, but the trust story depends on every provider adapter behaving consistently for streaming deltas, cancellation, and errors. Keep this as a conformance extension with mock/no-secret coverage plus provider-gated checks, so interop hardening stays CI-verifiable.
+2. **Broaden provider-backed `ai.Stream` conformance** ([#3502](https://github.com/micro/go-micro/issues/3502)) — A2A/chat streaming is a visible UX seam, but the trust story depends on every provider adapter behaving consistently for streaming deltas, cancellation, and errors. Keep this as a conformance extension with mock/no-secret coverage plus provider-gated checks, so interop hardening stays CI-verifiable.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
