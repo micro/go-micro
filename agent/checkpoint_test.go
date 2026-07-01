@@ -102,6 +102,75 @@ func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
 	}
 }
 
+func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "restart-resume-agent")
+	toolRuns := 0
+	modelCalls := 0
+	failFirst := true
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		modelCalls++
+		if opts.ToolHandler != nil {
+			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.provision", Input: map[string]any{"service": "api"}})
+			if res.Content != "provisioned" {
+				t.Fatalf("tool result = %q, want provisioned", res.Content)
+			}
+		}
+		if failFirst {
+			failFirst = false
+			return nil, errors.New("process stopped after tool checkpoint")
+		}
+		return &ai.Response{Reply: "resumed after restart"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	newAgent := func() *agentImpl {
+		return newTestAgent(Name("restart-resume-agent"), WithCheckpoint(cp),
+			WithTool("external.provision", "provision service once", nil, func(context.Context, map[string]any) (string, error) {
+				toolRuns++
+				return "provisioned", nil
+			}))
+	}
+
+	first := newAgent()
+	_, err := first.Ask(ctx, "provision api")
+	if err == nil {
+		t.Fatal("Ask succeeded, want simulated process stop")
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after failed Ask = %d, want 1", toolRuns)
+	}
+	runs, err := Pending(ctx, first)
+	if err != nil {
+		t.Fatalf("Pending before restart: %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("Pending before restart returned %d runs, want 1", len(runs))
+	}
+
+	restarted := newAgent()
+	resp, err := Resume(ctx, restarted, runs[0].ID)
+	if err != nil {
+		t.Fatalf("Resume after restart: %v", err)
+	}
+	if resp.Reply != "resumed after restart" || resp.RunID != runs[0].ID {
+		t.Fatalf("response = %#v, want resumed reply on original run id", resp)
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after restart resume = %d, want checkpointed tool not replayed", toolRuns)
+	}
+	if modelCalls != 2 {
+		t.Fatalf("model calls = %d, want initial call plus resumed call", modelCalls)
+	}
+	loaded, ok, err := cp.Load(ctx, runs[0].ID)
+	if err != nil || !ok {
+		t.Fatalf("Load resumed run ok=%v err=%v", ok, err)
+	}
+	if loaded.Status != "done" || loaded.ParentID != runs[0].ParentID {
+		t.Fatalf("loaded run status/parent = %s/%s, want done/%s", loaded.Status, loaded.ParentID, runs[0].ParentID)
+	}
+}
+
 func TestResumeFailedCheckpointDoesNotDuplicateCompactedMemory(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMemoryStore()
