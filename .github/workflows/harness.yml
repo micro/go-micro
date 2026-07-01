@@ -67,6 +67,11 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
+          # Atlas Cloud's default chat model was failing the agent/tool-use
+          # conformance harnesses; run it against a stronger tool-use model.
+          # Override with an Actions variable ATLASCLOUD_MODEL if the exact
+          # catalog id differs (Atlas uses org/model ids).
+          ATLASCLOUD_MODEL: ${{ vars.ATLASCLOUD_MODEL || 'minimaxai/minimax-m3' }}
         run: |
           PROVIDERS="${{ github.event.inputs.providers || 'anthropic,openai,gemini,groq,mistral,together,atlascloud' }}"
           HARNESSES="${{ github.event.inputs.harnesses || 'agent,universe,agent-flow,plan-delegate,a2a-stream-fallback' }}"
