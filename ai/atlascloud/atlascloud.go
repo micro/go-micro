@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -56,7 +57,14 @@ func NewProvider(opts ...ai.Option) *Provider {
 	options := ai.NewOptions(opts...)
 
 	if options.Model == "" {
-		options.Model = "deepseek-ai/DeepSeek-V3-0324"
+		// Allow the chat model to be selected via the ATLASCLOUD_MODEL env var
+		// (e.g. to run CI conformance against a stronger tool-use model) without
+		// a code change; fall back to a sensible default otherwise.
+		if m := os.Getenv("ATLASCLOUD_MODEL"); m != "" {
+			options.Model = m
+		} else {
+			options.Model = "deepseek-ai/DeepSeek-V3-0324"
+		}
 	}
 	if options.BaseURL == "" {
 		options.BaseURL = "https://api.atlascloud.ai"
