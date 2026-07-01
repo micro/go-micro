@@ -154,6 +154,20 @@ roadmap-driven by default, not a fresh guess every hour. Cadence is tunable in e
 workflow's `cron`; the human can reorder `PRIORITIES.md` or its issues at any time
 to redirect. Codex is serial, so these passes queue behind any in-flight increment.
 
+## Failure triage (the feedback loop)
+
+The loop also closes on its own failures. `.github/workflows/harness-triage.yml`
+fires when the live provider-conformance harness finishes with `conclusion:
+failure` (scheduled/manual runs only), and dispatches Codex to **triage** the
+failing run: read the logs, root-cause each distinct failure, **dedupe** against
+open issues (comment "recurred" rather than filing a duplicate), and file a scoped
+`codex`/`enhancement` issue for each genuine, self-contained defect — which the
+increment loop then builds and the next harness run verifies. Transient flakes
+(live-model latency, provider outages) are ignored; anything needing a breaking or
+architectural change is escalated as `needs-human` instead of auto-built. This is
+the hill-climbing layer: CI/harness failures become fixes with no human in the
+middle, short of a decision that's genuinely the human's.
+
 ## Stop / redirect
 
 - In-session: `CronDelete <id>` (or end the session).
