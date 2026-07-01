@@ -136,6 +136,8 @@ micro new gateway --template api
 
 ## Building Agents
 
+For a complete service-backed walkthrough, start with [Your First Agent](guides/your-first-agent.html).
+
 An Agent is an intelligent layer that manages one or more services:
 
 ```go
