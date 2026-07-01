@@ -34,6 +34,8 @@ examples:
 guides:
   - title: Your First Agent
     url: /docs/guides/your-first-agent.html
+  - title: Debugging your agent
+    url: /docs/guides/debugging-agents.html
   - title: 0→hero Reference
     url: /docs/guides/zero-to-hero.html
   - title: Plan & Delegate
@@ -77,6 +79,7 @@ project:
     url: /docs/server.html
 search_order:
   - /docs/guides/zero-to-hero.html
+  - /docs/guides/debugging-agents.html
   - /docs/getting-started.html
   - /docs/mcp.html
   - /docs/architecture.html

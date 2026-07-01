@@ -214,5 +214,6 @@ agent for judgment, tool use, and handoffs when the path is not known up front.
 - Run [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the no-secret 0→hero support-desk lifecycle.
 - Run [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate)
   to see planning and delegation across agents.
+- Read [Debugging your agent](debugging-agents.html) when a chat turn does not call the tool you expected, loops, refuses a call, loses memory, or fails after a flow handoff.
 - Read [Agents and Workflows](agents-and-workflows.html) when you are ready to
   compose agents behind durable flows.
