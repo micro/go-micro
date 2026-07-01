@@ -23,7 +23,7 @@ Actions instead of subagents. Each role is a workflow:
 | **Generator** | `loop-builder.yml` — *Loop: Builder (Generator)* | Builds the top open queue item as a single-concern PR (via Codex) and self-merges on green CI. Does the work. |
 | **Evaluator** | `harness.yml` — *Harness (E2E)*, plus the CI gate (`tests.yaml`, `lint.yaml`) | Grades every change: the mock harness + unit/lint on each push/PR, and real-model conformance hourly. A *separate* grader — never the generator judging itself. |
 | **Evaluator → feedback** | `loop-triage.yml` — *Loop: Triage (Evaluator feedback)* | On harness failure, root-causes, dedupes, and files scoped fix issues back into the planner's queue. The hill-climbing feedback path. |
-| **Coherence** | `loop-devrel.yml` — *Loop: DevRel* | Keeps README/website/docs/blog aligned with the North Star. |
+| **Coherence** | `loop-devrel.yml` — *Loop: DevRel* | Keeps README/website/docs/blog aligned with the North Star, keeps `CHANGELOG.md` living (reconciling `[Unreleased]` against merged PRs and rolling it into version headings as tags cut), and drafts the changelog blog post. |
 | **Release** | `loop-release.yml` — *Loop: Release (daily patch)* | Cuts a daily patch tag when master has new commits, so the *installable* framework tracks the loop's improvements (triggers `release.yml`/goreleaser). Minor/major bumps stay with the human. |
 
 Generation is separated from evaluation on purpose: an agent grading its own work
@@ -149,10 +149,17 @@ output) but produce direction and coherence, not just code.
 
 - **DevRel — daily** (`.github/workflows/loop-devrel.yml`). Audits the public
   surface (README, website landing + docs, blog) for coherence with the North
-  Star, README crispness, and blog-worthy material. **Autonomy boundary:** safe
-  factual-alignment and crispness fixes auto-merge like any increment;
-  brand/positioning copy and blog drafts are *surfaced in a report* for the
-  human, never auto-merged.
+  Star, README crispness, and blog-worthy material. It also keeps `CHANGELOG.md`
+  living: each run reconciles the `[Unreleased]` section against the PRs that
+  actually merged (Keep-a-Changelog format, user-facing entries only — internal
+  loop/CI churn is skipped), and rolls `[Unreleased]` into a dated version
+  heading whenever a new `v6.MINOR.PATCH` tag has been cut (by `loop-release`).
+  When enough user-facing work has accumulated (roughly weekly, not a near-empty
+  post every day) it also drafts a "what's new" changelog blog post narrating it.
+  **Autonomy boundary:** safe factual-alignment and crispness fixes — *including
+  the `CHANGELOG.md` upkeep* — auto-merge like any increment; brand/positioning
+  copy and the changelog blog post are opened as a PR (or surfaced in the report)
+  and left for the human to review/merge — blog voice stays with the human.
 - **Architect — continuous (hourly)** (`.github/workflows/loop-architect.yml`).
   The *founder lens*, running alongside the builders. Each run it **tracks live
   state** (what just merged, what's in flight), **prioritizes the roadmap**

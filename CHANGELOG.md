@@ -2,8 +2,33 @@
 
 All notable changes to Go Micro are documented here.
 
-Format follows [Keep a Changelog](https://keepachangelog.com/). Go Micro uses
-calendar-based versions (YYYY.MM) for the AI-native era.
+Format follows [Keep a Changelog](https://keepachangelog.com/) and versions
+follow [Semantic Versioning](https://semver.org/), matching the git tags and
+[GitHub releases](https://github.com/micro/go-micro/releases) (`v6.MINOR.PATCH`).
+Patch releases are cut automatically as the loop merges improvements; the
+`[Unreleased]` section below is kept current between tags and rolled into the
+next version when it ships.
+
+> Earlier `2026.0x` headings are historical calendar-style markers from before
+> v6 tagging; they are kept for continuity and not reused.
+
+---
+
+## [Unreleased]
+
+### Added
+- **Retrieval-backed agent memory** — agents can recall relevant prior turns by similarity, not just the recent window, with a summarizer hook that compacts older history so long conversations stay in budget. (`agent/`)
+- **Scheduled flows** — a flow can run an agent (or any step) on a cron-style schedule, with the dispatch traced end to end. (`flow/`)
+- **Flow verification/grader loop** — a workflow can grade its own step output against a rubric and retry until it passes, plus run-trace analysis to surface where a flow spends its time. (`flow/`)
+- **A2A streaming & continuity** — outbound agent streaming flows through the A2A binding (`message/stream`), with `tasks/resubscribe` and `input-required` handoffs for multi-turn interop. (`gateway/a2a/`)
+
+### Changed
+- **Agent tool-call resilience** — opt-in retries around agent tool calls, and a fallback that executes tool calls emitted as text by weaker models so they still make progress. (`agent/`)
+- **Hardened agent durability** — terminal failure statuses are classified and surfaced, and durable resume-after-restart is covered by tests. (`agent/`)
+
+### Documentation
+- **"Your first agent" walkthrough** and a canonical 0-to-hero reference path, lowering the on-ramp from install to a running agent. (`internal/website/docs/`)
+- **Discord** linked prominently across the README, website nav/footer, and docs. (`https://discord.gg/G8Gk5j3uXr`)
 
 ---
 
