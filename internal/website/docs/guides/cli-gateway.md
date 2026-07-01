@@ -423,5 +423,5 @@ micro server --address :9000
 ## Need Help?
 
 - **Issues**: [github.com/micro/go-micro/issues](https://github.com/micro/go-micro/issues)
-- **Discord**: [discord.gg/WeMU5AGxD](https://discord.gg/WeMU5AGxD)
+- **Discord**: [discord.gg/G8Gk5j3uXr](https://discord.gg/G8Gk5j3uXr)
 - **Docs**: [go-micro.dev/docs](https://go-micro.dev/docs)

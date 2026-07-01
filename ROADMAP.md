@@ -66,7 +66,7 @@ hosted service, enterprise tier, or venture funding. See
 ## Contributing & feedback
 
 Pick an item, open an issue to discuss the approach, and submit a PR. Or join the
-[Discord](https://discord.gg/WeMU5AGxD). Include tests, run `make test` and
+[Discord](https://discord.gg/G8Gk5j3uXr). Include tests, run `make test` and
 `make lint`.
 
 ## Version support

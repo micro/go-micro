@@ -324,4 +324,4 @@ Apache 2.0 - See [LICENSE](../../LICENSE) for details.
 ## Support
 
 - GitHub Discussions: https://github.com/micro/go-micro/discussions
-- Discord: https://discord.gg/WeMU5AGxD
+- Discord: https://discord.gg/G8Gk5j3uXr
