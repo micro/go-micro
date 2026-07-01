@@ -74,3 +74,29 @@ func flowSpanAttributes(attrs []attribute.KeyValue) map[string]string {
 func withTestRunInfo(ctx context.Context, runID string) context.Context {
 	return ai.WithRunInfo(ctx, ai.RunInfo{RunID: runID, Agent: "planner"})
 }
+
+func TestScheduledFlowOpenTelemetryDispatchAttributes(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+
+	step := Step{Name: "summarize", Run: func(ctx context.Context, in State) (State, error) {
+		in.Data = []byte("queued")
+		return in, nil
+	}}
+	f := New("scheduled-observed", Trigger("schedule.daily"), WithCheckpoint(StoreCheckpoint(store.NewMemoryStore(), "scheduled-observed")), TraceProvider(tp), Steps(step))
+	if err := Scheduled(f, "daily ops review").Tick(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, span := range exp.GetSpans().Snapshots() {
+		if span.Name() != spanNameFlowRun {
+			continue
+		}
+		attrs := flowSpanAttributes(span.Attributes())
+		if attrs[AttrFlowDispatch] != "schedule" || attrs[AttrFlowTrigger] != "schedule.daily" {
+			t.Fatalf("scheduled run span dispatch attributes = %#v", attrs)
+		}
+		return
+	}
+	t.Fatal("flow run span not emitted")
+}

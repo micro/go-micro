@@ -433,7 +433,12 @@ func (f *Flow) Pending(ctx context.Context) ([]Run, error) {
 func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	steps := f.opts.Steps
 	ctx = withDeps(ctx, &runDeps{client: f.client, model: f.model, tools: f.toolSet})
-	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: run.ID, ParentID: run.ParentID, Agent: f.name, Flow: f.name})
+	info, _ := ai.RunInfoFrom(ctx)
+	info.RunID = run.ID
+	info.ParentID = run.ParentID
+	info.Agent = f.name
+	info.Flow = f.name
+	ctx = ai.WithRunInfo(ctx, info)
 	ctx, finishSpan := f.startRunSpan(ctx, run)
 	var spanErr error
 	defer func() { finishSpan(run, spanErr) }()

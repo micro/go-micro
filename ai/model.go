@@ -129,6 +129,8 @@ type RunInfo struct {
 	Attempt              int    // current model Generate attempt, starting at 1 when known
 	MaxAttempts          int    // configured model Generate attempt budget when known
 	VerificationFeedback string // feedback from the previous failed verifier attempt, when retrying a flow step
+	Dispatch             string // how the run was dispatched (direct, broker, schedule, resume) when known
+	Trigger              string // external trigger or schedule label that started the run, when known
 }
 
 type runInfoKey struct{}

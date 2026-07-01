@@ -26,6 +26,8 @@ const (
 	AttrFlowErrorKind          = "flow.error.kind"
 	AttrFlowVerificationStatus = "flow.verification.status"
 	AttrFlowVerificationNote   = "flow.verification.note"
+	AttrFlowDispatch           = "flow.dispatch"
+	AttrFlowTrigger            = "flow.trigger"
 )
 
 func (f *Flow) tracer() trace.Tracer {
@@ -36,12 +38,15 @@ func (f *Flow) startRunSpan(ctx context.Context, run Run) (context.Context, func
 	if f.opts.TraceProvider == nil {
 		return ctx, func(Run, error) {}
 	}
-	ctx, span := f.tracer().Start(ctx, spanNameFlowRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(
+	info, _ := ai.RunInfoFrom(ctx)
+	attrs := []attribute.KeyValue{
 		attribute.String(AttrFlowRunID, run.ID),
 		attribute.String(AttrFlowParentID, run.ParentID),
 		attribute.String(AttrFlowName, f.name),
 		attribute.String(AttrFlowStatus, run.Status),
-	))
+	}
+	attrs = appendRunInfoDispatch(attrs, info)
+	ctx, span := f.tracer().Start(ctx, spanNameFlowRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(attrs...))
 	start := time.Now()
 	return ctx, func(done Run, err error) {
 		span.SetAttributes(
@@ -64,12 +69,14 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 		return f.runStep(ctx, step, in)
 	}
 	info, _ := ai.RunInfoFrom(ctx)
-	ctx, span := f.tracer().Start(ctx, spanNameFlowStep, trace.WithAttributes(
+	attrs := []attribute.KeyValue{
 		attribute.String(AttrFlowRunID, info.RunID),
 		attribute.String(AttrFlowParentID, info.ParentID),
 		attribute.String(AttrFlowName, f.name),
 		attribute.String(AttrFlowStepName, step.Name),
-	))
+	}
+	attrs = appendRunInfoDispatch(attrs, info)
+	ctx, span := f.tracer().Start(ctx, spanNameFlowStep, trace.WithAttributes(attrs...))
 	start := time.Now()
 	out, attempts, verification, err := f.runStep(ctx, step, in)
 	span.SetAttributes(
@@ -94,4 +101,14 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 	}
 	span.End()
 	return out, attempts, verification, err
+}
+
+func appendRunInfoDispatch(attrs []attribute.KeyValue, info ai.RunInfo) []attribute.KeyValue {
+	if info.Dispatch != "" {
+		attrs = append(attrs, attribute.String(AttrFlowDispatch, info.Dispatch))
+	}
+	if info.Trigger != "" {
+		attrs = append(attrs, attribute.String(AttrFlowTrigger, info.Trigger))
+	}
+	return attrs
 }
