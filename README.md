@@ -46,7 +46,7 @@ Install the CLI:
 curl -fsSL https://go-micro.dev/install.sh | sh
 
 # Or with Go
-go install go-micro.dev/v6/cmd/micro@v6
+go install go-micro.dev/v6/cmd/micro@latest
 ```
 
 ### Fastest start — no API key

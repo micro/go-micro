@@ -84,7 +84,7 @@ message Response {
 
 ```bash
 # Install protoc-gen-micro
-go install go-micro.dev/v6/cmd/protoc-gen-micro@v6
+go install go-micro.dev/v6/cmd/protoc-gen-micro@latest
 
 # Generate Go code
 protoc --proto_path=. \
@@ -92,8 +92,6 @@ protoc --proto_path=. \
     --micro_out=. --micro_opt=paths=source_relative \
     proto/helloworld.proto
 ```
-
-> **Note:** Use a specific version instead of `@latest` to avoid module path conflicts. See [releases](https://github.com/micro/go-micro/releases) for the latest version.
 
 ### Server Implementation
 
