@@ -21,9 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Export agent `RunInfo` as OpenTelemetry spans** ([#3501](https://github.com/micro/go-micro/issues/3501)) — the scheduled/looping agent harness contract has now shipped, so the highest-value remaining gap is making unattended runs operable in the production tracing surface teams already use. Map run lifecycle, scheduled dispatch metadata, checkpoints/resume, tool/delegate steps, and terminal failure/cancellation metadata into OpenTelemetry rather than creating a separate observability surface.
-
-2. **Broaden provider-backed `ai.Stream` conformance** ([#3502](https://github.com/micro/go-micro/issues/3502)) — A2A/chat streaming is a visible UX seam, but the trust story depends on every provider adapter behaving consistently for streaming deltas, cancellation, and errors. Keep this as a conformance extension with mock/no-secret coverage plus provider-gated checks, so interop hardening stays CI-verifiable.
+1. **Add retrieval-backed agent memory** ([#3514](https://github.com/micro/go-micro/issues/3514)) — the recent loop closed the Now/Next operability seams (scheduled agent harness, `RunInfo` tracing, provider stream conformance, A2A resubscribe/input-required, and durable agent checkpoints), so the next highest-value gap is the roadmap's remaining memory-management layer. Compacting history keeps prompts bounded, but long-running scheduled agents need relevant recall/RAG over prior turns and durable store state to make unattended services → agents → workflows useful without manual context resets.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
