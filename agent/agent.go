@@ -329,6 +329,19 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		return nil, fmt.Errorf("agent run %s paused for approval: %s", run.ID, a.pause.Message)
 	}
 
+	if len(resp.ToolCalls) == 0 {
+		if calls, answer, ok := a.executeTextToolCalls(ctx, resp.Reply, toolList); ok {
+			resp.ToolCalls = calls
+			if resp.Answer == "" {
+				resp.Answer = answer
+			}
+			trimmedReply := strings.TrimSpace(resp.Reply)
+			if strings.HasPrefix(trimmedReply, "{") || strings.HasPrefix(trimmedReply, "[") || strings.HasPrefix(trimmedReply, "```") {
+				resp.Reply = ""
+			}
+		}
+	}
+
 	if resp.Reply != "" {
 		a.mem.Add("assistant", resp.Reply)
 	}
