@@ -6,10 +6,16 @@ name: "Loop: DevRel"
 # code; this keeps the story coherent: docs/website aligned, README crisp, and
 # a steady supply of things worth blogging about.
 #
+# It also keeps the CHANGELOG living: each run reconciles the `[Unreleased]`
+# section of CHANGELOG.md against what actually merged (rolling it into a dated
+# version heading whenever a new tag was cut), and — when enough has shipped —
+# drafts a "what's new" changelog blog post narrating it.
+#
 # Like the increment loop it opens a fresh issue and dispatches Codex via
 # CODEX_TRIGGER_TOKEN (Codex ignores Actions-bot comments). Autonomy boundary:
-# SAFE factual-alignment and crispness fixes auto-merge; brand/positioning copy
-# and blog drafts are surfaced in the report for the human, never auto-merged.
+# SAFE factual-alignment and crispness fixes — including CHANGELOG.md upkeep —
+# auto-merge; brand/positioning copy and the changelog blog post are opened as a
+# PR but left for the human to review/merge (blog voice stays with the human).
 
 on:
   workflow_dispatch: {}
@@ -40,8 +46,16 @@ jobs:
           fi
           ISSUE_URL=$(gh issue create --repo "$REPO" \
             --title "DevRel coherence review #$RUN_NUMBER" \
-            --body "Daily DevRel / coherence pass over README, website (landing + docs), and the blog. North Star: internal/docs/THESIS.md.")
+            --body "Daily DevRel / coherence pass over README, website (landing + docs), and the blog, plus CHANGELOG.md upkeep and a changelog blog post. North Star: internal/docs/THESIS.md.")
           ISSUE_NUM="${ISSUE_URL##*/}"
           echo "Opened issue #$ISSUE_NUM — dispatching Codex (DevRel)."
           gh issue comment "$ISSUE_NUM" --repo "$REPO" --body \
-          "@codex Act as DevRel for go-micro. Audit the PUBLIC surface — \`README.md\`, \`internal/website/\` (landing \`index.html\` + \`docs/\`), and the blog under \`internal/website/blog/\` — for coherence with the North Star in internal/docs/THESIS.md (an agent harness and service framework; the services → agents → workflows lifecycle). Look for: (1) places where README / website / docs contradict each other, are stale, or describe behavior that has since changed (cross-check against the code and recent merged PRs / CHANGELOG.md); (2) whether the README is crisp and leads with the harness positioning; (3) one to three genuinely blog-worthy items from recently shipped work. Then do BOTH of these: (A) post a concise findings report as a comment on this issue (#$ISSUE_NUM) — what is aligned, what drifted, what you fixed, and the blog ideas; (B) for SAFE factual-alignment and crispness fixes only (NOT brand/marketing/positioning rewrites), open one PR: \`git switch -c codex/devrel-$ISSUE_NUM\`, \`git push -u origin codex/devrel-$ISSUE_NUM\`, \`gh pr create --base master --label codex --title \"<title>\" --body \"<summary, including 'Closes #$ISSUE_NUM'>\"\`, then \`gh pr merge --squash --auto --delete-branch\`. Leave brand/positioning copy and blog drafts for the human — describe them in the report, do NOT open auto-merging PRs for them. Do not use the make_pr tool (it is a no-op stub). If you touch code, verify go build/test/golangci-lint. Stay out of breaking public-API changes."
+          "@codex Act as DevRel for go-micro. Do FOUR things this run.
+
+          COHERENCE AUDIT. Audit the PUBLIC surface — \`README.md\`, \`internal/website/\` (landing \`index.html\` + \`docs/\`), and the blog under \`internal/website/blog/\` — for coherence with the North Star in internal/docs/THESIS.md (an agent harness and service framework; the services → agents → workflows lifecycle). Look for: (1) places where README / website / docs contradict each other, are stale, or describe behavior that has since changed (cross-check against the code and recent merged PRs); (2) whether the README is crisp and leads with the harness positioning; (3) one to three genuinely blog-worthy items from recently shipped work.
+
+          CHANGELOG UPKEEP (this is a SAFE factual task — it goes in the auto-merged PR). Keep CHANGELOG.md living, in [Keep a Changelog](https://keepachangelog.com/) format with the newest content at the top under \`## [Unreleased]\`. (a) Enumerate PRs merged to master since the last CHANGELOG update — \`gh pr list --repo $REPO --state merged --base master --limit 60 --json number,title,mergedAt,labels\` — and compare against what CHANGELOG.md already lists. (b) For each genuinely user-facing change not yet recorded (new capability, behavior/API change, notable fix — SKIP purely internal loop/CI/priorities-refresh churn), add a concise entry under the right \`### Added\` / \`### Changed\` / \`### Fixed\` / \`### Documentation\` subheading of \`## [Unreleased]\`, phrased for a user (what it does, which package), not a commit subject. (c) If a new \`v6.MINOR.PATCH\` tag has been cut since the last run (\`git fetch --tags --force\`; compare the newest \`v6.*\` tag to the versions already in CHANGELOG.md), RENAME the current \`## [Unreleased]\` heading to \`## [MINOR.PATCH] - <Month YYYY>\` for that tag and open a fresh empty \`## [Unreleased]\` above it. Keep it accurate — do not invent entries; if nothing user-facing merged, leave [Unreleased] as-is.
+
+          CHANGELOG BLOG POST (blog voice — open a PR but do NOT auto-merge; leave it for the human). If — and only if — enough user-facing work has accumulated since the last changelog post to be worth reading (a meaningful batch, roughly a week's worth; do NOT post an almost-empty update every day), draft a short 'What's new in Go Micro' post that narrates what shipped in plain language (grouped by theme, linking the docs/examples, closing with install/upgrade). Create it as the next-numbered file in \`internal/website/blog/\` (find the highest N, use N+1), mirroring the frontmatter (layout/title/permalink/description) and the post-nav 'previous post' link of the latest existing post, and add an entry at the TOP of \`internal/website/blog/index.html\`. Base it strictly on the CHANGELOG — no speculation.
+
+          THEN do all of these: (A) post a concise findings report as a comment on this issue (#$ISSUE_NUM) — what is aligned, what drifted, what you fixed, the CHANGELOG entries you added, whether you drafted a changelog post (and why / why not), and any other blog ideas. (B) Open ONE auto-merging PR for the SAFE factual work only — coherence/crispness fixes AND the CHANGELOG.md update (NOT brand/marketing/positioning rewrites, NOT the blog post): \`git switch -c codex/devrel-$ISSUE_NUM\`, \`git push -u origin codex/devrel-$ISSUE_NUM\`, \`gh pr create --base master --label codex --title \"<title>\" --body \"<summary, including 'Closes #$ISSUE_NUM'>\"\`, then \`gh pr merge --squash --auto --delete-branch\`. (C) If you drafted a changelog blog post, open it as a SEPARATE PR on its own branch (\`codex/devrel-blog-$ISSUE_NUM\`) with a title prefixed 'blog:' and do NOT enable auto-merge — leave it open for the human to review and merge. Do the same (separate, non-auto-merged PR or just a report note) for any brand/positioning copy. Do not use the make_pr tool (it is a no-op stub). If you touch code, verify go build/test/golangci-lint. Stay out of breaking public-API changes."
