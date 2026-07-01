@@ -37,6 +37,14 @@ func init() {
 		Usage: "Manage AI agents",
 		Subcommands: []*cli.Command{
 			{
+				Name:    "preflight",
+				Aliases: []string{"doctor"},
+				Usage:   "Check local prerequisites before the first provider-backed agent",
+				Action: func(c *cli.Context) error {
+					return runAgentPreflight(os.Stdout, defaultPreflightDeps())
+				},
+			},
+			{
 				Name:  "list",
 				Usage: "List registered agents",
 				Action: func(c *cli.Context) error {

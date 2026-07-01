@@ -19,6 +19,14 @@ Go Micro has three core abstractions:
 - **Go 1.24+** for development. The `curl` install below gives you the `micro` binary without Go, but `micro run` compiles your services, so you'll want Go installed to build them.
 - An **LLM provider key** (Anthropic, OpenAI, Gemini, …) *only* for the AI features — `micro run --prompt`, `micro chat`, and agents. Plain services need no key. Set it before running, e.g. `export ANTHROPIC_API_KEY=sk-ant-...`.
 
+Before your first provider-backed agent run, check the local path with:
+
+```bash
+micro agent preflight
+```
+
+The preflight is read-only: it verifies Go, the `micro` binary, provider-key setup, and whether the default `micro run` gateway port is free, without calling an LLM provider.
+
 ## Install
 
 ```bash
