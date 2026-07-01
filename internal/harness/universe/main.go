@@ -38,11 +38,10 @@ import (
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
-	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/internal/harness/harnessutil"
 	"go-micro.dev/v6/registry"
-	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
 )
@@ -229,8 +228,9 @@ func runUniverse(provider string) int {
 		fmt.Println("broker connect:", err)
 		return 2
 	}
-	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))))
+	cl := harnessutil.Client(provider, reg)
 	st := store.NewMemoryStore()
+	liveAgentOpts := harnessutil.AgentOptions(provider)
 
 	// Services.
 	inv, pay, ord, ntf := new(Inventory), new(Payment), new(Orders), new(Notify)
@@ -243,7 +243,7 @@ func runUniverse(provider string) int {
 	// The concierge agent: guardrails on, plus a tool-execution wrapper
 	// that counts calls — to prove the wrapper seam runs end-to-end.
 	var wrapped int64
-	concierge := agent.New(
+	conciergeOpts := []agent.Option{
 		agent.Name("concierge"),
 		agent.Services("notify"),
 		agent.Prompt("You notify buyers when their order is confirmed."),
@@ -257,7 +257,9 @@ func runUniverse(provider string) int {
 			}
 		}),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(st),
-	)
+	}
+	conciergeOpts = append(conciergeOpts, liveAgentOpts...)
+	concierge := agent.New(conciergeOpts...)
 	go concierge.Run()
 	defer concierge.Stop()
 
@@ -268,6 +270,7 @@ func runUniverse(provider string) int {
 	checkout := flow.New("checkout",
 		flow.Trigger("events.order.placed"),
 		flow.WithCheckpoint(flow.StoreCheckpoint(st, "checkout")),
+		flow.Timeout(harnessutil.LiveTimeout(provider)),
 		flow.Steps(
 			flow.Step{Name: "reserve", Run: flow.Call("inventory", "Inventory.Reserve")},
 			flow.Step{Name: "charge", Run: flow.Call("payment", "Payment.Charge")},

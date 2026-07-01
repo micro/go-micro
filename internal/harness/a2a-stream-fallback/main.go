@@ -24,6 +24,7 @@ import (
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/internal/harness/harnessutil"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -95,7 +96,7 @@ func main() {
 	reg := registry.NewMemoryRegistry()
 	st := store.NewMemoryStore()
 	var sawTool, sawRunInfo bool
-	ag := agent.New(
+	agentOpts := []agent.Option{
 		agent.Name("a2a-fallback"),
 		agent.Provider(*provider),
 		agent.APIKey(apiKey),
@@ -103,7 +104,7 @@ func main() {
 		agent.WithRegistry(reg),
 		agent.WithStore(st),
 		agent.WithMemory(agent.NewInMemory(8)),
-		agent.ModelCallTimeout(45*time.Second),
+		agent.ModelCallTimeout(45 * time.Second),
 		agent.WithTool("fallback_echo", "Echo the A2A fallback marker.", map[string]any{
 			"value": map[string]any{"type": "string", "description": "value to echo"},
 		}, func(ctx context.Context, input map[string]any) (string, error) {
@@ -118,7 +119,9 @@ func main() {
 			}
 			return `{"marker":"a2a-fallback-ok"}`, nil
 		}),
-	)
+	}
+	agentOpts = append(agentOpts, harnessutil.AgentOptions(*provider)...)
+	ag := agent.New(agentOpts...)
 
 	card := a2a.Card("a2a-fallback", "http://example.invalid/a2a-fallback", "", nil)
 	handler := a2a.NewAgentStreamHandler(card, func(ctx context.Context, text string) (string, error) {
