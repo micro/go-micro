@@ -78,6 +78,8 @@ Created project Launch and added task 'Write docs' to it.
 
 The console discovers services from the registry and orchestrates across them via the agent. Use `micro run -d` for detached mode without the console, or `micro chat` as a standalone command.
 
+If the agent surprises you while iterating, use the [Debugging your agent](guides/debugging-agents.html) guide to inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs.
+
 ## Quick Start: Write a Service
 
 Create and run a service manually:
