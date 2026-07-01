@@ -1,4 +1,4 @@
-name: Harness Failure Triage
+name: "Loop: Triage (Evaluator feedback)"
 
 # Closes the autonomous loop's feedback path: when the live provider-conformance
 # harness fails, dispatch Codex to TRIAGE the failing run and file scoped, deduped
