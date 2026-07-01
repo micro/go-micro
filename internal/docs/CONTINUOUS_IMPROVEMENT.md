@@ -10,6 +10,25 @@ and can stop or revert anything at any time.
 > **services → agents → workflows**. Judge each change against it — work that
 > doesn't move toward that lifecycle isn't an improvement, however clean.
 
+## The pipeline (planner → generator → evaluator)
+
+The development process is an operational instance of the long-running-agent
+harness pattern ([Anthropic on harness design](https://www.anthropic.com/engineering/harness-design-long-running-apps)) —
+a planner, a generator, and a *separate* evaluator — distributed across GitHub
+Actions instead of subagents. Each role is a workflow:
+
+| Role | Workflow (action name) | What it does |
+|------|------------------------|--------------|
+| **Planner** | `loop-architect.yml` — *Loop: Architect (Planner)* | Tracks live state, prioritizes the roadmap + an internal scan, and maintains the ranked queue in [`PRIORITIES.md`](PRIORITIES.md). Decides *what*. |
+| **Generator** | `loop-builder.yml` — *Loop: Builder (Generator)* | Builds the top open queue item as a single-concern PR (via Codex) and self-merges on green CI. Does the work. |
+| **Evaluator** | `harness.yml` — *Harness (E2E)*, plus the CI gate (`tests.yaml`, `lint.yaml`) | Grades every change: the mock harness + unit/lint on each push/PR, and real-model conformance hourly. A *separate* grader — never the generator judging itself. |
+| **Evaluator → feedback** | `loop-triage.yml` — *Loop: Triage (Evaluator feedback)* | On harness failure, root-causes, dedupes, and files scoped fix issues back into the planner's queue. The hill-climbing feedback path. |
+| **Coherence** | `loop-devrel.yml` — *Loop: DevRel* | Keeps README/website/docs/blog aligned with the North Star. |
+
+Generation is separated from evaluation on purpose: an agent grading its own work
+reliably over-rates it, so **CI and the harness — not the builder — are the gate**.
+The human sets direction and owns the calls that need taste (see Guardrails).
+
 ## Autonomy
 
 Full autonomy, **no approval gates**. Each increment: Claude Code picks the work,
@@ -72,7 +91,7 @@ Grounded in real signal, never speculative rewrites. Each cycle draws from:
   tracking issue for each increment and dispatches Codex there. It needs a
   `CODEX_TRIGGER_TOKEN` repo secret from a user account Codex responds to;
   without that secret the workflow deliberately no-ops to avoid ignored bot
-  comments. See `.github/workflows/continuous-improvement.yml` and the mechanics
+  comments. See `.github/workflows/loop-builder.yml` and the mechanics
   below.
 
 ## How the durable loop works (mechanics)
@@ -127,13 +146,13 @@ The hourly loop ships increments; two periodic passes keep the *whole* heading i
 the right direction. Both use the same mechanism (fresh issue → `@codex` →
 output) but produce direction and coherence, not just code.
 
-- **DevRel — daily** (`.github/workflows/devrel-review.yml`). Audits the public
+- **DevRel — daily** (`.github/workflows/loop-devrel.yml`). Audits the public
   surface (README, website landing + docs, blog) for coherence with the North
   Star, README crispness, and blog-worthy material. **Autonomy boundary:** safe
   factual-alignment and crispness fixes auto-merge like any increment;
   brand/positioning copy and blog drafts are *surfaced in a report* for the
   human, never auto-merged.
-- **Architect — continuous (hourly)** (`.github/workflows/architecture-review.yml`).
+- **Architect — continuous (hourly)** (`.github/workflows/loop-architect.yml`).
   The *founder lens*, running alongside the builders. Each run it **tracks live
   state** (what just merged, what's in flight), **prioritizes the roadmap**
   (`ROADMAP.md`, Now → Next → Later) against an internal scan (lifecycle gaps, API
@@ -156,7 +175,7 @@ to redirect. Codex is serial, so these passes queue behind any in-flight increme
 
 ## Failure triage (the feedback loop)
 
-The loop also closes on its own failures. `.github/workflows/harness-triage.yml`
+The loop also closes on its own failures. `.github/workflows/loop-triage.yml`
 fires when the live provider-conformance harness finishes with `conclusion:
 failure` (scheduled/manual runs only), and dispatches Codex to **triage** the
 failing run: read the logs, root-cause each distinct failure, **dedupe** against

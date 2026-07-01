@@ -1,4 +1,4 @@
-name: Continuous Improvement
+name: "Loop: Builder (Generator)"
 
 # Durable backbone for the autonomous improvement loop
 # (see internal/docs/CONTINUOUS_IMPROVEMENT.md).

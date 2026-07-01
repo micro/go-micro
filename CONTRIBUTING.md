@@ -6,6 +6,17 @@ Thank you for your interest in contributing to Go Micro! This document provides 
 
 Be respectful, inclusive, and collaborative. We're all here to build great software together.
 
+## How Go Micro is built
+
+Go Micro is developed by an **autonomous improvement loop** — a planner, a
+generator, and a separate evaluator, running as scheduled GitHub Actions with a
+human setting direction. It's the framework's own thesis (an agent operating a
+system) pointed at itself: an agent harness, built by agents. The full process —
+the planner → generator → evaluator pipeline, the correctness-only merge gate, and
+the guardrails — is documented in
+[`internal/docs/CONTINUOUS_IMPROVEMENT.md`](internal/docs/CONTINUOUS_IMPROVEMENT.md).
+Human contributions follow the same gate: green CI, one concern per PR.
+
 ## Getting Started
 
 1. Fork the repository
