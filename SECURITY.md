@@ -174,6 +174,6 @@ We currently do not offer a bug bounty program, but we greatly appreciate respon
 
 For security questions that are not vulnerabilities, please:
 - Open a discussion: https://github.com/micro/go-micro/discussions
-- Join Discord: https://discord.gg/WeMU5AGxD
+- Join Discord: https://discord.gg/G8Gk5j3uXr
 - Email: support@go-micro.dev
 

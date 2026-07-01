@@ -48,4 +48,4 @@ Add any other context about the problem here.
 - [Troubleshooting Guide](https://github.com/micro/go-micro/tree/master/internal/website/docs/getting-started.md)
 - [Examples](https://github.com/micro/go-micro/tree/master/examples)
 - [API Reference](https://pkg.go.dev/go-micro.dev/v5)
-- [Discord Community](https://discord.gg/WeMU5AGxD)
+- [Discord Community](https://discord.gg/G8Gk5j3uXr)

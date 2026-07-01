@@ -39,4 +39,4 @@ Add any other context, code examples, or screenshots about the feature request h
 - [Roadmap](https://github.com/micro/go-micro/blob/master/ROADMAP.md)
 - [Contributing Guide](https://github.com/micro/go-micro/blob/master/CONTRIBUTING.md)
 - [Architecture Docs](https://github.com/micro/go-micro/tree/master/internal/website/docs/architecture.md)
-- [Discord Community](https://discord.gg/WeMU5AGxD)
+- [Discord Community](https://discord.gg/G8Gk5j3uXr)

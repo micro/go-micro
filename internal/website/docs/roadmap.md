@@ -58,4 +58,4 @@ The framework is the product. It's funded by **sponsorship** from the people and
 
 ## Feedback
 
-Open an issue or start a discussion on [GitHub](https://github.com/micro/go-micro), or join the [Discord](https://discord.gg/WeMU5AGxD).
+Open an issue or start a discussion on [GitHub](https://github.com/micro/go-micro), or join the [Discord](https://discord.gg/G8Gk5j3uXr).
