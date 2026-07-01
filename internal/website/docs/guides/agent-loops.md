@@ -18,11 +18,11 @@ you're done") has no natural ceiling. So a usable loop needs two things:
 1. a **stop condition** — how it decides it's done, and
 2. a **hard cap** — a guardrail that guarantees it always terminates.
 
-Go Micro gives you both as a flow step: `flow.Loop`.
+Go Micro gives you both as a flow step: `micro.FlowLoop`.
 
 ## The shape
 
-`flow.Loop` is a `StepFunc`, so it drops into a flow's ordered, checkpointed
+`micro.FlowLoop` is a `StepFunc`, so it drops into a flow's ordered, checkpointed
 step list like any other step. It runs a **body** step repeatedly, carrying the
 flow `State` from one pass to the next, until a stop condition fires or the
 iteration cap is hit — whichever comes first.
