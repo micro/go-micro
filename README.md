@@ -65,7 +65,7 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
 ```
 
 This scaffold → run → call path is covered by the no-secret CI harness. To run
-the same local contract (including the 0→hero services → agents → workflows path,
+the same local contract (including the [0→hero services → agents → workflows path](internal/website/docs/guides/zero-to-hero.md),
 chat/inspect CLI boundaries, and deploy dry-run), use:
 
 ```bash
@@ -423,6 +423,7 @@ See [all examples](examples/README.md).
 
 - [Getting Started](internal/website/docs/getting-started.md)
 - [AI Integration](internal/website/docs/ai-integration.md)
+- [0→hero Reference](internal/website/docs/guides/zero-to-hero.md)
 - [Agents and Workflows](internal/website/docs/guides/agents-and-workflows.md)
 - [Agent Design](internal/docs/AGENT_DESIGN.md)
 - [Plan & Delegate](internal/website/docs/guides/plan-delegate.md)

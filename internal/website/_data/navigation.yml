@@ -32,6 +32,8 @@ examples:
   - title: Real-World Examples
     url: /docs/examples/realworld/
 guides:
+  - title: 0→hero Reference
+    url: /docs/guides/zero-to-hero.html
   - title: The Agent Harness
     url: /docs/guides/agent-harness.html
   - title: Agents and Workflows
@@ -70,6 +72,7 @@ project:
   - title: Server (optional)
     url: /docs/server.html
 search_order:
+  - /docs/guides/zero-to-hero.html
   - /docs/getting-started.html
   - /docs/mcp.html
   - /docs/architecture.html
