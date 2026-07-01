@@ -26,10 +26,9 @@ import (
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
-	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/internal/harness/harnessutil"
 	"go-micro.dev/v6/registry"
-	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
 )
@@ -241,8 +240,9 @@ func runPlanDelegate(provider string) error {
 	fmt.Print("Real services, registry, RPC, agent loop, store, delegation.\n\n")
 
 	reg := registry.NewMemoryRegistry()
-	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))))
+	cl := harnessutil.Client(provider, reg)
 	mem := store.NewMemoryStore()
+	liveAgentOpts := harnessutil.AgentOptions(provider)
 
 	// Real services.
 	taskSvc := new(TaskService)
@@ -260,26 +260,30 @@ func runPlanDelegate(provider string) error {
 	go notify.Run()
 
 	// Real comms agent (owns notify), registered so delegate reaches it over RPC.
-	comms := agent.New(
+	commsOpts := []agent.Option{
 		agent.Name("comms"),
 		agent.Address("127.0.0.1:0"),
 		agent.Services("notify"),
 		agent.Prompt("You handle outbound notifications. Use the notify service."),
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
-	)
+	}
+	commsOpts = append(commsOpts, liveAgentOpts...)
+	comms := agent.New(commsOpts...)
 	go comms.Run()
 	defer comms.Stop()
 
 	// Real conductor agent (owns task), registered so the flow can reach it over RPC.
-	conductor := agent.New(
+	conductorOpts := []agent.Option{
 		agent.Name("conductor"),
 		agent.Address("127.0.0.1:0"),
 		agent.Services("task"),
 		agent.Prompt("You coordinate launch work. Plan first, create tasks, and delegate notifications to the \"comms\" agent."),
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
-	)
+	}
+	conductorOpts = append(conductorOpts, liveAgentOpts...)
+	conductor := agent.New(conductorOpts...)
 	go conductor.Run()
 	defer conductor.Stop()
 
@@ -303,6 +307,7 @@ func runPlanDelegate(provider string) error {
 	f := flow.New("zero-to-hero",
 		flow.Agent("conductor"),
 		flow.Prompt("Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified: {{.Data}}"),
+		flow.Timeout(harnessutil.LiveTimeout(provider)),
 	)
 	if err := f.Register(reg, broker.DefaultBroker, cl); err != nil {
 		return fmt.Errorf("flow register: %w", err)

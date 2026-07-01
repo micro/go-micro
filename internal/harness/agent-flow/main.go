@@ -25,10 +25,9 @@ import (
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
-	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/internal/harness/harnessutil"
 	"go-micro.dev/v6/registry"
-	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
 )
@@ -203,8 +202,9 @@ func main() {
 		fmt.Println("broker connect:", err)
 		os.Exit(1)
 	}
-	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))))
+	cl := harnessutil.Client(*provider, reg)
 	mem := store.NewMemoryStore()
+	liveAgentOpts := harnessutil.AgentOptions(*provider)
 
 	wsSvc := new(WorkspaceService)
 	ws := service.New(service.Name("workspace"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
@@ -217,7 +217,7 @@ func main() {
 	go nt.Run()
 
 	// The onboarder agent, registered so the flow can reach it over RPC.
-	onboarder := agent.New(
+	onboarderOpts := []agent.Option{
 		agent.Name("onboarder"),
 		agent.Address("127.0.0.1:0"),
 		agent.Services("workspace", "notify"),
@@ -225,7 +225,9 @@ func main() {
 		agent.Provider(*provider),
 		agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
-	)
+	}
+	onboarderOpts = append(onboarderOpts, liveAgentOpts...)
+	onboarder := agent.New(onboarderOpts...)
 	go onboarder.Run()
 	defer onboarder.Stop()
 
@@ -238,6 +240,7 @@ func main() {
 		flow.Trigger("events.user.created"),
 		flow.Agent("onboarder"),
 		flow.Prompt("A new user signed up: {{.Data}}. Get them set up."),
+		flow.Timeout(harnessutil.LiveTimeout(*provider)),
 	)
 	if err := f.Register(reg, br, cl); err != nil {
 		fmt.Println("flow register:", err)
