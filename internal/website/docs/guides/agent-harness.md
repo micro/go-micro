@@ -31,7 +31,7 @@ your stack — the harness *is* the stack.
 | Tools | Every service endpoint is an MCP-callable tool from registry metadata — no extra code | Shipped |
 | Memory | Store-backed agent memory (`AgentMemory`), durable across restarts | Shipped |
 | Guardrails | `MaxSteps`, `LoopLimit`, `ApproveTool`, tool wrappers — enforced at the call site | Shipped |
-| Workflows | Durable flows; `flow.Loop` for run-until-done | Shipped |
+| Workflows | Durable flows; `micro.FlowLoop` for run-until-done | Shipped |
 | Planning / delegation | Built-in `plan` and `delegate` tools on every agent | Shipped |
 | Discovery & RPC | Registry + client; agents and services find and call each other | Shipped |
 | Interop | MCP (tools), A2A (agents), x402 (paid tools) | Shipped |

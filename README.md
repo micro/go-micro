@@ -401,8 +401,8 @@ Swap providers with a single import — same interface everywhere:
 | Google Gemini | `gemini-2.5-flash` |
 | Groq | `llama-3.3-70b-versatile` |
 | Mistral | `mistral-large-latest` |
-| Together AI | `Llama-3.3-70B-Instruct-Turbo` |
-| Atlas Cloud | `llama-3.3-70b` |
+| Together AI | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| Atlas Cloud | `deepseek-ai/DeepSeek-V3-0324` |
 
 ```go
 m := ai.New("anthropic", ai.WithAPIKey(key))
