@@ -142,7 +142,8 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 	if f.opts.TriggerTopic != "" {
 		sub, err := br.Subscribe(f.opts.TriggerTopic, func(p broker.Event) error {
 			data := string(p.Message().Body)
-			if err := f.Execute(context.Background(), data); err != nil {
+			ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{Dispatch: "broker", Trigger: f.opts.TriggerTopic})
+			if err := f.Execute(ctx, data); err != nil {
 				f.log.Logf(logger.ErrorLevel, "Flow %s failed: %v", f.name, err)
 			}
 			return nil
@@ -223,7 +224,10 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 	}
 
 	runID := uuid.New().String()
-	ctx = ai.WithRunInfo(ctx, ai.RunInfo{RunID: runID, Flow: f.name})
+	info, _ := ai.RunInfoFrom(ctx)
+	info.RunID = runID
+	info.Flow = f.name
+	ctx = ai.WithRunInfo(ctx, info)
 
 	start := time.Now()
 

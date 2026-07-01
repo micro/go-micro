@@ -41,6 +41,10 @@ const (
 	AttrErrorKind        = "agent.error.kind"
 	AttrCheckpointStatus = "agent.checkpoint.status"
 	AttrCheckpointStage  = "agent.checkpoint.stage"
+	AttrFlowName         = "agent.flow.name"
+	AttrFlowStep         = "agent.flow.step"
+	AttrDispatch         = "agent.dispatch"
+	AttrTrigger          = "agent.trigger"
 )
 
 type RunEvent struct {
@@ -124,8 +128,12 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 		}
 	}
 
-	ctx, span := a.tracer().Start(ctx, spanNameRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(
-		attribute.String(AttrRunID, info.RunID), attribute.String(AttrParentRunID, info.ParentID), attribute.String(AttrAgentName, info.Agent)))
+	attrs := appendRunInfoAttributes([]attribute.KeyValue{
+		attribute.String(AttrRunID, info.RunID),
+		attribute.String(AttrParentRunID, info.ParentID),
+		attribute.String(AttrAgentName, info.Agent),
+	}, info)
+	ctx, span := a.tracer().Start(ctx, spanNameRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(attrs...))
 	a.recordSpanEvent(span, runEvent)
 	return ctx, func(err error) {
 		latency := time.Since(start).Milliseconds()
@@ -171,16 +179,17 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 		return resp, err
 	}
 
-	ctx, span := m.a.tracer().Start(ctx, spanNameModelCall, trace.WithAttributes(
+	attrs := appendRunInfoAttributes([]attribute.KeyValue{
 		attribute.String(AttrRunID, info.RunID),
 		attribute.String(AttrParentRunID, info.ParentID),
 		attribute.String(AttrAgentName, info.Agent),
 		attribute.String(AttrProvider, provider),
 		attribute.String(AttrModel, model),
-	))
+	}, info)
+	ctx, span := m.a.tracer().Start(ctx, spanNameModelCall, trace.WithAttributes(attrs...))
 	resp, err := m.Model.Generate(ctx, req, opts...)
 	dur := time.Since(start).Milliseconds()
-	attrs := []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}
+	attrs = []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}
 	if info.Attempt > 0 {
 		attrs = append(attrs, attribute.Int(AttrAttempt, info.Attempt))
 	}
@@ -356,6 +365,22 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 		if e.Name != "" {
 			attrs = append(attrs, attribute.String(AttrCheckpointStage, e.Name))
 		}
+	}
+	return attrs
+}
+
+func appendRunInfoAttributes(attrs []attribute.KeyValue, info ai.RunInfo) []attribute.KeyValue {
+	if info.Flow != "" {
+		attrs = append(attrs, attribute.String(AttrFlowName, info.Flow))
+	}
+	if info.Step != "" {
+		attrs = append(attrs, attribute.String(AttrFlowStep, info.Step))
+	}
+	if info.Dispatch != "" {
+		attrs = append(attrs, attribute.String(AttrDispatch, info.Dispatch))
+	}
+	if info.Trigger != "" {
+		attrs = append(attrs, attribute.String(AttrTrigger, info.Trigger))
 	}
 	return attrs
 }

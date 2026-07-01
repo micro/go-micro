@@ -3,6 +3,8 @@ package flow
 import (
 	"context"
 	"time"
+
+	"go-micro.dev/v6/ai"
 )
 
 // Schedule binds a flow to a recurring work item without introducing a
@@ -25,7 +27,18 @@ func Scheduled(f *Flow, data string) Schedule {
 
 // Tick starts one scheduled run immediately and returns when that run finishes.
 func (s Schedule) Tick(ctx context.Context) error {
-	return s.flow.Execute(ctx, s.data)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	info, _ := ai.RunInfoFrom(ctx)
+	info.Dispatch = "schedule"
+	if info.Trigger == "" {
+		info.Trigger = s.flow.opts.TriggerTopic
+	}
+	if info.Trigger == "" {
+		info.Trigger = "schedule"
+	}
+	return s.flow.Execute(ai.WithRunInfo(ctx, info), s.data)
 }
 
 // RunEvery drives scheduled runs from a ticker until ctx is canceled. It does
