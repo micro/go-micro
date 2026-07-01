@@ -99,7 +99,7 @@ func TestWriteSummaryMarkdown(t *testing.T) {
 	summary := conformanceSummary{
 		Capabilities: []ai.CapabilityRow{{Provider: "mock", Capabilities: ai.Capabilities{Model: true}}},
 		Results: []conformanceResult{
-			{Provider: "mock", Harness: "agent-flow", Status: statusPassed},
+			{Provider: "mock", Harness: "agent-flow", Phase: harnessPhase("agent-flow"), Status: statusPassed},
 			{Provider: "live", Status: statusSkipped, Error: "missing | key"},
 		},
 		Passed:  1,
@@ -120,12 +120,21 @@ func TestWriteSummaryMarkdown(t *testing.T) {
 		"Providers: —.",
 		"Harnesses: —.",
 		"| mock | ✅ | — | — | — |",
-		"| mock | agent-flow | passed | — |",
-		"| live | — | skipped | missing \\| key |",
+		"| mock | agent-flow | workflow event + tool call | passed | — |",
+		"| live | — | — | skipped | missing \\| key |",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("summary markdown = %q, want %q", got, want)
 		}
+	}
+}
+
+func TestHarnessPhaseLabelsKnownHarnesses(t *testing.T) {
+	if got := harnessPhase("a2a-stream-fallback"); got != "streaming fallback + tool call" {
+		t.Fatalf("harnessPhase() = %q, want streaming fallback phase", got)
+	}
+	if got := harnessPhase("custom"); got != "harness" {
+		t.Fatalf("harnessPhase(custom) = %q, want fallback phase", got)
 	}
 }
 

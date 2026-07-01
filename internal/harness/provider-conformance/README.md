@@ -20,7 +20,11 @@ agent test and the harnesses in `internal/harness`:
   preserving run metadata.
 
 The command also emits the registered provider capability matrix so the run shows
-which providers advertise model, image, video, and streaming support.
+which providers advertise model, image, video, and streaming support. Console output
+and summary artifacts label each harness with the phase it is proving (for example,
+model call + tool call, workflow event + tool call, or streaming fallback + tool
+call), so provider failures identify the failed lifecycle phase instead of only the
+provider name.
 
 ## Local usage
 
