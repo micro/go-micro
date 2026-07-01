@@ -179,6 +179,8 @@ func (a *agentImpl) setupWithToolHandler(handler ai.ToolHandler) {
 		a.mem = NewInMemory(a.opts.HistoryLimit)
 	case a.opts.MemoryCompaction.MaxMessages > 0:
 		a.mem = NewCompactingMemoryWithOptions(a.stateStore(), "history", a.opts.MemoryCompaction)
+	case a.opts.MemoryRetrievalLimit > 0:
+		a.mem = NewRetrievalMemory(a.stateStore(), "history", a.opts.MemoryRetrievalLimit)
 	default:
 		a.mem = NewMemory(a.stateStore(), "history", a.opts.HistoryLimit)
 	}

@@ -56,6 +56,16 @@ func NewMemory(s store.Store, key string, limit int) Memory {
 	return m
 }
 
+// NewRetrievalMemory returns store-backed memory that keeps a bounded active
+// conversation and archives every turn for retrieval. It is useful when callers
+// want relevant durable recall without summary compaction in the active context.
+// A nil store or empty key keeps only the active in-process buffer.
+func NewRetrievalMemory(s store.Store, key string, activeLimit int) Memory {
+	m := &storeMemory{store: s, key: key, hist: ai.NewHistory(activeLimit), retrieveAll: true}
+	m.load()
+	return m
+}
+
 // NewCompactingMemory returns store-backed memory with explicit compaction and
 // retrieval controls. It keeps all messages in the backing store, compacts older
 // turns into a deterministic summary when the conversation exceeds maxMessages,
@@ -100,16 +110,20 @@ func NewInMemory(limit int) Memory {
 // storeMemory is the default Memory: an ai.History buffer optionally
 // persisted to a store.
 type storeMemory struct {
-	mu         sync.Mutex
-	store      store.Store
-	key        string
-	hist       *ai.History
-	compaction MemoryCompaction
-	archive    []ai.Message
+	mu          sync.Mutex
+	store       store.Store
+	key         string
+	hist        *ai.History
+	compaction  MemoryCompaction
+	archive     []ai.Message
+	retrieveAll bool
 }
 
 func (m *storeMemory) Add(role, content string) {
 	m.mu.Lock()
+	if m.retrieveAll {
+		m.archive = append(m.archive, ai.Message{Role: role, Content: content})
+	}
 	m.hist.Add(role, content)
 	m.mu.Unlock()
 	m.compact()
@@ -133,6 +147,8 @@ func (m *storeMemory) Clear() {
 // Recall returns archived messages whose content contains words from query.
 // It is deterministic and provider-neutral: no embeddings or model calls are
 // required, but semantic/vector stores can replace Memory for richer retrieval.
+// When created with NewRetrievalMemory the archive contains every persisted
+// turn; when created with NewCompactingMemory it contains compacted older turns.
 func (m *storeMemory) Recall(query string, limit int) []ai.Message {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -186,6 +202,9 @@ func (m *storeMemory) load() {
 	}
 	m.mu.Lock()
 	m.archive = state.Archive
+	if m.retrieveAll && len(m.archive) == 0 {
+		m.archive = append(m.archive, state.Messages...)
+	}
 	for _, msg := range state.Messages {
 		m.hist.Add(msg.Role, msg.Content)
 	}
