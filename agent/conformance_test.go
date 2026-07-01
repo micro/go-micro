@@ -171,3 +171,50 @@ func TestAgentProviderConformanceFakeError(t *testing.T) {
 		t.Fatalf("Ask error = %v, want conformance provider failure", err)
 	}
 }
+
+func TestAgentExecutesProviderTextToolCallFallback(t *testing.T) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler == nil {
+			return nil, errors.New("missing tool handler")
+		}
+		return &ai.Response{
+			Reply: `{"name":"conformance_echo","input":{"value":"agent-conformance"}}`,
+		}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	var sawTool bool
+	a := New(
+		Name("conformance-text-tool"),
+		Provider("fake"),
+		WithRegistry(registry.NewMemoryRegistry()),
+		WithStore(store.NewMemoryStore()),
+		WithMemory(NewInMemory(4)),
+		WithTool("conformance_echo", "Echo a conformance value.", map[string]any{
+			"value": map[string]any{"type": "string"},
+		}, func(ctx context.Context, input map[string]any) (string, error) {
+			sawTool = true
+			if input["value"] != "agent-conformance" {
+				return "", fmt.Errorf("unexpected value %v", input["value"])
+			}
+			return `{"marker":"agent-conformance-ok"}`, nil
+		}),
+	)
+
+	resp, err := a.Ask(context.Background(), "Run the text tool call fallback.")
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if !sawTool {
+		t.Fatal("text tool call fallback did not execute the tool")
+	}
+	if len(resp.ToolCalls) != 1 || resp.ToolCalls[0].Name != "conformance_echo" {
+		t.Fatalf("ToolCalls = %+v, want conformance_echo", resp.ToolCalls)
+	}
+	if !strings.Contains(resp.Reply, "agent-conformance-ok") {
+		t.Fatalf("Reply = %q, want tool result marker", resp.Reply)
+	}
+	if strings.Contains(resp.Reply, `"name":"conformance_echo"`) {
+		t.Fatalf("Reply = %q, want tool result instead of raw JSON", resp.Reply)
+	}
+}
