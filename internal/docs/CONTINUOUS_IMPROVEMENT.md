@@ -24,6 +24,7 @@ Actions instead of subagents. Each role is a workflow:
 | **Evaluator** | `harness.yml` — *Harness (E2E)*, plus the CI gate (`tests.yaml`, `lint.yaml`) | Grades every change: the mock harness + unit/lint on each push/PR, and real-model conformance hourly. A *separate* grader — never the generator judging itself. |
 | **Evaluator → feedback** | `loop-triage.yml` — *Loop: Triage (Evaluator feedback)* | On harness failure, root-causes, dedupes, and files scoped fix issues back into the planner's queue. The hill-climbing feedback path. |
 | **Coherence** | `loop-devrel.yml` — *Loop: DevRel* | Keeps README/website/docs/blog aligned with the North Star. |
+| **Release** | `loop-release.yml` — *Loop: Release (daily patch)* | Cuts a daily patch tag when master has new commits, so the *installable* framework tracks the loop's improvements (triggers `release.yml`/goreleaser). Minor/major bumps stay with the human. |
 
 Generation is separated from evaluation on purpose: an agent grading its own work
 reliably over-rates it, so **CI and the harness — not the builder — are the gate**.
