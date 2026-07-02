@@ -638,25 +638,35 @@ micro loop init      # scaffold the loop into the current repo
 micro loop verify    # check a repo is wired correctly
 ```
 
-`micro loop init` writes three workflows and a queue:
+`micro loop init` writes the selected roles' workflows, their prompts, and a queue. Choose roles with `--roles` (default `planner,builder,triage`; `--roles all` for everything):
 
-| Role | File | What it does |
-|------|------|--------------|
-| Planner | `.github/workflows/loop-planner.yml` | Keeps a ranked queue in `.github/loop/PRIORITIES.md` |
-| Builder | `.github/workflows/loop-builder.yml` | Builds the top open item as a single-concern PR, auto-merged on green CI |
-| Triage | `.github/workflows/loop-triage.yml` | Turns CI failures into scoped fix issues, back into the queue |
+| Role | Workflow | What it does |
+|------|----------|--------------|
+| Planner | `loop-planner.yml` | Keeps a ranked queue in `.github/loop/PRIORITIES.md` |
+| Builder | `loop-builder.yml` | Builds the top open item as a single-concern PR, auto-merged on green CI |
+| Triage | `loop-triage.yml` | Turns CI failures into scoped fix issues, back into the queue |
+| Coherence | `loop-coherence.yml` | Keeps README/docs/CHANGELOG aligned with the North Star *(opt-in)* |
+| Release | `loop-release.yml` | Cuts the next patch tag when the branch has new commits *(opt-in)* |
 
-Direction lives in `.github/loop/NORTH_STAR.md` — edit it to steer the loop.
+The workflows are the **mechanism**; each dispatch role's instruction is an editable file in `.github/loop/prompts/` — the **policy**. Edit those prompts (and `.github/loop/NORTH_STAR.md`) to steer the loop without touching the CLI. That split is what lets go-micro itself use `micro loop` while keeping its own richer prompts.
 
 Common flags:
 
 ```bash
 micro loop init \
-  --agent @codex \          # how the workflows summon the agent (an @mention)
-  --token-secret LOOP_TOKEN \  # repo secret holding the driving user PAT
-  --branch main \           # base branch for the loop's PRs
-  --ci-workflow CI          # name: of the CI workflow triage watches
+  --roles all \
+  --agent @codex \
+  --token-secret LOOP_TOKEN \
+  --branch main \
+  --ci-workflow CI
 ```
+
+- `--roles`: which roles to scaffold (`planner,builder,triage`, or `all`)
+- `--agent`: how the workflows summon the agent (an `@mention`)
+- `--token-secret`: repo secret holding the driving user PAT
+- `--branch`: base branch for the loop's PRs
+- `--ci-workflow`: `name:` of the CI workflow triage watches
+- `--tag-prefix`: tag prefix the release role matches and bumps (default `v`)
 
 Two things the CLI can't do for you (and `micro loop verify` reminds you of):
 

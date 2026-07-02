@@ -17,7 +17,7 @@ next version when it ships.
 ## [Unreleased]
 
 ### Added
-- **`micro loop`** — scaffold an autonomous improvement loop into any repository: GitHub Actions workflows for a planner (keeps a ranked queue), builder (builds the top item as a single-concern PR, auto-merged on green CI), and triage (turns CI failures into fix issues), dispatched to an @mention-driven coding agent. `micro loop init` writes the workflows + `NORTH_STAR`/`PRIORITIES`; `micro loop verify` checks the wiring. This is the loop that maintains go-micro itself, generalized. (`cmd/micro/loop/`)
+- **`micro loop`** — scaffold an autonomous improvement loop into any repository: GitHub Actions workflows dispatched to an @mention-driven coding agent, across up to five roles — `planner` (ranked queue), `builder` (top item as a single-concern PR, auto-merged on green CI), `triage` (CI failures → fix issues), and opt-in `coherence` (docs/CHANGELOG alignment) and `release` (daily patch tag). Each dispatch role's instruction lives in an editable `.github/loop/prompts/<role>.md` file — the workflow is the mechanism, the prompt is the policy — so a repo customizes behavior without forking the CLI. `micro loop init --roles …` writes it all; `micro loop verify` checks the wiring. This is the loop that maintains go-micro itself, generalized. (`cmd/micro/loop/`)
 
 ---
 
