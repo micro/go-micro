@@ -94,6 +94,26 @@ func TestWorkflowTemplatesPreserveGHAAndAreStructural(t *testing.T) {
 	}
 }
 
+func TestDispatchWorkflowsStripPromptComments(t *testing.T) {
+	// The posted body must not include the prompt's editorial <!-- --> header;
+	// the workflow strips it. Guard the sed directive in both dispatch paths.
+	rc := testCfg
+	d := dispatchRoles["planner"]
+	rc.Role, rc.WorkflowName, rc.IssueTitle, rc.Group, rc.Cron = "planner", d.workflowName, d.issueTitle, d.group, d.defaultCron
+	for _, tc := range []struct {
+		name, tmpl string
+		cfg        config
+	}{
+		{"dispatch", "templates/dispatch.yml.tmpl", rc},
+		{"triage", "templates/loop-triage.yml.tmpl", testCfg},
+	} {
+		s := mustRender(t, tc.tmpl, tc.cfg)
+		if !strings.Contains(s, `/<!--/,/-->/d`) {
+			t.Errorf("%s workflow does not strip prompt HTML comments before posting", tc.name)
+		}
+	}
+}
+
 func TestPromptsLeaveRuntimeTokensLiteral(t *testing.T) {
 	// __ISSUE__ must survive render (the workflow substitutes it at runtime).
 	for _, p := range []string{"planner", "builder", "coherence", "triage"} {

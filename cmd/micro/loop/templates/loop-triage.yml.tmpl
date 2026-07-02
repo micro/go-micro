@@ -51,6 +51,6 @@ jobs:
           {
             echo "<< .AgentMention >>"
             echo
-            sed -e "s/__ISSUE__/$ISSUE_NUM/g" -e "s#__RUNURL__#$RUN_URL#g" "$PROMPT"
+            sed -e '/<!--/,/-->/d' -e "s/__ISSUE__/$ISSUE_NUM/g" -e "s#__RUNURL__#$RUN_URL#g" "$PROMPT"
           } > "$RUNNER_TEMP/loop-body.md"
           gh issue comment "$ISSUE_NUM" --repo "$REPO" --body-file "$RUNNER_TEMP/loop-body.md"

@@ -50,11 +50,11 @@ jobs:
             --body "Autonomous << .Role >> pass. Direction: .github/loop/NORTH_STAR.md; queue: .github/loop/PRIORITIES.md.")
           ISSUE_NUM="${ISSUE_URL##*/}"
           echo "Opened issue #$ISSUE_NUM — dispatching << .Role >>."
-          # The prompt file is the policy; the only runtime substitution is the
-          # tracking issue number (__ISSUE__).
+          # The prompt file is the policy; strip its editorial <!-- --> header and
+          # substitute the tracking issue number (__ISSUE__) at runtime.
           {
             echo "<< .AgentMention >>"
             echo
-            sed "s/__ISSUE__/$ISSUE_NUM/g" "$PROMPT"
+            sed -e '/<!--/,/-->/d' -e "s/__ISSUE__/$ISSUE_NUM/g" "$PROMPT"
           } > "$RUNNER_TEMP/loop-body.md"
           gh issue comment "$ISSUE_NUM" --repo "$REPO" --body-file "$RUNNER_TEMP/loop-body.md"
