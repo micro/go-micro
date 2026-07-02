@@ -29,6 +29,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # need full history + all tags
+          # Do NOT persist the default GITHUB_TOKEN as a git credential.
+          # actions/checkout otherwise sets an http.extraheader Authorization
+          # for github.com that is sent on ALL pushes — including our manual
+          # PAT push below — and overrides the PAT, so the tag push
+          # authenticates as github-actions[bot] and 403s (the job only has
+          # contents: read). With this off, the PAT embedded in the push URL
+          # is the only credential. (Fixes run 28554612450.)
+          persist-credentials: false
       - name: Cut the next patch release if there are new commits
         env:
           RELEASE_TOKEN: ${{ secrets.CODEX_TRIGGER_TOKEN }}
