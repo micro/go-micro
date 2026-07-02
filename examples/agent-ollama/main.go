@@ -2,7 +2,7 @@
 //
 // This example demonstrates the full harness loop — service tools, custom
 // tools, agent memory, guardrails, and streaming — using the Ollama
-// provider with gemma4:31b-cloud on Ollama Cloud.
+// provider with gpt-oss:120b on Ollama Cloud.
 //
 // It creates a "knowledge" service with two endpoints (Add, Search) that
 // the agent discovers as tools, plus a custom "current_time" tool. The
@@ -114,7 +114,7 @@ func main() {
 	}
 	model := os.Getenv("OLLAMA_MODEL")
 	if model == "" {
-		model = "gemma4:31b-cloud"
+		model = "gpt-oss:120b"
 	}
 	apiKey := os.Getenv("OLLAMA_API_KEY")
 
