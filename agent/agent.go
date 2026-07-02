@@ -293,57 +293,77 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		}
 	}
 
-	resp, err := ai.GenerateWithRetry(ctx, a.model, &ai.Request{
-		Prompt:       message,
-		SystemPrompt: a.buildPrompt(),
-		Tools:        toolList,
-		Messages:     messages,
-	}, ai.GeneratePolicy{
-		Timeout:     a.opts.ModelTimeout,
-		MaxAttempts: a.opts.ModelMaxAttempts,
-		Backoff:     a.opts.ModelRetryBackoff,
-	})
-	if err != nil {
-		run.Status = agentRunFailureStatus(err)
-		if a.currentRun != nil {
-			run.Steps = a.currentRun.Steps
-		}
-		if len(run.Steps) == 0 {
-			run.Steps = []flow.StepRecord{{Name: agentAskStep}}
-		}
-		run.Steps[0].Status = run.Status
-		run.Steps[0].Error = err.Error()
-		_ = a.saveRun(ctx, run)
-		return nil, err
-	}
-	if a.pause != nil && a.opts.Checkpoint != nil {
-		run.Status = "paused"
-		run.State.Stage = agentApprovalStep
-		run.State.Data = []byte(message)
-		if a.pause.Tool == toolHumanInput {
-			run.State.Stage = agentInputStep
-			_ = run.State.Set(inputPause{OriginalMessage: message, Prompt: a.pause.Message})
-		}
-		run.Steps[0].Status = "paused"
-		run.Steps[0].Error = a.pause.Message
-		run.Steps[0].Result = a.pause.Tool
-		if err := a.saveRun(ctx, run); err != nil {
+	const maxPlanCompletionTurns = 3
+	var resp *ai.Response
+	for planCompletionTurn := 0; ; planCompletionTurn++ {
+		resp, err = ai.GenerateWithRetry(ctx, a.model, &ai.Request{
+			Prompt:       message,
+			SystemPrompt: a.buildPrompt(),
+			Tools:        toolList,
+			Messages:     messages,
+		}, ai.GeneratePolicy{
+			Timeout:     a.opts.ModelTimeout,
+			MaxAttempts: a.opts.ModelMaxAttempts,
+			Backoff:     a.opts.ModelRetryBackoff,
+		})
+		if err != nil {
+			run.Status = agentRunFailureStatus(err)
+			if a.currentRun != nil {
+				run.Steps = a.currentRun.Steps
+			}
+			if len(run.Steps) == 0 {
+				run.Steps = []flow.StepRecord{{Name: agentAskStep}}
+			}
+			run.Steps[0].Status = run.Status
+			run.Steps[0].Error = err.Error()
+			_ = a.saveRun(ctx, run)
 			return nil, err
 		}
-		return nil, fmt.Errorf("agent run %s paused for approval: %s", run.ID, a.pause.Message)
-	}
-
-	if len(resp.ToolCalls) == 0 {
-		if calls, answer, ok := a.executeTextToolCalls(ctx, resp.Reply, toolList); ok {
-			resp.ToolCalls = calls
-			if resp.Answer == "" {
-				resp.Answer = answer
+		if a.pause != nil && a.opts.Checkpoint != nil {
+			run.Status = "paused"
+			run.State.Stage = agentApprovalStep
+			run.State.Data = []byte(message)
+			if a.pause.Tool == toolHumanInput {
+				run.State.Stage = agentInputStep
+				_ = run.State.Set(inputPause{OriginalMessage: message, Prompt: a.pause.Message})
 			}
-			trimmedReply := strings.TrimSpace(resp.Reply)
-			if strings.HasPrefix(trimmedReply, "{") || strings.HasPrefix(trimmedReply, "[") || strings.HasPrefix(trimmedReply, "```") {
-				resp.Reply = ""
+			run.Steps[0].Status = "paused"
+			run.Steps[0].Error = a.pause.Message
+			run.Steps[0].Result = a.pause.Tool
+			if err := a.saveRun(ctx, run); err != nil {
+				return nil, err
+			}
+			return nil, fmt.Errorf("agent run %s paused for approval: %s", run.ID, a.pause.Message)
+		}
+
+		if len(resp.ToolCalls) == 0 {
+			if calls, answer, ok := a.executeTextToolCalls(ctx, resp.Reply, toolList); ok {
+				resp.ToolCalls = calls
+				if resp.Answer == "" {
+					resp.Answer = answer
+				}
+				trimmedReply := strings.TrimSpace(resp.Reply)
+				if strings.HasPrefix(trimmedReply, "{") || strings.HasPrefix(trimmedReply, "[") || strings.HasPrefix(trimmedReply, "```") {
+					resp.Reply = ""
+				}
 			}
 		}
+
+		if a.opts.Checkpoint != nil {
+			if unfinished := a.unfinishedPlanSteps(); len(unfinished) > 0 && planCompletionTurn < maxPlanCompletionTurns {
+				if resp.Reply != "" {
+					a.mem.Add("assistant", resp.Reply)
+				}
+				if resp.Answer != "" {
+					a.mem.Add("assistant", resp.Answer)
+				}
+				message = "Continue the run. These plan steps are still unfinished and must be completed before a final answer: " + strings.Join(unfinished, ", ")
+				a.mem.Add("user", message)
+				messages = a.mem.Messages()
+				continue
+			}
+		}
+		break
 	}
 
 	if resp.Reply != "" {
