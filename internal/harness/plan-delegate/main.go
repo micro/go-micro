@@ -135,9 +135,11 @@ type SendResponse struct {
 	Sent bool `json:"sent"`
 }
 type NotifyService struct {
-	mu     sync.Mutex
-	sent   int
-	bySend map[string]bool
+	mu         sync.Mutex
+	sent       int
+	attempts   int
+	duplicates int
+	bySend     map[string]bool
 }
 
 // Send delivers a notification message to a recipient. Duplicate delivery
@@ -150,11 +152,13 @@ func (s *NotifyService) Send(ctx context.Context, req *SendRequest, rsp *SendRes
 		s.bySend = map[string]bool{}
 	}
 	key := strings.ToLower(strings.TrimSpace(req.To)) + "\x00" + strings.ToLower(strings.TrimSpace(req.Message))
+	s.attempts++
 	if !s.bySend[key] {
 		s.bySend[key] = true
 		s.sent++
 		fmt.Printf("    \033[35m[notify]\033[0m 📨 to=%s message=%q\n", req.To, req.Message)
 	} else {
+		s.duplicates++
 		fmt.Printf("    \033[35m[notify]\033[0m reused to=%s message=%q\n", req.To, req.Message)
 	}
 	s.mu.Unlock()
@@ -166,6 +170,12 @@ func (s *NotifyService) count() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.sent
+}
+
+func (s *NotifyService) duplicateAttempts() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.duplicates
 }
 
 // ---------------------------------------------------------------------------
@@ -396,8 +406,15 @@ func runPlanDelegate(provider string) error {
 	}
 
 	fmt.Print("\n\033[1m> flow:\033[0m services + agents + workflow + plan/delegate, no API key.\n\n")
-	if err := f.Execute(context.Background(), "launch readiness"); err != nil {
-		return fmt.Errorf("flow execute: %w", err)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	executeDone := make(chan error, 1)
+	go func() {
+		executeDone <- f.Execute(ctx, "launch readiness")
+	}()
+
+	if err := waitForPlanDelegateExecution(executeDone, notifySvc); err != nil {
+		return err
 	}
 
 	if rs := f.Results(); len(rs) > 0 {
@@ -416,6 +433,24 @@ func runPlanDelegate(provider string) error {
 
 	fmt.Println("\n\033[32m✓ 0→hero flow complete (services → agents → workflow)\033[0m")
 	return nil
+}
+
+func waitForPlanDelegateExecution(done <-chan error, notifySvc *NotifyService) error {
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		select {
+		case err := <-done:
+			if err != nil {
+				return fmt.Errorf("flow execute: %w", err)
+			}
+			return nil
+		case <-ticker.C:
+			if dup := notifySvc.duplicateAttempts(); dup > 0 {
+				return fmt.Errorf("duplicate notify attempts: got %d duplicate replay(s), want 0", dup)
+			}
+		}
+	}
 }
 
 func main() {
