@@ -5,6 +5,8 @@ core:
     url: /docs/getting-started.html
   - title: AI Integration
     url: /docs/ai-integration.html
+  - title: No-secret First Agent
+    url: /docs/guides/no-secret-first-agent.html
   - title: Your First Agent
     url: /docs/guides/your-first-agent.html
   - title: 0→hero Reference

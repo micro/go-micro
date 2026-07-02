@@ -87,12 +87,14 @@ make harness
 After install and the first `micro new`/`micro run` smoke check, take the
 walkable agent path in this order:
 
-1. [Your First Agent](internal/website/docs/guides/your-first-agent.md) — build a
+1. [No-secret first-agent transcript](internal/website/docs/guides/no-secret-first-agent.md) — run the
+   maintained support agent with a mock model and see services → agents → workflows succeed without a key.
+2. [Your First Agent](internal/website/docs/guides/your-first-agent.md) — build a
    service-backed agent and talk to it with `micro chat`.
-2. [Debugging your agent](internal/website/docs/guides/debugging-agents.md) — use
+3. [Debugging your agent](internal/website/docs/guides/debugging-agents.md) — use
    `micro agent inspect`, run history, memory, and provider checks when the first
    conversation does something unexpected.
-3. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
+4. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
    services → agents → workflows loop with scaffold, run, chat, inspect, flow
    history, and deploy dry-run commands that match the maintained harness.
 
