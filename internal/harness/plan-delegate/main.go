@@ -54,22 +54,62 @@ type ListResponse struct {
 }
 
 type TaskService struct {
-	mu     sync.Mutex
-	tasks  []*Task
-	nextID int
+	mu      sync.Mutex
+	tasks   []*Task
+	byTitle map[string]*Task
+	nextID  int
 }
 
-// Add creates a new task with the given title.
+// Add creates a new task with the given title. Replayed live-model tool calls
+// are idempotent by launch task title so the conformance harness proves exactly
+// one durable side effect per intended task even if a provider resends a call.
 // @example {"title": "Design"}
 func (s *TaskService) Add(ctx context.Context, req *AddRequest, rsp *AddResponse) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.byTitle == nil {
+		s.byTitle = map[string]*Task{}
+	}
+	key := launchTaskKey(req.Title)
+	if t := s.byTitle[key]; t != nil {
+		rsp.Task = t
+		fmt.Printf("    \033[32m[task]\033[0m reused %s %q\n", t.ID, t.Title)
+		return nil
+	}
 	s.nextID++
-	t := &Task{ID: fmt.Sprintf("task-%d", s.nextID), Title: req.Title}
+	t := &Task{ID: fmt.Sprintf("task-%d", s.nextID), Title: canonicalLaunchTitle(req.Title)}
 	s.tasks = append(s.tasks, t)
+	s.byTitle[key] = t
 	rsp.Task = t
 	fmt.Printf("    \033[32m[task]\033[0m created %s %q\n", t.ID, t.Title)
 	return nil
+}
+
+func launchTaskKey(title string) string {
+	s := strings.ToLower(strings.TrimSpace(title))
+	switch {
+	case strings.Contains(s, "design"):
+		return "design"
+	case strings.Contains(s, "build"):
+		return "build"
+	case strings.Contains(s, "ship"):
+		return "ship"
+	default:
+		return s
+	}
+}
+
+func canonicalLaunchTitle(title string) string {
+	switch launchTaskKey(title) {
+	case "design":
+		return "Design"
+	case "build":
+		return "Build"
+	case "ship":
+		return "Ship"
+	default:
+		return strings.TrimSpace(title)
+	}
 }
 
 // List returns all tasks.
@@ -95,17 +135,29 @@ type SendResponse struct {
 	Sent bool `json:"sent"`
 }
 type NotifyService struct {
-	mu   sync.Mutex
-	sent int
+	mu     sync.Mutex
+	sent   int
+	bySend map[string]bool
 }
 
-// Send delivers a notification message to a recipient.
+// Send delivers a notification message to a recipient. Duplicate delivery
+// attempts for the same recipient/message are treated as successful replays
+// without producing another side effect.
 // @example {"to": "owner@acme.com", "message": "ready"}
 func (s *NotifyService) Send(ctx context.Context, req *SendRequest, rsp *SendResponse) error {
 	s.mu.Lock()
-	s.sent++
+	if s.bySend == nil {
+		s.bySend = map[string]bool{}
+	}
+	key := strings.ToLower(strings.TrimSpace(req.To)) + "\x00" + strings.ToLower(strings.TrimSpace(req.Message))
+	if !s.bySend[key] {
+		s.bySend[key] = true
+		s.sent++
+		fmt.Printf("    \033[35m[notify]\033[0m 📨 to=%s message=%q\n", req.To, req.Message)
+	} else {
+		fmt.Printf("    \033[35m[notify]\033[0m reused to=%s message=%q\n", req.To, req.Message)
+	}
 	s.mu.Unlock()
-	fmt.Printf("    \033[35m[notify]\033[0m 📨 to=%s message=%q\n", req.To, req.Message)
 	rsp.Sent = true
 	return nil
 }
@@ -281,7 +333,7 @@ func runPlanDelegate(provider string) error {
 		agent.Name("conductor"),
 		agent.Address("127.0.0.1:0"),
 		agent.Services("task"),
-		agent.Prompt("You coordinate launch work. Plan first, create tasks, and delegate notifications to the \"comms\" agent."),
+		agent.Prompt("You coordinate launch work. Plan first, create exactly one Design task, one Build task, and one Ship task, then delegate exactly one readiness notification to the \"comms\" agent. Do not create duplicate tasks and do not send notifications yourself."),
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
 		agent.WithCheckpoint(conductorCheckpoint),
