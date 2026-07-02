@@ -45,6 +45,7 @@ func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
 	nav := readFile(t, filepath.Join(root, "internal", "website", "_data", "navigation.yml"))
 
 	orderedGuides := []string{
+		"/docs/guides/no-secret-first-agent.html",
 		"/docs/guides/your-first-agent.html",
 		"/docs/guides/zero-to-hero.html",
 		"/docs/guides/plan-delegate.html",
@@ -70,6 +71,37 @@ func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(root, "internal", "website", "docs", doc)); err != nil {
 			t.Fatalf("navigation links to missing guide %s: %v", guide, err)
 		}
+	}
+}
+
+func TestNoSecretFirstAgentTranscript(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"))
+
+	for _, want := range []string{
+		"go run ./examples/support",
+		"go test ./examples/support -run TestRunSupportMockSmoke -count=1",
+		"make harness",
+		"micro agent preflight",
+		"micro run",
+		"micro chat assistant",
+		"micro inspect agent assistant",
+		"go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1",
+		"No-secret first-agent transcript",
+	} {
+		if !strings.Contains(guide, want) {
+			t.Fatalf("no-secret first-agent transcript missing %q", want)
+		}
+	}
+
+	readme := readFile(t, filepath.Join(root, "README.md"))
+	if !strings.Contains(readme, "internal/website/docs/guides/no-secret-first-agent.md") {
+		t.Fatal("README does not point to the no-secret first-agent transcript")
+	}
+
+	firstAgent := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "your-first-agent.md"))
+	if !strings.Contains(firstAgent, "no-secret-first-agent.html") {
+		t.Fatal("Your First Agent guide does not point to the no-secret transcript")
 	}
 }
 

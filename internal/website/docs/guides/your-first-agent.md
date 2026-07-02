@@ -13,13 +13,13 @@ run on events or schedules.
 
 ## Runnable reference first
 
-If you want to run the lifecycle before copying code, start with the maintained support-desk example from the repository root:
+If you want to run the lifecycle before copying code, start with the [no-secret first-agent transcript](no-secret-first-agent.html) or run the maintained support-desk example from the repository root:
 
 ```sh
 go run ./examples/support
 ```
 
-It uses a deterministic mock model by default, so it needs no provider key, and it exercises the same shape this guide teaches: services become tools, an agent uses them, and a flow can trigger the work. Use this guide when you are ready to build the smaller 0→1 version yourself.
+It uses a deterministic mock model by default, so it needs no provider key, and it exercises the same shape this guide teaches: services become tools, an agent uses them, and a flow can trigger the work. Use the transcript for expected output, then use this guide when you are ready to build the smaller 0→1 version yourself.
 
 ## What you'll build
 
@@ -219,7 +219,7 @@ agent for judgment, tool use, and handoffs when the path is not known up front.
 
 - Read the [0→hero reference path](zero-to-hero.html) for the CI-verified
   lifecycle contract.
-- Run [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the no-secret 0→hero support-desk lifecycle.
+- Run the [no-secret first-agent transcript](no-secret-first-agent.html) or [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the no-secret support-desk lifecycle.
 - Run [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate)
   to see planning and delegation across agents.
 - Read [Debugging your agent](debugging-agents.html) when a chat turn does not call the tool you expected, loops, refuses a call, loses memory, or fails after a flow handoff.

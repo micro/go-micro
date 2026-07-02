@@ -16,7 +16,7 @@ It's built on a pluggable architecture of Go interfaces: service discovery, clie
 
 ## Learn More
 
-Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp: [Your First Agent](guides/your-first-agent.html) to build and chat with a service-backed agent, [Debugging your agent](guides/debugging-agents.html) to inspect runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
+Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp: [No-secret first-agent transcript](guides/no-secret-first-agent.html) to run a mock-model support agent, [Your First Agent](guides/your-first-agent.html) to build and chat with a service-backed agent, [Debugging your agent](guides/debugging-agents.html) to inspect runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
 
 Otherwise continue to read the docs for more information about the framework.
 
@@ -24,6 +24,7 @@ Otherwise continue to read the docs for more information about the framework.
 
 - [Getting Started](getting-started.html)
 - [0→hero Reference](guides/zero-to-hero.html) - Walk scaffold → run → chat → inspect → deploy dry-run with CI-backed commands
+- [No-secret first-agent transcript](guides/no-secret-first-agent.html) - Run the first useful agent path without a provider key
 - [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
 - [MCP & AI Agents](mcp.html) - Turn services into AI-callable tools with the Model Context Protocol
 - [CLI & Gateway Guide](guides/cli-gateway.html) - Development vs Production modes
@@ -47,6 +48,7 @@ Otherwise continue to read the docs for more information about the framework.
 ## AI & Agents
 
 - [0→hero Reference](guides/zero-to-hero.html) - Walk scaffold → run → chat → inspect → deploy dry-run with CI-backed commands
+- [No-secret first-agent transcript](guides/no-secret-first-agent.html) - Run the first useful agent path without a provider key
 - [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
 - [Building AI-Native Services](guides/ai-native-services.html) - End-to-end tutorial for MCP-enabled services
 - [MCP Security Guide](guides/mcp-security.html) - Auth, scopes, rate limiting, and audit logging
