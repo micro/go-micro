@@ -18,6 +18,7 @@ cloud credentials?"
 | Boundary | Contract | CI check |
 | --- | --- | --- |
 | Scaffold | `micro new` generates a runnable service with and without MCP support. | `go test ./cmd/micro/cli/new -run TestZeroToOne -count=1` |
+| First agent | `micro new`, `micro agent preflight`, `micro run`, `micro chat`, and `micro inspect agent` stay available for the documented first-agent walkthrough. | `go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1` |
 | Run | `micro run` remains the local development entry point. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Chat | `micro chat` remains the interactive agent entry point. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Inspect | `micro inspect agent`, `micro inspect flow`, and `micro flow runs` remain discoverable for run history. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
@@ -54,6 +55,9 @@ Use the smaller checks when you are working on one seam:
 ```sh
 # Scaffold → run/call contract.
 go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
+
+# First-agent walkthrough boundary: scaffold, preflight, run, chat, inspect.
+go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1
 
 # CLI inner-loop commands: run, chat, inspect, flow runs, deploy --dry-run.
 go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1

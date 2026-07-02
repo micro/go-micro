@@ -4,14 +4,17 @@ This directory owns the no-secret reference scenario for the Go Micro
 services → agents → workflows lifecycle. It is intentionally small and
 scripted so CI can run it on every push without external services or model keys.
 
-`run.sh` verifies four boundaries together:
+`run.sh` verifies five boundaries together:
 
-1. **Run** — `micro run` remains available as the local development entry point.
-2. **Chat** — `micro chat` remains available as the interactive agent entry point.
-3. **Inspect** — `micro inspect agent <name>` and `micro inspect flow <name>`
+1. **First agent** — `micro new`, `micro agent preflight`, `micro run`,
+   `micro chat`, and `micro inspect agent <name>` remain available as the
+   documented first-agent walkthrough path.
+2. **Run** — `micro run` remains available as the local development entry point.
+3. **Chat** — `micro chat` remains available as the interactive agent entry point.
+4. **Inspect** — `micro inspect agent <name>` and `micro inspect flow <name>`
    remain available as the local run-history inspection step, with `micro flow
    runs` preserving durable workflow history inspection.
-4. **Deploy** — `micro deploy --dry-run <target>` remains available as the
+5. **Deploy** — `micro deploy --dry-run <target>` remains available as the
    deployment-boundary checkpoint. The dry run resolves configured deploy targets
    and services and prints the remote build/copy/systemd/health plan without
    building binaries, opening SSH connections, running `rsync`, or touching
