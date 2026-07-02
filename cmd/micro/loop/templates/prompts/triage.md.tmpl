@@ -1,0 +1,14 @@
+<!--
+The TRIAGE prompt — the editable policy for the triage role. The workflow
+prepends the agent @mention and substitutes __ISSUE__ (this tracking issue) and
+__RUNURL__ (the failed CI run) before posting. Keep both literal.
+-->
+Triage the failed CI run at __RUNURL__.
+
+Read the logs and root-cause each distinct failure. DEDUPE against open issues — if a failure matches an existing issue, comment "recurred" there instead of filing a duplicate.
+
+For each genuine, self-contained defect, file a scoped issue (`gh issue create --title "<scoped fix>" --body "<root cause, where, acceptance criteria>"`) so the planner/builder can pick it up and the next CI run verifies it.
+
+IGNORE transient flakes — network blips, provider outages, timeouts with no code cause. Anything needing a breaking or architectural change: label it `needs-human` and describe it, rather than auto-filing it as a routine fix.
+
+Close this issue (`gh issue close __ISSUE__`) when triage is done.

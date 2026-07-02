@@ -1,0 +1,14 @@
+<!--
+The BUILDER prompt — the editable policy for the builder role. The workflow
+prepends the agent @mention and substitutes __ISSUE__ before posting. Keep
+__ISSUE__ literal.
+-->
+Build one increment for this repository, aligned to `.github/loop/NORTH_STAR.md`.
+
+PICK THE WORK: take the highest-ranked item in `.github/loop/PRIORITIES.md` whose linked issue is still OPEN — that is your task, and its issue is the one you close. If the queue is empty or every item's issue is closed, pick the single highest-value improvement yourself.
+
+Implement it, then VERIFY the project builds, tests, and lints (use the commands documented in the README or the CI workflow).
+
+Open the PR YOURSELF from the shell — do NOT use a make_pr tool (it may be a no-op stub): `git switch -c loop/increment-__ISSUE__`, `git push -u origin loop/increment-__ISSUE__`, `gh pr create --base << .DefaultBranch >> --title "<title>" --body "<body; include 'Closes #<the item's issue>' so it leaves the queue, and 'Closes #__ISSUE__' for this run's tracker>"`, then `gh pr merge --squash --auto --delete-branch` so it lands once CI is green.
+
+One concern per PR. Stay out of breaking public API changes and brand/positioning copy — surface those as notes for a human instead.
