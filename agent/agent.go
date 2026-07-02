@@ -368,6 +368,24 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		RunID:     a.runID,
 		ParentID:  parentRunID,
 	}
+	if a.opts.Checkpoint != nil {
+		if unfinished := a.unfinishedPlanSteps(); len(unfinished) > 0 {
+			err = fmt.Errorf("agent run %s has unfinished plan steps: %s", run.ID, strings.Join(unfinished, ", "))
+			run.Status = "failed"
+			run.State.Stage = agentAskStep
+			run.State.Data = []byte(message)
+			if a.currentRun != nil {
+				run.Steps = a.currentRun.Steps
+			}
+			if len(run.Steps) == 0 {
+				run.Steps = []flow.StepRecord{{Name: agentAskStep}}
+			}
+			run.Steps[0].Status = "failed"
+			run.Steps[0].Error = err.Error()
+			_ = a.saveRun(ctx, run)
+			return nil, err
+		}
+	}
 	run.Status = "done"
 	run.State.Stage = ""
 	if b, marshalErr := json.Marshal(res); marshalErr == nil {

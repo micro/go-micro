@@ -141,6 +141,43 @@ func TestCheckpointSkipsDuplicateToolWithinAsk(t *testing.T) {
 	}
 }
 
+func TestCheckpointFailsRunWithUnfinishedPlanStep(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "unfinished-plan-agent")
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler == nil {
+			t.Fatal("missing tool handler")
+		}
+		opts.ToolHandler(ctx, ai.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
+			"steps": []any{
+				map[string]any{"task": "create launch tasks", "status": "done"},
+				map[string]any{"task": "notify owner via comms", "status": "in_progress"},
+			},
+		}})
+		return &ai.Response{Reply: "all done"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("unfinished-plan-agent"), WithCheckpoint(cp))
+	_, err := a.Ask(ctx, "create tasks and notify owner")
+	if err == nil {
+		t.Fatal("Ask succeeded with unfinished plan step")
+	}
+	if !strings.Contains(err.Error(), "notify owner via comms") {
+		t.Fatalf("Ask error = %v, want unfinished delegate step named", err)
+	}
+	runs, err := Pending(ctx, a)
+	if err != nil {
+		t.Fatalf("Pending: %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("Pending returned %d runs, want failed run remains actionable", len(runs))
+	}
+	if runs[0].Status != "failed" {
+		t.Fatalf("run status = %q, want failed", runs[0].Status)
+	}
+}
+
 func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "restart-resume-agent")
