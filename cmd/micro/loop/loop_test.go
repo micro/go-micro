@@ -94,6 +94,26 @@ func TestWorkflowTemplatesPreserveGHAAndAreStructural(t *testing.T) {
 	}
 }
 
+func TestDispatchWorkflowsStripPromptComments(t *testing.T) {
+	// The posted body must not include the prompt's editorial <!-- --> header;
+	// the workflow strips it. Guard the sed directive in both dispatch paths.
+	rc := testCfg
+	d := dispatchRoles["planner"]
+	rc.Role, rc.WorkflowName, rc.IssueTitle, rc.Group, rc.Cron = "planner", d.workflowName, d.issueTitle, d.group, d.defaultCron
+	for _, tc := range []struct {
+		name, tmpl string
+		cfg        config
+	}{
+		{"dispatch", "templates/dispatch.yml.tmpl", rc},
+		{"triage", "templates/loop-triage.yml.tmpl", testCfg},
+	} {
+		s := mustRender(t, tc.tmpl, tc.cfg)
+		if !strings.Contains(s, `/<!--/,/-->/d`) {
+			t.Errorf("%s workflow does not strip prompt HTML comments before posting", tc.name)
+		}
+	}
+}
+
 func TestPromptsLeaveRuntimeTokensLiteral(t *testing.T) {
 	// __ISSUE__ must survive render (the workflow substitutes it at runtime).
 	for _, p := range []string{"planner", "builder", "coherence", "triage"} {
@@ -147,6 +167,37 @@ func TestScaffoldDefaultRolesOmitsOptional(t *testing.T) {
 	}
 	if fileExists(filepath.Join(dir, wfDir, "loop-release.yml")) {
 		t.Error("release should not be written by default")
+	}
+}
+
+func TestReinitForceKeepsPromptsRefreshesWorkflows(t *testing.T) {
+	dir := t.TempDir()
+	roles := []string{"planner", "builder", "triage"}
+	if err := scaffold(dir, testCfg, roles, testCrons, false); err != nil {
+		t.Fatalf("scaffold: %v", err)
+	}
+
+	// Customize a prompt and edit direction/queue, as a real user would.
+	customPrompt := filepath.Join(dir, promptDir, "builder.md")
+	mustWrite(t, customPrompt, "MY CUSTOM BUILDER POLICY")
+	northStar := filepath.Join(dir, loopDir, "NORTH_STAR.md")
+	mustWrite(t, northStar, "MY MISSION")
+
+	// Re-run with --force to refresh workflow mechanics.
+	if err := scaffold(dir, testCfg, roles, testCrons, true); err != nil {
+		t.Fatalf("re-scaffold --force: %v", err)
+	}
+
+	// Policy (prompt, North Star) must survive --force untouched.
+	if b, _ := os.ReadFile(customPrompt); string(b) != "MY CUSTOM BUILDER POLICY" {
+		t.Errorf("--force clobbered a customized prompt: %q", b)
+	}
+	if b, _ := os.ReadFile(northStar); string(b) != "MY MISSION" {
+		t.Errorf("--force clobbered the North Star: %q", b)
+	}
+	// Mechanism (workflow) must be regenerated (present and non-empty).
+	if b, _ := os.ReadFile(filepath.Join(dir, wfDir, "loop-builder.yml")); !strings.Contains(string(b), "Loop: Builder") {
+		t.Error("--force did not refresh the workflow")
 	}
 }
 

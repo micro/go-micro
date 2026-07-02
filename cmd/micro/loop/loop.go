@@ -214,9 +214,11 @@ func isRole(r string) bool {
 	return false
 }
 
-// scaffold renders the selected roles' workflows and prompts into dir. Static
-// docs (NORTH_STAR, PRIORITIES) are never clobbered even with force, so
-// re-running init can't wipe curated direction or a hand-tuned queue.
+// scaffold renders the selected roles into dir. The split is deliberate:
+//   - Workflows are the MECHANISM — regenerated, and overwritten with --force.
+//   - Prompts, NORTH_STAR, and PRIORITIES are the POLICY — written once and
+//     never clobbered, even with --force, so re-running init to refresh the
+//     workflow mechanics can't wipe curated instructions, direction, or queue.
 func scaffold(dir string, cfg config, roles []string, crons map[string]string, force bool) error {
 	for _, role := range roles {
 		switch role {
@@ -224,7 +226,7 @@ func scaffold(dir string, cfg config, roles []string, crons map[string]string, f
 			if err := renderTo(dir, "templates/loop-triage.yml.tmpl", filepath.Join(wfDir, "loop-triage.yml"), cfg, force); err != nil {
 				return err
 			}
-			if err := renderTo(dir, "templates/prompts/triage.md.tmpl", filepath.Join(promptDir, "triage.md"), cfg, force); err != nil {
+			if err := renderKeep(dir, "templates/prompts/triage.md.tmpl", filepath.Join(promptDir, "triage.md"), cfg); err != nil {
 				return err
 			}
 		case "release":
@@ -245,41 +247,46 @@ func scaffold(dir string, cfg config, roles []string, crons map[string]string, f
 			if err := renderTo(dir, "templates/dispatch.yml.tmpl", filepath.Join(wfDir, "loop-"+role+".yml"), rc, force); err != nil {
 				return err
 			}
-			if err := renderTo(dir, "templates/prompts/"+role+".md.tmpl", filepath.Join(promptDir, role+".md"), cfg, force); err != nil {
+			if err := renderKeep(dir, "templates/prompts/"+role+".md.tmpl", filepath.Join(promptDir, role+".md"), cfg); err != nil {
 				return err
 			}
 		}
 	}
 
-	// Direction + queue: written once, never clobbered.
-	for _, doc := range []struct{ tmpl, dest string }{
-		{"templates/NORTH_STAR.md", filepath.Join(loopDir, "NORTH_STAR.md")},
-		{"templates/PRIORITIES.md", filepath.Join(loopDir, "PRIORITIES.md")},
-	} {
-		full := filepath.Join(dir, doc.dest)
-		if fileExists(full) {
-			fmt.Printf("  kept  %s (already exists)\n", doc.dest)
-			continue
-		}
-		b, err := templatesFS.ReadFile(doc.tmpl)
-		if err != nil {
-			return err
-		}
-		if err := writeFile(full, b, true); err != nil {
-			return err
-		}
-		fmt.Printf("  wrote %s\n", doc.dest)
+	// Direction + queue: policy, written once, never clobbered.
+	if err := renderKeep(dir, "templates/NORTH_STAR.md", filepath.Join(loopDir, "NORTH_STAR.md"), cfg); err != nil {
+		return err
 	}
-	return nil
+	return renderKeep(dir, "templates/PRIORITIES.md", filepath.Join(loopDir, "PRIORITIES.md"), cfg)
 }
 
-// renderTo renders a template with cfg and writes it to dir/dest.
+// renderTo renders a template with cfg and writes it to dir/dest (honoring force).
 func renderTo(dir, tmplName, dest string, cfg config, force bool) error {
 	rendered, err := render(tmplName, cfg)
 	if err != nil {
 		return err
 	}
 	if err := writeFile(filepath.Join(dir, dest), rendered, force); err != nil {
+		return err
+	}
+	fmt.Printf("  wrote %s\n", dest)
+	return nil
+}
+
+// renderKeep writes dir/dest only if it does not already exist — used for
+// policy files (prompts, North Star, queue) so re-running init never clobbers
+// customizations, regardless of --force.
+func renderKeep(dir, tmplName, dest string, cfg config) error {
+	full := filepath.Join(dir, dest)
+	if fileExists(full) {
+		fmt.Printf("  kept  %s (already exists)\n", dest)
+		return nil
+	}
+	rendered, err := render(tmplName, cfg)
+	if err != nil {
+		return err
+	}
+	if err := writeFile(full, rendered, true); err != nil {
 		return err
 	}
 	fmt.Printf("  wrote %s\n", dest)
