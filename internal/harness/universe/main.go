@@ -155,11 +155,24 @@ func isBuyerNotification(req *SendRequest) bool {
 	if req == nil {
 		return false
 	}
-	return strings.EqualFold(strings.TrimSpace(req.To), "buyer@acme.com")
+	return canonicalBuyerRecipient(req.To) != ""
+}
+
+func canonicalBuyerRecipient(to string) string {
+	switch strings.ToLower(strings.TrimSpace(to)) {
+	case "buyer", "buyer@acme.com":
+		return "buyer@acme.com"
+	default:
+		return ""
+	}
 }
 
 func notificationDedupeKeys(req *SendRequest) []string {
-	keys := []string{req.To + "\x00" + req.Message}
+	recipient := canonicalBuyerRecipient(req.To)
+	if recipient == "" {
+		recipient = strings.TrimSpace(req.To)
+	}
+	keys := []string{recipient + "\x00" + req.Message}
 	message := strings.ToLower(req.Message)
 	if strings.Contains(message, "confirm") {
 		// Live models occasionally emit equivalent confirmation copy more than
@@ -168,7 +181,7 @@ func notificationDedupeKeys(req *SendRequest) []string {
 		// harness has one checkout order, so treat confirmation messages to the
 		// same buyer as the same side effect while preserving exact-message
 		// idempotency for all other notifications.
-		keys = append(keys, req.To+"\x00confirmation")
+		keys = append(keys, recipient+"\x00confirmation")
 	}
 	return keys
 }

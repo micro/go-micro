@@ -91,6 +91,38 @@ func TestNotifySuppressesEquivalentConfirmationMessages(t *testing.T) {
 	}
 }
 
+func TestNotifyAcceptsBuyerAlias(t *testing.T) {
+	ntf := new(Notify)
+	ctx := context.Background()
+
+	var rsp SendResponse
+	if err := ntf.Send(ctx, &SendRequest{
+		To:      "buyer",
+		Message: "Your order order-1 has been confirmed.",
+	}, &rsp); err != nil {
+		t.Fatalf("send buyer alias notification: %v", err)
+	}
+	if !rsp.Sent {
+		t.Fatal("buyer alias notification did not report sent")
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("buyer alias notifications sent = %d, want 1", got)
+	}
+
+	if err := ntf.Send(ctx, &SendRequest{
+		To:      "buyer@acme.com",
+		Message: "order-1 confirmed",
+	}, &rsp); err != nil {
+		t.Fatalf("send canonical buyer notification: %v", err)
+	}
+	if !rsp.Sent {
+		t.Fatal("canonical buyer notification did not report sent")
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("alias/canonical confirmation notifications sent = %d, want 1", got)
+	}
+}
+
 func TestNotifyIgnoresNonBuyerRecipients(t *testing.T) {
 	ntf := new(Notify)
 	ctx := context.Background()
