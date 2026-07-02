@@ -10,5 +10,8 @@ go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestZeroToHeroC
 go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
 
 # Deterministic no-secret reference scenarios. These use the real Go Micro
-# runtime and mock only the LLM provider.
+# runtime and mock only the LLM provider. The support example is the maintained
+# runnable 0→hero app; keep it in this CI path so its documented run/chat/inspect
+# journey cannot drift from the framework.
+go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1
 go test ./internal/harness/universe ./internal/harness/plan-delegate -run 'Test.*Harness|TestPlanDelegateEndToEnd|TestPlanDelegateFlowHandoff' -count=1

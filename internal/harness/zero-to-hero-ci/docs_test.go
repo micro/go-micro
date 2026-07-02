@@ -17,6 +17,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 		"go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1",
 		"go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1",
 		"go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1",
+		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1",
 		"./internal/harness/zero-to-hero-ci/run.sh",
 		"go run ./internal/harness/agent-flow",
 		"make provider-conformance-mock",
