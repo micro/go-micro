@@ -68,3 +68,25 @@ func TestNotifyStepCompletesAfterObservedSideEffectTimeout(t *testing.T) {
 		t.Fatalf("notifications sent after duplicate = %d, want 1", got)
 	}
 }
+
+func TestNotifySuppressesEquivalentConfirmationMessages(t *testing.T) {
+	ntf := new(Notify)
+	ctx := context.Background()
+
+	for _, req := range []*SendRequest{
+		{To: "buyer@acme.com", Message: "Your order order-1 has been confirmed."},
+		{To: "buyer@acme.com", Message: "order-1 confirmed"},
+	} {
+		var rsp SendResponse
+		if err := ntf.Send(ctx, req, &rsp); err != nil {
+			t.Fatalf("send notification %q: %v", req.Message, err)
+		}
+		if !rsp.Sent {
+			t.Fatalf("send notification %q did not report sent", req.Message)
+		}
+	}
+
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("equivalent confirmation notifications sent = %d, want 1", got)
+	}
+}
