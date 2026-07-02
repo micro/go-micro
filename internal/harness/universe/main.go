@@ -159,12 +159,25 @@ func isBuyerNotification(req *SendRequest) bool {
 }
 
 func canonicalBuyerRecipient(to string) string {
-	switch strings.ToLower(strings.TrimSpace(to)) {
+	recipient := strings.ToLower(strings.TrimSpace(to))
+	switch recipient {
 	case "buyer", "buyer@acme.com":
 		return "buyer@acme.com"
-	default:
-		return ""
 	}
+	for _, field := range strings.FieldsFunc(recipient, func(r rune) bool {
+		switch r {
+		case ' ', '\t', '\n', '\r', ',', ';', ':', '/', '\\', '(', ')', '[', ']', '{', '}':
+			return true
+		default:
+			return false
+		}
+	}) {
+		switch field {
+		case "buyer", "buyer@acme.com":
+			return "buyer@acme.com"
+		}
+	}
+	return ""
 }
 
 func notificationDedupeKeys(req *SendRequest) []string {

@@ -154,3 +154,35 @@ func TestNotifyIgnoresNonBuyerRecipients(t *testing.T) {
 		t.Fatalf("buyer notifications sent = %d, want 1", got)
 	}
 }
+
+func TestNotifyAcceptsOrderScopedBuyerRecipient(t *testing.T) {
+	ntf := new(Notify)
+	ctx := context.Background()
+
+	var rsp SendResponse
+	if err := ntf.Send(ctx, &SendRequest{
+		To:      "order-1 buyer",
+		Message: "order-1 confirmed",
+	}, &rsp); err != nil {
+		t.Fatalf("send order-scoped buyer notification: %v", err)
+	}
+	if !rsp.Sent {
+		t.Fatal("order-scoped buyer notification did not report sent")
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("order-scoped buyer notifications sent = %d, want 1", got)
+	}
+
+	if err := ntf.Send(ctx, &SendRequest{
+		To:      "non-buyer",
+		Message: "order-1 confirmed",
+	}, &rsp); err != nil {
+		t.Fatalf("send hyphenated non-buyer notification: %v", err)
+	}
+	if rsp.Sent {
+		t.Fatal("hyphenated non-buyer notification reported sent")
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("notifications sent after hyphenated non-buyer = %d, want 1", got)
+	}
+}
