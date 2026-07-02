@@ -6,7 +6,7 @@ cd "$ROOT"
 
 # Keep the developer inner-loop boundaries executable and discoverable in CI
 # without secrets or long-running daemons.
-go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1
+go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestZeroToHeroCLIBoundaries' -count=1
 go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
 
 # Deterministic no-secret reference scenarios. These use the real Go Micro

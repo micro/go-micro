@@ -14,6 +14,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	for _, want := range []string{
 		"make harness",
 		"go test ./cmd/micro/cli/new -run TestZeroToOne -count=1",
+		"go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1",
 		"go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1",
 		"go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1",
 		"./internal/harness/zero-to-hero-ci/run.sh",

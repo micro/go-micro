@@ -47,7 +47,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 Plain service calls work without a model key; the key is only needed when the
 agent reasons over tools.
 
-Run the read-only first-agent preflight before starting the walkthrough:
+Run the read-only first-agent preflight before starting the walkthrough. The same CLI boundary is covered by CI with `go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1`, so the documented scaffold → run → chat → inspect path stays visible in the local harness:
 
 ```sh
 micro agent preflight
