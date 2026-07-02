@@ -243,6 +243,8 @@ func runPlanDelegate(provider string) error {
 	cl := harnessutil.Client(provider, reg)
 	mem := store.NewMemoryStore()
 	liveAgentOpts := harnessutil.AgentOptions(provider)
+	commsCheckpoint := flow.StoreCheckpoint(mem, "agent-comms")
+	conductorCheckpoint := flow.StoreCheckpoint(mem, "agent-conductor")
 
 	// Real services.
 	taskSvc := new(TaskService)
@@ -267,6 +269,7 @@ func runPlanDelegate(provider string) error {
 		agent.Prompt("You handle outbound notifications. Use the notify service."),
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
+		agent.WithCheckpoint(commsCheckpoint),
 	}
 	commsOpts = append(commsOpts, liveAgentOpts...)
 	comms := agent.New(commsOpts...)
@@ -281,6 +284,7 @@ func runPlanDelegate(provider string) error {
 		agent.Prompt("You coordinate launch work. Plan first, create tasks, and delegate notifications to the \"comms\" agent."),
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
+		agent.WithCheckpoint(conductorCheckpoint),
 	}
 	conductorOpts = append(conductorOpts, liveAgentOpts...)
 	conductor := agent.New(conductorOpts...)
