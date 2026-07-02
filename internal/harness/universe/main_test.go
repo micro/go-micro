@@ -90,3 +90,35 @@ func TestNotifySuppressesEquivalentConfirmationMessages(t *testing.T) {
 		t.Fatalf("equivalent confirmation notifications sent = %d, want 1", got)
 	}
 }
+
+func TestNotifyIgnoresNonBuyerRecipients(t *testing.T) {
+	ntf := new(Notify)
+	ctx := context.Background()
+
+	var rsp SendResponse
+	if err := ntf.Send(ctx, &SendRequest{
+		To:      "order-1",
+		Message: "order-1 confirmed",
+	}, &rsp); err != nil {
+		t.Fatalf("send non-buyer notification: %v", err)
+	}
+	if rsp.Sent {
+		t.Fatal("non-buyer notification reported sent")
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 0 {
+		t.Fatalf("non-buyer notifications sent = %d, want 0", got)
+	}
+
+	if err := ntf.Send(ctx, &SendRequest{
+		To:      "buyer@acme.com",
+		Message: "Your order order-1 has been confirmed.",
+	}, &rsp); err != nil {
+		t.Fatalf("send buyer notification: %v", err)
+	}
+	if !rsp.Sent {
+		t.Fatal("buyer notification did not report sent")
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("buyer notifications sent = %d, want 1", got)
+	}
+}
