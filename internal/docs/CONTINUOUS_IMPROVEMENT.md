@@ -22,7 +22,7 @@ Actions instead of subagents. Each role is a workflow:
 | **Planner** | `loop-planner.yml` — *Loop: Planner* | Tracks live state, prioritizes the roadmap + an internal scan, and maintains the ranked queue in [`.github/loop/PRIORITIES.md`](../../.github/loop/PRIORITIES.md). Decides *what*. |
 | **Generator** | `loop-builder.yml` — *Loop: Builder (Generator)* | Builds the top open queue item as a single-concern PR (via Codex) and self-merges on green CI. Does the work. |
 | **Evaluator** | `harness.yml` — *Harness (E2E)*, plus the CI gate (`tests.yaml`, `lint.yaml`) | Grades every change: the mock harness + unit/lint on each push/PR, and real-model conformance hourly. A *separate* grader — never the generator judging itself. |
-| **Evaluator → feedback** | `loop-triage.yml` — *Loop: Triage (Evaluator feedback)* | On harness failure, root-causes, dedupes, and files scoped fix issues back into the planner's queue. The hill-climbing feedback path. |
+| **Evaluator → feedback** | `loop-triage.yml` — *Loop: Triage (Evaluator feedback)* | When a gate workflow (Lint, Run Tests, or the harness) fails on a non-PR run, root-causes, dedupes, and files scoped fix issues back into the planner's queue. The hill-climbing feedback path. |
 | **Coherence** | `loop-coherence.yml` — *Loop: Coherence* | Keeps README/website/docs/blog aligned with the North Star, keeps `CHANGELOG.md` living (reconciling `[Unreleased]` against merged PRs and rolling it into version headings as tags cut), and drafts the changelog blog post. |
 | **Release** | `loop-release.yml` — *Loop: Release (daily patch)* | Cuts a daily patch tag when master has new commits, so the *installable* framework tracks the loop's improvements (triggers `release.yml`/goreleaser). Minor/major bumps stay with the human. |
 
@@ -194,14 +194,16 @@ to redirect. Codex is serial, so these passes queue behind any in-flight increme
 ## Failure triage (the feedback loop)
 
 The loop also closes on its own failures. `.github/workflows/loop-triage.yml`
-fires when the live provider-conformance harness finishes with `conclusion:
-failure` (scheduled/manual runs only), and dispatches Codex to **triage** the
-failing run: read the logs, root-cause each distinct failure, **dedupe** against
-open issues (comment "recurred" rather than filing a duplicate), and file a scoped
-`codex`/`enhancement` issue for each genuine, self-contained defect — which the
-increment loop then builds and the next harness run verifies. Transient flakes
-(live-model latency, provider outages) are ignored; anything needing a breaking or
-architectural change is escalated as `needs-human` instead of auto-built. This is
+fires when a gate workflow — **Lint**, **Run Tests**, or the provider-conformance
+**Harness (E2E)** — finishes with `conclusion: failure` on a non-PR run (so a red
+lint or test on `master`, not just a harness failure, becomes a fix issue). It
+dispatches Codex to **triage** the failing run: read the logs, root-cause each
+distinct failure, **dedupe** against open issues (comment "recurred" rather than
+filing a duplicate), and file a scoped `codex`/`enhancement` issue for each genuine,
+self-contained defect — which the increment loop then builds and the next run
+verifies. Genuine transient flakes (live-model latency, provider outages) are
+ignored; anything needing a breaking or architectural change is escalated as
+`needs-human` instead of auto-built. This is
 the hill-climbing layer: CI/harness failures become fixes with no human in the
 middle, short of a decision that's genuinely the human's.
 

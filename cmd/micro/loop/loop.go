@@ -40,10 +40,11 @@ var templatesFS embed.FS
 // given repo tunes.
 type config struct {
 	// Shared.
-	DefaultBranch string // base branch for the loop's PRs (e.g. main)
-	AgentMention  string // how the workflows summon the agent (e.g. @codex)
-	TokenSecret   string // repo secret holding the user PAT that drives dispatch
-	CIWorkflow    string // name: of the CI workflow triage watches for failures
+	DefaultBranch   string // base branch for the loop's PRs (e.g. main)
+	AgentMention    string // how the workflows summon the agent (e.g. @codex)
+	TokenSecret     string // repo secret holding the user PAT that drives dispatch
+	CIWorkflow      string // human-readable CI workflow name(s) triage watches
+	CIWorkflowsYAML string // the same as a YAML array literal, e.g. ["Lint", "Run Tests"]
 
 	// Per-dispatch-role (set while rendering each one).
 	Role         string
@@ -122,7 +123,7 @@ Examples:
 					&cli.StringFlag{Name: "branch", Usage: "Base branch for the loop's PRs (auto-detected if empty)"},
 					&cli.StringFlag{Name: "agent", Usage: "How the workflows summon the agent (an @mention)", Value: "@codex"},
 					&cli.StringFlag{Name: "token-secret", Usage: "Repo secret holding the user PAT that drives dispatch", Value: "LOOP_TOKEN"},
-					&cli.StringFlag{Name: "ci-workflow", Usage: "name: of the CI workflow triage watches for failures", Value: "CI"},
+					&cli.StringFlag{Name: "ci-workflow", Usage: "CI workflow name(s) triage watches for failures (comma-separated)", Value: "CI"},
 					&cli.StringFlag{Name: "planner-cron", Usage: "Cron schedule for the planner", Value: "0 * * * *"},
 					&cli.StringFlag{Name: "builder-cron", Usage: "Cron schedule for the builder", Value: "30 * * * *"},
 					&cli.StringFlag{Name: "coherence-cron", Usage: "Cron schedule for the coherence role", Value: "0 7 * * *"},
@@ -149,13 +150,15 @@ func runInit(c *cli.Context) error {
 		return err
 	}
 
+	ciNames := splitCSV(c.String("ci-workflow"))
 	cfg := config{
-		DefaultBranch: c.String("branch"),
-		AgentMention:  strings.TrimSpace(c.String("agent")),
-		TokenSecret:   strings.TrimSpace(c.String("token-secret")),
-		CIWorkflow:    c.String("ci-workflow"),
-		TagPrefix:     c.String("tag-prefix"),
-		ReleaseCron:   c.String("release-cron"),
+		DefaultBranch:   c.String("branch"),
+		AgentMention:    strings.TrimSpace(c.String("agent")),
+		TokenSecret:     strings.TrimSpace(c.String("token-secret")),
+		CIWorkflow:      strings.Join(ciNames, ", "),
+		CIWorkflowsYAML: yamlStringArray(ciNames),
+		TagPrefix:       c.String("tag-prefix"),
+		ReleaseCron:     c.String("release-cron"),
 	}
 	if cfg.DefaultBranch == "" {
 		cfg.DefaultBranch = detectDefaultBranch(dir)
@@ -203,6 +206,30 @@ func parseRoles(spec string) ([]string, error) {
 		}
 	}
 	return out, nil
+}
+
+// splitCSV splits a comma-separated flag into trimmed, non-empty values.
+func splitCSV(s string) []string {
+	var out []string
+	for _, v := range strings.Split(s, ",") {
+		if v = strings.TrimSpace(v); v != "" {
+			out = append(out, v)
+		}
+	}
+	if len(out) == 0 {
+		out = []string{"CI"}
+	}
+	return out
+}
+
+// yamlStringArray renders names as a YAML/JSON flow array, e.g. ["Lint", "Run Tests"].
+// Names are known workflow display names (no embedded quotes), so a simple quote is safe.
+func yamlStringArray(names []string) string {
+	quoted := make([]string, len(names))
+	for i, n := range names {
+		quoted[i] = fmt.Sprintf("%q", n)
+	}
+	return "[" + strings.Join(quoted, ", ") + "]"
 }
 
 func isRole(r string) bool {
