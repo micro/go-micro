@@ -23,7 +23,8 @@ cloud credentials?"
 | Chat | `micro chat` remains the interactive agent entry point. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Inspect | `micro inspect agent`, `micro inspect flow`, and `micro flow runs` remain discoverable for run history. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Deploy | `micro deploy --dry-run` resolves deploy targets without touching remote infrastructure. | `go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1` |
-| Runtime | Real services, agents, durable flows, store-backed history, delegation, and A2A run with only the model mocked. | `./internal/harness/zero-to-hero-ci/run.sh` and `make provider-conformance-mock` |
+| Runtime reference app | `examples/support` runs typed services, an agent using those services as tools, an event-driven flow handoff, and an approval gate with only the model mocked. | `go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1` |
+| Runtime harnesses | Real services, agents, durable flows, store-backed history, delegation, and A2A run with only the model mocked. | `./internal/harness/zero-to-hero-ci/run.sh` and `make provider-conformance-mock` |
 
 ## Run the runnable example
 
@@ -62,6 +63,9 @@ go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1
 # CLI inner-loop commands: run, chat, inspect, flow runs, deploy --dry-run.
 go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1
 go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
+
+# Maintained 0→hero support-desk reference app.
+go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1
 
 # Durable services → agents → workflows reference scenarios.
 ./internal/harness/zero-to-hero-ci/run.sh
