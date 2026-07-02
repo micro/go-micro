@@ -100,6 +100,10 @@ func AgentModel(m string) AgentOption { return agent.Model(m) }
 // AgentAPIKey sets the API key for the LLM provider.
 func AgentAPIKey(k string) AgentOption { return agent.APIKey(k) }
 
+// AgentBaseURL sets the base URL for the LLM provider. Use this to point
+// the provider at a non-default endpoint (e.g., local Ollama, a proxy).
+func AgentBaseURL(url string) AgentOption { return agent.BaseURL(url) }
+
 // ApproveFunc gates an agent's tool calls before they run.
 type ApproveFunc = agent.ApproveFunc
 

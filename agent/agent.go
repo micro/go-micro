@@ -34,6 +34,7 @@ import (
 	_ "go-micro.dev/v6/ai/gemini"
 	_ "go-micro.dev/v6/ai/groq"
 	_ "go-micro.dev/v6/ai/mistral"
+	_ "go-micro.dev/v6/ai/ollama"
 	_ "go-micro.dev/v6/ai/openai"
 	_ "go-micro.dev/v6/ai/together"
 )
@@ -148,6 +149,9 @@ func (a *agentImpl) setupWithToolHandler(handler ai.ToolHandler) {
 	modelOpts = append(modelOpts, ai.WithAPIKey(a.opts.APIKey))
 	if a.opts.Model != "" {
 		modelOpts = append(modelOpts, ai.WithModel(a.opts.Model))
+	}
+	if a.opts.BaseURL != "" {
+		modelOpts = append(modelOpts, ai.WithBaseURL(a.opts.BaseURL))
 	}
 
 	// Reuse the existing tools instance: its name map is populated by
