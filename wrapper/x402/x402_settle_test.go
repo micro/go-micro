@@ -73,7 +73,7 @@ func TestSettlementFailureChallenges(t *testing.T) {
 	}
 }
 
-// TestPaymentSignatureHeaderAccepted checks the v2 request header is honoured.
+// TestPaymentSignatureHeaderAccepted checks the v2 request header is honored.
 func TestPaymentSignatureHeaderAccepted(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"isValid": true, "success": true, "transaction": "0x1"})
@@ -86,7 +86,7 @@ func TestPaymentSignatureHeaderAccepted(t *testing.T) {
 	rec := httptest.NewRecorder()
 
 	if !cfg.Require(rec, r, "10000", "chat") {
-		t.Fatalf("Require should honour PAYMENT-SIGNATURE; body=%s", rec.Body.String())
+		t.Fatalf("Require should honor PAYMENT-SIGNATURE; body=%s", rec.Body.String())
 	}
 }
 
