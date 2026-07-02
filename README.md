@@ -66,8 +66,15 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
   -H 'Content-Type: application/json' -d '{"name":"World"}'
 ```
 
-This scaffold → run → call path is covered by the no-secret CI harness. To run
-the same local contract (including the [0→hero services → agents → workflows path](internal/website/docs/guides/zero-to-hero.md),
+This install → scaffold → run → call path is covered by no-secret CI harnesses. To
+verify just the local installer and first-run CLI boundaries without network
+access or provider keys, use:
+
+```bash
+make install-smoke
+```
+
+To run the broader local contract (including the [0→hero services → agents → workflows path](internal/website/docs/guides/zero-to-hero.md),
 chat/inspect CLI boundaries, and deploy dry-run), use:
 
 ```bash

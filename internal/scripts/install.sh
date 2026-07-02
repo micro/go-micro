@@ -23,8 +23,12 @@ case $OS in
     *) echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
-# Determine install directory
-if [ "$EUID" -eq 0 ] || [ "$(id -u)" -eq 0 ]; then
+# Determine install directory. MICRO_INSTALL_DIR is intended for CI/local smoke
+# tests that verify the installer without writing to a real system directory.
+if [ -n "${MICRO_INSTALL_DIR:-}" ]; then
+    INSTALL_DIR="$MICRO_INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
+elif [ "$EUID" -eq 0 ] || [ "$(id -u)" -eq 0 ]; then
     INSTALL_DIR="/usr/local/bin"
 else
     INSTALL_DIR="$HOME/.local/bin"
@@ -44,8 +48,11 @@ fi
 TMP_DIR=$(mktemp -d)
 TMP_FILE="${TMP_DIR}/micro.tar.gz"
 
-# Download
-if command -v curl &> /dev/null; then
+# Download, or use a local release archive supplied by the deterministic smoke
+# harness. The default path still fetches the documented GitHub release artifact.
+if [ -n "${MICRO_INSTALL_ARCHIVE:-}" ]; then
+    cp "$MICRO_INSTALL_ARCHIVE" "$TMP_FILE"
+elif command -v curl &> /dev/null; then
     curl -fsSL "$URL" -o "$TMP_FILE"
 elif command -v wget &> /dev/null; then
     wget -q "$URL" -O "$TMP_FILE"

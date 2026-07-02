@@ -54,6 +54,9 @@ SSH access, or remote service is required.
 Use the smaller checks when you are working on one seam:
 
 ```sh
+# Install script and first-run CLI boundary, with no network or provider keys.
+make install-smoke
+
 # Scaffold → run/call contract.
 go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
 
