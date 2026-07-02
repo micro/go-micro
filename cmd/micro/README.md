@@ -652,11 +652,16 @@ Common flags:
 
 ```bash
 micro loop init \
-  --agent @codex \          # how the workflows summon the agent (an @mention)
-  --token-secret LOOP_TOKEN \  # repo secret holding the driving user PAT
-  --branch main \           # base branch for the loop's PRs
-  --ci-workflow CI          # name: of the CI workflow triage watches
+  --agent @codex \
+  --token-secret LOOP_TOKEN \
+  --branch main \
+  --ci-workflow CI
 ```
+
+- `--agent`: how the workflows summon the agent (an `@mention`)
+- `--token-secret`: repo secret holding the driving user PAT
+- `--branch`: base branch for the loop's PRs
+- `--ci-workflow`: `name:` of the CI workflow triage watches
 
 Two things the CLI can't do for you (and `micro loop verify` reminds you of):
 
