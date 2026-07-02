@@ -17,6 +17,7 @@ next version when it ships.
 ## [Unreleased]
 
 ### Added
+- **Ollama provider** — run agents against open-weight models locally (`/api/chat`, NDJSON streaming) or via Ollama Cloud (OpenAI-compatible `/v1/chat/completions`, SSE), auto-detected from the base URL, with tool calling in both modes. Point any agent at a non-default endpoint with the new `agent.BaseURL` / `micro.AgentBaseURL` option. (`ai/ollama/`, `examples/agent-ollama/`)
 - **Retrieval-backed agent memory** — agents can recall relevant prior turns by similarity, not just the recent window, with a summarizer hook that compacts older history so long conversations stay in budget. (`agent/`)
 - **Scheduled flows** — a flow can run an agent (or any step) on a cron-style schedule, with the dispatch traced end to end. (`flow/`)
 - **Flow verification/grader loop** — a workflow can grade its own step output against a rubric and retry until it passes, plus run-trace analysis to surface where a flow spends its time. (`flow/`)

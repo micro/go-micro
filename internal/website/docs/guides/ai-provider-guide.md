@@ -43,6 +43,7 @@ The built-in providers currently register these capability interfaces:
 | `gemini` | Yes | No | No | No |
 | `groq` | Yes | No | No | Yes |
 | `mistral` | Yes | No | No | Yes |
+| `ollama` | Yes | No | No | Yes |
 | `openai` | Yes | Yes | No | Yes |
 | `together` | Yes | No | No | Yes |
 

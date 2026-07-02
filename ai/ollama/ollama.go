@@ -23,7 +23,7 @@
 //	m := ai.New("ollama",
 //	    ai.WithBaseURL("https://ollama.com/v1"),
 //	    ai.WithAPIKey("your-key"),
-//	    ai.WithModel("gemma4:31b-cloud"),
+//	    ai.WithModel("gpt-oss:120b"),
 //	)
 package ollama
 
