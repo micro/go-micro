@@ -102,6 +102,45 @@ func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
 	}
 }
 
+func TestCheckpointSkipsDuplicateToolWithinAsk(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "tool-dedupe-agent")
+	toolRuns := 0
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler == nil {
+			t.Fatal("missing tool handler")
+		}
+		opts.ToolHandler(ctx, ai.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
+			"steps": []any{
+				map[string]any{"task": "create Design task", "status": "pending"},
+			},
+		}})
+		for i := 0; i < 3; i++ {
+			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.create", Input: map[string]any{"title": "Design"}})
+			if res.Content != "created Design" {
+				t.Fatalf("tool result %d = %q, want cached created Design", i, res.Content)
+			}
+		}
+		return &ai.Response{Reply: "done"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("tool-dedupe-agent"), WithCheckpoint(cp),
+		WithTool("external.create", "create once", nil, func(context.Context, map[string]any) (string, error) {
+			toolRuns++
+			return "created Design", nil
+		}))
+	if _, err := a.Ask(ctx, "create Design once"); err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions = %d, want duplicate calls within the run replayed from checkpoint", toolRuns)
+	}
+	if plan := a.loadPlan(); !strings.Contains(plan, `"status":"done"`) {
+		t.Fatalf("plan = %s, want completed action marked done", plan)
+	}
+}
+
 func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "restart-resume-agent")

@@ -290,7 +290,11 @@ func (a *agentImpl) planWrap(next ai.ToolHandler) ai.ToolHandler {
 		if call.Name == toolPlan {
 			return a.handlePlan(call)
 		}
-		return next(ctx, call)
+		res := next(ctx, call)
+		if res.Refused == "" && toolErrorMessage(res) == "" {
+			a.completeNextPlanStep()
+		}
+		return res
 	}
 }
 
@@ -366,6 +370,36 @@ func (a *agentImpl) handlePlan(call ai.ToolCall) ai.ToolResult {
 	}
 	_ = a.stateStore().Write(&store.Record{Key: planKey, Value: data})
 	return ai.ToolResult{ID: call.ID, Value: call.Input, Content: string(data)}
+}
+
+func (a *agentImpl) completeNextPlanStep() {
+	plan := a.loadPlan()
+	if plan == "" {
+		return
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(plan), &data); err != nil {
+		return
+	}
+	steps, ok := data["steps"].([]any)
+	if !ok {
+		return
+	}
+	for _, raw := range steps {
+		step, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		status, _ := step["status"].(string)
+		if status == "" || status == "pending" || status == "in_progress" {
+			step["status"] = "done"
+			b, err := json.Marshal(data)
+			if err == nil {
+				_ = a.stateStore().Write(&store.Record{Key: planKey, Value: b})
+			}
+			return
+		}
+	}
 }
 
 // handleHumanInput records that the model needs operator input before it can continue.
