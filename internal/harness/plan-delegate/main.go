@@ -174,10 +174,25 @@ func (s *NotifyService) count() int {
 // the real tool handler exactly the way a real provider would.
 // ---------------------------------------------------------------------------
 
-type mockModel struct{ opts ai.Options }
+type mockModel struct {
+	opts ai.Options
+
+	// unknownDelegateOnce makes the mock emit one provider-style, unavailable
+	// delegate tool name before using the registered delegate tool. This mirrors
+	// live providers that occasionally hallucinate a provider-specific tool while
+	// still keeping the regression deterministic and keyless.
+	unknownDelegateOnce    bool
+	emittedUnknownDelegate bool
+}
 
 func newMock(opts ...ai.Option) ai.Model {
 	m := &mockModel{}
+	_ = m.Init(opts...)
+	return m
+}
+
+func newMockUnknownDelegate(opts ...ai.Option) ai.Model {
+	m := &mockModel{unknownDelegateOnce: true}
 	_ = m.Init(opts...)
 	return m
 }
@@ -247,10 +262,18 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 			}
 		}
 		if del := findTool(req.Tools, "delegate"); del != "" {
-			m.call("conductor", del, map[string]any{
-				"task": "Notify owner@acme.com that the launch plan is ready",
-				"to":   "comms",
-			})
+			if m.unknownDelegateOnce && !m.emittedUnknownDelegate {
+				m.emittedUnknownDelegate = true
+				m.call("conductor", "atlascloud_delegate", map[string]any{
+					"task": "Notify owner@acme.com that the launch plan is ready",
+					"to":   "comms",
+				})
+			} else {
+				m.call("conductor", del, map[string]any{
+					"task": "Notify owner@acme.com that the launch plan is ready",
+					"to":   "comms",
+				})
+			}
 		}
 		return &ai.Response{Answer: "Created Design, Build and Ship, and had comms notify the owner."}, nil
 
@@ -278,9 +301,12 @@ func providerKey(provider string) string {
 
 func runPlanDelegate(provider string) error {
 	apiKey := ""
-	if provider == "mock" {
+	switch provider {
+	case "mock":
 		ai.Register("mock", newMock)
-	} else {
+	case "mock-unknown-delegate":
+		ai.Register("mock-unknown-delegate", newMockUnknownDelegate)
+	default:
 		apiKey = providerKey(provider)
 		if apiKey == "" {
 			fmt.Printf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env\n", provider)
@@ -393,7 +419,7 @@ func runPlanDelegate(provider string) error {
 }
 
 func main() {
-	provider := flag.String("provider", "mock", "LLM provider: mock (default), anthropic, openai, gemini, groq, mistral, together, atlascloud")
+	provider := flag.String("provider", "mock", "LLM provider: mock (default), mock-unknown-delegate, anthropic, openai, gemini, groq, mistral, together, atlascloud")
 	flag.Parse()
 
 	if err := runPlanDelegate(*provider); err != nil {
