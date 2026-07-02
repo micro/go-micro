@@ -8,12 +8,13 @@ import (
 )
 
 var testCfg = config{
-	DefaultBranch: "main",
-	AgentMention:  "@codex",
-	TokenSecret:   "LOOP_TOKEN",
-	CIWorkflow:    "CI",
-	TagPrefix:     "v",
-	ReleaseCron:   "0 23 * * *",
+	DefaultBranch:   "main",
+	AgentMention:    "@codex",
+	TokenSecret:     "LOOP_TOKEN",
+	CIWorkflow:      "CI",
+	CIWorkflowsYAML: `["CI"]`,
+	TagPrefix:       "v",
+	ReleaseCron:     "0 23 * * *",
 }
 
 var testCrons = map[string]string{"planner": "0 * * * *", "builder": "30 * * * *", "coherence": "0 7 * * *"}
@@ -198,6 +199,25 @@ func TestReinitForceKeepsPromptsRefreshesWorkflows(t *testing.T) {
 	// Mechanism (workflow) must be regenerated (present and non-empty).
 	if b, _ := os.ReadFile(filepath.Join(dir, wfDir, "loop-builder.yml")); !strings.Contains(string(b), "Loop: Builder") {
 		t.Error("--force did not refresh the workflow")
+	}
+}
+
+func TestCIWorkflowListRendersAsYAMLArray(t *testing.T) {
+	if got := yamlStringArray([]string{"Harness (E2E)", "Lint", "Run Tests"}); got != `["Harness (E2E)", "Lint", "Run Tests"]` {
+		t.Errorf("yamlStringArray = %q", got)
+	}
+	if got := splitCSV("Harness (E2E), Lint ,Run Tests"); strings.Join(got, "|") != "Harness (E2E)|Lint|Run Tests" {
+		t.Errorf("splitCSV = %v", got)
+	}
+	if got := splitCSV("  "); strings.Join(got, "|") != "CI" {
+		t.Errorf("splitCSV empty should default to CI, got %v", got)
+	}
+	// The triage workflow must embed the array so workflow_run watches all of them.
+	cfg := testCfg
+	cfg.CIWorkflowsYAML = `["Harness (E2E)", "Lint", "Run Tests"]`
+	s := mustRender(t, "templates/loop-triage.yml.tmpl", cfg)
+	if !strings.Contains(s, `workflows: ["Harness (E2E)", "Lint", "Run Tests"]`) {
+		t.Errorf("triage workflow does not watch the CI workflow list:\n%s", s)
 	}
 }
 
