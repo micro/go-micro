@@ -219,3 +219,35 @@ func TestZeroToHeroContract(t *testing.T) {
 		t.Fatalf("0→hero harness: %v", err)
 	}
 }
+
+func TestTaskServiceAddIsIdempotentForLaunchTitles(t *testing.T) {
+	svc := new(TaskService)
+	for _, title := range []string{"Design", "design task", "Build", "Build launch task", "Ship", "ship readiness"} {
+		var rsp AddResponse
+		if err := svc.Add(context.Background(), &AddRequest{Title: title}, &rsp); err != nil {
+			t.Fatalf("Add(%q): %v", title, err)
+		}
+		if rsp.Task == nil {
+			t.Fatalf("Add(%q) returned nil task", title)
+		}
+	}
+	if got := svc.count(); got != 3 {
+		t.Fatalf("task count = %d, want 3 after duplicate launch-title replays", got)
+	}
+}
+
+func TestNotifyServiceSendIsIdempotentForDuplicateDelivery(t *testing.T) {
+	svc := new(NotifyService)
+	for i := 0; i < 3; i++ {
+		var rsp SendResponse
+		if err := svc.Send(context.Background(), &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp); err != nil {
+			t.Fatalf("Send attempt %d: %v", i+1, err)
+		}
+		if !rsp.Sent {
+			t.Fatalf("Send attempt %d reported Sent=false", i+1)
+		}
+	}
+	if got := svc.count(); got != 1 {
+		t.Fatalf("notify count = %d, want 1 after duplicate delivery replays", got)
+	}
+}
