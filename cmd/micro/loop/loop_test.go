@@ -150,6 +150,37 @@ func TestScaffoldDefaultRolesOmitsOptional(t *testing.T) {
 	}
 }
 
+func TestReinitForceKeepsPromptsRefreshesWorkflows(t *testing.T) {
+	dir := t.TempDir()
+	roles := []string{"planner", "builder", "triage"}
+	if err := scaffold(dir, testCfg, roles, testCrons, false); err != nil {
+		t.Fatalf("scaffold: %v", err)
+	}
+
+	// Customize a prompt and edit direction/queue, as a real user would.
+	customPrompt := filepath.Join(dir, promptDir, "builder.md")
+	mustWrite(t, customPrompt, "MY CUSTOM BUILDER POLICY")
+	northStar := filepath.Join(dir, loopDir, "NORTH_STAR.md")
+	mustWrite(t, northStar, "MY MISSION")
+
+	// Re-run with --force to refresh workflow mechanics.
+	if err := scaffold(dir, testCfg, roles, testCrons, true); err != nil {
+		t.Fatalf("re-scaffold --force: %v", err)
+	}
+
+	// Policy (prompt, North Star) must survive --force untouched.
+	if b, _ := os.ReadFile(customPrompt); string(b) != "MY CUSTOM BUILDER POLICY" {
+		t.Errorf("--force clobbered a customized prompt: %q", b)
+	}
+	if b, _ := os.ReadFile(northStar); string(b) != "MY MISSION" {
+		t.Errorf("--force clobbered the North Star: %q", b)
+	}
+	// Mechanism (workflow) must be regenerated (present and non-empty).
+	if b, _ := os.ReadFile(filepath.Join(dir, wfDir, "loop-builder.yml")); !strings.Contains(string(b), "Loop: Builder") {
+		t.Error("--force did not refresh the workflow")
+	}
+}
+
 func TestParseRoles(t *testing.T) {
 	if got, err := parseRoles("all"); err != nil || len(got) != len(allRoles) {
 		t.Errorf("all => %v, %v", got, err)
