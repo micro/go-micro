@@ -625,3 +625,44 @@ Scopes provide fine-grained access control over which tokens can call which serv
 The gateway's scope system uses `auth.Account` from the go-micro framework. Scopes on accounts are the same `[]string` field used by the framework's `auth.Rules` and `wrapper/auth` package. The gateway stores scope requirements in the default store under `endpoint-scopes/<service>.<endpoint>` keys and checks them on every HTTP request.
 
 For service-level (RPC) auth within the go-micro mesh, use the `wrapper/auth` package which provides `auth.Rules` with priority-based access control. See the [auth wrapper documentation](../../wrapper/auth/README.md) for details.
+
+## Self-improving loop (`micro loop`)
+
+Turn a repository into a self-improving one: GitHub Actions workflows that
+dispatch a coding agent to plan, build, and triage — gated by CI. This is the
+same loop that maintains go-micro itself, generalized so any repo (and any
+@mention-driven agent) can use it.
+
+```bash
+micro loop init      # scaffold the loop into the current repo
+micro loop verify    # check a repo is wired correctly
+```
+
+`micro loop init` writes three workflows and a queue:
+
+| Role | File | What it does |
+|------|------|--------------|
+| Planner | `.github/workflows/loop-planner.yml` | Keeps a ranked queue in `.github/loop/PRIORITIES.md` |
+| Builder | `.github/workflows/loop-builder.yml` | Builds the top open item as a single-concern PR, auto-merged on green CI |
+| Triage | `.github/workflows/loop-triage.yml` | Turns CI failures into scoped fix issues, back into the queue |
+
+Direction lives in `.github/loop/NORTH_STAR.md` — edit it to steer the loop.
+
+Common flags:
+
+```bash
+micro loop init \
+  --agent @codex \          # how the workflows summon the agent (an @mention)
+  --token-secret LOOP_TOKEN \  # repo secret holding the driving user PAT
+  --branch main \           # base branch for the loop's PRs
+  --ci-workflow CI          # name: of the CI workflow triage watches
+```
+
+Two things the CLI can't do for you (and `micro loop verify` reminds you of):
+
+1. **Add the token secret.** The agent ignores `@mentions` from the
+   `github-actions` bot, so dispatch posts as a real user via a PAT stored in
+   the `--token-secret` repo secret. The workflows no-op until it's set.
+2. **Set branch protection.** Require the CI checks with **0 approving reviews**
+   so the builder's native auto-merge lands PRs the moment CI is green — that
+   green-CI gate is the loop's only safety mechanism, so keep the suite strong.

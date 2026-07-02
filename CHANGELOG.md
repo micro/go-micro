@@ -16,6 +16,9 @@ next version when it ships.
 
 ## [Unreleased]
 
+### Added
+- **`micro loop`** — scaffold an autonomous improvement loop into any repository: GitHub Actions workflows for a planner (keeps a ranked queue), builder (builds the top item as a single-concern PR, auto-merged on green CI), and triage (turns CI failures into fix issues), dispatched to an @mention-driven coding agent. `micro loop init` writes the workflows + `NORTH_STAR`/`PRIORITIES`; `micro loop verify` checks the wiring. This is the loop that maintains go-micro itself, generalized. (`cmd/micro/loop/`)
+
 ---
 
 ## [6.3.12] - July 2026

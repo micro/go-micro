@@ -13,6 +13,7 @@ import (
 	_ "go-micro.dev/v6/cmd/micro/cli/deploy"
 	_ "go-micro.dev/v6/cmd/micro/flow"
 	_ "go-micro.dev/v6/cmd/micro/inspect"
+	_ "go-micro.dev/v6/cmd/micro/loop"
 	_ "go-micro.dev/v6/cmd/micro/mcp"
 	_ "go-micro.dev/v6/cmd/micro/resource"
 	_ "go-micro.dev/v6/cmd/micro/run"
