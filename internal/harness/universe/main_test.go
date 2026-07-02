@@ -1,7 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"go-micro.dev/v6/flow"
 )
 
 // TestUniverseHarnessContract makes the 0→hero harness part of the ordinary
@@ -16,5 +22,49 @@ func TestUniverseHarnessContract(t *testing.T) {
 
 	if code := runUniverse("mock"); code != 0 {
 		t.Fatalf("universe harness exited with code %d", code)
+	}
+}
+
+func TestNotifyStepCompletesAfterObservedSideEffectTimeout(t *testing.T) {
+	ntf := new(Notify)
+	before := atomic.LoadInt64(&ntf.sent)
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		var rsp SendResponse
+		if err := ntf.Send(context.Background(), &SendRequest{
+			To:      "buyer@acme.com",
+			Message: "Your order is confirmed.",
+		}, &rsp); err != nil {
+			t.Errorf("send notification: %v", err)
+		}
+	}()
+
+	out, err := completeNotifyOnObservedSideEffect(
+		context.Background(),
+		flow.State{Data: []byte(`{"order":"order-1"}`)},
+		ntf,
+		before,
+		time.Second,
+		errors.New("client observed timeout"),
+	)
+	if err != nil {
+		t.Fatalf("notify completion returned error: %v", err)
+	}
+	if got := out.String(); got != "Buyer notified." {
+		t.Fatalf("result = %q, want Buyer notified.", got)
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("notifications sent = %d, want 1", got)
+	}
+
+	var rsp SendResponse
+	if err := ntf.Send(context.Background(), &SendRequest{
+		To:      "buyer@acme.com",
+		Message: "Your order is confirmed.",
+	}, &rsp); err != nil {
+		t.Fatalf("duplicate send: %v", err)
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("notifications sent after duplicate = %d, want 1", got)
 	}
 }

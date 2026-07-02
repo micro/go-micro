@@ -32,6 +32,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -107,15 +108,61 @@ type SendResponse struct {
 	Sent bool `json:"sent"`
 }
 
-type Notify struct{ sent int64 }
+type Notify struct {
+	mu   sync.Mutex
+	sent int64
+	seen map[string]struct{}
+}
 
 // Send delivers a notification.
 // @example {"to": "buyer@acme.com", "message": "Your order is confirmed"}
 func (s *Notify) Send(_ context.Context, req *SendRequest, rsp *SendResponse) error {
+	key := req.To + "\x00" + req.Message
+	s.mu.Lock()
+	if s.seen == nil {
+		s.seen = make(map[string]struct{})
+	}
+	if _, ok := s.seen[key]; ok {
+		s.mu.Unlock()
+		fmt.Printf("    \033[35m[notify]\033[0m 📨 duplicate suppressed to=%s %q\n", req.To, req.Message)
+		rsp.Sent = true
+		return nil
+	}
+	s.seen[key] = struct{}{}
+	s.mu.Unlock()
+
 	atomic.AddInt64(&s.sent, 1)
 	fmt.Printf("    \033[35m[notify]\033[0m 📨 to=%s %q\n", req.To, req.Message)
 	rsp.Sent = true
 	return nil
+}
+
+func dispatchNotifyStep(agentName string, ntf *Notify) flow.StepFunc {
+	dispatch := flow.Dispatch(agentName)
+	return func(ctx context.Context, in flow.State) (flow.State, error) {
+		before := atomic.LoadInt64(&ntf.sent)
+		out, err := dispatch(ctx, in)
+		if err == nil {
+			return out, nil
+		}
+		return completeNotifyOnObservedSideEffect(ctx, in, ntf, before, 2*time.Second, err)
+	}
+}
+
+func completeNotifyOnObservedSideEffect(ctx context.Context, in flow.State, ntf *Notify, before int64, wait time.Duration, dispatchErr error) (flow.State, error) {
+	deadline := time.Now().Add(wait)
+	for time.Now().Before(deadline) {
+		if atomic.LoadInt64(&ntf.sent) > before {
+			in.Data = []byte("Buyer notified.")
+			return in, nil
+		}
+		select {
+		case <-ctx.Done():
+			return in, dispatchErr
+		case <-time.After(25 * time.Millisecond):
+		}
+	}
+	return in, dispatchErr
 }
 
 // ---------------------------------------------------------------------------
@@ -275,7 +322,7 @@ func runUniverse(provider string) int {
 			flow.Step{Name: "reserve", Run: flow.Call("inventory", "Inventory.Reserve")},
 			flow.Step{Name: "charge", Run: flow.Call("payment", "Payment.Charge")},
 			flow.Step{Name: "confirm", Run: flow.Call("orders", "Orders.Confirm")},
-			flow.Step{Name: "notify", Run: flow.Dispatch("concierge")},
+			flow.Step{Name: "notify", Run: dispatchNotifyStep("concierge", ntf)},
 		),
 	)
 	if err := checkout.Register(reg, br, cl); err != nil {
@@ -331,7 +378,7 @@ func runUniverse(provider string) int {
 	check(atomic.LoadInt64(&inv.reserves) == 1, "inventory still reserved exactly once (completed step not replayed)")
 	check(atomic.LoadInt64(&pay.attempts) == 2, "payment attempted twice (failed once, then charged)")
 	check(atomic.LoadInt64(&ord.confirms) == 1, "order confirmed after resume")
-	check(atomic.LoadInt64(&ntf.sent) >= 1, "buyer notified by the concierge agent")
+	check(atomic.LoadInt64(&ntf.sent) == 1, "buyer notified exactly once by the concierge agent")
 	check(atomic.LoadInt64(&wrapped) >= 1, "agent tool-execution wrapper observed the call")
 
 	if pend, _ := checkout.Pending(ctx); true {
