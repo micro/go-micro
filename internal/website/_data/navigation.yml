@@ -5,6 +5,10 @@ core:
     url: /docs/getting-started.html
   - title: AI Integration
     url: /docs/ai-integration.html
+  - title: Your First Agent
+    url: /docs/guides/your-first-agent.html
+  - title: 0→hero Reference
+    url: /docs/guides/zero-to-hero.html
   - title: MCP & AI Agents
     url: /docs/mcp.html
   - title: Deployment
@@ -32,12 +36,8 @@ examples:
   - title: Real-World Examples
     url: /docs/examples/realworld/
 guides:
-  - title: Your First Agent
-    url: /docs/guides/your-first-agent.html
   - title: Debugging your agent
     url: /docs/guides/debugging-agents.html
-  - title: 0→hero Reference
-    url: /docs/guides/zero-to-hero.html
   - title: Plan & Delegate
     url: /docs/guides/plan-delegate.html
   - title: Agent Guardrails
@@ -78,6 +78,7 @@ project:
   - title: Server (optional)
     url: /docs/server.html
 search_order:
+  - /docs/guides/your-first-agent.html
   - /docs/guides/zero-to-hero.html
   - /docs/guides/debugging-agents.html
   - /docs/getting-started.html
