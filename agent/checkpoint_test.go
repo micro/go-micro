@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/client"
+	codecBytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
 
@@ -141,40 +144,78 @@ func TestCheckpointSkipsDuplicateToolWithinAsk(t *testing.T) {
 	}
 }
 
-func TestCheckpointFailsRunWithUnfinishedPlanStep(t *testing.T) {
+func TestCheckpointContinuesRunWithUnfinishedPlanStep(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "unfinished-plan-agent")
+
+	reg := registry.NewMemoryRegistry()
+	if err := reg.Register(&registry.Service{
+		Name:     "comms",
+		Metadata: map[string]string{"type": "agent"},
+		Nodes:    []*registry.Node{{Id: "comms-1", Address: "127.0.0.1:0"}},
+	}); err != nil {
+		t.Fatalf("register comms agent: %v", err)
+	}
+
+	delegateCalls := 0
+	fc := &fakeClient{Client: client.DefaultClient}
+	fc.callFn = func(ctx context.Context, req client.Request, rsp interface{}) error {
+		delegateCalls++
+		if req.Service() != "comms" || req.Endpoint() != "Agent.Chat" {
+			t.Fatalf("delegate RPC = %s %s, want comms Agent.Chat", req.Service(), req.Endpoint())
+		}
+		frame := rsp.(*codecBytes.Frame)
+		frame.Data = []byte(`{"reply":"owner notified","agent":"comms"}`)
+		return nil
+	}
+
+	modelCalls := 0
 	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		modelCalls++
 		if opts.ToolHandler == nil {
 			t.Fatal("missing tool handler")
 		}
-		opts.ToolHandler(ctx, ai.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
-			"steps": []any{
-				map[string]any{"task": "create launch tasks", "status": "done"},
-				map[string]any{"task": "notify owner via comms", "status": "in_progress"},
-			},
-		}})
-		return &ai.Response{Reply: "all done"}, nil
+		switch modelCalls {
+		case 1:
+			opts.ToolHandler(ctx, ai.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
+				"steps": []any{
+					map[string]any{"task": "create launch tasks", "status": "done"},
+					map[string]any{"task": "delegate readiness notification to comms", "status": "in_progress"},
+				},
+			}})
+			return &ai.Response{Reply: "tasks are ready"}, nil
+		case 2:
+			if !strings.Contains(req.Prompt, "delegate readiness notification to comms") {
+				t.Fatalf("continuation prompt = %q, want unfinished step", req.Prompt)
+			}
+			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "delegate-1", Name: toolDelegate, Input: map[string]any{"task": "Notify owner@acme.com that the launch plan is ready", "to": "comms"}})
+			if !strings.Contains(res.Content, "owner notified") {
+				t.Fatalf("delegate result = %q, want owner notified", res.Content)
+			}
+			return &ai.Response{Reply: "all done"}, nil
+		default:
+			t.Fatalf("unexpected model call %d", modelCalls)
+			return nil, nil
+		}
 	}
 	defer func() { fakeGen = nil }()
 
-	a := newTestAgent(Name("unfinished-plan-agent"), WithCheckpoint(cp))
-	_, err := a.Ask(ctx, "create tasks and notify owner")
-	if err == nil {
-		t.Fatal("Ask succeeded with unfinished plan step")
-	}
-	if !strings.Contains(err.Error(), "notify owner via comms") {
-		t.Fatalf("Ask error = %v, want unfinished delegate step named", err)
-	}
-	runs, err := Pending(ctx, a)
+	a := newTestAgent(Name("unfinished-plan-agent"), WithCheckpoint(cp), WithRegistry(reg), WithClient(fc))
+	resp, err := a.Ask(ctx, "create tasks and notify owner")
 	if err != nil {
-		t.Fatalf("Pending: %v", err)
+		t.Fatalf("Ask: %v", err)
 	}
-	if len(runs) != 1 {
-		t.Fatalf("Pending returned %d runs, want failed run remains actionable", len(runs))
+	if resp.Reply != "all done" {
+		t.Fatalf("reply = %q, want final continuation reply", resp.Reply)
 	}
-	if runs[0].Status != "failed" {
-		t.Fatalf("run status = %q, want failed", runs[0].Status)
+	if modelCalls != 2 {
+		t.Fatalf("model calls = %d, want initial plus continuation", modelCalls)
+	}
+	if delegateCalls != 1 {
+		t.Fatalf("delegate calls = %d, want exactly one", delegateCalls)
+	}
+	if unfinished := a.unfinishedPlanSteps(); len(unfinished) != 0 {
+		t.Fatalf("unfinished plan steps = %v, want none", unfinished)
 	}
 }
 
