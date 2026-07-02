@@ -40,6 +40,7 @@ type Options struct {
 	Provider     string
 	Model        string
 	APIKey       string
+	BaseURL      string
 	Address      string
 	Registry     registry.Registry
 	Client       client.Client
@@ -166,6 +167,12 @@ func Model(m string) Option {
 // APIKey sets the API key for the LLM provider.
 func APIKey(k string) Option {
 	return func(o *Options) { o.APIKey = k }
+}
+
+// BaseURL sets the base URL for the LLM provider. Use this to point
+// the provider at a non-default endpoint (e.g., local Ollama, a proxy).
+func BaseURL(url string) Option {
+	return func(o *Options) { o.BaseURL = url }
 }
 
 // Address sets the network address for the agent's service endpoint.
