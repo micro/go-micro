@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -242,6 +243,32 @@ func TestTaskServiceAddIsIdempotentForLaunchTitles(t *testing.T) {
 	}
 	if got := svc.count(); got != 3 {
 		t.Fatalf("task count = %d, want 3 after duplicate launch-title replays", got)
+	}
+}
+
+func TestPlanDelegateExecutionReportsDuplicateNotifyBeforeTimeout(t *testing.T) {
+	notifySvc := new(NotifyService)
+	for i := 0; i < 2; i++ {
+		var rsp SendResponse
+		if err := notifySvc.Send(context.Background(), &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp); err != nil {
+			t.Fatalf("Send attempt %d: %v", i+1, err)
+		}
+	}
+
+	done := make(chan error)
+	errCh := make(chan error, 1)
+	go func() { errCh <- waitForPlanDelegateExecution(done, notifySvc) }()
+
+	select {
+	case err := <-errCh:
+		if err == nil {
+			t.Fatal("waitForPlanDelegateExecution returned nil, want duplicate notify error")
+		}
+		if got := err.Error(); !strings.Contains(got, "duplicate notify attempts") {
+			t.Fatalf("error = %q, want duplicate notify attempts", got)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("waitForPlanDelegateExecution did not report duplicate notify before timeout")
 	}
 }
 
