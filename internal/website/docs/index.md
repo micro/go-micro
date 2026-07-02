@@ -16,7 +16,7 @@ It's built on a pluggable architecture of Go interfaces: service discovery, clie
 
 ## Learn More
 
-Start with [Getting Started](getting-started.html) for install and the first local service. If you want the full services → agents → workflows on-ramp in one walkable sequence, use the [0→hero reference path](guides/zero-to-hero.html): it links the exact scaffold, run, chat, inspect, and deploy dry-run commands covered by CI.
+Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp: [Your First Agent](guides/your-first-agent.html) to build and chat with a service-backed agent, [Debugging your agent](guides/debugging-agents.html) to inspect runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
 
 Otherwise continue to read the docs for more information about the framework.
 
