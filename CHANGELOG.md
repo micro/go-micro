@@ -16,6 +16,10 @@ next version when it ships.
 
 ## [Unreleased]
 
+---
+
+## [6.3.12] - July 2026
+
 ### Added
 - **Ollama provider** — run agents against open-weight models locally (`/api/chat`, NDJSON streaming) or via Ollama Cloud (OpenAI-compatible `/v1/chat/completions`, SSE), auto-detected from the base URL, with tool calling in both modes. Point any agent at a non-default endpoint with the new `agent.BaseURL` / `micro.AgentBaseURL` option. (`ai/ollama/`, `examples/agent-ollama/`)
 - **Retrieval-backed agent memory** — agents can recall relevant prior turns by similarity, not just the recent window, with a summarizer hook that compacts older history so long conversations stay in budget. (`agent/`)
