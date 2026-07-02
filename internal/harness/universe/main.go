@@ -209,6 +209,10 @@ func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (
 }
 
 func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+	if strings.Contains(strings.ToLower(req.Prompt), "a2a reachability probe") {
+		return &ai.Response{Answer: "concierge reachable"}, nil
+	}
+
 	// The concierge is asked to notify the buyer. Find the notify tool and call it.
 	for _, t := range req.Tools {
 		if strings.Contains(t.Name, "Send") && m.opts.ToolHandler != nil {
@@ -240,10 +244,19 @@ func check(cond bool, format string, args ...any) {
 
 // a2aReachable calls the named agent through the gateway using the A2A
 // client — exercising both directions of the protocol — and reports
-// whether the agent replied.
-func a2aReachable(base, agent string) bool {
-	reply, err := a2a.NewClient(base+"/agents/"+agent).Send(context.Background(), "notify the buyer")
-	return err == nil && reply != ""
+// whether the agent replied. The probe is intentionally side-effect-free:
+// the checkout flow already proved notify tool execution, and reachability
+// should not depend on a live model deciding to send another notification.
+func a2aReachable(ctx context.Context, base, agent string) error {
+	probe := "A2A reachability probe only. Reply with the words concierge reachable. Do not call tools or send notifications."
+	reply, err := a2a.NewClient(base+"/agents/"+agent).Send(ctx, probe)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(reply) == "" {
+		return fmt.Errorf("empty A2A reply")
+	}
+	return nil
 }
 
 func providerKey(provider string) string {
@@ -419,7 +432,12 @@ func runUniverse(provider string) int {
 	// translated to its Agent.Chat RPC.
 	gw := httptest.NewServer(a2a.New(a2a.Options{Registry: reg, Client: cl, BaseURL: "http://gw"}).Handler())
 	defer gw.Close()
-	check(a2aReachable(gw.URL, "concierge"), "concierge agent reachable over the A2A gateway")
+	beforeA2A := atomic.LoadInt64(&ntf.sent)
+	reachCtx, cancelReach := context.WithTimeout(ctx, 10*time.Second)
+	reachErr := a2aReachable(reachCtx, gw.URL, "concierge")
+	cancelReach()
+	check(reachErr == nil, "concierge agent reachable over the A2A gateway: %v", reachErr)
+	check(atomic.LoadInt64(&ntf.sent) == beforeA2A, "A2A reachability probe did not send extra buyer notifications")
 
 	fmt.Println("\n\033[1m> shutting down the universe\033[0m")
 	// defers stop the agent and flow (deregistering them).
