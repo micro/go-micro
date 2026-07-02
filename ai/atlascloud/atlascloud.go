@@ -163,6 +163,10 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 // Stream generates a streaming response from Atlas Cloud's OpenAI-compatible
 // chat completions endpoint, emitting content deltas as they arrive.
 func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
+	if len(req.Tools) > 0 {
+		return nil, fmt.Errorf("%w: atlascloud streaming does not expose tools", ai.ErrStreamingUnsupported)
+	}
+
 	messages := []map[string]any{
 		{"role": "system", "content": req.SystemPrompt},
 	}

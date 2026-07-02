@@ -140,6 +140,21 @@ func TestProvider_Stream(t *testing.T) {
 	}
 }
 
+func TestProvider_StreamWithToolsFallsBack(t *testing.T) {
+	p := NewProvider(ai.WithAPIKey("test-key"))
+	_, err := p.Stream(context.Background(), &ai.Request{
+		Prompt: "call a tool",
+		Tools: []ai.Tool{{
+			Name:        "fallback_echo",
+			Description: "echo fallback marker",
+			Properties:  map[string]any{"value": map[string]any{"type": "string"}},
+		}},
+	})
+	if !errors.Is(err, ai.ErrStreamingUnsupported) {
+		t.Fatalf("Stream with tools error = %v, want ErrStreamingUnsupported", err)
+	}
+}
+
 func TestProvider_Registration(t *testing.T) {
 	m := ai.New("atlascloud", ai.WithAPIKey("test"))
 	if m == nil {
