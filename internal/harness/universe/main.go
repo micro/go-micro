@@ -117,6 +117,16 @@ type Notify struct {
 // Send delivers a notification.
 // @example {"to": "buyer@acme.com", "message": "Your order is confirmed"}
 func (s *Notify) Send(_ context.Context, req *SendRequest, rsp *SendResponse) error {
+	if !isBuyerNotification(req) {
+		to, message := "", ""
+		if req != nil {
+			to, message = req.To, req.Message
+		}
+		fmt.Printf("    \033[35m[notify]\033[0m 📨 ignored non-buyer notification to=%s %q\n", to, message)
+		rsp.Sent = false
+		return nil
+	}
+
 	keys := notificationDedupeKeys(req)
 	s.mu.Lock()
 	if s.seen == nil {
@@ -139,6 +149,13 @@ func (s *Notify) Send(_ context.Context, req *SendRequest, rsp *SendResponse) er
 	fmt.Printf("    \033[35m[notify]\033[0m 📨 to=%s %q\n", req.To, req.Message)
 	rsp.Sent = true
 	return nil
+}
+
+func isBuyerNotification(req *SendRequest) bool {
+	if req == nil {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(req.To), "buyer@acme.com")
 }
 
 func notificationDedupeKeys(req *SendRequest) []string {
