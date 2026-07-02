@@ -402,6 +402,38 @@ func (a *agentImpl) completeNextPlanStep() {
 	}
 }
 
+func (a *agentImpl) unfinishedPlanSteps() []string {
+	plan := a.loadPlan()
+	if plan == "" {
+		return nil
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(plan), &data); err != nil {
+		return nil
+	}
+	steps, ok := data["steps"].([]any)
+	if !ok {
+		return nil
+	}
+	var unfinished []string
+	for _, raw := range steps {
+		step, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		status, _ := step["status"].(string)
+		if status != "" && status != "pending" && status != "in_progress" {
+			continue
+		}
+		task, _ := step["task"].(string)
+		if task == "" {
+			task = "<unnamed>"
+		}
+		unfinished = append(unfinished, task)
+	}
+	return unfinished
+}
+
 // handleHumanInput records that the model needs operator input before it can continue.
 func (a *agentImpl) handleHumanInput(call ai.ToolCall) ai.ToolResult {
 	prompt, _ := call.Input["prompt"].(string)
