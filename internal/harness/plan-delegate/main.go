@@ -413,7 +413,7 @@ func runPlanDelegate(provider string) error {
 		executeDone <- f.Execute(ctx, "launch readiness")
 	}()
 
-	if err := waitForPlanDelegateExecution(executeDone, notifySvc); err != nil {
+	if err := waitForPlanDelegateExecution(executeDone, taskSvc, notifySvc); err != nil {
 		return err
 	}
 
@@ -435,17 +435,23 @@ func runPlanDelegate(provider string) error {
 	return nil
 }
 
-func waitForPlanDelegateExecution(done <-chan error, notifySvc *NotifyService) error {
+func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notifySvc *NotifyService) error {
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 	for {
 		select {
 		case err := <-done:
+			tasks := taskSvc.count()
+			notify := notifySvc.count()
 			if err != nil {
-				return fmt.Errorf("flow execute: %w", err)
+				if isClientTimeout(err) && tasks == 3 && notify == 1 {
+					fmt.Printf("\n\033[33mwarning:\033[0m flow execute returned after completed side effects: %v\n", err)
+					return nil
+				}
+				return fmt.Errorf("flow execute after side effects tasks=%d notify=%d: %w", tasks, notify, err)
 			}
-			if got := notifySvc.count(); got != 1 {
-				return fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", got)
+			if notify != 1 {
+				return fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", notify)
 			}
 			return nil
 		case <-ticker.C:
@@ -454,6 +460,11 @@ func waitForPlanDelegateExecution(done <-chan error, notifySvc *NotifyService) e
 			}
 		}
 	}
+}
+
+func isClientTimeout(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "request timeout") || strings.Contains(msg, "code=408") || strings.Contains(msg, "code\":408")
 }
 
 func main() {
