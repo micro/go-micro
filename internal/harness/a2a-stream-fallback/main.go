@@ -148,13 +148,17 @@ func main() {
 		fmt.Fprintf(os.Stderr, "content-type = %q, want text/event-stream\n", ct)
 		os.Exit(1)
 	}
-	payload, err := readSSEData(res.Body)
+	summary, err := readSSESummary(res.Body)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if !strings.Contains(payload, "a2a-fallback-ok") {
-		fmt.Fprintf(os.Stderr, "stream payload missing marker: %s\n", payload)
+	if summary.State != "completed" {
+		fmt.Fprintf(os.Stderr, "stream final state = %q, want completed; payload: %s\n", summary.State, summary.Payload)
+		os.Exit(1)
+	}
+	if !summary.HasArtifactText {
+		fmt.Fprintf(os.Stderr, "stream completed without artifact text: %s\n", summary.Payload)
 		os.Exit(1)
 	}
 	if !sawTool || !sawRunInfo {
@@ -164,10 +168,16 @@ func main() {
 	fmt.Println("\n\033[32m✓ A2A message/stream fell back to Ask and preserved tool/run metadata\033[0m")
 }
 
-func readSSEData(r io.Reader) (string, error) {
+type streamSummary struct {
+	Payload         string
+	State           string
+	HasArtifactText bool
+}
+
+func readSSESummary(r io.Reader) (streamSummary, error) {
 	scanner := bufio.NewScanner(r)
 	var event strings.Builder
-	var payload strings.Builder
+	var summary streamSummary
 	seen := false
 	flush := func() error {
 		data := strings.TrimSpace(event.String())
@@ -175,19 +185,40 @@ func readSSEData(r io.Reader) (string, error) {
 		if data == "" {
 			return nil
 		}
-		if !json.Valid([]byte(data)) {
+		var envelope struct {
+			Result struct {
+				Status struct {
+					State string `json:"state"`
+				} `json:"status"`
+				Artifacts []struct {
+					Parts []struct {
+						Text string `json:"text"`
+					} `json:"parts"`
+				} `json:"artifacts"`
+			} `json:"result"`
+		}
+		if err := json.Unmarshal([]byte(data), &envelope); err != nil {
 			return fmt.Errorf("SSE data event is not JSON: %s", data)
 		}
 		seen = true
-		payload.WriteString(data)
-		payload.WriteByte('\n')
+		summary.Payload += data + "\n"
+		if envelope.Result.Status.State != "" {
+			summary.State = envelope.Result.Status.State
+		}
+		for _, artifact := range envelope.Result.Artifacts {
+			for _, part := range artifact.Parts {
+				if strings.TrimSpace(part.Text) != "" {
+					summary.HasArtifactText = true
+				}
+			}
+		}
 		return nil
 	}
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.TrimSpace(line) == "" {
 			if err := flush(); err != nil {
-				return "", err
+				return streamSummary{}, err
 			}
 			continue
 		}
@@ -201,13 +232,13 @@ func readSSEData(r io.Reader) (string, error) {
 		event.WriteString(strings.TrimSpace(data))
 	}
 	if err := scanner.Err(); err != nil {
-		return "", err
+		return streamSummary{}, err
 	}
 	if err := flush(); err != nil {
-		return "", err
+		return streamSummary{}, err
 	}
 	if !seen {
-		return "", errors.New("no SSE data received")
+		return streamSummary{}, errors.New("no SSE data received")
 	}
-	return payload.String(), nil
+	return summary, nil
 }
