@@ -413,7 +413,10 @@ func runPlanDelegate(provider string) error {
 		executeDone <- f.Execute(ctx, "launch readiness")
 	}()
 
-	if err := waitForPlanDelegateExecution(executeDone, taskSvc, notifySvc); err != nil {
+	if err := waitForPlanDelegateExecution(executeDone, taskSvc, notifySvc, func(ctx context.Context) error {
+		_, err := conductor.Ask(ctx, "The Design, Build, and Ship tasks already exist, but the owner notification is still missing. Delegate exactly one notification to the \"comms\" agent now: ask comms to notify owner@acme.com that the launch plan is ready. Do not create more tasks and do not answer until comms has handled the notification.")
+		return err
+	}); err != nil {
 		return err
 	}
 
@@ -435,7 +438,7 @@ func runPlanDelegate(provider string) error {
 	return nil
 }
 
-func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notifySvc *NotifyService) error {
+func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notifySvc *NotifyService, recoverMissingNotify func(context.Context) error) error {
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -451,7 +454,19 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 				return fmt.Errorf("flow execute after side effects tasks=%d notify=%d: %w", tasks, notify, err)
 			}
 			if notify != 1 {
-				return fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", notify)
+				if recoverMissingNotify == nil || tasks != 3 || notify != 0 {
+					return fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", notify)
+				}
+				fmt.Print("\n\033[33mwarning:\033[0m flow completed before delegated notify; retrying the missing comms handoff once.\n")
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				retryErr := recoverMissingNotify(ctx)
+				cancel()
+				if retryErr != nil {
+					return fmt.Errorf("delegation completed without required notify side effect and recovery failed: notify=%d, want 1: %w", notify, retryErr)
+				}
+				if notify = notifySvc.count(); notify != 1 {
+					return fmt.Errorf("delegation recovery completed without required notify side effect: notify=%d, want 1", notify)
+				}
 			}
 			return nil
 		case <-ticker.C:
