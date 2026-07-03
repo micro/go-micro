@@ -155,6 +155,54 @@ func TestProvider_StreamWithToolsFallsBack(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateToolCallEmptyFollowUpUsesToolResult(t *testing.T) {
+	var calls int
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			t.Errorf("path = %s, want /v1/chat/completions", r.URL.Path)
+		}
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		switch calls {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
+		case 2:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":""}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", calls)
+		}
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			if call.Name != "conformance_echo" {
+				t.Fatalf("tool name = %q, want conformance_echo", call.Name)
+			}
+			return ai.ToolResult{ID: call.ID, Content: `{"marker":"agent-conformance-ok"}`}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "call a tool",
+		Tools: []ai.Tool{{
+			Name:        "conformance_echo",
+			Description: "echo conformance marker",
+			Properties:  map[string]any{"value": map[string]any{"type": "string"}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if calls != 2 {
+		t.Fatalf("API calls = %d, want 2", calls)
+	}
+	if resp.Answer != `{"marker":"agent-conformance-ok"}` {
+		t.Fatalf("Answer = %q, want tool result fallback", resp.Answer)
+	}
+}
+
 func TestProvider_Registration(t *testing.T) {
 	m := ai.New("atlascloud", ai.WithAPIKey("test"))
 	if m == nil {

@@ -131,6 +131,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	}
 
 	if p.opts.ToolHandler != nil {
+		var toolResults []string
 		followUpMessages := append(messages, map[string]any{
 			"role":       "assistant",
 			"content":    rawMessage["content"],
@@ -139,6 +140,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 		for _, tc := range resp.ToolCalls {
 			content := p.opts.ToolHandler(ctx, tc).Content
+			if content != "" {
+				toolResults = append(toolResults, content)
+			}
 			followUpMessages = append(followUpMessages, map[string]any{
 				"role":         "tool",
 				"tool_call_id": tc.ID,
@@ -154,6 +158,8 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		followUpResp, _, err := p.callAPI(ctx, followUpReq)
 		if err == nil && followUpResp.Reply != "" {
 			resp.Answer = followUpResp.Reply
+		} else if len(toolResults) > 0 {
+			resp.Answer = strings.Join(toolResults, "\n")
 		}
 	}
 
