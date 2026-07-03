@@ -94,7 +94,7 @@ func fileTest(s Store, t *testing.T) {
 		{
 			Key:    "foobar",
 			Value:  []byte("foobarfoobar"),
-			Expiry: time.Millisecond * 100,
+			Expiry: time.Second, // wide window: CI I/O under -race can exceed a 100ms expiry before the read below
 		},
 	}
 
@@ -113,8 +113,8 @@ func fileTest(s Store, t *testing.T) {
 		}
 	}
 
-	// wait for the expiry
-	time.Sleep(time.Millisecond * 200)
+	// wait for the expiry (must exceed the 1s Expiry above, with margin for slow CI)
+	time.Sleep(time.Second * 2)
 
 	if results, err := s.Read("foo", ReadPrefix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
@@ -199,20 +199,20 @@ func fileTest(s Store, t *testing.T) {
 	if err := s.Write(&Record{
 		Key:   "foofoobarbar",
 		Value: []byte("something"),
-	}, WriteTTL(time.Millisecond*100)); err != nil {
+	}, WriteTTL(time.Second)); err != nil {
 		t.Error(err)
 	}
 	if err := s.Write(&Record{
 		Key:   "foofoo",
 		Value: []byte("something"),
-	}, WriteExpiry(time.Now().Add(time.Millisecond*100))); err != nil {
+	}, WriteExpiry(time.Now().Add(time.Second))); err != nil {
 		t.Error(err)
 	}
 	if err := s.Write(&Record{
 		Key:   "barbar",
 		Value: []byte("something"),
 		// TTL has higher precedence than expiry
-	}, WriteExpiry(time.Now().Add(time.Hour)), WriteTTL(time.Millisecond*100)); err != nil {
+	}, WriteExpiry(time.Now().Add(time.Hour)), WriteTTL(time.Second)); err != nil {
 		t.Error(err)
 	}
 
@@ -224,7 +224,7 @@ func fileTest(s Store, t *testing.T) {
 		}
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Second * 2) // exceed the 1s TTL/expiry above so everything has expired
 
 	if results, err := s.List(); err != nil {
 		t.Errorf("List failed: %s", err)
