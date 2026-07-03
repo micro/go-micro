@@ -24,6 +24,30 @@ import (
 	_ "go-micro.dev/v6/cmd/micro/cli/remote"
 )
 
+const docsWayfinding = `First-agent and 0→hero docs:
+
+  1. No-secret first-agent transcript
+     https://go-micro.dev/docs/guides/no-secret-first-agent.html
+     Run the maintained support agent without a provider key:
+       go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1
+
+  2. Your First Agent
+     https://go-micro.dev/docs/guides/your-first-agent.html
+     Build a service-backed agent, then use:
+       micro agent preflight
+       micro run
+       micro chat
+
+  3. Debugging your agent
+     https://go-micro.dev/docs/guides/debugging-agents.html
+     Inspect agent runs and memory with:
+       micro inspect agent
+       micro runs <agent>
+
+  4. 0→hero Reference
+     https://go-micro.dev/docs/guides/zero-to-hero.html
+     Walk the scaffold → run → chat → inspect → deploy dry-run lifecycle.`
+
 func genProtoHandler(c *cli.Context) error {
 	cmd := exec.Command("find", ".", "-name", "*.proto", "-exec", "protoc", "--proto_path=.", "--micro_out=.", "--go_out=.", `{}`, `;`)
 	cmd.Stdout = os.Stdout
@@ -93,6 +117,17 @@ func init() {
 				for _, service := range services {
 					fmt.Println(service.Name)
 				}
+				return nil
+			},
+		},
+		{
+			Name:  "docs",
+			Usage: "Show the first-agent and 0→hero documentation path",
+			Description: `Print the maintained adoption on-ramp for new Go Micro developers:
+the no-secret first-agent transcript, Your First Agent, debugging guide, and
+0→hero lifecycle reference.`,
+			Action: func(ctx *cli.Context) error {
+				fmt.Fprintln(ctx.App.Writer, docsWayfinding)
 				return nil
 			},
 		},

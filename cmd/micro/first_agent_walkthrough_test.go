@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -21,7 +22,7 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"new", "run", "chat", "inspect", "agent"} {
+	for _, want := range []string{"new", "run", "chat", "inspect", "agent", "docs"} {
 		if !commands[want] {
 			t.Fatalf("first-agent walkthrough missing %q command", want)
 		}
@@ -36,6 +37,31 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	chat := commandByName(t, "chat")
 	if !strings.Contains(chat.Description, "services") || !strings.Contains(chat.Description, "agent") {
 		t.Fatalf("micro chat should describe the service-to-agent walkthrough boundary; description was %q", chat.Description)
+	}
+
+	docs := commandByName(t, "docs")
+	if !strings.Contains(docs.Usage, "first-agent") || !strings.Contains(docs.Usage, "0→hero") {
+		t.Fatalf("micro docs should advertise the first-agent and 0→hero docs path; usage was %q", docs.Usage)
+	}
+	var out bytes.Buffer
+	app := cli.NewApp()
+	app.Writer = &out
+	if err := docs.Action(cli.NewContext(app, nil, nil)); err != nil {
+		t.Fatalf("micro docs failed: %v", err)
+	}
+	for _, want := range []string{
+		"no-secret-first-agent.html",
+		"your-first-agent.html",
+		"debugging-agents.html",
+		"zero-to-hero.html",
+		"micro agent preflight",
+		"micro run",
+		"micro chat",
+		"micro inspect agent",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("micro docs output missing %q:\n%s", want, out.String())
+		}
 	}
 }
 
