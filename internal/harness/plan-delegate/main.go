@@ -451,9 +451,12 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 			tasks := taskSvc.count()
 			notify := notifySvc.count()
 			if err != nil {
-				if isClientTimeout(err) && tasks == 3 && notify == 1 {
-					fmt.Printf("\n\033[33mwarning:\033[0m flow execute returned after completed side effects: %v\n", err)
-					return nil
+				if isClientTimeout(err) {
+					if tasks == 3 && notify == 1 {
+						fmt.Printf("\n\033[33mwarning:\033[0m flow execute returned after completed side effects: %v\n", err)
+						return nil
+					}
+					return classifiedPlanDelegateTimeout(tasks, notify, err)
 				}
 				return fmt.Errorf("flow execute after side effects tasks=%d notify=%d: %w", tasks, notify, err)
 			}
@@ -479,6 +482,10 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 			}
 		}
 	}
+}
+
+func classifiedPlanDelegateTimeout(tasks, notify int, err error) error {
+	return fmt.Errorf("provider latency/outage during plan-delegate before required side effects completed (tasks=%d/3 notify=%d/1); retry live provider or inspect provider logs if this recurs: %w", tasks, notify, err)
 }
 
 func isClientTimeout(err error) bool {
