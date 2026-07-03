@@ -25,7 +25,7 @@ Before your first provider-backed agent run, check the local path with:
 micro agent preflight
 ```
 
-The preflight is read-only: it verifies Go, the `micro` binary, provider-key setup, and whether the default `micro run` gateway port is free, without calling an LLM provider.
+The preflight is read-only: it verifies Go 1.24+, the `micro` binary, provider-key setup, and whether the default `micro run` gateway port is free, without calling an LLM provider. When a check fails it prints the exact fix plus the next guide to open, so the scaffold → run → chat path stays walkable.
 
 ## Install
 

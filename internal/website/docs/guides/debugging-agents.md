@@ -17,7 +17,9 @@ micro inspect ...  # read the recorded run or workflow history
 
 Debug the lifecycle in the same order Go Micro runs it: first prove the service is
 registered and callable, then inspect the agent run that chose tools, then inspect
-any workflow that handed off to the agent.
+any workflow that handed off to the agent. If the first local run fails before a
+chat turn, run `micro agent preflight`; failed checks include `Fix:` and `Next:`
+lines for Go, CLI installation, provider-key setup, and the local gateway port.
 
 ## 1. Reproduce one small turn
 
