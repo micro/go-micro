@@ -27,6 +27,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"net/http/httptest"
@@ -39,6 +40,8 @@ import (
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/client"
+	codecbytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/internal/harness/harnessutil"
@@ -225,16 +228,38 @@ func notificationDedupeKeys(req *SendRequest) []string {
 	return keys
 }
 
-func dispatchNotifyStep(agentName string, ntf *Notify) flow.StepFunc {
-	dispatch := flow.Dispatch(agentName)
+func dispatchNotifyStep(agentName string, cl client.Client, ntf *Notify) flow.StepFunc {
 	return func(ctx context.Context, in flow.State) (flow.State, error) {
 		before := atomic.LoadInt64(&ntf.sent)
-		out, err := dispatch(ctx, in)
+		out, err := dispatchBuyerNotification(ctx, agentName, cl, in)
 		if err != nil {
 			out = in
 		}
 		return completeNotifyOnObservedSideEffect(ctx, out, ntf, before, 2*time.Second, err)
 	}
+}
+
+func dispatchBuyerNotification(ctx context.Context, agentName string, cl client.Client, in flow.State) (flow.State, error) {
+	if cl == nil {
+		cl = client.DefaultClient
+	}
+	info, _ := ai.RunInfoFrom(ctx)
+	message := fmt.Sprintf(
+		"Checkout flow confirmed this order: %s. Use notify.Send exactly once to notify buyer@acme.com that the order is confirmed. Do not reply until the notify tool call has completed.",
+		strings.TrimSpace(in.String()),
+	)
+	body, _ := json.Marshal(map[string]string{"message": message, "parent_id": info.RunID})
+	req := cl.NewRequest(agentName, "Agent.Chat", &codecbytes.Frame{Data: body})
+	var rsp codecbytes.Frame
+	if err := cl.Call(ctx, req, &rsp); err != nil {
+		return in, err
+	}
+	var out struct {
+		Reply string `json:"reply"`
+	}
+	_ = json.Unmarshal(rsp.Data, &out)
+	in.Data = []byte(out.Reply)
+	return in, nil
 }
 
 func completeNotifyOnObservedSideEffect(ctx context.Context, in flow.State, ntf *Notify, before int64, wait time.Duration, dispatchErr error) (flow.State, error) {
@@ -429,7 +454,7 @@ func runUniverse(provider string) int {
 			flow.Step{Name: "reserve", Run: flow.Call("inventory", "Inventory.Reserve")},
 			flow.Step{Name: "charge", Run: flow.Call("payment", "Payment.Charge")},
 			flow.Step{Name: "confirm", Run: flow.Call("orders", "Orders.Confirm")},
-			flow.Step{Name: "notify", Run: dispatchNotifyStep("concierge", ntf)},
+			flow.Step{Name: "notify", Run: dispatchNotifyStep("concierge", cl, ntf)},
 		),
 	)
 	if err := checkout.Register(reg, br, cl); err != nil {
