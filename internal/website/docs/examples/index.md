@@ -16,6 +16,7 @@ agents → workflows lifecycle.
 | First service-backed agent | [`examples/agent-demo`](https://github.com/micro/go-micro/tree/master/examples/agent-demo) | Multi-service project/task/team app with agent playground integration. |
 | 0→hero lifecycle | [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) | No-secret support-desk story: typed services, an agent, an event-driven flow, and a guardrail. |
 | Planning and delegation | [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate) | Two agents collaborate through `plan` and `delegate` over normal Go Micro RPC. |
+| Durable agent runs | [`examples/agent-durable`](https://github.com/micro/go-micro/tree/master/examples/agent-durable) | Checkpoint and resume a model-directed run without replaying completed tool side effects. |
 | Durable workflows | [`examples/flow-durable`](https://github.com/micro/go-micro/tree/master/examples/flow-durable) | Ordered, checkpointed flow steps resume without duplicating completed side effects. |
 | AI-callable services | [`examples/mcp`](https://github.com/micro/go-micro/tree/master/examples/mcp) | MCP examples that expose service endpoints as model tools. |
 
@@ -35,7 +36,11 @@ agents → workflows lifecycle.
   [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate).
 - [Agents and Workflows](../guides/agents-and-workflows.html) → run
   [`examples/flow-durable`](https://github.com/micro/go-micro/tree/master/examples/flow-durable)
-  and [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support).
+  for deterministic checkpointed steps,
+  [`examples/agent-durable`](https://github.com/micro/go-micro/tree/master/examples/agent-durable)
+  for model-directed checkpointed runs, and
+  [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support)
+  for the full services → agents → workflows lifecycle.
 
 ## Repository examples
 
