@@ -212,6 +212,8 @@ func AutoDetectProvider(baseURL string) string {
 		return "gemini"
 	case strings.Contains(baseURL, "groq"):
 		return "groq"
+	case strings.Contains(baseURL, "minimax"):
+		return "minimax"
 	case strings.Contains(baseURL, "mistral"):
 		return "mistral"
 	case strings.Contains(baseURL, "together"):

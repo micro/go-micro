@@ -332,7 +332,7 @@ MCP exposes your services as tools; A2A exposes your agents as agents. See the [
 | MCP gateway | Every endpoint is an AI tool automatically |
 | A2A gateway | Every agent is reachable over the Agent2Agent protocol; cards generated from the registry (`micro a2a`) |
 | Payments (x402) | Opt-in per-call payments for tools via the x402 standard; pluggable facilitator (Base, Solana, …) |
-| 8 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud, Ollama (local + cloud) |
+| 9 LLM providers | Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud, MiniMax, Ollama (local + cloud) |
 | Interactive console | `micro run` includes a chat console for talking to services |
 | Service generation | `micro run --prompt` — describe a system, get running services |
 
@@ -429,6 +429,7 @@ Swap providers with a single import — same interface everywhere:
 | Mistral | `mistral-large-latest` |
 | Together AI | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
 | Atlas Cloud | `deepseek-ai/DeepSeek-V3-0324` |
+| MiniMax | `MiniMax-M3` |
 | Ollama | `llama3.2` (local) |
 
 ```go
