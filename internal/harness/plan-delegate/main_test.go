@@ -338,7 +338,7 @@ func TestPlanDelegateExecutionAcceptsClientTimeoutAfterSideEffects(t *testing.T)
 	}
 }
 
-func TestPlanDelegateExecutionRejectsClientTimeoutBeforeSideEffects(t *testing.T) {
+func TestPlanDelegateExecutionClassifiesClientTimeoutBeforeSideEffects(t *testing.T) {
 	done := make(chan error, 1)
 	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
 
@@ -346,8 +346,35 @@ func TestPlanDelegateExecutionRejectsClientTimeoutBeforeSideEffects(t *testing.T
 	if err == nil {
 		t.Fatal("waitForPlanDelegateExecution returned nil, want timeout before side effects to fail")
 	}
-	if got := err.Error(); !strings.Contains(got, "tasks=0 notify=0") {
-		t.Fatalf("error = %q, want side-effect counts", got)
+	for _, want := range []string{
+		"provider latency/outage during plan-delegate",
+		"tasks=0/3 notify=0/1",
+		"retry live provider or inspect provider logs",
+		"Request Timeout",
+	} {
+		if got := err.Error(); !strings.Contains(got, want) {
+			t.Fatalf("error = %q, want %q", got, want)
+		}
+	}
+}
+
+func TestPlanDelegateExecutionClassifiesPartialClientTimeout(t *testing.T) {
+	taskSvc := new(TaskService)
+	for _, title := range []string{"Design", "Build", "Ship"} {
+		var rsp AddResponse
+		if err := taskSvc.Add(context.Background(), &AddRequest{Title: title}, &rsp); err != nil {
+			t.Fatalf("Add(%q): %v", title, err)
+		}
+	}
+	done := make(chan error, 1)
+	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
+
+	err := waitForPlanDelegateExecution(done, taskSvc, new(NotifyService), nil)
+	if err == nil {
+		t.Fatal("waitForPlanDelegateExecution returned nil, want timeout before notify to fail")
+	}
+	if got := err.Error(); !strings.Contains(got, "tasks=3/3 notify=0/1") {
+		t.Fatalf("error = %q, want partial side-effect counts", got)
 	}
 }
 
