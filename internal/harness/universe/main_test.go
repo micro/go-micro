@@ -69,6 +69,26 @@ func TestNotifyStepCompletesAfterObservedSideEffectTimeout(t *testing.T) {
 	}
 }
 
+func TestNotifyStepRejectsClaimedCompletionWithoutSideEffect(t *testing.T) {
+	ntf := new(Notify)
+	before := atomic.LoadInt64(&ntf.sent)
+
+	_, err := completeNotifyOnObservedSideEffect(
+		context.Background(),
+		flow.State{Data: []byte(`claimed success`)},
+		ntf,
+		before,
+		25*time.Millisecond,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("notify completion returned nil, want missing buyer notification error")
+	}
+	if got := err.Error(); got != "concierge completed without notifying buyer: notify count stayed at 0" {
+		t.Fatalf("error = %q, want missing buyer notification error", got)
+	}
+}
+
 func TestNotifySuppressesEquivalentConfirmationMessages(t *testing.T) {
 	ntf := new(Notify)
 	ctx := context.Background()
