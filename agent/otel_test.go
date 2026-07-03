@@ -279,7 +279,8 @@ func spanEventHasRunInfo(events []trace.Event, name, runID, agentName string) bo
 			continue
 		}
 		attrs := spanAttributes(event.Attributes)
-		if attrs[AttrRunID] == runID && attrs[AttrAgentName] == agentName {
+		wantKind := strings.TrimPrefix(name, "agent.")
+		if attrs[AttrRunID] == runID && attrs[AttrAgentName] == agentName && attrs[AttrRunEventKind] == wantKind {
 			return true
 		}
 	}

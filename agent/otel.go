@@ -45,6 +45,7 @@ const (
 	AttrFlowStep         = "agent.flow.step"
 	AttrDispatch         = "agent.dispatch"
 	AttrTrigger          = "agent.trigger"
+	AttrRunEventKind     = "agent.event.kind"
 )
 
 type RunEvent struct {
@@ -323,6 +324,7 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 	attrs := []attribute.KeyValue{
 		attribute.String(AttrRunID, e.RunID),
 		attribute.String(AttrAgentName, e.Agent),
+		attribute.String(AttrRunEventKind, e.Kind),
 	}
 	if e.ParentID != "" {
 		attrs = append(attrs, attribute.String(AttrParentRunID, e.ParentID))
