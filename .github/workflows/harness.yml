@@ -18,7 +18,7 @@ on:
       providers:
         description: "Comma-separated providers for live conformance (default: all supported)"
         required: false
-        default: "anthropic,openai,gemini,groq,mistral,together,atlascloud"
+        default: "anthropic,openai,gemini,groq,minimax,mistral,together,atlascloud"
       harnesses:
         description: "Comma-separated harnesses for live conformance"
         required: false
@@ -64,6 +64,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
@@ -73,7 +74,7 @@ jobs:
           # catalog id differs (Atlas uses org/model ids).
           ATLASCLOUD_MODEL: ${{ vars.ATLASCLOUD_MODEL || 'minimaxai/minimax-m3' }}
         run: |
-          PROVIDERS="${{ github.event.inputs.providers || 'anthropic,openai,gemini,groq,mistral,together,atlascloud' }}"
+          PROVIDERS="${{ github.event.inputs.providers || 'anthropic,openai,gemini,groq,minimax,mistral,together,atlascloud' }}"
           HARNESSES="${{ github.event.inputs.harnesses || 'agent,universe,agent-flow,plan-delegate,a2a-stream-fallback' }}"
           REQUIRE_CONFIGURED="${{ github.event.inputs.require_configured || 'false' }}"
 
