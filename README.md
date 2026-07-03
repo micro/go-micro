@@ -443,6 +443,7 @@ resp, _ := m.Generate(ctx, &ai.Request{Prompt: "hello"})
 - [multi-service](examples/multi-service/) — Multiple services in one binary
 - [mcp](examples/mcp/) — MCP integration with AI agents
 - [agent-plan-delegate](examples/agent-plan-delegate/) — Agent planning and multi-agent delegation
+- [agent-durable](examples/agent-durable/) — Checkpoint and resume an agent run without replaying completed tool side effects
 - [grpc-interop](examples/grpc-interop/) — Call go-micro from any gRPC client
 
 See [all examples](examples/README.md).
