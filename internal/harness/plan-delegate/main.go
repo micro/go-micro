@@ -127,6 +127,10 @@ func (s *TaskService) count() int {
 	return len(s.tasks)
 }
 
+const delegatedNotifyTask = "Use the notify Send tool exactly once to tell owner@acme.com: The launch plan is ready. Do not answer until the notify tool call has succeeded."
+
+const commsPrompt = "You handle outbound notifications. When asked to notify someone, you must call the notify Send tool exactly once before replying. Never claim a notification was sent unless the notify tool returned success."
+
 type SendRequest struct {
 	To      string `json:"to" description:"Recipient address"`
 	Message string `json:"message" description:"Message body"`
@@ -275,12 +279,12 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 			if m.unknownDelegateOnce && !m.emittedUnknownDelegate {
 				m.emittedUnknownDelegate = true
 				m.call("conductor", "atlascloud_delegate", map[string]any{
-					"task": "Notify owner@acme.com that the launch plan is ready",
+					"task": delegatedNotifyTask,
 					"to":   "comms",
 				})
 			} else {
 				m.call("conductor", del, map[string]any{
-					"task": "Notify owner@acme.com that the launch plan is ready",
+					"task": delegatedNotifyTask,
 					"to":   "comms",
 				})
 			}
@@ -354,7 +358,7 @@ func runPlanDelegate(provider string) error {
 		agent.Name("comms"),
 		agent.Address("127.0.0.1:0"),
 		agent.Services("notify"),
-		agent.Prompt("You handle outbound notifications. Use the notify service."),
+		agent.Prompt(commsPrompt),
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
 		agent.WithCheckpoint(commsCheckpoint),
@@ -414,7 +418,7 @@ func runPlanDelegate(provider string) error {
 	}()
 
 	if err := waitForPlanDelegateExecution(executeDone, taskSvc, notifySvc, func(ctx context.Context) error {
-		_, err := conductor.Ask(ctx, "The Design, Build, and Ship tasks already exist, but the owner notification is still missing. Delegate exactly one notification to the \"comms\" agent now: ask comms to notify owner@acme.com that the launch plan is ready. Do not create more tasks and do not answer until comms has handled the notification.")
+		_, err := conductor.Ask(ctx, "The Design, Build, and Ship tasks already exist, but the owner notification is still missing. Delegate exactly one notification to the \"comms\" agent now with this exact subtask: "+delegatedNotifyTask+" Do not create more tasks and do not answer until comms has handled the notification.")
 		return err
 	}); err != nil {
 		return err
