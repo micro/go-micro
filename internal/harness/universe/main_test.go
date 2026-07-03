@@ -84,8 +84,9 @@ func TestNotifyStepRejectsClaimedCompletionWithoutSideEffect(t *testing.T) {
 	if err == nil {
 		t.Fatal("notify completion returned nil, want missing buyer notification error")
 	}
-	if got := err.Error(); got != "concierge completed without notifying buyer: notify count stayed at 0" {
-		t.Fatalf("error = %q, want missing buyer notification error", got)
+	want := `concierge completed without notifying buyer: notify count stayed at 0; expected recipient buyer@acme.com, buyer, or buyer-of-order-<id>; no rejected notify call observed`
+	if got := err.Error(); got != want {
+		t.Fatalf("error = %q, want %q", got, want)
 	}
 }
 
@@ -181,7 +182,7 @@ func TestNotifyAcceptsOrderScopedBuyerRecipient(t *testing.T) {
 
 	var rsp SendResponse
 	if err := ntf.Send(ctx, &SendRequest{
-		To:      "order-1 buyer",
+		To:      "buyer-of-order-1",
 		Message: "order-1 confirmed",
 	}, &rsp); err != nil {
 		t.Fatalf("send order-scoped buyer notification: %v", err)
@@ -204,5 +205,32 @@ func TestNotifyAcceptsOrderScopedBuyerRecipient(t *testing.T) {
 	}
 	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
 		t.Fatalf("notifications sent after hyphenated non-buyer = %d, want 1", got)
+	}
+}
+
+func TestNotifyStepReportsRejectedRecipientDiagnostics(t *testing.T) {
+	ntf := new(Notify)
+	var rsp SendResponse
+	if err := ntf.Send(context.Background(), &SendRequest{
+		To:      "order-1",
+		Message: "order-1 confirmed",
+	}, &rsp); err != nil {
+		t.Fatalf("send rejected notification: %v", err)
+	}
+
+	_, err := completeNotifyOnObservedSideEffect(
+		context.Background(),
+		flow.State{Data: []byte(`claimed success`)},
+		ntf,
+		0,
+		25*time.Millisecond,
+		nil,
+	)
+	if err == nil {
+		t.Fatal("notify completion returned nil, want diagnostics")
+	}
+	want := `concierge completed without notifying buyer: notify count stayed at 0; expected recipient buyer@acme.com, buyer, or buyer-of-order-<id>; last notify args to="order-1" message="order-1 confirmed"`
+	if got := err.Error(); got != want {
+		t.Fatalf("error = %q, want %q", got, want)
 	}
 }
