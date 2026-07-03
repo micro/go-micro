@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"go-micro.dev/v6/ai"
@@ -200,6 +201,124 @@ func TestProvider_GenerateToolCallEmptyFollowUpUsesToolResult(t *testing.T) {
 	}
 	if resp.Answer != `{"marker":"agent-conformance-ok"}` {
 		t.Fatalf("Answer = %q, want tool result fallback", resp.Answer)
+	}
+}
+
+func TestProvider_GenerateMinimaxToolRequests(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
+		case 2:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"done"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			return ai.ToolResult{ID: call.ID, Content: `{"marker":"agent-conformance-ok"}`}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		SystemPrompt: "You are helpful.",
+		Prompt:       "call a tool",
+		Tools: []ai.Tool{{
+			Name:        "conformance_echo",
+			Description: "echo conformance marker",
+			Properties:  map[string]any{"value": map[string]any{"type": "string"}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if resp.Answer != "done" {
+		t.Fatalf("Answer = %q, want done", resp.Answer)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("captured requests = %d, want 2", len(bodies))
+	}
+	if got := bodies[0]["model"]; got != "minimaxai/minimax-m3" {
+		t.Fatalf("initial model = %v", got)
+	}
+	tools, ok := bodies[0]["tools"].([]any)
+	if !ok || len(tools) != 1 {
+		t.Fatalf("initial tools = %#v, want one tool", bodies[0]["tools"])
+	}
+	tool := tools[0].(map[string]any)
+	if tool["type"] != "function" {
+		t.Fatalf("tool type = %v, want function", tool["type"])
+	}
+	fn := tool["function"].(map[string]any)
+	if fn["name"] != "conformance_echo" {
+		t.Fatalf("tool function name = %v", fn["name"])
+	}
+	params := fn["parameters"].(map[string]any)
+	if params["type"] != "object" {
+		t.Fatalf("parameters type = %v, want object", params["type"])
+	}
+
+	followUpMessages := bodies[1]["messages"].([]any)
+	if len(followUpMessages) != 4 {
+		t.Fatalf("follow-up messages = %d, want 4", len(followUpMessages))
+	}
+	assistant := followUpMessages[2].(map[string]any)
+	if assistant["role"] != "assistant" {
+		t.Fatalf("assistant role = %v", assistant["role"])
+	}
+	assistantCalls := assistant["tool_calls"].([]any)
+	assistantCall := assistantCalls[0].(map[string]any)
+	if assistantCall["type"] != "function" {
+		t.Fatalf("assistant tool call type = %v, want function", assistantCall["type"])
+	}
+	toolResult := followUpMessages[3].(map[string]any)
+	if toolResult["role"] != "tool" || toolResult["tool_call_id"] != "call-1" {
+		t.Fatalf("tool result message = %#v", toolResult)
+	}
+}
+
+func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+	)
+	_, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "call a tool",
+		Tools: []ai.Tool{{
+			Name:        "conformance_echo",
+			Description: "echo conformance marker",
+			Properties:  map[string]any{"value": map[string]any{"type": "string"}},
+		}},
+	})
+	if err == nil {
+		t.Fatal("Generate error = nil, want 400")
+	}
+	msg := err.Error()
+	for _, want := range []string{"400 Bad Request", "atlascloud chat request", "model=minimaxai/minimax-m3", "tools=1", "tool_names=conformance_echo"} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("error %q missing %q", msg, want)
+		}
+	}
+	if strings.Contains(msg, "test-key") {
+		t.Fatalf("error leaked API key: %s", msg)
 	}
 }
 

@@ -52,6 +52,15 @@ type Provider struct {
 	opts ai.Options
 }
 
+type atlasToolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
+}
+
 // NewProvider creates a new Atlas Cloud provider.
 func NewProvider(opts ...ai.Option) *Provider {
 	options := ai.NewOptions(opts...)
@@ -121,7 +130,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		apiReq["tools"] = tools
 	}
 
-	resp, rawMessage, err := p.callAPI(ctx, apiReq)
+	resp, rawMessage, err := p.callAPI(ctx, "chat", apiReq)
 	if err != nil {
 		return nil, err
 	}
@@ -155,8 +164,11 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			"messages": followUpMessages,
 		}
 
-		followUpResp, _, err := p.callAPI(ctx, followUpReq)
-		if err == nil && followUpResp.Reply != "" {
+		followUpResp, _, err := p.callAPI(ctx, "tool-follow-up", followUpReq)
+		if err != nil {
+			return nil, err
+		}
+		if followUpResp.Reply != "" {
 			resp.Answer = followUpResp.Reply
 		} else if len(toolResults) > 0 {
 			resp.Answer = strings.Join(toolResults, "\n")
@@ -277,7 +289,7 @@ func (s *atlasStream) Close() error {
 	return s.body.Close()
 }
 
-func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Response, map[string]any, error) {
+func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any) (*ai.Response, map[string]any, error) {
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -300,20 +312,14 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 
 	respBody, _ := io.ReadAll(httpResp.Body)
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
+		return nil, nil, fmt.Errorf("API error (%s) during atlascloud %s request (%s): %s", httpResp.Status, phase, atlascloudRequestSummary(req), string(respBody))
 	}
 
 	var chatResp struct {
 		Choices []struct {
 			Message struct {
-				Content   string `json:"content"`
-				ToolCalls []struct {
-					ID       string `json:"id"`
-					Function struct {
-						Name      string `json:"name"`
-						Arguments string `json:"arguments"`
-					} `json:"function"`
-				} `json:"tool_calls"`
+				Content   string          `json:"content"`
+				ToolCalls []atlasToolCall `json:"tool_calls"`
 			} `json:"message"`
 		} `json:"choices"`
 	}
@@ -345,10 +351,66 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 
 	rawMessage := map[string]any{
 		"content":    choice.Message.Content,
-		"tool_calls": choice.Message.ToolCalls,
+		"tool_calls": normalizeAtlasCloudToolCalls(choice.Message.ToolCalls),
 	}
 
 	return response, rawMessage, nil
+}
+
+func normalizeAtlasCloudToolCalls(toolCalls []atlasToolCall) []map[string]any {
+	out := make([]map[string]any, 0, len(toolCalls))
+	for _, tc := range toolCalls {
+		toolType := tc.Type
+		if toolType == "" {
+			toolType = "function"
+		}
+		out = append(out, map[string]any{
+			"id":   tc.ID,
+			"type": toolType,
+			"function": map[string]any{
+				"name":      tc.Function.Name,
+				"arguments": tc.Function.Arguments,
+			},
+		})
+	}
+	return out
+}
+
+func atlascloudRequestSummary(req map[string]any) string {
+	parts := []string{}
+	if model, ok := req["model"].(string); ok && model != "" {
+		parts = append(parts, "model="+model)
+	}
+	if messages, ok := req["messages"].([]map[string]any); ok {
+		parts = append(parts, fmt.Sprintf("messages=%d", len(messages)))
+		if len(messages) > 0 {
+			last := messages[len(messages)-1]
+			if role, ok := last["role"].(string); ok && role != "" {
+				parts = append(parts, "last_role="+role)
+			}
+			if _, ok := last["tool_call_id"].(string); ok {
+				parts = append(parts, "last_has_tool_call_id=true")
+			}
+		}
+	}
+	if tools, ok := req["tools"].([]map[string]any); ok {
+		names := make([]string, 0, len(tools))
+		for _, tool := range tools {
+			fn, _ := tool["function"].(map[string]any)
+			name, _ := fn["name"].(string)
+			if name != "" {
+				names = append(names, name)
+			}
+		}
+		parts = append(parts, fmt.Sprintf("tools=%d", len(tools)))
+		if len(names) > 0 {
+			parts = append(parts, "tool_names="+strings.Join(names, ","))
+		}
+	}
+	if len(parts) == 0 {
+		return "request_context=unavailable"
+	}
+	return strings.Join(parts, " ")
 }
 
 const defaultImageModel = "openai/gpt-image-2/text-to-image"
