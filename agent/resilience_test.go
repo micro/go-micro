@@ -132,6 +132,34 @@ func TestToolCallTimeoutPropagatesDeadlineToCustomTool(t *testing.T) {
 	}
 }
 
+func TestAskCancellationDuringToolCallFailsRun(t *testing.T) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler == nil {
+			t.Fatal("missing tool handler")
+		}
+		res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "cancel-self"})
+		if !strings.Contains(res.Content, context.Canceled.Error()) {
+			t.Fatalf("tool result = %q, want cancellation error", res.Content)
+		}
+		return &ai.Response{Reply: "should not succeed"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	a := newTestAgent(
+		Name("cancel-during-tool"),
+		WithTool("cancel-self", "cancel the run context", nil, func(context.Context, map[string]any) (string, error) {
+			cancel()
+			return "", context.Canceled
+		}),
+	)
+
+	_, err := a.Ask(ctx, "cancel during tool")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("Ask error = %v, want context canceled", err)
+	}
+}
+
 func TestAskCheckpointRecordsTerminalOperationalFailureStatus(t *testing.T) {
 	tests := []struct {
 		name string
