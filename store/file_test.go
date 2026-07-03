@@ -3,7 +3,6 @@ package store
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -12,15 +11,20 @@ import (
 	"github.com/kr/pretty"
 )
 
-func cleanup(db string, s Store) {
-	s.Close()
-	dir := filepath.Join(DefaultDir, db+"/")
-	os.RemoveAll(dir)
+func newTestFileStore(t *testing.T, opts ...Option) Store {
+	t.Helper()
+	opts = append(opts, DirOption(t.TempDir()))
+	s := NewStore(opts...)
+	t.Cleanup(func() {
+		if err := s.Close(); err != nil {
+			t.Errorf("failed to close file store: %v", err)
+		}
+	})
+	return s
 }
 
 func TestFileStoreReInit(t *testing.T) {
-	s := NewStore(Table("aaa"))
-	defer cleanup(DefaultDatabase, s)
+	s := newTestFileStore(t, Table("aaa"))
 	s.Init(Table("bbb"))
 	if s.Options().Table != "bbb" {
 		t.Error("Init didn't reinitialise the store")
@@ -28,26 +32,22 @@ func TestFileStoreReInit(t *testing.T) {
 }
 
 func TestFileStoreBasic(t *testing.T) {
-	s := NewStore()
-	defer cleanup(DefaultDatabase, s)
+	s := newTestFileStore(t)
 	fileTest(s, t)
 }
 
 func TestFileStoreTable(t *testing.T) {
-	s := NewStore(Table("testTable"))
-	defer cleanup(DefaultDatabase, s)
+	s := newTestFileStore(t, Table("testTable"))
 	fileTest(s, t)
 }
 
 func TestFileStoreDatabase(t *testing.T) {
-	s := NewStore(Database("testdb"))
-	defer cleanup("testdb", s)
+	s := newTestFileStore(t, Database("testdb"))
 	fileTest(s, t)
 }
 
 func TestFileStoreDatabaseTable(t *testing.T) {
-	s := NewStore(Table("testTable"), Database("testdb"))
-	defer cleanup("testdb", s)
+	s := newTestFileStore(t, Table("testTable"), Database("testdb"))
 	fileTest(s, t)
 }
 
