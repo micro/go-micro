@@ -38,7 +38,7 @@ func TestValidateSelectionRejectsUnsafeHarnessName(t *testing.T) {
 
 func TestDefaultProvidersTracksLiveProviderSet(t *testing.T) {
 	got := defaultProviders()
-	for _, want := range []string{"anthropic", "openai", "gemini", "groq", "mistral", "together", "atlascloud"} {
+	for _, want := range []string{"anthropic", "openai", "gemini", "groq", "minimax", "mistral", "together", "atlascloud"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("defaultProviders() = %q, want %q", got, want)
 		}
@@ -54,7 +54,7 @@ func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
 		t.Fatal("CapabilityRows returned no providers")
 	}
 
-	var foundOpenAI bool
+	var foundOpenAI, foundMiniMax bool
 	for _, row := range rows {
 		if row.Provider == "openai" {
 			foundOpenAI = true
@@ -62,9 +62,18 @@ func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
 				t.Fatalf("openai capabilities = %#v, want model+image only", row.Capabilities)
 			}
 		}
+		if row.Provider == "minimax" {
+			foundMiniMax = true
+			if !row.Model || !row.Stream || row.Image || row.Video {
+				t.Fatalf("minimax capabilities = %#v, want model+stream only", row.Capabilities)
+			}
+		}
 	}
 	if !foundOpenAI {
 		t.Fatalf("CapabilityRows = %#v, want openai row", rows)
+	}
+	if !foundMiniMax {
+		t.Fatalf("CapabilityRows = %#v, want minimax row", rows)
 	}
 }
 

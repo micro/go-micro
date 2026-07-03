@@ -51,6 +51,7 @@ Provider keys are read from `MICRO_AI_API_KEY` or the provider-specific variable
 | OpenAI | `OPENAI_API_KEY` |
 | Gemini | `GEMINI_API_KEY` |
 | Groq | `GROQ_API_KEY` |
+| MiniMax | `MINIMAX_API_KEY` |
 | Mistral | `MISTRAL_API_KEY` |
 | Together | `TOGETHER_API_KEY` |
 | AtlasCloud | `ATLASCLOUD_API_KEY` |

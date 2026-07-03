@@ -29,6 +29,7 @@ import (
 	_ "go-micro.dev/v6/ai/atlascloud"
 	_ "go-micro.dev/v6/ai/gemini"
 	_ "go-micro.dev/v6/ai/groq"
+	_ "go-micro.dev/v6/ai/minimax"
 	_ "go-micro.dev/v6/ai/mistral"
 	_ "go-micro.dev/v6/ai/openai"
 	_ "go-micro.dev/v6/ai/together"
@@ -49,6 +50,7 @@ var providerEnv = map[string]string{
 	"openai":     "OPENAI_API_KEY",
 	"gemini":     "GEMINI_API_KEY",
 	"groq":       "GROQ_API_KEY",
+	"minimax":    "MINIMAX_API_KEY",
 	"mistral":    "MISTRAL_API_KEY",
 	"together":   "TOGETHER_API_KEY",
 	"atlascloud": "ATLASCLOUD_API_KEY",
