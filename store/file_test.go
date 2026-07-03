@@ -135,22 +135,22 @@ func fileTest(s Store, t *testing.T) {
 		}
 	}
 
-	// Write 3 records with various expiry and get with Suffix
+	// Write records with suffix matches and an already-expired record. Avoid
+	// wall-clock boundary sleeps here: under -race/-cover, sleeping exactly the
+	// TTL made this assertion flaky on slower CI runners.
 	records = []*Record{
 		{
 			Key:   "foo",
 			Value: []byte("foofoo"),
 		},
 		{
-			Key:   "barfoo",
-			Value: []byte("barfoobarfoo"),
-
-			Expiry: time.Millisecond * 100,
+			Key:    "barfoo",
+			Value:  []byte("barfoobarfoo"),
+			Expiry: -time.Second,
 		},
 		{
-			Key:    "bazbarfoo",
-			Value:  []byte("bazbarfoobazbarfoo"),
-			Expiry: 2 * time.Millisecond * 100,
+			Key:   "bazbarfoo",
+			Value: []byte("bazbarfoobazbarfoo"),
 		},
 	}
 	for _, r := range records {
@@ -160,39 +160,24 @@ func fileTest(s Store, t *testing.T) {
 	}
 	if results, err := s.Read("foo", ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
-	} else {
-		if len(results) != 3 {
-			t.Errorf("Expected 3 items, got %d", len(results))
-			// t.Logf("Table test: %v\n", spew.Sdump(results))
-		}
+	} else if len(results) != 2 {
+		t.Errorf("Expected 2 unexpired suffix items, got %d (%# v)", len(results), spew.Sdump(results))
 	}
-	time.Sleep(time.Millisecond * 100)
+	if err := s.Delete("bazbarfoo"); err != nil {
+		t.Errorf("Delete failed (%v)", err)
+	}
 	if results, err := s.Read("foo", ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
-	} else {
-		if len(results) != 2 {
-			t.Errorf("Expected 2 items, got %d", len(results))
-			// t.Logf("Table test: %v\n", spew.Sdump(results))
-		}
-	}
-	time.Sleep(time.Millisecond * 100)
-	if results, err := s.Read("foo", ReadSuffix()); err != nil {
-		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
-	} else {
-		if len(results) != 1 {
-			t.Errorf("Expected 1 item, got %d", len(results))
-			//	t.Logf("Table test: %# v\n", spew.Sdump(results))
-		}
+	} else if len(results) != 1 {
+		t.Errorf("Expected 1 unexpired suffix item, got %d (%# v)", len(results), spew.Sdump(results))
 	}
 	if err := s.Delete("foo"); err != nil {
 		t.Errorf("Delete failed (%v)", err)
 	}
 	if results, err := s.Read("foo", ReadSuffix()); err != nil {
 		t.Errorf("Couldn't read all \"foo\" keys, got %# v (%s)", spew.Sdump(results), err)
-	} else {
-		if len(results) != 0 {
-			t.Errorf("Expected 0 items, got %d (%# v)", len(results), spew.Sdump(results))
-		}
+	} else if len(results) != 0 {
+		t.Errorf("Expected 0 items, got %d (%# v)", len(results), spew.Sdump(results))
 	}
 
 	// Test Table, Suffix and WriteOptions
