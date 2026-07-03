@@ -166,22 +166,48 @@ func main() {
 
 func readSSEData(r io.Reader) (string, error) {
 	scanner := bufio.NewScanner(r)
+	var event strings.Builder
 	var payload strings.Builder
+	seen := false
+	flush := func() error {
+		data := strings.TrimSpace(event.String())
+		event.Reset()
+		if data == "" {
+			return nil
+		}
+		if !json.Valid([]byte(data)) {
+			return fmt.Errorf("SSE data event is not JSON: %s", data)
+		}
+		seen = true
+		payload.WriteString(data)
+		payload.WriteByte('\n')
+		return nil
+	}
 	for scanner.Scan() {
 		line := scanner.Text()
-		if data, ok := strings.CutPrefix(line, "data: "); ok {
-			payload.WriteString(data)
-			payload.WriteByte('\n')
+		if strings.TrimSpace(line) == "" {
+			if err := flush(); err != nil {
+				return "", err
+			}
+			continue
 		}
+		data, ok := strings.CutPrefix(line, "data:")
+		if !ok {
+			continue
+		}
+		if event.Len() > 0 {
+			event.WriteByte('\n')
+		}
+		event.WriteString(strings.TrimSpace(data))
 	}
 	if err := scanner.Err(); err != nil {
 		return "", err
 	}
-	if payload.Len() == 0 {
-		return "", errors.New("no SSE data received")
+	if err := flush(); err != nil {
+		return "", err
 	}
-	if !json.Valid([]byte(strings.TrimSpace(payload.String()))) {
-		return "", fmt.Errorf("SSE data is not JSON: %s", payload.String())
+	if !seen {
+		return "", errors.New("no SSE data received")
 	}
 	return payload.String(), nil
 }
