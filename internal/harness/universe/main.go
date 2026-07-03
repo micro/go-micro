@@ -109,9 +109,10 @@ type SendResponse struct {
 }
 
 type Notify struct {
-	mu   sync.Mutex
-	sent int64
-	seen map[string]struct{}
+	mu           sync.Mutex
+	sent         int64
+	seen         map[string]struct{}
+	lastRejected *SendRequest
 }
 
 // Send delivers a notification.
@@ -122,10 +123,13 @@ func (s *Notify) Send(_ context.Context, req *SendRequest, rsp *SendResponse) er
 		if req != nil {
 			to, message = req.To, req.Message
 		}
+		s.recordRejected(to, message)
 		fmt.Printf("    \033[35m[notify]\033[0m 📨 ignored non-buyer notification to=%s %q\n", to, message)
 		rsp.Sent = false
 		return nil
 	}
+
+	s.recordRejected("", "")
 
 	keys := notificationDedupeKeys(req)
 	s.mu.Lock()
@@ -158,10 +162,32 @@ func isBuyerNotification(req *SendRequest) bool {
 	return canonicalBuyerRecipient(req.To) != ""
 }
 
+func (s *Notify) recordRejected(to, message string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if strings.TrimSpace(to) == "" && strings.TrimSpace(message) == "" {
+		s.lastRejected = nil
+		return
+	}
+	s.lastRejected = &SendRequest{To: to, Message: message}
+}
+
+func (s *Notify) rejectedSummary() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.lastRejected == nil {
+		return "no rejected notify call observed"
+	}
+	return fmt.Sprintf("last notify args to=%q message=%q", s.lastRejected.To, s.lastRejected.Message)
+}
+
 func canonicalBuyerRecipient(to string) string {
 	recipient := strings.ToLower(strings.TrimSpace(to))
 	switch recipient {
 	case "buyer", "buyer@acme.com":
+		return "buyer@acme.com"
+	}
+	if strings.HasPrefix(recipient, "buyer-of-order-") && len(recipient) > len("buyer-of-order-") {
 		return "buyer@acme.com"
 	}
 	for _, field := range strings.FieldsFunc(recipient, func(r rune) bool {
@@ -230,7 +256,7 @@ func completeNotifyOnObservedSideEffect(ctx context.Context, in flow.State, ntf 
 	if dispatchErr != nil {
 		return in, dispatchErr
 	}
-	return in, fmt.Errorf("concierge completed without notifying buyer: notify count stayed at %d", before)
+	return in, fmt.Errorf("concierge completed without notifying buyer: notify count stayed at %d; expected recipient buyer@acme.com, buyer, or buyer-of-order-<id>; %s", before, ntf.rejectedSummary())
 }
 
 // ---------------------------------------------------------------------------
