@@ -300,6 +300,20 @@ Default base URL: `https://api.atlascloud.ai`
 
 Atlas Cloud is an enterprise AI infrastructure platform offering high-performance LLM APIs. It exposes an OpenAI-compatible chat completions endpoint with tool calling support.
 
+### MiniMax
+
+```go
+m := ai.New("minimax",
+    ai.WithAPIKey("your-key"),
+    ai.WithModel("MiniMax-M3"), // default
+)
+```
+
+Default model: `MiniMax-M3`
+Default base URL: `https://api.minimax.io`
+
+MiniMax offers its flagship MiniMax-M3 model via an OpenAI-compatible chat completions endpoint.
+
 ## Auto-Detection
 
 Use `AutoDetectProvider()` to detect the provider from a base URL:
