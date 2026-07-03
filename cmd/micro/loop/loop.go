@@ -71,10 +71,11 @@ var dispatchRoles = map[string]dispatchRole{
 	"planner":   {"Loop: Planner", "Loop: planning review", "loop-planner", "planner-cron", "0 * * * *"},
 	"builder":   {"Loop: Builder", "Loop: build increment", "loop-builder", "builder-cron", "30 * * * *"},
 	"coherence": {"Loop: Coherence", "Loop: coherence review", "loop-coherence", "coherence-cron", "0 7 * * *"},
+	"security":  {"Loop: Security", "Loop: security review", "loop-security", "security-cron", "0 6 * * 1"},
 }
 
 // allRoles is the full set, in a stable order, for --roles=all and help text.
-var allRoles = []string{"planner", "builder", "triage", "coherence", "release"}
+var allRoles = []string{"planner", "builder", "triage", "coherence", "security", "release"}
 
 const (
 	promptDir = ".github/loop/prompts"
@@ -95,6 +96,7 @@ Roles (choose with --roles, default: planner,builder,triage):
   builder    builds the top open item as a single-concern PR (auto-merged on green CI)
   triage     turns CI failures into scoped fix issues back into the queue
   coherence  keeps README/docs/CHANGELOG aligned with the North Star
+  security   audits for vulnerabilities and files them (fixes stay human-reviewed)
   release    cuts the next patch tag when the branch has new commits
 
 Each dispatch role's instruction is an editable file in .github/loop/prompts/ —
@@ -127,6 +129,7 @@ Examples:
 					&cli.StringFlag{Name: "planner-cron", Usage: "Cron schedule for the planner", Value: "0 * * * *"},
 					&cli.StringFlag{Name: "builder-cron", Usage: "Cron schedule for the builder", Value: "30 * * * *"},
 					&cli.StringFlag{Name: "coherence-cron", Usage: "Cron schedule for the coherence role", Value: "0 7 * * *"},
+					&cli.StringFlag{Name: "security-cron", Usage: "Cron schedule for the security role", Value: "0 6 * * 1"},
 					&cli.StringFlag{Name: "release-cron", Usage: "Cron schedule for the release role", Value: "0 23 * * *"},
 					&cli.StringFlag{Name: "tag-prefix", Usage: "Tag prefix the release role matches and bumps", Value: "v"},
 					&cli.BoolFlag{Name: "force", Usage: "Overwrite existing loop files"},
@@ -171,6 +174,7 @@ func runInit(c *cli.Context) error {
 		"planner":   c.String("planner-cron"),
 		"builder":   c.String("builder-cron"),
 		"coherence": c.String("coherence-cron"),
+		"security":  c.String("security-cron"),
 	}
 
 	if err := scaffold(dir, cfg, roles, crons, c.Bool("force")); err != nil {

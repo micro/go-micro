@@ -29,6 +29,7 @@ func renderCases() map[string]config {
 		"templates/prompts/planner.md.tmpl":   testCfg,
 		"templates/prompts/builder.md.tmpl":   testCfg,
 		"templates/prompts/coherence.md.tmpl": testCfg,
+		"templates/prompts/security.md.tmpl":  testCfg,
 	}
 	for role, d := range dispatchRoles {
 		rc := testCfg
@@ -59,7 +60,7 @@ func TestRenderIsPlaceholderFreeAndKeepsGHAExpressions(t *testing.T) {
 
 func TestBaseBranchSubstitutedIntoPrompts(t *testing.T) {
 	// The base branch appears in the PR-opening instructions of these prompts.
-	for _, p := range []string{"planner", "builder", "coherence"} {
+	for _, p := range []string{"planner", "builder", "coherence", "security"} {
 		s := mustRender(t, "templates/prompts/"+p+".md.tmpl", testCfg)
 		if !strings.Contains(s, "--base main") {
 			t.Errorf("%s prompt missing substituted base branch", p)
@@ -117,7 +118,7 @@ func TestDispatchWorkflowsStripPromptComments(t *testing.T) {
 
 func TestPromptsLeaveRuntimeTokensLiteral(t *testing.T) {
 	// __ISSUE__ must survive render (the workflow substitutes it at runtime).
-	for _, p := range []string{"planner", "builder", "coherence", "triage"} {
+	for _, p := range []string{"planner", "builder", "coherence", "triage", "security"} {
 		s := mustRender(t, "templates/prompts/"+p+".md.tmpl", testCfg)
 		if !strings.Contains(s, "__ISSUE__") {
 			t.Errorf("%s prompt lost its __ISSUE__ runtime token", p)
@@ -133,19 +134,19 @@ func TestScaffoldAllRolesWritesEverything(t *testing.T) {
 	dir := t.TempDir()
 	mustWrite(t, filepath.Join(dir, wfDir, "ci.yml"), "name: CI\n")
 
-	roles := []string{"planner", "builder", "triage", "coherence", "release"}
+	roles := []string{"planner", "builder", "triage", "coherence", "security", "release"}
 	if err := scaffold(dir, testCfg, roles, testCrons, false); err != nil {
 		t.Fatalf("scaffold: %v", err)
 	}
 
-	wantWorkflows := []string{"loop-planner.yml", "loop-builder.yml", "loop-triage.yml", "loop-coherence.yml", "loop-release.yml"}
+	wantWorkflows := []string{"loop-planner.yml", "loop-builder.yml", "loop-triage.yml", "loop-coherence.yml", "loop-security.yml", "loop-release.yml"}
 	for _, w := range wantWorkflows {
 		if !fileExists(filepath.Join(dir, wfDir, w)) {
 			t.Errorf("expected %s", w)
 		}
 	}
 	// Dispatch + triage roles have prompts; release does not.
-	for _, p := range []string{"planner.md", "builder.md", "triage.md", "coherence.md"} {
+	for _, p := range []string{"planner.md", "builder.md", "triage.md", "coherence.md", "security.md"} {
 		if !fileExists(filepath.Join(dir, promptDir, p)) {
 			t.Errorf("expected prompt %s", p)
 		}

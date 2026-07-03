@@ -646,6 +646,7 @@ micro loop verify    # check a repo is wired correctly
 | Builder | `loop-builder.yml` | Builds the top open item as a single-concern PR, auto-merged on green CI |
 | Triage | `loop-triage.yml` | Turns CI failures into scoped fix issues, back into the queue |
 | Coherence | `loop-coherence.yml` | Keeps README/docs/CHANGELOG aligned with the North Star *(opt-in)* |
+| Security | `loop-security.yml` | Audits for vulnerabilities and files them; never auto-merges fixes, never publishes exploit detail *(opt-in)* |
 | Release | `loop-release.yml` | Cuts the next patch tag when the branch has new commits *(opt-in)* |
 
 The workflows are the **mechanism**; each dispatch role's instruction is an editable file in `.github/loop/prompts/` — the **policy**. Edit those prompts (and `.github/loop/NORTH_STAR.md`) to steer the loop without touching the CLI. That split is what lets go-micro itself use `micro loop` while keeping its own richer prompts.
