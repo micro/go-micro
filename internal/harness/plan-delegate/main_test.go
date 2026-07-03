@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -257,7 +258,7 @@ func TestPlanDelegateExecutionReportsDuplicateNotifyBeforeTimeout(t *testing.T) 
 
 	done := make(chan error)
 	errCh := make(chan error, 1)
-	go func() { errCh <- waitForPlanDelegateExecution(done, notifySvc) }()
+	go func() { errCh <- waitForPlanDelegateExecution(done, new(TaskService), notifySvc) }()
 
 	select {
 	case err := <-errCh:
@@ -277,12 +278,47 @@ func TestPlanDelegateExecutionRejectsClaimedCompletionWithoutNotify(t *testing.T
 	done := make(chan error, 1)
 	done <- nil
 
-	err := waitForPlanDelegateExecution(done, notifySvc)
+	err := waitForPlanDelegateExecution(done, new(TaskService), notifySvc)
 	if err == nil {
 		t.Fatal("waitForPlanDelegateExecution returned nil, want missing notify side-effect error")
 	}
 	if got := err.Error(); !strings.Contains(got, "without required notify side effect") {
 		t.Fatalf("error = %q, want missing notify side-effect error", got)
+	}
+}
+
+func TestPlanDelegateExecutionAcceptsClientTimeoutAfterSideEffects(t *testing.T) {
+	taskSvc := new(TaskService)
+	for _, title := range []string{"Design", "Build", "Ship"} {
+		var rsp AddResponse
+		if err := taskSvc.Add(context.Background(), &AddRequest{Title: title}, &rsp); err != nil {
+			t.Fatalf("Add(%q): %v", title, err)
+		}
+	}
+	notifySvc := new(NotifyService)
+	var rsp SendResponse
+	if err := notifySvc.Send(context.Background(), &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+
+	done := make(chan error, 1)
+	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
+
+	if err := waitForPlanDelegateExecution(done, taskSvc, notifySvc); err != nil {
+		t.Fatalf("waitForPlanDelegateExecution returned %v, want completed side effects to satisfy client timeout", err)
+	}
+}
+
+func TestPlanDelegateExecutionRejectsClientTimeoutBeforeSideEffects(t *testing.T) {
+	done := make(chan error, 1)
+	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
+
+	err := waitForPlanDelegateExecution(done, new(TaskService), new(NotifyService))
+	if err == nil {
+		t.Fatal("waitForPlanDelegateExecution returned nil, want timeout before side effects to fail")
+	}
+	if got := err.Error(); !strings.Contains(got, "tasks=0 notify=0") {
+		t.Fatalf("error = %q, want side-effect counts", got)
 	}
 }
 
