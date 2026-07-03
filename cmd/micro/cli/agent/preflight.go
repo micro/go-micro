@@ -16,6 +16,7 @@ type preflightCheck struct {
 	OK     bool
 	Detail string
 	Fix    string
+	Next   string
 }
 
 type preflightDeps struct {
@@ -52,6 +53,9 @@ func runAgentPreflight(w io.Writer, deps preflightDeps) error {
 		if !check.OK && check.Fix != "" {
 			fmt.Fprintf(w, "    Fix: %s\n", check.Fix)
 		}
+		if !check.OK && check.Next != "" {
+			fmt.Fprintf(w, "    Next: %s\n", check.Next)
+		}
 	}
 	if failures > 0 {
 		return fmt.Errorf("first-agent preflight failed: %d check(s) need attention", failures)
@@ -87,19 +91,23 @@ func agentPreflightChecks(deps preflightDeps) []preflightCheck {
 func checkGoToolchain(deps preflightDeps) preflightCheck {
 	path, err := deps.lookPath("go")
 	if err != nil {
-		return preflightCheck{Name: "Go toolchain", Fix: "Install Go 1.24 or newer and ensure go is on PATH."}
+		return preflightCheck{Name: "Go toolchain", Detail: "go was not found on PATH", Fix: "Install Go 1.24 or newer from https://go.dev/doc/install and ensure go is on PATH.", Next: "After installing Go, rerun micro agent preflight, then continue with docs/guides/your-first-agent.html."}
 	}
 	out, err := deps.commandOutput("go", "version")
 	if err != nil {
-		return preflightCheck{Name: "Go toolchain", Detail: strings.TrimSpace(string(out)), Fix: "Ensure the go command runs successfully."}
+		return preflightCheck{Name: "Go toolchain", Detail: strings.TrimSpace(string(out)), Fix: "Ensure the go command runs successfully (try `go version`) before starting the agent walkthrough.", Next: "Use docs/guides/debugging-agents.html after the toolchain check passes if an agent run still fails."}
 	}
-	return preflightCheck{Name: "Go toolchain", OK: true, Detail: fmt.Sprintf("%s (%s)", firstLine(out), path)}
+	version := firstLine(out)
+	if !goVersionAtLeast(version, 1, 24) {
+		return preflightCheck{Name: "Go toolchain", Detail: fmt.Sprintf("%s (%s)", version, path), Fix: "Upgrade to Go 1.24 or newer before running generated services.", Next: "Rerun micro agent preflight, then continue with docs/guides/your-first-agent.html."}
+	}
+	return preflightCheck{Name: "Go toolchain", OK: true, Detail: fmt.Sprintf("%s (%s)", version, path)}
 }
 
 func checkMicroBinary(deps preflightDeps) preflightCheck {
 	exe, err := deps.executable()
 	if err != nil || exe == "" {
-		return preflightCheck{Name: "micro binary", Fix: "Install the micro CLI or run this check through go run ./cmd/micro agent preflight."}
+		return preflightCheck{Name: "micro binary", Detail: "micro executable path is unavailable", Fix: "Install the micro CLI or run this check through `go run ./cmd/micro agent preflight` from the repository.", Next: "Then follow docs/getting-started.html for the scaffold -> run path."}
 	}
 	version := deps.version()
 	if version == "" {
@@ -117,7 +125,7 @@ func checkProviderKey(deps preflightDeps) preflightCheck {
 		}
 	}
 	if len(found) == 0 {
-		return preflightCheck{Name: "provider API key", Detail: "no supported provider key found", Fix: "Export MICRO_AI_API_KEY or a provider key such as ANTHROPIC_API_KEY before running provider-backed agents."}
+		return preflightCheck{Name: "provider API key", Detail: "no supported provider key found", Fix: "Export MICRO_AI_API_KEY or a provider key such as ANTHROPIC_API_KEY before running provider-backed agents.", Next: "For a no-secret path, run the mock-model walkthrough in docs/guides/no-secret-first-agent.html; for real providers, see docs/guides/debugging-agents.html#provider-failures."}
 	}
 	return preflightCheck{Name: "provider API key", OK: true, Detail: "found " + strings.Join(found, ", ")}
 }
@@ -125,7 +133,7 @@ func checkProviderKey(deps preflightDeps) preflightCheck {
 func checkPortAvailable(deps preflightDeps, addr, use string) preflightCheck {
 	ln, err := deps.listen("tcp", addr)
 	if err != nil {
-		return preflightCheck{Name: "local port " + addr, Detail: "busy or unavailable for " + use, Fix: "Stop the process using " + addr + " or run micro run --address with a free port."}
+		return preflightCheck{Name: "local port " + addr, Detail: "busy or unavailable for " + use, Fix: "Stop the process using " + addr + " (for example, `lsof -i :8080`) or run `micro run --address` with a free port.", Next: "Once the gateway starts, open http://localhost:8080/agent or continue with docs/guides/your-first-agent.html#chat-with-your-agent."}
 	}
 	_ = ln.Close()
 	return preflightCheck{Name: "local port " + addr, OK: true, Detail: "available for " + use}
@@ -137,4 +145,19 @@ func firstLine(b []byte) string {
 		return s[:i]
 	}
 	return s
+}
+
+func goVersionAtLeast(line string, wantMajor, wantMinor int) bool {
+	idx := strings.Index(line, "go1.")
+	if idx < 0 {
+		return false
+	}
+	var major, minor int
+	if _, err := fmt.Sscanf(line[idx:], "go%d.%d", &major, &minor); err != nil {
+		return false
+	}
+	if major != wantMajor {
+		return major > wantMajor
+	}
+	return minor >= wantMinor
 }

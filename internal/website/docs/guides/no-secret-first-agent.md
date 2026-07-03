@@ -89,6 +89,6 @@ CI keeps those CLI boundaries present with:
 go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1
 ```
 
-If chat behaves unexpectedly, continue to
+If `micro agent preflight` reports a missing provider key, you can still use this no-secret path because it runs against the mock model; the command now prints this guide as the next step for that failure. If chat behaves unexpectedly, continue to
 [Debugging your agent](debugging-agents.html) for provider checks, run history,
 memory, and tool-call inspection.
