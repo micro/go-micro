@@ -16,8 +16,26 @@ next version when it ships.
 
 ## [Unreleased]
 
+### Fixed
+- **Plan/delegate completion** — agents now continue unfinished plan steps more reliably, fail checkpointed runs that leave delegated plans unfinished, recover from unknown plan-delegate tool calls, avoid duplicate side effects, and complete timeout paths deterministically. (`agent/`)
+- **AtlasCloud tool calls** — streaming and request fallback handling now recovers tool-call results from provider responses that omit the expected structured fields. (`ai/atlascloud/`)
+
+---
+
+## [6.3.13] - July 2026
+
 ### Added
 - **`micro loop`** — scaffold an autonomous improvement loop into any repository: GitHub Actions workflows dispatched to an @mention-driven coding agent, across up to five roles — `planner` (ranked queue), `builder` (top item as a single-concern PR, auto-merged on green CI), `triage` (CI failures → fix issues), and opt-in `coherence` (docs/CHANGELOG alignment) and `release` (daily patch tag). Each dispatch role's instruction lives in an editable `.github/loop/prompts/<role>.md` file — the workflow is the mechanism, the prompt is the policy — so a repo customizes behavior without forking the CLI. `micro loop init --roles …` writes it all; `micro loop verify` checks the wiring. This is the loop that maintains go-micro itself, generalized. (`cmd/micro/loop/`)
+
+### Changed
+- **x402 payments** — settlement now covers CDP facilitator authentication and conformance edge cases. (`wrapper/x402/`)
+
+### Fixed
+- **Plan/delegate harnessing** — side effects and notifications are now idempotent and deterministic across duplicate, alias, order-scoped, and reachability scenarios. (`agent/`, `internal/harness/`)
+
+### Documentation
+- **First-agent on-ramp** — quickstart docs now connect the no-secret first-agent transcript, example map, and 0→hero path. (`README.md`, `internal/website/docs/`)
+- **Ollama provider docs** — the provider surface, capability matrix, and examples now document local and cloud behavior. (`internal/website/docs/`, `examples/agent-ollama/`)
 
 ---
 
