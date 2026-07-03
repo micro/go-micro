@@ -204,10 +204,10 @@ func dispatchNotifyStep(agentName string, ntf *Notify) flow.StepFunc {
 	return func(ctx context.Context, in flow.State) (flow.State, error) {
 		before := atomic.LoadInt64(&ntf.sent)
 		out, err := dispatch(ctx, in)
-		if err == nil {
-			return out, nil
+		if err != nil {
+			out = in
 		}
-		return completeNotifyOnObservedSideEffect(ctx, in, ntf, before, 2*time.Second, err)
+		return completeNotifyOnObservedSideEffect(ctx, out, ntf, before, 2*time.Second, err)
 	}
 }
 
@@ -220,11 +220,17 @@ func completeNotifyOnObservedSideEffect(ctx context.Context, in flow.State, ntf 
 		}
 		select {
 		case <-ctx.Done():
-			return in, dispatchErr
+			if dispatchErr != nil {
+				return in, dispatchErr
+			}
+			return in, ctx.Err()
 		case <-time.After(25 * time.Millisecond):
 		}
 	}
-	return in, dispatchErr
+	if dispatchErr != nil {
+		return in, dispatchErr
+	}
+	return in, fmt.Errorf("concierge completed without notifying buyer: notify count stayed at %d", before)
 }
 
 // ---------------------------------------------------------------------------

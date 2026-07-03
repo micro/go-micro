@@ -444,6 +444,9 @@ func waitForPlanDelegateExecution(done <-chan error, notifySvc *NotifyService) e
 			if err != nil {
 				return fmt.Errorf("flow execute: %w", err)
 			}
+			if got := notifySvc.count(); got != 1 {
+				return fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", got)
+			}
 			return nil
 		case <-ticker.C:
 			if dup := notifySvc.duplicateAttempts(); dup > 0 {

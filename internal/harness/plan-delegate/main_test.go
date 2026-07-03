@@ -272,6 +272,20 @@ func TestPlanDelegateExecutionReportsDuplicateNotifyBeforeTimeout(t *testing.T) 
 	}
 }
 
+func TestPlanDelegateExecutionRejectsClaimedCompletionWithoutNotify(t *testing.T) {
+	notifySvc := new(NotifyService)
+	done := make(chan error, 1)
+	done <- nil
+
+	err := waitForPlanDelegateExecution(done, notifySvc)
+	if err == nil {
+		t.Fatal("waitForPlanDelegateExecution returned nil, want missing notify side-effect error")
+	}
+	if got := err.Error(); !strings.Contains(got, "without required notify side effect") {
+		t.Fatalf("error = %q, want missing notify side-effect error", got)
+	}
+}
+
 func TestNotifyServiceSendIsIdempotentForDuplicateDelivery(t *testing.T) {
 	svc := new(NotifyService)
 	for i := 0; i < 3; i++ {
