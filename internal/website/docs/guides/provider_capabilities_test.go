@@ -13,6 +13,7 @@ import (
 	_ "go-micro.dev/v6/ai/atlascloud"
 	_ "go-micro.dev/v6/ai/gemini"
 	_ "go-micro.dev/v6/ai/groq"
+	_ "go-micro.dev/v6/ai/minimax"
 	_ "go-micro.dev/v6/ai/mistral"
 	_ "go-micro.dev/v6/ai/ollama"
 	_ "go-micro.dev/v6/ai/openai"

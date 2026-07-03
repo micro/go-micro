@@ -42,6 +42,7 @@ The built-in providers currently register these capability interfaces:
 | `atlascloud` | Yes | Yes | Yes | Yes |
 | `gemini` | Yes | No | No | No |
 | `groq` | Yes | No | No | Yes |
+| `minimax` | Yes | No | No | Yes |
 | `mistral` | Yes | No | No | Yes |
 | `ollama` | Yes | No | No | Yes |
 | `openai` | Yes | Yes | No | Yes |

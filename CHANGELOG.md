@@ -16,6 +16,9 @@ next version when it ships.
 
 ## [Unreleased]
 
+### Added
+- **MiniMax provider** — run agents against MiniMax's `MiniMax-M3` model via its OpenAI-compatible endpoint, with tool calling and streaming; auto-detected from the base URL. (`ai/minimax/`)
+
 ### Fixed
 - **Plan/delegate completion** — agents now continue unfinished plan steps more reliably, fail checkpointed runs that leave delegated plans unfinished, recover from unknown plan-delegate tool calls, avoid duplicate side effects, and complete timeout paths deterministically. (`agent/`)
 - **AtlasCloud tool calls** — streaming and request fallback handling now recovers tool-call results from provider responses that omit the expected structured fields. (`ai/atlascloud/`)

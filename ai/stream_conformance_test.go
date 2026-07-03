@@ -18,6 +18,7 @@ import (
 	_ "go-micro.dev/v6/ai/atlascloud"
 	_ "go-micro.dev/v6/ai/gemini"
 	_ "go-micro.dev/v6/ai/groq"
+	_ "go-micro.dev/v6/ai/minimax"
 	_ "go-micro.dev/v6/ai/mistral"
 	_ "go-micro.dev/v6/ai/openai"
 	_ "go-micro.dev/v6/ai/together"
@@ -278,6 +279,7 @@ func conformingStreamProviders(t *testing.T) []string {
 	allowed := map[string]struct{}{
 		"atlascloud": {},
 		"groq":       {},
+		"minimax":    {},
 		"mistral":    {},
 		"openai":     {},
 		"together":   {},
@@ -288,7 +290,7 @@ func conformingStreamProviders(t *testing.T) []string {
 			out = append(out, provider)
 		}
 	}
-	want := []string{"atlascloud", "groq", "mistral", "openai", "together"}
+	want := []string{"atlascloud", "groq", "minimax", "mistral", "openai", "together"}
 	if !reflect.DeepEqual(out, want) {
 		t.Fatalf("conforming stream providers = %#v, want %#v (registered stream providers: %#v)", out, want, providers)
 	}
