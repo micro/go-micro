@@ -99,15 +99,19 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		}
 		resp, err := m.Generate(callCtx, req, opts...)
 		cancel()
+
+		// Caller cancellation/deadline always wins and is not retried, even if
+		// a provider or tool loop swallowed the canceled tool result and returned
+		// a final response. This keeps agent runs from appearing successful after
+		// their controlling context was abandoned.
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		if err == nil {
 			return resp, nil
 		}
 		last = err
 
-		// Caller cancellation/deadline always wins and is not retried.
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
 		transient := IsTransientError(err)
 		if attempt == policy.MaxAttempts || !transient {
 			if attempt > 1 || transient {
