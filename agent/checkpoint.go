@@ -191,6 +191,43 @@ func agentRunFailureStatus(err error) string {
 	}
 }
 
+type operationalError struct {
+	err  error
+	hint string
+}
+
+func (e *operationalError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return e.err.Error() + "; " + e.hint
+}
+
+func (e *operationalError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.err
+}
+
+func agentOperationalError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch ai.ClassifyError(err) {
+	case ai.ErrorKindCanceled:
+		return &operationalError{err: err, hint: "agent run canceled; inspect run history with `micro inspect agent <name> --status canceled` or see docs/guides/debugging-agents.md"}
+	case ai.ErrorKindTimeout:
+		return &operationalError{err: err, hint: "agent provider call timed out; inspect run history with `micro inspect agent <name> --status timeout`, then adjust AgentModelCallTimeout/AgentModelRetry or see docs/guides/debugging-agents.md"}
+	case ai.ErrorKindRateLimited:
+		return &operationalError{err: err, hint: "agent provider was rate limited; inspect run history with `micro inspect agent <name> --status rate_limited`, check provider keys with `micro agent preflight`, or see docs/guides/debugging-agents.md"}
+	case ai.ErrorKindUnavailable:
+		return &operationalError{err: err, hint: "agent provider appears temporarily unavailable; retry with bounded AgentModelRetry and verify provider setup with `micro agent preflight` or docs/guides/debugging-agents.md"}
+	default:
+		return err
+	}
+}
+
 func (a *agentImpl) checkpointToolWrap(next ai.ToolHandler) ai.ToolHandler {
 	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		if a.opts.Checkpoint == nil || a.currentRun == nil {
