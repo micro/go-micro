@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/registry"
@@ -44,6 +45,7 @@ type Options struct {
 	Address      string
 	Registry     registry.Registry
 	Client       client.Client
+	Broker       broker.Broker
 	Store        store.Store
 	HistoryLimit int
 
@@ -190,6 +192,13 @@ func WithRegistry(r registry.Registry) Option {
 // WithClient sets the RPC client.
 func WithClient(c client.Client) Option {
 	return func(o *Options) { o.Client = c }
+}
+
+// WithBroker sets the broker used by the agent service endpoint. Use an
+// in-memory broker in local harnesses/tests to avoid sharing the package-wide
+// default broker listener across concurrently running examples.
+func WithBroker(b broker.Broker) Option {
+	return func(o *Options) { o.Broker = b }
 }
 
 // WithStore sets the store for agent memory.

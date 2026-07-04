@@ -460,7 +460,7 @@ func (a *agentImpl) Run() error {
 		a.setup()
 	}
 
-	a.server = server.NewServer(
+	serverOpts := []server.Option{
 		server.Name(a.opts.Name),
 		server.Address(a.opts.Address),
 		server.Registry(a.opts.Registry),
@@ -468,7 +468,11 @@ func (a *agentImpl) Run() error {
 			"type":     "agent",
 			"services": strings.Join(a.opts.Services, ","),
 		}),
-	)
+	}
+	if a.opts.Broker != nil {
+		serverOpts = append(serverOpts, server.Broker(a.opts.Broker))
+	}
+	a.server = server.NewServer(serverOpts...)
 
 	_ = pb.RegisterAgentHandler(a.server, a)
 

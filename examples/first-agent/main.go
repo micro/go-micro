@@ -19,6 +19,7 @@ import (
 
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
@@ -92,9 +93,17 @@ func runFirstAgent() error {
 	ai.Register("first-agent-mock", newMock)
 
 	reg := registry.NewMemoryRegistry()
-	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))))
+	br := broker.NewMemoryBroker()
+	if err := br.Init(); err != nil {
+		return fmt.Errorf("init broker: %w", err)
+	}
+	if err := br.Connect(); err != nil {
+		return fmt.Errorf("connect broker: %w", err)
+	}
+	defer br.Disconnect()
+	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))), client.Broker(br))
 
-	notes := service.New(service.Name("notes"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl), service.HandleSignal(false))
+	notes := service.New(service.Name("notes"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl), service.Broker(br), service.HandleSignal(false))
 	if err := notes.Handle(new(NotesService)); err != nil {
 		return fmt.Errorf("handle notes: %w", err)
 	}
@@ -110,6 +119,7 @@ func runFirstAgent() error {
 		agent.Provider("first-agent-mock"),
 		agent.WithRegistry(reg),
 		agent.WithClient(cl),
+		agent.WithBroker(br),
 		agent.WithStore(store.NewMemoryStore()),
 	)
 	agentErr := make(chan error, 1)
