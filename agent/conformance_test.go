@@ -118,7 +118,7 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 		Name("conformance-" + provider.name),
 		Provider(provider.name),
 		APIKey(os.Getenv(provider.key)),
-		Prompt("You are a conformance test agent. Create a short plan, use conformance_echo exactly once with input {\"value\":\"agent-conformance\"}, then attempt to delegate a summary to blocked-reviewer. If the delegate is refused, explain the refusal and answer with the echo result."),
+		Prompt(conformanceSystemPrompt(provider.name)),
 		WithRegistry(registry.NewMemoryRegistry()),
 		WithStore(store.NewMemoryStore()),
 		WithMemory(NewInMemory(8)),
@@ -206,12 +206,37 @@ func askWithConformanceToolRetry(ctx context.Context, a Agent, initialPrompt str
 	return askWithConformanceRetry(ctx, a, initialPrompt, sawTool, nil)
 }
 
+func conformanceSystemPrompt(provider string) string {
+	prompt := "You are a conformance test agent. Create a short plan, use conformance_echo exactly once with input {\"value\":\"agent-conformance\"}, then attempt to delegate a summary to blocked-reviewer with input {\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}. If the delegate is refused, explain the refusal and answer with the echo result."
+	if provider == "atlascloud" {
+		prompt += " AtlasCloud/minimax conformance note: the delegate attempt is mandatory after conformance_echo. If native tool_calls are unavailable, emit the delegate as <tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call> rather than answering in prose."
+	}
+	return prompt
+}
+
+func TestAgentProviderConformanceAtlasCloudPromptRequiresTaggedDelegateFallback(t *testing.T) {
+	prompt := conformanceSystemPrompt("atlascloud")
+	for _, want := range []string{
+		"delegate attempt is mandatory",
+		"<tool_call name=\"delegate\">",
+		`{"task":"summarize the conformance marker","to":"blocked-reviewer"}`,
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("atlascloud conformance prompt %q missing %q", prompt, want)
+		}
+	}
+
+	if strings.Contains(conformanceSystemPrompt("openai"), "AtlasCloud/minimax") {
+		t.Fatal("non-AtlasCloud prompt should not include provider-specific fallback guidance")
+	}
+}
+
 func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate bool) string {
 	switch {
 	case !sawTool:
 		return "The previous response did not call the required conformance_echo tool. Retry the same conformance check now: you must call conformance_echo exactly once with input {\"value\":\"agent-conformance\"} before any final answer, then include the tool result marker in the final answer."
 	case !sawBlockedDelegate:
-		return "The previous response called conformance_echo but did not attempt the required guarded delegation. Continue the same conformance check now: call delegate exactly once with input {\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}. The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
+		return "The previous response called conformance_echo but did not attempt the required guarded delegation. Continue the same conformance check now: call delegate exactly once with input {\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}; do not answer in prose until that delegate call has been attempted. If native tool_calls are unavailable, emit exactly <tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>. The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
 	default:
 		return "Retry the provider conformance check and include the agent-conformance marker in the final answer."
 	}
