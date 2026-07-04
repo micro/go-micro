@@ -86,9 +86,14 @@ Created project Launch and added task 'Write docs' to it.
 
 The console discovers services from the registry and orchestrates across them via the agent. Use `micro run -d` for detached mode without the console, or `micro chat` as a standalone command.
 
-If the agent surprises you while iterating, use the [Debugging your agent](guides/debugging-agents.html) guide to inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs.
+### First-agent on-ramp
 
-When you are ready to prove the whole path end to end, follow the [0→hero reference path](guides/zero-to-hero.html). It is the canonical handoff from this quick start: scaffold a service, run it locally, chat with an agent, inspect durable agent/flow history, and finish with `micro deploy --dry-run` using the same commands exercised by `make harness`.
+After this quick start, follow the agent path in order:
+
+1. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
+2. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
+3. [Debugging your agent](guides/debugging-agents.html) — inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
+4. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
 
 ## Quick Start: Write a Service
 
