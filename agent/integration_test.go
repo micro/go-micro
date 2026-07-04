@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"io"
 	"strings"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 // it with a deferred cleanup. Tests in this package are not parallel,
 // so a package-level hook is safe.
 var fakeGen func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error)
+var fakeStream func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error)
 
 type fakeModel struct{ opts ai.Options }
 
@@ -33,9 +35,32 @@ func (m *fakeModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 	return &ai.Response{Reply: "ok"}, nil
 }
 func (m *fakeModel) Stream(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, nil
+	if fakeStream != nil {
+		return fakeStream(ctx, m.opts, req)
+	}
+	return &sliceStream{chunks: []string{"ok"}}, nil
 }
 func (m *fakeModel) String() string { return "fake" }
+
+type sliceStream struct {
+	chunks []string
+	idx    int
+	closed bool
+}
+
+func (s *sliceStream) Recv() (*ai.Response, error) {
+	if s.idx >= len(s.chunks) {
+		return nil, io.EOF
+	}
+	chunk := s.chunks[s.idx]
+	s.idx++
+	return &ai.Response{Reply: chunk}, nil
+}
+
+func (s *sliceStream) Close() error {
+	s.closed = true
+	return nil
+}
 
 func init() {
 	ai.Register("fake", func(opts ...ai.Option) ai.Model {

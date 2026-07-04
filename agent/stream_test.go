@@ -82,6 +82,52 @@ func TestStreamAskHelperRejectsUnsupportedAgent(t *testing.T) {
 	}
 }
 
+func TestAgentStreamUsesProviderStreamingAndRecordsAssistantMemory(t *testing.T) {
+	var sawRequest bool
+	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+		sawRequest = true
+		if req.Prompt != "stream the answer" {
+			t.Fatalf("Prompt = %q, want stream the answer", req.Prompt)
+		}
+		if len(req.Messages) != 1 || req.Messages[0].Role != "user" || req.Messages[0].Content != "stream the answer" {
+			t.Fatalf("Messages = %#v, want current user turn in memory", req.Messages)
+		}
+		return &sliceStream{chunks: []string{"hel", "lo"}}, nil
+	}
+	defer func() { fakeStream = nil }()
+
+	a := newTestAgent(Name("provider-stream"))
+	stream, err := a.Stream(context.Background(), "stream the answer")
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+
+	var reply string
+	for {
+		chunk, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("Recv: %v", err)
+		}
+		reply += chunk.Reply
+	}
+	if err := stream.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if !sawRequest {
+		t.Fatal("provider Stream was not called")
+	}
+	if reply != "hello" {
+		t.Fatalf("reply = %q, want hello", reply)
+	}
+	got := a.mem.Messages()
+	if len(got) != 2 || got[0].Role != "user" || got[0].Content != "stream the answer" || got[1].Role != "assistant" || got[1].Content != "hello" {
+		t.Fatalf("memory = %#v, want user turn and streamed assistant reply", got)
+	}
+}
+
 func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewStore(), "stream-resume-agent")
