@@ -11,13 +11,27 @@ import (
 )
 
 func TestWriteAgentInspectionIncludesActionableBreadcrumbs(t *testing.T) {
-	runs := []goagent.RunSummary{{RunID: "run-1", Status: "error", Events: 4, LastKind: "tool", LastError: "boom", TraceID: "1234567890abcdef"}}
+	runs := []goagent.RunSummary{{RunID: "run-1", Status: "error", Events: 4, LastKind: "tool", LastError: "boom", TraceID: "1234567890abcdef", Checkpoint: "failed", Stage: "ask"}}
 	var out bytes.Buffer
 	if err := writeAgentInspection(&out, "support", runs, false); err != nil {
 		t.Fatal(err)
 	}
 	got := out.String()
-	for _, want := range []string{"Agent \"support\" runs", "run-1", "status=error", "events=4", "last=tool", `error="boom"`, "trace=1234567890ab"} {
+	for _, want := range []string{"Agent \"support\" runs", "run-1", "status=error", "events=4", "last=tool", "checkpoint=failed", "stage=ask", `error="boom"`, "trace=1234567890ab", `micro.AgentResume(ctx, agent, "run-1")`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("output missing %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestWriteAgentInspectionIncludesInputResumeBreadcrumb(t *testing.T) {
+	runs := []goagent.RunSummary{{RunID: "run-input", Status: "running", Events: 3, LastKind: "checkpoint", Checkpoint: "paused", Stage: "input-required"}}
+	var out bytes.Buffer
+	if err := writeAgentInspection(&out, "support", runs, false); err != nil {
+		t.Fatal(err)
+	}
+	got := out.String()
+	for _, want := range []string{"checkpoint=paused", "stage=input-required", `micro.AgentResumeInput(ctx, agent, "run-input", input)`} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("output missing %q:\n%s", want, got)
 		}

@@ -103,6 +103,8 @@ type RunSummary struct {
 	DurationMS    int64     `json:"duration_ms,omitempty"`
 	Events        int       `json:"events"`
 	Status        string    `json:"status,omitempty"`
+	Checkpoint    string    `json:"checkpoint,omitempty"`
+	Stage         string    `json:"stage,omitempty"`
 	LastKind      string    `json:"last_kind,omitempty"`
 	LastError     string    `json:"last_error,omitempty"`
 	LastErrorKind string    `json:"last_error_kind,omitempty"`
@@ -579,6 +581,10 @@ func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOp
 			}
 			if e.SpanID != "" {
 				summary.SpanID = e.SpanID
+			}
+			if e.Kind == "checkpoint" {
+				summary.Checkpoint = e.Status
+				summary.Stage = e.Name
 			}
 			if e.Error != "" {
 				summary.LastError = e.Error

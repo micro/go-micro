@@ -500,7 +500,8 @@ func TestListRunSummaries(t *testing.T) {
 		{Time: time.Unix(0, 1), RunID: "run-a", Agent: "runner", TraceID: "trace-a", SpanID: "span-a", Kind: "run", Name: "first"},
 		{Time: time.Unix(0, 2), RunID: "run-a", Agent: "runner", Kind: "tool", Name: "probe"},
 		{Time: time.Unix(0, 3), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "run", Name: "second"},
-		{Time: time.Unix(0, 4), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "error", Error: "context deadline exceeded", ErrorKind: string(ai.ErrorKindTimeout)},
+		{Time: time.Unix(0, 4), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "checkpoint", Name: "ask", Status: "failed"},
+		{Time: time.Unix(0, 5), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "error", Error: "context deadline exceeded", ErrorKind: string(ai.ErrorKindTimeout)},
 	}
 	for _, e := range events {
 		b, err := json.Marshal(e)
@@ -523,7 +524,7 @@ func TestListRunSummaries(t *testing.T) {
 	if got[0].RunID != "run-a" || got[0].TraceID != "trace-a" || got[0].SpanID != "span-a" || got[0].Events != 2 || got[0].Status != "running" || got[0].DurationMS != 0 || got[0].LastKind != "tool" || !got[0].UpdatedAt.Equal(time.Unix(0, 2)) {
 		t.Fatalf("unexpected run-a summary: %#v", got[0])
 	}
-	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 2 || got[1].Status != "timeout" || got[1].DurationMS != 0 || got[1].LastKind != "error" || got[1].LastError != "context deadline exceeded" || got[1].LastErrorKind != string(ai.ErrorKindTimeout) {
+	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 3 || got[1].Status != "timeout" || got[1].DurationMS != 0 || got[1].LastKind != "error" || got[1].Checkpoint != "failed" || got[1].Stage != "ask" || got[1].LastError != "context deadline exceeded" || got[1].LastErrorKind != string(ai.ErrorKindTimeout) {
 		t.Fatalf("unexpected run-b summary: %#v", got[1])
 	}
 }
