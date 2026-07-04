@@ -191,13 +191,14 @@ func askWithConformanceRetry(ctx context.Context, a Agent, initialPrompt string,
 		}
 		sawRequiredTool := sawTool == nil || *sawTool
 		sawRequiredDelegate := sawBlockedDelegate == nil || *sawBlockedDelegate
-		if sawRequiredTool && sawRequiredDelegate {
+		hasMarker := responseHasConformanceMarker(resp)
+		if sawRequiredTool && sawRequiredDelegate && hasMarker {
 			return resp, nil
 		}
 		if attempt == maxAttempts {
 			break
 		}
-		prompt = nextConformanceRetryPrompt(sawRequiredTool, sawRequiredDelegate)
+		prompt = nextConformanceRetryPrompt(sawRequiredTool, sawRequiredDelegate, hasMarker)
 	}
 	return resp, nil
 }
@@ -231,15 +232,24 @@ func TestAgentProviderConformanceAtlasCloudPromptRequiresTaggedDelegateFallback(
 	}
 }
 
-func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate bool) string {
+func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate, hasMarker bool) string {
 	switch {
 	case !sawTool:
 		return "The previous response did not call the required conformance_echo tool. Retry the same conformance check now: you must call conformance_echo exactly once with input {\"value\":\"agent-conformance\"} before any final answer, then include the tool result marker in the final answer."
 	case !sawBlockedDelegate:
 		return "The previous response called conformance_echo but did not attempt the required guarded delegation. Continue the same conformance check now: call delegate exactly once with input {\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}; do not answer in prose until that delegate call has been attempted. If native tool_calls are unavailable, emit exactly <tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>. The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
+	case !hasMarker:
+		return "The previous response completed the required tool calls but omitted the conformance marker. Continue the same conformance check now: do not call more tools; answer with the prior echo result marker agent-conformance-ok and mention the guarded delegate refusal."
 	default:
 		return "Retry the provider conformance check and include the agent-conformance marker in the final answer."
 	}
+}
+
+func responseHasConformanceMarker(resp *Response) bool {
+	if resp == nil {
+		return false
+	}
+	return strings.Contains(resp.Reply, "agent-conformance-ok") || strings.Contains(resp.Reply, "agent-conformance")
 }
 
 func validateConformanceRequest(req *ai.Request, opts ai.Options) error {
@@ -329,6 +339,47 @@ func TestAgentProviderConformanceRetriesMissingTool(t *testing.T) {
 	}
 	if !strings.Contains(resp.Reply, "agent-conformance-ok") {
 		t.Fatalf("Reply = %q, want tool result marker", resp.Reply)
+	}
+}
+
+func TestAgentProviderConformanceRetriesMissingMarker(t *testing.T) {
+	var attempts int
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		attempts++
+		if err := validateConformanceRequest(req, opts); err != nil {
+			return nil, err
+		}
+		if attempts == 1 {
+			return &ai.Response{Reply: "called conformance_echo and handled guarded delegate refusal without the required marker"}, nil
+		}
+		return &ai.Response{Reply: "agent-conformance-ok after guarded delegate refusal"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	sawTool := true
+	sawBlockedDelegate := true
+	a := New(
+		Name("conformance-retry-marker"),
+		Provider("fake"),
+		WithRegistry(registry.NewMemoryRegistry()),
+		WithStore(store.NewMemoryStore()),
+		WithMemory(NewInMemory(4)),
+		WithTool("conformance_echo", "Echo a conformance value.", map[string]any{
+			"value": map[string]any{"type": "string"},
+		}, func(ctx context.Context, input map[string]any) (string, error) {
+			return `{"marker":"agent-conformance-ok"}`, nil
+		}),
+	)
+
+	resp, err := askWithConformanceRetry(context.Background(), a, "Run the provider conformance check.", &sawTool, &sawBlockedDelegate)
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d, want retry after missing marker", attempts)
+	}
+	if !strings.Contains(resp.Reply, "agent-conformance-ok") {
+		t.Fatalf("Reply = %q, want conformance marker", resp.Reply)
 	}
 }
 
