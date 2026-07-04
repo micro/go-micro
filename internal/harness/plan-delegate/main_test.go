@@ -258,7 +258,7 @@ func TestPlanDelegateExecutionReportsDuplicateNotifyBeforeTimeout(t *testing.T) 
 
 	done := make(chan error)
 	errCh := make(chan error, 1)
-	go func() { errCh <- waitForPlanDelegateExecution(done, new(TaskService), notifySvc, nil) }()
+	go func() { errCh <- waitForPlanDelegateExecution(done, new(TaskService), notifySvc) }()
 
 	select {
 	case err := <-errCh:
@@ -278,7 +278,7 @@ func TestPlanDelegateExecutionRejectsClaimedCompletionWithoutNotify(t *testing.T
 	done := make(chan error, 1)
 	done <- nil
 
-	err := waitForPlanDelegateExecution(done, new(TaskService), notifySvc, nil)
+	err := waitForPlanDelegateExecution(done, new(TaskService), notifySvc)
 	if err == nil {
 		t.Fatal("waitForPlanDelegateExecution returned nil, want missing notify side-effect error")
 	}
@@ -296,15 +296,13 @@ func TestPlanDelegateExecutionRecoversMissingNotifyOnce(t *testing.T) {
 		}
 	}
 	notifySvc := new(NotifyService)
-	done := make(chan error, 1)
-	done <- nil
 
 	recovered := false
-	err := waitForPlanDelegateExecution(done, taskSvc, notifySvc, func(ctx context.Context) error {
+	_, err := requireDelegatedNotifyStep(taskSvc, notifySvc, func(ctx context.Context) error {
 		recovered = true
 		var rsp SendResponse
 		return notifySvc.Send(ctx, &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp)
-	})
+	})(context.Background(), flow.State{})
 	if err != nil {
 		t.Fatalf("waitForPlanDelegateExecution returned %v, want recovery success", err)
 	}
@@ -325,8 +323,6 @@ func TestPlanDelegateExecutionWaitsForInFlightNotifyAfterFlowCompletion(t *testi
 		}
 	}
 	notifySvc := new(NotifyService)
-	done := make(chan error, 1)
-	done <- nil
 
 	go func() {
 		time.Sleep(100 * time.Millisecond)
@@ -335,11 +331,11 @@ func TestPlanDelegateExecutionWaitsForInFlightNotifyAfterFlowCompletion(t *testi
 	}()
 
 	recovered := false
-	err := waitForPlanDelegateExecution(done, taskSvc, notifySvc, func(ctx context.Context) error {
+	_, err := requireDelegatedNotifyStep(taskSvc, notifySvc, func(ctx context.Context) error {
 		recovered = true
 		var rsp SendResponse
 		return notifySvc.Send(ctx, &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp)
-	})
+	})(context.Background(), flow.State{})
 	if err != nil {
 		t.Fatalf("waitForPlanDelegateExecution returned %v, want in-flight notify success", err)
 	}
@@ -374,7 +370,7 @@ func TestPlanDelegateExecutionAcceptsClientTimeoutAfterSideEffects(t *testing.T)
 	done := make(chan error, 1)
 	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
 
-	if err := waitForPlanDelegateExecution(done, taskSvc, notifySvc, nil); err != nil {
+	if err := waitForPlanDelegateExecution(done, taskSvc, notifySvc); err != nil {
 		t.Fatalf("waitForPlanDelegateExecution returned %v, want completed side effects to satisfy client timeout", err)
 	}
 }
@@ -383,7 +379,7 @@ func TestPlanDelegateExecutionClassifiesClientTimeoutBeforeSideEffects(t *testin
 	done := make(chan error, 1)
 	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
 
-	err := waitForPlanDelegateExecution(done, new(TaskService), new(NotifyService), nil)
+	err := waitForPlanDelegateExecution(done, new(TaskService), new(NotifyService))
 	if err == nil {
 		t.Fatal("waitForPlanDelegateExecution returned nil, want timeout before side effects to fail")
 	}
@@ -410,7 +406,7 @@ func TestPlanDelegateExecutionClassifiesPartialClientTimeout(t *testing.T) {
 	done := make(chan error, 1)
 	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
 
-	err := waitForPlanDelegateExecution(done, taskSvc, new(NotifyService), nil)
+	err := waitForPlanDelegateExecution(done, taskSvc, new(NotifyService))
 	if err == nil {
 		t.Fatal("waitForPlanDelegateExecution returned nil, want timeout before notify to fail")
 	}
