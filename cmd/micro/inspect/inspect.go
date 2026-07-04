@@ -85,6 +85,12 @@ func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, a
 	fmt.Fprintf(w, "  Agent %q runs\n", name)
 	for _, run := range runs {
 		fmt.Fprintf(w, "  %s  status=%s  events=%d  last=%s", run.RunID, run.Status, run.Events, run.LastKind)
+		if run.Checkpoint != "" {
+			fmt.Fprintf(w, "  checkpoint=%s", run.Checkpoint)
+		}
+		if run.Stage != "" {
+			fmt.Fprintf(w, "  stage=%s", run.Stage)
+		}
 		if run.LastError != "" {
 			fmt.Fprintf(w, "  error=%q", run.LastError)
 		}
@@ -92,8 +98,23 @@ func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, a
 			fmt.Fprintf(w, "  trace=%s", shortID(run.TraceID))
 		}
 		fmt.Fprintln(w)
+		if isResumableAgentRun(run) {
+			fmt.Fprintf(w, "    resume: call micro.AgentResume(ctx, agent, %q) after recreating the agent with the same checkpoint store\n", run.RunID)
+		}
+		if run.Stage == "input-required" {
+			fmt.Fprintf(w, "    input:  call micro.AgentResumeInput(ctx, agent, %q, input) to continue the paused run\n", run.RunID)
+		}
 	}
 	return nil
+}
+
+func isResumableAgentRun(run goagent.RunSummary) bool {
+	switch run.Status {
+	case "running", "error", "failed", "refused":
+		return run.Checkpoint != "done" || run.Stage != ""
+	default:
+		return false
+	}
 }
 
 func inspectFlow(c *cli.Context) error {
