@@ -77,6 +77,30 @@ func TestAskRetriesTransientErrorsThenSurfacesStructuredError(t *testing.T) {
 	if attempts != 2 {
 		t.Fatalf("model attempts = %d, want 2", attempts)
 	}
+	if !strings.Contains(err.Error(), "micro inspect agent <name> --status timeout") ||
+		!strings.Contains(err.Error(), "docs/guides/debugging-agents.md") {
+		t.Fatalf("Ask error = %q, want actionable timeout/debugging guidance", err.Error())
+	}
+}
+
+func TestAskRateLimitFailureSuggestsPreflightAndInspect(t *testing.T) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		return nil, testStatusError{code: 429}
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("rate-limit-guidance"), ModelRetry(1, time.Millisecond))
+	_, err := a.Ask(context.Background(), "hello")
+	if err == nil {
+		t.Fatal("Ask succeeded, want rate-limit failure")
+	}
+	if !strings.Contains(err.Error(), "micro inspect agent <name> --status rate_limited") ||
+		!strings.Contains(err.Error(), "micro agent preflight") {
+		t.Fatalf("Ask error = %q, want inspect and preflight guidance", err.Error())
+	}
+	if ai.ClassifyError(err) != ai.ErrorKindRateLimited {
+		t.Fatalf("ClassifyError(wrapped error) = %q, want rate_limited", ai.ClassifyError(err))
+	}
 }
 
 func TestCanceledAskContextSkipsToolExecution(t *testing.T) {

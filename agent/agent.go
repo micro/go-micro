@@ -312,6 +312,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		})
 		if err != nil {
 			run.Status = agentRunFailureStatus(err)
+			err = agentOperationalError(err)
 			if a.currentRun != nil {
 				run.Steps = a.currentRun.Steps
 			}
