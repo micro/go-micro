@@ -222,12 +222,16 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 		return nil, fmt.Errorf("discover tools: %w", err)
 	}
 	a.mem.Add("user", message)
-	return a.model.Stream(ctx, &ai.Request{
+	stream, err := a.model.Stream(ctx, &ai.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
 		Tools:        toolList,
 		Messages:     a.mem.Messages(),
 	})
+	if err != nil {
+		return nil, err
+	}
+	return &memoryRecordingStream{stream: stream, memory: a.mem}, nil
 }
 
 // Pending returns checkpointed agent runs that have not completed. It mirrors

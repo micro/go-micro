@@ -185,6 +185,45 @@ type agentStreamAdapter struct {
 	stream AgentStream
 }
 
+type memoryRecordingStream struct {
+	stream ai.Stream
+	memory Memory
+
+	mu     sync.Mutex
+	chunks []string
+	closed bool
+}
+
+func (s *memoryRecordingStream) Recv() (*ai.Response, error) {
+	resp, err := s.stream.Recv()
+	if resp != nil && resp.Reply != "" {
+		s.mu.Lock()
+		s.chunks = append(s.chunks, resp.Reply)
+		s.mu.Unlock()
+	}
+	if errors.Is(err, io.EOF) {
+		s.recordAssistant()
+	}
+	return resp, err
+}
+
+func (s *memoryRecordingStream) Close() error {
+	s.recordAssistant()
+	return s.stream.Close()
+}
+
+func (s *memoryRecordingStream) recordAssistant() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return
+	}
+	s.closed = true
+	if reply := strings.Join(s.chunks, ""); reply != "" {
+		s.memory.Add("assistant", reply)
+	}
+}
+
 func (s *agentStreamAdapter) Recv() (*ai.Response, error) {
 	for {
 		event, err := s.stream.Recv()
