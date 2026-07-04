@@ -48,13 +48,7 @@ func (a *agentImpl) executeTextToolCalls(ctx context.Context, reply string, tool
 }
 
 func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
-	allowed := map[string]bool{}
-	for _, tool := range tools {
-		allowed[tool.Name] = true
-		if tool.OriginalName != "" {
-			allowed[tool.OriginalName] = true
-		}
-	}
+	allowed := textToolNames(tools)
 	if len(allowed) == 0 {
 		return nil
 	}
@@ -68,6 +62,33 @@ func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
 		}
 	}
 	return nil
+}
+
+func textToolNames(tools []ai.Tool) map[string]string {
+	allowed := map[string]string{}
+	for _, tool := range tools {
+		addTextToolName(allowed, tool.Name, tool.Name)
+		if tool.OriginalName != "" {
+			addTextToolName(allowed, tool.OriginalName, tool.Name)
+		}
+	}
+	return allowed
+}
+
+func addTextToolName(allowed map[string]string, name, canonical string) {
+	if name == "" || canonical == "" {
+		return
+	}
+	allowed[name] = canonical
+	// Some OpenAI-compatible models describe an idempotent Add endpoint as a
+	// creation action and emit the otherwise-correct service tool with a Create
+	// suffix in text-only tool-call markup. Keep the fallback bounded by the
+	// offered service tool prefix so ordinary unknown tools remain ignored.
+	for _, suffix := range []string{"_Add", ".Add"} {
+		if strings.HasSuffix(name, suffix) {
+			allowed[strings.TrimSuffix(name, suffix)+strings.Replace(suffix, "Add", "Create", 1)] = canonical
+		}
+	}
 }
 
 func jsonCandidates(text string) []string {
@@ -92,7 +113,7 @@ func jsonCandidates(text string) []string {
 	return out
 }
 
-func decodeTextToolCalls(candidate string, allowed map[string]bool) []ai.ToolCall {
+func decodeTextToolCalls(candidate string, allowed map[string]string) []ai.ToolCall {
 	var root any
 	if err := json.Unmarshal([]byte(candidate), &root); err != nil {
 		return nil
@@ -100,7 +121,7 @@ func decodeTextToolCalls(candidate string, allowed map[string]bool) []ai.ToolCal
 	return collectTextToolCalls(root, allowed)
 }
 
-func collectTextToolCalls(v any, allowed map[string]bool) []ai.ToolCall {
+func collectTextToolCalls(v any, allowed map[string]string) []ai.ToolCall {
 	switch x := v.(type) {
 	case []any:
 		var out []ai.ToolCall
@@ -121,20 +142,20 @@ func collectTextToolCalls(v any, allowed map[string]bool) []ai.ToolCall {
 		if input == nil {
 			input = call.Arguments
 		}
-		if name == "" || !allowed[name] || input == nil {
+		if name == "" || allowed[name] == "" || input == nil {
 			return nil
 		}
 		id := call.ID
 		if id == "" {
 			id = fmt.Sprintf("text-call-%s", strings.ReplaceAll(name, ".", "_"))
 		}
-		return []ai.ToolCall{{ID: id, Name: name, Input: input}}
+		return []ai.ToolCall{{ID: id, Name: allowed[name], Input: input}}
 	default:
 		return nil
 	}
 }
 
-func decodeTaggedTextToolCalls(text string, allowed map[string]bool) []ai.ToolCall {
+func decodeTaggedTextToolCalls(text string, allowed map[string]string) []ai.ToolCall {
 	var out []ai.ToolCall
 	for _, match := range singleTaggedToolCall.FindAllStringSubmatch(text, -1) {
 		if len(match) < 3 {
@@ -150,7 +171,7 @@ func decodeTaggedTextToolCalls(text string, allowed map[string]bool) []ai.ToolCa
 			continue
 		}
 		name := taggedToolName(tag)
-		if name == "" || !allowed[name] {
+		if name == "" || allowed[name] == "" {
 			continue
 		}
 		var input map[string]any
@@ -159,7 +180,7 @@ func decodeTaggedTextToolCalls(text string, allowed map[string]bool) []ai.ToolCa
 		}
 		out = append(out, ai.ToolCall{
 			ID:    fmt.Sprintf("text-call-%s", strings.ReplaceAll(name, ".", "_")),
-			Name:  name,
+			Name:  allowed[name],
 			Input: input,
 		})
 	}

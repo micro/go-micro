@@ -40,3 +40,19 @@ func TestParseTextToolCallsFunctionTaggedMarkup(t *testing.T) {
 		t.Fatalf("title = %v, want Design", got)
 	}
 }
+
+func TestParseTextToolCallsCreateAliasForAddTool(t *testing.T) {
+	tools := []ai.Tool{{Name: "task_TaskService_Add", OriginalName: "task.TaskService.Add"}}
+	reply := `<tool_call>{"name":"task_TaskService_Create","arguments":{"title":"Design"}}</tool_call>`
+
+	calls := parseTextToolCalls(reply, tools)
+	if len(calls) != 1 {
+		t.Fatalf("parseTextToolCalls returned %d calls, want 1: %+v", len(calls), calls)
+	}
+	if calls[0].Name != "task_TaskService_Add" {
+		t.Fatalf("call name = %q, want canonical task_TaskService_Add", calls[0].Name)
+	}
+	if got := calls[0].Input["title"]; got != "Design" {
+		t.Fatalf("title = %v, want Design", got)
+	}
+}
