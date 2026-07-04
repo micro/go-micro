@@ -155,7 +155,7 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 	}
 
 	a := New(agentOpts...)
-	resp, err := askWithConformanceToolRetry(context.Background(), a, "Run the provider conformance check.", &sawTool)
+	resp, err := askWithConformanceRetry(context.Background(), a, "Run the provider conformance check.", &sawTool, &sawBlockedDelegate)
 	if err != nil {
 		t.Fatalf("Ask: %v", err)
 	}
@@ -179,8 +179,8 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 	}
 }
 
-func askWithConformanceToolRetry(ctx context.Context, a Agent, initialPrompt string, sawTool *bool) (*Response, error) {
-	const maxAttempts = 2
+func askWithConformanceRetry(ctx context.Context, a Agent, initialPrompt string, sawTool, sawBlockedDelegate *bool) (*Response, error) {
+	const maxAttempts = 3
 	prompt := initialPrompt
 	var resp *Response
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
@@ -189,15 +189,32 @@ func askWithConformanceToolRetry(ctx context.Context, a Agent, initialPrompt str
 		if err != nil {
 			return nil, err
 		}
-		if sawTool != nil && *sawTool {
+		sawRequiredTool := sawTool == nil || *sawTool
+		sawRequiredDelegate := sawBlockedDelegate == nil || *sawBlockedDelegate
+		if sawRequiredTool && sawRequiredDelegate {
 			return resp, nil
 		}
 		if attempt == maxAttempts {
 			break
 		}
-		prompt = "The previous response did not call the required conformance_echo tool. Retry the same conformance check now: you must call conformance_echo exactly once with input {\"value\":\"agent-conformance\"} before any final answer, then include the tool result marker in the final answer."
+		prompt = nextConformanceRetryPrompt(sawRequiredTool, sawRequiredDelegate)
 	}
 	return resp, nil
+}
+
+func askWithConformanceToolRetry(ctx context.Context, a Agent, initialPrompt string, sawTool *bool) (*Response, error) {
+	return askWithConformanceRetry(ctx, a, initialPrompt, sawTool, nil)
+}
+
+func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate bool) string {
+	switch {
+	case !sawTool:
+		return "The previous response did not call the required conformance_echo tool. Retry the same conformance check now: you must call conformance_echo exactly once with input {\"value\":\"agent-conformance\"} before any final answer, then include the tool result marker in the final answer."
+	case !sawBlockedDelegate:
+		return "The previous response called conformance_echo but did not attempt the required guarded delegation. Continue the same conformance check now: call delegate exactly once with input {\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}. The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
+	default:
+		return "Retry the provider conformance check and include the agent-conformance marker in the final answer."
+	}
 }
 
 func validateConformanceRequest(req *ai.Request, opts ai.Options) error {
@@ -287,6 +304,81 @@ func TestAgentProviderConformanceRetriesMissingTool(t *testing.T) {
 	}
 	if !strings.Contains(resp.Reply, "agent-conformance-ok") {
 		t.Fatalf("Reply = %q, want tool result marker", resp.Reply)
+	}
+}
+
+func TestAgentProviderConformanceRetriesMissingDelegate(t *testing.T) {
+	var attempts int
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		attempts++
+		if err := validateConformanceRequest(req, opts); err != nil {
+			return nil, err
+		}
+		echo := opts.ToolHandler(ctx, ai.ToolCall{
+			ID:    "fake-call-1",
+			Name:  "conformance_echo",
+			Input: map[string]any{"value": "agent-conformance"},
+		})
+		if attempts == 1 {
+			return &ai.Response{
+				Reply:  "called conformance_echo but skipped delegate",
+				Answer: echo.Content,
+				ToolCalls: []ai.ToolCall{
+					{ID: "fake-call-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
+				},
+			}, nil
+		}
+		delegate := opts.ToolHandler(ctx, ai.ToolCall{
+			ID:    "fake-delegate-1",
+			Name:  "delegate",
+			Input: map[string]any{"task": "summarize the conformance marker", "to": "blocked-reviewer"},
+		})
+		return &ai.Response{
+			Reply:  "called conformance_echo and handled guarded delegate refusal",
+			Answer: echo.Content + " " + delegate.Content,
+			ToolCalls: []ai.ToolCall{
+				{ID: "fake-call-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
+				{ID: "fake-delegate-1", Name: "delegate", Input: map[string]any{"task": "summarize the conformance marker", "to": "blocked-reviewer"}, Error: delegate.Content},
+			},
+		}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	var sawTool bool
+	var sawBlockedDelegate bool
+	a := New(
+		Name("conformance-retry-delegate"),
+		Provider("fake"),
+		WithRegistry(registry.NewMemoryRegistry()),
+		WithStore(store.NewMemoryStore()),
+		WithMemory(NewInMemory(4)),
+		ApproveTool(func(tool string, input map[string]any) (bool, string) {
+			if tool == "delegate" {
+				sawBlockedDelegate = true
+				return false, "cross-provider conformance blocks delegate side effects"
+			}
+			return true, ""
+		}),
+		WithTool("conformance_echo", "Echo a conformance value.", map[string]any{
+			"value": map[string]any{"type": "string"},
+		}, func(ctx context.Context, input map[string]any) (string, error) {
+			sawTool = true
+			return `{"marker":"agent-conformance-ok"}`, nil
+		}),
+	)
+
+	resp, err := askWithConformanceRetry(context.Background(), a, "Run the provider conformance check.", &sawTool, &sawBlockedDelegate)
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d, want retry after missing delegate", attempts)
+	}
+	if !sawBlockedDelegate {
+		t.Fatal("retry did not attempt guarded delegate")
+	}
+	if !strings.Contains(resp.Reply, "agent-conformance-ok") && !strings.Contains(resp.Reply, "agent-conformance") {
+		t.Fatalf("Reply = %q, want conformance marker", resp.Reply)
 	}
 }
 
