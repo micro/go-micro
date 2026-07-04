@@ -74,6 +74,56 @@ func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
 	}
 }
 
+func TestFirstAgentWayfindingDocs(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	checks := []struct {
+		name    string
+		file    string
+		heading string
+		links   []string
+	}{
+		{
+			name:    "README first-agent on-ramp",
+			file:    filepath.Join(root, "README.md"),
+			heading: "### First agent on-ramp",
+			links: []string{
+				"internal/website/docs/guides/no-secret-first-agent.md",
+				"internal/website/docs/guides/your-first-agent.md",
+				"internal/website/docs/guides/debugging-agents.md",
+				"internal/website/docs/guides/zero-to-hero.md",
+			},
+		},
+		{
+			name:    "website getting-started on-ramp",
+			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			heading: "### First-agent on-ramp",
+			links: []string{
+				"guides/no-secret-first-agent.html",
+				"guides/your-first-agent.html",
+				"guides/debugging-agents.html",
+				"guides/zero-to-hero.html",
+			},
+		},
+	}
+
+	for _, check := range checks {
+		t.Run(check.name, func(t *testing.T) {
+			doc := firstMarkdownSection(t, readFile(t, check.file), check.heading)
+			last := -1
+			for _, link := range check.links {
+				idx := strings.Index(doc, link)
+				if idx == -1 {
+					t.Fatalf("%s missing first-agent wayfinding link %q; keep the no-secret → first-agent → debugging → 0→hero path discoverable", check.name, link)
+				}
+				if idx < last {
+					t.Fatalf("%s link %q appeared out of order; expected no-secret → first-agent → debugging → 0→hero", check.name, link)
+				}
+				last = idx
+			}
+		})
+	}
+}
+
 func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"))
@@ -103,6 +153,19 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	if !strings.Contains(firstAgent, "no-secret-first-agent.html") {
 		t.Fatal("Your First Agent guide does not point to the no-secret transcript")
 	}
+}
+
+func firstMarkdownSection(t *testing.T, doc, heading string) string {
+	t.Helper()
+	start := strings.Index(doc, heading)
+	if start == -1 {
+		t.Fatalf("missing %q section", heading)
+	}
+	section := doc[start+len(heading):]
+	if next := strings.Index(section, "\n##"); next != -1 {
+		section = section[:next]
+	}
+	return section
 }
 
 func readFile(t *testing.T, name string) string {
