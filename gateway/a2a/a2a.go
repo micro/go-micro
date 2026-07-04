@@ -201,12 +201,13 @@ type Part struct {
 
 // Message is a turn in an A2A conversation.
 type Message struct {
-	Role      string `json:"role"` // "user" | "agent"
-	Parts     []Part `json:"parts"`
-	MessageID string `json:"messageId,omitempty"`
-	TaskID    string `json:"taskId,omitempty"`
-	ContextID string `json:"contextId,omitempty"`
-	Kind      string `json:"kind"` // "message"
+	Role        string             `json:"role"` // "user" | "agent"
+	Parts       []Part             `json:"parts"`
+	MessageID   string             `json:"messageId,omitempty"`
+	TaskID      string             `json:"taskId,omitempty"`
+	ContextID   string             `json:"contextId,omitempty"`
+	Kind        string             `json:"kind"` // "message"
+	AP2Mandates []AP2SignedMandate `json:"ap2Mandates,omitempty"`
 }
 
 // TaskStatus is a task's lifecycle state.
@@ -223,12 +224,14 @@ type Artifact struct {
 
 // Task is the unit of work returned by message/send and tasks/get.
 type Task struct {
-	ID        string     `json:"id"`
-	ContextID string     `json:"contextId"`
-	Status    TaskStatus `json:"status"`
-	Artifacts []Artifact `json:"artifacts,omitempty"`
-	History   []Message  `json:"history,omitempty"`
-	Kind      string     `json:"kind"` // "task"
+	ID               string             `json:"id"`
+	ContextID        string             `json:"contextId"`
+	Status           TaskStatus         `json:"status"`
+	Artifacts        []Artifact         `json:"artifacts,omitempty"`
+	History          []Message          `json:"history,omitempty"`
+	Kind             string             `json:"kind"` // "task"
+	AP2Mandates      []AP2SignedMandate `json:"ap2Mandates,omitempty"`
+	AP2Verifications []AP2Verification  `json:"ap2Verifications,omitempty"`
 }
 
 // PushNotificationConfig tells the gateway where to POST task updates for a
@@ -848,12 +851,13 @@ func taskFromReplyWithIDsAndHistory(input Message, reply, state, taskID, context
 		input.Kind = "message"
 	}
 	task := &Task{
-		ID:        taskID,
-		ContextID: contextID,
-		Kind:      "task",
-		History:   append(append([]Message{}, history...), input),
-		Status:    TaskStatus{State: state, Timestamp: time.Now().UTC().Format(time.RFC3339)},
-		Artifacts: []Artifact{textArtifact(reply)},
+		ID:          taskID,
+		ContextID:   contextID,
+		Kind:        "task",
+		History:     append(append([]Message{}, history...), input),
+		Status:      TaskStatus{State: state, Timestamp: time.Now().UTC().Format(time.RFC3339)},
+		Artifacts:   []Artifact{textArtifact(reply)},
+		AP2Mandates: append([]AP2SignedMandate{}, input.AP2Mandates...),
 	}
 	task.History = append(task.History, Message{
 		Role:      "agent",
