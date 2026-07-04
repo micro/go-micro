@@ -24,12 +24,19 @@ cloud credentials?"
 | Chat | `micro chat` remains the interactive agent entry point. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Inspect | `micro inspect agent`, `micro inspect flow`, and `micro flow runs` remain discoverable for run history. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Deploy | `micro deploy --dry-run` resolves deploy targets without touching remote infrastructure. | `go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1` |
+| Smallest first agent | `examples/first-agent` runs one service-backed agent with a deterministic mock model and no provider key. | `go test ./examples/first-agent -run TestRunFirstAgent -count=1` |
 | Runtime reference app | `examples/support` runs typed services, an agent using those services as tools, an event-driven flow handoff, and an approval gate with only the model mocked. | `go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1` |
 | Runtime harnesses | Real services, agents, durable flows, store-backed history, delegation, and A2A run with only the model mocked. | `./internal/harness/zero-to-hero-ci/run.sh` and `make provider-conformance-mock` |
 
 ## Run the runnable example
 
-From the repository root, start with the support-desk example when you want to see the full lifecycle in one terminal:
+From the repository root, start with the smallest service-backed agent when you want the fastest no-secret success path:
+
+```sh
+go run ./examples/first-agent
+```
+
+Then run the support-desk example when you want to see the full lifecycle in one terminal:
 
 ```sh
 go run ./examples/support
@@ -68,6 +75,9 @@ go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1
 go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1
 go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
 
+# Smallest no-secret service-backed first agent.
+go test ./examples/first-agent -run TestRunFirstAgent -count=1
+
 # Maintained 0→hero support-desk reference app.
 go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1
 
@@ -83,6 +93,9 @@ make provider-conformance-mock
 
 ## Reference scenarios
 
+- [`examples/first-agent`](https://github.com/micro/go-micro/tree/master/examples/first-agent)
+  is the smallest no-secret service-backed agent: one notes service, one scoped
+  assistant agent, and a deterministic mock model.
 - [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support)
   is the runnable support-desk story: customers, tickets, notify, a support
   agent, an intake flow, and an approval gate in one no-secret example.

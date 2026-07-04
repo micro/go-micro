@@ -14,5 +14,6 @@ go test ./internal/harness/zero-to-hero-ci -run 'TestNoSecretFirstAgentTranscrip
 # runtime and mock only the LLM provider. The support example is the maintained
 # runnable 0→hero app; keep it in this CI path so its documented run/chat/inspect
 # journey cannot drift from the framework.
+go test ./examples/first-agent -run TestRunFirstAgent -count=1
 go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1
 go test ./internal/harness/universe ./internal/harness/plan-delegate -run 'Test.*Harness|TestPlanDelegateEndToEnd|TestPlanDelegateFlowHandoff' -count=1

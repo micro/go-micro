@@ -25,11 +25,17 @@ end to end with no secrets.
 
 ## Transcript
 
-From a fresh clone of the repository:
+From a fresh clone of the repository, first run the smallest service-backed agent:
 
 ```sh
 git clone https://github.com/micro/go-micro.git
 cd go-micro
+go run ./examples/first-agent
+```
+
+Then run the maintained support-agent transcript that exercises the full lifecycle:
+
+```sh
 go run ./examples/support
 ```
 
@@ -56,9 +62,10 @@ trigger and inspect the work.
 
 ## CI-backed check
 
-Run the same deterministic path as a focused test:
+Run the same deterministic paths as focused tests:
 
 ```sh
+go test ./examples/first-agent -run TestRunFirstAgent -count=1
 go test ./examples/support -run TestRunSupportMockSmoke -count=1
 ```
 
