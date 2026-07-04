@@ -1,6 +1,7 @@
 package new
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"os"
@@ -55,6 +56,43 @@ func TestZeroToOneNoMCPContract(t *testing.T) {
 	generated.build(t)
 	generated.run(t)
 	generated.call(t, "Bob", "Hello Bob")
+}
+
+func TestPrintNextStepsSurfacesFirstAgentPath(t *testing.T) {
+	var out bytes.Buffer
+	printNextSteps(&out, "helloworld", false)
+
+	for _, want := range []string{
+		"cd helloworld",
+		"micro agent preflight",
+		"go run .",
+		"micro chat",
+		"micro inspect agent",
+		"micro docs",
+		"your-first-agent.html",
+		"zero-to-hero.html",
+		"http://localhost:3001/mcp/tools",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("next steps missing %q:\n%s", want, out.String())
+		}
+	}
+}
+
+func TestPrintNextStepsNoMCPSkipsMCPHints(t *testing.T) {
+	var out bytes.Buffer
+	printNextSteps(&out, "worker", true)
+
+	for _, want := range []string{"micro agent preflight", "micro chat", "micro inspect agent", "micro docs"} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("--no-mcp next steps missing %q:\n%s", want, out.String())
+		}
+	}
+	for _, notWant := range []string{"http://localhost:3001/mcp/tools", "micro mcp serve"} {
+		if strings.Contains(out.String(), notWant) {
+			t.Fatalf("--no-mcp next steps should not include %q:\n%s", notWant, out.String())
+		}
+	}
 }
 
 type generatedService struct {

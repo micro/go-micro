@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"go/build"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -280,16 +281,28 @@ func Run(ctx *cli.Context) error {
 
 	fmt.Println()
 	fmt.Printf("  \033[32m✓\033[0m Service \033[36m%s\033[0m created\n\n", dir)
-	fmt.Println("  Next steps:")
-	fmt.Printf("    cd %s\n", dir)
-	fmt.Println("    go run .")
-	if !noMCP {
-		fmt.Println()
-		fmt.Printf("    MCP tools   \033[36mhttp://localhost:3001/mcp/tools\033[0m\n")
-		fmt.Println("    Claude Code \033[2mmicro mcp serve\033[0m")
-	}
-	fmt.Println()
+	printNextSteps(os.Stdout, dir, noMCP)
 	return nil
+}
+
+func printNextSteps(w io.Writer, dir string, noMCP bool) {
+	fmt.Fprintln(w, "  Next steps:")
+	fmt.Fprintf(w, "    cd %s\n", dir)
+	fmt.Fprintln(w, "    micro agent preflight")
+	fmt.Fprintln(w, "    go run .")
+	fmt.Fprintln(w, "    micro chat")
+	fmt.Fprintln(w, "    micro inspect agent")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  First-agent path:")
+	fmt.Fprintln(w, "    micro docs")
+	fmt.Fprintln(w, "    https://go-micro.dev/docs/guides/your-first-agent.html")
+	fmt.Fprintln(w, "    https://go-micro.dev/docs/guides/zero-to-hero.html")
+	if !noMCP {
+		fmt.Fprintln(w)
+		fmt.Fprintf(w, "    MCP tools   \033[36mhttp://localhost:3001/mcp/tools\033[0m\n")
+		fmt.Fprintln(w, "    Claude Code \033[2mmicro mcp serve\033[0m")
+	}
+	fmt.Fprintln(w)
 }
 
 func selectTemplates(name string, noMCP bool) (mainTmpl, handlerTmpl, protoTmpl string) {
