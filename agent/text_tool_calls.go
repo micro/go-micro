@@ -11,6 +11,8 @@ import (
 )
 
 var fencedJSONBlock = regexp.MustCompile("(?s)```(?:json)?\\s*(.*?)\\s*```")
+var taggedToolCallBlock = regexp.MustCompile(`(?s)<[^<>]*(?:tool_call|tool_calls|function=)[^<>]*>(.*?)</[^<>]*>`)
+var singleTaggedToolCall = regexp.MustCompile(`(?s)<(tool_call\b[^<>]*|[^<>]*function=[^<>]*)>(.*?)</[^<>]*>`)
 
 type textToolCall struct {
 	ID        string         `json:"id"`
@@ -57,6 +59,9 @@ func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
 		return nil
 	}
 
+	if calls := decodeTaggedTextToolCalls(text, allowed); len(calls) > 0 {
+		return calls
+	}
 	for _, candidate := range jsonCandidates(text) {
 		if calls := decodeTextToolCalls(candidate, allowed); len(calls) > 0 {
 			return calls
@@ -72,6 +77,11 @@ func jsonCandidates(text string) []string {
 		out = append(out, trimmed)
 	}
 	for _, match := range fencedJSONBlock.FindAllStringSubmatch(text, -1) {
+		if len(match) > 1 {
+			out = append(out, strings.TrimSpace(match[1]))
+		}
+	}
+	for _, match := range taggedToolCallBlock.FindAllStringSubmatch(text, -1) {
 		if len(match) > 1 {
 			out = append(out, strings.TrimSpace(match[1]))
 		}
@@ -122,6 +132,52 @@ func collectTextToolCalls(v any, allowed map[string]bool) []ai.ToolCall {
 	default:
 		return nil
 	}
+}
+
+func decodeTaggedTextToolCalls(text string, allowed map[string]bool) []ai.ToolCall {
+	var out []ai.ToolCall
+	for _, match := range singleTaggedToolCall.FindAllStringSubmatch(text, -1) {
+		if len(match) < 3 {
+			continue
+		}
+		tag, body := match[1], strings.TrimSpace(match[2])
+		if calls := decodeTextToolCalls(body, allowed); len(calls) > 0 {
+			out = append(out, calls...)
+			continue
+		}
+		if calls := decodeTaggedTextToolCalls(body, allowed); len(calls) > 0 {
+			out = append(out, calls...)
+			continue
+		}
+		name := taggedToolName(tag)
+		if name == "" || !allowed[name] {
+			continue
+		}
+		var input map[string]any
+		if err := json.Unmarshal([]byte(body), &input); err != nil || input == nil {
+			continue
+		}
+		out = append(out, ai.ToolCall{
+			ID:    fmt.Sprintf("text-call-%s", strings.ReplaceAll(name, ".", "_")),
+			Name:  name,
+			Input: input,
+		})
+	}
+	return out
+}
+
+func taggedToolName(tag string) string {
+	for _, marker := range []string{"function=", "name=", "tool="} {
+		if idx := strings.Index(tag, marker); idx >= 0 {
+			name := strings.TrimSpace(tag[idx+len(marker):])
+			name = strings.Trim(name, `"'`)
+			if end := strings.IndexAny(name, " \t\r\n>"); end >= 0 {
+				name = name[:end]
+			}
+			return strings.Trim(name, `"'`)
+		}
+	}
+	return ""
 }
 
 func firstNestedToolCalls(m map[string]any) (any, bool) {
