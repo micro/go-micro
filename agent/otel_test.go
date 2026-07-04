@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -576,5 +577,94 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 	}
 	if len(got) != 1 || got[0].RunID != "run-new" || got[0].Status != "rate_limited" {
 		t.Fatalf("filtered summaries = %#v", got)
+	}
+}
+
+type otelStreamModel struct{ opts ai.Options }
+
+func (m *otelStreamModel) Init(opts ...ai.Option) error {
+	for _, o := range opts {
+		o(&m.opts)
+	}
+	return nil
+}
+func (m *otelStreamModel) Options() ai.Options { return m.opts }
+func (m *otelStreamModel) String() string      { return "otelstream" }
+func (m *otelStreamModel) Generate(context.Context, *ai.Request, ...ai.GenerateOption) (*ai.Response, error) {
+	return &ai.Response{Reply: "unused"}, nil
+}
+func (m *otelStreamModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+	return &otelTestStream{chunks: []*ai.Response{{Reply: "one", Usage: ai.Usage{InputTokens: 1, OutputTokens: 2, TotalTokens: 3}}, {Reply: "two", Usage: ai.Usage{InputTokens: 1, OutputTokens: 4, TotalTokens: 5}}}}, nil
+}
+
+type otelTestStream struct {
+	chunks []*ai.Response
+	idx    int
+}
+
+func (s *otelTestStream) Recv() (*ai.Response, error) {
+	if s.idx >= len(s.chunks) {
+		return nil, io.EOF
+	}
+	resp := s.chunks[s.idx]
+	s.idx++
+	return resp, nil
+}
+
+func (s *otelTestStream) Close() error { return nil }
+
+func TestAgentOpenTelemetrySpansModelStream(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+	st := store.NewMemoryStore()
+	a := New(Name("stream-runner"), Provider("oteltest"), Model("stream-model"), WithStore(st), TraceProvider(tp))
+	m := a.(*agentImpl).tracedModel(&otelStreamModel{opts: ai.Options{Model: "stream-model"}})
+	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{RunID: "stream-run-1", ParentID: "parent-run", Agent: "stream-runner", Attempt: 2, MaxAttempts: 3, Flow: "deploy", Step: "plan"})
+
+	stream, err := m.Stream(ctx, &ai.Request{Prompt: "stream"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for {
+		_, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := stream.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	spans := exp.GetSpans().Snapshots()
+	var sawStream bool
+	for _, s := range spans {
+		if s.Name() != spanNameModelStream {
+			continue
+		}
+		attrs := spanAttributes(s.Attributes())
+		if attrs[AttrRunID] != "stream-run-1" || attrs[AttrParentRunID] != "parent-run" || attrs[AttrAgentName] != "stream-runner" {
+			t.Fatalf("stream span missing run lineage: %#v", attrs)
+		}
+		if attrs[AttrFlowName] != "deploy" || attrs[AttrFlowStep] != "plan" {
+			t.Fatalf("stream span missing workflow attributes: %#v", attrs)
+		}
+		if attrs[AttrAttempt] != "2" || attrs[AttrMaxAttempts] != "3" || attrs[AttrTotalTokens] != "5" {
+			t.Fatalf("stream span missing attempt/usage attributes: %#v", attrs)
+		}
+		sawStream = true
+	}
+	if !sawStream {
+		t.Fatalf("stream span not emitted; got %d spans", len(spans))
+	}
+
+	events, err := LoadRunEvents(st, "stream-runner", "stream-run-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 1 || events[0].Kind != "stream" || events[0].TraceID == "" || events[0].SpanID == "" || events[0].Tokens.TotalTokens != 5 {
+		t.Fatalf("unexpected stream run event: %#v", events)
 	}
 }

@@ -3,7 +3,9 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"time"
@@ -18,9 +20,10 @@ import (
 const agentInstrumentationName = "go-micro.dev/v6/agent"
 
 const (
-	spanNameRun       = "agent.run"
-	spanNameModelCall = "agent.model.call"
-	spanNameToolCall  = "agent.tool.call"
+	spanNameRun         = "agent.run"
+	spanNameModelCall   = "agent.model.call"
+	spanNameModelStream = "agent.model.stream"
+	spanNameToolCall    = "agent.tool.call"
 
 	AttrRunID            = "agent.run.id"
 	AttrParentRunID      = "agent.run.parent_id"
@@ -218,6 +221,123 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 	}
 	m.a.recordSpanEvent(span, e)
 	return resp, err
+}
+
+func (m *tracedModel) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
+	info, _ := ai.RunInfoFrom(ctx)
+	provider := m.String()
+	model := m.Options().Model
+	start := time.Now()
+
+	if m.a.opts.TraceProvider == nil {
+		stream, err := m.Model.Stream(ctx, req, opts...)
+		if err != nil {
+			m.a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: time.Since(start).Milliseconds(), Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))})
+			return nil, err
+		}
+		return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: model, start: start}, nil
+	}
+
+	attrs := appendRunInfoAttributes([]attribute.KeyValue{
+		attribute.String(AttrRunID, info.RunID),
+		attribute.String(AttrParentRunID, info.ParentID),
+		attribute.String(AttrAgentName, info.Agent),
+		attribute.String(AttrProvider, provider),
+		attribute.String(AttrModel, model),
+	}, info)
+	ctx, span := m.a.tracer().Start(ctx, spanNameModelStream, trace.WithAttributes(attrs...))
+	stream, err := m.Model.Stream(ctx, req, opts...)
+	if err != nil {
+		dur := time.Since(start).Milliseconds()
+		span.SetAttributes(attribute.Int64(AttrLatencyMS, dur), attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+		m.a.recordSpanEvent(span, e)
+		span.End()
+		return nil, err
+	}
+	return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: model, start: start, span: span}, nil
+}
+
+type tracedStream struct {
+	ai.Stream
+	a        *agentImpl
+	info     ai.RunInfo
+	provider string
+	model    string
+	start    time.Time
+	span     trace.Span
+	usage    ai.Usage
+	closed   bool
+}
+
+func (s *tracedStream) Recv() (*ai.Response, error) {
+	resp, err := s.Stream.Recv()
+	if resp != nil {
+		s.usage = mergeUsage(s.usage, resp.Usage)
+	}
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			s.finish(nil)
+		} else {
+			s.finish(err)
+		}
+	}
+	return resp, err
+}
+
+func (s *tracedStream) Close() error {
+	err := s.Stream.Close()
+	s.finish(err)
+	return err
+}
+
+func (s *tracedStream) finish(err error) {
+	if s.closed {
+		return
+	}
+	s.closed = true
+	dur := time.Since(s.start).Milliseconds()
+	e := RunEvent{Time: time.Now(), RunID: s.info.RunID, ParentID: s.info.ParentID, Agent: s.info.Agent, Kind: "stream", Provider: s.provider, Model: s.model, Attempt: s.info.Attempt, MaxAttempts: s.info.MaxAttempts, LatencyMS: dur, Tokens: s.usage}
+	if err != nil {
+		e.Error = err.Error()
+		e.ErrorKind = string(ai.ClassifyError(err))
+	}
+	if s.span == nil {
+		s.a.recordRunEvent(e)
+		return
+	}
+	attrs := appendUsage([]attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}, s.usage)
+	if s.info.Attempt > 0 {
+		attrs = append(attrs, attribute.Int(AttrAttempt, s.info.Attempt))
+	}
+	if s.info.MaxAttempts > 0 {
+		attrs = append(attrs, attribute.Int(AttrMaxAttempts, s.info.MaxAttempts))
+	}
+	if err != nil {
+		attrs = append(attrs, attribute.String(AttrErrorKind, e.ErrorKind))
+		s.span.RecordError(err)
+		s.span.SetStatus(codes.Error, err.Error())
+	} else {
+		s.span.SetStatus(codes.Ok, "")
+	}
+	s.span.SetAttributes(attrs...)
+	s.a.recordSpanEvent(s.span, e)
+	s.span.End()
+}
+
+func mergeUsage(current, next ai.Usage) ai.Usage {
+	if next.InputTokens > current.InputTokens {
+		current.InputTokens = next.InputTokens
+	}
+	if next.OutputTokens > current.OutputTokens {
+		current.OutputTokens = next.OutputTokens
+	}
+	if next.TotalTokens > current.TotalTokens {
+		current.TotalTokens = next.TotalTokens
+	}
+	return current
 }
 
 func appendUsage(attrs []attribute.KeyValue, u ai.Usage) []attribute.KeyValue {
