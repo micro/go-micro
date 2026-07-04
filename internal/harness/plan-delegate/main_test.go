@@ -316,6 +316,47 @@ func TestPlanDelegateExecutionRecoversMissingNotifyOnce(t *testing.T) {
 	}
 }
 
+func TestPlanDelegateExecutionWaitsForInFlightNotifyAfterFlowCompletion(t *testing.T) {
+	taskSvc := new(TaskService)
+	for _, title := range []string{"Design", "Build", "Ship"} {
+		var rsp AddResponse
+		if err := taskSvc.Add(context.Background(), &AddRequest{Title: title}, &rsp); err != nil {
+			t.Fatalf("Add(%q): %v", title, err)
+		}
+	}
+	notifySvc := new(NotifyService)
+	done := make(chan error, 1)
+	done <- nil
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		var rsp SendResponse
+		_ = notifySvc.Send(context.Background(), &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp)
+	}()
+
+	recovered := false
+	err := waitForPlanDelegateExecution(done, taskSvc, notifySvc, func(ctx context.Context) error {
+		recovered = true
+		var rsp SendResponse
+		return notifySvc.Send(ctx, &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp)
+	})
+	if err != nil {
+		t.Fatalf("waitForPlanDelegateExecution returned %v, want in-flight notify success", err)
+	}
+	if recovered {
+		t.Fatal("missing notify recovery ran while delegated notify was still in flight")
+	}
+	if got := taskSvc.count(); got != 3 {
+		t.Fatalf("task count = %d, want 3 after in-flight notify settles", got)
+	}
+	if got := notifySvc.count(); got != 1 {
+		t.Fatalf("notify count = %d, want 1 after in-flight notify settles", got)
+	}
+	if got := notifySvc.duplicateAttempts(); got != 0 {
+		t.Fatalf("duplicate notify attempts = %d, want 0", got)
+	}
+}
+
 func TestPlanDelegateExecutionAcceptsClientTimeoutAfterSideEffects(t *testing.T) {
 	taskSvc := new(TaskService)
 	for _, title := range []string{"Design", "Build", "Ship"} {

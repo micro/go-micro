@@ -464,12 +464,18 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 				if recoverMissingNotify == nil || tasks != 3 || notify != 0 {
 					return fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", notify)
 				}
-				fmt.Print("\n\033[33mwarning:\033[0m flow completed before delegated notify; retrying the missing comms handoff once.\n")
-				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				retryErr := recoverMissingNotify(ctx)
-				cancel()
-				if retryErr != nil {
-					return fmt.Errorf("delegation completed without required notify side effect and recovery failed: notify=%d, want 1: %w", notify, retryErr)
+				settled, err := waitForNotifySideEffect(notifySvc, 2*time.Second)
+				if err != nil {
+					return err
+				}
+				if !settled {
+					fmt.Print("\n\033[33mwarning:\033[0m flow completed before delegated notify; retrying the missing comms handoff once.\n")
+					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+					retryErr := recoverMissingNotify(ctx)
+					cancel()
+					if retryErr != nil {
+						return fmt.Errorf("delegation completed without required notify side effect and recovery failed: notify=%d, want 1: %w", notify, retryErr)
+					}
 				}
 				if notify = notifySvc.count(); notify != 1 {
 					return fmt.Errorf("delegation recovery completed without required notify side effect: notify=%d, want 1", notify)
@@ -481,6 +487,22 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 				return fmt.Errorf("duplicate notify attempts: got %d duplicate replay(s), want 0", dup)
 			}
 		}
+	}
+}
+
+func waitForNotifySideEffect(notifySvc *NotifyService, timeout time.Duration) (bool, error) {
+	deadline := time.Now().Add(timeout)
+	for {
+		if notifySvc.count() == 1 {
+			return true, nil
+		}
+		if dup := notifySvc.duplicateAttempts(); dup > 0 {
+			return false, fmt.Errorf("duplicate notify attempts: got %d duplicate replay(s), want 0", dup)
+		}
+		if !time.Now().Before(deadline) {
+			return false, nil
+		}
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
