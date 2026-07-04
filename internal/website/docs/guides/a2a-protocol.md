@@ -186,6 +186,16 @@ This is the JSON-RPC binding for task execution:
 
 Both directions work: the gateway exposes your agents, and `a2a.Client` (via `flow.A2A` or `delegate` to a URL) calls external ones. The task binding is what makes a Go Micro agent both reachable from, and able to reach, the A2A ecosystem today.
 
+## AP2 mandate layer (opt-in)
+
+AP2 sits above A2A as a verifiable-intent and audit layer. Go Micro keeps the
+A2A envelope separate from payment settlement: an A2A message can carry signed
+AP2 checkout or payment mandates, and the resulting task can retain the stable
+mandate reference plus verification result. Payment settlement state remains in
+the payment rail. For x402, use an AP2 payment mandate with an `x402` rail
+reference to name the payment requirement; the existing x402 facilitator still
+performs verification and settlement.
+
 ## See also
 
 - [MCP & AI Agents](../mcp.html) — exposing services as tools

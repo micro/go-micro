@@ -107,12 +107,13 @@ func (c *Client) SendMessage(ctx context.Context, message Message) (*Task, error
 			return nil, err
 		}
 		return &Task{
-			ID:        m.TaskID,
-			ContextID: m.ContextID,
-			Kind:      "task",
-			Status:    TaskStatus{State: stateCompleted, Timestamp: time.Now().UTC().Format(time.RFC3339)},
-			Artifacts: []Artifact{textArtifact(textOf(m.Parts))},
-			History:   []Message{m},
+			ID:          m.TaskID,
+			ContextID:   m.ContextID,
+			Kind:        "task",
+			Status:      TaskStatus{State: stateCompleted, Timestamp: time.Now().UTC().Format(time.RFC3339)},
+			Artifacts:   []Artifact{textArtifact(textOf(m.Parts))},
+			History:     []Message{m},
+			AP2Mandates: append([]AP2SignedMandate{}, m.AP2Mandates...),
 		}, nil
 	}
 

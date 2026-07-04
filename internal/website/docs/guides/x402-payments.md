@@ -128,3 +128,11 @@ Leave those variables unset in normal CI; the live test skips unless the facilit
 - [Building Effective Agents — Agents and Workflows](agents-and-workflows.html)
 - [MCP & AI Agents](../mcp.html)
 - [x402 — Coinbase Developer Docs](https://docs.cdp.coinbase.com/x402/welcome) · [x402 on Solana](https://solana.com/x402/what-is-x402)
+
+## AP2 payment mandates
+
+AP2 can authorize an x402 payment without making A2A carry settlement state. A
+payment mandate records the buyer intent and names an `x402` rail reference; the
+existing x402 facilitator remains responsible for payment verification and
+settlement. This keeps AP2 as the signed mandate/audit layer while x402 stays the
+pluggable payment rail.
