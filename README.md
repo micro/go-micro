@@ -440,9 +440,12 @@ resp, _ := m.Generate(ctx, &ai.Request{Prompt: "hello"})
 
 ## Examples
 
+New to agents? Follow the [first-agent on-ramp](#first-agent-on-ramp), then use the [examples index](examples/README.md) for the full services → agents → workflows map.
+
 - [hello-world](examples/hello-world/) — Basic RPC service
 - [multi-service](examples/multi-service/) — Multiple services in one binary
 - [mcp](examples/mcp/) — MCP integration with AI agents
+- [first-agent](examples/first-agent/) — Smallest provider-free service-backed agent
 - [agent-plan-delegate](examples/agent-plan-delegate/) — Agent planning and multi-agent delegation
 - [agent-durable](examples/agent-durable/) — Checkpoint and resume an agent run without replaying completed tool side effects
 - [grpc-interop](examples/grpc-interop/) — Call go-micro from any gRPC client

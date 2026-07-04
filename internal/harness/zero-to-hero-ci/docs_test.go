@@ -95,6 +95,36 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			},
 		},
 		{
+			name:    "README examples list",
+			file:    filepath.Join(root, "README.md"),
+			heading: "## Examples",
+			links: []string{
+				"examples/README.md",
+				"examples/first-agent/",
+			},
+		},
+		{
+			name:    "repository examples index",
+			file:    filepath.Join(root, "examples", "README.md"),
+			heading: "## Recommended first-agent path",
+			links: []string{
+				"./first-agent/",
+				"./support/",
+			},
+		},
+		{
+			name:    "website examples index",
+			file:    filepath.Join(root, "internal", "website", "docs", "examples", "index.md"),
+			heading: "## Start here",
+			links: []string{
+				"https://github.com/micro/go-micro/tree/master/examples/first-agent",
+				"../guides/no-secret-first-agent.html",
+				"../guides/your-first-agent.html",
+				"../guides/debugging-agents.html",
+				"../guides/zero-to-hero.html",
+			},
+		},
+		{
 			name:    "website getting-started on-ramp",
 			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
 			heading: "### First-agent on-ramp",
@@ -169,6 +199,23 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	firstAgent := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "your-first-agent.md"))
 	if !strings.Contains(firstAgent, "no-secret-first-agent.html") {
 		t.Fatal("Your First Agent guide does not point to the no-secret transcript")
+	}
+}
+
+func TestFirstAgentWayfindingTargetsExist(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	for _, target := range []string{
+		"examples/README.md",
+		"examples/first-agent/README.md",
+		"internal/website/docs/examples/index.md",
+		"internal/website/docs/guides/no-secret-first-agent.md",
+		"internal/website/docs/guides/your-first-agent.md",
+		"internal/website/docs/guides/debugging-agents.md",
+		"internal/website/docs/guides/zero-to-hero.md",
+	} {
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(target))); err != nil {
+			t.Fatalf("first-agent wayfinding target %s disappeared: %v", target, err)
+		}
 	}
 }
 
