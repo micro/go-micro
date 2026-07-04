@@ -144,6 +144,20 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 		}
 	}
 
+	debugCheckpoint := firstMarkdownSection(t, guide, "## Debug transcript checkpoint")
+	for _, want := range []string{
+		`micro chat assistant --prompt "Triage ticket-1 for Alice"`,
+		"micro inspect agent assistant --limit 1",
+		"micro agent history assistant",
+		"status, event count, last event",
+		"Debugging your agent",
+		"debugging-agents.html",
+	} {
+		if !strings.Contains(debugCheckpoint, want) {
+			t.Fatalf("no-secret debug transcript checkpoint missing %q", want)
+		}
+	}
+
 	readme := readFile(t, filepath.Join(root, "README.md"))
 	if !strings.Contains(readme, "internal/website/docs/guides/no-secret-first-agent.md") {
 		t.Fatal("README does not point to the no-secret first-agent transcript")

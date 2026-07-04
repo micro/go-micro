@@ -89,6 +89,26 @@ CI keeps those CLI boundaries present with:
 go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1
 ```
 
+## Debug transcript checkpoint
+
+A successful first chat turn should always leave an inspectable trail. After the
+chat command finishes, continue the same terminal transcript with the inspection
+and history commands before changing prompts or provider settings:
+
+```sh
+micro chat assistant --prompt "Triage ticket-1 for Alice"
+micro inspect agent assistant --limit 1
+micro agent history assistant
+```
+
+The inspection output is the checkpoint that the runnable loop did not stop at
+chat: it should show a recent agent run with a status, event count, last event,
+and trace breadcrumb when tracing is configured. `micro agent history assistant`
+then confirms the conversation memory that future turns will reuse. If either
+command is empty after a successful chat turn, keep the failing transcript and
+use [Debugging your agent](debugging-agents.html) to check provider failures, run
+history, memory, and tool-call inspection before changing application code.
+
 If `micro agent preflight` reports a missing provider key, you can still use this no-secret path because it runs against the mock model; the command now prints this guide as the next step for that failure. If chat behaves unexpectedly, continue to
 [Debugging your agent](debugging-agents.html) for provider checks, run history,
 memory, and tool-call inspection.
