@@ -15,7 +15,7 @@ of reading the directories alphabetically.
 | Step | Start here | What you learn | Next step |
 |------|------------|----------------|-----------|
 | 1. First service | [`hello-world`](./hello-world/) | Create and register a basic RPC service, add a handler, call it with a client, and expose health checks. | Move to [`agent-demo`](./agent-demo/) to see services used by an agent. |
-| 2. First agent | [`agent-demo`](./agent-demo/) | Run a small project-management app with Projects, Tasks, and Team services plus an agent playground. | Compare with the maintained 0-to-hero path in [`support`](./support/). |
+| 2. First agent | [`first-agent`](./first-agent/) | Run the smallest service-backed agent with a deterministic mock model and no provider key. | Compare with [`agent-demo`](./agent-demo/) or the maintained 0-to-hero path in [`support`](./support/). |
 | 3. First workflow | [`support`](./support/) | Follow typed services into an agent chat loop, an event-driven `intake` flow, and an approval gate in one runnable reference. | Deepen the workflow model with [`flow-durable`](./flow-durable/). |
 
 For the shortest AI-tooling bridge, the MCP path is
@@ -75,8 +75,11 @@ Docker Compose deployment with MCP gateway, Consul registry, and Jaeger tracing:
 
 ### 2. Agents — turn services into tool-using teammates
 
+#### [first-agent](./first-agent/)
+Smallest first agent: one notes service plus one scoped agent, backed by a deterministic mock model so `go run ./examples/first-agent` works without provider secrets.
+
 #### [agent-demo](./agent-demo/)
-Recommended first agent: a multi-service project management app with Projects,
+A multi-service project management app with Projects,
 Tasks, and Team services, seed data, and agent playground integration.
 
 #### [agent-plan-delegate](./agent-plan-delegate/)
