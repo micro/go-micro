@@ -131,6 +131,8 @@ const delegatedNotifyTask = "Use the notify Send tool exactly once to tell owner
 
 const commsPrompt = "You handle outbound notifications. When asked to notify someone, you must call the notify Send tool exactly once before replying. Never claim a notification was sent unless the notify tool returned success."
 
+const delegatedNotifySettleTimeout = 10 * time.Second
+
 type SendRequest struct {
 	To      string `json:"to" description:"Recipient address"`
 	Message string `json:"message" description:"Message body"`
@@ -464,7 +466,7 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 				if recoverMissingNotify == nil || tasks != 3 || notify != 0 {
 					return fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", notify)
 				}
-				settled, err := waitForNotifySideEffect(notifySvc, 2*time.Second)
+				settled, err := waitForNotifySideEffect(notifySvc, delegatedNotifySettleTimeout)
 				if err != nil {
 					return err
 				}
