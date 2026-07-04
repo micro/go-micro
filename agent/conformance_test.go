@@ -67,30 +67,45 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 		}
 	} else {
 		fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
-			if req.Prompt == "" {
-				return nil, errors.New("missing prompt")
+			if err := validateConformanceRequest(req, opts); err != nil {
+				return nil, err
 			}
-			if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" {
-				return nil, fmt.Errorf("missing user history: %+v", req.Messages)
-			}
-			if len(req.Tools) == 0 {
-				return nil, errors.New("missing tools")
-			}
-			if opts.ToolHandler == nil {
-				return nil, errors.New("missing tool handler")
-			}
-			res := opts.ToolHandler(ctx, ai.ToolCall{
+
+			plan := opts.ToolHandler(ctx, ai.ToolCall{
+				ID:   "fake-plan-1",
+				Name: "plan",
+				Input: map[string]any{"steps": []map[string]any{
+					{"description": "call conformance_echo", "status": "pending"},
+					{"description": "attempt guarded delegate", "status": "pending"},
+				}},
+			})
+			echo := opts.ToolHandler(ctx, ai.ToolCall{
 				ID:    "fake-call-1",
 				Name:  "conformance_echo",
 				Input: map[string]any{"value": "agent-conformance"},
 			})
-			if res.Content == "" {
+			delegate := opts.ToolHandler(ctx, ai.ToolCall{
+				ID:    "fake-delegate-1",
+				Name:  "delegate",
+				Input: map[string]any{"task": "summarize the conformance marker", "to": "blocked-reviewer"},
+			})
+			if plan.Content == "" {
+				return nil, errors.New("empty plan result")
+			}
+			if echo.Content == "" {
 				return nil, errors.New("empty tool result")
 			}
+			if delegate.Refused != ai.RefusedApproval {
+				return nil, fmt.Errorf("delegate refusal = %q, want %q", delegate.Refused, ai.RefusedApproval)
+			}
 			return &ai.Response{
-				Reply:     "used conformance_echo",
-				Answer:    res.Content,
-				ToolCalls: []ai.ToolCall{{ID: "fake-call-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: res.Content}},
+				Reply:  "planned, called conformance_echo, and handled guarded delegate refusal",
+				Answer: echo.Content + " " + delegate.Content,
+				ToolCalls: []ai.ToolCall{
+					{ID: "fake-plan-1", Name: "plan", Input: map[string]any{}},
+					{ID: "fake-call-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
+					{ID: "fake-delegate-1", Name: "delegate", Input: map[string]any{"task": "summarize the conformance marker", "to": "blocked-reviewer"}, Error: delegate.Content},
+				},
 			}, nil
 		}
 		defer func() { fakeGen = nil }()
@@ -98,15 +113,23 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 
 	var sawTool bool
 	var sawRunInfo bool
+	var sawBlockedDelegate bool
 	agentOpts := []Option{
 		Name("conformance-" + provider.name),
 		Provider(provider.name),
 		APIKey(os.Getenv(provider.key)),
-		Prompt("You are a conformance test agent. Use the conformance_echo tool exactly once with input {\"value\":\"agent-conformance\"}, then answer with the tool result."),
+		Prompt("You are a conformance test agent. Create a short plan, use conformance_echo exactly once with input {\"value\":\"agent-conformance\"}, then attempt to delegate a summary to blocked-reviewer. If the delegate is refused, explain the refusal and answer with the echo result."),
 		WithRegistry(registry.NewMemoryRegistry()),
 		WithStore(store.NewMemoryStore()),
 		WithMemory(NewInMemory(8)),
 		ModelCallTimeout(45 * time.Second),
+		ApproveTool(func(tool string, input map[string]any) (bool, string) {
+			if tool == "delegate" {
+				sawBlockedDelegate = true
+				return false, "cross-provider conformance blocks delegate side effects"
+			}
+			return true, ""
+		}),
 		WithTool("conformance_echo", "Echo a conformance value and return a deterministic marker.", map[string]any{
 			"value": map[string]any{"type": "string", "description": "value to echo"},
 		}, func(ctx context.Context, input map[string]any) (string, error) {
@@ -148,9 +171,28 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 	if !sawRunInfo {
 		t.Fatal("tool did not receive RunInfo")
 	}
+	if !sawBlockedDelegate {
+		t.Fatal("provider did not exercise the guarded delegate path")
+	}
 	if !strings.Contains(resp.Reply, "agent-conformance-ok") && !strings.Contains(resp.Reply, "agent-conformance") {
 		t.Fatalf("reply %q does not include conformance marker", resp.Reply)
 	}
+}
+
+func validateConformanceRequest(req *ai.Request, opts ai.Options) error {
+	if req.Prompt == "" {
+		return errors.New("missing prompt")
+	}
+	if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" {
+		return fmt.Errorf("missing user history: %+v", req.Messages)
+	}
+	if len(req.Tools) == 0 {
+		return errors.New("missing tools")
+	}
+	if opts.ToolHandler == nil {
+		return errors.New("missing tool handler")
+	}
+	return nil
 }
 
 func TestAgentProviderConformanceFakeError(t *testing.T) {
