@@ -17,6 +17,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 		"go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1",
 		"go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1",
 		"go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1",
+		"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
 		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1",
 		"./internal/harness/zero-to-hero-ci/run.sh",
 		"go run ./internal/harness/agent-flow",
@@ -129,6 +130,8 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"))
 
 	for _, want := range []string{
+		"go run ./examples/first-agent",
+		"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
 		"go run ./examples/support",
 		"go test ./examples/support -run TestRunSupportMockSmoke -count=1",
 		"make harness",
