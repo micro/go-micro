@@ -56,7 +56,11 @@ After that first-agent path, branch out to:
 ```go
 package main
 
-import "go-micro.dev/v6"
+import (
+    "context"
+
+    "go-micro.dev/v6"
+)
 
 type Greeter struct{}
 
@@ -74,7 +78,11 @@ func main() {
 
 ### Pub/Sub Event Handler
 ```go
-import "go-micro.dev/v6"
+import (
+    "context"
+
+    "go-micro.dev/v6"
+)
 
 func main() {
     service := micro.NewService("subscriber")
@@ -82,7 +90,7 @@ func main() {
     // Subscribe to events
     micro.RegisterSubscriber("user.created", service.Server(), 
         func(ctx context.Context, event *UserCreatedEvent) error {
-            log.Infof("User created: %s", event.Email)
+            // Handle the event here.
             return nil
         },
     )

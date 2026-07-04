@@ -16,13 +16,25 @@ next version when it ships.
 
 ## [Unreleased]
 
+## [6.3.14] - July 2026
+
 ### Added
 - **MiniMax provider** — run agents against MiniMax's `MiniMax-M3` model via its OpenAI-compatible endpoint, with tool calling and streaming; auto-detected from the base URL. (`ai/minimax/`)
 - **`micro loop` security role** — a new opt-in loop role (`--roles …,security`) that periodically audits a repo for vulnerabilities and files `security` issues. It is deliberately conservative: it never auto-merges fixes and never publishes exploit detail in public issues (responsible disclosure), and risky fixes are marked `needs-human`. go-micro now runs it against its own attack surface (MCP/A2A gateways, x402, auth, provider URLs, agent tool loop, deps). (`cmd/micro/loop/`)
+- **Agent run tracing** — agent model streaming and run-event kinds now emit richer trace detail for debugging agent execution. (`agent/`)
+
+### Changed
+- **Agent memory** — streamed agent replies are persisted in conversation memory so later turns can reference streamed responses. (`agent/`)
 
 ### Fixed
 - **Plan/delegate completion** — agents now continue unfinished plan steps more reliably, fail checkpointed runs that leave delegated plans unfinished, recover from unknown plan-delegate tool calls, avoid duplicate side effects, and complete timeout paths deterministically. (`agent/`)
 - **AtlasCloud tool calls** — streaming and request fallback handling now recovers tool-call results from provider responses that omit the expected structured fields. (`ai/atlascloud/`)
+- **Agent preflight diagnostics** — provider setup failures now surface more actionable errors before an agent run starts. (`agent/`)
+- **A2A fallback streams** — fallback stream validation is stricter for malformed or incomplete A2A streaming responses. (`gateway/a2a/`)
+- **File-store test isolation** — file-store expiry and table tests are less timing-sensitive and isolate their state more reliably. (`store/file/`)
+
+### Documentation
+- **First-agent debugging path** — docs now include no-secret transcript checkpoints, durable resume examples, and clearer CLI/website wayfinding for first-agent debugging. (`README.md`, `internal/website/docs/`, `examples/agent-durable/`)
 
 ---
 
