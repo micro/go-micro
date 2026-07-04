@@ -364,12 +364,74 @@ func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
 // handlePlan persists the supplied plan to the agent's memory and
 // echoes it back so the model can see the stored state.
 func (a *agentImpl) handlePlan(call ai.ToolCall) ai.ToolResult {
-	data, err := json.Marshal(call.Input)
+	input := preserveCompletedPlanSteps(a.loadPlan(), call.Input)
+	data, err := json.Marshal(input)
 	if err != nil {
 		return errResult(call.ID, "invalid plan: "+err.Error())
 	}
 	_ = a.stateStore().Write(&store.Record{Key: planKey, Value: data})
-	return ai.ToolResult{ID: call.ID, Value: call.Input, Content: string(data)}
+	return ai.ToolResult{ID: call.ID, Value: input, Content: string(data)}
+}
+
+func preserveCompletedPlanSteps(stored string, input map[string]any) map[string]any {
+	if stored == "" {
+		return input
+	}
+	var previous map[string]any
+	if err := json.Unmarshal([]byte(stored), &previous); err != nil {
+		return input
+	}
+	completed := completedPlanTasks(previous)
+	if len(completed) == 0 {
+		return input
+	}
+	steps, ok := input["steps"].([]any)
+	if !ok {
+		return input
+	}
+	for _, raw := range steps {
+		step, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		task, _ := step["task"].(string)
+		if completed[normalizePlanTask(task)] && isUnfinishedPlanStatus(step["status"]) {
+			step["status"] = "done"
+		}
+	}
+	return input
+}
+
+func completedPlanTasks(plan map[string]any) map[string]bool {
+	steps, ok := plan["steps"].([]any)
+	if !ok {
+		return nil
+	}
+	completed := map[string]bool{}
+	for _, raw := range steps {
+		step, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		status, _ := step["status"].(string)
+		if status != "done" {
+			continue
+		}
+		task, _ := step["task"].(string)
+		if task = normalizePlanTask(task); task != "" {
+			completed[task] = true
+		}
+	}
+	return completed
+}
+
+func normalizePlanTask(task string) string {
+	return strings.Join(strings.Fields(strings.ToLower(task)), " ")
+}
+
+func isUnfinishedPlanStatus(status any) bool {
+	s, _ := status.(string)
+	return s == "" || s == "pending" || s == "in_progress"
 }
 
 func (a *agentImpl) completeNextPlanStep() {

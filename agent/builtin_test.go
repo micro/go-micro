@@ -52,6 +52,32 @@ func TestHandlePlanPersists(t *testing.T) {
 	}
 }
 
+func TestHandlePlanPreservesCompletedSteps(t *testing.T) {
+	mem := store.NewMemoryStore()
+	a := New(Name("planner"), WithStore(mem)).(*agentImpl)
+
+	a.handlePlan(ai.ToolCall{Name: "plan", Input: map[string]any{
+		"steps": []any{
+			map[string]any{"task": "create Design task", "status": "done"},
+			map[string]any{"task": "Delegate readiness notification to comms agent", "status": "done"},
+		},
+	}})
+
+	res := a.handlePlan(ai.ToolCall{Name: "plan", Input: map[string]any{
+		"steps": []any{
+			map[string]any{"task": "create Design task", "status": "done"},
+			map[string]any{"task": "  delegate   readiness notification TO comms agent  ", "status": "in_progress"},
+			map[string]any{"task": "write summary", "status": "pending"},
+		},
+	}})
+	if res.Content == "" {
+		t.Fatal("handlePlan returned empty content")
+	}
+	if unfinished := a.unfinishedPlanSteps(); len(unfinished) != 1 || unfinished[0] != "write summary" {
+		t.Fatalf("unfinished plan steps = %v, want only write summary", unfinished)
+	}
+}
+
 func TestPlanShowsInPrompt(t *testing.T) {
 	mem := store.NewMemoryStore()
 	a := New(Name("planner"), Prompt("base prompt"), WithStore(mem)).(*agentImpl)
