@@ -52,6 +52,25 @@ This starts:
 
 Open http://localhost:8080 to see your services and call them from the browser.
 
+Call the generated service from another terminal:
+
+```
+curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
+  -H 'Content-Type: application/json' -d '{"name":"World"}'
+```
+
+## First agent on-ramp
+
+Once the scaffold → run → call path works, ask the installed CLI for the
+provider-free agent path:
+
+```
+micro agent demo
+```
+
+That points at the smallest mock-model first-agent example and the no-secret
+transcript before you add provider-backed chat.
+
 ### Output
 
 ```

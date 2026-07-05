@@ -157,6 +157,81 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 	}
 }
 
+func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	checks := []struct {
+		name    string
+		file    string
+		section string
+		want    []string
+	}{
+		{
+			name:    "README quick start",
+			file:    filepath.Join(root, "README.md"),
+			section: "## Quick Start",
+			want: []string{
+				"### Fastest start — no API key",
+				"micro new helloworld",
+				"micro run",
+				"curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call",
+				"### First agent on-ramp",
+				"micro agent demo",
+				"### Generate from a prompt — with an LLM key",
+			},
+		},
+		{
+			name:    "CLI README",
+			file:    filepath.Join(root, "cmd", "micro", "README.md"),
+			section: "## Create a service",
+			want: []string{
+				"## Create a service",
+				"micro new helloworld",
+				"## Run the service",
+				"micro run",
+				"micro agent demo",
+			},
+		},
+		{
+			name:    "website getting started",
+			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			section: "## Quick Start: Scaffold, Run, Call",
+			want: []string{
+				"## Quick Start: Scaffold, Run, Call",
+				"micro new helloworld",
+				"micro run",
+				"curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call",
+				"### First-agent on-ramp",
+				"micro agent demo",
+				"## Generate from a Prompt — with an LLM key",
+			},
+		},
+	}
+
+	for _, check := range checks {
+		t.Run(check.name, func(t *testing.T) {
+			doc := readFile(t, check.file)
+			if check.section != "" {
+				start := strings.Index(doc, check.section)
+				if start == -1 {
+					t.Fatalf("%s missing %q section", check.name, check.section)
+				}
+				doc = doc[start:]
+			}
+			last := -1
+			for _, want := range check.want {
+				idx := strings.Index(doc, want)
+				if idx == -1 {
+					t.Fatalf("%s missing no-secret first-run marker %q", check.name, want)
+				}
+				if idx < last {
+					t.Fatalf("%s marker %q appeared out of order; keep install/scaffold/run/call before provider-backed generation", check.name, want)
+				}
+				last = idx
+			}
+		})
+	}
+}
+
 func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"))
