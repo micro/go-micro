@@ -33,9 +33,10 @@ After it passes:
   - Walk the full 0→hero lifecycle:    https://go-micro.dev/docs/guides/zero-to-hero.html
 
 Use live-provider chat when you are ready for real model behavior:
-  micro agent preflight
+  micro agent preflight  # before micro run: prerequisites
   micro run
   micro chat
+  micro agent doctor     # after micro run: chat/gateway/inspect recovery
   micro inspect agent <name>`
 
 func init() {
@@ -80,7 +81,7 @@ for live-provider chat and inspect/debugging.`,
 			},
 			{
 				Name:  "doctor",
-				Usage: "Diagnose chat and inspect recovery after micro run",
+				Usage: "Diagnose chat, gateway, registration, provider, and inspect recovery after micro run",
 				Flags: []cli.Flag{
 					&cli.StringFlag{Name: "gateway", Value: "http://localhost:8080", Usage: "Gateway URL started by micro run"},
 				},

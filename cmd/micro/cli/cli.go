@@ -40,10 +40,10 @@ const docsWayfinding = `First-agent and 0→hero docs:
   3. Your First Agent
      https://go-micro.dev/docs/guides/your-first-agent.html
      Build a service-backed agent, then use:
-       micro agent preflight
+       micro agent preflight  # before micro run: prerequisites
        micro run
        micro chat
-       micro agent doctor
+       micro agent doctor     # after micro run: chat/gateway/inspect recovery
 
   4. Debugging your agent
      https://go-micro.dev/docs/guides/debugging-agents.html
