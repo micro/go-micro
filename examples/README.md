@@ -12,9 +12,11 @@ of reading the directories alphabetically.
 
 ## Recommended first-agent path
 
+This path is the canonical services → agents → workflows route through the examples map. Debugging and observability wayfinding stays nearby once the first run works.
+
 | Step | Start here | What you learn | Next step |
 |------|------------|----------------|-----------|
-| 1. First service | [`hello-world`](./hello-world/) | Create and register a basic RPC service, add a handler, call it with a client, and expose health checks. | Move to [`agent-demo`](./agent-demo/) to see services used by an agent. |
+| 1. First service | [`hello-world`](./hello-world/) | Build the 0→1 service path: create and register a basic RPC service, add a handler, call it with a client, and expose health checks. | Move to [`agent-demo`](./agent-demo/) to see services used by an agent. |
 | 2. First agent | [`first-agent`](./first-agent/) | Run the smallest service-backed agent with a deterministic mock model and no provider key. | Compare with [`agent-demo`](./agent-demo/) or the maintained 0-to-hero path in [`support`](./support/). |
 | 3. First workflow | [`support`](./support/) | Follow typed services into an agent chat loop, an event-driven `intake` flow, and an approval gate in one runnable reference. | Deepen the workflow model with [`flow-durable`](./flow-durable/). |
 
