@@ -95,8 +95,16 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 		if attrs[AttrRunID] != runID || attrs[AttrAgentName] != "runner" {
 			t.Fatalf("%s missing run correlation attributes: %#v", s.Name(), attrs)
 		}
-		if s.Name() == spanNameModelCall && (attrs[AttrAttempt] != "1" || attrs[AttrMaxAttempts] != "1") {
-			t.Fatalf("model span missing attempt attributes: %#v", attrs)
+		if s.Name() == spanNameModelCall {
+			if attrs[AttrAttempt] != "1" || attrs[AttrMaxAttempts] != "1" {
+				t.Fatalf("model span missing attempt attributes: %#v", attrs)
+			}
+			if !spanEventHasRunInfo(s.Events(), "agent.model", runID, "runner") {
+				t.Fatalf("model span missing model event: %#v", s.Events())
+			}
+		}
+		if s.Name() == spanNameToolCall && !spanEventHasRunInfo(s.Events(), "agent.tool", runID, "runner") {
+			t.Fatalf("tool span missing tool event: %#v", s.Events())
 		}
 	}
 	keys, err := store.Scope(st, "agent", "runner").List(store.ListPrefix("runs/"))
@@ -654,6 +662,9 @@ func TestAgentOpenTelemetrySpansModelStream(t *testing.T) {
 		}
 		if attrs[AttrAttempt] != "2" || attrs[AttrMaxAttempts] != "3" || attrs[AttrTotalTokens] != "5" {
 			t.Fatalf("stream span missing attempt/usage attributes: %#v", attrs)
+		}
+		if !spanEventHasRunInfo(s.Events(), "agent.stream", "stream-run-1", "stream-runner") {
+			t.Fatalf("stream span missing stream event: %#v", s.Events())
 		}
 		sawStream = true
 	}

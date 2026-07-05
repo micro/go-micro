@@ -215,13 +215,13 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 	} else {
 		span.SetStatus(codes.Ok, "")
 	}
-	span.End()
 	e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
 	if err != nil {
 		e.Error = err.Error()
 		e.ErrorKind = string(ai.ClassifyError(err))
 	}
 	m.a.recordSpanEvent(span, e)
+	span.End()
 	return resp, err
 }
 
@@ -393,8 +393,8 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		} else {
 			span.SetStatus(codes.Ok, "")
 		}
-		span.End()
 		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
+		span.End()
 		return res
 	}
 }
