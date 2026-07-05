@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: 🔒 Report a vulnerability
+    url: https://github.com/micro/go-micro/security/advisories/new
+    about: Privately disclose security vulnerabilities to the maintainers.
   - name: 💖 Sponsor Go Micro
     url: https://github.com/sponsors/asim
     about: Fund ongoing development and see your name or logo on the project.

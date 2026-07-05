@@ -17,10 +17,10 @@ We actively support the following versions of go-micro:
 
 ### How to Report
 
-Send security vulnerability reports to: **security@go-micro.dev**
-
-Or use GitHub's private security advisory feature:
+Use GitHub's private security advisory feature:
 https://github.com/micro/go-micro/security/advisories/new
+
+This keeps vulnerability reports private, ties follow-up to the affected repository, and avoids relying on project email routing.
 
 ### What to Include
 
@@ -175,5 +175,4 @@ We currently do not offer a bug bounty program, but we greatly appreciate respon
 For security questions that are not vulnerabilities, please:
 - Open a discussion: https://github.com/micro/go-micro/discussions
 - Join Discord: https://discord.gg/G8Gk5j3uXr
-- Email: support@go-micro.dev
 
