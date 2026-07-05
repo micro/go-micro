@@ -365,6 +365,21 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 				"## Generate from a Prompt — with an LLM key",
 			},
 		},
+		{
+			name:    "website quickstart",
+			file:    filepath.Join(root, "internal", "website", "docs", "quickstart.md"),
+			section: "## Create Your First Service",
+			want: []string{
+				"micro new helloworld",
+				"micro run",
+				"curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call",
+				"## Next Steps",
+				"micro agent demo",
+				"guides/no-secret-first-agent.html",
+				"guides/debugging-agents.html",
+				"guides/zero-to-hero.html",
+			},
+		},
 	}
 
 	for _, check := range checks {
