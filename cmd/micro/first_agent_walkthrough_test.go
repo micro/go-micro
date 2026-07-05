@@ -30,6 +30,9 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	if !subcommands["agent"]["preflight"] {
 		t.Fatal("first-agent walkthrough missing preflight boundary: agent preflight")
 	}
+	if !subcommands["agent"]["doctor"] {
+		t.Fatal("first-agent walkthrough missing recovery boundary: agent doctor")
+	}
 	if !subcommands["inspect"]["agent"] {
 		t.Fatal("first-agent walkthrough missing inspect boundary: inspect agent")
 	}
@@ -57,6 +60,7 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 		"micro agent preflight",
 		"micro run",
 		"micro chat",
+		"micro agent doctor",
 		"micro inspect agent",
 	} {
 		if !strings.Contains(out.String(), want) {
