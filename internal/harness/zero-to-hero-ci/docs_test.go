@@ -157,6 +157,73 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 	}
 }
 
+func TestExamplesIndexesPreserveLifecycleMap(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	checks := []struct {
+		name    string
+		file    string
+		heading string
+		want    []string
+		ordered []string
+	}{
+		{
+			name:    "repository examples lifecycle map",
+			file:    filepath.Join(root, "examples", "README.md"),
+			heading: "## Recommended first-agent path",
+			want: []string{
+				"hello-world",
+				"0→1",
+				"first-agent",
+				"support",
+				"services",
+				"agents",
+				"workflows",
+				"Debugging and observability",
+			},
+			ordered: []string{"1. First service", "2. First agent", "3. First workflow"},
+		},
+		{
+			name:    "website examples lifecycle map",
+			file:    filepath.Join(root, "internal", "website", "docs", "examples", "index.md"),
+			heading: "## Start here",
+			want: []string{
+				"examples/hello-world",
+				"0→1",
+				"examples/first-agent",
+				"examples/support",
+				"services",
+				"agents",
+				"workflows",
+				"debugging-agents.html",
+			},
+			ordered: []string{"0→1 service", "Provider-free first agent", "0→hero lifecycle"},
+		},
+	}
+
+	for _, check := range checks {
+		t.Run(check.name, func(t *testing.T) {
+			section := firstMarkdownSection(t, readFile(t, check.file), check.heading)
+			for _, want := range check.want {
+				if !strings.Contains(section, want) {
+					t.Fatalf("%s missing lifecycle map marker %q", check.name, want)
+				}
+			}
+
+			last := -1
+			for _, marker := range check.ordered {
+				idx := strings.Index(section, marker)
+				if idx == -1 {
+					t.Fatalf("%s missing ordered example marker %q", check.name, marker)
+				}
+				if idx < last {
+					t.Fatalf("%s marker %q appeared out of order; keep examples flowing hello-world/0→1 → first-agent → support/0→hero", check.name, marker)
+				}
+				last = idx
+			}
+		})
+	}
+}
+
 func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	checks := []struct {
