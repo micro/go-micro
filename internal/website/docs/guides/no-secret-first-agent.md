@@ -25,6 +25,12 @@ end to end with no secrets.
 
 ## Transcript
 
+If you installed the CLI first, ask it for the no-secret path:
+
+```sh
+micro agent demo
+```
+
 From a fresh clone of the repository, first run the smallest service-backed agent:
 
 ```sh
