@@ -50,6 +50,8 @@ curl -fsSL https://go-micro.dev/install.sh | sh
 go install go-micro.dev/v6/cmd/micro@latest
 ```
 
+If install or `PATH` checks fail, use the [install troubleshooting guide](internal/website/docs/guides/install-troubleshooting.md) before scaffolding your first service.
+
 ### Fastest start — no API key
 
 Scaffold a service, run it, call it:
@@ -87,16 +89,17 @@ make harness
 After install and the first `micro new`/`micro run` smoke check, take the
 walkable agent path in this order:
 
-1. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
-2. [Smallest first-agent example](examples/first-agent/) — run one service-backed agent with a mock model and no provider key.
-3. [No-secret first-agent transcript](internal/website/docs/guides/no-secret-first-agent.md) — run the
+1. [Install troubleshooting](internal/website/docs/guides/install-troubleshooting.md) — verify the binary installer or `go install`, `PATH`, `micro --version`, and the no-secret smoke path before agent work.
+2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
+3. [Smallest first-agent example](examples/first-agent/) — run one service-backed agent with a mock model and no provider key.
+4. [No-secret first-agent transcript](internal/website/docs/guides/no-secret-first-agent.md) — run the
    maintained support agent with a mock model and see services → agents → workflows succeed without a key.
-4. [Your First Agent](internal/website/docs/guides/your-first-agent.md) — build a
+5. [Your First Agent](internal/website/docs/guides/your-first-agent.md) — build a
    service-backed agent and talk to it with `micro chat`.
-5. [Debugging your agent](internal/website/docs/guides/debugging-agents.md) — use
+6. [Debugging your agent](internal/website/docs/guides/debugging-agents.md) — use
    `micro agent inspect`, run history, memory, and provider checks when the first
    conversation does something unexpected.
-6. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
+7. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
    services → agents → workflows loop with scaffold, run, chat, inspect, flow
    history, and deploy dry-run commands that match the maintained harness.
 
