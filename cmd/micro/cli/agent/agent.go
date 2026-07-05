@@ -14,6 +14,30 @@ import (
 	"go-micro.dev/v6/store"
 )
 
+const noSecretDemoHelp = `No-secret first-agent demo
+
+Use this when you want the fastest provider-free agent success path before
+configuring API keys. It runs the maintained support/first-agent transcript with
+the deterministic mock model used by CI:
+
+  go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1
+
+What this proves:
+  - service tools can be called by an agent
+  - chat behavior is exercised without contacting a live provider
+  - run history can be inspected after the prompt
+
+After it passes:
+  - Build your own service-backed agent: https://go-micro.dev/docs/guides/your-first-agent.html
+  - Diagnose provider-backed chat:     https://go-micro.dev/docs/guides/debugging-agents.html
+  - Walk the full 0→hero lifecycle:    https://go-micro.dev/docs/guides/zero-to-hero.html
+
+Use live-provider chat when you are ready for real model behavior:
+  micro agent preflight
+  micro run
+  micro chat
+  micro inspect agent <name>`
+
 func init() {
 	cmd.Register(&cli.Command{
 		Name:      "runs",
@@ -34,8 +58,19 @@ func init() {
 
 	cmd.Register(&cli.Command{
 		Name:  "agent",
-		Usage: "Manage AI agents",
+		Usage: "Manage AI agents (try: micro agent demo)",
 		Subcommands: []*cli.Command{
+			{
+				Name:  "demo",
+				Usage: "Show the no-secret first-agent demo command",
+				Description: `Print the provider-free first-agent path for new developers:
+the deterministic mock-model transcript, when to use it, and where to go next
+for live-provider chat and inspect/debugging.`,
+				Action: func(c *cli.Context) error {
+					fmt.Fprintln(c.App.Writer, noSecretDemoHelp)
+					return nil
+				},
+			},
 			{
 				Name:  "preflight",
 				Usage: "Check local prerequisites before the first provider-backed agent",
