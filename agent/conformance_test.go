@@ -504,3 +504,67 @@ func TestAgentExecutesProviderTextToolCallFallback(t *testing.T) {
 		t.Fatalf("Reply = %q, want tool result instead of raw JSON", resp.Reply)
 	}
 }
+
+func TestAgentExecutesTextToolCallFallbackAfterStructuredToolCall(t *testing.T) {
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler == nil {
+			return nil, errors.New("missing tool handler")
+		}
+		echo := opts.ToolHandler(ctx, ai.ToolCall{
+			ID:    "structured-echo-1",
+			Name:  "conformance_echo",
+			Input: map[string]any{"value": "agent-conformance"},
+		})
+		return &ai.Response{
+			Reply:  echo.Content + "\n<tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>",
+			Answer: echo.Content,
+			ToolCalls: []ai.ToolCall{
+				{ID: "structured-echo-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
+			},
+		}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	var sawTool bool
+	var sawBlockedDelegate bool
+	a := New(
+		Name("conformance-mixed-text-tool"),
+		Provider("fake"),
+		WithRegistry(registry.NewMemoryRegistry()),
+		WithStore(store.NewMemoryStore()),
+		WithMemory(NewInMemory(4)),
+		ApproveTool(func(tool string, input map[string]any) (bool, string) {
+			if tool == "delegate" {
+				sawBlockedDelegate = true
+				return false, "cross-provider conformance blocks delegate side effects"
+			}
+			return true, ""
+		}),
+		WithTool("conformance_echo", "Echo a conformance value.", map[string]any{
+			"value": map[string]any{"type": "string"},
+		}, func(ctx context.Context, input map[string]any) (string, error) {
+			sawTool = true
+			return `{"marker":"agent-conformance-ok"}`, nil
+		}),
+	)
+
+	resp, err := a.Ask(context.Background(), "Run the mixed structured/text tool fallback.")
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if !sawTool {
+		t.Fatal("structured conformance_echo did not execute")
+	}
+	if !sawBlockedDelegate {
+		t.Fatal("tagged text delegate fallback did not execute")
+	}
+	if len(resp.ToolCalls) != 2 {
+		t.Fatalf("ToolCalls = %+v, want structured echo and text delegate", resp.ToolCalls)
+	}
+	if resp.ToolCalls[1].Name != "delegate" || resp.ToolCalls[1].Error != ai.RefusedApproval {
+		t.Fatalf("delegate ToolCall = %+v, want refused delegate", resp.ToolCalls[1])
+	}
+	if !strings.Contains(resp.Reply, "agent-conformance-ok") {
+		t.Fatalf("Reply = %q, want conformance marker", resp.Reply)
+	}
+}

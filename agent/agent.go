@@ -352,6 +352,15 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 					resp.Reply = ""
 				}
 			}
+		} else if calls, answer, ok := a.executeAdditionalTextToolCalls(ctx, resp.Reply, toolList, resp.ToolCalls); ok {
+			resp.ToolCalls = append(resp.ToolCalls, calls...)
+			if answer != "" {
+				if resp.Answer == "" {
+					resp.Answer = answer
+				} else {
+					resp.Answer += "\n" + answer
+				}
+			}
 		}
 
 		if a.opts.Checkpoint != nil {
