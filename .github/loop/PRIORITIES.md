@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add install troubleshooting to the first-agent on-ramp** ([#4077](https://github.com/micro/go-micro/issues/4077)) — the quickstart page is now aligned with the provider-free first-agent path, so close the next 0→1 adoption seam: install verification and recovery before a newcomer reaches `micro new` or `micro agent demo`. Link a focused install troubleshooting path from the canonical on-ramp pages, cover binary installer versus `go install`, PATH/version checks, and the no-secret smoke path, then add a docs harness assertion so the install-recovery link cannot drift out of the first-agent journey.
+1. **Promote agent doctor in the first-agent debug loop** ([#4086](https://github.com/micro/go-micro/issues/4086)) — install troubleshooting and preflight now cover the before-run adoption seams; next close the after-run recovery seam for newcomers whose first agent starts but chat, gateway, registration, provider settings, or run history misbehave. Link `micro agent doctor` from the first-agent and debugging path, distinguish it from install troubleshooting and `micro agent preflight`, and add a focused CLI/docs harness assertion so the scaffold → run → chat → inspect recovery checkpoint stays discoverable.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
