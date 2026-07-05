@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Lead CLI docs wayfinding with `micro agent demo`** ([#4046](https://github.com/micro/go-micro/issues/4046)) — #4044 shipped the README and website first-agent docs update for `micro agent demo`, so the queue should not keep #4041 open or re-ask for primary docs copy. The remaining adoption seam is inside the installed CLI: `micro docs` still starts from longer guide links rather than the new no-secret demo affordance, so the binary can drift from the public on-ramp a new developer just installed. Put `micro agent demo` first in the CLI docs wayfinding and cover it with the existing first-agent CLI boundary tests, preserving the scaffold → run → chat → inspect → deploy path without public API or positioning changes.
+1. **Lead Getting Started with the no-secret first-run path** ([#4054](https://github.com/micro/go-micro/issues/4054)) — #4039 added `micro agent demo`, #4044 documented it in the README/website on-ramp, #4049 moved the installed CLI docs to lead with it, and #4052 surfaced it from scaffold next steps. The remaining adoption seam is the website Getting Started page: it still introduces provider-key setup and prompt generation before the no-secret scaffold → run → call path, so a new developer can infer an LLM key is mandatory before they have proved the runtime works. Reorder Getting Started to lead with install → `micro new` → `micro run` → curl, then `micro agent demo` and the no-secret first-agent sequence, and add a focused docs/harness assertion so the README, CLI docs, and website cannot drift apart again.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
