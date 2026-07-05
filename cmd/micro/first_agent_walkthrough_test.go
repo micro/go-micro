@@ -30,6 +30,9 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	if !subcommands["agent"]["preflight"] {
 		t.Fatal("first-agent walkthrough missing preflight boundary: agent preflight")
 	}
+	if !subcommands["agent"]["demo"] {
+		t.Fatal("first-agent walkthrough missing no-secret boundary: agent demo")
+	}
 	if !subcommands["agent"]["doctor"] {
 		t.Fatal("first-agent walkthrough missing recovery boundary: agent doctor")
 	}
@@ -67,6 +70,31 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 			t.Fatalf("micro docs output missing %q:\n%s", want, out.String())
 		}
 	}
+
+	agent := commandByName(t, "agent")
+	if !strings.Contains(agent.Usage, "micro agent demo") {
+		t.Fatalf("micro agent help should advertise the no-secret demo; usage was %q", agent.Usage)
+	}
+	demo := subcommandByName(t, agent, "demo")
+	out.Reset()
+	if err := demo.Action(cli.NewContext(app, nil, nil)); err != nil {
+		t.Fatalf("micro agent demo failed: %v", err)
+	}
+	for _, want := range []string{
+		"No-secret first-agent demo",
+		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1",
+		"provider-free",
+		"micro agent preflight",
+		"micro chat",
+		"micro inspect agent <name>",
+		"your-first-agent.html",
+		"debugging-agents.html",
+		"zero-to-hero.html",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("micro agent demo output missing %q:\n%s", want, out.String())
+		}
+	}
 }
 
 func commandByName(t *testing.T, name string) *cli.Command {
@@ -77,5 +105,16 @@ func commandByName(t *testing.T, name string) *cli.Command {
 		}
 	}
 	t.Fatalf("missing command %q", name)
+	return nil
+}
+
+func subcommandByName(t *testing.T, command *cli.Command, name string) *cli.Command {
+	t.Helper()
+	for _, subcommand := range command.Subcommands {
+		if subcommand.Name == name {
+			return subcommand
+		}
+	}
+	t.Fatalf("missing subcommand %q under %q", name, command.Name)
 	return nil
 }
