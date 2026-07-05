@@ -90,11 +90,12 @@ The console discovers services from the registry and orchestrates across them vi
 
 After this quick start, follow the agent path in order:
 
-1. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
-2. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
-3. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
-4. [Debugging your agent](guides/debugging-agents.html) — inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
-5. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
+1. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
+2. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
+3. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
+4. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
+5. [Debugging your agent](guides/debugging-agents.html) — inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
+6. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
 
 ## Quick Start: Write a Service
 

@@ -88,6 +88,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			file:    filepath.Join(root, "README.md"),
 			heading: "### First agent on-ramp",
 			links: []string{
+				"micro agent demo",
 				"internal/website/docs/guides/no-secret-first-agent.md",
 				"internal/website/docs/guides/your-first-agent.md",
 				"internal/website/docs/guides/debugging-agents.md",
@@ -129,6 +130,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
 			heading: "### First-agent on-ramp",
 			links: []string{
+				"micro agent demo",
 				"guides/no-secret-first-agent.html",
 				"guides/your-first-agent.html",
 				"guides/debugging-agents.html",
@@ -160,6 +162,7 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"))
 
 	for _, want := range []string{
+		"micro agent demo",
 		"go run ./examples/first-agent",
 		"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
 		"go run ./examples/support",
