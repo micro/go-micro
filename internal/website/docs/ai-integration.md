@@ -5,27 +5,29 @@ title: AI Integration
 
 # AI Integration
 
-Go Micro is an AI-native microservices framework. Every service you build is automatically accessible to AI agents, and every service can call AI models. This page explains how the pieces fit together.
+Go Micro is an agent harness and service framework for Go. Every service you build can become an AI-callable tool, every agent runs as a service with model/memory/guardrails around it, and flows orchestrate the deterministic parts. This page explains how the services → agents → workflows lifecycle fits together.
 
 <img src="/images/generated/mcp-agent.jpg" alt="AI integration architecture" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
 
 ## The Stack
 
 ```
-Your Services           →  write Go handlers, register with the framework
+Services               →  write Go handlers, register with the framework
     ↓
-Registry                →  automatic service discovery (mDNS, Consul, etcd)
+Registry                →  automatic discovery for services, agents, and flows
     ↓
-Gateways                →  micro api (HTTP→RPC) / micro mcp (MCP tools)
+Gateways                →  micro api (HTTP→RPC), micro mcp (tools), micro a2a (agents)
     ↓
 ai.Tools                →  discovers services + executes RPCs programmatically
     ↓
 ai.Model                →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Cloud, ...)
     ↓
-agent / flow / micro chat  →  agent-managed, event-driven, or interactive orchestration
+Agents                 →  service-backed model loop with memory, guardrails, plan/delegate
+    ↓
+Flows                  →  durable deterministic steps that can dispatch to agents
 ```
 
-Every layer is optional. You can use go-micro without AI. You can use the `ai` package without MCP. But when you stack them, you get services that AI agents can discover and orchestrate automatically.
+Every layer is optional. You can use Go Micro as a service framework without AI. You can use the `ai` package without MCP. But when you stack them, you get one runtime where services become tools, agents are reachable services, and workflows coordinate the predictable parts.
 
 ## Layer by Layer
 

@@ -39,9 +39,10 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
 
 You now have the service half of the services → agents → workflows lifecycle running locally. Keep the on-ramp going in this order:
 
-1. **[Your First Agent](guides/your-first-agent.html)** - turn this service into an agent-callable tool, chat with it, and learn the `micro agent preflight` → `micro run` → `micro chat` loop.
-2. **[Debugging your agent](guides/debugging-agents.html)** - inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent does something surprising.
-3. **[0→hero Reference](guides/zero-to-hero.html)** - walk the maintained scaffold → run → chat → inspect → deploy dry-run path that proves services, agents, and workflows together.
+1. **[Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent)** - run a mock-model, no-secret agent before adding provider keys.
+2. **[Your First Agent](guides/your-first-agent.html)** - turn this service into an agent-callable tool, chat with it, and learn the `micro agent preflight` → `micro run` → `micro chat` loop.
+3. **[Debugging your agent](guides/debugging-agents.html)** - inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent does something surprising.
+4. **[0→hero Reference](guides/zero-to-hero.html)** - walk the maintained scaffold → run → chat → inspect → deploy dry-run path that proves services, agents, and workflows together.
 
 After that first-agent path, branch out to:
 
