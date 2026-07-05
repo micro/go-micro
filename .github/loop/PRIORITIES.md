@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Align architecture docs with the agent harness lifecycle** ([#4092](https://github.com/micro/go-micro/issues/4092)) — the first-agent on-ramp, install troubleshooting, preflight, and after-run doctor seams are now covered, but the website architecture page still reads like a pre-agent distributed-systems overview. Refresh it so newcomers see one coherent services → agents → workflows runtime: registry/server/client as the service substrate, `model`/`store` as state, `ai`/`agent` as the tool-calling loop, `flow` as durable deterministic orchestration, and MCP/A2A gateways as interop. Add a focused docs/wayfinding assertion so the architecture story keeps pointing back to AI integration, first-agent, and 0→hero.
+1. **Add a one-command 0→hero demo entrypoint** ([#4097](https://github.com/micro/go-micro/issues/4097)) — the first-agent, install, debugging, and architecture wayfinding have landed, but the adoption path still asks newcomers to translate docs into several commands before they see the whole services → agents → workflows lifecycle. Add a discoverable `micro` entrypoint that either runs the maintained provider-free 0→hero flow or prints exact commands for it, link it from the first-agent docs, and guard the CLI/docs boundary with focused tests.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
