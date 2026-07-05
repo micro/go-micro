@@ -140,6 +140,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	}
 
 	if p.opts.ToolHandler != nil {
+		allToolCalls := append([]ai.ToolCall(nil), resp.ToolCalls...)
 		var toolResults []string
 		followUpMessages := append(messages, map[string]any{
 			"role":       "assistant",
@@ -163,10 +164,31 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			"model":    p.opts.Model,
 			"messages": followUpMessages,
 		}
+		if len(tools) > 0 {
+			// Keep the tool schema available during the follow-up turn. Minimax
+			// models behind Atlas Cloud sometimes call one required tool, inspect
+			// that result, and then issue a second tool call (for example a guarded
+			// delegate conformance check) instead of completing immediately.
+			followUpReq["tools"] = tools
+		}
 
 		followUpResp, _, err := p.callAPI(ctx, "tool-follow-up", followUpReq)
 		if err != nil {
 			return nil, err
+		}
+		if len(followUpResp.ToolCalls) > 0 {
+			for i := range followUpResp.ToolCalls {
+				result := p.opts.ToolHandler(ctx, followUpResp.ToolCalls[i])
+				if result.Refused != "" {
+					followUpResp.ToolCalls[i].Error = result.Refused
+				}
+				if result.Content != "" {
+					followUpResp.ToolCalls[i].Result = result.Content
+					toolResults = append(toolResults, result.Content)
+				}
+			}
+			allToolCalls = append(allToolCalls, followUpResp.ToolCalls...)
+			resp.ToolCalls = allToolCalls
 		}
 		if followUpResp.Reply != "" {
 			resp.Answer = followUpResp.Reply

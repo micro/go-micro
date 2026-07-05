@@ -289,6 +289,71 @@ func TestProvider_GenerateMinimaxToolRequests(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateExecutesFollowUpToolCall(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
+		case 2:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-2","function":{"name":"delegate","arguments":"{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}"}}]}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	var sawEcho, sawDelegate bool
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			switch call.Name {
+			case "conformance_echo":
+				sawEcho = true
+				return ai.ToolResult{ID: call.ID, Content: `{"marker":"agent-conformance-ok"}`}
+			case "delegate":
+				sawDelegate = true
+				return ai.ToolResult{ID: call.ID, Refused: ai.RefusedApproval, Content: "blocked by policy"}
+			default:
+				t.Fatalf("unexpected tool call %+v", call)
+				return ai.ToolResult{}
+			}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "run conformance",
+		Tools: []ai.Tool{
+			{Name: "conformance_echo", Description: "echo conformance marker", Properties: map[string]any{"value": map[string]any{"type": "string"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !sawEcho || !sawDelegate {
+		t.Fatalf("sawEcho=%v sawDelegate=%v, want both tools executed", sawEcho, sawDelegate)
+	}
+	if len(resp.ToolCalls) != 2 {
+		t.Fatalf("ToolCalls = %+v, want echo and delegate", resp.ToolCalls)
+	}
+	if resp.ToolCalls[1].Name != "delegate" || resp.ToolCalls[1].Error != ai.RefusedApproval {
+		t.Fatalf("follow-up delegate = %+v, want refused delegate", resp.ToolCalls[1])
+	}
+	if !strings.Contains(resp.Answer, "blocked by policy") {
+		t.Fatalf("Answer = %q, want follow-up tool result", resp.Answer)
+	}
+	if _, ok := bodies[1]["tools"].([]any); !ok {
+		t.Fatalf("follow-up request did not include tools: %#v", bodies[1])
+	}
+}
+
 func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
