@@ -47,6 +47,48 @@ func (a *agentImpl) executeTextToolCalls(ctx context.Context, reply string, tool
 	return calls, strings.Join(results, "\n"), true
 }
 
+// executeAdditionalTextToolCalls runs text-encoded tool calls that accompany a
+// structured tool_calls response. Some OpenAI-compatible providers can mix the
+// two forms in a single assistant turn: for example, emitting a native
+// conformance_echo call while rendering a follow-up guarded delegate call as
+// <tool_call name="delegate">...</tool_call> text. Keep this fallback additive
+// and de-duplicate calls already represented in the structured tool_calls list.
+func (a *agentImpl) executeAdditionalTextToolCalls(ctx context.Context, reply string, tools []ai.Tool, existing []ai.ToolCall) ([]ai.ToolCall, string, bool) {
+	calls := parseTextToolCalls(reply, tools)
+	if len(calls) == 0 {
+		return nil, "", false
+	}
+
+	seen := map[string]bool{}
+	for _, call := range existing {
+		seen[textToolCallKey(call)] = true
+	}
+
+	handler := a.toolHandler()
+	out := make([]ai.ToolCall, 0, len(calls))
+	results := make([]string, 0, len(calls))
+	for i := range calls {
+		if seen[textToolCallKey(calls[i])] {
+			continue
+		}
+		result := handler(ctx, calls[i])
+		calls[i].Result = result.Content
+		if result.Refused != "" {
+			calls[i].Error = result.Refused
+		}
+		if result.Content != "" {
+			results = append(results, result.Content)
+		}
+		out = append(out, calls[i])
+	}
+	return out, strings.Join(results, "\n"), len(out) > 0
+}
+
+func textToolCallKey(call ai.ToolCall) string {
+	b, _ := json.Marshal(call.Input)
+	return call.Name + "\x00" + string(b)
+}
+
 func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
 	allowed := textToolNames(tools)
 	if len(allowed) == 0 {
