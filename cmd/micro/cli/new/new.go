@@ -294,6 +294,7 @@ func printNextSteps(w io.Writer, dir string, noMCP bool) {
 	fmt.Fprintln(w, "    micro inspect agent")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "  First-agent path:")
+	fmt.Fprintln(w, "    micro agent demo")
 	fmt.Fprintln(w, "    micro docs")
 	fmt.Fprintln(w, "    https://go-micro.dev/docs/guides/your-first-agent.html")
 	fmt.Fprintln(w, "    https://go-micro.dev/docs/guides/zero-to-hero.html")

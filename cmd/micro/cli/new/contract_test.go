@@ -68,6 +68,7 @@ func TestPrintNextStepsSurfacesFirstAgentPath(t *testing.T) {
 		"go run .",
 		"micro chat",
 		"micro inspect agent",
+		"micro agent demo",
 		"micro docs",
 		"your-first-agent.html",
 		"zero-to-hero.html",
@@ -83,7 +84,7 @@ func TestPrintNextStepsNoMCPSkipsMCPHints(t *testing.T) {
 	var out bytes.Buffer
 	printNextSteps(&out, "worker", true)
 
-	for _, want := range []string{"micro agent preflight", "micro chat", "micro inspect agent", "micro docs"} {
+	for _, want := range []string{"micro agent preflight", "micro chat", "micro inspect agent", "micro agent demo", "micro docs"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("--no-mcp next steps missing %q:\n%s", want, out.String())
 		}
