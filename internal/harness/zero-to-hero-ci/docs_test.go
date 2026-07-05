@@ -76,6 +76,41 @@ func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
 	}
 }
 
+func TestArchitectureDocsAlignWithAgentHarnessLifecycle(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	doc := readFile(t, filepath.Join(root, "internal", "website", "docs", "architecture.md"))
+
+	for _, want := range []string{
+		"services → agents → workflows lifecycle",
+		"## Service substrate",
+		"## Agent harness",
+		"## Workflows",
+		"## Interop gateways",
+		"`model` / `ai.Model`",
+		"`store` / memory",
+		"`ai.Tools`",
+		"`agent`",
+		"`flow`",
+		"`micro mcp`",
+		"`micro a2a`",
+		"[AI Integration](ai-integration.html)",
+		"[Your First Agent](guides/your-first-agent.html)",
+		"[0→hero Reference](guides/zero-to-hero.html)",
+	} {
+		if !strings.Contains(doc, want) {
+			t.Fatalf("architecture doc missing lifecycle marker %q", want)
+		}
+	}
+
+	assertOrderedMarkers(t, "architecture lifecycle", doc, []string{
+		"## Service substrate",
+		"## Agent harness",
+		"## Workflows",
+		"## Interop gateways",
+		"## Developer path",
+	})
+}
+
 func TestFirstAgentWayfindingDocs(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	checks := []struct {
