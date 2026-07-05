@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -43,6 +44,30 @@ func createFileForTest(t *testing.T) *os.File {
 	}
 
 	return fh
+}
+
+func TestConfigCloseConcurrentIdempotent(t *testing.T) {
+	conf, err := NewConfig(WithWatcherDisabled())
+	if err != nil {
+		t.Fatalf("Expected no error but got %v", err)
+	}
+
+	const goroutines = 64
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer wg.Done()
+			if err := conf.Close(); err != nil {
+				t.Errorf("Expected close to be idempotent but got %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	if err := conf.Close(); err != nil {
+		t.Fatalf("Expected repeated close to be idempotent but got %v", err)
+	}
 }
 
 func TestConfigLoadWithGoodFile(t *testing.T) {
