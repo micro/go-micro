@@ -38,7 +38,7 @@ The built-in providers currently register these capability interfaces:
 
 | Provider | Chat/text (`ai.Model`) | Image (`ai.ImageModel`) | Video (`ai.VideoModel`) | Streaming (`ai.Stream`) |
 | --- | --- | --- | --- | --- |
-| `anthropic` | Yes | No | No | No |
+| `anthropic` | Yes | No | No | Yes |
 | `atlascloud` | Yes | Yes | Yes | Yes |
 | `gemini` | Yes | No | No | No |
 | `groq` | Yes | No | No | Yes |

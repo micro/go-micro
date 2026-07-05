@@ -57,7 +57,7 @@ previous section.
 
 | Provider | Chat/text agent harness | Image | Video | Streaming | Structured errors |
 | --- | --- | --- | --- | --- | --- |
-| `anthropic` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
+| `anthropic` | ✅ Verified when configured | — Unsupported | — Unsupported | ✅ Verified when configured | ⚠️ Unverified |
 | `openai` | ✅ Verified when configured | ✅ Registered | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
 | `gemini` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
 | `groq` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
