@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -189,5 +190,47 @@ func TestIsAgent(t *testing.T) {
 	}
 	if a.isAgent("nonexistent") {
 		t.Error("isAgent(nonexistent) = true, want false")
+	}
+}
+
+func TestPlanWrapBlocksDelegationUntilPriorPlanStepsFinish(t *testing.T) {
+	mem := store.NewMemoryStore()
+	a := New(Name("planner"), WithStore(mem)).(*agentImpl)
+	a.handlePlan(ai.ToolCall{Name: toolPlan, Input: map[string]any{
+		"steps": []any{
+			map[string]any{"task": "Create Design task", "status": "pending"},
+			map[string]any{"task": "Create Build task", "status": "pending"},
+			map[string]any{"task": "Create Ship task", "status": "pending"},
+			map[string]any{"task": "Delegate readiness notification to comms agent", "status": "pending"},
+		},
+	}})
+
+	called := false
+	handle := a.planWrap(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		called = true
+		return ai.ToolResult{ID: call.ID, Content: "ok"}
+	})
+
+	res := handle(context.Background(), ai.ToolCall{ID: "delegate-1", Name: toolDelegate, Input: map[string]any{"to": "comms"}})
+	if called {
+		t.Fatal("delegate handler was called before prior task plan steps completed")
+	}
+	if res.Refused == "" {
+		t.Fatalf("delegate result was not refused: %+v", res)
+	}
+	if got := res.Content; !containsStr(got, "Create Design task") || !containsStr(got, "Create Ship task") {
+		t.Fatalf("delegate refusal content = %q, want prior unfinished task steps", got)
+	}
+
+	for _, id := range []string{"add-design", "add-build", "add-ship"} {
+		_ = handle(context.Background(), ai.ToolCall{ID: id, Name: "task.Add", Input: map[string]any{"title": id}})
+	}
+	called = false
+	res = handle(context.Background(), ai.ToolCall{ID: "delegate-2", Name: toolDelegate, Input: map[string]any{"to": "comms"}})
+	if !called {
+		t.Fatal("delegate handler was not called after prior task plan steps completed")
+	}
+	if res.Refused != "" {
+		t.Fatalf("delegate result refused after prior task steps completed: %+v", res)
 	}
 }
