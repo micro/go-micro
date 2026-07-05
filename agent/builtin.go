@@ -290,6 +290,11 @@ func (a *agentImpl) planWrap(next ai.ToolHandler) ai.ToolHandler {
 		if call.Name == toolPlan {
 			return a.handlePlan(call)
 		}
+		if call.Name == toolDelegate {
+			if blocked := a.unfinishedPlanStepsBeforeDelegation(); len(blocked) > 0 {
+				return refused(call.ID, ai.RefusedApproval, "complete these plan steps before delegating: "+strings.Join(blocked, ", "))
+			}
+		}
 		res := next(ctx, call)
 		if res.Refused == "" && toolErrorMessage(res) == "" {
 			a.completeNextPlanStep()
@@ -464,6 +469,53 @@ func (a *agentImpl) completeNextPlanStep() {
 	}
 }
 
+func (a *agentImpl) unfinishedPlanStepsBeforeDelegation() []string {
+	plan := a.loadPlan()
+	if plan == "" {
+		return nil
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(plan), &data); err != nil {
+		return nil
+	}
+	steps, ok := data["steps"].([]any)
+	if !ok {
+		return nil
+	}
+	var unfinished []string
+	for _, raw := range steps {
+		step, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		task := planStepTask(step)
+		if isDelegationPlanTask(task) {
+			break
+		}
+		if !isUnfinishedPlanStatus(step["status"]) {
+			continue
+		}
+		if task == "" {
+			task = "<unnamed>"
+		}
+		unfinished = append(unfinished, task)
+	}
+	return unfinished
+}
+
+func planStepTask(step map[string]any) string {
+	if task, _ := step["task"].(string); task != "" {
+		return task
+	}
+	desc, _ := step["description"].(string)
+	return desc
+}
+
+func isDelegationPlanTask(task string) bool {
+	task = normalizePlanTask(task)
+	return strings.Contains(task, "delegate") || strings.Contains(task, "notify") || strings.Contains(task, "notification")
+}
+
 func (a *agentImpl) unfinishedPlanSteps() []string {
 	plan := a.loadPlan()
 	if plan == "" {
@@ -487,7 +539,7 @@ func (a *agentImpl) unfinishedPlanSteps() []string {
 		if status != "" && status != "pending" && status != "in_progress" {
 			continue
 		}
-		task, _ := step["task"].(string)
+		task := planStepTask(step)
 		if task == "" {
 			task = "<unnamed>"
 		}
