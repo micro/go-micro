@@ -26,12 +26,18 @@ import (
 
 const docsWayfinding = `First-agent and 0→hero docs:
 
-  1. No-secret first-agent transcript
+  1. Start with the no-secret CLI demo
+       micro agent demo
+     This prints the maintained support-agent transcript command so you can
+     prove service tools, mock-model chat, and inspectable run history without
+     configuring a provider key.
+
+  2. No-secret first-agent transcript
      https://go-micro.dev/docs/guides/no-secret-first-agent.html
      Run the maintained support agent without a provider key:
        go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1
 
-  2. Your First Agent
+  3. Your First Agent
      https://go-micro.dev/docs/guides/your-first-agent.html
      Build a service-backed agent, then use:
        micro agent preflight
@@ -39,14 +45,14 @@ const docsWayfinding = `First-agent and 0→hero docs:
        micro chat
        micro agent doctor
 
-  3. Debugging your agent
+  4. Debugging your agent
      https://go-micro.dev/docs/guides/debugging-agents.html
      Inspect agent runs and memory with:
        micro agent doctor
        micro inspect agent
        micro runs <agent>
 
-  4. 0→hero Reference
+  5. 0→hero Reference
      https://go-micro.dev/docs/guides/zero-to-hero.html
      Walk the scaffold → run → chat → inspect → deploy dry-run lifecycle.`
 

@@ -55,7 +55,11 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	if err := docs.Action(cli.NewContext(app, nil, nil)); err != nil {
 		t.Fatalf("micro docs failed: %v", err)
 	}
+	if demoIdx, guideIdx := strings.Index(out.String(), "micro agent demo"), strings.Index(out.String(), "no-secret-first-agent.html"); demoIdx < 0 || guideIdx < 0 || demoIdx > guideIdx {
+		t.Fatalf("micro docs should lead with micro agent demo before guide links:\n%s", out.String())
+	}
 	for _, want := range []string{
+		"micro agent demo",
 		"no-secret-first-agent.html",
 		"your-first-agent.html",
 		"debugging-agents.html",
