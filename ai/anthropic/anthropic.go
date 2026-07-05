@@ -2,6 +2,7 @@
 package anthropic
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -17,6 +18,7 @@ func init() {
 	ai.Register("anthropic", func(opts ...ai.Option) ai.Model {
 		return NewProvider(opts...)
 	})
+	ai.RegisterStream("anthropic")
 }
 
 // Provider implements the ai.Model interface for Anthropic Claude
@@ -156,9 +158,113 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	return resp, nil
 }
 
-// Stream generates a streaming response (not yet implemented)
+// Stream generates a streaming response from Anthropic's Messages SSE API.
 func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, fmt.Errorf("%w: anthropic provider", ai.ErrStreamingUnsupported)
+	apiReq := map[string]any{
+		"model":      p.opts.Model,
+		"max_tokens": anthropicMaxTokens(p.opts),
+		"system":     req.SystemPrompt,
+		"messages":   threadAnthropicMessages(req),
+		"stream":     true,
+	}
+	reqBody, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal stream request: %w", err)
+	}
+
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/messages"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stream request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("x-api-key", p.opts.APIKey)
+	httpReq.Header.Set("anthropic-version", "2023-06-01")
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("stream API request failed: %w", err)
+	}
+	if httpResp.StatusCode != http.StatusOK {
+		defer httpResp.Body.Close()
+		respBody, _ := io.ReadAll(httpResp.Body)
+		return nil, fmt.Errorf("stream API error (%s): %s", httpResp.Status, string(respBody))
+	}
+	return &streamReader{body: httpResp.Body, scanner: bufio.NewScanner(httpResp.Body)}, nil
+}
+
+type streamReader struct {
+	body    io.ReadCloser
+	scanner *bufio.Scanner
+	closed  bool
+}
+
+func (s *streamReader) Recv() (*ai.Response, error) {
+	for s.scanner.Scan() {
+		line := strings.TrimSpace(s.scanner.Text())
+		if line == "" || strings.HasPrefix(line, ":") || strings.HasPrefix(line, "event:") {
+			continue
+		}
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		var chunk struct {
+			Type  string `json:"type"`
+			Delta struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			} `json:"delta"`
+			Message struct {
+				Usage struct {
+					InputTokens  int `json:"input_tokens"`
+					OutputTokens int `json:"output_tokens"`
+				} `json:"usage"`
+			} `json:"message"`
+			Usage *struct {
+				InputTokens  int `json:"input_tokens"`
+				OutputTokens int `json:"output_tokens"`
+			} `json:"usage"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
+		}
+		switch chunk.Type {
+		case "content_block_delta":
+			if chunk.Delta.Type == "text_delta" && chunk.Delta.Text != "" {
+				return &ai.Response{Reply: chunk.Delta.Text}, nil
+			}
+		case "message_start":
+			if chunk.Message.Usage.InputTokens > 0 || chunk.Message.Usage.OutputTokens > 0 {
+				return &ai.Response{Usage: usage(chunk.Message.Usage.InputTokens, chunk.Message.Usage.OutputTokens)}, nil
+			}
+		case "message_delta":
+			if chunk.Usage != nil {
+				return &ai.Response{Usage: usage(chunk.Usage.InputTokens, chunk.Usage.OutputTokens)}, nil
+			}
+		case "message_stop":
+			return nil, io.EOF
+		case "error":
+			return nil, fmt.Errorf("anthropic stream error: %s", data)
+		}
+	}
+	if err := s.scanner.Err(); err != nil {
+		return nil, err
+	}
+	return nil, io.EOF
+}
+
+func (s *streamReader) Close() error {
+	if s.closed {
+		return nil
+	}
+	s.closed = true
+	return s.body.Close()
+}
+
+func usage(input, output int) ai.Usage {
+	return ai.Usage{InputTokens: input, OutputTokens: output, TotalTokens: input + output}
 }
 
 // callAPI makes an HTTP request to the Anthropic API

@@ -215,6 +215,7 @@ func TestConfiguredProviderStreamsSkipWithoutCredentials(t *testing.T) {
 		{provider: "mistral", keyEnv: "MISTRAL_API_KEY", modelEnv: "MISTRAL_MODEL"},
 		{provider: "together", keyEnv: "TOGETHER_API_KEY", modelEnv: "TOGETHER_MODEL"},
 		{provider: "atlascloud", keyEnv: "ATLASCLOUD_API_KEY", modelEnv: "ATLASCLOUD_MODEL"},
+		{provider: "anthropic", keyEnv: "ANTHROPIC_API_KEY", modelEnv: "ANTHROPIC_MODEL"},
 	} {
 		tc := tc
 		t.Run(tc.provider, func(t *testing.T) {
@@ -256,7 +257,7 @@ func TestConfiguredProviderStreamsSkipWithoutCredentials(t *testing.T) {
 }
 
 func TestUnsupportedProvidersReturnStreamingUnsupportedAndStayUnregistered(t *testing.T) {
-	for _, provider := range []string{"anthropic", "gemini"} {
+	for _, provider := range []string{"gemini"} {
 		provider := provider
 		t.Run(provider, func(t *testing.T) {
 			if caps := ai.ProviderCapabilities(provider); caps.Stream {
