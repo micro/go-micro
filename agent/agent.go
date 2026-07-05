@@ -297,7 +297,11 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		}
 	}
 
-	const maxPlanCompletionTurns = 3
+	// Some providers satisfy a saved plan one outstanding item per turn,
+	// especially when the final item delegates to another agent. Allow enough
+	// continuations for the services → agents → workflows harness to complete
+	// every planned side effect without weakening the final unfinished-plan guard.
+	const maxPlanCompletionTurns = 6
 	var resp *ai.Response
 	for planCompletionTurn := 0; ; planCompletionTurn++ {
 		resp, err = ai.GenerateWithRetry(ctx, a.model, &ai.Request{
@@ -371,7 +375,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 				if resp.Answer != "" {
 					a.mem.Add("assistant", resp.Answer)
 				}
-				message = "Continue the run. These plan steps are still unfinished and must be completed before a final answer: " + strings.Join(unfinished, ", ")
+				message = fmt.Sprintf("Continue the same run by calling the required tool(s) for the unfinished plan steps below. Do not repeat completed work, do not provide a final answer yet, and complete at least one unfinished step this turn if a matching tool is available. Unfinished plan steps: %s", strings.Join(unfinished, ", "))
 				a.mem.Add("user", message)
 				messages = a.mem.Messages()
 				continue

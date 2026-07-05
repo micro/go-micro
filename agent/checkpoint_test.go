@@ -219,6 +219,72 @@ func TestCheckpointContinuesRunWithUnfinishedPlanStep(t *testing.T) {
 	}
 }
 
+func TestCheckpointContinuesRunThroughSeveralSingleStepTurns(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "single-step-plan-agent")
+
+	completed := []string{}
+	modelCalls := 0
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		modelCalls++
+		if opts.ToolHandler == nil {
+			t.Fatal("missing tool handler")
+		}
+		switch modelCalls {
+		case 1:
+			opts.ToolHandler(ctx, ai.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
+				"steps": []any{
+					map[string]any{"task": "create Design task", "status": "pending"},
+					map[string]any{"task": "create Build task", "status": "pending"},
+					map[string]any{"task": "create Ship task", "status": "pending"},
+					map[string]any{"task": "delegate readiness notification", "status": "pending"},
+				},
+			}})
+			return &ai.Response{Reply: "planned"}, nil
+		case 2, 3, 4, 5:
+			want := []string{"create Design task", "create Build task", "create Ship task", "delegate readiness notification"}[modelCalls-2]
+			if !strings.Contains(req.Prompt, want) {
+				t.Fatalf("continuation prompt %d = %q, want %q", modelCalls, req.Prompt, want)
+			}
+			res := opts.ToolHandler(ctx, ai.ToolCall{ID: want, Name: "external.step", Input: map[string]any{"step": want}})
+			if res.Content != "completed "+want {
+				t.Fatalf("tool result = %q, want completed %s", res.Content, want)
+			}
+			if modelCalls == 5 {
+				return &ai.Response{Reply: "all plan steps complete"}, nil
+			}
+			return &ai.Response{Reply: "one more step complete"}, nil
+		default:
+			t.Fatalf("unexpected model call %d", modelCalls)
+			return nil, nil
+		}
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("single-step-plan-agent"), WithCheckpoint(cp),
+		WithTool("external.step", "complete one planned step", nil, func(ctx context.Context, input map[string]any) (string, error) {
+			step, _ := input["step"].(string)
+			completed = append(completed, step)
+			return "completed " + step, nil
+		}))
+	resp, err := a.Ask(ctx, "work through the launch plan")
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if resp.Reply != "all plan steps complete" {
+		t.Fatalf("reply = %q, want final continuation reply", resp.Reply)
+	}
+	if modelCalls != 5 {
+		t.Fatalf("model calls = %d, want initial plus four continuations", modelCalls)
+	}
+	if len(completed) != 4 {
+		t.Fatalf("completed steps = %v, want four tool-backed continuations", completed)
+	}
+	if unfinished := a.unfinishedPlanSteps(); len(unfinished) != 0 {
+		t.Fatalf("unfinished plan steps = %v, want none", unfinished)
+	}
+}
+
 func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "restart-resume-agent")
