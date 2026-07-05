@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Document `micro agent demo` in the first-agent on-ramp** ([#4041](https://github.com/micro/go-micro/issues/4041)) — The last builder pass shipped `micro agent demo` in #4039, closing #4036/#4038 and giving the installed CLI a no-secret first-agent affordance. The queue should not re-ask for that command. The remaining adoption gap is that the canonical README/website first-agent path still leads users through examples and guides before naming the new CLI affordance, so the lived on-ramp can drift from what the binary now exposes. Put the command into the primary first-agent wayfinding and keep it covered by the existing first-agent docs tests, preserving the services → agents → workflows story without broad copy or API changes.
+1. **Lead CLI docs wayfinding with `micro agent demo`** ([#4046](https://github.com/micro/go-micro/issues/4046)) — #4044 shipped the README and website first-agent docs update for `micro agent demo`, so the queue should not keep #4041 open or re-ask for primary docs copy. The remaining adoption seam is inside the installed CLI: `micro docs` still starts from longer guide links rather than the new no-secret demo affordance, so the binary can drift from the public on-ramp a new developer just installed. Put `micro agent demo` first in the CLI docs wayfinding and cover it with the existing first-agent CLI boundary tests, preserving the scaffold → run → chat → inspect → deploy path without public API or positioning changes.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
