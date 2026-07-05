@@ -18,8 +18,10 @@ import (
 
 type memory struct {
 	// the current values
-	vals reader.Values
-	exit chan bool
+	vals    reader.Values
+	exit    chan bool
+	closeMu sync.Mutex
+	closed  bool
 	// the current snapshot
 	snap *loader.Snapshot
 
@@ -270,12 +272,15 @@ func (m *memory) Sync() error {
 }
 
 func (m *memory) Close() error {
-	select {
-	case <-m.exit:
+	m.closeMu.Lock()
+	defer m.closeMu.Unlock()
+
+	if m.closed {
 		return nil
-	default:
-		close(m.exit)
 	}
+
+	close(m.exit)
+	m.closed = true
 	return nil
 }
 

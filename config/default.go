@@ -14,8 +14,10 @@ import (
 
 type config struct {
 	// the current values
-	vals reader.Values
-	exit chan bool
+	vals    reader.Values
+	exit    chan bool
+	closeMu sync.Mutex
+	closed  bool
 	// the current snapshot
 	snap *loader.Snapshot
 	opts Options
@@ -48,6 +50,9 @@ func (c *config) Init(opts ...Option) error {
 		Reader: json.NewReader(),
 	}
 	c.exit = make(chan bool)
+	c.closeMu.Lock()
+	c.closed = false
+	c.closeMu.Unlock()
 	for _, o := range opts {
 		o(&c.opts)
 	}
@@ -184,12 +189,15 @@ func (c *config) Sync() error {
 }
 
 func (c *config) Close() error {
-	select {
-	case <-c.exit:
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+
+	if c.closed {
 		return nil
-	default:
-		close(c.exit)
 	}
+
+	close(c.exit)
+	c.closed = true
 	return nil
 }
 
