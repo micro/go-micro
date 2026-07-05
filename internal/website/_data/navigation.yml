@@ -3,6 +3,8 @@ core:
     url: /docs/
   - title: Getting Started
     url: /docs/getting-started.html
+  - title: Install Troubleshooting
+    url: /docs/guides/install-troubleshooting.html
   - title: AI Integration
     url: /docs/ai-integration.html
   - title: No-secret First Agent
@@ -80,6 +82,7 @@ project:
   - title: Server (optional)
     url: /docs/server.html
 search_order:
+  - /docs/guides/install-troubleshooting.html
   - /docs/guides/your-first-agent.html
   - /docs/guides/zero-to-hero.html
   - /docs/guides/debugging-agents.html

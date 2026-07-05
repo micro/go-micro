@@ -29,6 +29,8 @@ curl -fsSL https://go-micro.dev/install.sh | sh
 go install go-micro.dev/v6/cmd/micro@latest
 ```
 
+If install or shell setup fails, start with [Install troubleshooting](guides/install-troubleshooting.html) to verify the binary installer or `go install`, `PATH`, `micro --version`, and the no-secret smoke path.
+
 ## Quick Start: Scaffold, Run, Call
 
 Start with the path that proves the runtime works before any provider setup: install the CLI, scaffold one service, run it locally, then call it through the gateway.
@@ -53,12 +55,13 @@ That install → scaffold → run → call loop is the 0→1 contract. It requir
 
 After this quick start, follow the agent path in order:
 
-1. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
-2. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
-3. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
-4. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
-5. [Debugging your agent](guides/debugging-agents.html) — inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
-6. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
+1. [Install troubleshooting](guides/install-troubleshooting.html) — verify the CLI install before agent work.
+2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
+3. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
+4. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
+5. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
+6. [Debugging your agent](guides/debugging-agents.html) — inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
+7. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
 
 ## Write a Service
 

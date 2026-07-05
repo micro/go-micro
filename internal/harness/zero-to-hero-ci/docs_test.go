@@ -89,6 +89,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			file:    filepath.Join(root, "README.md"),
 			heading: "### First agent on-ramp",
 			links: []string{
+				"internal/website/docs/guides/install-troubleshooting.md",
 				"micro agent demo",
 				"internal/website/docs/guides/no-secret-first-agent.md",
 				"internal/website/docs/guides/your-first-agent.md",
@@ -131,6 +132,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
 			heading: "### First-agent on-ramp",
 			links: []string{
+				"guides/install-troubleshooting.html",
 				"micro agent demo",
 				"guides/no-secret-first-agent.html",
 				"guides/your-first-agent.html",
@@ -330,6 +332,7 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 			file:    filepath.Join(root, "README.md"),
 			section: "## Quick Start",
 			want: []string{
+				"install troubleshooting guide",
 				"### Fastest start — no API key",
 				"micro new helloworld",
 				"micro run",
@@ -354,8 +357,9 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 		{
 			name:    "website getting started",
 			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
-			section: "## Quick Start: Scaffold, Run, Call",
+			section: "Install troubleshooting",
 			want: []string{
+				"Install troubleshooting",
 				"## Quick Start: Scaffold, Run, Call",
 				"micro new helloworld",
 				"micro run",
