@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Promote agent doctor in the first-agent debug loop** ([#4086](https://github.com/micro/go-micro/issues/4086)) — install troubleshooting and preflight now cover the before-run adoption seams; next close the after-run recovery seam for newcomers whose first agent starts but chat, gateway, registration, provider settings, or run history misbehave. Link `micro agent doctor` from the first-agent and debugging path, distinguish it from install troubleshooting and `micro agent preflight`, and add a focused CLI/docs harness assertion so the scaffold → run → chat → inspect recovery checkpoint stays discoverable.
+1. **Align architecture docs with the agent harness lifecycle** ([#4092](https://github.com/micro/go-micro/issues/4092)) — the first-agent on-ramp, install troubleshooting, preflight, and after-run doctor seams are now covered, but the website architecture page still reads like a pre-agent distributed-systems overview. Refresh it so newcomers see one coherent services → agents → workflows runtime: registry/server/client as the service substrate, `model`/`store` as state, `ai`/`agent` as the tool-calling loop, `flow` as durable deterministic orchestration, and MCP/A2A gateways as interop. Add a focused docs/wayfinding assertion so the architecture story keeps pointing back to AI integration, first-agent, and 0→hero.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
