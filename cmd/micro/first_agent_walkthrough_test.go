@@ -64,10 +64,10 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 		"your-first-agent.html",
 		"debugging-agents.html",
 		"zero-to-hero.html",
-		"micro agent preflight",
+		"micro agent preflight  # before micro run: prerequisites",
 		"micro run",
 		"micro chat",
-		"micro agent doctor",
+		"micro agent doctor     # after micro run: chat/gateway/inspect recovery",
 		"micro inspect agent",
 	} {
 		if !strings.Contains(out.String(), want) {
@@ -79,6 +79,13 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	if !strings.Contains(agent.Usage, "micro agent demo") {
 		t.Fatalf("micro agent help should advertise the no-secret demo; usage was %q", agent.Usage)
 	}
+	doctor := subcommandByName(t, agent, "doctor")
+	for _, want := range []string{"chat", "gateway", "registration", "provider", "inspect", "after micro run"} {
+		if !strings.Contains(doctor.Usage, want) {
+			t.Fatalf("micro agent doctor usage should advertise after-run recovery for %q; usage was %q", want, doctor.Usage)
+		}
+	}
+
 	demo := subcommandByName(t, agent, "demo")
 	out.Reset()
 	if err := demo.Action(cli.NewContext(app, nil, nil)); err != nil {
@@ -88,8 +95,9 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 		"No-secret first-agent demo",
 		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1",
 		"provider-free",
-		"micro agent preflight",
+		"micro agent preflight  # before micro run: prerequisites",
 		"micro chat",
+		"micro agent doctor     # after micro run: chat/gateway/inspect recovery",
 		"micro inspect agent <name>",
 		"your-first-agent.html",
 		"debugging-agents.html",

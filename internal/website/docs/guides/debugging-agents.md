@@ -17,9 +17,21 @@ micro inspect ...  # read the recorded run or workflow history
 
 Debug the lifecycle in the same order Go Micro runs it: first prove the service is
 registered and callable, then inspect the agent run that chose tools, then inspect
-any workflow that handed off to the agent. If the first local run fails before a
-chat turn, run `micro agent preflight`; failed checks include `Fix:` and `Next:`
-lines for Go, CLI installation, provider-key setup, and the local gateway port.
+any workflow that handed off to the agent.
+
+Use the recovery command that matches where you are in the first-agent journey:
+
+| Checkpoint | When to use it | Command |
+| --- | --- | --- |
+| Install troubleshooting | `micro` is not installed, not on `PATH`, or the shell cannot run it. | [Install troubleshooting](install-troubleshooting.html) |
+| Preflight before `micro run` | You have not started the local runtime yet and want to verify Go, CLI, provider-key, and gateway-port prerequisites. | `micro agent preflight` |
+| Doctor after `micro run` | `micro run` is active, but chat, the `/agent` gateway, agent registration, provider settings, or inspect/run history is not behaving. | `micro agent doctor` |
+
+`micro agent preflight` is read-only and runs before the first local run; failed
+checks include `Fix:` and `Next:` lines for Go, CLI installation, provider-key
+setup, and the local gateway port. Once `micro run` is already up, switch to
+`micro agent doctor` so the recovery output follows the live gateway, chat
+settings, registered agents, provider configuration, and inspectable run history.
 
 ## 1. Reproduce one small turn
 

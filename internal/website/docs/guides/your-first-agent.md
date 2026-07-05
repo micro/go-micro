@@ -53,7 +53,11 @@ Run the read-only first-agent preflight before starting the walkthrough. The sam
 micro agent preflight
 ```
 
-It checks Go 1.24+, the `micro` binary, provider-key setup, and the default local gateway port without contacting a provider. Failed checks include a `Fix:` line and a `Next:` line that points back to this guide, the no-secret walkthrough, or the debugging guide.
+It checks Go 1.24+, the `micro` binary, provider-key setup, and the default local gateway port without contacting a provider. Failed checks include a `Fix:` line and a `Next:` line that points back to this guide, the no-secret walkthrough, or the debugging guide. Use it before `micro run`; if `micro run` is already active but `micro chat`, the `/agent` gateway, registration, provider settings, or inspect history is failing, run the after-run recovery check instead:
+
+```sh
+micro agent doctor
+```
 
 ## 1. Create a workspace
 
