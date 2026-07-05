@@ -16,6 +16,27 @@ next version when it ships.
 
 ## [Unreleased]
 
+## [6.3.15] - July 2026
+
+### Added
+- **Anthropic streaming** — the Anthropic provider now supports Messages SSE streaming and is registered as a streaming-capable provider, with capability docs and parser coverage. (`ai/anthropic/`, `internal/website/docs/guides/`)
+- **AP2 mandate foundation for A2A** — the A2A gateway now has the shared payment-mandate foundation needed for AP2-style agent payment flows. (`gateway/a2a/`)
+- **Smallest first-agent example** — a no-secret, mock-model first-agent example gives the on-ramp a minimal runnable starting point. (`examples/first-agent/`)
+
+### Changed
+- **First-agent CLI next steps** — CLI output now points new users toward the maintained first-agent path after scaffold/run milestones. (`cmd/micro/`)
+
+### Fixed
+- **Plan/delegate completion** — plan-delegate runs now preserve completed steps, guard ordering, require notify-before-completion, and stabilize checkpoint continuation paths. (`agent/`, `internal/harness/`)
+- **Provider text tool calls** — AtlasCloud and weaker-model fallback paths now recover tagged, `Create`-suffixed, mixed text/tool-call, and follow-up tool calls more reliably. (`agent/`, `ai/atlascloud/`)
+- **First-agent broker isolation** — the first-agent harness now isolates broker state more reliably across runs. (`internal/harness/`)
+
+### Documentation
+- **First-agent example path** — docs and website wayfinding now surface the smallest example, no-secret transcript, and 0→hero path together. (`README.md`, `internal/website/docs/`)
+- **Agent operations guidance** — agent debugging docs now include operational failure guidance, inspect hints, and durable resume pointers. (`internal/website/docs/guides/`)
+
+---
+
 ## [6.3.14] - July 2026
 
 ### Added
