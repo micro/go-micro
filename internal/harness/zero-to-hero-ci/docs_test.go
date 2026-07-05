@@ -3,6 +3,7 @@ package zerotoheroci
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -148,11 +149,103 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 				if idx == -1 {
 					t.Fatalf("%s missing first-agent wayfinding link %q; keep the no-secret → first-agent → debugging → 0→hero path discoverable", check.name, link)
 				}
+				assertWayfindingTargetExists(t, root, check.file, link)
 				if idx < last {
 					t.Fatalf("%s link %q appeared out of order; expected no-secret → first-agent → debugging → 0→hero", check.name, link)
 				}
 				last = idx
 			}
+		})
+	}
+}
+
+func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	checks := []struct {
+		name    string
+		file    string
+		heading string
+	}{
+		{
+			name:    "README first-agent on-ramp",
+			file:    filepath.Join(root, "README.md"),
+			heading: "### First agent on-ramp",
+		},
+		{
+			name:    "README examples list",
+			file:    filepath.Join(root, "README.md"),
+			heading: "## Examples",
+		},
+		{
+			name:    "repository examples index",
+			file:    filepath.Join(root, "examples", "README.md"),
+			heading: "## Recommended first-agent path",
+		},
+		{
+			name:    "website examples index",
+			file:    filepath.Join(root, "internal", "website", "docs", "examples", "index.md"),
+			heading: "## Start here",
+		},
+		{
+			name:    "website getting-started on-ramp",
+			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			heading: "### First-agent on-ramp",
+		},
+	}
+
+	for _, check := range checks {
+		t.Run(check.name, func(t *testing.T) {
+			section := firstMarkdownSection(t, readFile(t, check.file), check.heading)
+			links := markdownLinks(section)
+			if len(links) == 0 {
+				t.Fatalf("%s has no Markdown links in %q", check.name, check.heading)
+			}
+			for _, link := range links {
+				assertWayfindingTargetExists(t, root, check.file, link)
+			}
+		})
+	}
+}
+
+func TestFirstAgentLifecycleCommandOrderIsDocumented(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	checks := []struct {
+		name    string
+		file    string
+		heading string
+		markers []string
+	}{
+		{
+			name:    "0→hero guide lifecycle",
+			file:    filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"),
+			heading: "## What the contract covers",
+			markers: []string{"micro new", "micro run", "micro chat", "micro inspect agent", "micro deploy --dry-run"},
+		},
+		{
+			name:    "CLI docs lifecycle",
+			file:    filepath.Join(root, "cmd", "micro", "cli", "cli.go"),
+			heading: "const docsWayfinding",
+			markers: []string{"micro agent demo", "micro run", "micro chat", "micro inspect agent", "deploy dry-run"},
+		},
+		{
+			name:    "scaffold next steps",
+			file:    filepath.Join(root, "cmd", "micro", "cli", "new", "new.go"),
+			heading: "func printNextSteps",
+			markers: []string{"go run .", "micro chat", "micro inspect agent", "micro agent demo", "micro docs"},
+		},
+	}
+
+	for _, check := range checks {
+		t.Run(check.name, func(t *testing.T) {
+			doc := readFile(t, check.file)
+			if check.heading != "" {
+				start := strings.Index(doc, check.heading)
+				if start == -1 {
+					t.Fatalf("%s missing %q boundary", check.name, check.heading)
+				}
+				doc = doc[start:]
+			}
+			assertOrderedMarkers(t, check.name, doc, check.markers)
 		})
 	}
 }
@@ -384,4 +477,68 @@ func readFile(t *testing.T, name string) string {
 		t.Fatalf("read %s: %v", name, err)
 	}
 	return string(data)
+}
+
+var markdownLinkRE = regexp.MustCompile(`\[[^\]]+\]\(([^)#?]+)(?:[#?][^)]*)?\)`)
+
+func markdownLinks(section string) []string {
+	matches := markdownLinkRE.FindAllStringSubmatch(section, -1)
+	links := make([]string, 0, len(matches))
+	for _, match := range matches {
+		if len(match) > 1 {
+			links = append(links, match[1])
+		}
+	}
+	return links
+}
+
+func assertWayfindingTargetExists(t *testing.T, root, sourceFile, link string) {
+	t.Helper()
+	if !strings.Contains(link, "/") && !strings.Contains(link, ".") {
+		return
+	}
+	if strings.HasPrefix(link, "http://") || strings.HasPrefix(link, "https://") {
+		switch {
+		case strings.HasPrefix(link, "https://go-micro.dev/docs/"):
+			link = strings.TrimPrefix(link, "https://go-micro.dev/docs/")
+			link = filepath.ToSlash(filepath.Join("internal", "website", "docs", strings.TrimSuffix(link, ".html")+".md"))
+		case strings.HasPrefix(link, "https://github.com/micro/go-micro/tree/master/"):
+			link = strings.TrimPrefix(link, "https://github.com/micro/go-micro/tree/master/")
+		default:
+			return
+		}
+	} else if strings.HasSuffix(link, ".html") {
+		sourceDir := filepath.Dir(sourceFile)
+		websiteDocs := filepath.Join(root, "internal", "website", "docs")
+		resolved := filepath.Clean(filepath.Join(sourceDir, filepath.FromSlash(link)))
+		if rel, err := filepath.Rel(websiteDocs, resolved); err == nil && !strings.HasPrefix(rel, "..") {
+			link = filepath.ToSlash(filepath.Join("internal", "website", "docs", strings.TrimSuffix(rel, ".html")+".md"))
+		}
+	} else if strings.HasPrefix(link, ".") {
+		target := filepath.Clean(filepath.Join(filepath.Dir(sourceFile), filepath.FromSlash(link)))
+		if _, err := os.Stat(target); err != nil {
+			t.Fatalf("first-agent wayfinding link %q in %s resolves to missing target %s: %v", link, sourceFile, target, err)
+		}
+		return
+	}
+
+	target := filepath.Join(root, filepath.FromSlash(link))
+	if _, err := os.Stat(target); err != nil {
+		t.Fatalf("first-agent wayfinding link %q in %s resolves to missing target %s: %v", link, sourceFile, target, err)
+	}
+}
+
+func assertOrderedMarkers(t *testing.T, name, doc string, markers []string) {
+	t.Helper()
+	last := -1
+	for _, marker := range markers {
+		idx := strings.Index(doc, marker)
+		if idx == -1 {
+			t.Fatalf("%s missing lifecycle command marker %q", name, marker)
+		}
+		if idx < last {
+			t.Fatalf("%s marker %q appeared out of order; keep scaffold → run → chat → inspect → deploy discoverable", name, marker)
+		}
+		last = idx
+	}
 }
