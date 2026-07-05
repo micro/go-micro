@@ -37,10 +37,12 @@ const docsWayfinding = `First-agent and 0→hero docs:
        micro agent preflight
        micro run
        micro chat
+       micro agent doctor
 
   3. Debugging your agent
      https://go-micro.dev/docs/guides/debugging-agents.html
      Inspect agent runs and memory with:
+       micro agent doctor
        micro inspect agent
        micro runs <agent>
 

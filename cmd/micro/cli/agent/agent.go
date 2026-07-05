@@ -37,11 +37,20 @@ func init() {
 		Usage: "Manage AI agents",
 		Subcommands: []*cli.Command{
 			{
-				Name:    "preflight",
-				Aliases: []string{"doctor"},
-				Usage:   "Check local prerequisites before the first provider-backed agent",
+				Name:  "preflight",
+				Usage: "Check local prerequisites before the first provider-backed agent",
 				Action: func(c *cli.Context) error {
 					return runAgentPreflight(os.Stdout, defaultPreflightDeps())
+				},
+			},
+			{
+				Name:  "doctor",
+				Usage: "Diagnose chat and inspect recovery after micro run",
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "gateway", Value: "http://localhost:8080", Usage: "Gateway URL started by micro run"},
+				},
+				Action: func(c *cli.Context) error {
+					return runAgentDoctor(os.Stdout, defaultDoctorDeps(), c.String("gateway"))
 				},
 			},
 			{
