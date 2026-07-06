@@ -400,7 +400,7 @@ func preserveCompletedPlanSteps(stored string, input map[string]any) map[string]
 			continue
 		}
 		task, _ := step["task"].(string)
-		if completed[normalizePlanTask(task)] && isUnfinishedPlanStatus(step["status"]) {
+		if completed[planTaskCompletionKey(task)] && isUnfinishedPlanStatus(step["status"]) {
 			step["status"] = "done"
 		}
 	}
@@ -423,7 +423,7 @@ func completedPlanTasks(plan map[string]any) map[string]bool {
 			continue
 		}
 		task, _ := step["task"].(string)
-		if task = normalizePlanTask(task); task != "" {
+		if task = planTaskCompletionKey(task); task != "" {
 			completed[task] = true
 		}
 	}
@@ -432,6 +432,27 @@ func completedPlanTasks(plan map[string]any) map[string]bool {
 
 func normalizePlanTask(task string) string {
 	return strings.Join(strings.Fields(strings.ToLower(task)), " ")
+}
+
+func planTaskCompletionKey(task string) string {
+	normalized := normalizePlanTask(task)
+	if normalized == "" {
+		return ""
+	}
+	if isLaunchReadinessDelegationPlanTask(normalized) {
+		return "launch-readiness-notification"
+	}
+	return normalized
+}
+
+func isLaunchReadinessDelegationPlanTask(task string) bool {
+	task = normalizePlanTask(task)
+	if !strings.Contains(task, "notify") && !strings.Contains(task, "notification") {
+		return false
+	}
+	hasLaunchReadiness := strings.Contains(task, "launch") || strings.Contains(task, "readiness") || strings.Contains(task, "ready")
+	hasOwnerComms := strings.Contains(task, "owner") && strings.Contains(task, "comms")
+	return hasLaunchReadiness || hasOwnerComms
 }
 
 func isUnfinishedPlanStatus(status any) bool {
