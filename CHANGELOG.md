@@ -16,6 +16,40 @@ next version when it ships.
 
 ## [Unreleased]
 
+### Added
+- **First-agent examples CLI wayfinding** — `micro examples` now prints the maintained provider-free first-agent examples in copy/paste order. (`cmd/micro/`)
+- **0→hero CLI entrypoint** — `micro zero-to-hero` now points developers at the maintained no-secret services → agents → workflows harness and runnable examples. (`cmd/micro/`)
+
+### Fixed
+- **Plan/delegate notify replays** — duplicate and replayed plan-delegate notifications are now idempotent, so resumed runs do not duplicate completed notifications. (`agent/`, `internal/harness/`)
+- **Provider conformance scheduling** — provider conformance workflow dispatches now guard their scheduling path more reliably. (`.github/workflows/`)
+
+### Documentation
+- **First-agent quickstart numbering** — the first-agent on-ramp numbering is consistent across the README and website docs. (`README.md`, `internal/website/docs/`)
+- **First-agent inspect command** — docs now use the maintained `micro inspect agent <name>` form. (`README.md`, `internal/website/docs/`)
+
+---
+
+## [6.3.16] - July 2026
+
+### Added
+- **No-secret agent demo CLI** — the CLI now surfaces `micro agent demo`, making the provider-free first-agent path discoverable from the installed binary. (`cmd/micro/`)
+- **First-agent recovery doctor** — first-agent recovery checks now help diagnose install, scaffold, and provider setup issues before the live agent run. (`cmd/micro/`, `internal/website/docs/guides/`)
+
+### Changed
+- **Architecture lifecycle docs** — the architecture guide now leads with the services → agents → workflows lifecycle and the first-agent on-ramp. (`internal/website/docs/architecture.md`)
+- **First-agent on-ramp** — README and website docs now lead new users through install troubleshooting, no-secret demos, the smallest first-agent example, debugging, and the 0→hero reference path in the same order. (`README.md`, `internal/website/docs/`)
+
+### Fixed
+- **Config close idempotency** — config close paths now tolerate repeated closes safely. (`config/`)
+- **OpenTelemetry child span events** — agent traces now preserve child span events more reliably. (`agent/`)
+
+### Documentation
+- **Security reporting** — security docs now route vulnerability reports through GitHub Security Advisories. (`SECURITY.md`, `internal/website/docs/`)
+- **Install troubleshooting** — the first-agent on-ramp now includes clearer install and PATH recovery guidance. (`internal/website/docs/guides/install-troubleshooting.md`)
+
+---
+
 ## [6.3.15] - July 2026
 
 ### Added
