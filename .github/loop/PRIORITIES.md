@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Stabilize AtlasCloud guarded-delegation conformance** ([#4157](https://github.com/micro/go-micro/issues/4157)) — #4159 closed the built-in tool-schema 400s from #4151, but the remaining Now-phase provider-conformance gap is AtlasCloud intermittently missing the guarded `delegate` attempt/refusal in the live agent harness. Keep this scoped to deterministic harness/provider behavior so the service-backed agent path remains portable across providers without changing public APIs.
-2. **Add durable agent checkpoint resume smoke coverage** ([#4148](https://github.com/micro/go-micro/issues/4148)) — once the live provider-conformance regression is contained, move to the top Next-phase harness gap: prove an interrupted agent run can resume from persisted state with enough run/step history for inspect/debugging. This keeps the lifecycle cohesive by giving agents the same durability story flows already have, without taking on a breaking API redesign.
+1. **Make AtlasCloud delegated notification side effects exact-once** ([#4163](https://github.com/micro/go-micro/issues/4163)) — the prior AtlasCloud schema/fallback fixes closed #4157, but the latest live provider-conformance signal shows a remaining Now-phase reliability seam: the `plan-delegate` harness can produce duplicate delegated `notify` side effects before the exact-once guard fails. Fixing this first keeps the same services → agents → workflows story portable across providers without changing public APIs.
+2. **Add `micro loop` quickstart wayfinding to README and website docs** ([#4169](https://github.com/micro/go-micro/issues/4169)) — the blog now says the autonomous loop is shipped and reusable, but the lived developer on-ramp still depends on finding the launch post. Surface `micro loop init` / `micro loop verify`, token setup, branch protection, and CI-as-gate expectations in durable docs so the harness-building-itself story is adoptable, not just announced.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
