@@ -43,7 +43,7 @@ contract.
 
 ## Scheduled CI
 
-The daily/manual `Harness (E2E)` workflow runs the same matrix with
+The hourly/manual `Harness (E2E)` workflow runs the same matrix with
 `GO_MICRO_AGENT_CONFORMANCE_LIVE=1` and the provider secrets exported. Providers
 whose keys are absent still skip cleanly, while any configured provider must pass
 the shared tool-calling scenario. This keeps scheduled conformance key-gated: PR

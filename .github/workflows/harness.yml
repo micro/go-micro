@@ -47,7 +47,7 @@ jobs:
   harness-live:
     name: Provider harnesses (live LLM conformance)
     runs-on: ubuntu-latest
-    # Only on the daily schedule or a manual run — never automatically on
+    # Only on the hourly schedule or a manual run — never automatically on
     # every push/PR, so changes don't quietly burn API credits. Trigger it
     # by hand (Actions → Harness → Run workflow) when changing the agent,
     # flow, or AI internals and you want a real-model check.

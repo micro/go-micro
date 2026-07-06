@@ -69,7 +69,7 @@ go run ./internal/harness/provider-conformance \
 ## Scheduled CI behavior
 
 The `Harness (E2E)` workflow runs on pushes and pull requests with deterministic
-mock LLMs, including `provider-conformance -providers mock`. On the daily
+mock LLMs, including `provider-conformance -providers mock`. On the hourly
 schedule and manual dispatch it also runs the live provider conformance job. A
 manual dispatch can narrow `providers` or `harnesses`, and can set
 `require_configured=true` to fail fast when an expected repository secret is
