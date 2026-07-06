@@ -187,10 +187,20 @@ func (s *NotifyService) duplicateAttempts() int {
 func notifyDedupKey(to, message string) string {
 	recipient := strings.ToLower(strings.TrimSpace(to))
 	body := normalizeNotifyText(message)
-	if recipient == "owner@acme.com" && isLaunchReadinessNotify(body) {
+	if isLaunchReadinessNotify(body) {
+		recipient = canonicalLaunchNotifyRecipient(recipient)
 		body = "launch-readiness"
 	}
 	return recipient + "\x00" + body
+}
+
+func canonicalLaunchNotifyRecipient(recipient string) string {
+	switch recipient {
+	case "owner", "launch owner", "plan owner", "owner@acme.com":
+		return "owner@acme.com"
+	default:
+		return recipient
+	}
 }
 
 func normalizeNotifyText(message string) string {
