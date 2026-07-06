@@ -447,3 +447,28 @@ func TestNotifyServiceSendIsIdempotentForDuplicateDelivery(t *testing.T) {
 		t.Fatalf("duplicate notify attempts = %d, want %d", got, len(messages)-1)
 	}
 }
+
+func TestNotifyServiceCollapsesProviderReadinessParaphrases(t *testing.T) {
+	svc := new(NotifyService)
+	requests := []SendRequest{
+		{To: "owner@acme.com", Message: "The launch plan is ready"},
+		{To: "owner @ acme.com", Message: "Launch plan ready."},
+		{To: "launch owner", Message: "The launch readiness plan is prepared."},
+		{To: "plan owner", Message: "Launch plan is complete!"},
+	}
+	for i, req := range requests {
+		var rsp SendResponse
+		if err := svc.Send(context.Background(), &req, &rsp); err != nil {
+			t.Fatalf("Send attempt %d: %v", i+1, err)
+		}
+		if !rsp.Sent {
+			t.Fatalf("Send attempt %d reported Sent=false", i+1)
+		}
+	}
+	if got := svc.count(); got != 1 {
+		t.Fatalf("notify count = %d, want 1 after provider paraphrase replays", got)
+	}
+	if got := svc.duplicateAttempts(); got != len(requests)-1 {
+		t.Fatalf("duplicate notify attempts = %d, want %d", got, len(requests)-1)
+	}
+}

@@ -185,10 +185,9 @@ func (s *NotifyService) duplicateAttempts() int {
 }
 
 func notifyDedupKey(to, message string) string {
-	recipient := strings.ToLower(strings.TrimSpace(to))
+	recipient := canonicalLaunchNotifyRecipient(normalizeNotifyText(to))
 	body := normalizeNotifyText(message)
 	if isLaunchReadinessNotify(body) {
-		recipient = canonicalLaunchNotifyRecipient(recipient)
 		body = "launch-readiness"
 	}
 	return recipient + "\x00" + body
@@ -196,21 +195,38 @@ func notifyDedupKey(to, message string) string {
 
 func canonicalLaunchNotifyRecipient(recipient string) string {
 	switch recipient {
-	case "owner", "launch owner", "plan owner", "owner@acme.com":
+	case "owner", "launch owner", "plan owner", "owner acme com", "owner@acme com", "owner @ acme com":
 		return "owner@acme.com"
 	default:
+		if strings.Contains(recipient, "owner") && strings.Contains(recipient, "acme") {
+			return "owner@acme.com"
+		}
 		return recipient
 	}
 }
 
 func normalizeNotifyText(message string) string {
-	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(message))), " ")
+	message = strings.ToLower(strings.TrimSpace(message))
+	message = strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			return r
+		case r == '@':
+			return r
+		default:
+			return ' '
+		}
+	}, message)
+	return strings.Join(strings.Fields(message), " ")
 }
 
 func isLaunchReadinessNotify(message string) bool {
 	return strings.Contains(message, "launch") &&
 		strings.Contains(message, "plan") &&
-		(strings.Contains(message, "ready") || strings.Contains(message, "readiness"))
+		(strings.Contains(message, "ready") ||
+			strings.Contains(message, "readiness") ||
+			strings.Contains(message, "prepared") ||
+			strings.Contains(message, "complete"))
 }
 
 // ---------------------------------------------------------------------------
