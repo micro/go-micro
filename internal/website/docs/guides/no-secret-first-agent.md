@@ -100,6 +100,7 @@ CI keeps those CLI boundaries present with:
 
 ```sh
 go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1
+go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1
 ```
 
 ## Debug transcript checkpoint

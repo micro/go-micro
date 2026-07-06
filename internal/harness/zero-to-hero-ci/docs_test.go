@@ -1,12 +1,17 @@
 package zerotoheroci
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
+
+	goagent "go-micro.dev/v6/agent"
+	"go-micro.dev/v6/store"
 )
 
 func TestZeroToHeroReferenceDocs(t *testing.T) {
@@ -567,6 +572,110 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	if !strings.Contains(firstAgent, "no-secret-first-agent.html") {
 		t.Fatal("Your First Agent guide does not point to the no-secret transcript")
 	}
+}
+
+func TestNoSecretFirstAgentDebuggingSmoke(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	home := t.TempDir()
+	storeDir := filepath.Join(home, "micro", "store")
+	st := store.NewFileStore(store.DirOption(storeDir))
+
+	seedNoSecretAgentDebuggingState(t, st)
+	if err := st.Close(); err != nil {
+		t.Fatalf("close seeded store: %v", err)
+	}
+
+	micro := buildMicroBinary(t, root)
+
+	for _, tc := range []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{
+			name: "demo advertises provider-free debug path",
+			args: []string{"agent", "demo"},
+			want: []string{"No-secret first-agent demo", "provider-free", "run history", "micro inspect agent <name>"},
+		},
+		{
+			name: "inspect shows seeded run history",
+			args: []string{"inspect", "agent", "assistant", "--limit", "1"},
+			want: []string{`Agent "assistant" runs`, "run-debug-smoke", "status=done", "events=3", "last=done", "trace=trace-debug-"},
+		},
+		{
+			name: "inspect filters documented statuses",
+			args: []string{"inspect", "agent", "--status", "done", "--json", "assistant"},
+			want: []string{"run-debug-smoke", `"status": "done"`, `"trace_id": "trace-debug-smoke"`},
+		},
+		{
+			name: "agent history shows memory and run index",
+			args: []string{"agent", "history", "assistant"},
+			want: []string{"user:", "Triage ticket-1", "assistant:", "ticket-1 is ready", "Runs:", "run-debug-smoke", "status=done"},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out := runMicroCLIWithHome(t, micro, home, tc.args...)
+			for _, want := range tc.want {
+				if !strings.Contains(out, want) {
+					t.Fatalf("micro %s output missing %q:\n%s", strings.Join(tc.args, " "), want, out)
+				}
+			}
+		})
+	}
+}
+
+func seedNoSecretAgentDebuggingState(t *testing.T, st store.Store) {
+	t.Helper()
+	scoped := store.Scope(st, "agent", "assistant")
+	runID := "run-debug-smoke"
+	events := []goagent.RunEvent{
+		{Time: time.Unix(1700000000, 0), RunID: runID, Agent: "assistant", TraceID: "trace-debug-smoke", Kind: "run", Name: "ask"},
+		{Time: time.Unix(1700000001, 0), RunID: runID, Agent: "assistant", TraceID: "trace-debug-smoke", Kind: "model", Provider: "mock", Model: "first-agent-mock"},
+		{Time: time.Unix(1700000002, 0), RunID: runID, Agent: "assistant", TraceID: "trace-debug-smoke", Kind: "done", Name: "answer"},
+	}
+	for _, event := range events {
+		b, err := json.Marshal(event)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := "runs/" + event.RunID + "/" + event.Time.Format("20060102150405.000000000") + "-" + event.Kind
+		if err := scoped.Write(&store.Record{Key: key, Value: b}); err != nil {
+			t.Fatalf("seed run event: %v", err)
+		}
+	}
+
+	mem := goagent.NewMemory(scoped, "history", 10)
+	mem.Add("user", "Triage ticket-1 for Alice")
+	mem.Add("assistant", "ticket-1 is ready for Alice without provider secrets")
+}
+
+func buildMicroBinary(t *testing.T, root string) string {
+	t.Helper()
+	bin := filepath.Join(t.TempDir(), "micro")
+	cmd := exec.Command("go", "build", "-o", bin, "./cmd/micro")
+	cmd.Dir = root
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("build micro CLI failed: %v\n%s", err, out)
+	}
+	return bin
+}
+
+func runMicroCLIWithHome(t *testing.T, micro, home string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command(micro, args...)
+	cmd.Env = append(os.Environ(),
+		"HOME="+home,
+		"MICRO_AI_API_KEY=",
+		"OPENAI_API_KEY=",
+		"ANTHROPIC_API_KEY=",
+		"GEMINI_API_KEY=",
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("micro %s failed: %v\n%s", strings.Join(args, " "), err, out)
+	}
+	return string(out)
 }
 
 func TestFirstAgentWayfindingTargetsExist(t *testing.T) {
