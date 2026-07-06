@@ -289,6 +289,58 @@ func TestProvider_GenerateMinimaxToolRequests(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateNormalizesBuiltInToolSchemas(t *testing.T) {
+	var body map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"ok"}}]}`))
+	}))
+	defer ts.Close()
+
+	planProperties := map[string]any{
+		"steps": map[string]any{
+			"type":        "array",
+			"description": "ordered plan steps",
+		},
+	}
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+	)
+	_, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "plan and delegate",
+		Tools: []ai.Tool{
+			{Name: "task_TaskService_Add", Description: "add task", Properties: map[string]any{"title": map[string]any{"type": "string"}}},
+			{Name: "plan", Description: "record a plan", Properties: planProperties},
+			{Name: "request_input", Description: "request input", Properties: map[string]any{"prompt": map[string]any{"type": "string"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+
+	tools := body["tools"].([]any)
+	if len(tools) != 4 {
+		t.Fatalf("tools = %d, want custom tool plus built-ins", len(tools))
+	}
+	planTool := tools[1].(map[string]any)
+	fn := planTool["function"].(map[string]any)
+	params := fn["parameters"].(map[string]any)
+	props := params["properties"].(map[string]any)
+	steps := props["steps"].(map[string]any)
+	if _, ok := steps["items"].(map[string]any); !ok {
+		t.Fatalf("plan steps schema = %#v, want array items for AtlasCloud/minimax", steps)
+	}
+	if _, mutated := planProperties["steps"].(map[string]any)["items"]; mutated {
+		t.Fatalf("Generate mutated caller tool schema: %#v", planProperties)
+	}
+}
+
 func TestProvider_GenerateExecutesFollowUpToolCall(t *testing.T) {
 	var bodies []map[string]any
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
