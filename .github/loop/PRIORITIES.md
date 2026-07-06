@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Unify first-agent run inspection command across CLI and docs** ([#4104](https://github.com/micro/go-micro/issues/4104)) — the install, first-agent, debugging, and 0→hero on-ramp is now rich enough that command-name drift becomes the highest-value adoption seam. Make the documented inspect step copy/pasteable from the CLI and website, either by adding the intended alias or aligning docs on the existing command, and guard the CLI/docs boundary with focused tests.
-2. **Add a scheduled provider-conformance live matrix** ([#4110](https://github.com/micro/go-micro/issues/4110)) — after the duplicate notify side-effect fix shipped, the remaining Now-phase hardening gap is to make cross-provider behavior continuously visible instead of episodic. Reuse the existing provider-conformance harnesses, gate live providers on configured secrets with explicit skips, preserve the deterministic mock path, and document local maintainer commands.
+1. **Add a scheduled provider-conformance live matrix** ([#4110](https://github.com/micro/go-micro/issues/4110)) — the top remaining Now-phase hardening gap is to make cross-provider behavior continuously visible instead of episodic. Reuse the existing provider-conformance harnesses, gate live providers on configured secrets with explicit skips, preserve the deterministic mock path, and document local maintainer commands.
+2. **Add CLI examples wayfinding for first-agent paths** ([#4115](https://github.com/micro/go-micro/issues/4115)) — keep developer adoption weighted alongside hardening by making the maintained no-secret first-agent, debugging, and 0→hero examples discoverable from the CLI itself. Align CLI output, README, and website guide references so the scaffold → run → chat → inspect path stays copy/pasteable after install.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
