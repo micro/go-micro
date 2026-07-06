@@ -231,6 +231,15 @@ func TestPlanDelegateRetriesAfterUnknownDelegateTool(t *testing.T) {
 	}
 }
 
+func TestPlanDelegateIdempotentDuplicateNotifyReplay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("0→hero harness boots an end-to-end system; skipped with -short")
+	}
+	if err := runPlanDelegate("mock-duplicate-notify"); err != nil {
+		t.Fatalf("0→hero harness with duplicate notify replay: %v", err)
+	}
+}
+
 func TestTaskServiceAddIsIdempotentForLaunchTitles(t *testing.T) {
 	svc := new(TaskService)
 	for _, title := range []string{"Design", "design task", "Build", "Build launch task", "Ship", "ship readiness"} {
@@ -247,7 +256,7 @@ func TestTaskServiceAddIsIdempotentForLaunchTitles(t *testing.T) {
 	}
 }
 
-func TestPlanDelegateExecutionReportsDuplicateNotifyBeforeTimeout(t *testing.T) {
+func TestPlanDelegateExecutionAcceptsDuplicateNotifyReplay(t *testing.T) {
 	notifySvc := new(NotifyService)
 	for i := 0; i < 2; i++ {
 		var rsp SendResponse
@@ -256,20 +265,16 @@ func TestPlanDelegateExecutionReportsDuplicateNotifyBeforeTimeout(t *testing.T) 
 		}
 	}
 
-	done := make(chan error)
-	errCh := make(chan error, 1)
-	go func() { errCh <- waitForPlanDelegateExecution(done, new(TaskService), notifySvc) }()
-
-	select {
-	case err := <-errCh:
-		if err == nil {
-			t.Fatal("waitForPlanDelegateExecution returned nil, want duplicate notify error")
-		}
-		if got := err.Error(); !strings.Contains(got, "duplicate notify attempts") {
-			t.Fatalf("error = %q, want duplicate notify attempts", got)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("waitForPlanDelegateExecution did not report duplicate notify before timeout")
+	done := make(chan error, 1)
+	done <- nil
+	if err := waitForPlanDelegateExecution(done, new(TaskService), notifySvc); err != nil {
+		t.Fatalf("waitForPlanDelegateExecution returned %v, want duplicate replay accepted", err)
+	}
+	if got := notifySvc.count(); got != 1 {
+		t.Fatalf("notify count = %d, want 1 after duplicate replay", got)
+	}
+	if got := notifySvc.duplicateAttempts(); got != 1 {
+		t.Fatalf("duplicate attempts = %d, want 1 recorded replay", got)
 	}
 }
 

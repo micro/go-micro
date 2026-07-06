@@ -199,6 +199,10 @@ type mockModel struct {
 	// still keeping the regression deterministic and keyless.
 	unknownDelegateOnce    bool
 	emittedUnknownDelegate bool
+
+	// duplicateNotify makes the comms mock replay the same notification call.
+	// The notify service should collapse that replay to one durable side effect.
+	duplicateNotify bool
 }
 
 func newMock(opts ...ai.Option) ai.Model {
@@ -209,6 +213,12 @@ func newMock(opts ...ai.Option) ai.Model {
 
 func newMockUnknownDelegate(opts ...ai.Option) ai.Model {
 	m := &mockModel{unknownDelegateOnce: true}
+	_ = m.Init(opts...)
+	return m
+}
+
+func newMockDuplicateNotify(opts ...ai.Option) ai.Model {
+	m := &mockModel{duplicateNotify: true}
 	_ = m.Init(opts...)
 	return m
 }
@@ -254,10 +264,14 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 	// comms agent: owns notify, has Send but not Add.
 	case hasSend && !hasAdd:
 		send := findTool(req.Tools, "Send")
-		m.call("comms", send, map[string]any{
+		input := map[string]any{
 			"to":      "owner@acme.com",
 			"message": "The launch plan is ready",
-		})
+		}
+		m.call("comms", send, input)
+		if m.duplicateNotify {
+			m.call("comms", send, input)
+		}
 		return &ai.Response{Answer: "Notified owner@acme.com."}, nil
 
 	// conductor: has the task Add tool — plan, create tasks, delegate.
@@ -322,6 +336,8 @@ func runPlanDelegate(provider string) error {
 		ai.Register("mock", newMock)
 	case "mock-unknown-delegate":
 		ai.Register("mock-unknown-delegate", newMockUnknownDelegate)
+	case "mock-duplicate-notify":
+		ai.Register("mock-duplicate-notify", newMockDuplicateNotify)
 	default:
 		apiKey = providerKey(provider)
 		if apiKey == "" {
@@ -507,8 +523,8 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 			}
 			return nil
 		case <-ticker.C:
-			if dup := notifySvc.duplicateAttempts(); dup > 0 {
-				return fmt.Errorf("duplicate notify attempts: got %d duplicate replay(s), want 0", dup)
+			if notifySvc.count() == 1 {
+				continue
 			}
 		}
 	}
@@ -519,9 +535,6 @@ func waitForNotifySideEffect(notifySvc *NotifyService, timeout time.Duration) (b
 	for {
 		if notifySvc.count() == 1 {
 			return true, nil
-		}
-		if dup := notifySvc.duplicateAttempts(); dup > 0 {
-			return false, fmt.Errorf("duplicate notify attempts: got %d duplicate replay(s), want 0", dup)
 		}
 		if !time.Now().Before(deadline) {
 			return false, nil
@@ -540,7 +553,7 @@ func isClientTimeout(err error) bool {
 }
 
 func main() {
-	provider := flag.String("provider", "mock", "LLM provider: mock (default), mock-unknown-delegate, anthropic, openai, gemini, groq, mistral, together, atlascloud")
+	provider := flag.String("provider", "mock", "LLM provider: mock (default), mock-unknown-delegate, mock-duplicate-notify, anthropic, openai, gemini, groq, mistral, together, atlascloud")
 	flag.Parse()
 
 	if err := runPlanDelegate(*provider); err != nil {
