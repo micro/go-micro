@@ -57,11 +57,12 @@ After this quick start, follow the agent path in order:
 
 1. [Install troubleshooting](guides/install-troubleshooting.html) — verify the CLI install before agent work.
 2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
-3. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
-4. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
-5. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
-6. [Debugging your agent](guides/debugging-agents.html) — inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
-7. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
+3. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle harness and runnable examples.
+4. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
+5. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
+6. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
+7. [Debugging your agent](guides/debugging-agents.html) — inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
+8. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
 
 ## Write a Service
 

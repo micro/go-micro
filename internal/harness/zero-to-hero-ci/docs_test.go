@@ -21,6 +21,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 		"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
 		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1",
 		"./internal/harness/zero-to-hero-ci/run.sh",
+		"micro zero-to-hero",
 		"go run ./internal/harness/agent-flow",
 		"make provider-conformance-mock",
 		"internal/harness/plan-delegate",
@@ -126,6 +127,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			links: []string{
 				"internal/website/docs/guides/install-troubleshooting.md",
 				"micro agent demo",
+				"micro zero-to-hero",
 				"internal/website/docs/guides/no-secret-first-agent.md",
 				"internal/website/docs/guides/your-first-agent.md",
 				"internal/website/docs/guides/debugging-agents.md",
@@ -169,6 +171,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			links: []string{
 				"guides/install-troubleshooting.html",
 				"micro agent demo",
+				"micro zero-to-hero",
 				"guides/no-secret-first-agent.html",
 				"guides/your-first-agent.html",
 				"guides/debugging-agents.html",
@@ -414,6 +417,7 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 				"curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call",
 				"## Next Steps",
 				"micro agent demo",
+				"micro zero-to-hero",
 				"guides/no-secret-first-agent.html",
 				"guides/debugging-agents.html",
 				"guides/zero-to-hero.html",
