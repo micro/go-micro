@@ -624,7 +624,7 @@ func runStatus(events []RunEvent) string {
 		if e.Error != "" || e.Kind == "error" {
 			status = runErrorStatus(e.ErrorKind)
 		}
-		if e.Kind == "done" && status == "running" {
+		if e.Kind == "done" {
 			status = "done"
 		}
 	}

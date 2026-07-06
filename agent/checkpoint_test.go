@@ -287,7 +287,8 @@ func TestCheckpointContinuesRunThroughSeveralSingleStepTurns(t *testing.T) {
 
 func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "restart-resume-agent")
+	st := store.NewMemoryStore()
+	cp := flow.StoreCheckpoint(st, "restart-resume-agent")
 	toolRuns := 0
 	modelCalls := 0
 	failFirst := true
@@ -308,7 +309,7 @@ func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	defer func() { fakeGen = nil }()
 
 	newAgent := func() *agentImpl {
-		return newTestAgent(Name("restart-resume-agent"), WithCheckpoint(cp),
+		return newTestAgent(Name("restart-resume-agent"), WithStore(st), WithCheckpoint(cp),
 			WithTool("external.provision", "provision service once", nil, func(context.Context, map[string]any) (string, error) {
 				toolRuns++
 				return "provisioned", nil
@@ -329,6 +330,19 @@ func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	}
 	if len(runs) != 1 {
 		t.Fatalf("Pending before restart returned %d runs, want 1", len(runs))
+	}
+	summaries, err := ListRunSummaries(st, "restart-resume-agent")
+	if err != nil {
+		t.Fatalf("ListRunSummaries before restart: %v", err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("run summaries before restart = %d, want 1", len(summaries))
+	}
+	if summaries[0].RunID != runs[0].ID || summaries[0].Status != "error" || summaries[0].Checkpoint != "failed" || summaries[0].Stage != agentAskStep {
+		t.Fatalf("summary before restart = %#v, want failed ask checkpoint for %s", summaries[0], runs[0].ID)
+	}
+	if summaries[0].Events < 4 || summaries[0].LastError == "" {
+		t.Fatalf("summary before restart lacks debug history/error: %#v", summaries[0])
 	}
 
 	restarted := newAgent()
@@ -351,6 +365,34 @@ func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	}
 	if loaded.Status != "done" || loaded.ParentID != runs[0].ParentID {
 		t.Fatalf("loaded run status/parent = %s/%s, want done/%s", loaded.Status, loaded.ParentID, runs[0].ParentID)
+	}
+	summaries, err = ListRunSummaries(st, "restart-resume-agent")
+	if err != nil {
+		t.Fatalf("ListRunSummaries after restart: %v", err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("run summaries after restart = %d, want 1", len(summaries))
+	}
+	if summaries[0].RunID != runs[0].ID || summaries[0].Status != "done" || summaries[0].Checkpoint != "done" || summaries[0].Stage != agentAskStep {
+		t.Fatalf("summary after restart = %#v, want done ask checkpoint for %s", summaries[0], runs[0].ID)
+	}
+	if summaries[0].Events < 7 {
+		t.Fatalf("summary after restart recorded %d events, want durable failure/resume/done history", summaries[0].Events)
+	}
+	events, err := LoadRunEvents(st, "restart-resume-agent", runs[0].ID)
+	if err != nil {
+		t.Fatalf("LoadRunEvents after restart: %v", err)
+	}
+	seen := map[string]bool{"run": false, "tool": false, "checkpoint": false, "error": false, "resume": false, "done": false}
+	for _, e := range events {
+		if _, ok := seen[e.Kind]; ok {
+			seen[e.Kind] = true
+		}
+	}
+	for kind, ok := range seen {
+		if !ok {
+			t.Fatalf("events after restart missing %s: %#v", kind, events)
+		}
 	}
 }
 
