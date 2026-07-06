@@ -24,6 +24,28 @@ import (
 	_ "go-micro.dev/v6/cmd/micro/cli/remote"
 )
 
+const zeroToHeroHelp = `0→hero no-secret lifecycle demo
+
+Run this from a go-micro repository checkout when you want one command that
+proves the maintained services → agents → workflows path without provider keys:
+
+  ./internal/harness/zero-to-hero-ci/run.sh
+
+That script runs the same deterministic path CI uses:
+  - CLI discovery for scaffold, run, chat, inspect, flow runs, and deploy dry-run
+  - the smallest first-agent example
+  - the support-desk reference app with services, an agent, a flow, and an approval gate
+  - plan/delegate and universe harnesses with only the model mocked
+
+If you only want the runnable examples first:
+  go run ./examples/first-agent
+  go run ./examples/support
+
+Full local contract:
+  make harness
+
+Guide: https://go-micro.dev/docs/guides/zero-to-hero.html`
+
 const docsWayfinding = `First-agent and 0→hero docs:
 
   1. Start with the no-secret CLI demo
@@ -125,6 +147,17 @@ func init() {
 				for _, service := range services {
 					fmt.Println(service.Name)
 				}
+				return nil
+			},
+		},
+		{
+			Name:  "zero-to-hero",
+			Usage: "Show the no-secret 0→hero lifecycle demo command",
+			Description: `Print the maintained provider-free services → agents → workflows
+lifecycle command and the smaller runnable examples it covers.`,
+			Aliases: []string{"hero"},
+			Action: func(ctx *cli.Context) error {
+				fmt.Fprintln(ctx.App.Writer, zeroToHeroHelp)
 				return nil
 			},
 		},

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 
 	microcmd "go-micro.dev/v6/cmd"
@@ -19,7 +21,7 @@ func TestZeroToHeroCLIBoundaries(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"run", "chat", "flow", "inspect", "deploy"} {
+	for _, want := range []string{"run", "chat", "flow", "inspect", "deploy", "zero-to-hero"} {
 		if !commands[want] {
 			t.Fatalf("missing %q command", want)
 		}
@@ -46,5 +48,31 @@ func TestZeroToHeroCLIBoundaries(t *testing.T) {
 	}
 	if !hasDeployDryRun {
 		t.Fatal("missing deploy boundary: deploy --dry-run")
+	}
+}
+
+func TestZeroToHeroCommandPrintsMaintainedNoSecretPath(t *testing.T) {
+	app := microcmd.DefaultCmd.App()
+	var out bytes.Buffer
+	oldWriter := app.Writer
+	app.Writer = &out
+	t.Cleanup(func() { app.Writer = oldWriter })
+
+	if err := app.Run([]string{"micro", "zero-to-hero"}); err != nil {
+		t.Fatalf("micro zero-to-hero failed: %v", err)
+	}
+
+	got := out.String()
+	for _, want := range []string{
+		"0→hero no-secret lifecycle demo",
+		"./internal/harness/zero-to-hero-ci/run.sh",
+		"go run ./examples/first-agent",
+		"go run ./examples/support",
+		"make harness",
+		"services → agents → workflows",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("micro zero-to-hero output missing %q:\n%s", want, got)
+		}
 	}
 }

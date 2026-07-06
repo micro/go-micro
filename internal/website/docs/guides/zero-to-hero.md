@@ -28,6 +28,16 @@ cloud credentials?"
 | Runtime reference app | `examples/support` runs typed services, an agent using those services as tools, an event-driven flow handoff, and an approval gate with only the model mocked. | `go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1` |
 | Runtime harnesses | Real services, agents, durable flows, store-backed history, delegation, and A2A run with only the model mocked. | `./internal/harness/zero-to-hero-ci/run.sh` and `make provider-conformance-mock` |
 
+## Find the one-command entrypoint
+
+After installing the CLI, ask `micro` for the maintained no-secret lifecycle command:
+
+```sh
+micro zero-to-hero
+```
+
+The command prints the exact harness command below plus the smaller runnable examples, so a new developer can discover the 0→hero path from CLI help instead of translating this guide by hand.
+
 ## Run the runnable example
 
 From the repository root, start with the smallest service-backed agent when you want the fastest no-secret success path:
