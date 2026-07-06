@@ -21,7 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add a one-command 0→hero demo entrypoint** ([#4097](https://github.com/micro/go-micro/issues/4097)) — the first-agent, install, debugging, and architecture wayfinding have landed, but the adoption path still asks newcomers to translate docs into several commands before they see the whole services → agents → workflows lifecycle. Add a discoverable `micro` entrypoint that either runs the maintained provider-free 0→hero flow or prints exact commands for it, link it from the first-agent docs, and guard the CLI/docs boundary with focused tests.
+1. **Make plan-delegate notification side effects idempotent** ([#4100](https://github.com/micro/go-micro/issues/4100)) — the latest live provider-conformance run exposed a duplicate delegated notify call in the plan-delegate harness. Fixing this protects the green-CI evaluator and the services → agents → workflows contract: model retries or repeated tool attempts must not create duplicate real side effects. Keep the patch narrow around the harness/service boundary and add a deterministic replay test before relying on the next live atlascloud run.
+2. **Unify first-agent run inspection command across CLI and docs** ([#4104](https://github.com/micro/go-micro/issues/4104)) — the install, first-agent, debugging, and 0→hero on-ramp is now rich enough that command-name drift becomes the next adoption seam. Make the documented inspect step copy/pasteable from the CLI and website, either by adding the intended alias or aligning docs on the existing command, and guard the CLI/docs boundary with focused tests.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
