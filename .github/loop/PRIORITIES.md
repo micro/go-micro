@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Verify no-secret agent debugging walkthrough** ([#4142](https://github.com/micro/go-micro/issues/4142)) — with the plan-delegate completion regression fixed in #4146, the highest-value remaining Now-phase gap is the developer adoption path immediately after the first chat. Extend the maintained provider-free 0→1 route into `micro inspect agent`, run history, memory, and provider checks so renamed commands or stale debugging docs fail in CI where new developers most need confidence.
-2. **Add durable agent checkpoint resume smoke coverage** ([#4148](https://github.com/micro/go-micro/issues/4148)) — once the first-agent debugging seam is protected, move to the top Next-phase harness gap: prove an interrupted agent run can resume from persisted state with enough run/step history for inspect/debugging. This keeps the services → agents → workflows lifecycle cohesive by giving agents the same durability story flows already have, without taking on a breaking API redesign.
+1. **Fix AtlasCloud harness 400s with agent built-in tools** ([#4151](https://github.com/micro/go-micro/issues/4151)) — this is the highest-value Now-phase gap after the no-secret first-agent debugging walkthrough shipped in #4153: live provider conformance is red for AtlasCloud when custom tools are combined with `plan`, `request_input`, and `delegate`. Keep the fix scoped to provider/harness behavior so the services → agents → workflows path remains portable across providers without changing public APIs.
+2. **Add durable agent checkpoint resume smoke coverage** ([#4148](https://github.com/micro/go-micro/issues/4148)) — once the live provider-conformance regression is contained, move to the top Next-phase harness gap: prove an interrupted agent run can resume from persisted state with enough run/step history for inspect/debugging. This keeps the lifecycle cohesive by giving agents the same durability story flows already have, without taking on a breaking API redesign.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
