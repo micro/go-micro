@@ -8,7 +8,7 @@ cd "$ROOT"
 # without secrets or long-running daemons.
 go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestZeroToHeroCLIBoundaries' -count=1
 go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
-go test ./internal/harness/zero-to-hero-ci -run 'TestNoSecretFirstAgentTranscript|TestZeroToHeroReferenceDocs|TestYourFirstAgentTutorialSmoke' -count=1
+go test ./internal/harness/zero-to-hero-ci -run 'TestNoSecretFirstAgentTranscript|TestNoSecretFirstAgentDebuggingSmoke|TestZeroToHeroReferenceDocs|TestYourFirstAgentTutorialSmoke' -count=1
 
 # Deterministic no-secret reference scenarios. These use the real Go Micro
 # runtime and mock only the LLM provider. The support example is the maintained

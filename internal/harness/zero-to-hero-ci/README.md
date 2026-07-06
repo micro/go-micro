@@ -11,9 +11,11 @@ scripted so CI can run it on every push without external services or model keys.
    documented first-agent walkthrough path.
 2. **Run** — `micro run` remains available as the local development entry point.
 3. **Chat** — `micro chat` remains available as the interactive agent entry point.
-4. **Inspect** — `micro inspect agent <name>` and `micro inspect flow <name>`
-   remain available as the local run-history inspection step, with `micro flow
-   runs` preserving durable workflow history inspection.
+4. **Inspect/debugging** — `micro inspect agent <name>`, `micro agent history <name>`,
+   and `micro inspect flow <name>` remain available as the local run-history
+   inspection step. The no-secret debugging smoke seeds durable agent run history
+   and memory, then runs the documented inspect/history commands without provider
+   credentials; `micro flow runs` preserves durable workflow history inspection.
 5. **Deploy** — `micro deploy --dry-run <target>` remains available as the
    deployment-boundary checkpoint. The dry run resolves configured deploy targets
    and services and prints the remote build/copy/systemd/health plan without
