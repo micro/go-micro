@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Make plan-delegate notification side effects idempotent** ([#4100](https://github.com/micro/go-micro/issues/4100)) — the latest live provider-conformance run exposed a duplicate delegated notify call in the plan-delegate harness. Fixing this protects the green-CI evaluator and the services → agents → workflows contract: model retries or repeated tool attempts must not create duplicate real side effects. Keep the patch narrow around the harness/service boundary and add a deterministic replay test before relying on the next live atlascloud run.
-2. **Unify first-agent run inspection command across CLI and docs** ([#4104](https://github.com/micro/go-micro/issues/4104)) — the install, first-agent, debugging, and 0→hero on-ramp is now rich enough that command-name drift becomes the next adoption seam. Make the documented inspect step copy/pasteable from the CLI and website, either by adding the intended alias or aligning docs on the existing command, and guard the CLI/docs boundary with focused tests.
+1. **Unify first-agent run inspection command across CLI and docs** ([#4104](https://github.com/micro/go-micro/issues/4104)) — the install, first-agent, debugging, and 0→hero on-ramp is now rich enough that command-name drift becomes the highest-value adoption seam. Make the documented inspect step copy/pasteable from the CLI and website, either by adding the intended alias or aligning docs on the existing command, and guard the CLI/docs boundary with focused tests.
+2. **Add a scheduled provider-conformance live matrix** ([#4110](https://github.com/micro/go-micro/issues/4110)) — after the duplicate notify side-effect fix shipped, the remaining Now-phase hardening gap is to make cross-provider behavior continuously visible instead of episodic. Reuse the existing provider-conformance harnesses, gate live providers on configured secrets with explicit skips, preserve the deterministic mock path, and document local maintainer commands.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
