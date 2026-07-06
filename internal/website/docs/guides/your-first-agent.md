@@ -47,7 +47,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 Plain service calls work without a model key; the key is only needed when the
 agent reasons over tools.
 
-Run the read-only first-agent preflight before starting the walkthrough. The same CLI boundary is covered by CI with `go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1`, so the documented scaffold → run → chat → inspect path stays visible in the local harness:
+Run the read-only first-agent preflight before starting the walkthrough. The same CLI boundary is covered by CI with `go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1`, and the copy/paste tutorial code is built from a clean temporary workspace with `go test ./internal/harness/zero-to-hero-ci -run TestYourFirstAgentTutorialSmoke -count=1`, so the documented scaffold → run → chat → inspect path stays visible in the local harness:
 
 ```sh
 micro agent preflight
@@ -177,7 +177,14 @@ Create a task called "Review the first-agent walkthrough", then show me all task
 ```
 
 A healthy run shows the agent calling the task service and then summarizing the
-result. If the model refuses to call tools, tighten the prompt so it explicitly
+result. Inspect the recorded run when you want to see the tool calls, memory,
+and timing behind the answer:
+
+```sh
+micro inspect agent assistant
+```
+
+If the model refuses to call tools, tighten the prompt so it explicitly
 uses the `task` service before answering.
 
 ## 4. Know what just happened

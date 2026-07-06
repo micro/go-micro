@@ -2,6 +2,7 @@ package zerotoheroci
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -74,6 +75,76 @@ func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(root, "internal", "website", "docs", doc)); err != nil {
 			t.Fatalf("navigation links to missing guide %s: %v", guide, err)
 		}
+	}
+}
+
+func TestYourFirstAgentTutorialSmoke(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		t.Fatalf("resolve repository root: %v", err)
+	}
+	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "your-first-agent.md"))
+
+	for _, want := range []string{
+		"go test ./internal/harness/zero-to-hero-ci -run TestYourFirstAgentTutorialSmoke -count=1",
+		"micro agent preflight",
+		"mkdir first-agent",
+		"go mod init example.com/first-agent",
+		"go get go-micro.dev/v6@v6",
+		"micro run",
+		"micro call task TaskService.Create",
+		"micro call task TaskService.List",
+		"micro chat assistant",
+		"micro inspect agent assistant",
+	} {
+		if !strings.Contains(guide, want) {
+			t.Fatalf("Your First Agent guide missing copy/paste boundary %q", want)
+		}
+	}
+
+	mainGo := extractFirstAgentMain(t, guide)
+	workspace := t.TempDir()
+	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent\n\ngo 1.24\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+absRoot+"\n")
+	writeFile(t, filepath.Join(workspace, "main.go"), mainGo)
+
+	runInWorkspace(t, workspace, "go", "mod", "tidy")
+	runInWorkspace(t, workspace, "go", "test", "./...")
+}
+
+func extractFirstAgentMain(t *testing.T, guide string) string {
+	t.Helper()
+	start := strings.Index(guide, "Add `main.go`:")
+	if start == -1 {
+		t.Fatal("Your First Agent guide is missing the main.go section")
+	}
+	rest := guide[start:]
+	open := strings.Index(rest, "```go")
+	if open == -1 {
+		t.Fatal("Your First Agent guide is missing a Go code fence for main.go")
+	}
+	rest = rest[open+len("```go"):]
+	close := strings.Index(rest, "```")
+	if close == -1 {
+		t.Fatal("Your First Agent guide main.go code fence is not closed")
+	}
+	return strings.TrimSpace(rest[:close]) + "\n"
+}
+
+func writeFile(t *testing.T, name, contents string) {
+	t.Helper()
+	if err := os.WriteFile(name, []byte(contents), 0o644); err != nil {
+		t.Fatalf("write %s: %v", name, err)
+	}
+}
+
+func runInWorkspace(t *testing.T, workspace, name string, args ...string) {
+	t.Helper()
+	cmd := exec.Command(name, args...)
+	cmd.Dir = workspace
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Your First Agent tutorial command %q does not pass from a clean workspace: %v\n%s", strings.Join(append([]string{name}, args...), " "), err, out)
 	}
 }
 
