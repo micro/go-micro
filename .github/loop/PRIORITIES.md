@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Stabilize plan-delegate harness against duplicate delegated notifications** ([#4118](https://github.com/micro/go-micro/issues/4118)) — the scheduled provider-conformance matrix is now in place, and its first live signal exposed an atlascloud/minimax duplicate-notify regression. Preserve the semantic “exactly one launch-readiness notification” contract with focused regression coverage so the live matrix remains a useful evaluator rather than a noisy gate.
-2. **Add a copy/paste first-agent tutorial smoke harness** ([#4128](https://github.com/micro/go-micro/issues/4128)) — the CLI examples wayfinding shipped, so keep adoption pressure on the next most valuable seam: prove the website’s Your First Agent path can be followed from a clean workspace without relying on prose staying honest by hand. A focused CI-verifiable tutorial boundary keeps scaffold → run → chat → inspect cohesive after future CLI and docs changes.
+1. **Make plan-delegate harness complete delegated notification steps** ([#4138](https://github.com/micro/go-micro/issues/4138)) — the duplicate-notification fix and first-agent tutorial harness have both shipped, but the live atlascloud plan-delegate matrix still exposed a higher-severity Now-phase contract break: a delegated notification can succeed or be reused while the persisted plan step remains incomplete. Fixing that keeps the provider conformance evaluator trustworthy without relaxing the services → agents → workflows lifecycle gate.
+2. **Verify no-secret agent debugging walkthrough** ([#4142](https://github.com/micro/go-micro/issues/4142)) — keep adoption pressure balanced with hardening by extending the maintained 0→1 path past scaffold/run/chat into inspect and debugging. A provider-free smoke check for the documented first-agent debug sequence will catch command drift at the exact seam where new developers need confidence after the first conversation behaves unexpectedly.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
