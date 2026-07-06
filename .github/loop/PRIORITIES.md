@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Fix AtlasCloud harness 400s with agent built-in tools** ([#4151](https://github.com/micro/go-micro/issues/4151)) — this is the highest-value Now-phase gap after the no-secret first-agent debugging walkthrough shipped in #4153: live provider conformance is red for AtlasCloud when custom tools are combined with `plan`, `request_input`, and `delegate`. Keep the fix scoped to provider/harness behavior so the services → agents → workflows path remains portable across providers without changing public APIs.
+1. **Stabilize AtlasCloud guarded-delegation conformance** ([#4157](https://github.com/micro/go-micro/issues/4157)) — #4159 closed the built-in tool-schema 400s from #4151, but the remaining Now-phase provider-conformance gap is AtlasCloud intermittently missing the guarded `delegate` attempt/refusal in the live agent harness. Keep this scoped to deterministic harness/provider behavior so the service-backed agent path remains portable across providers without changing public APIs.
 2. **Add durable agent checkpoint resume smoke coverage** ([#4148](https://github.com/micro/go-micro/issues/4148)) — once the live provider-conformance regression is contained, move to the top Next-phase harness gap: prove an interrupted agent run can resume from persisted state with enough run/step history for inspect/debugging. This keeps the lifecycle cohesive by giving agents the same durability story flows already have, without taking on a breaking API redesign.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
