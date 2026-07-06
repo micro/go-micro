@@ -291,7 +291,7 @@ func printNextSteps(w io.Writer, dir string, noMCP bool) {
 	fmt.Fprintln(w, "    micro agent preflight")
 	fmt.Fprintln(w, "    go run .")
 	fmt.Fprintln(w, "    micro chat")
-	fmt.Fprintln(w, "    micro inspect agent")
+	fmt.Fprintln(w, "    micro inspect agent <name>")
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, "  First-agent path:")
 	fmt.Fprintln(w, "    micro agent demo")

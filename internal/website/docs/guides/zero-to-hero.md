@@ -19,10 +19,10 @@ cloud credentials?"
 | --- | --- | --- |
 | Scaffold | `micro new` generates a runnable service with and without MCP support. | `go test ./cmd/micro/cli/new -run TestZeroToOne -count=1` |
 | First-agent wayfinding | README and the website getting-started docs keep the no-secret → first-agent → debugging → 0→hero links present and in order. | `go test ./internal/harness/zero-to-hero-ci -run TestFirstAgentWayfindingDocs -count=1` |
-| First agent | `micro new`, `micro agent preflight`, `micro run`, `micro chat`, and `micro inspect agent` stay available for the documented first-agent walkthrough. | `go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1` |
+| First agent | `micro new`, `micro agent preflight`, `micro run`, `micro chat`, and `micro inspect agent <name>` stay available for the documented first-agent walkthrough. | `go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1` |
 | Run | `micro run` remains the local development entry point. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Chat | `micro chat` remains the interactive agent entry point. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
-| Inspect | `micro inspect agent`, `micro inspect flow`, and `micro flow runs` remain discoverable for run history. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
+| Inspect | `micro inspect agent <name>`, `micro inspect flow <flow>`, and `micro flow runs <flow>` remain discoverable for run history. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Deploy | `micro deploy --dry-run` resolves deploy targets without touching remote infrastructure. | `go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1` |
 | Smallest first agent | `examples/first-agent` runs one service-backed agent with a deterministic mock model and no provider key. | `go test ./examples/first-agent -run TestRunFirstAgent -count=1` |
 | Runtime reference app | `examples/support` runs typed services, an agent using those services as tools, an event-driven flow handoff, and an approval gate with only the model mocked. | `go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1` |

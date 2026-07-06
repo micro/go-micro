@@ -98,7 +98,7 @@ walkable agent path in this order:
 6. [Your First Agent](internal/website/docs/guides/your-first-agent.md) — build a
    service-backed agent and talk to it with `micro chat`.
 7. [Debugging your agent](internal/website/docs/guides/debugging-agents.md) — use
-   `micro agent inspect`, run history, memory, and provider checks when the first
+   `micro inspect agent <name>`, run history, memory, and provider checks when the first
    conversation does something unexpected.
 8. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
    services → agents → workflows loop with scaffold, run, chat, inspect, flow

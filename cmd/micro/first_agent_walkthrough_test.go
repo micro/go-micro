@@ -68,11 +68,15 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 		"micro run",
 		"micro chat",
 		"micro agent doctor     # after micro run: chat/gateway/inspect recovery",
-		"micro inspect agent",
+		"micro inspect agent <name>",
+		"micro agent history <name>",
 	} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("micro docs output missing %q:\n%s", want, out.String())
 		}
+	}
+	if strings.Contains(out.String(), "micro runs") {
+		t.Fatalf("micro docs output should use the first-agent inspect command, not the legacy runs shortcut:\n%s", out.String())
 	}
 
 	agent := commandByName(t, "agent")

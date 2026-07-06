@@ -71,8 +71,8 @@ const docsWayfinding = `First-agent and 0→hero docs:
      https://go-micro.dev/docs/guides/debugging-agents.html
      Inspect agent runs and memory with:
        micro agent doctor
-       micro inspect agent
-       micro runs <agent>
+       micro inspect agent <name>
+       micro agent history <name>
 
   5. 0→hero Reference
      https://go-micro.dev/docs/guides/zero-to-hero.html
