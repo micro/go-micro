@@ -422,9 +422,14 @@ func TestPlanDelegateExecutionClassifiesPartialClientTimeout(t *testing.T) {
 
 func TestNotifyServiceSendIsIdempotentForDuplicateDelivery(t *testing.T) {
 	svc := new(NotifyService)
-	for i := 0; i < 3; i++ {
+	messages := []string{
+		"The launch plan is ready",
+		"The launch plan is ready.",
+		"Launch readiness: the plan is ready!",
+	}
+	for i, message := range messages {
 		var rsp SendResponse
-		if err := svc.Send(context.Background(), &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp); err != nil {
+		if err := svc.Send(context.Background(), &SendRequest{To: "owner@acme.com", Message: message}, &rsp); err != nil {
 			t.Fatalf("Send attempt %d: %v", i+1, err)
 		}
 		if !rsp.Sent {
@@ -433,5 +438,8 @@ func TestNotifyServiceSendIsIdempotentForDuplicateDelivery(t *testing.T) {
 	}
 	if got := svc.count(); got != 1 {
 		t.Fatalf("notify count = %d, want 1 after duplicate delivery replays", got)
+	}
+	if got := svc.duplicateAttempts(); got != len(messages)-1 {
+		t.Fatalf("duplicate notify attempts = %d, want %d", got, len(messages)-1)
 	}
 }

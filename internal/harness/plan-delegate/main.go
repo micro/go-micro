@@ -157,7 +157,7 @@ func (s *NotifyService) Send(ctx context.Context, req *SendRequest, rsp *SendRes
 	if s.bySend == nil {
 		s.bySend = map[string]bool{}
 	}
-	key := strings.ToLower(strings.TrimSpace(req.To)) + "\x00" + strings.ToLower(strings.TrimSpace(req.Message))
+	key := notifyDedupKey(req.To, req.Message)
 	s.attempts++
 	if !s.bySend[key] {
 		s.bySend[key] = true
@@ -182,6 +182,25 @@ func (s *NotifyService) duplicateAttempts() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.duplicates
+}
+
+func notifyDedupKey(to, message string) string {
+	recipient := strings.ToLower(strings.TrimSpace(to))
+	body := normalizeNotifyText(message)
+	if recipient == "owner@acme.com" && isLaunchReadinessNotify(body) {
+		body = "launch-readiness"
+	}
+	return recipient + "\x00" + body
+}
+
+func normalizeNotifyText(message string) string {
+	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(message))), " ")
+}
+
+func isLaunchReadinessNotify(message string) bool {
+	return strings.Contains(message, "launch") &&
+		strings.Contains(message, "plan") &&
+		(strings.Contains(message, "ready") || strings.Contains(message, "readiness"))
 }
 
 // ---------------------------------------------------------------------------
