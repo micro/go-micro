@@ -429,7 +429,11 @@ func TestNotifyServiceSendIsIdempotentForDuplicateDelivery(t *testing.T) {
 	}
 	for i, message := range messages {
 		var rsp SendResponse
-		if err := svc.Send(context.Background(), &SendRequest{To: "owner@acme.com", Message: message}, &rsp); err != nil {
+		to := "owner@acme.com"
+		if i == len(messages)-1 {
+			to = "owner"
+		}
+		if err := svc.Send(context.Background(), &SendRequest{To: to, Message: message}, &rsp); err != nil {
 			t.Fatalf("Send attempt %d: %v", i+1, err)
 		}
 		if !rsp.Sent {
