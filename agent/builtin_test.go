@@ -79,6 +79,27 @@ func TestHandlePlanPreservesCompletedSteps(t *testing.T) {
 	}
 }
 
+func TestHandlePlanPreservesCompletedLaunchReadinessNotification(t *testing.T) {
+	mem := store.NewMemoryStore()
+	a := New(Name("planner"), WithStore(mem)).(*agentImpl)
+
+	a.handlePlan(ai.ToolCall{Name: toolPlan, Input: map[string]any{
+		"steps": []any{
+			map[string]any{"task": "notify owner via comms", "status": "done"},
+		},
+	}})
+
+	a.handlePlan(ai.ToolCall{Name: toolPlan, Input: map[string]any{
+		"steps": []any{
+			map[string]any{"task": "Delegate launch readiness notification for owner@acme.com to comms agent", "status": "in_progress"},
+		},
+	}})
+
+	if unfinished := a.unfinishedPlanSteps(); len(unfinished) != 0 {
+		t.Fatalf("unfinished plan steps = %v, want launch readiness notification preserved as done", unfinished)
+	}
+}
+
 func TestPlanShowsInPrompt(t *testing.T) {
 	mem := store.NewMemoryStore()
 	a := New(Name("planner"), Prompt("base prompt"), WithStore(mem)).(*agentImpl)
