@@ -22,7 +22,7 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"new", "run", "chat", "inspect", "agent", "docs"} {
+	for _, want := range []string{"new", "run", "chat", "inspect", "agent", "docs", "examples"} {
 		if !commands[want] {
 			t.Fatalf("first-agent walkthrough missing %q command", want)
 		}
@@ -77,6 +77,32 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	}
 	if strings.Contains(out.String(), "micro runs") {
 		t.Fatalf("micro docs output should use the first-agent inspect command, not the legacy runs shortcut:\n%s", out.String())
+	}
+
+	examples := commandByName(t, "examples")
+	if !strings.Contains(examples.Usage, "first-agent") {
+		t.Fatalf("micro examples should advertise the first-agent examples path; usage was %q", examples.Usage)
+	}
+	out.Reset()
+	if err := examples.Action(cli.NewContext(app, nil, nil)); err != nil {
+		t.Fatalf("micro examples failed: %v", err)
+	}
+	for _, want := range []string{
+		"First-agent examples",
+		"go run ./examples/first-agent",
+		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1",
+		"go run ./examples/support",
+		"micro agent demo",
+		"micro docs",
+		"micro zero-to-hero",
+		"no-secret-first-agent.html",
+		"your-first-agent.html",
+		"debugging-agents.html",
+		"zero-to-hero.html",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("micro examples output missing %q:\n%s", want, out.String())
+		}
 	}
 
 	agent := commandByName(t, "agent")

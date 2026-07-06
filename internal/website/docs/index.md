@@ -16,7 +16,7 @@ It's built on a pluggable architecture of Go interfaces: service discovery, clie
 
 ## Learn More
 
-Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp: `micro agent demo` for the installed no-secret CLI affordance, [No-secret first-agent transcript](guides/no-secret-first-agent.html) to run a mock-model support agent, [Your First Agent](guides/your-first-agent.html) to build and chat with a service-backed agent, [Debugging your agent](guides/debugging-agents.html) to inspect runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
+Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp: `micro agent demo` for the installed no-secret CLI affordance, `micro examples` for copy/pasteable runnable examples, [No-secret first-agent transcript](guides/no-secret-first-agent.html) to run a mock-model support agent, [Your First Agent](guides/your-first-agent.html) to build and chat with a service-backed agent, [Debugging your agent](guides/debugging-agents.html) to inspect runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
 
 Otherwise continue to read the docs for more information about the framework.
 
@@ -25,6 +25,7 @@ Otherwise continue to read the docs for more information about the framework.
 - [Getting Started](getting-started.html)
 - [0→hero Reference](guides/zero-to-hero.html) - Walk scaffold → run → chat → inspect → deploy dry-run with CI-backed commands
 - `micro agent demo` - Show the provider-free first-agent demo command and next docs steps
+- `micro examples` - Show provider-free first-agent examples in copy/paste order
 - [No-secret first-agent transcript](guides/no-secret-first-agent.html) - Run the first useful agent path without a provider key
 - [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
 - [MCP & AI Agents](mcp.html) - Turn services into AI-callable tools with the Model Context Protocol
