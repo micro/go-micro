@@ -66,10 +66,11 @@ provider-free agent path:
 
 ```
 micro agent demo
+micro examples
 ```
 
-That points at the smallest mock-model first-agent example and the no-secret
-transcript before you add provider-backed chat.
+Those commands point at the smallest mock-model first-agent example, the no-secret
+transcript, and the support app before you add provider-backed chat.
 
 ### Output
 

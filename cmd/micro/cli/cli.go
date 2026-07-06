@@ -46,6 +46,33 @@ Full local contract:
 
 Guide: https://go-micro.dev/docs/guides/zero-to-hero.html`
 
+const examplesWayfinding = `First-agent examples (no provider key required)
+
+Run these from a go-micro repository checkout in this order:
+
+  1. Smallest service-backed agent
+       go run ./examples/first-agent
+     Proves an agent can call a service tool with the deterministic mock model.
+
+  2. No-secret support-agent transcript
+       go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1
+     Exercises service tools, mock-model chat, and inspectable run history.
+
+  3. Full services → agents → workflows reference app
+       go run ./examples/support
+     Shows the support desk service, agent, workflow, and approval gate together.
+
+Then continue the same path with the installed CLI:
+  micro agent demo
+  micro docs
+  micro zero-to-hero
+
+Guides:
+  https://go-micro.dev/docs/guides/no-secret-first-agent.html
+  https://go-micro.dev/docs/guides/your-first-agent.html
+  https://go-micro.dev/docs/guides/debugging-agents.html
+  https://go-micro.dev/docs/guides/zero-to-hero.html`
+
 const docsWayfinding = `First-agent and 0→hero docs:
 
   1. Start with the no-secret CLI demo
@@ -147,6 +174,17 @@ func init() {
 				for _, service := range services {
 					fmt.Println(service.Name)
 				}
+				return nil
+			},
+		},
+
+		{
+			Name:  "examples",
+			Usage: "Show provider-free first-agent example paths",
+			Description: `Print the maintained no-secret examples for the services → agents →
+workflows on-ramp: first-agent, transcript, support app, and matching guides.`,
+			Action: func(ctx *cli.Context) error {
+				fmt.Fprintln(ctx.App.Writer, examplesWayfinding)
 				return nil
 			},
 		},
