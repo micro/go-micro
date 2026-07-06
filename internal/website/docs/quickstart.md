@@ -49,7 +49,7 @@ You now have the service half of the services → agents → workflows lifecycle
 6. **[No-secret first-agent transcript](guides/no-secret-first-agent.html)** - run a useful support agent with a mock model before setting up a provider key.
 7. **[Your First Agent](guides/your-first-agent.html)** - turn this service into an agent-callable tool, chat with it, and learn the `micro agent preflight` → `micro run` → `micro chat` loop.
 8. **[Debugging your agent](guides/debugging-agents.html)** - inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent does something surprising.
-8. **[0→hero Reference](guides/zero-to-hero.html)** - walk the maintained scaffold → run → chat → inspect → deploy dry-run path that proves services, agents, and workflows together.
+9. **[0→hero Reference](guides/zero-to-hero.html)** - walk the maintained scaffold → run → chat → inspect → deploy dry-run path that proves services, agents, and workflows together.
 
 After that first-agent path, branch out to:
 
