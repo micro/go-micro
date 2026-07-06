@@ -259,4 +259,5 @@ The flow discovers all services as tools and lets the LLM decide which RPCs to c
 - [Agent Design](https://github.com/micro/go-micro/blob/master/internal/docs/AGENT_DESIGN.md) — the full agent interface specification
 - [MCP & AI Agents](mcp.html) — MCP gateway, tool discovery, and auth
 - [Data Model](model.html) — typed persistence with CRUD and queries
+- [`micro loop` quickstart](guides/micro-loop.html) — scaffold a CI-gated autonomous improvement loop for a repository
 - [Deployment](deployment.html) — deploy via SSH + systemd

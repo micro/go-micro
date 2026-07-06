@@ -42,6 +42,8 @@ examples:
 guides:
   - title: Debugging your agent
     url: /docs/guides/debugging-agents.html
+  - title: micro loop quickstart
+    url: /docs/guides/micro-loop.html
   - title: Plan & Delegate
     url: /docs/guides/plan-delegate.html
   - title: Agent Guardrails
@@ -86,6 +88,7 @@ search_order:
   - /docs/guides/your-first-agent.html
   - /docs/guides/zero-to-hero.html
   - /docs/guides/debugging-agents.html
+  - /docs/guides/micro-loop.html
   - /docs/getting-started.html
   - /docs/mcp.html
   - /docs/architecture.html

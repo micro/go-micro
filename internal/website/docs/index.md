@@ -30,6 +30,7 @@ Otherwise continue to read the docs for more information about the framework.
 - [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
 - [MCP & AI Agents](mcp.html) - Turn services into AI-callable tools with the Model Context Protocol
 - [CLI & Gateway Guide](guides/cli-gateway.html) - Development vs Production modes
+- [`micro loop` quickstart](guides/micro-loop.html) - Scaffold an autonomous CI-gated improvement loop
 - [Quick Start](quickstart.html)
 - [Architecture](architecture.html)
 - [Configuration](config.html)
@@ -64,5 +65,6 @@ Otherwise continue to read the docs for more information about the framework.
 - [Real-World Examples](examples/realworld/)
 - [Migration Guides](guides/migration/)
 - [Observability](observability.html)
+- [`micro loop` quickstart](guides/micro-loop.html)
 - [Contributing](contributing.html)
 - [Roadmap](roadmap.html)

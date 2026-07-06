@@ -31,6 +31,7 @@ Running Go Micro in production, or building on it and want help? Paid **support,
 - [Building Agents](#building-agents) — [Plan & Delegate](#plan--delegate), [Pluggable](#batteries-included-pluggable), [Paid tools (x402)](#paid-tools-x402), [A2A](#reachable-by-other-agents-a2a)
 - [Features](#features)
 - [CLI](#cli)
+- [Autonomous improvement loop](#autonomous-improvement-loop)
 - [Multi-Service Projects](#multi-service-projects)
 - [Data Model](#data-model)
 - [AI Providers](#ai-providers)
@@ -104,6 +105,25 @@ walkable agent path in this order:
 9. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
    services → agents → workflows loop with scaffold, run, chat, inspect, flow
    history, and deploy dry-run commands that match the maintained harness.
+
+### Autonomous improvement loop
+
+Want the same services → agents → workflows lifecycle applied to your
+repository? `micro loop` scaffolds the autonomous improvement loop used by Go
+Micro itself: a North Star, ranked issue queue, role prompts, GitHub Actions
+workflows, and verification for CI-gated PRs.
+
+```bash
+micro loop init --roles all
+micro loop verify
+```
+
+Before turning on the schedule, configure a dispatch token such as
+`CODEX_TRIGGER_TOKEN`, protect the default branch with required CI checks
+(`go build ./...`, `go test ./...`, and `golangci-lint run ./...` for this
+repository), and seed `.github/loop/PRIORITIES.md` with one scoped issue per
+increment. See the [`micro loop` quickstart](internal/website/docs/guides/micro-loop.md)
+for the setup checklist and operating model.
 
 ### Generate from a prompt — with an LLM key
 
