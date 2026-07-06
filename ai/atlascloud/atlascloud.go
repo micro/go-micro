@@ -93,20 +93,7 @@ func (p *Provider) Options() ai.Options { return p.opts }
 func (p *Provider) String() string      { return "atlascloud" }
 
 func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
-	var tools []map[string]any
-	for _, t := range req.Tools {
-		tools = append(tools, map[string]any{
-			"type": "function",
-			"function": map[string]any{
-				"name":        t.Name,
-				"description": t.Description,
-				"parameters": map[string]any{
-					"type":       "object",
-					"properties": t.Properties,
-				},
-			},
-		})
-	}
+	tools := atlascloudTools(req.Tools)
 
 	messages := []map[string]any{
 		{"role": "system", "content": req.SystemPrompt},
@@ -377,6 +364,59 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 	}
 
 	return response, rawMessage, nil
+}
+
+func atlascloudTools(input []ai.Tool) []map[string]any {
+	tools := make([]map[string]any, 0, len(input))
+	for _, t := range input {
+		tools = append(tools, map[string]any{
+			"type": "function",
+			"function": map[string]any{
+				"name":        t.Name,
+				"description": t.Description,
+				"parameters": map[string]any{
+					"type":       "object",
+					"properties": normalizeAtlasCloudSchema(t.Properties),
+				},
+			},
+		})
+	}
+	return tools
+}
+
+func normalizeAtlasCloudSchema(schema map[string]any) map[string]any {
+	if schema == nil {
+		return nil
+	}
+	out := make(map[string]any, len(schema))
+	for k, v := range schema {
+		out[k] = normalizeAtlasCloudSchemaValue(v)
+	}
+	return out
+}
+
+func normalizeAtlasCloudSchemaValue(v any) any {
+	switch val := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(val)+1)
+		for k, nested := range val {
+			out[k] = normalizeAtlasCloudSchemaValue(nested)
+		}
+		if typ, _ := out["type"].(string); typ == "array" {
+			if _, ok := out["items"]; !ok {
+				out["items"] = map[string]any{}
+			}
+		}
+		return out
+	case []any:
+		out := make([]any, len(val))
+		for i, nested := range val {
+			out[i] = normalizeAtlasCloudSchemaValue(nested)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 func normalizeAtlasCloudToolCalls(toolCalls []atlasToolCall) []map[string]any {
