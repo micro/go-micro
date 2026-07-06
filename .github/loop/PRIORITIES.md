@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add CLI examples wayfinding for first-agent paths** ([#4115](https://github.com/micro/go-micro/issues/4115)) — keep developer adoption first while the on-ramp is the explicit gap: make the maintained no-secret first-agent, debugging, and 0→hero examples discoverable from the CLI itself. Align CLI output, README, and website guide references so the scaffold → run → chat → inspect path stays copy/pasteable after install.
-2. **Stabilize plan-delegate harness against duplicate delegated notifications** ([#4118](https://github.com/micro/go-micro/issues/4118)) — the scheduled provider-conformance matrix is now in place, and its first live signal exposed an atlascloud/minimax duplicate-notify regression. Preserve the semantic “exactly one launch-readiness notification” contract with focused regression coverage so the live matrix remains a useful evaluator rather than a noisy gate.
+1. **Stabilize plan-delegate harness against duplicate delegated notifications** ([#4118](https://github.com/micro/go-micro/issues/4118)) — the scheduled provider-conformance matrix is now in place, and its first live signal exposed an atlascloud/minimax duplicate-notify regression. Preserve the semantic “exactly one launch-readiness notification” contract with focused regression coverage so the live matrix remains a useful evaluator rather than a noisy gate.
+2. **Add a copy/paste first-agent tutorial smoke harness** ([#4128](https://github.com/micro/go-micro/issues/4128)) — the CLI examples wayfinding shipped, so keep adoption pressure on the next most valuable seam: prove the website’s Your First Agent path can be followed from a clean workspace without relying on prose staying honest by hand. A focused CI-verifiable tutorial boundary keeps scaffold → run → chat → inspect cohesive after future CLI and docs changes.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
