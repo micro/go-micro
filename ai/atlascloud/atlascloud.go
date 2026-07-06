@@ -178,7 +178,17 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			resp.ToolCalls = allToolCalls
 		}
 		if followUpResp.Reply != "" {
-			resp.Answer = followUpResp.Reply
+			if strings.Contains(followUpResp.Reply, "<tool_call") || strings.Contains(followUpResp.Reply, "function=") {
+				// Preserve follow-up assistant content as Reply, not Answer, when
+				// it may contain a text-encoded tool call. The agent harness
+				// inspects Reply for text fallback calls after Generate returns,
+				// which covers AtlasCloud/minimax turns that emit a second
+				// required call (for example guarded delegate) as markup instead
+				// of native tool_calls.
+				resp.Reply = followUpResp.Reply
+			} else {
+				resp.Answer = followUpResp.Reply
+			}
 		} else if len(toolResults) > 0 {
 			resp.Answer = strings.Join(toolResults, "\n")
 		}

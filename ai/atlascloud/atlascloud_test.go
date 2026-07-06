@@ -406,6 +406,54 @@ func TestProvider_GenerateExecutesFollowUpToolCall(t *testing.T) {
 	}
 }
 
+func TestProvider_GeneratePreservesFollowUpTextToolCallInReply(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
+		case 2:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			if call.Name != "conformance_echo" {
+				t.Fatalf("unexpected structured tool call %+v", call)
+			}
+			return ai.ToolResult{ID: call.ID, Content: `{"marker":"agent-conformance-ok"}`}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "run conformance",
+		Tools: []ai.Tool{
+			{Name: "conformance_echo", Description: "echo conformance marker", Properties: map[string]any{"value": map[string]any{"type": "string"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !strings.Contains(resp.Reply, `<tool_call name="delegate">`) {
+		t.Fatalf("Reply = %q, want tagged delegate follow-up for agent text fallback", resp.Reply)
+	}
+	if resp.Answer != "" {
+		t.Fatalf("Answer = %q, want follow-up text preserved only as Reply", resp.Answer)
+	}
+}
+
 func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
