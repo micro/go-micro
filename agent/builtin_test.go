@@ -182,6 +182,31 @@ func TestBuiltinsAccessor(t *testing.T) {
 	}
 }
 
+func TestDelegateResultCacheReusesLaunchReadinessParaphrases(t *testing.T) {
+	mem := store.NewMemoryStore()
+	a := New(Name("planner"), WithStore(mem)).(*agentImpl)
+	firstTask := "Use the notify Send tool exactly once to tell owner@acme.com: The launch plan is ready."
+	first := a.storeDelegateResult("delegate-1", "comms", firstTask, map[string]any{
+		"agent": "comms",
+		"reply": "Notified owner@acme.com.",
+	})
+	if first.Content == "" {
+		t.Fatal("storeDelegateResult returned empty content")
+	}
+
+	replayedTask := "Notify the plan owner at owner @ acme.com that launch readiness is prepared and complete."
+	cached, ok := a.cachedDelegateResult("delegate-2", "  COMMS  ", replayedTask)
+	if !ok {
+		t.Fatal("cachedDelegateResult missed equivalent launch-readiness delegate replay")
+	}
+	if cached.ID != "delegate-2" {
+		t.Fatalf("cached result ID = %q, want replay call ID", cached.ID)
+	}
+	if !containsStr(cached.Content, "Notified owner@acme.com") {
+		t.Fatalf("cached result content = %q, want original delegate reply", cached.Content)
+	}
+}
+
 func TestIsAgent(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
 
