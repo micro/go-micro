@@ -21,8 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Emit OpenTelemetry spans from agent run history** ([#4218](https://github.com/micro/go-micro/issues/4218)) — streaming coverage shipped via #4226, so close the next agentic-depth operability seam called out by the roadmap and blog: `RunInfo`/history and production traces should tell the same story for model steps, tool calls, retries, delegation, and failures, making `micro inspect` and deployed traces feel like one debugging path.
-2. **Add examples wayfinding index for first-agent adoption** ([#4223](https://github.com/micro/go-micro/issues/4223)) — keep developer adoption weighted with internal hardening: the README and getting-started guide now have a stronger first-agent path, but examples remain spread across docs, CLI output, and directories. A single CI-guarded examples map should make the smallest no-secret agent, the 0→hero support app, and next interop examples discoverable from one place.
+1. **Add examples wayfinding index for first-agent adoption** ([#4223](https://github.com/micro/go-micro/issues/4223)) — keep developer adoption weighted with internal hardening: the README and getting-started guide now have a stronger first-agent path, but examples remain spread across docs, CLI output, and directories. A single CI-guarded examples map should make the smallest no-secret agent, the 0→hero support app, and next interop examples discoverable from one place.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
