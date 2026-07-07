@@ -27,6 +27,11 @@ const (
 	toolHumanInput = "request_input"
 )
 
+type delegateCall struct {
+	done chan struct{}
+	res  ai.ToolResult
+}
+
 // builtinTools returns the tool definitions exposed to the model in
 // addition to the agent's scoped service tools.
 func builtinTools() []ai.Tool {
@@ -585,7 +590,7 @@ func (a *agentImpl) handleHumanInput(call ai.ToolCall) ai.ToolResult {
 // if 'to' names a registered agent, it is called via RPC. Otherwise an
 // ephemeral sub-agent is created with a fresh, isolated context, asked
 // the subtask, and its reply returned.
-func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) (res ai.ToolResult) {
 	input := call.Input
 	task, _ := input["task"].(string)
 	if task == "" {
@@ -595,6 +600,12 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 	if cached, ok := a.cachedDelegateResult(call.ID, to, task); ok {
 		return cached
 	}
+
+	key := delegateResultKey(to, task)
+	if cached, ok := a.joinDelegateCall(ctx, call.ID, key); ok {
+		return cached
+	}
+	defer func() { a.finishDelegateCall(key, res) }()
 
 	// An external agent on another framework, addressed by A2A URL.
 	if strings.HasPrefix(to, "http://") || strings.HasPrefix(to, "https://") {
@@ -647,6 +658,38 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 	return a.storeDelegateResult(call.ID, to, task, map[string]any{"reply": resp.Reply})
 }
 
+func (a *agentImpl) joinDelegateCall(ctx context.Context, id, key string) (ai.ToolResult, bool) {
+	a.delegateMu.Lock()
+	if a.delegateCalls == nil {
+		a.delegateCalls = map[string]*delegateCall{}
+	}
+	if inFlight := a.delegateCalls[key]; inFlight != nil {
+		a.delegateMu.Unlock()
+		select {
+		case <-ctx.Done():
+			return errResult(id, ctx.Err().Error()), true
+		case <-inFlight.done:
+			return withToolResultID(inFlight.res, id), true
+		}
+	}
+	a.delegateCalls[key] = &delegateCall{done: make(chan struct{})}
+	a.delegateMu.Unlock()
+	return ai.ToolResult{}, false
+}
+
+func (a *agentImpl) finishDelegateCall(key string, res ai.ToolResult) {
+	a.delegateMu.Lock()
+	inFlight := a.delegateCalls[key]
+	if inFlight == nil {
+		a.delegateMu.Unlock()
+		return
+	}
+	inFlight.res = res
+	delete(a.delegateCalls, key)
+	close(inFlight.done)
+	a.delegateMu.Unlock()
+}
+
 func (a *agentImpl) cachedDelegateResult(id, to, task string) (ai.ToolResult, bool) {
 	recs, err := a.stateStore().Read(delegateResultKey(to, task))
 	if err != nil || len(recs) == 0 {
@@ -664,6 +707,11 @@ func (a *agentImpl) storeDelegateResult(id, to, task string, out map[string]any)
 	b, _ := json.Marshal(out)
 	_ = a.stateStore().Write(&store.Record{Key: delegateResultKey(to, task), Value: b})
 	return ai.ToolResult{ID: id, Value: out, Content: string(b)}
+}
+
+func withToolResultID(res ai.ToolResult, id string) ai.ToolResult {
+	res.ID = id
+	return res
 }
 
 func delegateResultKey(to, task string) string {

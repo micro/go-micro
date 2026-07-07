@@ -99,6 +99,12 @@ type agentImpl struct {
 	// holding mu. Tool execution updates it so resumed runs can reuse
 	// completed tool results without replaying side effects.
 	currentRun *flow.Run
+
+	// delegateCalls collapses concurrent equivalent delegate tool calls so a
+	// provider replay cannot fan out duplicate delegated side effects before the
+	// durable delegate-result cache is written.
+	delegateMu    sync.Mutex
+	delegateCalls map[string]*delegateCall
 }
 
 // New creates a new Agent.

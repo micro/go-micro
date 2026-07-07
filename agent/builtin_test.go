@@ -3,7 +3,9 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"testing"
+	"time"
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/registry"
@@ -204,6 +206,44 @@ func TestDelegateResultCacheReusesLaunchReadinessParaphrases(t *testing.T) {
 	}
 	if !containsStr(cached.Content, "Notified owner@acme.com") {
 		t.Fatalf("cached result content = %q, want original delegate reply", cached.Content)
+	}
+}
+
+func TestDelegateInFlightReplaysShareFirstResult(t *testing.T) {
+	a := New(Name("planner"), WithStore(store.NewMemoryStore())).(*agentImpl)
+	key := delegateResultKey("comms", "Notify owner@acme.com that the launch plan is ready")
+	if _, joined := a.joinDelegateCall(context.Background(), "delegate-1", key); joined {
+		t.Fatal("first delegate call unexpectedly joined an existing in-flight call")
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	results := make(chan ai.ToolResult, 1)
+	go func() {
+		defer wg.Done()
+		res, joined := a.joinDelegateCall(context.Background(), "delegate-2", key)
+		if !joined {
+			t.Error("replayed delegate call did not join the in-flight call")
+			return
+		}
+		results <- res
+	}()
+
+	select {
+	case res := <-results:
+		t.Fatalf("replayed delegate returned before first call finished: %+v", res)
+	case <-time.After(25 * time.Millisecond):
+	}
+
+	first := ai.ToolResult{ID: "delegate-1", Content: `{"reply":"Notified owner@acme.com."}`}
+	a.finishDelegateCall(key, first)
+	wg.Wait()
+	replayed := <-results
+	if replayed.ID != "delegate-2" {
+		t.Fatalf("replayed result ID = %q, want delegate-2", replayed.ID)
+	}
+	if replayed.Content != first.Content {
+		t.Fatalf("replayed content = %q, want %q", replayed.Content, first.Content)
 	}
 }
 
