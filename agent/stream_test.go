@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/flow"
@@ -72,6 +73,39 @@ func TestStreamAskEmitsToolEventsAndFinalTokens(t *testing.T) {
 	}
 	if calls != 1 {
 		t.Fatalf("Generate calls = %d, want 1", calls)
+	}
+}
+
+func TestStreamAskCloseCancelsInFlightModelCall(t *testing.T) {
+	started := make(chan struct{})
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		close(started)
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("stream-cancel"))
+	stream, err := a.StreamAsk(context.Background(), "cancel me")
+	if err != nil {
+		t.Fatalf("StreamAsk: %v", err)
+	}
+
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("model call did not start")
+	}
+
+	closed := make(chan error, 1)
+	go func() { closed <- stream.Close() }()
+	select {
+	case err := <-closed:
+		if err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Close did not cancel the in-flight stream")
 	}
 }
 
