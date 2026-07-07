@@ -21,7 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add examples wayfinding index for first-agent adoption** ([#4223](https://github.com/micro/go-micro/issues/4223)) — keep developer adoption weighted with internal hardening: the README and getting-started guide now have a stronger first-agent path, but examples remain spread across docs, CLI output, and directories. A single CI-guarded examples map should make the smallest no-secret agent, the 0→hero support app, and next interop examples discoverable from one place.
+1. **Fix AtlasCloud Minimax multi-tool conformance 400s** ([#4236](https://github.com/micro/go-micro/issues/4236)) — Now-phase reliability is the current red edge: live AtlasCloud/Minimax accepts simple tools but rejects multi-tool agent turns that include `plan`, `request_input`, and `delegate`. Fixing the request shape or fallback path keeps the services → agents → workflows harness dependable across providers without duplicating side effects.
+2. **Link examples wayfinding from website getting-started path** ([#4241](https://github.com/micro/go-micro/issues/4241)) — keep adoption weighted with hardening after the examples index shipped: the repo README and CLI now point at the first-agent/0→hero map, but go-micro.dev getting-started and quickstart pages should expose the same path with a CI-guarded docs smoke check.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
