@@ -21,8 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Link examples wayfinding from website getting-started path** ([#4241](https://github.com/micro/go-micro/issues/4241)) — top adoption gap after the examples index shipped and AtlasCloud notify follow-ups were fixed: the README and CLI now point at the first-agent/0→hero map, but go-micro.dev getting-started and quickstart still need the examples index/support reference links that make the no-secret on-ramp discoverable.
-2. **Make AtlasCloud guarded delegation pass reliably** ([#4244](https://github.com/micro/go-micro/issues/4244)) — Now-phase cross-provider conformance remains important after the Minimax request-shape fallback, duplicate delegated-notification replay fixes, OpenAI-compatible text tool-call parsing, and AtlasCloud multi-step follow-up fixes shipped; keep it in queue until the live agent harness consistently observes the guarded delegate within the retry budget.
+1. **Make AtlasCloud guarded delegation pass reliably** ([#4244](https://github.com/micro/go-micro/issues/4244)) — Now-phase cross-provider conformance is now the highest open loop item after the website first-agent examples wayfinding shipped in #4266 and #4241 was closed; keep it in queue until the live agent harness consistently observes the guarded delegate within the retry budget.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
