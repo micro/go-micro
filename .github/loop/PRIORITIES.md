@@ -21,7 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Make AtlasCloud guarded delegation pass reliably** ([#4244](https://github.com/micro/go-micro/issues/4244)) — Now-phase cross-provider conformance is now the highest open loop item after the website first-agent examples wayfinding shipped in #4266 and #4241 was closed; keep it in queue until the live agent harness consistently observes the guarded delegate within the retry budget.
+1. **CI-verify the first-agent 0-to-hero contract** ([#4272](https://github.com/micro/go-micro/issues/4272)) — Current goal is developer adoption, and the README/website now describe a strong first-agent path after the examples wayfinding work (#4239/#4266), but the highest-value next increment is making that on-ramp executable as a provider-free contract. Prove scaffold → run → chat → inspect → deploy dry-run against the maintained examples so services → agents → workflows is something a new developer can walk, not just read.
+2. **Propagate cancellation and retry signals through provider model calls** ([#4273](https://github.com/micro/go-micro/issues/4273)) — With the AtlasCloud guarded-delegation failures closed by #4270, the next Now-phase reliability seam is real-provider failure handling: context deadlines, cancellation, retry/backoff, and rate limits must not duplicate completed tool side effects. Keep this behind focused tests/fakes and avoid public API changes.
+3. **Add an agent debugging quickcheck to the CLI harness** ([#4274](https://github.com/micro/go-micro/issues/4274)) — The on-ramp is only credible if the first surprising agent run is inspectable. Add provider-free harness coverage for the documented `micro inspect agent`/run-inspection path and keep README/website debugging wayfinding aligned, so the inner loop does not stop at “it ran” but reaches “I can understand what happened.”
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
