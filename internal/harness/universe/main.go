@@ -414,7 +414,7 @@ func runUniverse(provider string) int {
 	// Services.
 	inv, pay, ord, ntf := new(Inventory), new(Payment), new(Orders), new(Notify)
 	for name, h := range map[string]any{"inventory": inv, "payment": pay, "orders": ord, "notify": ntf} {
-		svc := service.New(service.Name(name), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
+		svc := service.New(service.Name(name), service.Address("127.0.0.1:0"), service.Registry(reg), service.Broker(br), service.Client(cl))
 		svc.Handle(h)
 		go svc.Run()
 	}
@@ -429,6 +429,7 @@ func runUniverse(provider string) int {
 		agent.Address("127.0.0.1:0"),
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.MaxSteps(5),
+		agent.WithBroker(br),
 		agent.WrapTool(func(next ai.ToolHandler) ai.ToolHandler {
 			return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 				atomic.AddInt64(&wrapped, 1)
