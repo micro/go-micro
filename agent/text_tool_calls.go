@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"regexp"
 	"strings"
 
@@ -12,7 +13,8 @@ import (
 
 var fencedJSONBlock = regexp.MustCompile("(?s)```(?:json)?\\s*(.*?)\\s*```")
 var taggedToolCallBlock = regexp.MustCompile(`(?s)<[^<>]*(?:tool_call|tool_calls|function=)[^<>]*>(.*?)</[^<>]*>`)
-var singleTaggedToolCall = regexp.MustCompile(`(?s)<(tool_call\b[^<>]*|[^<>]*function=[^<>]*)>(.*?)</[^<>]*>`)
+var singleTaggedToolCall = regexp.MustCompile(`(?s)<(tool_call\b[^<>]*|[^<>]*function\s*=[^<>]*)>(.*?)</[^<>]*>`)
+var taggedToolNameAttr = regexp.MustCompile(`(?i)(?:function|name|tool)\s*=\s*["\']?([^"\'\s>]+)`)
 
 type textToolCall struct {
 	ID        string         `json:"id"`
@@ -91,6 +93,7 @@ func textToolCallKey(call ai.ToolCall) string {
 }
 
 func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
+	text = html.UnescapeString(text)
 	allowed := textToolNames(tools)
 	if len(allowed) == 0 {
 		return nil
@@ -258,17 +261,11 @@ func decodeTaggedTextToolCalls(text string, allowed map[string]string) []ai.Tool
 }
 
 func taggedToolName(tag string) string {
-	for _, marker := range []string{"function=", "name=", "tool="} {
-		if idx := strings.Index(tag, marker); idx >= 0 {
-			name := strings.TrimSpace(tag[idx+len(marker):])
-			name = strings.Trim(name, `"'`)
-			if end := strings.IndexAny(name, " \t\r\n>"); end >= 0 {
-				name = name[:end]
-			}
-			return strings.Trim(name, `"'`)
-		}
+	match := taggedToolNameAttr.FindStringSubmatch(tag)
+	if len(match) < 2 {
+		return ""
 	}
-	return ""
+	return strings.Trim(match[1], `"'`)
 }
 
 func firstNestedToolCalls(m map[string]any) (any, bool) {
