@@ -220,6 +220,13 @@ func AgentResume(ctx context.Context, a Agent, runID string) (*AgentResponse, er
 	return agent.Resume(ctx, a, runID)
 }
 
+// AgentResumePending resumes every incomplete checkpointed agent run, oldest
+// first. It returns the first run id that fails again so startup recovery loops
+// can leave the durable backlog visible instead of swallowing the failure.
+func AgentResumePending(ctx context.Context, a Agent) (string, error) {
+	return agent.ResumePending(ctx, a)
+}
+
 // AgentResumeInput resumes a checkpointed agent run waiting for human input.
 func AgentResumeInput(ctx context.Context, a Agent, runID, input string) (*AgentResponse, error) {
 	return agent.ResumeInput(ctx, a, runID, input)

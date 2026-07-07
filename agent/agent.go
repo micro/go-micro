@@ -244,6 +244,31 @@ func Pending(ctx context.Context, ag Agent) ([]flow.Run, error) {
 	return a.pending(ctx)
 }
 
+// ResumePending resumes every checkpointed agent run that has not completed
+// yet, in the same oldest-first order returned by Pending.
+//
+// It is a convenience for service startup and recovery loops: after recreating
+// an agent with the same checkpoint store, call ResumePending to drain the
+// durable backlog without listing and resuming each run manually. If any run
+// fails again, ResumePending stops and returns that run id with the error so
+// callers can log, alert, or retry later without hiding the failing run.
+func ResumePending(ctx context.Context, ag Agent) (string, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return "", fmt.Errorf("agent resume pending: unsupported agent implementation %T", ag)
+	}
+	runs, err := a.pending(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, run := range runs {
+		if _, err := a.resume(ctx, run.ID); err != nil {
+			return run.ID, err
+		}
+	}
+	return "", nil
+}
+
 func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Response, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
