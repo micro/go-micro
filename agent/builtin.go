@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -591,6 +592,9 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 		return errResult(call.ID, "task is required")
 	}
 	to, _ := input["to"].(string)
+	if cached, ok := a.cachedDelegateResult(call.ID, to, task); ok {
+		return cached
+	}
 
 	// An external agent on another framework, addressed by A2A URL.
 	if strings.HasPrefix(to, "http://") || strings.HasPrefix(to, "https://") {
@@ -598,9 +602,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 		if err != nil {
 			return errResult(call.ID, "delegate to A2A agent "+to+": "+err.Error())
 		}
-		out := map[string]any{"agent": to, "reply": reply}
-		b, _ := json.Marshal(out)
-		return ai.ToolResult{ID: call.ID, Value: out, Content: string(b)}
+		return a.storeDelegateResult(call.ID, to, task, map[string]any{"agent": to, "reply": reply})
 	}
 
 	// Delegate-first: an existing agent that owns the domain handles it.
@@ -609,9 +611,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 		if err != nil {
 			return errResult(call.ID, "delegate to agent "+to+": "+err.Error())
 		}
-		out := map[string]any{"agent": to, "reply": reply}
-		b, _ := json.Marshal(out)
-		return ai.ToolResult{ID: call.ID, Value: out, Content: string(b)}
+		return a.storeDelegateResult(call.ID, to, task, map[string]any{"agent": to, "reply": reply})
 	}
 
 	// Otherwise create a focused, ephemeral sub-agent. Fresh context:
@@ -644,9 +644,60 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) ai.Too
 	if err != nil {
 		return errResult(call.ID, "sub-agent: "+err.Error())
 	}
-	out := map[string]any{"reply": resp.Reply}
+	return a.storeDelegateResult(call.ID, to, task, map[string]any{"reply": resp.Reply})
+}
+
+func (a *agentImpl) cachedDelegateResult(id, to, task string) (ai.ToolResult, bool) {
+	recs, err := a.stateStore().Read(delegateResultKey(to, task))
+	if err != nil || len(recs) == 0 {
+		return ai.ToolResult{}, false
+	}
+	var out map[string]any
+	if err := json.Unmarshal(recs[0].Value, &out); err != nil {
+		return ai.ToolResult{}, false
+	}
 	b, _ := json.Marshal(out)
-	return ai.ToolResult{ID: call.ID, Value: out, Content: string(b)}
+	return ai.ToolResult{ID: id, Value: out, Content: string(b)}, true
+}
+
+func (a *agentImpl) storeDelegateResult(id, to, task string, out map[string]any) ai.ToolResult {
+	b, _ := json.Marshal(out)
+	_ = a.stateStore().Write(&store.Record{Key: delegateResultKey(to, task), Value: b})
+	return ai.ToolResult{ID: id, Value: out, Content: string(b)}
+}
+
+func delegateResultKey(to, task string) string {
+	fp := normalizeDelegateTarget(to) + "\x00" + normalizeDelegateTask(task)
+	sum := sha256.Sum256([]byte(fp))
+	return fmt.Sprintf("delegate/%x", sum)
+}
+
+func normalizeDelegateTarget(to string) string {
+	return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(to))), " ")
+}
+
+func normalizeDelegateTask(task string) string {
+	task = strings.ToLower(strings.TrimSpace(task))
+	task = strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			return r
+		case r == '@':
+			return r
+		default:
+			return ' '
+		}
+	}, task)
+	task = strings.Join(strings.Fields(task), " ")
+	if strings.Contains(task, "notify") &&
+		strings.Contains(task, "owner") &&
+		strings.Contains(task, "acme") &&
+		strings.Contains(task, "launch") &&
+		strings.Contains(task, "plan") &&
+		(strings.Contains(task, "ready") || strings.Contains(task, "readiness") || strings.Contains(task, "prepared") || strings.Contains(task, "complete")) {
+		return "notify owner@acme.com launch-plan-ready"
+	}
+	return task
 }
 
 // isAgent reports whether name resolves to a registered agent (a

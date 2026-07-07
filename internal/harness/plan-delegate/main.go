@@ -248,6 +248,11 @@ type mockModel struct {
 	// duplicateNotify makes the comms mock replay the same notification call.
 	// The notify service should collapse that replay to one durable side effect.
 	duplicateNotify bool
+
+	// duplicateDelegate makes the conductor mock replay the same delegate call.
+	// The delegate idempotency path should collapse that replay before it can
+	// ask the delegated comms agent to notify twice.
+	duplicateDelegate bool
 }
 
 func newMock(opts ...ai.Option) ai.Model {
@@ -264,6 +269,12 @@ func newMockUnknownDelegate(opts ...ai.Option) ai.Model {
 
 func newMockDuplicateNotify(opts ...ai.Option) ai.Model {
 	m := &mockModel{duplicateNotify: true}
+	_ = m.Init(opts...)
+	return m
+}
+
+func newMockDuplicateDelegate(opts ...ai.Option) ai.Model {
+	m := &mockModel{duplicateDelegate: true}
 	_ = m.Init(opts...)
 	return m
 }
@@ -344,10 +355,14 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 					"to":   "comms",
 				})
 			} else {
-				m.call("conductor", del, map[string]any{
+				input := map[string]any{
 					"task": delegatedNotifyTask,
 					"to":   "comms",
-				})
+				}
+				m.call("conductor", del, input)
+				if m.duplicateDelegate {
+					m.call("conductor", del, input)
+				}
 			}
 		}
 		return &ai.Response{Answer: "Created Design, Build and Ship, and had comms notify the owner."}, nil
@@ -383,6 +398,8 @@ func runPlanDelegate(provider string) error {
 		ai.Register("mock-unknown-delegate", newMockUnknownDelegate)
 	case "mock-duplicate-notify":
 		ai.Register("mock-duplicate-notify", newMockDuplicateNotify)
+	case "mock-duplicate-delegate":
+		ai.Register("mock-duplicate-delegate", newMockDuplicateDelegate)
 	default:
 		apiKey = providerKey(provider)
 		if apiKey == "" {
@@ -598,7 +615,7 @@ func isClientTimeout(err error) bool {
 }
 
 func main() {
-	provider := flag.String("provider", "mock", "LLM provider: mock (default), mock-unknown-delegate, mock-duplicate-notify, anthropic, openai, gemini, groq, mistral, together, atlascloud")
+	provider := flag.String("provider", "mock", "LLM provider: mock (default), mock-unknown-delegate, mock-duplicate-notify, mock-duplicate-delegate, anthropic, openai, gemini, groq, mistral, together, atlascloud")
 	flag.Parse()
 
 	if err := runPlanDelegate(*provider); err != nil {

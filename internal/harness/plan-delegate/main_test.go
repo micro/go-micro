@@ -240,6 +240,15 @@ func TestPlanDelegateIdempotentDuplicateNotifyReplay(t *testing.T) {
 	}
 }
 
+func TestPlanDelegateIdempotentDuplicateDelegateReplay(t *testing.T) {
+	if testing.Short() {
+		t.Skip("0→hero harness boots an end-to-end system; skipped with -short")
+	}
+	if err := runPlanDelegate("mock-duplicate-delegate"); err != nil {
+		t.Fatalf("0→hero harness with duplicate delegate replay: %v", err)
+	}
+}
+
 func TestTaskServiceAddIsIdempotentForLaunchTitles(t *testing.T) {
 	svc := new(TaskService)
 	for _, title := range []string{"Design", "design task", "Build", "Build launch task", "Ship", "ship readiness"} {
