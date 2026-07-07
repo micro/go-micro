@@ -19,7 +19,8 @@ type textToolCall struct {
 	Name      string         `json:"name"`
 	Tool      string         `json:"tool"`
 	Input     map[string]any `json:"input"`
-	Arguments map[string]any `json:"arguments"`
+	Arguments any            `json:"arguments"`
+	Function  *textToolCall  `json:"function"`
 }
 
 // executeTextToolCalls is a compatibility fallback for providers that return a
@@ -176,14 +177,7 @@ func collectTextToolCalls(v any, allowed map[string]string) []ai.ToolCall {
 			return collectTextToolCalls(nested, allowed)
 		}
 		call := mapToTextToolCall(x)
-		name := call.Name
-		if name == "" {
-			name = call.Tool
-		}
-		input := call.Input
-		if input == nil {
-			input = call.Arguments
-		}
+		name, input := textToolCallNameAndInput(call)
 		if name == "" || allowed[name] == "" || input == nil {
 			return nil
 		}
@@ -195,6 +189,40 @@ func collectTextToolCalls(v any, allowed map[string]string) []ai.ToolCall {
 	default:
 		return nil
 	}
+}
+
+func textToolCallNameAndInput(call textToolCall) (string, map[string]any) {
+	name := call.Name
+	if name == "" {
+		name = call.Tool
+	}
+	input := call.Input
+	if input == nil {
+		input = textToolArguments(call.Arguments)
+	}
+	if call.Function != nil {
+		fnName, fnInput := textToolCallNameAndInput(*call.Function)
+		if name == "" {
+			name = fnName
+		}
+		if input == nil {
+			input = fnInput
+		}
+	}
+	return name, input
+}
+
+func textToolArguments(raw any) map[string]any {
+	switch args := raw.(type) {
+	case map[string]any:
+		return args
+	case string:
+		var input map[string]any
+		if err := json.Unmarshal([]byte(args), &input); err == nil {
+			return input
+		}
+	}
+	return nil
 }
 
 func decodeTaggedTextToolCalls(text string, allowed map[string]string) []ai.ToolCall {
