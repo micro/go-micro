@@ -38,6 +38,19 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 		}
 	}
 
+	runScript := readFile(t, filepath.Join(root, "internal", "harness", "zero-to-hero-ci", "run.sh"))
+	for _, want := range []string{
+		"go test ./cmd/micro/cli/new -run TestZeroToOne -count=1",
+		"go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestZeroToHeroCLIBoundaries' -count=1",
+		"go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1",
+		"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
+		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1",
+	} {
+		if !strings.Contains(runScript, want) {
+			t.Fatalf("0→hero CI run script missing lifecycle command %q", want)
+		}
+	}
+
 	readme := readFile(t, filepath.Join(root, "README.md"))
 	if !strings.Contains(readme, "internal/website/docs/guides/zero-to-hero.md") {
 		t.Fatal("README does not point to the canonical 0→hero guide")
