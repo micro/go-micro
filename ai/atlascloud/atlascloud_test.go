@@ -454,6 +454,120 @@ func TestProvider_GeneratePreservesFollowUpTextToolCallInReply(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateRetriesMinimaxBuiltInsAsTextTools(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
+		case 2:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"delegate\">{\"task\":\"summarize\",\"to\":\"blocked-reviewer\"}</tool_call>"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL), ai.WithModel("minimaxai/minimax-m3"))
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "plan and delegate",
+		Tools: []ai.Tool{
+			{Name: "task_TaskService_Add", Description: "add task", Properties: map[string]any{"title": map[string]any{"type": "string"}}},
+			{Name: "plan", Description: "record a plan", Properties: map[string]any{"steps": map[string]any{"type": "array"}}},
+			{Name: "request_input", Description: "request input", Properties: map[string]any{"prompt": map[string]any{"type": "string"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !strings.Contains(resp.Reply, `<tool_call name="delegate">`) {
+		t.Fatalf("Reply = %q, want text delegate fallback", resp.Reply)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("requests = %d, want initial plus compat retry", len(bodies))
+	}
+	initialTools := bodies[0]["tools"].([]any)
+	if len(initialTools) != 4 {
+		t.Fatalf("initial tools = %d, want all tools", len(initialTools))
+	}
+	retryTools := bodies[1]["tools"].([]any)
+	if len(retryTools) != 1 {
+		t.Fatalf("retry tools = %d, want only service tools", len(retryTools))
+	}
+	fn := retryTools[0].(map[string]any)["function"].(map[string]any)
+	if fn["name"] != "task_TaskService_Add" {
+		t.Fatalf("retry tool name = %v, want service tool only", fn["name"])
+	}
+	msgs := bodies[1]["messages"].([]any)
+	compat := msgs[len(msgs)-1].(map[string]any)
+	if compat["role"] != "system" || !strings.Contains(compat["content"].(string), `<tool_call name="tool_name">`) {
+		t.Fatalf("compat instruction = %#v", compat)
+	}
+}
+
+func TestProvider_GenerateFollowUpRetriesWithoutToolsOnBadRequest(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
+		case 2:
+			http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
+		case 3:
+			if _, ok := body["tools"]; ok {
+				t.Fatalf("no-tools retry still included tools: %#v", body["tools"])
+			}
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"done"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	var toolCalls int
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			toolCalls++
+			return ai.ToolResult{ID: call.ID, Content: `{"marker":"agent-conformance-ok"}`}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "call a tool",
+		Tools:  []ai.Tool{{Name: "conformance_echo", Description: "echo", Properties: map[string]any{"value": map[string]any{"type": "string"}}}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if resp.Answer != "done" {
+		t.Fatalf("Answer = %q, want done", resp.Answer)
+	}
+	if toolCalls != 1 {
+		t.Fatalf("tool handler calls = %d, want one (no duplicate side effect)", toolCalls)
+	}
+	if len(bodies) != 3 {
+		t.Fatalf("requests = %d, want chat, failed follow-up, no-tools follow-up", len(bodies))
+	}
+	if _, ok := bodies[1]["tools"]; !ok {
+		t.Fatalf("first follow-up did not include tools")
+	}
+}
+
 func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)

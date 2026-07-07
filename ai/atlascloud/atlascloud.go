@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -94,6 +95,7 @@ func (p *Provider) String() string      { return "atlascloud" }
 
 func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
 	tools := atlascloudTools(req.Tools)
+	compatTools, compatPrompt := atlascloudMinimaxCompatTools(p.opts.Model, req.Tools)
 
 	messages := []map[string]any{
 		{"role": "system", "content": req.SystemPrompt},
@@ -103,6 +105,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	}
 	if req.Prompt != "" {
 		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
+	}
+	if compatPrompt != "" {
+		messages = append(messages, map[string]any{"role": "system", "content": compatPrompt})
 	}
 
 	apiReq := map[string]any{
@@ -119,7 +124,13 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 	resp, rawMessage, err := p.callAPI(ctx, "chat", apiReq)
 	if err != nil {
-		return nil, err
+		if atlascloudShouldRetryMinimaxCompat(err, compatTools) {
+			apiReq["tools"] = compatTools
+			resp, rawMessage, err = p.callAPI(ctx, "chat-minimax-compat", apiReq)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(resp.ToolCalls) == 0 {
@@ -161,7 +172,13 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 		followUpResp, _, err := p.callAPI(ctx, "tool-follow-up", followUpReq)
 		if err != nil {
-			return nil, err
+			if atlascloudShouldRetryWithoutTools(err, followUpReq) {
+				delete(followUpReq, "tools")
+				followUpResp, _, err = p.callAPI(ctx, "tool-follow-up-no-tools", followUpReq)
+			}
+			if err != nil {
+				return nil, err
+			}
 		}
 		if len(followUpResp.ToolCalls) > 0 {
 			for i := range followUpResp.ToolCalls {
@@ -308,6 +325,18 @@ func (s *atlasStream) Close() error {
 	return s.body.Close()
 }
 
+type atlascloudAPIError struct {
+	Status     string
+	StatusCode int
+	Phase      string
+	Summary    string
+	Body       string
+}
+
+func (e *atlascloudAPIError) Error() string {
+	return fmt.Sprintf("API error (%s) during atlascloud %s request (%s): %s", e.Status, e.Phase, e.Summary, e.Body)
+}
+
 func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any) (*ai.Response, map[string]any, error) {
 	reqBody, err := json.Marshal(req)
 	if err != nil {
@@ -331,7 +360,7 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 
 	respBody, _ := io.ReadAll(httpResp.Body)
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("API error (%s) during atlascloud %s request (%s): %s", httpResp.Status, phase, atlascloudRequestSummary(req), string(respBody))
+		return nil, nil, &atlascloudAPIError{Status: httpResp.Status, StatusCode: httpResp.StatusCode, Phase: phase, Summary: atlascloudRequestSummary(req), Body: string(respBody)}
 	}
 
 	var chatResp struct {
@@ -374,6 +403,50 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 	}
 
 	return response, rawMessage, nil
+}
+
+func atlascloudMinimaxCompatTools(model string, input []ai.Tool) ([]map[string]any, string) {
+	if !atlascloudIsMinimaxModel(model) || len(input) == 0 {
+		return nil, ""
+	}
+	var native []ai.Tool
+	var builtins []string
+	for _, tool := range input {
+		switch tool.Name {
+		case "plan", "request_input", "delegate":
+			builtins = append(builtins, tool.Name)
+		default:
+			native = append(native, tool)
+		}
+	}
+	if len(builtins) == 0 || len(native) == len(input) {
+		return nil, ""
+	}
+	prompt := "AtlasCloud/minimax compatibility: use native tool_calls for the listed service tools. " +
+		"For built-in agent tools that are not listed natively (" + strings.Join(builtins, ", ") +
+		"), emit exactly <tool_call name=\"tool_name\">{...}</tool_call> so the agent runtime can execute them. Do not describe those built-in tool calls in prose instead of emitting the tag."
+	return atlascloudTools(native), prompt
+}
+
+func atlascloudIsMinimaxModel(model string) bool {
+	model = strings.ToLower(model)
+	return strings.Contains(model, "minimax")
+}
+
+func atlascloudShouldRetryMinimaxCompat(err error, compatTools []map[string]any) bool {
+	if len(compatTools) == 0 {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusBadRequest
+}
+
+func atlascloudShouldRetryWithoutTools(err error, req map[string]any) bool {
+	if _, ok := req["tools"]; !ok {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusBadRequest
 }
 
 func atlascloudTools(input []ai.Tool) []map[string]any {
