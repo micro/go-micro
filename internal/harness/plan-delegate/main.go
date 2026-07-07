@@ -484,7 +484,7 @@ func runPlanDelegate(provider string) error {
 		flow.Steps(
 			flow.Step{Name: "conductor", Run: planDelegateConductorStep(conductor)},
 			flow.Step{Name: "require-notify", Run: requireDelegatedNotifyStep(taskSvc, notifySvc, func(ctx context.Context) error {
-				_, err := conductor.Ask(ctx, "The Design, Build, and Ship tasks already exist, but the owner notification is still missing. Delegate exactly one notification to the \"comms\" agent now with this exact subtask: "+delegatedNotifyTask+" Do not create more tasks and do not answer until comms has handled the notification.")
+				_, err := comms.Ask(ctx, "Send exactly one owner readiness notification now with this exact task: "+delegatedNotifyTask+" Use the notify service and do not answer until the notification has been sent.")
 				return err
 			})},
 		),
@@ -553,6 +553,13 @@ func requireDelegatedNotifyStep(taskSvc *TaskService, notifySvc *NotifyService, 
 			fmt.Print("\n\033[33mwarning:\033[0m conductor step completed before delegated notify; retrying the missing comms handoff once before the flow can complete.\n")
 			if err := recoverMissingNotify(ctx); err != nil {
 				return in, fmt.Errorf("delegation completed without required notify side effect and recovery failed: notify=%d, want 1: %w", notify, err)
+			}
+			settled, err = waitForNotifySideEffect(notifySvc, delegatedNotifySettleTimeout)
+			if err != nil {
+				return in, err
+			}
+			if !settled {
+				return in, fmt.Errorf("delegation recovery completed without required notify side effect: notify=%d, want 1", notifySvc.count())
 			}
 		}
 		if notify = notifySvc.count(); notify != 1 {
