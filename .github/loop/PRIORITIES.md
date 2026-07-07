@@ -21,8 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Propagate cancellation and retry signals through provider model calls** ([#4175](https://github.com/micro/go-micro/issues/4175)) — the installed first-agent on-ramp shipped in #4207 and AtlasCloud guarded-delegate conformance closed in #4211, so the highest open Now-phase risk is failure handling under real provider conditions: cancellation/deadline propagation and retry/backoff must not duplicate tool side effects. This keeps the services → agents → workflows lifecycle dependable across providers without changing public APIs.
-2. **Resume durable agent runs from checkpoints** ([#4202](https://github.com/micro/go-micro/issues/4202)) — once provider failure semantics are guarded, move into the Next-phase durable-agent-loop work: long-running agents should recover like flows, checkpoint progress, and avoid replaying completed tool side effects after interruption.
+1. **Resume durable agent runs from checkpoints** ([#4202](https://github.com/micro/go-micro/issues/4202)) — the installed first-agent on-ramp shipped in #4207, AtlasCloud guarded-delegate conformance closed in #4211, and retry side-effect dedupe closed in #4215. With the highest Now-phase provider-failure risk resolved, the next most valuable gap is the durable-agent-loop promise from the roadmap and blog: long-running agents should recover like flows, checkpoint progress, and avoid replaying completed tool side effects after interruption.
+2. **Broaden provider streaming coverage through chat and A2A** ([#4217](https://github.com/micro/go-micro/issues/4217)) — after durable resume, improve the interactive inner loop: `ai.Stream`, `micro chat`, and A2A streaming should preserve token order, cancellation, and error semantics end to end so a developer can move from local chat to interop without learning separate transport behavior.
+3. **Emit OpenTelemetry spans from agent run history** ([#4218](https://github.com/micro/go-micro/issues/4218)) — once durable runs and streaming are guarded, close the observability seam called out by the roadmap and blog: `RunInfo`/history and production traces should tell the same story for model steps, tool calls, retries, delegation, and failures.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
