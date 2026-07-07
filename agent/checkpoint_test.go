@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
@@ -460,6 +461,51 @@ func countMemoryContent(messages []ai.Message, needle string) int {
 		}
 	}
 	return count
+}
+
+func TestResumePendingResumesOldestAgentRunsUntilFailure(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "resume-pending-agent")
+	base := time.Date(2026, 7, 7, 12, 0, 0, 0, time.UTC)
+	for _, run := range []flow.Run{
+		{ID: "run-ok", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("ok")}, Started: base},
+		{ID: "run-blocked", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("block")}, Started: base.Add(time.Minute)},
+		{ID: "run-later", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("later")}, Started: base.Add(2 * time.Minute)},
+	} {
+		if err := cp.Save(ctx, run); err != nil {
+			t.Fatalf("Save(%s): %v", run.ID, err)
+		}
+	}
+
+	var prompts []string
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		prompts = append(prompts, req.Prompt)
+		if req.Prompt == "block" {
+			return nil, errors.New("still blocked")
+		}
+		return &ai.Response{Reply: req.Prompt + " resumed"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("resume-pending-agent"), WithCheckpoint(cp))
+	failedRun, err := ResumePending(ctx, a)
+	if err == nil {
+		t.Fatal("ResumePending succeeded, want blocked run error")
+	}
+	if failedRun != "run-blocked" {
+		t.Fatalf("failed run = %q, want run-blocked", failedRun)
+	}
+	if got, want := strings.Join(prompts, ","), "ok,block"; got != want {
+		t.Fatalf("prompts = %q, want %q", got, want)
+	}
+	loaded, ok, err := cp.Load(ctx, "run-ok")
+	if err != nil || !ok || loaded.Status != "done" {
+		t.Fatalf("run-ok loaded=%v err=%v status=%q, want done", ok, err, loaded.Status)
+	}
+	loaded, ok, err = cp.Load(ctx, "run-later")
+	if err != nil || !ok || loaded.Status != "failed" {
+		t.Fatalf("run-later loaded=%v err=%v status=%q, want still failed", ok, err, loaded.Status)
+	}
 }
 
 func TestPendingReturnsUnfinishedAgentRuns(t *testing.T) {
