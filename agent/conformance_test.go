@@ -180,7 +180,7 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 }
 
 func askWithConformanceRetry(ctx context.Context, a Agent, initialPrompt string, sawTool, sawBlockedDelegate *bool) (*Response, error) {
-	const maxAttempts = 3
+	const maxAttempts = 4
 	prompt := initialPrompt
 	var resp *Response
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
@@ -198,7 +198,7 @@ func askWithConformanceRetry(ctx context.Context, a Agent, initialPrompt string,
 		if attempt == maxAttempts {
 			break
 		}
-		prompt = nextConformanceRetryPrompt(sawRequiredTool, sawRequiredDelegate, hasMarker)
+		prompt = nextConformanceRetryPrompt(sawRequiredTool, sawRequiredDelegate, hasMarker, attempt+1)
 	}
 	missing := missingConformanceRequirements(sawTool, sawBlockedDelegate, responseHasConformanceMarker(resp))
 	if len(missing) > 0 {
@@ -259,8 +259,8 @@ func TestAgentProviderConformanceAtlasCloudPromptRequiresTaggedDelegateFallback(
 
 func TestAgentProviderConformanceRetryPromptsRequireBothTools(t *testing.T) {
 	for name, prompt := range map[string]string{
-		"missing tool":     nextConformanceRetryPrompt(false, false, false),
-		"missing delegate": nextConformanceRetryPrompt(true, false, true),
+		"missing tool":     nextConformanceRetryPrompt(false, false, false, 2),
+		"missing delegate": nextConformanceRetryPrompt(true, false, true, 2),
 	} {
 		for _, want := range []string{
 			"delegate exactly once",
@@ -274,7 +274,23 @@ func TestAgentProviderConformanceRetryPromptsRequireBothTools(t *testing.T) {
 	}
 }
 
-func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate, hasMarker bool) string {
+func TestAgentProviderConformanceFinalDelegateRetryUsesTaggedCall(t *testing.T) {
+	prompt := nextConformanceRetryPrompt(true, false, true, 4)
+	for _, want := range []string{
+		"Final conformance retry",
+		conformanceDelegateTaggedCall,
+		"agent-conformance-ok",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("final delegate retry prompt %q missing %q", prompt, want)
+		}
+	}
+}
+
+func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate, hasMarker bool, attempt int) string {
+	if attempt >= 4 && sawTool && !sawBlockedDelegate {
+		return "Final conformance retry: emit exactly this tagged tool call so the harness can execute the guarded delegate refusal, then include agent-conformance-ok and the refusal in the final answer: " + conformanceDelegateTaggedCall
+	}
 	switch {
 	case !sawTool:
 		return "The previous response did not call the required conformance_echo tool. Retry the same conformance check now: first call conformance_echo exactly once with input " + conformanceEchoInputJSON + ", then call delegate exactly once with input " + conformanceDelegateInputJSON + "; do not provide a final answer until both tool calls have been attempted. If native delegate tool_calls are unavailable after conformance_echo, emit exactly " + conformanceDelegateTaggedCall + ". The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
@@ -549,7 +565,7 @@ func TestAgentProviderConformanceFailsWhenDelegateStillMissing(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "guarded delegate") {
 		t.Fatalf("Ask error = %v, want missing guarded delegate", err)
 	}
-	if attempts != 3 {
+	if attempts != 4 {
 		t.Fatalf("attempts = %d, want retries through max attempts", attempts)
 	}
 }
