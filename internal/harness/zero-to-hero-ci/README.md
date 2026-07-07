@@ -32,8 +32,10 @@ and A2A with only the LLM mocked.
 
 The default GitHub harness workflow runs this script on every push and pull
 request after the install smoke check and 0→1 scaffold contract. Developers can
-verify the installer seam alone with `make install-smoke`, or run the same
-no-secret contract locally with:
+verify the installer seam alone with `make install-smoke`, run just the documented
+agent debugging quickcheck with
+`go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1`,
+or run the same no-secret contract locally with:
 
 ```sh
 make harness

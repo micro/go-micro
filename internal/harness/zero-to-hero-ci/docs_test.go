@@ -620,6 +620,24 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 		}
 	}
 
+	debuggingGuide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "debugging-agents.md"))
+	for _, want := range []string{
+		"Provider-free quickcheck",
+		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1",
+		"micro inspect agent assistant --limit 1",
+		"micro inspect agent --status done",
+		"micro agent history assistant",
+	} {
+		if !strings.Contains(debuggingGuide, want) {
+			t.Fatalf("debugging guide missing provider-free quickcheck marker %q", want)
+		}
+	}
+
+	harnessReadme := readFile(t, filepath.Join(root, "internal", "harness", "zero-to-hero-ci", "README.md"))
+	if !strings.Contains(harnessReadme, "go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1") {
+		t.Fatal("0→hero harness README does not expose the agent debugging quickcheck command")
+	}
+
 	readme := readFile(t, filepath.Join(root, "README.md"))
 	if !strings.Contains(readme, "internal/website/docs/guides/no-secret-first-agent.md") {
 		t.Fatal("README does not point to the no-secret first-agent transcript")
