@@ -21,8 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Fix AtlasCloud Minimax multi-tool conformance 400s** ([#4236](https://github.com/micro/go-micro/issues/4236)) — Now-phase reliability is the current red edge: live AtlasCloud/Minimax accepts simple tools but rejects multi-tool agent turns that include `plan`, `request_input`, and `delegate`. Fixing the request shape or fallback path keeps the services → agents → workflows harness dependable across providers without duplicating side effects.
-2. **Link examples wayfinding from website getting-started path** ([#4241](https://github.com/micro/go-micro/issues/4241)) — keep adoption weighted with hardening after the examples index shipped: the repo README and CLI now point at the first-agent/0→hero map, but go-micro.dev getting-started and quickstart pages should expose the same path with a CI-guarded docs smoke check.
+1. **Prevent duplicate delegated notifications in plan-delegate harness** ([#4245](https://github.com/micro/go-micro/issues/4245)) — Now-phase safety is the current red edge after the AtlasCloud 400 fallback shipped: the services → agents → workflows loop must not repeat delegated side effects while recovering or continuing a plan. Make the plan-delegate path idempotent and CI-verifiable before adding more depth.
+2. **Make AtlasCloud guarded delegation pass reliably** ([#4244](https://github.com/micro/go-micro/issues/4244)) — keep cross-provider conformance close behind the side-effect fix: AtlasCloud now gets past the Minimax request-shape 400s, but the live agent harness still misses the required guarded delegate within the retry budget.
+3. **Link examples wayfinding from website getting-started path** ([#4241](https://github.com/micro/go-micro/issues/4241)) — keep adoption weighted with hardening after the examples index shipped: the repo README and CLI now point at the first-agent/0→hero map, but go-micro.dev getting-started and quickstart pages should expose the same path with a CI-guarded docs smoke check.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
