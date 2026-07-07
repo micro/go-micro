@@ -355,6 +355,8 @@ func TestProvider_GenerateExecutesFollowUpToolCall(t *testing.T) {
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
 		case 2:
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-2","function":{"name":"delegate","arguments":"{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}"}}]}}]}`))
+		case 3:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"blocked by policy"}}]}`))
 		default:
 			t.Fatalf("unexpected API call %d", len(bodies))
 		}
@@ -403,6 +405,70 @@ func TestProvider_GenerateExecutesFollowUpToolCall(t *testing.T) {
 	}
 	if _, ok := bodies[1]["tools"].([]any); !ok {
 		t.Fatalf("follow-up request did not include tools: %#v", bodies[1])
+	}
+}
+
+func TestProvider_GenerateExecutesMultiStepFollowUpToolCalls(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-plan","function":{"name":"plan","arguments":"{\"steps\":[{\"task\":\"create tasks\"},{\"task\":\"notify owner\"}]}"}}]}}]}`))
+		case 2:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-add","function":{"name":"task_TaskService_Add","arguments":"{\"title\":\"Design\"}"}}]}}]}`))
+		case 3:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-delegate","function":{"name":"delegate","arguments":"{\"task\":\"notify owner@acme.com\",\"to\":\"comms\"}"}}]}}]}`))
+		case 4:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"done"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	var calls []string
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			calls = append(calls, call.Name)
+			return ai.ToolResult{ID: call.ID, Content: `{"ok":true}`}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "plan, create tasks, and delegate notification",
+		Tools: []ai.Tool{
+			{Name: "plan", Description: "record a plan", Properties: map[string]any{"steps": map[string]any{"type": "array"}}},
+			{Name: "task_TaskService_Add", Description: "add task", Properties: map[string]any{"title": map[string]any{"type": "string"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	wantCalls := []string{"plan", "task_TaskService_Add", "delegate"}
+	if strings.Join(calls, ",") != strings.Join(wantCalls, ",") {
+		t.Fatalf("tool calls = %v, want %v", calls, wantCalls)
+	}
+	if len(resp.ToolCalls) != 3 {
+		t.Fatalf("ToolCalls = %+v, want all multi-step calls", resp.ToolCalls)
+	}
+	if resp.Answer != "done" {
+		t.Fatalf("Answer = %q, want final follow-up reply", resp.Answer)
+	}
+	if len(bodies) != 4 {
+		t.Fatalf("requests = %d, want initial plus three follow-ups", len(bodies))
+	}
+	for i := 1; i < 4; i++ {
+		if _, ok := bodies[i]["tools"].([]any); !ok {
+			t.Fatalf("follow-up request %d did not include tools: %#v", i+1, bodies[i])
+		}
 	}
 }
 
