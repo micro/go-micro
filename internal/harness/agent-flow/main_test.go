@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -97,5 +99,39 @@ func TestEventTriggersAgentNoPrompt(t *testing.T) {
 	}
 	if rs := f.Results(); len(rs) == 0 || rs[len(rs)-1].Reply == "" {
 		t.Errorf("flow recorded no result for the event")
+	}
+}
+
+func TestWaitForOnboardingSideEffectsFailsWhenMissing(t *testing.T) {
+	wsSvc := new(WorkspaceService)
+	ntSvc := new(NotifyService)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
+	defer cancel()
+
+	err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc)
+	if err == nil {
+		t.Fatal("waitForOnboardingSideEffects returned nil, want missing side effects error")
+	}
+	if got := err.Error(); !strings.Contains(got, "workspaces=0/1") || !strings.Contains(got, "notifications=0/1") {
+		t.Fatalf("waitForOnboardingSideEffects error %q does not report missing side effects", got)
+	}
+}
+
+func TestWaitForOnboardingSideEffectsPassesWhenComplete(t *testing.T) {
+	wsSvc := new(WorkspaceService)
+	ntSvc := new(NotifyService)
+
+	if err := wsSvc.Create(context.Background(), &CreateRequest{Owner: "alice@acme.com"}, &CreateResponse{}); err != nil {
+		t.Fatalf("create workspace: %v", err)
+	}
+	if err := ntSvc.Send(context.Background(), &SendRequest{To: "alice@acme.com", Message: "Welcome"}, &SendResponse{}); err != nil {
+		t.Fatalf("send notification: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc); err != nil {
+		t.Fatalf("waitForOnboardingSideEffects returned %v, want nil", err)
 	}
 }
