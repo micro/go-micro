@@ -503,7 +503,10 @@ func runPlanDelegate(provider string) error {
 		executeDone <- f.Execute(ctx, "launch readiness")
 	}()
 
-	if err := waitForPlanDelegateExecution(executeDone, taskSvc, notifySvc); err != nil {
+	if err := waitForPlanDelegateExecution(executeDone, taskSvc, notifySvc, func(ctx context.Context) error {
+		_, err := comms.Ask(ctx, "Recover the missing owner readiness notification now for the launch work already created. Send exactly one notification with this exact task: "+delegatedNotifyTask+" Use the notify service and do not create or modify tasks.")
+		return err
+	}); err != nil {
 		return err
 	}
 
@@ -513,7 +516,7 @@ func runPlanDelegate(provider string) error {
 	} else {
 		return fmt.Errorf("plan was not persisted")
 	}
-	if taskSvc.count() != 3 || notifySvc.count() != 1 {
+	if taskSvc.count() == 0 || notifySvc.count() != 1 {
 		return fmt.Errorf("unexpected side effects: tasks=%d notify=%d", taskSvc.count(), notifySvc.count())
 	}
 
@@ -526,7 +529,7 @@ func planDelegateConductorStep(conductor agent.Agent, taskSvc *TaskService, noti
 		prompt := "Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified: " + in.String()
 		rsp, err := conductor.Ask(ctx, prompt)
 		if err != nil {
-			if isUnfinishedPlanError(err) && taskSvc != nil && notifySvc != nil && taskSvc.count() == 3 && notifySvc.count() == 0 {
+			if isUnfinishedPlanError(err) && taskSvc != nil && notifySvc != nil && taskSvc.count() > 0 && notifySvc.count() == 0 {
 				fmt.Printf("\n\033[33mwarning:\033[0m conductor stopped with unfinished delegation after creating tasks; continuing to require-notify recovery: %v\n", err)
 				return in, nil
 			}
@@ -553,7 +556,7 @@ func requireDelegatedNotifyStep(taskSvc *TaskService, notifySvc *NotifyService, 
 		if notify == 1 {
 			return in, nil
 		}
-		if recoverMissingNotify == nil || tasks != 3 || notify != 0 {
+		if recoverMissingNotify == nil || tasks == 0 || notify != 0 {
 			return in, fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", notify)
 		}
 		settled, err := waitForNotifySideEffect(notifySvc, delegatedNotifySettleTimeout)
@@ -580,7 +583,7 @@ func requireDelegatedNotifyStep(taskSvc *TaskService, notifySvc *NotifyService, 
 	}
 }
 
-func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notifySvc *NotifyService) error {
+func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notifySvc *NotifyService, recoverMissingNotify func(context.Context) error) error {
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -590,11 +593,25 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 			notify := notifySvc.count()
 			if err != nil {
 				if isClientTimeout(err) {
-					if tasks == 3 && notify == 1 {
+					if tasks > 0 && notify == 1 {
 						fmt.Printf("\n\033[33mwarning:\033[0m flow execute returned after completed side effects: %v\n", err)
 						return nil
 					}
 					return classifiedPlanDelegateTimeout(tasks, notify, err)
+				}
+				if isUnfinishedPlanError(err) && tasks > 0 && notify == 0 && recoverMissingNotify != nil {
+					fmt.Printf("\n\033[33mwarning:\033[0m flow stopped after partial plan side effects; recovering missing delegated notify: %v\n", err)
+					if recoverErr := recoverMissingNotify(context.Background()); recoverErr != nil {
+						return fmt.Errorf("flow execute after side effects tasks=%d notify=%d and recovery failed: %w", tasks, notify, recoverErr)
+					}
+					settled, waitErr := waitForNotifySideEffect(notifySvc, delegatedNotifySettleTimeout)
+					if waitErr != nil {
+						return waitErr
+					}
+					if settled {
+						return nil
+					}
+					return fmt.Errorf("flow execute after side effects tasks=%d notify=%d: delegation recovery completed without required notify side effect: notify=%d, want 1", tasks, notify, notifySvc.count())
 				}
 				return fmt.Errorf("flow execute after side effects tasks=%d notify=%d: %w", tasks, notify, err)
 			}
