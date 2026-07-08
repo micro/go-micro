@@ -578,6 +578,60 @@ func TestProvider_GenerateRetriesMinimaxBuiltInsAsTextTools(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateRetriesMinimaxServiceToolsAsTextTools(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
+		case 2:
+			if _, ok := body["tools"]; ok {
+				t.Fatalf("text-tool retry included native tools: %#v", body["tools"])
+			}
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"conformance_echo\">{\"value\":\"agent-conformance\"}</tool_call>"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL), ai.WithModel("minimaxai/minimax-m3"))
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "call a tool",
+		Tools: []ai.Tool{{
+			Name:        "conformance_echo",
+			Description: "echo conformance marker",
+			Properties:  map[string]any{"value": map[string]any{"type": "string"}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !strings.Contains(resp.Reply, `<tool_call name="conformance_echo">`) {
+		t.Fatalf("Reply = %q, want text service-tool fallback", resp.Reply)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("requests = %d, want initial plus text-tool retry", len(bodies))
+	}
+	if _, ok := bodies[0]["tools"].([]any); !ok {
+		t.Fatalf("initial request did not include native tools: %#v", bodies[0])
+	}
+	msgs := bodies[1]["messages"].([]any)
+	compat := msgs[len(msgs)-1].(map[string]any)
+	content := compat["content"].(string)
+	for _, want := range []string{"native tools payload was rejected", `<tool_call name="tool_name">`, "conformance_echo"} {
+		if !strings.Contains(content, want) {
+			t.Fatalf("text-tool instruction %q missing %q", content, want)
+		}
+	}
+}
+
 func TestProvider_GenerateFollowUpRetriesWithoutToolsOnBadRequest(t *testing.T) {
 	var bodies []map[string]any
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -643,7 +697,7 @@ func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) 
 	p := NewProvider(
 		ai.WithAPIKey("test-key"),
 		ai.WithBaseURL(ts.URL),
-		ai.WithModel("minimaxai/minimax-m3"),
+		ai.WithModel("deepseek-ai/DeepSeek-V3-0324"),
 	)
 	_, err := p.Generate(context.Background(), &ai.Request{
 		Prompt: "call a tool",
@@ -657,7 +711,7 @@ func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) 
 		t.Fatal("Generate error = nil, want 400")
 	}
 	msg := err.Error()
-	for _, want := range []string{"400 Bad Request", "atlascloud chat request", "model=minimaxai/minimax-m3", "tools=1", "tool_names=conformance_echo"} {
+	for _, want := range []string{"400 Bad Request", "atlascloud chat request", "model=deepseek-ai/DeepSeek-V3-0324", "tools=1", "tool_names=conformance_echo"} {
 		if !strings.Contains(msg, want) {
 			t.Fatalf("error %q missing %q", msg, want)
 		}

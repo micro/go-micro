@@ -96,6 +96,7 @@ func (p *Provider) String() string      { return "atlascloud" }
 func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
 	tools := atlascloudTools(req.Tools)
 	compatTools, compatPrompt := atlascloudMinimaxCompatTools(p.opts.Model, req.Tools)
+	textToolPrompt := atlascloudMinimaxTextToolPrompt(p.opts.Model, req.Tools)
 
 	messages := []map[string]any{
 		{"role": "system", "content": req.SystemPrompt},
@@ -127,6 +128,11 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		if atlascloudShouldRetryMinimaxCompat(err, compatTools) {
 			apiReq["tools"] = compatTools
 			resp, rawMessage, err = p.callAPI(ctx, "chat-minimax-compat", apiReq)
+		}
+		if atlascloudShouldRetryMinimaxTextTools(err, textToolPrompt) {
+			delete(apiReq, "tools")
+			apiReq["messages"] = append(messages, map[string]any{"role": "system", "content": textToolPrompt})
+			resp, rawMessage, err = p.callAPI(ctx, "chat-minimax-text-tools", apiReq)
 		}
 		if err != nil {
 			return nil, err
@@ -447,6 +453,32 @@ func atlascloudMinimaxCompatTools(model string, input []ai.Tool) ([]map[string]a
 		"For built-in agent tools that are not listed natively (" + strings.Join(builtins, ", ") +
 		"), emit exactly <tool_call name=\"tool_name\">{...}</tool_call> so the agent runtime can execute them. Do not describe those built-in tool calls in prose instead of emitting the tag."
 	return atlascloudTools(native), prompt
+}
+
+func atlascloudMinimaxTextToolPrompt(model string, input []ai.Tool) string {
+	if !atlascloudIsMinimaxModel(model) || len(input) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(input))
+	for _, tool := range input {
+		if tool.Name != "" {
+			names = append(names, tool.Name)
+		}
+	}
+	if len(names) == 0 {
+		return ""
+	}
+	return "AtlasCloud/minimax text-tool compatibility: the native tools payload was rejected. " +
+		"Call exactly one needed tool from this list by emitting exactly <tool_call name=\"tool_name\">{...}</tool_call>: " +
+		strings.Join(names, ", ") + ". Do not answer in prose instead of emitting the tag."
+}
+
+func atlascloudShouldRetryMinimaxTextTools(err error, prompt string) bool {
+	if prompt == "" {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
 }
 
 func atlascloudIsMinimaxModel(model string) bool {
