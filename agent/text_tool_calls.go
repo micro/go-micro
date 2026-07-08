@@ -102,6 +102,9 @@ func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
 	if calls := decodeTaggedTextToolCalls(text, allowed); len(calls) > 0 {
 		return calls
 	}
+	if calls := decodeFunctionTextToolCalls(text, allowed); len(calls) > 0 {
+		return calls
+	}
 	for _, candidate := range jsonCandidates(text) {
 		if calls := decodeTextToolCalls(candidate, allowed); len(calls) > 0 {
 			return calls
@@ -266,6 +269,125 @@ func taggedToolName(tag string) string {
 		return ""
 	}
 	return strings.Trim(match[1], `"'`)
+}
+
+func decodeFunctionTextToolCalls(text string, allowed map[string]string) []ai.ToolCall {
+	var out []ai.ToolCall
+	for alias, canonical := range allowed {
+		for _, body := range functionCallBodies(text, alias) {
+			var input map[string]any
+			if err := json.Unmarshal([]byte(body), &input); err != nil || input == nil {
+				continue
+			}
+			out = append(out, ai.ToolCall{
+				ID:    fmt.Sprintf("text-call-%s", strings.ReplaceAll(alias, ".", "_")),
+				Name:  canonical,
+				Input: input,
+			})
+		}
+	}
+	return out
+}
+
+func functionCallBodies(text, name string) []string {
+	if name == "" {
+		return nil
+	}
+	var bodies []string
+	for searchFrom := 0; searchFrom < len(text); {
+		idx := strings.Index(text[searchFrom:], name)
+		if idx < 0 {
+			break
+		}
+		start := searchFrom + idx
+		open := start + len(name)
+		if !isFunctionCallBoundary(text, start, open) {
+			searchFrom = start + len(name)
+			continue
+		}
+		bodyStart := open + 1
+		bodyEnd, ok := balancedJSONObjectEnd(text, bodyStart)
+		if !ok {
+			searchFrom = bodyStart
+			continue
+		}
+		bodies = append(bodies, strings.TrimSpace(text[bodyStart:bodyEnd]))
+		searchFrom = bodyEnd + 1
+	}
+	return bodies
+}
+
+func isFunctionCallBoundary(text string, start, open int) bool {
+	if open >= len(text) || text[open] != '(' {
+		return false
+	}
+	if start > 0 {
+		prev := text[start-1]
+		if prev == '_' || prev == '.' || prev == '-' || prev == '$' || ('0' <= prev && prev <= '9') || ('A' <= prev && prev <= 'Z') || ('a' <= prev && prev <= 'z') {
+			return false
+		}
+	}
+	for i := open + 1; i < len(text); i++ {
+		switch text[i] {
+		case ' ', '\n', '\r', '\t':
+			continue
+		case '{':
+			return true
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+func balancedJSONObjectEnd(text string, start int) (int, bool) {
+	for start < len(text) {
+		switch text[start] {
+		case ' ', '\n', '\r', '\t':
+			start++
+		case '{':
+			depth := 0
+			inString := false
+			escaped := false
+			for i := start; i < len(text); i++ {
+				c := text[i]
+				if inString {
+					if escaped {
+						escaped = false
+					} else if c == '\\' {
+						escaped = true
+					} else if c == '"' {
+						inString = false
+					}
+					continue
+				}
+				switch c {
+				case '"':
+					inString = true
+				case '{':
+					depth++
+				case '}':
+					depth--
+					if depth == 0 {
+						for j := i + 1; j < len(text); j++ {
+							switch text[j] {
+							case ' ', '\n', '\r', '\t':
+								continue
+							case ')':
+								return i + 1, true
+							default:
+								return 0, false
+							}
+						}
+					}
+				}
+			}
+			return 0, false
+		default:
+			return 0, false
+		}
+	}
+	return 0, false
 }
 
 func firstNestedToolCalls(m map[string]any) (any, bool) {
