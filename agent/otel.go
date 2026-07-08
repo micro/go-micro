@@ -374,13 +374,14 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 			return res
 		}
 
-		ctx, span := a.tracer().Start(ctx, spanNameToolCall, trace.WithAttributes(
+		spanAttrs := appendRunInfoAttributes([]attribute.KeyValue{
 			attribute.String(AttrRunID, info.RunID),
 			attribute.String(AttrParentRunID, info.ParentID),
 			attribute.String(AttrAgentName, info.Agent),
 			attribute.String(AttrToolName, call.Name),
 			attribute.Bool(AttrDelegate, call.Name == toolDelegate),
-		))
+		}, info)
+		ctx, span := a.tracer().Start(ctx, spanNameToolCall, trace.WithAttributes(spanAttrs...))
 		res := next(ctx, call)
 		dur := time.Since(start).Milliseconds()
 		attrs := []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}

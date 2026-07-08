@@ -103,8 +103,10 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 				t.Fatalf("model span missing model event: %#v", s.Events())
 			}
 		}
-		if s.Name() == spanNameToolCall && !spanEventHasRunInfo(s.Events(), "agent.tool", runID, "runner") {
-			t.Fatalf("tool span missing tool event: %#v", s.Events())
+		if s.Name() == spanNameToolCall {
+			if !spanEventHasRunInfo(s.Events(), "agent.tool", runID, "runner") {
+				t.Fatalf("tool span missing tool event: %#v", s.Events())
+			}
 		}
 	}
 	keys, err := store.Scope(st, "agent", "runner").List(store.ListPrefix("runs/"))
@@ -140,6 +142,45 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	if len(events) == 0 || events[0].TraceID == "" || events[0].SpanID == "" {
 		t.Fatalf("events missing trace correlation: %#v", events)
 	}
+}
+
+func TestAgentOpenTelemetryToolSpanIncludesWorkflowRunInfo(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+	st := store.NewMemoryStore()
+	a := New(Name("workflow-tool"), Provider("oteltest"), WithStore(st), TraceProvider(tp)).(*agentImpl)
+	handler := a.traceTool(func(context.Context, ai.ToolCall) ai.ToolResult {
+		return ai.ToolResult{Value: "ok"}
+	})
+	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{
+		RunID:    "run-workflow-tool",
+		ParentID: "parent-run",
+		Agent:    "workflow-tool",
+		Flow:     "deploy",
+		Step:     "notify",
+		Dispatch: "workflow",
+		Trigger:  "manual",
+	})
+
+	res := handler(ctx, ai.ToolCall{ID: "call-1", Name: "notify", Input: map[string]any{"ok": true}})
+	if resultError(res) != "" {
+		t.Fatalf("tool returned error: %#v", res)
+	}
+
+	for _, span := range exp.GetSpans().Snapshots() {
+		if span.Name() != spanNameToolCall {
+			continue
+		}
+		attrs := spanAttributes(span.Attributes())
+		if attrs[AttrRunID] != "run-workflow-tool" || attrs[AttrParentRunID] != "parent-run" || attrs[AttrAgentName] != "workflow-tool" {
+			t.Fatalf("tool span missing run lineage: %#v", attrs)
+		}
+		if attrs[AttrFlowName] != "deploy" || attrs[AttrFlowStep] != "notify" || attrs[AttrDispatch] != "workflow" || attrs[AttrTrigger] != "manual" {
+			t.Fatalf("tool span missing workflow run info: %#v", attrs)
+		}
+		return
+	}
+	t.Fatalf("tool span not emitted; got %d spans", len(exp.GetSpans().Snapshots()))
 }
 
 func TestAgentOpenTelemetryToolRetryAttempts(t *testing.T) {
