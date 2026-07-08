@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Resume agent runs from checkpoints** ([#4368](https://github.com/micro/go-micro/issues/4368)) — #4391 closed the OpenTelemetry RunInfo gap, #4397 documented resume checkpoint limits, and #4399/#4402 moved the getting-started contract into CI, so the highest-value remaining depth seam is a focused, non-breaking durable-agent resume slice that preserves completed tool calls and avoids duplicate side effects before broader durability or API design work.
+1. **Harden agent provider timeouts and cancellation** ([#4408](https://github.com/micro/go-micro/issues/4408)) — #4406 closed the durable-agent checkpoint slice, and the getting-started path is now covered by no-secret harnesses, so the highest-value Now-phase gap is failure behavior: deadlines, cancellations, and slow-provider exits must stop cleanly, avoid duplicate tool calls, and preserve debuggable run metadata without public API churn.
 2. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — The blog says Anthropic streaming shipped, but the roadmap still calls for provider-backed streaming across chat and A2A. Add a focused, provider-gated conformance slice so streaming stays end-to-end rather than becoming a one-provider success story.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
