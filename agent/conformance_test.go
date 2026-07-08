@@ -287,6 +287,20 @@ func TestAgentProviderConformanceFinalDelegateRetryUsesTaggedCall(t *testing.T) 
 	}
 }
 
+func TestAgentProviderConformanceMarkerRetryRequiresExactMarkerReply(t *testing.T) {
+	prompt := nextConformanceRetryPrompt(true, true, false, 2)
+	for _, want := range []string{
+		"omitted the conformance marker",
+		"do not call more tools",
+		"do not summarize",
+		"Reply with exactly this sentence: agent-conformance-ok after guarded delegate refusal.",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("marker retry prompt %q missing %q", prompt, want)
+		}
+	}
+}
+
 func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate, hasMarker bool, attempt int) string {
 	if attempt >= 4 && sawTool && !sawBlockedDelegate {
 		return "Final conformance retry: emit exactly this tagged tool call so the harness can execute the guarded delegate refusal, then include agent-conformance-ok and the refusal in the final answer: " + conformanceDelegateTaggedCall
@@ -297,7 +311,7 @@ func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate, hasMarker bool, att
 	case !sawBlockedDelegate:
 		return "The previous response called conformance_echo but did not attempt the required guarded delegation. Continue the same conformance check now: call delegate exactly once with input " + conformanceDelegateInputJSON + "; do not answer in prose until that delegate call has been attempted. If native tool_calls are unavailable, emit exactly " + conformanceDelegateTaggedCall + ". The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
 	case !hasMarker:
-		return "The previous response completed the required tool calls but omitted the conformance marker. Continue the same conformance check now: do not call more tools; answer with the prior echo result marker agent-conformance-ok and mention the guarded delegate refusal."
+		return "The previous response completed the required tool calls but omitted the conformance marker. Continue the same conformance check now: do not call more tools, do not summarize, and do not use synonyms. Reply with exactly this sentence: agent-conformance-ok after guarded delegate refusal."
 	default:
 		return "Retry the provider conformance check and include the agent-conformance marker in the final answer."
 	}
