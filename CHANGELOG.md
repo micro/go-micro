@@ -17,11 +17,36 @@ next version when it ships.
 ## [Unreleased]
 
 ### Added
+- **Provider HTTP retry signals** — provider failures now preserve HTTP status and `Retry-After` details so retry classification and backoff can respond to rate limits and unavailable providers. (`ai/`)
+
+### Fixed
+- **Stream fallback memory** — unsupported streaming attempts no longer leave stale duplicate user turns before fallback paths continue with non-streaming agent calls. (`agent/`)
+- **Function-style text tool calls** — agent fallback parsing now recognizes provider replies that render tools as function-style calls, including nested JSON arguments. (`agent/`)
+- **Plan/delegate notify recovery** — plan-delegate recovery now waits for recovered notify side effects and routes retries through the communications agent that owns the notification. (`internal/harness/`)
+
+### Documentation
+- **First-agent docs wayfinding guard** — the local harness now includes a focused no-network check for first-agent and 0→hero docs links. (`Makefile`, `internal/harness/`)
+
+---
+
+## [6.3.18] - July 2026
+
+### Added
 - **StreamAsk close cancellation** — agent streaming calls now cancel promptly when their runner closes, avoiding orphaned stream work. (`agent/`)
 - **Agent resume pending helper** — agent durability now has a focused helper for resuming pending checkpointed runs. (`agent/`)
+- **Agent tool retry tracing** — agent traces now include tool retry attempts for easier debugging of retry/fallback behavior. (`agent/`)
+- **Shared-broker universe harness** — the universe harness now runs against the shared broker path, improving coverage of the same runtime wiring used by services, agents, and workflows. (`internal/harness/`)
 
 ### Fixed
 - **Plan/delegate retry idempotency** — agent retries now preserve side-effect and notification dedupe across conformance retry paths, including completion and owner-notification edge cases. (`agent/`, `internal/harness/`)
+- **AtlasCloud text tool calls** — AtlasCloud fallback handling now recovers more text-rendered tool calls from OpenAI-compatible responses. (`ai/atlascloud/`, `agent/`)
+- **OpenAI-compatible text tool calls** — OpenAI-compatible providers now recover text-rendered tool calls more reliably. (`agent/`)
+- **AtlasCloud multi-step follow-ups** — AtlasCloud tool fallback handling now continues multi-step tool follow-up paths more reliably. (`ai/atlascloud/`, `agent/`)
+
+### Documentation
+- **Agent debugging quickcheck** — docs now include a focused quickcheck path for first-agent debugging. (`internal/website/docs/`)
+- **Website first-agent examples map** — website docs now link the maintained examples wayfinding map for the first-agent route. (`internal/website/docs/`)
+- **Examples wayfinding index** — examples docs now provide a central map for first-agent, support, and interop examples. (`examples/`, `internal/website/docs/`)
 
 ---
 
