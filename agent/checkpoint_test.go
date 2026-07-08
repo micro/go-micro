@@ -104,6 +104,12 @@ func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
 	if resp.Reply != "finished from checkpoint" {
 		t.Fatalf("Resume reply = %q", resp.Reply)
 	}
+	if len(resp.ToolCalls) != 1 || resp.ToolCalls[0].Name != "external.charge" || resp.ToolCalls[0].Result != "charged" {
+		t.Fatalf("resumed tool calls = %#v, want preserved completed charge call", resp.ToolCalls)
+	}
+	if got := resp.ToolCalls[0].Input["order"]; got != "42" {
+		t.Fatalf("resumed tool input order = %#v, want 42", got)
+	}
 	if toolRuns != 1 {
 		t.Fatalf("tool executions after Resume = %d, want completed tool was not replayed", toolRuns)
 	}

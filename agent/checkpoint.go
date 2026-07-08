@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"go-micro.dev/v6/ai"
@@ -287,4 +288,57 @@ func upsertStep(steps *[]flow.StepRecord, rec flow.StepRecord) int {
 	}
 	*steps = append(*steps, rec)
 	return len(*steps) - 1
+}
+
+func checkpointToolCalls(steps []flow.StepRecord) []ai.ToolCall {
+	calls := make([]ai.ToolCall, 0, len(steps))
+	for _, step := range steps {
+		call, ok := checkpointToolCall(step)
+		if !ok {
+			continue
+		}
+		calls = append(calls, call)
+	}
+	return calls
+}
+
+func checkpointToolCall(step flow.StepRecord) (ai.ToolCall, bool) {
+	if step.Status != "done" || !strings.HasPrefix(step.Name, "tool:") {
+		return ai.ToolCall{}, false
+	}
+	parts := strings.SplitN(strings.TrimPrefix(step.Name, "tool:"), ":", 2)
+	if len(parts) != 2 || parts[0] == "" {
+		return ai.ToolCall{}, false
+	}
+	input := map[string]any{}
+	if parts[1] != "null" && parts[1] != "" {
+		if err := json.Unmarshal([]byte(parts[1]), &input); err != nil {
+			return ai.ToolCall{}, false
+		}
+	}
+	return ai.ToolCall{Name: parts[0], Input: input, Result: step.Result}, true
+}
+
+func mergeCheckpointToolCalls(checkpointed, current []ai.ToolCall) []ai.ToolCall {
+	if len(checkpointed) == 0 {
+		return current
+	}
+	seen := make(map[string]struct{}, len(current))
+	for _, call := range current {
+		seen[toolCallKey(call.Name, call.Input)] = struct{}{}
+	}
+	merged := make([]ai.ToolCall, 0, len(checkpointed)+len(current))
+	for _, call := range checkpointed {
+		if _, ok := seen[toolCallKey(call.Name, call.Input)]; ok {
+			continue
+		}
+		merged = append(merged, call)
+	}
+	merged = append(merged, current...)
+	return merged
+}
+
+func toolCallKey(name string, input map[string]any) string {
+	b, _ := json.Marshal(input)
+	return name + ":" + string(b)
 }

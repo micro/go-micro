@@ -432,9 +432,13 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		reply += resp.Answer
 	}
 
+	completedToolCalls := checkpointToolCalls(run.Steps)
+	if a.currentRun != nil {
+		completedToolCalls = checkpointToolCalls(a.currentRun.Steps)
+	}
 	res := &Response{
 		Reply:     reply,
-		ToolCalls: resp.ToolCalls,
+		ToolCalls: mergeCheckpointToolCalls(completedToolCalls, resp.ToolCalls),
 		Agent:     a.opts.Name,
 		RunID:     a.runID,
 		ParentID:  parentRunID,
