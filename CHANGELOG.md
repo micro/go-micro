@@ -5,9 +5,10 @@ All notable changes to Go Micro are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and versions
 follow [Semantic Versioning](https://semver.org/), matching the git tags and
 [GitHub releases](https://github.com/micro/go-micro/releases) (`v6.MINOR.PATCH`).
-Patch releases are cut automatically as the loop merges improvements; the
-`[Unreleased]` section below is kept current between tags and rolled into the
-next version when it ships.
+Releases are cut automatically as the loop merges improvements — a **minor**
+bump when new features land (`### Added`/`### Changed`), a **patch** when it's
+fixes/docs only; major bumps stay a human decision. The `[Unreleased]` section
+below is kept current between tags and rolled into the next version when it ships.
 
 > Earlier `2026.0x` headings are historical calendar-style markers from before
 > v6 tagging; they are kept for continuity and not reused.
