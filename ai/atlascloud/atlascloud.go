@@ -187,6 +187,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			if err != nil {
 				if atlascloudShouldRetryWithoutTools(err, followUpReq) {
 					delete(followUpReq, "tools")
+					followUpReq["messages"] = atlascloudFollowUpMessagesWithoutTools(p.opts.Model, followUpMessages)
 					followUpResp, followUpRawMessage, err = p.callAPI(ctx, "tool-follow-up-no-tools", followUpReq)
 				}
 				if err != nil {
@@ -430,6 +431,52 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 	}
 
 	return response, rawMessage, nil
+}
+
+func atlascloudFollowUpMessagesWithoutTools(model string, messages []map[string]any) []map[string]any {
+	if !atlascloudIsMinimaxModel(model) {
+		return messages
+	}
+	out := make([]map[string]any, 0, len(messages)+1)
+	for _, msg := range messages {
+		role, _ := msg["role"].(string)
+		switch role {
+		case "assistant":
+			converted := map[string]any{"role": "assistant"}
+			if content, _ := msg["content"].(string); content != "" {
+				converted["content"] = content
+			} else if calls, ok := msg["tool_calls"]; ok {
+				converted["content"] = "Tool call requested: " + atlascloudToolCallsText(calls)
+			} else {
+				converted["content"] = ""
+			}
+			out = append(out, converted)
+		case "tool":
+			toolID, _ := msg["tool_call_id"].(string)
+			content, _ := msg["content"].(string)
+			if toolID != "" {
+				content = "Tool result for " + toolID + ": " + content
+			} else {
+				content = "Tool result: " + content
+			}
+			out = append(out, map[string]any{"role": "user", "content": content})
+		default:
+			copyMsg := make(map[string]any, len(msg))
+			for k, v := range msg {
+				copyMsg[k] = v
+			}
+			out = append(out, copyMsg)
+		}
+	}
+	return out
+}
+
+func atlascloudToolCallsText(calls any) string {
+	b, err := json.Marshal(calls)
+	if err != nil {
+		return fmt.Sprint(calls)
+	}
+	return string(b)
 }
 
 func atlascloudMinimaxCompatTools(model string, input []ai.Tool) ([]map[string]any, string) {
