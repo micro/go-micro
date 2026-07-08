@@ -650,6 +650,19 @@ func TestProvider_GenerateFollowUpRetriesWithoutToolsOnBadRequest(t *testing.T) 
 			if _, ok := body["tools"]; ok {
 				t.Fatalf("no-tools retry still included tools: %#v", body["tools"])
 			}
+			messages := body["messages"].([]any)
+			last := messages[len(messages)-1].(map[string]any)
+			if last["role"] == "tool" {
+				http.Error(w, `{"code":400,"msg":"trailing tool message rejected"}`, http.StatusBadRequest)
+				return
+			}
+			if last["role"] != "user" || !strings.Contains(last["content"].(string), "Tool result for call-1") {
+				t.Fatalf("no-tools retry last message = %#v, want user-visible tool result", last)
+			}
+			assistant := messages[len(messages)-2].(map[string]any)
+			if _, ok := assistant["tool_calls"]; ok {
+				t.Fatalf("no-tools retry assistant still included tool_calls: %#v", assistant)
+			}
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"done"}}]}`))
 		default:
 			t.Fatalf("unexpected API call %d", len(bodies))
