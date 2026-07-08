@@ -116,6 +116,18 @@ state (`agent/<name>/runs/...`). The persisted timeline is recorded even without
 an OpenTelemetry exporter, so `micro inspect agent` remains useful in local
 no-secret development.
 
+Provider-free quickcheck: if you want to verify the documented inspect path
+before involving a live model, run the same smoke check CI uses:
+
+```sh
+go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1
+```
+
+That test seeds a local `assistant` run history and memory transcript, then runs
+`micro inspect agent assistant --limit 1`, `micro inspect agent --status done
+--json assistant`, and `micro agent history assistant` with provider credentials
+cleared.
+
 ## 4. See tool calls as they happen
 
 When you are embedding an agent in Go and need live tool visibility, use the

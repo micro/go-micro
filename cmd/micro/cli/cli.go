@@ -48,7 +48,8 @@ Guide: https://go-micro.dev/docs/guides/zero-to-hero.html`
 
 const examplesWayfinding = `First-agent examples (no provider key required)
 
-Run these from a go-micro repository checkout in this order:
+Run these from a go-micro repository checkout in this order. For the complete
+examples map, open examples/INDEX.md:
 
   1. Smallest service-backed agent
        go run ./examples/first-agent

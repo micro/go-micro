@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
@@ -396,6 +397,71 @@ func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	}
 }
 
+func TestResumePendingAfterFreshAgentRestartDoesNotReplayCompletedTool(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	cp := flow.StoreCheckpoint(st, "startup-resume-agent")
+	toolRuns := 0
+	failFirst := true
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler != nil {
+			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.allocate", Input: map[string]any{"cluster": "blue"}})
+			if res.Content != "allocated" {
+				t.Fatalf("tool result = %q, want allocated", res.Content)
+			}
+		}
+		if failFirst {
+			failFirst = false
+			return nil, errors.New("process stopped before final response")
+		}
+		return &ai.Response{Reply: "startup recovery complete"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	newAgent := func() *agentImpl {
+		return newTestAgent(Name("startup-resume-agent"), WithStore(st), WithCheckpoint(cp),
+			WithTool("external.allocate", "allocate capacity once", nil, func(context.Context, map[string]any) (string, error) {
+				toolRuns++
+				return "allocated", nil
+			}))
+	}
+
+	first := newAgent()
+	_, err := first.Ask(ctx, "allocate blue capacity")
+	if err == nil {
+		t.Fatal("Ask succeeded, want simulated process stop")
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after failed Ask = %d, want 1", toolRuns)
+	}
+
+	restarted := newAgent()
+	failedRun, err := ResumePending(ctx, restarted)
+	if err != nil {
+		t.Fatalf("ResumePending after restart: failedRun=%q err=%v", failedRun, err)
+	}
+	if failedRun != "" {
+		t.Fatalf("failed run = %q, want none", failedRun)
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after ResumePending = %d, want completed tool not replayed", toolRuns)
+	}
+	runs, err := Pending(ctx, restarted)
+	if err != nil {
+		t.Fatalf("Pending after ResumePending: %v", err)
+	}
+	if len(runs) != 0 {
+		t.Fatalf("Pending after ResumePending = %#v, want none", runs)
+	}
+	summaries, err := ListRunSummaries(st, "startup-resume-agent")
+	if err != nil {
+		t.Fatalf("ListRunSummaries after ResumePending: %v", err)
+	}
+	if len(summaries) != 1 || summaries[0].Status != "done" || summaries[0].Checkpoint != "done" {
+		t.Fatalf("summary after ResumePending = %#v, want one done run", summaries)
+	}
+}
+
 func TestResumeFailedCheckpointDoesNotDuplicateCompactedMemory(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMemoryStore()
@@ -460,6 +526,51 @@ func countMemoryContent(messages []ai.Message, needle string) int {
 		}
 	}
 	return count
+}
+
+func TestResumePendingResumesOldestAgentRunsUntilFailure(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "resume-pending-agent")
+	base := time.Date(2026, 7, 7, 12, 0, 0, 0, time.UTC)
+	for _, run := range []flow.Run{
+		{ID: "run-ok", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("ok")}, Started: base},
+		{ID: "run-blocked", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("block")}, Started: base.Add(time.Minute)},
+		{ID: "run-later", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("later")}, Started: base.Add(2 * time.Minute)},
+	} {
+		if err := cp.Save(ctx, run); err != nil {
+			t.Fatalf("Save(%s): %v", run.ID, err)
+		}
+	}
+
+	var prompts []string
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		prompts = append(prompts, req.Prompt)
+		if req.Prompt == "block" {
+			return nil, errors.New("still blocked")
+		}
+		return &ai.Response{Reply: req.Prompt + " resumed"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("resume-pending-agent"), WithCheckpoint(cp))
+	failedRun, err := ResumePending(ctx, a)
+	if err == nil {
+		t.Fatal("ResumePending succeeded, want blocked run error")
+	}
+	if failedRun != "run-blocked" {
+		t.Fatalf("failed run = %q, want run-blocked", failedRun)
+	}
+	if got, want := strings.Join(prompts, ","), "ok,block"; got != want {
+		t.Fatalf("prompts = %q, want %q", got, want)
+	}
+	loaded, ok, err := cp.Load(ctx, "run-ok")
+	if err != nil || !ok || loaded.Status != "done" {
+		t.Fatalf("run-ok loaded=%v err=%v status=%q, want done", ok, err, loaded.Status)
+	}
+	loaded, ok, err = cp.Load(ctx, "run-later")
+	if err != nil || !ok || loaded.Status != "failed" {
+		t.Fatalf("run-later loaded=%v err=%v status=%q, want still failed", ok, err, loaded.Status)
+	}
 }
 
 func TestPendingReturnsUnfinishedAgentRuns(t *testing.T) {

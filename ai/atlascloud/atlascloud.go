@@ -24,6 +24,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -94,6 +95,8 @@ func (p *Provider) String() string      { return "atlascloud" }
 
 func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
 	tools := atlascloudTools(req.Tools)
+	compatTools, compatPrompt := atlascloudMinimaxCompatTools(p.opts.Model, req.Tools)
+	textToolPrompt := atlascloudMinimaxTextToolPrompt(p.opts.Model, req.Tools)
 
 	messages := []map[string]any{
 		{"role": "system", "content": req.SystemPrompt},
@@ -103,6 +106,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	}
 	if req.Prompt != "" {
 		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
+	}
+	if compatPrompt != "" {
+		messages = append(messages, map[string]any{"role": "system", "content": compatPrompt})
 	}
 
 	apiReq := map[string]any{
@@ -119,7 +125,18 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 	resp, rawMessage, err := p.callAPI(ctx, "chat", apiReq)
 	if err != nil {
-		return nil, err
+		if atlascloudShouldRetryMinimaxCompat(err, compatTools) {
+			apiReq["tools"] = compatTools
+			resp, rawMessage, err = p.callAPI(ctx, "chat-minimax-compat", apiReq)
+		}
+		if atlascloudShouldRetryMinimaxTextTools(err, textToolPrompt) {
+			delete(apiReq, "tools")
+			apiReq["messages"] = append(messages, map[string]any{"role": "system", "content": textToolPrompt})
+			resp, rawMessage, err = p.callAPI(ctx, "chat-minimax-text-tools", apiReq)
+		}
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(resp.ToolCalls) == 0 {
@@ -127,70 +144,78 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	}
 
 	if p.opts.ToolHandler != nil {
-		allToolCalls := append([]ai.ToolCall(nil), resp.ToolCalls...)
+		var allToolCalls []ai.ToolCall
 		var toolResults []string
+		pendingToolCalls := append([]ai.ToolCall(nil), resp.ToolCalls...)
 		followUpMessages := append(messages, map[string]any{
 			"role":       "assistant",
 			"content":    rawMessage["content"],
 			"tool_calls": rawMessage["tool_calls"],
 		})
 
-		for _, tc := range resp.ToolCalls {
-			content := p.opts.ToolHandler(ctx, tc).Content
-			if content != "" {
-				toolResults = append(toolResults, content)
-			}
-			followUpMessages = append(followUpMessages, map[string]any{
-				"role":         "tool",
-				"tool_call_id": tc.ID,
-				"content":      content,
-			})
-		}
-
-		followUpReq := map[string]any{
-			"model":    p.opts.Model,
-			"messages": followUpMessages,
-		}
-		if len(tools) > 0 {
-			// Keep the tool schema available during the follow-up turn. Minimax
-			// models behind Atlas Cloud sometimes call one required tool, inspect
-			// that result, and then issue a second tool call (for example a guarded
-			// delegate conformance check) instead of completing immediately.
-			followUpReq["tools"] = tools
-		}
-
-		followUpResp, _, err := p.callAPI(ctx, "tool-follow-up", followUpReq)
-		if err != nil {
-			return nil, err
-		}
-		if len(followUpResp.ToolCalls) > 0 {
-			for i := range followUpResp.ToolCalls {
-				result := p.opts.ToolHandler(ctx, followUpResp.ToolCalls[i])
+		for attempt := 0; len(pendingToolCalls) > 0 && attempt < 4; attempt++ {
+			for _, tc := range pendingToolCalls {
+				result := p.opts.ToolHandler(ctx, tc)
 				if result.Refused != "" {
-					followUpResp.ToolCalls[i].Error = result.Refused
+					tc.Error = result.Refused
 				}
 				if result.Content != "" {
-					followUpResp.ToolCalls[i].Result = result.Content
+					tc.Result = result.Content
 					toolResults = append(toolResults, result.Content)
 				}
+				allToolCalls = append(allToolCalls, tc)
+				resp.ToolCalls = allToolCalls
+				followUpMessages = append(followUpMessages, map[string]any{
+					"role":         "tool",
+					"tool_call_id": tc.ID,
+					"content":      result.Content,
+				})
 			}
-			allToolCalls = append(allToolCalls, followUpResp.ToolCalls...)
-			resp.ToolCalls = allToolCalls
-		}
-		if followUpResp.Reply != "" {
-			if strings.Contains(followUpResp.Reply, "<tool_call") || strings.Contains(followUpResp.Reply, "function=") {
-				// Preserve follow-up assistant content as Reply, not Answer, when
-				// it may contain a text-encoded tool call. The agent harness
-				// inspects Reply for text fallback calls after Generate returns,
-				// which covers AtlasCloud/minimax turns that emit a second
-				// required call (for example guarded delegate) as markup instead
-				// of native tool_calls.
-				resp.Reply = followUpResp.Reply
-			} else {
-				resp.Answer = followUpResp.Reply
+
+			followUpReq := map[string]any{
+				"model":    p.opts.Model,
+				"messages": followUpMessages,
 			}
-		} else if len(toolResults) > 0 {
-			resp.Answer = strings.Join(toolResults, "\n")
+			if len(tools) > 0 {
+				// Keep the tool schema available during follow-up turns. Minimax
+				// models behind Atlas Cloud sometimes complete a multi-tool task
+				// one call at a time (plan, then service tools, then delegate).
+				followUpReq["tools"] = tools
+			}
+
+			followUpResp, followUpRawMessage, err := p.callAPI(ctx, "tool-follow-up", followUpReq)
+			if err != nil {
+				if atlascloudShouldRetryWithoutTools(err, followUpReq) {
+					delete(followUpReq, "tools")
+					followUpReq["messages"] = atlascloudFollowUpMessagesWithoutTools(p.opts.Model, followUpMessages)
+					followUpResp, followUpRawMessage, err = p.callAPI(ctx, "tool-follow-up-no-tools", followUpReq)
+				}
+				if err != nil {
+					return nil, err
+				}
+			}
+			if len(followUpResp.ToolCalls) == 0 {
+				if followUpResp.Reply != "" {
+					if strings.Contains(followUpResp.Reply, "<tool_call") || strings.Contains(followUpResp.Reply, "function=") {
+						// Preserve follow-up assistant content as Reply, not Answer, when
+						// it may contain a text-encoded tool call. The agent harness
+						// inspects Reply for text fallback calls after Generate returns.
+						resp.Reply = followUpResp.Reply
+					} else {
+						resp.Answer = followUpResp.Reply
+					}
+				} else if len(toolResults) > 0 {
+					resp.Answer = strings.Join(toolResults, "\n")
+				}
+				break
+			}
+
+			followUpMessages = append(followUpMessages, map[string]any{
+				"role":       "assistant",
+				"content":    followUpRawMessage["content"],
+				"tool_calls": followUpRawMessage["tool_calls"],
+			})
+			pendingToolCalls = followUpResp.ToolCalls
 		}
 	}
 
@@ -308,6 +333,33 @@ func (s *atlasStream) Close() error {
 	return s.body.Close()
 }
 
+type atlascloudAPIError struct {
+	Status  string
+	Code    int
+	Retry   time.Duration
+	Phase   string
+	Summary string
+	Body    string
+}
+
+func (e *atlascloudAPIError) Error() string {
+	return fmt.Sprintf("API error (%s) during atlascloud %s request (%s): %s", e.Status, e.Phase, e.Summary, e.Body)
+}
+
+func (e *atlascloudAPIError) StatusCode() int {
+	if e == nil {
+		return 0
+	}
+	return e.Code
+}
+
+func (e *atlascloudAPIError) RetryAfter() time.Duration {
+	if e == nil {
+		return 0
+	}
+	return e.Retry
+}
+
 func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any) (*ai.Response, map[string]any, error) {
 	reqBody, err := json.Marshal(req)
 	if err != nil {
@@ -331,7 +383,12 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 
 	respBody, _ := io.ReadAll(httpResp.Body)
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("API error (%s) during atlascloud %s request (%s): %s", httpResp.Status, phase, atlascloudRequestSummary(req), string(respBody))
+		retryAfter := time.Duration(0)
+		var retryErr interface{ RetryAfter() time.Duration }
+		if errors.As(ai.NewHTTPError(httpResp, respBody), &retryErr) {
+			retryAfter = retryErr.RetryAfter()
+		}
+		return nil, nil, &atlascloudAPIError{Status: httpResp.Status, Code: httpResp.StatusCode, Retry: retryAfter, Phase: phase, Summary: atlascloudRequestSummary(req), Body: string(respBody)}
 	}
 
 	var chatResp struct {
@@ -374,6 +431,122 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 	}
 
 	return response, rawMessage, nil
+}
+
+func atlascloudFollowUpMessagesWithoutTools(model string, messages []map[string]any) []map[string]any {
+	if !atlascloudIsMinimaxModel(model) {
+		return messages
+	}
+	out := make([]map[string]any, 0, len(messages)+1)
+	for _, msg := range messages {
+		role, _ := msg["role"].(string)
+		switch role {
+		case "assistant":
+			converted := map[string]any{"role": "assistant"}
+			if content, _ := msg["content"].(string); content != "" {
+				converted["content"] = content
+			} else if calls, ok := msg["tool_calls"]; ok {
+				converted["content"] = "Tool call requested: " + atlascloudToolCallsText(calls)
+			} else {
+				converted["content"] = ""
+			}
+			out = append(out, converted)
+		case "tool":
+			toolID, _ := msg["tool_call_id"].(string)
+			content, _ := msg["content"].(string)
+			if toolID != "" {
+				content = "Tool result for " + toolID + ": " + content
+			} else {
+				content = "Tool result: " + content
+			}
+			out = append(out, map[string]any{"role": "user", "content": content})
+		default:
+			copyMsg := make(map[string]any, len(msg))
+			for k, v := range msg {
+				copyMsg[k] = v
+			}
+			out = append(out, copyMsg)
+		}
+	}
+	return out
+}
+
+func atlascloudToolCallsText(calls any) string {
+	b, err := json.Marshal(calls)
+	if err != nil {
+		return fmt.Sprint(calls)
+	}
+	return string(b)
+}
+
+func atlascloudMinimaxCompatTools(model string, input []ai.Tool) ([]map[string]any, string) {
+	if !atlascloudIsMinimaxModel(model) || len(input) == 0 {
+		return nil, ""
+	}
+	var native []ai.Tool
+	var builtins []string
+	for _, tool := range input {
+		switch tool.Name {
+		case "plan", "request_input", "delegate":
+			builtins = append(builtins, tool.Name)
+		default:
+			native = append(native, tool)
+		}
+	}
+	if len(builtins) == 0 || len(native) == len(input) {
+		return nil, ""
+	}
+	prompt := "AtlasCloud/minimax compatibility: use native tool_calls for the listed service tools. " +
+		"For built-in agent tools that are not listed natively (" + strings.Join(builtins, ", ") +
+		"), emit exactly <tool_call name=\"tool_name\">{...}</tool_call> so the agent runtime can execute them. Do not describe those built-in tool calls in prose instead of emitting the tag."
+	return atlascloudTools(native), prompt
+}
+
+func atlascloudMinimaxTextToolPrompt(model string, input []ai.Tool) string {
+	if !atlascloudIsMinimaxModel(model) || len(input) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(input))
+	for _, tool := range input {
+		if tool.Name != "" {
+			names = append(names, tool.Name)
+		}
+	}
+	if len(names) == 0 {
+		return ""
+	}
+	return "AtlasCloud/minimax text-tool compatibility: the native tools payload was rejected. " +
+		"Call exactly one needed tool from this list by emitting exactly <tool_call name=\"tool_name\">{...}</tool_call>: " +
+		strings.Join(names, ", ") + ". Do not answer in prose instead of emitting the tag."
+}
+
+func atlascloudShouldRetryMinimaxTextTools(err error, prompt string) bool {
+	if prompt == "" {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
+}
+
+func atlascloudIsMinimaxModel(model string) bool {
+	model = strings.ToLower(model)
+	return strings.Contains(model, "minimax")
+}
+
+func atlascloudShouldRetryMinimaxCompat(err error, compatTools []map[string]any) bool {
+	if len(compatTools) == 0 {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
+}
+
+func atlascloudShouldRetryWithoutTools(err error, req map[string]any) bool {
+	if _, ok := req["tools"]; !ok {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
 }
 
 func atlascloudTools(input []ai.Tool) []map[string]any {

@@ -99,6 +99,12 @@ type agentImpl struct {
 	// holding mu. Tool execution updates it so resumed runs can reuse
 	// completed tool results without replaying side effects.
 	currentRun *flow.Run
+
+	// delegateCalls collapses concurrent equivalent delegate tool calls so a
+	// provider replay cannot fan out duplicate delegated side effects before the
+	// durable delegate-result cache is written.
+	delegateMu    sync.Mutex
+	delegateCalls map[string]*delegateCall
 }
 
 // New creates a new Agent.
@@ -221,16 +227,18 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 	if err != nil {
 		return nil, fmt.Errorf("discover tools: %w", err)
 	}
-	a.mem.Add("user", message)
+	messages := append([]ai.Message(nil), a.mem.Messages()...)
+	messages = append(messages, ai.Message{Role: "user", Content: message})
 	stream, err := a.model.Stream(ctx, &ai.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
 		Tools:        toolList,
-		Messages:     a.mem.Messages(),
+		Messages:     messages,
 	})
 	if err != nil {
 		return nil, err
 	}
+	a.mem.Add("user", message)
 	return &memoryRecordingStream{stream: stream, memory: a.mem}, nil
 }
 
@@ -242,6 +250,31 @@ func Pending(ctx context.Context, ag Agent) ([]flow.Run, error) {
 		return nil, fmt.Errorf("agent pending: unsupported agent implementation %T", ag)
 	}
 	return a.pending(ctx)
+}
+
+// ResumePending resumes every checkpointed agent run that has not completed
+// yet, in the same oldest-first order returned by Pending.
+//
+// It is a convenience for service startup and recovery loops: after recreating
+// an agent with the same checkpoint store, call ResumePending to drain the
+// durable backlog without listing and resuming each run manually. If any run
+// fails again, ResumePending stops and returns that run id with the error so
+// callers can log, alert, or retry later without hiding the failing run.
+func ResumePending(ctx context.Context, ag Agent) (string, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return "", fmt.Errorf("agent resume pending: unsupported agent implementation %T", ag)
+	}
+	runs, err := a.pending(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, run := range runs {
+		if _, err := a.resume(ctx, run.ID); err != nil {
+			return run.ID, err
+		}
+	}
+	return "", nil
 }
 
 func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Response, error) {

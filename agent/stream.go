@@ -71,14 +71,15 @@ func ResumeStreamAsk(ctx context.Context, ag Agent, runID string) (AgentStream, 
 // StreamAsk runs tools like Ask, emits ToolStart/ToolEnd events as they execute,
 // then emits chunks of the final answer followed by a Done event.
 func (a *agentImpl) StreamAsk(ctx context.Context, message string) (AgentStream, error) {
+	streamCtx, cancel := context.WithCancel(ctx)
 	events := make(chan *StreamEvent, 16)
 	done := make(chan struct{})
-	s := &agentStream{events: events, done: done}
+	s := &agentStream{events: events, done: done, cancel: cancel}
 
 	go func() {
 		defer close(events)
 		defer close(done)
-		resp, err := a.askWithStreamEvents(ctx, message, events)
+		resp, err := a.askWithStreamEvents(streamCtx, message, events)
 		if err != nil {
 			s.setErr(err)
 			return
@@ -94,14 +95,15 @@ func (a *agentImpl) StreamAsk(ctx context.Context, message string) (AgentStream,
 }
 
 func (a *agentImpl) resumeStreamAsk(ctx context.Context, runID string) (AgentStream, error) {
+	streamCtx, cancel := context.WithCancel(ctx)
 	events := make(chan *StreamEvent, 16)
 	done := make(chan struct{})
-	s := &agentStream{events: events, done: done}
+	s := &agentStream{events: events, done: done, cancel: cancel}
 
 	go func() {
 		defer close(events)
 		defer close(done)
-		resp, err := a.resumeWithStreamEvents(ctx, runID, events)
+		resp, err := a.resumeWithStreamEvents(streamCtx, runID, events)
 		if err != nil {
 			s.setErr(err)
 			return
@@ -260,6 +262,7 @@ func (a *agentImpl) streamAskAI(ctx context.Context, message string) (ai.Stream,
 type agentStream struct {
 	events <-chan *StreamEvent
 	done   <-chan struct{}
+	cancel context.CancelFunc
 	mu     sync.Mutex
 	err    error
 }
@@ -278,6 +281,9 @@ func (s *agentStream) Recv() (*StreamEvent, error) {
 }
 
 func (s *agentStream) Close() error {
+	if s.cancel != nil {
+		s.cancel()
+	}
 	<-s.done
 	return nil
 }

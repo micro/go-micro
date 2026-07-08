@@ -163,7 +163,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 
 	respBody, _ := io.ReadAll(httpResp.Body)
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
+		return nil, nil, ai.NewHTTPError(httpResp, respBody)
 	}
 
 	var geminiResp struct {

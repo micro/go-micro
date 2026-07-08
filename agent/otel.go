@@ -36,6 +36,8 @@ const (
 	AttrTotalTokens      = "agent.tokens.total"
 	AttrAttempt          = "agent.model.attempt"
 	AttrMaxAttempts      = "agent.model.max_attempts"
+	AttrToolAttempt      = "agent.tool.attempt"
+	AttrToolMaxAttempts  = "agent.tool.max_attempts"
 	AttrToolName         = "agent.tool.name"
 	AttrDelegate         = "agent.delegate"
 	AttrGuardrailBlock   = "agent.guardrail.block"
@@ -364,7 +366,11 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 			res := next(ctx, call)
 			dur := time.Since(start).Milliseconds()
 			resErr := resultError(res)
-			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
+			toolAttempts := res.Attempts
+			if toolAttempts <= 0 {
+				toolAttempts = 1
+			}
+			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
 			return res
 		}
 
@@ -378,6 +384,14 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		res := next(ctx, call)
 		dur := time.Since(start).Milliseconds()
 		attrs := []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}
+		toolAttempts := res.Attempts
+		if toolAttempts <= 0 {
+			toolAttempts = 1
+		}
+		attrs = append(attrs, attribute.Int(AttrToolAttempt, toolAttempts))
+		if a.opts.ToolMaxAttempts > 0 {
+			attrs = append(attrs, attribute.Int(AttrToolMaxAttempts, a.opts.ToolMaxAttempts))
+		}
 		if res.Refused != "" {
 			attrs = append(attrs, attribute.Bool(AttrGuardrailBlock, true), attribute.String(AttrRefusal, res.Refused))
 		}
@@ -393,7 +407,7 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		} else {
 			span.SetStatus(codes.Ok, "")
 		}
-		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
+		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
 		span.End()
 		return res
 	}
@@ -461,10 +475,18 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 		attrs = append(attrs, attribute.String(AttrModel, e.Model))
 	}
 	if e.Attempt > 0 {
-		attrs = append(attrs, attribute.Int(AttrAttempt, e.Attempt))
+		if e.Kind == "tool" {
+			attrs = append(attrs, attribute.Int(AttrToolAttempt, e.Attempt))
+		} else {
+			attrs = append(attrs, attribute.Int(AttrAttempt, e.Attempt))
+		}
 	}
 	if e.MaxAttempts > 0 {
-		attrs = append(attrs, attribute.Int(AttrMaxAttempts, e.MaxAttempts))
+		if e.Kind == "tool" {
+			attrs = append(attrs, attribute.Int(AttrToolMaxAttempts, e.MaxAttempts))
+		} else {
+			attrs = append(attrs, attribute.Int(AttrMaxAttempts, e.MaxAttempts))
+		}
 	}
 	if e.LatencyMS > 0 {
 		attrs = append(attrs, attribute.Int64(AttrLatencyMS, e.LatencyMS))

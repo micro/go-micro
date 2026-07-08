@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/flow"
@@ -72,6 +73,39 @@ func TestStreamAskEmitsToolEventsAndFinalTokens(t *testing.T) {
 	}
 	if calls != 1 {
 		t.Fatalf("Generate calls = %d, want 1", calls)
+	}
+}
+
+func TestStreamAskCloseCancelsInFlightModelCall(t *testing.T) {
+	started := make(chan struct{})
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		close(started)
+		<-ctx.Done()
+		return nil, ctx.Err()
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("stream-cancel"))
+	stream, err := a.StreamAsk(context.Background(), "cancel me")
+	if err != nil {
+		t.Fatalf("StreamAsk: %v", err)
+	}
+
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("model call did not start")
+	}
+
+	closed := make(chan error, 1)
+	go func() { closed <- stream.Close() }()
+	select {
+	case err := <-closed:
+		if err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Close did not cancel the in-flight stream")
 	}
 }
 
@@ -206,6 +240,29 @@ func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
 	}
 	if done == nil || done.Reply != "finished from streamed checkpoint" || done.RunID != runs[0].ID {
 		t.Fatalf("done response = %#v", done)
+	}
+}
+
+func TestAgentStreamDoesNotRecordUserWhenProviderStreamingUnsupported(t *testing.T) {
+	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+		if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" || req.Messages[len(req.Messages)-1].Content != "stream fallback" {
+			t.Fatalf("stream request messages = %+v, want pending user message", req.Messages)
+		}
+		return nil, ai.ErrStreamingUnsupported
+	}
+	defer func() { fakeStream = nil }()
+
+	mem := NewInMemory(8)
+	a := newTestAgent(Name("stream-fallback"), WithMemory(mem), WithTool("echo", "echo text", nil, func(context.Context, map[string]any) (string, error) {
+		return "ok", nil
+	}))
+
+	_, err := a.Stream(context.Background(), "stream fallback")
+	if !errors.Is(err, ai.ErrStreamingUnsupported) {
+		t.Fatalf("Stream error = %v, want ErrStreamingUnsupported", err)
+	}
+	if got := mem.Messages(); len(got) != 0 {
+		t.Fatalf("memory after unsupported stream = %+v, want no recorded messages", got)
 	}
 }
 

@@ -355,6 +355,8 @@ func TestProvider_GenerateExecutesFollowUpToolCall(t *testing.T) {
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
 		case 2:
 			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-2","function":{"name":"delegate","arguments":"{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}"}}]}}]}`))
+		case 3:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"blocked by policy"}}]}`))
 		default:
 			t.Fatalf("unexpected API call %d", len(bodies))
 		}
@@ -406,6 +408,70 @@ func TestProvider_GenerateExecutesFollowUpToolCall(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateExecutesMultiStepFollowUpToolCalls(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-plan","function":{"name":"plan","arguments":"{\"steps\":[{\"task\":\"create tasks\"},{\"task\":\"notify owner\"}]}"}}]}}]}`))
+		case 2:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-add","function":{"name":"task_TaskService_Add","arguments":"{\"title\":\"Design\"}"}}]}}]}`))
+		case 3:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-delegate","function":{"name":"delegate","arguments":"{\"task\":\"notify owner@acme.com\",\"to\":\"comms\"}"}}]}}]}`))
+		case 4:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"done"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	var calls []string
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			calls = append(calls, call.Name)
+			return ai.ToolResult{ID: call.ID, Content: `{"ok":true}`}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "plan, create tasks, and delegate notification",
+		Tools: []ai.Tool{
+			{Name: "plan", Description: "record a plan", Properties: map[string]any{"steps": map[string]any{"type": "array"}}},
+			{Name: "task_TaskService_Add", Description: "add task", Properties: map[string]any{"title": map[string]any{"type": "string"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	wantCalls := []string{"plan", "task_TaskService_Add", "delegate"}
+	if strings.Join(calls, ",") != strings.Join(wantCalls, ",") {
+		t.Fatalf("tool calls = %v, want %v", calls, wantCalls)
+	}
+	if len(resp.ToolCalls) != 3 {
+		t.Fatalf("ToolCalls = %+v, want all multi-step calls", resp.ToolCalls)
+	}
+	if resp.Answer != "done" {
+		t.Fatalf("Answer = %q, want final follow-up reply", resp.Answer)
+	}
+	if len(bodies) != 4 {
+		t.Fatalf("requests = %d, want initial plus three follow-ups", len(bodies))
+	}
+	for i := 1; i < 4; i++ {
+		if _, ok := bodies[i]["tools"].([]any); !ok {
+			t.Fatalf("follow-up request %d did not include tools: %#v", i+1, bodies[i])
+		}
+	}
+}
+
 func TestProvider_GeneratePreservesFollowUpTextToolCallInReply(t *testing.T) {
 	var bodies []map[string]any
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -454,6 +520,187 @@ func TestProvider_GeneratePreservesFollowUpTextToolCallInReply(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateRetriesMinimaxBuiltInsAsTextTools(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
+		case 2:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"delegate\">{\"task\":\"summarize\",\"to\":\"blocked-reviewer\"}</tool_call>"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL), ai.WithModel("minimaxai/minimax-m3"))
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "plan and delegate",
+		Tools: []ai.Tool{
+			{Name: "task_TaskService_Add", Description: "add task", Properties: map[string]any{"title": map[string]any{"type": "string"}}},
+			{Name: "plan", Description: "record a plan", Properties: map[string]any{"steps": map[string]any{"type": "array"}}},
+			{Name: "request_input", Description: "request input", Properties: map[string]any{"prompt": map[string]any{"type": "string"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !strings.Contains(resp.Reply, `<tool_call name="delegate">`) {
+		t.Fatalf("Reply = %q, want text delegate fallback", resp.Reply)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("requests = %d, want initial plus compat retry", len(bodies))
+	}
+	initialTools := bodies[0]["tools"].([]any)
+	if len(initialTools) != 4 {
+		t.Fatalf("initial tools = %d, want all tools", len(initialTools))
+	}
+	retryTools := bodies[1]["tools"].([]any)
+	if len(retryTools) != 1 {
+		t.Fatalf("retry tools = %d, want only service tools", len(retryTools))
+	}
+	fn := retryTools[0].(map[string]any)["function"].(map[string]any)
+	if fn["name"] != "task_TaskService_Add" {
+		t.Fatalf("retry tool name = %v, want service tool only", fn["name"])
+	}
+	msgs := bodies[1]["messages"].([]any)
+	compat := msgs[len(msgs)-1].(map[string]any)
+	if compat["role"] != "system" || !strings.Contains(compat["content"].(string), `<tool_call name="tool_name">`) {
+		t.Fatalf("compat instruction = %#v", compat)
+	}
+}
+
+func TestProvider_GenerateRetriesMinimaxServiceToolsAsTextTools(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
+		case 2:
+			if _, ok := body["tools"]; ok {
+				t.Fatalf("text-tool retry included native tools: %#v", body["tools"])
+			}
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"conformance_echo\">{\"value\":\"agent-conformance\"}</tool_call>"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL), ai.WithModel("minimaxai/minimax-m3"))
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "call a tool",
+		Tools: []ai.Tool{{
+			Name:        "conformance_echo",
+			Description: "echo conformance marker",
+			Properties:  map[string]any{"value": map[string]any{"type": "string"}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !strings.Contains(resp.Reply, `<tool_call name="conformance_echo">`) {
+		t.Fatalf("Reply = %q, want text service-tool fallback", resp.Reply)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("requests = %d, want initial plus text-tool retry", len(bodies))
+	}
+	if _, ok := bodies[0]["tools"].([]any); !ok {
+		t.Fatalf("initial request did not include native tools: %#v", bodies[0])
+	}
+	msgs := bodies[1]["messages"].([]any)
+	compat := msgs[len(msgs)-1].(map[string]any)
+	content := compat["content"].(string)
+	for _, want := range []string{"native tools payload was rejected", `<tool_call name="tool_name">`, "conformance_echo"} {
+		if !strings.Contains(content, want) {
+			t.Fatalf("text-tool instruction %q missing %q", content, want)
+		}
+	}
+}
+
+func TestProvider_GenerateFollowUpRetriesWithoutToolsOnBadRequest(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
+		case 2:
+			http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
+		case 3:
+			if _, ok := body["tools"]; ok {
+				t.Fatalf("no-tools retry still included tools: %#v", body["tools"])
+			}
+			messages := body["messages"].([]any)
+			last := messages[len(messages)-1].(map[string]any)
+			if last["role"] == "tool" {
+				http.Error(w, `{"code":400,"msg":"trailing tool message rejected"}`, http.StatusBadRequest)
+				return
+			}
+			if last["role"] != "user" || !strings.Contains(last["content"].(string), "Tool result for call-1") {
+				t.Fatalf("no-tools retry last message = %#v, want user-visible tool result", last)
+			}
+			assistant := messages[len(messages)-2].(map[string]any)
+			if _, ok := assistant["tool_calls"]; ok {
+				t.Fatalf("no-tools retry assistant still included tool_calls: %#v", assistant)
+			}
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"done"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	var toolCalls int
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			toolCalls++
+			return ai.ToolResult{ID: call.ID, Content: `{"marker":"agent-conformance-ok"}`}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "call a tool",
+		Tools:  []ai.Tool{{Name: "conformance_echo", Description: "echo", Properties: map[string]any{"value": map[string]any{"type": "string"}}}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if resp.Answer != "done" {
+		t.Fatalf("Answer = %q, want done", resp.Answer)
+	}
+	if toolCalls != 1 {
+		t.Fatalf("tool handler calls = %d, want one (no duplicate side effect)", toolCalls)
+	}
+	if len(bodies) != 3 {
+		t.Fatalf("requests = %d, want chat, failed follow-up, no-tools follow-up", len(bodies))
+	}
+	if _, ok := bodies[1]["tools"]; !ok {
+		t.Fatalf("first follow-up did not include tools")
+	}
+}
+
 func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"code":400,"msg":"bad request"}`, http.StatusBadRequest)
@@ -463,7 +710,7 @@ func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) 
 	p := NewProvider(
 		ai.WithAPIKey("test-key"),
 		ai.WithBaseURL(ts.URL),
-		ai.WithModel("minimaxai/minimax-m3"),
+		ai.WithModel("deepseek-ai/DeepSeek-V3-0324"),
 	)
 	_, err := p.Generate(context.Background(), &ai.Request{
 		Prompt: "call a tool",
@@ -477,7 +724,7 @@ func TestProvider_GenerateToolCallHTTPErrorIncludesRequestContext(t *testing.T) 
 		t.Fatal("Generate error = nil, want 400")
 	}
 	msg := err.Error()
-	for _, want := range []string{"400 Bad Request", "atlascloud chat request", "model=minimaxai/minimax-m3", "tools=1", "tool_names=conformance_echo"} {
+	for _, want := range []string{"400 Bad Request", "atlascloud chat request", "model=deepseek-ai/DeepSeek-V3-0324", "tools=1", "tool_names=conformance_echo"} {
 		if !strings.Contains(msg, want) {
 			t.Fatalf("error %q missing %q", msg, want)
 		}

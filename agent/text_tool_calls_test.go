@@ -56,3 +56,93 @@ func TestParseTextToolCallsCreateAliasForAddTool(t *testing.T) {
 		t.Fatalf("title = %v, want Design", got)
 	}
 }
+
+func TestParseTextToolCallsOpenAICompatibleFunctionArgumentsString(t *testing.T) {
+	tools := []ai.Tool{{Name: "delegate"}}
+	reply := `<tool_call>{"id":"call-2","type":"function","function":{"name":"delegate","arguments":"{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}"}}</tool_call>`
+
+	calls := parseTextToolCalls(reply, tools)
+	if len(calls) != 1 {
+		t.Fatalf("parseTextToolCalls returned %d calls, want 1: %+v", len(calls), calls)
+	}
+	if calls[0].Name != "delegate" {
+		t.Fatalf("call name = %q, want delegate", calls[0].Name)
+	}
+	if got := calls[0].Input["task"]; got != "summarize the conformance marker" {
+		t.Fatalf("task = %v, want summarize the conformance marker", got)
+	}
+	if got := calls[0].Input["to"]; got != "blocked-reviewer" {
+		t.Fatalf("to = %v, want blocked-reviewer", got)
+	}
+}
+
+func TestParseTextToolCallsTaggedMarkupWithSpacedNameAttribute(t *testing.T) {
+	tools := []ai.Tool{{Name: "delegate"}}
+	reply := `<tool_call name = "delegate">{"task":"summarize the conformance marker","to":"blocked-reviewer"}</tool_call>`
+
+	calls := parseTextToolCalls(reply, tools)
+	if len(calls) != 1 {
+		t.Fatalf("parseTextToolCalls returned %d calls, want 1: %+v", len(calls), calls)
+	}
+	if calls[0].Name != "delegate" {
+		t.Fatalf("call name = %q, want delegate", calls[0].Name)
+	}
+	if got := calls[0].Input["to"]; got != "blocked-reviewer" {
+		t.Fatalf("to = %v, want blocked-reviewer", got)
+	}
+}
+
+func TestParseTextToolCallsHTMLEscapedTaggedMarkup(t *testing.T) {
+	tools := []ai.Tool{{Name: "delegate"}}
+	reply := `&lt;tool_call name=&quot;delegate&quot;&gt;{"task":"summarize the conformance marker","to":"blocked-reviewer"}&lt;/tool_call&gt;`
+
+	calls := parseTextToolCalls(reply, tools)
+	if len(calls) != 1 {
+		t.Fatalf("parseTextToolCalls returned %d calls, want 1: %+v", len(calls), calls)
+	}
+	if calls[0].Name != "delegate" {
+		t.Fatalf("call name = %q, want delegate", calls[0].Name)
+	}
+	if got := calls[0].Input["task"]; got != "summarize the conformance marker" {
+		t.Fatalf("task = %v, want summarize the conformance marker", got)
+	}
+}
+
+func TestParseTextToolCallsFunctionCallSyntax(t *testing.T) {
+	tools := []ai.Tool{{Name: "delegate"}}
+	reply := `I will now call delegate({"task":"summarize the conformance marker","to":"blocked-reviewer"}) before answering.`
+
+	calls := parseTextToolCalls(reply, tools)
+	if len(calls) != 1 {
+		t.Fatalf("parseTextToolCalls returned %d calls, want 1: %+v", len(calls), calls)
+	}
+	if calls[0].Name != "delegate" {
+		t.Fatalf("call name = %q, want delegate", calls[0].Name)
+	}
+	if got := calls[0].Input["task"]; got != "summarize the conformance marker" {
+		t.Fatalf("task = %v, want summarize the conformance marker", got)
+	}
+	if got := calls[0].Input["to"]; got != "blocked-reviewer" {
+		t.Fatalf("to = %v, want blocked-reviewer", got)
+	}
+}
+
+func TestParseTextToolCallsFunctionCallSyntaxHandlesNestedJSON(t *testing.T) {
+	tools := []ai.Tool{{Name: "delegate"}}
+	reply := `delegate({
+		"task":"summarize the {escaped} marker",
+		"meta":{"note":"paren ) and brace } in string"},
+		"to":"blocked-reviewer"
+	})`
+
+	calls := parseTextToolCalls(reply, tools)
+	if len(calls) != 1 {
+		t.Fatalf("parseTextToolCalls returned %d calls, want 1: %+v", len(calls), calls)
+	}
+	if got := calls[0].Input["task"]; got != "summarize the {escaped} marker" {
+		t.Fatalf("task = %v, want nested JSON-safe task", got)
+	}
+	if got := calls[0].Input["to"]; got != "blocked-reviewer" {
+		t.Fatalf("to = %v, want blocked-reviewer", got)
+	}
+}

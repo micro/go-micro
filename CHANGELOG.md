@@ -5,9 +5,10 @@ All notable changes to Go Micro are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/) and versions
 follow [Semantic Versioning](https://semver.org/), matching the git tags and
 [GitHub releases](https://github.com/micro/go-micro/releases) (`v6.MINOR.PATCH`).
-Patch releases are cut automatically as the loop merges improvements; the
-`[Unreleased]` section below is kept current between tags and rolled into the
-next version when it ships.
+Releases are cut automatically as the loop merges improvements — a **minor**
+bump when new features land (`### Added`/`### Changed`), a **patch** when it's
+fixes/docs only; major bumps stay a human decision. The `[Unreleased]` section
+below is kept current between tags and rolled into the next version when it ships.
 
 > Earlier `2026.0x` headings are historical calendar-style markers from before
 > v6 tagging; they are kept for continuity and not reused.
@@ -17,16 +18,59 @@ next version when it ships.
 ## [Unreleased]
 
 ### Added
+- **Provider HTTP retry signals** — provider failures now preserve HTTP status and `Retry-After` details so retry classification and backoff can respond to rate limits and unavailable providers. (`ai/`)
+
+### Fixed
+- **Stream fallback memory** — unsupported streaming attempts no longer leave stale duplicate user turns before fallback paths continue with non-streaming agent calls. (`agent/`)
+- **Function-style text tool calls** — agent fallback parsing now recognizes provider replies that render tools as function-style calls, including nested JSON arguments. (`agent/`)
+- **Plan/delegate notify recovery** — plan-delegate recovery now waits for recovered notify side effects and routes retries through the communications agent that owns the notification. (`internal/harness/`)
+
+### Documentation
+- **First-agent docs wayfinding guard** — the local harness now includes a focused no-network check for first-agent and 0→hero docs links. (`Makefile`, `internal/harness/`)
+
+---
+
+## [6.3.18] - July 2026
+
+### Added
+- **StreamAsk close cancellation** — agent streaming calls now cancel promptly when their runner closes, avoiding orphaned stream work. (`agent/`)
+- **Agent resume pending helper** — agent durability now has a focused helper for resuming pending checkpointed runs. (`agent/`)
+- **Agent tool retry tracing** — agent traces now include tool retry attempts for easier debugging of retry/fallback behavior. (`agent/`)
+- **Shared-broker universe harness** — the universe harness now runs against the shared broker path, improving coverage of the same runtime wiring used by services, agents, and workflows. (`internal/harness/`)
+
+### Fixed
+- **Plan/delegate retry idempotency** — agent retries now preserve side-effect and notification dedupe across conformance retry paths, including completion and owner-notification edge cases. (`agent/`, `internal/harness/`)
+- **AtlasCloud text tool calls** — AtlasCloud fallback handling now recovers more text-rendered tool calls from OpenAI-compatible responses. (`ai/atlascloud/`, `agent/`)
+- **OpenAI-compatible text tool calls** — OpenAI-compatible providers now recover text-rendered tool calls more reliably. (`agent/`)
+- **AtlasCloud multi-step follow-ups** — AtlasCloud tool fallback handling now continues multi-step tool follow-up paths more reliably. (`ai/atlascloud/`, `agent/`)
+
+### Documentation
+- **Agent debugging quickcheck** — docs now include a focused quickcheck path for first-agent debugging. (`internal/website/docs/`)
+- **Website first-agent examples map** — website docs now link the maintained examples wayfinding map for the first-agent route. (`internal/website/docs/`)
+- **Examples wayfinding index** — examples docs now provide a central map for first-agent, support, and interop examples. (`examples/`, `internal/website/docs/`)
+
+---
+
+## [6.3.17] - July 2026
+
+### Added
 - **First-agent examples CLI wayfinding** — `micro examples` now prints the maintained provider-free first-agent examples in copy/paste order. (`cmd/micro/`)
 - **0→hero CLI entrypoint** — `micro zero-to-hero` now points developers at the maintained no-secret services → agents → workflows harness and runnable examples. (`cmd/micro/`)
+- **First-agent tutorial smoke harness** — the first-agent tutorial path now has smoke coverage to keep the no-secret on-ramp runnable. (`internal/harness/`)
+- **No-secret agent debugging smoke** — the no-secret agent debugging path now has smoke coverage for the first-agent troubleshooting flow. (`internal/harness/`)
+- **Durable checkpoint resume smoke coverage** — durable agent resume after checkpointing now has focused smoke coverage. (`agent/`, `internal/harness/`)
 
 ### Fixed
 - **Plan/delegate notify replays** — duplicate and replayed plan-delegate notifications are now idempotent, so resumed runs do not duplicate completed notifications. (`agent/`, `internal/harness/`)
 - **Provider conformance scheduling** — provider conformance workflow dispatches now guard their scheduling path more reliably. (`.github/workflows/`)
+- **Plan/delegate notification completion** — delegated notifications now preserve plan completion state more reliably, including duplicate, paraphrased, and delegated-owner notification paths. (`agent/`, `internal/harness/`)
+- **AtlasCloud tool fallback** — AtlasCloud built-in tool schemas and follow-up tool fallback handling now recover conformance delegate retries more reliably. (`ai/atlascloud/`, `agent/`)
+- **Agent conformance retry completion** — conformance retry prompts and completion handling are more deterministic for delegated agent runs. (`agent/`, `internal/harness/`)
 
 ### Documentation
 - **First-agent quickstart numbering** — the first-agent on-ramp numbering is consistent across the README and website docs. (`README.md`, `internal/website/docs/`)
 - **First-agent inspect command** — docs now use the maintained `micro inspect agent <name>` form. (`README.md`, `internal/website/docs/`)
+- **`micro loop` quickstart wayfinding** — docs now surface the loop quickstart from the public docs index and README wayfinding. (`README.md`, `internal/website/docs/`)
 
 ---
 

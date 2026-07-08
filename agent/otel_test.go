@@ -142,6 +142,82 @@ func TestAgentOpenTelemetrySpans(t *testing.T) {
 	}
 }
 
+func TestAgentOpenTelemetryToolRetryAttempts(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+	st := store.NewMemoryStore()
+	calls := 0
+	a := New(
+		Name("tool-retry-otel"),
+		Provider("oteltest"),
+		WithStore(st),
+		TraceProvider(tp),
+		ToolRetry(3, time.Millisecond),
+		WithTool("probe", "probe", nil, func(context.Context, map[string]any) (string, error) {
+			calls++
+			if calls == 1 {
+				return "", errors.New("rate limit exceeded")
+			}
+			return "ok", nil
+		}),
+	)
+	if _, err := a.Ask(context.Background(), "hello"); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 {
+		t.Fatalf("tool calls = %d, want retry success after 2 attempts", calls)
+	}
+
+	var sawToolSpan bool
+	for _, span := range exp.GetSpans().Snapshots() {
+		if span.Name() != spanNameToolCall {
+			continue
+		}
+		attrs := spanAttributes(span.Attributes())
+		if attrs[AttrToolName] != "probe" {
+			continue
+		}
+		if attrs[AttrToolAttempt] != "2" || attrs[AttrToolMaxAttempts] != "3" {
+			t.Fatalf("tool retry span attempts = %#v", attrs)
+		}
+		if !spanEventHasAttr(span.Events(), "agent.tool", AttrToolAttempt, "2") || !spanEventHasAttr(span.Events(), "agent.tool", AttrToolMaxAttempts, "3") {
+			t.Fatalf("tool retry event missing attempt attributes: %#v", span.Events())
+		}
+		sawToolSpan = true
+	}
+	if !sawToolSpan {
+		t.Fatal("tool retry span not emitted")
+	}
+
+	summaries, err := ListRunSummaries(st, "tool-retry-otel")
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := LoadRunEvents(st, "tool-retry-otel", summaries[0].RunID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, event := range events {
+		if event.Kind == "tool" && event.Name == "probe" && event.Attempt == 2 && event.MaxAttempts == 3 {
+			return
+		}
+	}
+	t.Fatalf("persisted tool event missing retry attempts: %#v", events)
+}
+
+func spanEventHasAttr(events []trace.Event, name, key, value string) bool {
+	for _, event := range events {
+		if event.Name != name {
+			continue
+		}
+		attrs := spanAttributes(event.Attributes)
+		if attrs[key] == value {
+			return true
+		}
+	}
+	return false
+}
+
 func TestAgentRunObservabilityRedactsInputByDefault(t *testing.T) {
 	secret := "deploy production with token sk-secret"
 	exp := tracetest.NewInMemoryExporter()

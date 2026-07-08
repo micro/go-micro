@@ -180,7 +180,7 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 }
 
 func askWithConformanceRetry(ctx context.Context, a Agent, initialPrompt string, sawTool, sawBlockedDelegate *bool) (*Response, error) {
-	const maxAttempts = 3
+	const maxAttempts = 4
 	prompt := initialPrompt
 	var resp *Response
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
@@ -198,7 +198,7 @@ func askWithConformanceRetry(ctx context.Context, a Agent, initialPrompt string,
 		if attempt == maxAttempts {
 			break
 		}
-		prompt = nextConformanceRetryPrompt(sawRequiredTool, sawRequiredDelegate, hasMarker)
+		prompt = nextConformanceRetryPrompt(sawRequiredTool, sawRequiredDelegate, hasMarker, attempt+1)
 	}
 	missing := missingConformanceRequirements(sawTool, sawBlockedDelegate, responseHasConformanceMarker(resp))
 	if len(missing) > 0 {
@@ -225,10 +225,16 @@ func missingConformanceRequirements(sawTool, sawBlockedDelegate *bool, hasMarker
 	return missing
 }
 
+const (
+	conformanceEchoInputJSON      = `{"value":"agent-conformance"}`
+	conformanceDelegateInputJSON  = `{"task":"summarize the conformance marker","to":"blocked-reviewer"}`
+	conformanceDelegateTaggedCall = `<tool_call name="delegate">` + conformanceDelegateInputJSON + `</tool_call>`
+)
+
 func conformanceSystemPrompt(provider string) string {
-	prompt := "You are a conformance test agent. Create a short plan, use conformance_echo exactly once with input {\"value\":\"agent-conformance\"}, then attempt to delegate a summary to blocked-reviewer with input {\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}. If the delegate is refused, explain the refusal and answer with the echo result."
+	prompt := "You are a conformance test agent. Create a short plan, use conformance_echo exactly once with input " + conformanceEchoInputJSON + ", then attempt to delegate a summary to blocked-reviewer with input " + conformanceDelegateInputJSON + ". You must complete both tool calls before any final answer; a final answer that only mentions the steps without calling both tools is invalid. If the delegate is refused, explain the refusal and answer with the echo result."
 	if provider == "atlascloud" {
-		prompt += " AtlasCloud/minimax conformance note: the delegate attempt is mandatory after conformance_echo. If native tool_calls are unavailable, emit the delegate as <tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call> rather than answering in prose."
+		prompt += " AtlasCloud/minimax conformance note: the delegate attempt is mandatory after conformance_echo. If native tool_calls are unavailable, emit the delegate as " + conformanceDelegateTaggedCall + " rather than answering in prose."
 	}
 	return prompt
 }
@@ -237,6 +243,7 @@ func TestAgentProviderConformanceAtlasCloudPromptRequiresTaggedDelegateFallback(
 	prompt := conformanceSystemPrompt("atlascloud")
 	for _, want := range []string{
 		"delegate attempt is mandatory",
+		"You must complete both tool calls before any final answer",
 		"<tool_call name=\"delegate\">",
 		`{"task":"summarize the conformance marker","to":"blocked-reviewer"}`,
 	} {
@@ -250,14 +257,61 @@ func TestAgentProviderConformanceAtlasCloudPromptRequiresTaggedDelegateFallback(
 	}
 }
 
-func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate, hasMarker bool) string {
+func TestAgentProviderConformanceRetryPromptsRequireBothTools(t *testing.T) {
+	for name, prompt := range map[string]string{
+		"missing tool":     nextConformanceRetryPrompt(false, false, false, 2),
+		"missing delegate": nextConformanceRetryPrompt(true, false, true, 2),
+	} {
+		for _, want := range []string{
+			"delegate exactly once",
+			conformanceDelegateTaggedCall,
+			"do not",
+		} {
+			if !strings.Contains(prompt, want) {
+				t.Fatalf("%s retry prompt %q missing %q", name, prompt, want)
+			}
+		}
+	}
+}
+
+func TestAgentProviderConformanceFinalDelegateRetryUsesTaggedCall(t *testing.T) {
+	prompt := nextConformanceRetryPrompt(true, false, true, 4)
+	for _, want := range []string{
+		"Final conformance retry",
+		conformanceDelegateTaggedCall,
+		"agent-conformance-ok",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("final delegate retry prompt %q missing %q", prompt, want)
+		}
+	}
+}
+
+func TestAgentProviderConformanceMarkerRetryRequiresExactMarkerReply(t *testing.T) {
+	prompt := nextConformanceRetryPrompt(true, true, false, 2)
+	for _, want := range []string{
+		"omitted the conformance marker",
+		"do not call more tools",
+		"do not summarize",
+		"Reply with exactly this sentence: agent-conformance-ok after guarded delegate refusal.",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("marker retry prompt %q missing %q", prompt, want)
+		}
+	}
+}
+
+func nextConformanceRetryPrompt(sawTool, sawBlockedDelegate, hasMarker bool, attempt int) string {
+	if attempt >= 4 && sawTool && !sawBlockedDelegate {
+		return "Final conformance retry: emit exactly this tagged tool call so the harness can execute the guarded delegate refusal, then include agent-conformance-ok and the refusal in the final answer: " + conformanceDelegateTaggedCall
+	}
 	switch {
 	case !sawTool:
-		return "The previous response did not call the required conformance_echo tool. Retry the same conformance check now: you must call conformance_echo exactly once with input {\"value\":\"agent-conformance\"} before any final answer, then include the tool result marker in the final answer."
+		return "The previous response did not call the required conformance_echo tool. Retry the same conformance check now: first call conformance_echo exactly once with input " + conformanceEchoInputJSON + ", then call delegate exactly once with input " + conformanceDelegateInputJSON + "; do not provide a final answer until both tool calls have been attempted. If native delegate tool_calls are unavailable after conformance_echo, emit exactly " + conformanceDelegateTaggedCall + ". The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
 	case !sawBlockedDelegate:
-		return "The previous response called conformance_echo but did not attempt the required guarded delegation. Continue the same conformance check now: call delegate exactly once with input {\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}; do not answer in prose until that delegate call has been attempted. If native tool_calls are unavailable, emit exactly <tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>. The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
+		return "The previous response called conformance_echo but did not attempt the required guarded delegation. Continue the same conformance check now: call delegate exactly once with input " + conformanceDelegateInputJSON + "; do not answer in prose until that delegate call has been attempted. If native tool_calls are unavailable, emit exactly " + conformanceDelegateTaggedCall + ". The delegate is expected to be refused by policy; include that refusal and the agent-conformance marker in the final answer."
 	case !hasMarker:
-		return "The previous response completed the required tool calls but omitted the conformance marker. Continue the same conformance check now: do not call more tools; answer with the prior echo result marker agent-conformance-ok and mention the guarded delegate refusal."
+		return "The previous response completed the required tool calls but omitted the conformance marker. Continue the same conformance check now: do not call more tools, do not summarize, and do not use synonyms. Reply with exactly this sentence: agent-conformance-ok after guarded delegate refusal."
 	default:
 		return "Retry the provider conformance check and include the agent-conformance marker in the final answer."
 	}
@@ -525,7 +579,7 @@ func TestAgentProviderConformanceFailsWhenDelegateStillMissing(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "guarded delegate") {
 		t.Fatalf("Ask error = %v, want missing guarded delegate", err)
 	}
-	if attempts != 3 {
+	if attempts != 4 {
 		t.Fatalf("attempts = %d, want retries through max attempts", attempts)
 	}
 }

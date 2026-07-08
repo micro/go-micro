@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"regexp"
 	"strings"
 
@@ -12,14 +13,16 @@ import (
 
 var fencedJSONBlock = regexp.MustCompile("(?s)```(?:json)?\\s*(.*?)\\s*```")
 var taggedToolCallBlock = regexp.MustCompile(`(?s)<[^<>]*(?:tool_call|tool_calls|function=)[^<>]*>(.*?)</[^<>]*>`)
-var singleTaggedToolCall = regexp.MustCompile(`(?s)<(tool_call\b[^<>]*|[^<>]*function=[^<>]*)>(.*?)</[^<>]*>`)
+var singleTaggedToolCall = regexp.MustCompile(`(?s)<(tool_call\b[^<>]*|[^<>]*function\s*=[^<>]*)>(.*?)</[^<>]*>`)
+var taggedToolNameAttr = regexp.MustCompile(`(?i)(?:function|name|tool)\s*=\s*["\']?([^"\'\s>]+)`)
 
 type textToolCall struct {
 	ID        string         `json:"id"`
 	Name      string         `json:"name"`
 	Tool      string         `json:"tool"`
 	Input     map[string]any `json:"input"`
-	Arguments map[string]any `json:"arguments"`
+	Arguments any            `json:"arguments"`
+	Function  *textToolCall  `json:"function"`
 }
 
 // executeTextToolCalls is a compatibility fallback for providers that return a
@@ -90,12 +93,16 @@ func textToolCallKey(call ai.ToolCall) string {
 }
 
 func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
+	text = html.UnescapeString(text)
 	allowed := textToolNames(tools)
 	if len(allowed) == 0 {
 		return nil
 	}
 
 	if calls := decodeTaggedTextToolCalls(text, allowed); len(calls) > 0 {
+		return calls
+	}
+	if calls := decodeFunctionTextToolCalls(text, allowed); len(calls) > 0 {
 		return calls
 	}
 	for _, candidate := range jsonCandidates(text) {
@@ -176,14 +183,7 @@ func collectTextToolCalls(v any, allowed map[string]string) []ai.ToolCall {
 			return collectTextToolCalls(nested, allowed)
 		}
 		call := mapToTextToolCall(x)
-		name := call.Name
-		if name == "" {
-			name = call.Tool
-		}
-		input := call.Input
-		if input == nil {
-			input = call.Arguments
-		}
+		name, input := textToolCallNameAndInput(call)
 		if name == "" || allowed[name] == "" || input == nil {
 			return nil
 		}
@@ -195,6 +195,40 @@ func collectTextToolCalls(v any, allowed map[string]string) []ai.ToolCall {
 	default:
 		return nil
 	}
+}
+
+func textToolCallNameAndInput(call textToolCall) (string, map[string]any) {
+	name := call.Name
+	if name == "" {
+		name = call.Tool
+	}
+	input := call.Input
+	if input == nil {
+		input = textToolArguments(call.Arguments)
+	}
+	if call.Function != nil {
+		fnName, fnInput := textToolCallNameAndInput(*call.Function)
+		if name == "" {
+			name = fnName
+		}
+		if input == nil {
+			input = fnInput
+		}
+	}
+	return name, input
+}
+
+func textToolArguments(raw any) map[string]any {
+	switch args := raw.(type) {
+	case map[string]any:
+		return args
+	case string:
+		var input map[string]any
+		if err := json.Unmarshal([]byte(args), &input); err == nil {
+			return input
+		}
+	}
+	return nil
 }
 
 func decodeTaggedTextToolCalls(text string, allowed map[string]string) []ai.ToolCall {
@@ -230,17 +264,130 @@ func decodeTaggedTextToolCalls(text string, allowed map[string]string) []ai.Tool
 }
 
 func taggedToolName(tag string) string {
-	for _, marker := range []string{"function=", "name=", "tool="} {
-		if idx := strings.Index(tag, marker); idx >= 0 {
-			name := strings.TrimSpace(tag[idx+len(marker):])
-			name = strings.Trim(name, `"'`)
-			if end := strings.IndexAny(name, " \t\r\n>"); end >= 0 {
-				name = name[:end]
+	match := taggedToolNameAttr.FindStringSubmatch(tag)
+	if len(match) < 2 {
+		return ""
+	}
+	return strings.Trim(match[1], `"'`)
+}
+
+func decodeFunctionTextToolCalls(text string, allowed map[string]string) []ai.ToolCall {
+	var out []ai.ToolCall
+	for alias, canonical := range allowed {
+		for _, body := range functionCallBodies(text, alias) {
+			var input map[string]any
+			if err := json.Unmarshal([]byte(body), &input); err != nil || input == nil {
+				continue
 			}
-			return strings.Trim(name, `"'`)
+			out = append(out, ai.ToolCall{
+				ID:    fmt.Sprintf("text-call-%s", strings.ReplaceAll(alias, ".", "_")),
+				Name:  canonical,
+				Input: input,
+			})
 		}
 	}
-	return ""
+	return out
+}
+
+func functionCallBodies(text, name string) []string {
+	if name == "" {
+		return nil
+	}
+	var bodies []string
+	for searchFrom := 0; searchFrom < len(text); {
+		idx := strings.Index(text[searchFrom:], name)
+		if idx < 0 {
+			break
+		}
+		start := searchFrom + idx
+		open := start + len(name)
+		if !isFunctionCallBoundary(text, start, open) {
+			searchFrom = start + len(name)
+			continue
+		}
+		bodyStart := open + 1
+		bodyEnd, ok := balancedJSONObjectEnd(text, bodyStart)
+		if !ok {
+			searchFrom = bodyStart
+			continue
+		}
+		bodies = append(bodies, strings.TrimSpace(text[bodyStart:bodyEnd]))
+		searchFrom = bodyEnd + 1
+	}
+	return bodies
+}
+
+func isFunctionCallBoundary(text string, start, open int) bool {
+	if open >= len(text) || text[open] != '(' {
+		return false
+	}
+	if start > 0 {
+		prev := text[start-1]
+		if prev == '_' || prev == '.' || prev == '-' || prev == '$' || ('0' <= prev && prev <= '9') || ('A' <= prev && prev <= 'Z') || ('a' <= prev && prev <= 'z') {
+			return false
+		}
+	}
+	for i := open + 1; i < len(text); i++ {
+		switch text[i] {
+		case ' ', '\n', '\r', '\t':
+			continue
+		case '{':
+			return true
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+func balancedJSONObjectEnd(text string, start int) (int, bool) {
+	for start < len(text) {
+		switch text[start] {
+		case ' ', '\n', '\r', '\t':
+			start++
+		case '{':
+			depth := 0
+			inString := false
+			escaped := false
+			for i := start; i < len(text); i++ {
+				c := text[i]
+				if inString {
+					if escaped {
+						escaped = false
+					} else if c == '\\' {
+						escaped = true
+					} else if c == '"' {
+						inString = false
+					}
+					continue
+				}
+				switch c {
+				case '"':
+					inString = true
+				case '{':
+					depth++
+				case '}':
+					depth--
+					if depth == 0 {
+						for j := i + 1; j < len(text); j++ {
+							switch text[j] {
+							case ' ', '\n', '\r', '\t':
+								continue
+							case ')':
+								return i + 1, true
+							default:
+								return 0, false
+							}
+						}
+					}
+				}
+			}
+			return 0, false
+		default:
+			return 0, false
+		}
+	}
+	return 0, false
 }
 
 func firstNestedToolCalls(m map[string]any) (any, bool) {

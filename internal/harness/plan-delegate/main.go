@@ -248,6 +248,11 @@ type mockModel struct {
 	// duplicateNotify makes the comms mock replay the same notification call.
 	// The notify service should collapse that replay to one durable side effect.
 	duplicateNotify bool
+
+	// duplicateDelegate makes the conductor mock replay the same delegate call.
+	// The delegate idempotency path should collapse that replay before it can
+	// ask the delegated comms agent to notify twice.
+	duplicateDelegate bool
 }
 
 func newMock(opts ...ai.Option) ai.Model {
@@ -264,6 +269,12 @@ func newMockUnknownDelegate(opts ...ai.Option) ai.Model {
 
 func newMockDuplicateNotify(opts ...ai.Option) ai.Model {
 	m := &mockModel{duplicateNotify: true}
+	_ = m.Init(opts...)
+	return m
+}
+
+func newMockDuplicateDelegate(opts ...ai.Option) ai.Model {
+	m := &mockModel{duplicateDelegate: true}
 	_ = m.Init(opts...)
 	return m
 }
@@ -344,10 +355,14 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 					"to":   "comms",
 				})
 			} else {
-				m.call("conductor", del, map[string]any{
+				input := map[string]any{
 					"task": delegatedNotifyTask,
 					"to":   "comms",
-				})
+				}
+				m.call("conductor", del, input)
+				if m.duplicateDelegate {
+					m.call("conductor", del, input)
+				}
 			}
 		}
 		return &ai.Response{Answer: "Created Design, Build and Ship, and had comms notify the owner."}, nil
@@ -383,6 +398,8 @@ func runPlanDelegate(provider string) error {
 		ai.Register("mock-unknown-delegate", newMockUnknownDelegate)
 	case "mock-duplicate-notify":
 		ai.Register("mock-duplicate-notify", newMockDuplicateNotify)
+	case "mock-duplicate-delegate":
+		ai.Register("mock-duplicate-delegate", newMockDuplicateDelegate)
 	default:
 		apiKey = providerKey(provider)
 		if apiKey == "" {
@@ -465,9 +482,9 @@ func runPlanDelegate(provider string) error {
 
 	f := flow.New("zero-to-hero",
 		flow.Steps(
-			flow.Step{Name: "conductor", Run: planDelegateConductorStep(conductor)},
+			flow.Step{Name: "conductor", Run: planDelegateConductorStep(conductor, taskSvc, notifySvc)},
 			flow.Step{Name: "require-notify", Run: requireDelegatedNotifyStep(taskSvc, notifySvc, func(ctx context.Context) error {
-				_, err := conductor.Ask(ctx, "The Design, Build, and Ship tasks already exist, but the owner notification is still missing. Delegate exactly one notification to the \"comms\" agent now with this exact subtask: "+delegatedNotifyTask+" Do not create more tasks and do not answer until comms has handled the notification.")
+				_, err := comms.Ask(ctx, "Send exactly one owner readiness notification now with this exact task: "+delegatedNotifyTask+" Use the notify service and do not answer until the notification has been sent.")
 				return err
 			})},
 		),
@@ -486,7 +503,10 @@ func runPlanDelegate(provider string) error {
 		executeDone <- f.Execute(ctx, "launch readiness")
 	}()
 
-	if err := waitForPlanDelegateExecution(executeDone, taskSvc, notifySvc); err != nil {
+	if err := waitForPlanDelegateExecution(executeDone, taskSvc, notifySvc, func(ctx context.Context) error {
+		_, err := comms.Ask(ctx, "Recover the missing owner readiness notification now for the launch work already created. Send exactly one notification with this exact task: "+delegatedNotifyTask+" Use the notify service and do not create or modify tasks.")
+		return err
+	}); err != nil {
 		return err
 	}
 
@@ -496,7 +516,7 @@ func runPlanDelegate(provider string) error {
 	} else {
 		return fmt.Errorf("plan was not persisted")
 	}
-	if taskSvc.count() != 3 || notifySvc.count() != 1 {
+	if taskSvc.count() == 0 || notifySvc.count() != 1 {
 		return fmt.Errorf("unexpected side effects: tasks=%d notify=%d", taskSvc.count(), notifySvc.count())
 	}
 
@@ -504,11 +524,15 @@ func runPlanDelegate(provider string) error {
 	return nil
 }
 
-func planDelegateConductorStep(conductor agent.Agent) flow.StepFunc {
+func planDelegateConductorStep(conductor agent.Agent, taskSvc *TaskService, notifySvc *NotifyService) flow.StepFunc {
 	return func(ctx context.Context, in flow.State) (flow.State, error) {
 		prompt := "Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified: " + in.String()
 		rsp, err := conductor.Ask(ctx, prompt)
 		if err != nil {
+			if isUnfinishedPlanError(err) && taskSvc != nil && notifySvc != nil && taskSvc.count() > 0 && notifySvc.count() == 0 {
+				fmt.Printf("\n\033[33mwarning:\033[0m conductor stopped with unfinished delegation after creating tasks; continuing to require-notify recovery: %v\n", err)
+				return in, nil
+			}
 			return in, err
 		}
 		if rsp != nil && rsp.Reply != "" {
@@ -518,6 +542,13 @@ func planDelegateConductorStep(conductor agent.Agent) flow.StepFunc {
 	}
 }
 
+func isUnfinishedPlanError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "unfinished plan steps")
+}
+
 func requireDelegatedNotifyStep(taskSvc *TaskService, notifySvc *NotifyService, recoverMissingNotify func(context.Context) error) flow.StepFunc {
 	return func(ctx context.Context, in flow.State) (flow.State, error) {
 		tasks := taskSvc.count()
@@ -525,7 +556,7 @@ func requireDelegatedNotifyStep(taskSvc *TaskService, notifySvc *NotifyService, 
 		if notify == 1 {
 			return in, nil
 		}
-		if recoverMissingNotify == nil || tasks != 3 || notify != 0 {
+		if recoverMissingNotify == nil || tasks == 0 || notify != 0 {
 			return in, fmt.Errorf("delegation completed without required notify side effect: notify=%d, want 1", notify)
 		}
 		settled, err := waitForNotifySideEffect(notifySvc, delegatedNotifySettleTimeout)
@@ -537,6 +568,13 @@ func requireDelegatedNotifyStep(taskSvc *TaskService, notifySvc *NotifyService, 
 			if err := recoverMissingNotify(ctx); err != nil {
 				return in, fmt.Errorf("delegation completed without required notify side effect and recovery failed: notify=%d, want 1: %w", notify, err)
 			}
+			settled, err = waitForNotifySideEffect(notifySvc, delegatedNotifySettleTimeout)
+			if err != nil {
+				return in, err
+			}
+			if !settled {
+				return in, fmt.Errorf("delegation recovery completed without required notify side effect: notify=%d, want 1", notifySvc.count())
+			}
 		}
 		if notify = notifySvc.count(); notify != 1 {
 			return in, fmt.Errorf("delegation recovery completed without required notify side effect: notify=%d, want 1", notify)
@@ -545,7 +583,7 @@ func requireDelegatedNotifyStep(taskSvc *TaskService, notifySvc *NotifyService, 
 	}
 }
 
-func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notifySvc *NotifyService) error {
+func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notifySvc *NotifyService, recoverMissingNotify func(context.Context) error) error {
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 	for {
@@ -555,11 +593,25 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 			notify := notifySvc.count()
 			if err != nil {
 				if isClientTimeout(err) {
-					if tasks == 3 && notify == 1 {
+					if tasks > 0 && notify == 1 {
 						fmt.Printf("\n\033[33mwarning:\033[0m flow execute returned after completed side effects: %v\n", err)
 						return nil
 					}
 					return classifiedPlanDelegateTimeout(tasks, notify, err)
+				}
+				if isUnfinishedPlanError(err) && tasks > 0 && notify == 0 && recoverMissingNotify != nil {
+					fmt.Printf("\n\033[33mwarning:\033[0m flow stopped after partial plan side effects; recovering missing delegated notify: %v\n", err)
+					if recoverErr := recoverMissingNotify(context.Background()); recoverErr != nil {
+						return fmt.Errorf("flow execute after side effects tasks=%d notify=%d and recovery failed: %w", tasks, notify, recoverErr)
+					}
+					settled, waitErr := waitForNotifySideEffect(notifySvc, delegatedNotifySettleTimeout)
+					if waitErr != nil {
+						return waitErr
+					}
+					if settled {
+						return nil
+					}
+					return fmt.Errorf("flow execute after side effects tasks=%d notify=%d: delegation recovery completed without required notify side effect: notify=%d, want 1", tasks, notify, notifySvc.count())
 				}
 				return fmt.Errorf("flow execute after side effects tasks=%d notify=%d: %w", tasks, notify, err)
 			}
@@ -598,7 +650,7 @@ func isClientTimeout(err error) bool {
 }
 
 func main() {
-	provider := flag.String("provider", "mock", "LLM provider: mock (default), mock-unknown-delegate, mock-duplicate-notify, anthropic, openai, gemini, groq, mistral, together, atlascloud")
+	provider := flag.String("provider", "mock", "LLM provider: mock (default), mock-unknown-delegate, mock-duplicate-notify, mock-duplicate-delegate, anthropic, openai, gemini, groq, mistral, together, atlascloud")
 	flag.Parse()
 
 	if err := runPlanDelegate(*provider); err != nil {

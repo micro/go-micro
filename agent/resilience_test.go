@@ -83,6 +83,62 @@ func TestAskRetriesTransientErrorsThenSurfacesStructuredError(t *testing.T) {
 	}
 }
 
+func TestModelRetryDoesNotDuplicateCheckpointedToolSideEffects(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "retry-tool-dedupe-agent")
+	attempts := 0
+	toolRuns := 0
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		attempts++
+		if opts.ToolHandler == nil {
+			t.Fatal("missing tool handler")
+		}
+		res := opts.ToolHandler(ctx, ai.ToolCall{ID: "create-1", Name: "external.create", Input: map[string]any{"title": "Retry safe"}})
+		if res.Content != "created Retry safe" {
+			t.Fatalf("tool result = %q, want cached create result", res.Content)
+		}
+		if attempts == 1 {
+			return nil, testStatusError{code: 503}
+		}
+		return &ai.Response{Reply: "done", ToolCalls: []ai.ToolCall{{ID: "create-1", Name: "external.create", Input: map[string]any{"title": "Retry safe"}, Result: res.Content}}}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(
+		Name("retry-tool-dedupe-agent"),
+		WithCheckpoint(cp),
+		ModelRetry(2, time.Millisecond),
+		WithTool("external.create", "create once", nil, func(context.Context, map[string]any) (string, error) {
+			toolRuns++
+			return "created Retry safe", nil
+		}),
+	)
+
+	resp, err := a.Ask(ctx, "create once despite a transient provider retry")
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if resp.Reply != "done" {
+		t.Fatalf("reply = %q, want done", resp.Reply)
+	}
+	if attempts != 2 {
+		t.Fatalf("model attempts = %d, want retry after transient provider failure", attempts)
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions = %d, want checkpointed side effect reused across retry", toolRuns)
+	}
+	runs, err := cp.List(ctx)
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("checkpointed runs = %d, want 1", len(runs))
+	}
+	if _, ok := findStep(runs[0].Steps, `tool:external.create:{"title":"Retry safe"}`); !ok {
+		t.Fatalf("checkpoint steps = %#v, want completed external.create step", runs[0].Steps)
+	}
+}
+
 func TestAskRateLimitFailureSuggestsPreflightAndInspect(t *testing.T) {
 	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
 		return nil, testStatusError{code: 429}

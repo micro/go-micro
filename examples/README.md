@@ -7,8 +7,8 @@ coordinate work with workflows.
 ## Quick Start
 
 Each example can be run with `go run .` from its directory unless its README says
-otherwise. If you are new to the repo, follow the first-agent path below instead
-of reading the directories alphabetically.
+otherwise. If you are new to the repo, start with the [examples wayfinding index](./INDEX.md)
+or follow the first-agent path below instead of reading the directories alphabetically.
 
 ## Recommended first-agent path
 
