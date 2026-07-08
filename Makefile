@@ -61,7 +61,7 @@ harness:
 # This guards the no-secret commands README/docs recommend (`micro agent demo`,
 # `micro examples`, and `micro zero-to-hero`) as a CI contract.
 cli-wayfinding:
-	go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestExamplesWayfinding' -count=1
+	go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestExamplesWayfindingIndexStaysLinked|TestExamplesCommandPointsAtWayfindingIndex|TestZeroToHeroCommandPrintsMaintainedNoSecretPath' -count=1
 	$(MAKE) docs-wayfinding
 	$(MAKE) install-smoke
 
