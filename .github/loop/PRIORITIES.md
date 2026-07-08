@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add durable checkpoint/resume for agent runs** ([#4341](https://github.com/micro/go-micro/issues/4341)) — With the first-agent CLI wayfinding contract now CI-verified, the next biggest lifecycle seam is that flows can checkpoint and resume but long agent runs still need a durable recovery contract. Solving this keeps the services → agents → workflows story cohesive without replaying completed tool side effects, and it should stay scoped to a non-breaking, CI-verifiable harness increment.
-2. **Trace agent RunInfo in OpenTelemetry spans** ([#4315](https://github.com/micro/go-micro/issues/4315)) — Once agent runs have a durable recovery path like flows, the highest Next-phase operability gap is connecting existing run metadata to traces so real agent runs can be debugged across steps, tool calls, delegation, failures, services, and flows without inventing a new surface.
+1. **Stabilize AtlasCloud agent conformance marker retry** ([#4348](https://github.com/micro/go-micro/issues/4348)) — The durable-agent checkpoint issue has shipped, so the highest-value open Now-phase gap is the live provider conformance failure found in Harness (E2E): AtlasCloud completes the tool/delegate path but can omit the required conformance marker after retry. Fixing this protects the cross-provider promise behind first-agent trust without broad API or architecture change.
+2. **Trace agent RunInfo in OpenTelemetry spans** ([#4315](https://github.com/micro/go-micro/issues/4315)) — After the live conformance regression is stable, the highest Next-phase operability gap is connecting existing run metadata to traces so real agent runs can be debugged across steps, tool calls, delegation, failures, services, and flows without inventing a new surface.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
