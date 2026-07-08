@@ -178,6 +178,24 @@ func waitFor(reg registry.Registry, name string) {
 	}
 }
 
+func waitForOnboardingSideEffects(ctx context.Context, wsSvc *WorkspaceService, ntSvc *NotifyService) error {
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		workspaces, notifications := wsSvc.count(), ntSvc.count()
+		if workspaces >= 1 && notifications >= 1 {
+			return nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("agent-flow missing required onboarding side effects before timeout: workspaces=%d/1 notifications=%d/1", workspaces, notifications)
+		case <-ticker.C:
+		}
+	}
+}
+
 func main() {
 	provider := flag.String("provider", "mock", "LLM provider: mock (default), anthropic, openai, ...")
 	flag.Parse()
@@ -257,20 +275,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Wait for the agent to finish acting.
-	deadline := time.Now().Add(30 * time.Second)
-	for time.Now().Before(deadline) {
-		if ntSvc.count() >= 1 && wsSvc.count() >= 1 {
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
+	// Wait for the agent to finish acting, and fail the harness if the
+	// provider returns a successful reply without the required service side
+	// effects. The 0→hero/provider conformance path must not print success
+	// unless the services → agent → workflow contract actually happened.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc)
+	cancel()
 
 	fmt.Printf("\n\033[1mresult:\033[0m workspaces created=%d, notifications sent=%d\n", wsSvc.count(), ntSvc.count())
 	if rs := f.Results(); len(rs) > 0 {
 		fmt.Printf("flow reply: %s\n", rs[len(rs)-1].Reply)
 	}
-	if wsSvc.count() >= 1 && ntSvc.count() >= 1 {
-		fmt.Println("\n\033[32m✓ the agent onboarded the user — triggered by an event, not a prompt\033[0m")
+	if err != nil {
+		fmt.Printf("\n\033[31m✗ %v\033[0m\n", err)
+		os.Exit(1)
 	}
+	fmt.Println("\n\033[32m✓ the agent onboarded the user — triggered by an event, not a prompt\033[0m")
 }
