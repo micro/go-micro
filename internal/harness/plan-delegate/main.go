@@ -482,7 +482,7 @@ func runPlanDelegate(provider string) error {
 
 	f := flow.New("zero-to-hero",
 		flow.Steps(
-			flow.Step{Name: "conductor", Run: planDelegateConductorStep(conductor)},
+			flow.Step{Name: "conductor", Run: planDelegateConductorStep(conductor, taskSvc, notifySvc)},
 			flow.Step{Name: "require-notify", Run: requireDelegatedNotifyStep(taskSvc, notifySvc, func(ctx context.Context) error {
 				_, err := comms.Ask(ctx, "Send exactly one owner readiness notification now with this exact task: "+delegatedNotifyTask+" Use the notify service and do not answer until the notification has been sent.")
 				return err
@@ -521,11 +521,15 @@ func runPlanDelegate(provider string) error {
 	return nil
 }
 
-func planDelegateConductorStep(conductor agent.Agent) flow.StepFunc {
+func planDelegateConductorStep(conductor agent.Agent, taskSvc *TaskService, notifySvc *NotifyService) flow.StepFunc {
 	return func(ctx context.Context, in flow.State) (flow.State, error) {
 		prompt := "Create three launch tasks (Design, Build, Ship), then make sure owner@acme.com is notified: " + in.String()
 		rsp, err := conductor.Ask(ctx, prompt)
 		if err != nil {
+			if isUnfinishedPlanError(err) && taskSvc != nil && notifySvc != nil && taskSvc.count() == 3 && notifySvc.count() == 0 {
+				fmt.Printf("\n\033[33mwarning:\033[0m conductor stopped with unfinished delegation after creating tasks; continuing to require-notify recovery: %v\n", err)
+				return in, nil
+			}
 			return in, err
 		}
 		if rsp != nil && rsp.Reply != "" {
@@ -533,6 +537,13 @@ func planDelegateConductorStep(conductor agent.Agent) flow.StepFunc {
 		}
 		return in, nil
 	}
+}
+
+func isUnfinishedPlanError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(err.Error()), "unfinished plan steps")
 }
 
 func requireDelegatedNotifyStep(taskSvc *TaskService, notifySvc *NotifyService, recoverMissingNotify func(context.Context) error) flow.StepFunc {
