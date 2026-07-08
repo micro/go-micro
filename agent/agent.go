@@ -227,16 +227,18 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 	if err != nil {
 		return nil, fmt.Errorf("discover tools: %w", err)
 	}
-	a.mem.Add("user", message)
+	messages := append([]ai.Message(nil), a.mem.Messages()...)
+	messages = append(messages, ai.Message{Role: "user", Content: message})
 	stream, err := a.model.Stream(ctx, &ai.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
 		Tools:        toolList,
-		Messages:     a.mem.Messages(),
+		Messages:     messages,
 	})
 	if err != nil {
 		return nil, err
 	}
+	a.mem.Add("user", message)
 	return &memoryRecordingStream{stream: stream, memory: a.mem}, nil
 }
 

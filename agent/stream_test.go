@@ -243,6 +243,29 @@ func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
 	}
 }
 
+func TestAgentStreamDoesNotRecordUserWhenProviderStreamingUnsupported(t *testing.T) {
+	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+		if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" || req.Messages[len(req.Messages)-1].Content != "stream fallback" {
+			t.Fatalf("stream request messages = %+v, want pending user message", req.Messages)
+		}
+		return nil, ai.ErrStreamingUnsupported
+	}
+	defer func() { fakeStream = nil }()
+
+	mem := NewInMemory(8)
+	a := newTestAgent(Name("stream-fallback"), WithMemory(mem), WithTool("echo", "echo text", nil, func(context.Context, map[string]any) (string, error) {
+		return "ok", nil
+	}))
+
+	_, err := a.Stream(context.Background(), "stream fallback")
+	if !errors.Is(err, ai.ErrStreamingUnsupported) {
+		t.Fatalf("Stream error = %v, want ErrStreamingUnsupported", err)
+	}
+	if got := mem.Messages(); len(got) != 0 {
+		t.Fatalf("memory after unsupported stream = %+v, want no recorded messages", got)
+	}
+}
+
 type unsupportedAgent struct{}
 
 func (unsupportedAgent) Name() string                                      { return "unsupported" }
