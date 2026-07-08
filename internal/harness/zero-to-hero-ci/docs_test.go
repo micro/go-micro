@@ -62,6 +62,62 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	}
 }
 
+func TestZeroToHeroDeployDryRunCommandSmoke(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		t.Fatalf("resolve repository root: %v", err)
+	}
+
+	bin := filepath.Join(t.TempDir(), "micro")
+	build := exec.Command("go", "build", "-o", bin, "./cmd/micro")
+	build.Dir = absRoot
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build micro CLI for deploy dry-run smoke: %v\n%s", err, out)
+	}
+
+	workspace := t.TempDir()
+	writeFile(t, filepath.Join(workspace, "micro.mu"), `service api
+    path ./api
+
+deploy prod
+    ssh deploy@prod.example.com
+    path /srv/micro
+`)
+	if err := os.Mkdir(filepath.Join(workspace, "api"), 0o755); err != nil {
+		t.Fatalf("create service dir: %v", err)
+	}
+
+	cmd := exec.Command(bin, "deploy", "--dry-run", "prod")
+	cmd.Dir = workspace
+	cmd.Env = append(os.Environ(), "MICRO_CONFIG_FILE="+filepath.Join(workspace, "micro.mu"))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("documented deploy dry-run command failed: %v\n%s", err, out)
+	}
+
+	got := string(out)
+	for _, want := range []string{
+		"micro deploy --dry-run",
+		"Target",
+		"deploy@prod.example.com",
+		"Remote path",
+		"/srv/micro",
+		"Services",
+		"api",
+		"No SSH, rsync, systemd, or remote deployment was performed.",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("deploy dry-run output missing %q:\n%s", want, got)
+		}
+	}
+
+	guide := readFile(t, filepath.Join(absRoot, "internal", "website", "docs", "guides", "zero-to-hero.md"))
+	if !strings.Contains(guide, "micro deploy --dry-run prod") {
+		t.Fatal("0→hero guide must document the same deploy dry-run command covered by CI")
+	}
+}
+
 func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	nav := readFile(t, filepath.Join(root, "internal", "website", "_data", "navigation.yml"))
