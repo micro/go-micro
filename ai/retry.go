@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,6 +19,64 @@ type StatusCoder interface {
 // supplied retry delay, such as HTTP Retry-After on a 429/503 response.
 type RetryAfterCoder interface {
 	RetryAfter() time.Duration
+}
+
+// HTTPError describes a failed provider HTTP response while preserving the
+// status code and Retry-After signal for retry classifiers.
+type HTTPError struct {
+	Status string
+	Code   int
+	Body   string
+	Header http.Header
+}
+
+func (e *HTTPError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return fmt.Sprintf("API error (%s): %s", e.Status, e.Body)
+}
+
+func (e *HTTPError) StatusCode() int {
+	if e == nil {
+		return 0
+	}
+	return e.Code
+}
+
+func (e *HTTPError) RetryAfter() time.Duration {
+	if e == nil {
+		return 0
+	}
+	return parseRetryAfter(e.Header.Get("Retry-After"), time.Now())
+}
+
+func NewHTTPError(resp *http.Response, body []byte) error {
+	if resp == nil {
+		return errors.New("API error: nil response")
+	}
+	return &HTTPError{Status: resp.Status, Code: resp.StatusCode, Body: string(body), Header: resp.Header.Clone()}
+}
+
+func parseRetryAfter(value string, now time.Time) time.Duration {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0
+	}
+	if seconds, err := strconv.Atoi(value); err == nil {
+		if seconds <= 0 {
+			return 0
+		}
+		return time.Duration(seconds) * time.Second
+	}
+	when, err := http.ParseTime(value)
+	if err != nil {
+		return 0
+	}
+	if delay := when.Sub(now); delay > 0 {
+		return delay
+	}
+	return 0
 }
 
 // ErrorKind classifies provider-boundary failures into stable buckets callers

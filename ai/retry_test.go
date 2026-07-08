@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 )
@@ -219,5 +220,25 @@ func TestGenerateWithRetryHonorsRetryAfterWhenLongerThanBackoff(t *testing.T) {
 func TestGenerateWithRetryCapsRetryAfter(t *testing.T) {
 	if got := retryBackoff(retryAfterErr{delay: time.Minute}, 1, time.Millisecond); got != 30*time.Second {
 		t.Fatalf("retryBackoff() = %s, want 30s cap", got)
+	}
+}
+
+func TestHTTPErrorExposesStatusAndRetryAfter(t *testing.T) {
+	resp := &http.Response{
+		Status:     "429 Too Many Requests",
+		StatusCode: http.StatusTooManyRequests,
+		Header:     http.Header{"Retry-After": []string{"2"}},
+	}
+	err := NewHTTPError(resp, []byte("slow down"))
+
+	if got := ClassifyError(err); got != ErrorKindRateLimited {
+		t.Fatalf("ClassifyError() = %q, want %q", got, ErrorKindRateLimited)
+	}
+	var retryAfter RetryAfterCoder
+	if !errors.As(err, &retryAfter) {
+		t.Fatalf("NewHTTPError does not expose RetryAfterCoder")
+	}
+	if got := retryAfter.RetryAfter(); got != 2*time.Second {
+		t.Fatalf("RetryAfter() = %s, want 2s", got)
 	}
 }

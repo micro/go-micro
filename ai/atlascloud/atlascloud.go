@@ -327,15 +327,30 @@ func (s *atlasStream) Close() error {
 }
 
 type atlascloudAPIError struct {
-	Status     string
-	StatusCode int
-	Phase      string
-	Summary    string
-	Body       string
+	Status  string
+	Code    int
+	Retry   time.Duration
+	Phase   string
+	Summary string
+	Body    string
 }
 
 func (e *atlascloudAPIError) Error() string {
 	return fmt.Sprintf("API error (%s) during atlascloud %s request (%s): %s", e.Status, e.Phase, e.Summary, e.Body)
+}
+
+func (e *atlascloudAPIError) StatusCode() int {
+	if e == nil {
+		return 0
+	}
+	return e.Code
+}
+
+func (e *atlascloudAPIError) RetryAfter() time.Duration {
+	if e == nil {
+		return 0
+	}
+	return e.Retry
 }
 
 func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any) (*ai.Response, map[string]any, error) {
@@ -361,7 +376,12 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 
 	respBody, _ := io.ReadAll(httpResp.Body)
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, nil, &atlascloudAPIError{Status: httpResp.Status, StatusCode: httpResp.StatusCode, Phase: phase, Summary: atlascloudRequestSummary(req), Body: string(respBody)}
+		retryAfter := time.Duration(0)
+		var retryErr interface{ RetryAfter() time.Duration }
+		if errors.As(ai.NewHTTPError(httpResp, respBody), &retryErr) {
+			retryAfter = retryErr.RetryAfter()
+		}
+		return nil, nil, &atlascloudAPIError{Status: httpResp.Status, Code: httpResp.StatusCode, Retry: retryAfter, Phase: phase, Summary: atlascloudRequestSummary(req), Body: string(respBody)}
 	}
 
 	var chatResp struct {
@@ -439,7 +459,7 @@ func atlascloudShouldRetryMinimaxCompat(err error, compatTools []map[string]any)
 		return false
 	}
 	var apiErr *atlascloudAPIError
-	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusBadRequest
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
 }
 
 func atlascloudShouldRetryWithoutTools(err error, req map[string]any) bool {
@@ -447,7 +467,7 @@ func atlascloudShouldRetryWithoutTools(err error, req map[string]any) bool {
 		return false
 	}
 	var apiErr *atlascloudAPIError
-	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusBadRequest
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
 }
 
 func atlascloudTools(input []ai.Tool) []map[string]any {
