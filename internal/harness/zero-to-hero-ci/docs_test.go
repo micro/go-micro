@@ -41,7 +41,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	runScript := readFile(t, filepath.Join(root, "internal", "harness", "zero-to-hero-ci", "run.sh"))
 	for _, want := range []string{
 		"go test ./cmd/micro/cli/new -run TestZeroToOne -count=1",
-		"go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestZeroToHeroCLIBoundaries' -count=1",
+		"go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestExamplesWayfindingIndexStaysLinked|TestExamplesCommandPointsAtWayfindingIndex|TestZeroToHeroCLIBoundaries|TestZeroToHeroCommandPrintsMaintainedNoSecretPath' -count=1",
 		"go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1",
 		"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
 		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1",

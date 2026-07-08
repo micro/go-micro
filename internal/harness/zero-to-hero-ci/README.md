@@ -8,9 +8,9 @@ scripted so CI can run it on every push without external services or model keys.
 
 1. **Scaffold** — the maintained `micro new` 0→1 contract still creates
    runnable services from a clean workspace.
-2. **First agent** — `micro agent preflight`, `micro run`, `micro chat`, and
-   `micro inspect agent <name>` remain available as the documented first-agent
-   walkthrough path.
+2. **First agent** — `micro agent demo`, `micro examples`, `micro agent preflight`,
+   `micro run`, `micro chat`, and `micro inspect agent <name>` remain available
+   as the documented first-agent walkthrough path.
 3. **Run** — `micro run` remains available as the local development entry point.
 4. **Chat** — `micro chat` remains available as the interactive agent entry point.
 5. **Inspect/debugging** — `micro inspect agent <name>`, `micro agent history <name>`,
@@ -33,7 +33,7 @@ and A2A with only the LLM mocked.
 The default GitHub harness workflow runs this script on every push and pull
 request after the install smoke check and 0→1 scaffold contract. Developers can
 verify the first-agent on-ramp links alone with `make docs-wayfinding`, verify
-the installer seam alone with `make install-smoke`, run just the documented
+the installed first-run CLI seam alone with `make install-smoke`, run just the documented
 agent debugging quickcheck with
 `go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1`,
 or run the same no-secret contract locally with:

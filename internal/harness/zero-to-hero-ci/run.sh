@@ -7,7 +7,7 @@ cd "$ROOT"
 # Keep the developer inner-loop boundaries executable and discoverable in CI
 # without secrets or long-running daemons.
 go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
-go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestZeroToHeroCLIBoundaries' -count=1
+go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestExamplesWayfindingIndexStaysLinked|TestExamplesCommandPointsAtWayfindingIndex|TestZeroToHeroCLIBoundaries|TestZeroToHeroCommandPrintsMaintainedNoSecretPath' -count=1
 go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
 go test ./internal/harness/zero-to-hero-ci -run 'TestNoSecretFirstAgentTranscript|TestNoSecretFirstAgentDebuggingSmoke|TestZeroToHeroReferenceDocs|TestZeroToHeroDeployDryRunCommandSmoke|TestYourFirstAgentTutorialSmoke' -count=1
 
