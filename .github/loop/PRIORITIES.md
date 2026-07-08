@@ -21,8 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Resume agent runs from checkpoints** ([#4368](https://github.com/micro/go-micro/issues/4368)) — #4391 closed the OpenTelemetry RunInfo gap, so the highest-value remaining roadmap seam is durable agent execution: flows already checkpoint, and agents need a focused, non-breaking resume slice that preserves completed tool calls and avoids duplicate side effects before broader durability or API design work.
-2. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — The blog says Anthropic streaming shipped, but the roadmap still calls for provider-backed streaming across chat and A2A. Add a focused, provider-gated conformance slice so streaming stays end-to-end rather than becoming a one-provider success story.
+1. **CI-verify the getting-started contract** ([#4399](https://github.com/micro/go-micro/issues/4399)) — The North Star says developer adoption is the gap, and the README now promises install → scaffold → run → chat → inspect → deploy-dry-run as a maintained 0→1/0→hero path. Make that path a first-class no-secret CI contract so the on-ramp cannot drift while deeper harness work continues.
+2. **Resume agent runs from checkpoints** ([#4368](https://github.com/micro/go-micro/issues/4368)) — #4391 closed the OpenTelemetry RunInfo gap and #4397 documented resume checkpoint limits, so the highest-value remaining depth seam is a focused, non-breaking durable-agent resume slice that preserves completed tool calls and avoids duplicate side effects before broader durability or API design work.
+3. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — The blog says Anthropic streaming shipped, but the roadmap still calls for provider-backed streaming across chat and A2A. Add a focused, provider-gated conformance slice so streaming stays end-to-end rather than becoming a one-provider success story.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
