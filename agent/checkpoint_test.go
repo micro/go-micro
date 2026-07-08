@@ -397,6 +397,71 @@ func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	}
 }
 
+func TestResumePendingAfterFreshAgentRestartDoesNotReplayCompletedTool(t *testing.T) {
+	ctx := context.Background()
+	st := store.NewMemoryStore()
+	cp := flow.StoreCheckpoint(st, "startup-resume-agent")
+	toolRuns := 0
+	failFirst := true
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler != nil {
+			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.allocate", Input: map[string]any{"cluster": "blue"}})
+			if res.Content != "allocated" {
+				t.Fatalf("tool result = %q, want allocated", res.Content)
+			}
+		}
+		if failFirst {
+			failFirst = false
+			return nil, errors.New("process stopped before final response")
+		}
+		return &ai.Response{Reply: "startup recovery complete"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	newAgent := func() *agentImpl {
+		return newTestAgent(Name("startup-resume-agent"), WithStore(st), WithCheckpoint(cp),
+			WithTool("external.allocate", "allocate capacity once", nil, func(context.Context, map[string]any) (string, error) {
+				toolRuns++
+				return "allocated", nil
+			}))
+	}
+
+	first := newAgent()
+	_, err := first.Ask(ctx, "allocate blue capacity")
+	if err == nil {
+		t.Fatal("Ask succeeded, want simulated process stop")
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after failed Ask = %d, want 1", toolRuns)
+	}
+
+	restarted := newAgent()
+	failedRun, err := ResumePending(ctx, restarted)
+	if err != nil {
+		t.Fatalf("ResumePending after restart: failedRun=%q err=%v", failedRun, err)
+	}
+	if failedRun != "" {
+		t.Fatalf("failed run = %q, want none", failedRun)
+	}
+	if toolRuns != 1 {
+		t.Fatalf("tool executions after ResumePending = %d, want completed tool not replayed", toolRuns)
+	}
+	runs, err := Pending(ctx, restarted)
+	if err != nil {
+		t.Fatalf("Pending after ResumePending: %v", err)
+	}
+	if len(runs) != 0 {
+		t.Fatalf("Pending after ResumePending = %#v, want none", runs)
+	}
+	summaries, err := ListRunSummaries(st, "startup-resume-agent")
+	if err != nil {
+		t.Fatalf("ListRunSummaries after ResumePending: %v", err)
+	}
+	if len(summaries) != 1 || summaries[0].Status != "done" || summaries[0].Checkpoint != "done" {
+		t.Fatalf("summary after ResumePending = %#v, want one done run", summaries)
+	}
+}
+
 func TestResumeFailedCheckpointDoesNotDuplicateCompactedMemory(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMemoryStore()
