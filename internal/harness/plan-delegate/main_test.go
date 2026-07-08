@@ -301,6 +301,45 @@ func TestPlanDelegateExecutionRejectsClaimedCompletionWithoutNotify(t *testing.T
 	}
 }
 
+type failingAgent struct {
+	err error
+}
+
+func (a failingAgent) Name() string                                         { return "failing" }
+func (a failingAgent) Init(...agent.Option)                                 {}
+func (a failingAgent) Options() agent.Options                               { return agent.Options{} }
+func (a failingAgent) Ask(context.Context, string) (*agent.Response, error) { return nil, a.err }
+func (a failingAgent) Stream(context.Context, string) (ai.Stream, error)    { return nil, a.err }
+func (a failingAgent) Run() error                                           { return nil }
+func (a failingAgent) Stop() error                                          { return nil }
+func (a failingAgent) String() string                                       { return "failing" }
+
+func TestPlanDelegateConductorAllowsNotifyRecoveryAfterUnfinishedDelegation(t *testing.T) {
+	taskSvc := new(TaskService)
+	for _, title := range []string{"Design", "Build", "Ship"} {
+		var rsp AddResponse
+		if err := taskSvc.Add(context.Background(), &AddRequest{Title: title}, &rsp); err != nil {
+			t.Fatalf("Add(%q): %v", title, err)
+		}
+	}
+	notifySvc := new(NotifyService)
+	step := planDelegateConductorStep(failingAgent{err: errors.New("agent run abc has unfinished plan steps: Delegate readiness notification to comms agent")}, taskSvc, notifySvc)
+	if _, err := step(context.Background(), flow.State{}); err != nil {
+		t.Fatalf("planDelegateConductorStep returned %v, want require-notify recovery to run", err)
+	}
+}
+
+func TestPlanDelegateConductorKeepsUnfinishedTaskFailureActionable(t *testing.T) {
+	step := planDelegateConductorStep(failingAgent{err: errors.New("agent run abc has unfinished plan steps: Create Build task")}, new(TaskService), new(NotifyService))
+	err := func() error { _, err := step(context.Background(), flow.State{}); return err }()
+	if err == nil {
+		t.Fatal("planDelegateConductorStep returned nil, want unfinished task error")
+	}
+	if got := err.Error(); !strings.Contains(got, "Create Build task") {
+		t.Fatalf("error = %q, want original unfinished task detail", got)
+	}
+}
+
 func TestPlanDelegateExecutionRecoversMissingNotifyOnce(t *testing.T) {
 	taskSvc := new(TaskService)
 	for _, title := range []string{"Design", "Build", "Ship"} {
