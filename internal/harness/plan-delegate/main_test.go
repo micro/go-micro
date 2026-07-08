@@ -276,7 +276,7 @@ func TestPlanDelegateExecutionAcceptsDuplicateNotifyReplay(t *testing.T) {
 
 	done := make(chan error, 1)
 	done <- nil
-	if err := waitForPlanDelegateExecution(done, new(TaskService), notifySvc); err != nil {
+	if err := waitForPlanDelegateExecution(done, new(TaskService), notifySvc, nil); err != nil {
 		t.Fatalf("waitForPlanDelegateExecution returned %v, want duplicate replay accepted", err)
 	}
 	if got := notifySvc.count(); got != 1 {
@@ -287,12 +287,42 @@ func TestPlanDelegateExecutionAcceptsDuplicateNotifyReplay(t *testing.T) {
 	}
 }
 
+func TestPlanDelegateExecutionRecoversUnfinishedPlanAfterPartialTaskSideEffect(t *testing.T) {
+	taskSvc := new(TaskService)
+	var addRsp AddResponse
+	if err := taskSvc.Add(context.Background(), &AddRequest{Title: "Design"}, &addRsp); err != nil {
+		t.Fatalf("Add: %v", err)
+	}
+	notifySvc := new(NotifyService)
+	done := make(chan error, 1)
+	done <- errors.New("agent run abc has unfinished plan steps: Delegate readiness notification to comms agent")
+
+	recovered := false
+	err := waitForPlanDelegateExecution(done, taskSvc, notifySvc, func(ctx context.Context) error {
+		recovered = true
+		var sendRsp SendResponse
+		return notifySvc.Send(ctx, &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &sendRsp)
+	})
+	if err != nil {
+		t.Fatalf("waitForPlanDelegateExecution returned %v, want partial notify recovery", err)
+	}
+	if !recovered {
+		t.Fatal("missing notify recovery did not run")
+	}
+	if got := taskSvc.count(); got != 1 {
+		t.Fatalf("task count = %d, want completed partial task to stay singular", got)
+	}
+	if got := notifySvc.count(); got != 1 {
+		t.Fatalf("notify count = %d, want recovered notify side effect", got)
+	}
+}
+
 func TestPlanDelegateExecutionRejectsClaimedCompletionWithoutNotify(t *testing.T) {
 	notifySvc := new(NotifyService)
 	done := make(chan error, 1)
 	done <- nil
 
-	err := waitForPlanDelegateExecution(done, new(TaskService), notifySvc)
+	err := waitForPlanDelegateExecution(done, new(TaskService), notifySvc, nil)
 	if err == nil {
 		t.Fatal("waitForPlanDelegateExecution returned nil, want missing notify side-effect error")
 	}
@@ -454,7 +484,7 @@ func TestPlanDelegateExecutionAcceptsClientTimeoutAfterSideEffects(t *testing.T)
 	done := make(chan error, 1)
 	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
 
-	if err := waitForPlanDelegateExecution(done, taskSvc, notifySvc); err != nil {
+	if err := waitForPlanDelegateExecution(done, taskSvc, notifySvc, nil); err != nil {
 		t.Fatalf("waitForPlanDelegateExecution returned %v, want completed side effects to satisfy client timeout", err)
 	}
 }
@@ -463,7 +493,7 @@ func TestPlanDelegateExecutionClassifiesClientTimeoutBeforeSideEffects(t *testin
 	done := make(chan error, 1)
 	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
 
-	err := waitForPlanDelegateExecution(done, new(TaskService), new(NotifyService))
+	err := waitForPlanDelegateExecution(done, new(TaskService), new(NotifyService), nil)
 	if err == nil {
 		t.Fatal("waitForPlanDelegateExecution returned nil, want timeout before side effects to fail")
 	}
@@ -490,7 +520,7 @@ func TestPlanDelegateExecutionClassifiesPartialClientTimeout(t *testing.T) {
 	done := make(chan error, 1)
 	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)
 
-	err := waitForPlanDelegateExecution(done, taskSvc, new(NotifyService))
+	err := waitForPlanDelegateExecution(done, taskSvc, new(NotifyService), nil)
 	if err == nil {
 		t.Fatal("waitForPlanDelegateExecution returned nil, want timeout before notify to fail")
 	}
