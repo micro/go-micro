@@ -32,7 +32,8 @@ and A2A with only the LLM mocked.
 
 The default GitHub harness workflow runs this script on every push and pull
 request after the install smoke check and 0→1 scaffold contract. Developers can
-verify the installer seam alone with `make install-smoke`, run just the documented
+verify the first-agent on-ramp links alone with `make docs-wayfinding`, verify
+the installer seam alone with `make install-smoke`, run just the documented
 agent debugging quickcheck with
 `go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1`,
 or run the same no-secret contract locally with:
@@ -41,9 +42,9 @@ or run the same no-secret contract locally with:
 make harness
 ```
 
-That target intentionally exercises the install script smoke path, both 0→1
-scaffold variants, the 0→hero scenario, the event-driven agent-flow harness, and
-mock provider conformance, so
+That target intentionally exercises the first-agent docs wayfinding guard, the
+install script smoke path, both 0→1 scaffold variants, the 0→hero scenario, the
+event-driven agent-flow harness, and mock provider conformance, so
 the public scaffold → run/chat → inspect → deploy lifecycle stays executable
 outside CI as well. Live provider checks remain separate and gated by configured
 API keys (`make provider-conformance` or the scheduled/manual CI job).
