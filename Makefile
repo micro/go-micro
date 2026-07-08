@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: test test-race test-coverage harness docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: test test-race test-coverage harness cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
 	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
+	@echo "  make cli-wayfinding - Verify installed first-agent CLI wayfinding commands"
 	@echo "  make docs-wayfinding - Verify first-agent docs wayfinding links resolve locally"
 	@echo "  make install-smoke - Verify the local install.sh and first-run CLI smoke path"
 	@echo "  make provider-conformance-mock - Run cross-provider harness with deterministic mock provider"
@@ -50,12 +51,19 @@ test-coverage:
 # This mirrors the default CI path so local dogfooding catches scaffold,
 # run/chat/inspect, and 0→hero regressions before a PR is opened.
 harness:
-	$(MAKE) docs-wayfinding
-	$(MAKE) install-smoke
+	$(MAKE) cli-wayfinding
 	go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
 	./internal/harness/zero-to-hero-ci/run.sh
 	go run ./internal/harness/agent-flow
 	$(MAKE) provider-conformance-mock
+
+# Verify the installed CLI keeps the first-agent on-ramp commands discoverable.
+# This guards the no-secret commands README/docs recommend (`micro agent demo`,
+# `micro examples`, and `micro zero-to-hero`) as a CI contract.
+cli-wayfinding:
+	go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestExamplesWayfinding' -count=1
+	$(MAKE) docs-wayfinding
+	$(MAKE) install-smoke
 
 # Verify the README and website first-agent/0→hero wayfinding links resolve to
 # maintained local docs and examples. This is a focused no-network guard for the
