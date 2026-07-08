@@ -367,6 +367,37 @@ func TestPlanDelegateExecutionWaitsForInFlightNotifyAfterFlowCompletion(t *testi
 	}
 }
 
+func TestPlanDelegateRecoveryWaitsForRecoveredNotifySideEffect(t *testing.T) {
+	taskSvc := new(TaskService)
+	for _, title := range []string{"Design", "Build", "Ship"} {
+		var rsp AddResponse
+		if err := taskSvc.Add(context.Background(), &AddRequest{Title: title}, &rsp); err != nil {
+			t.Fatalf("Add(%q): %v", title, err)
+		}
+	}
+	notifySvc := new(NotifyService)
+
+	recovered := false
+	_, err := requireDelegatedNotifyStep(taskSvc, notifySvc, func(ctx context.Context) error {
+		recovered = true
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			var rsp SendResponse
+			_ = notifySvc.Send(ctx, &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp)
+		}()
+		return nil
+	})(context.Background(), flow.State{})
+	if err != nil {
+		t.Fatalf("requireDelegatedNotifyStep returned %v, want delayed recovery success", err)
+	}
+	if !recovered {
+		t.Fatal("missing notify recovery did not run")
+	}
+	if got := notifySvc.count(); got != 1 {
+		t.Fatalf("notify count = %d, want recovered notify side effect", got)
+	}
+}
+
 func TestPlanDelegateExecutionAcceptsClientTimeoutAfterSideEffects(t *testing.T) {
 	taskSvc := new(TaskService)
 	for _, title := range []string{"Design", "Build", "Ship"} {
