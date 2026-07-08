@@ -41,7 +41,7 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	}
 
 	chat := commandByName(t, "chat")
-	if !strings.Contains(chat.Description, "services") || !strings.Contains(chat.Description, "agent") {
+	if !strings.Contains(chat.Description, "services") || !strings.Contains(chat.Description, "agent") || !strings.Contains(chat.Description, `micro chat assistant --prompt`) {
 		t.Fatalf("micro chat should describe the service-to-agent walkthrough boundary; description was %q", chat.Description)
 	}
 

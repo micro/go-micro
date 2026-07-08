@@ -74,7 +74,9 @@ a new service automatically and start using it.
 
 Examples:
   ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
-  micro chat --provider openai --prompt "list all users"`,
+  micro chat --provider openai --prompt "list all users"
+  micro chat assistant --prompt "create a task"`,
+		ArgsUsage: "[agent]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "provider", Usage: "AI provider (anthropic, openai, gemini, groq, mistral, together, atlascloud)", EnvVars: []string{"MICRO_AI_PROVIDER"}},
 			&cli.StringFlag{Name: "api_key", Usage: "API key for the provider", EnvVars: []string{"MICRO_AI_API_KEY"}},
@@ -316,6 +318,7 @@ func run(c *cli.Context) error {
 	baseURL := c.String("base_url")
 	singlePrompt := c.String("prompt")
 	streamOutput := c.Bool("stream")
+	targetAgent := c.Args().First()
 
 	if provider == "" {
 		provider = ai.AutoDetectProvider(baseURL)
@@ -323,14 +326,35 @@ func run(c *cli.Context) error {
 	if apiKey == "" {
 		apiKey = fallbackAPIKey(provider)
 	}
-	if apiKey == "" {
-		return fmt.Errorf("no API key configured; set --api_key or %s", envVarForProvider(provider))
-	}
 
 	reg := registry.DefaultRegistry
 	cl := clt.DefaultClient
 
 	tools := ai.NewTools(reg, ai.ToolClient(cl))
+
+	s := &session{
+		provider: provider,
+		apiKey:   apiKey,
+		tools:    tools,
+		reg:      reg,
+		cl:       cl,
+		hist:     ai.NewHistory(50),
+		stream:   streamOutput,
+	}
+	hasAgents := s.discoverAgents()
+	if targetAgent != "" {
+		if _, ok := s.agents[targetAgent]; !ok {
+			return fmt.Errorf("agent %q is not registered; run `micro agent list` to see available agents", targetAgent)
+		}
+		s.agents = map[string]agentInfo{targetAgent: s.agents[targetAgent]}
+		hasAgents = true
+	}
+	if targetAgent != "" && singlePrompt != "" {
+		return s.ask(c.Context, singlePrompt)
+	}
+	if apiKey == "" {
+		return fmt.Errorf("no API key configured; set --api_key or %s", envVarForProvider(provider))
+	}
 
 	// Built-in agent capabilities (plan, delegate), reused from the
 	// agent package so the direct-service fallback matches a real agent.
@@ -343,17 +367,8 @@ func run(c *cli.Context) error {
 		agent.APIKey(apiKey),
 	)
 
-	s := &session{
-		provider:      provider,
-		apiKey:        apiKey,
-		tools:         tools,
-		reg:           reg,
-		cl:            cl,
-		hist:          ai.NewHistory(50),
-		builtinTools:  builtinTools,
-		builtinHandle: builtinHandle,
-		stream:        streamOutput,
-	}
+	s.builtinTools = builtinTools
+	s.builtinHandle = builtinHandle
 	s.refreshTools()
 
 	// Wrap the tool handler to intercept generate calls
@@ -386,9 +401,6 @@ func run(c *cli.Context) error {
 	}
 
 	defer s.cleanup()
-
-	// Discover registered agents
-	hasAgents := s.discoverAgents()
 
 	if singlePrompt != "" {
 		return s.ask(c.Context, singlePrompt)
