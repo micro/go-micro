@@ -21,7 +21,7 @@ func TestResumeCompletedCheckpointDoesNotReplayModel(t *testing.T) {
 	calls := 0
 	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
 		calls++
-		return &ai.Response{Reply: "done"}, nil
+		return &ai.Response{Reply: "done", ToolCalls: []ai.ToolCall{{ID: "call-1", Name: "external.lookup", Result: "cached"}}}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -48,6 +48,9 @@ func TestResumeCompletedCheckpointDoesNotReplayModel(t *testing.T) {
 	}
 	if resumed.RunID != resp.RunID {
 		t.Fatalf("resumed run id = %q, want %q", resumed.RunID, resp.RunID)
+	}
+	if len(resumed.ToolCalls) != 1 || resumed.ToolCalls[0].Name != "external.lookup" || resumed.ToolCalls[0].Result != "cached" {
+		t.Fatalf("resumed tool calls = %#v, want persisted completed call", resumed.ToolCalls)
 	}
 	if calls != 1 {
 		t.Fatalf("model calls after Resume = %d, want 1", calls)

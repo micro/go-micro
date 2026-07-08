@@ -215,7 +215,10 @@ func AgentWithCheckpoint(c Checkpoint) AgentOption { return agent.WithCheckpoint
 func AgentPending(ctx context.Context, a Agent) ([]FlowRun, error) { return agent.Pending(ctx, a) }
 
 // AgentResume resumes a checkpointed agent run by id. Completed runs return
-// the persisted response without calling the model or replaying tool calls.
+// the persisted response, including completed tool-call metadata, without
+// calling the model or replaying tool calls. Incomplete runs resume from the
+// saved prompt plus completed tool checkpoints; a provider call interrupted
+// mid-stream is retried rather than continued byte-for-byte.
 func AgentResume(ctx context.Context, a Agent, runID string) (*AgentResponse, error) {
 	return agent.Resume(ctx, a, runID)
 }
