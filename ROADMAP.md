@@ -14,8 +14,9 @@ The full, current roadmap lives at **[go-micro.dev/docs/roadmap](https://go-micr
 
 ## Where we are (v6)
 
-Services, agents (`plan`/`delegate`, guardrails, memory, tool middleware), durable
-flows, the MCP and A2A gateways (both directions, including A2A streaming,
+Services, agents (`plan`/`delegate`, guardrails, memory, tool middleware,
+checkpoint/resume, and OpenTelemetry run spans), durable flows, the MCP and A2A
+gateways (both directions, including A2A streaming,
 push notifications, and multi-turn continuation), x402 paid tools, secure by
 default.
 
@@ -39,11 +40,24 @@ default.
   propagation, retry/backoff.
 - **Getting-started contract** — define and CI-verify the 0→1 and 0→hero flows.
 
+## Shipped agent depth
+
+- **Durable agent loop** — opt-in `Checkpoint` support lets agent `Ask` and
+  streaming runs persist, list pending work, and resume without replaying completed
+  tool calls. Human-input pauses resume through explicit input helpers.
+- **Agent observability** — agent `RunInfo` now feeds OpenTelemetry spans/events
+  across runs, model turns, tool calls, retries, delegation lineage, and resume
+  checkpoints.
+
 ## Next — agentic depth
 
-- **Durable agent loop** — resume a long run via `Checkpoint` (flows already do).
 - **Streaming** — broaden provider-backed `ai.Stream` coverage and keep chat/A2A streaming end to end.
-- **Agent observability** — `RunInfo` → OpenTelemetry spans.
+- **Resume operations polish** — keep improving CLI/docs breadcrumbs for finding
+  pending agent runs and deciding whether to call resume, resume-input, or stream
+  resume in production.
+- **Observability hardening** — keep span attributes and run inspection coherent
+  across agents, flows, and gateways as more providers and workflow paths are
+  exercised.
 
 ## Later
 
