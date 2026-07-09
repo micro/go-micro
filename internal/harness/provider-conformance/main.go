@@ -421,7 +421,7 @@ func runAgentConformance(provider string, timeout time.Duration) error {
 	if provider == "mock" {
 		testProvider = "fake"
 	}
-	cmd := exec.CommandContext(ctx, "go", "test", "./agent", "-run", "TestAgentProviderConformanceMatrix", "-count=1", "-v")
+	cmd := exec.CommandContext(ctx, "go", "test", "./agent", "-run", "TestAgentProvider(ConformanceMatrix|StreamConformanceMatrix)", "-count=1", "-v")
 	cmd.Dir = repoRoot()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
