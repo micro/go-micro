@@ -571,7 +571,7 @@ func TestProvider_GenerateRepairsInitialPartialTextToolCall(t *testing.T) {
 	}
 }
 
-func TestProvider_GenerateErrorsAfterRepeatedPartialTextToolCall(t *testing.T) {
+func TestProvider_GenerateFallsBackAfterRepeatedPartialPlanTextToolCall(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"plan\">"}}]}`))
@@ -583,9 +583,36 @@ func TestProvider_GenerateErrorsAfterRepeatedPartialTextToolCall(t *testing.T) {
 		ai.WithBaseURL(ts.URL),
 		ai.WithModel("minimaxai/minimax-m3"),
 	)
-	_, err := p.Generate(context.Background(), &ai.Request{
+	resp, err := p.Generate(context.Background(), &ai.Request{
 		Prompt: "plan and delegate",
 		Tools:  []ai.Tool{{Name: "plan", Description: "record a plan"}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !strings.Contains(resp.Reply, `<tool_call name="plan">`) || !strings.Contains(resp.Reply, `</tool_call>`) {
+		t.Fatalf("Reply = %q, want completed fallback plan text tool call", resp.Reply)
+	}
+	if !strings.Contains(resp.Reply, "plan and delegate") {
+		t.Fatalf("Reply = %q, want fallback plan seeded from prompt", resp.Reply)
+	}
+}
+
+func TestProvider_GenerateErrorsAfterRepeatedPartialNonPlanTextToolCall(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"delegate\">"}}]}`))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+	)
+	_, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "plan and delegate",
+		Tools:  []ai.Tool{{Name: "delegate", Description: "delegate work"}},
 	})
 	if err == nil || !strings.Contains(err.Error(), "incomplete text tool call") {
 		t.Fatalf("Generate error = %v, want incomplete text tool call error", err)
