@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: test test-race test-coverage harness cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: test test-race test-coverage harness inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
 	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
+	@echo "  make inner-loop    - Verify scaffold → run/chat/inspect → deploy dry-run contract"
 	@echo "  make cli-wayfinding - Verify installed first-agent CLI wayfinding commands"
 	@echo "  make docs-wayfinding - Verify first-agent docs wayfinding links resolve locally"
 	@echo "  make install-smoke - Verify the local install.sh and first-run CLI smoke path"
@@ -52,10 +53,20 @@ test-coverage:
 # run/chat/inspect, and 0→hero regressions before a PR is opened.
 harness:
 	$(MAKE) cli-wayfinding
-	go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
+	$(MAKE) inner-loop
 	./internal/harness/zero-to-hero-ci/run.sh
 	go run ./internal/harness/agent-flow
 	$(MAKE) provider-conformance-mock
+
+# Focused provider-free CLI inner-loop contract: scaffold a service, keep the
+# run/chat/inspect commands discoverable, and prove deploy dry-run reaches the
+# documented boundary without remote side effects. Use this when README/docs/CLI
+# drift is the concern and the full runtime harness is more than you need.
+inner-loop:
+	go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
+	go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestZeroToHeroCLIBoundaries|TestZeroToHeroCommandPrintsMaintainedNoSecretPath' -count=1
+	go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
+	go test ./internal/harness/zero-to-hero-ci -run 'TestZeroToHeroDeployDryRunCommandSmoke|TestNoSecretFirstAgentDebuggingSmoke|TestYourFirstAgentTutorialSmoke' -count=1
 
 # Verify the installed CLI keeps the first-agent on-ramp commands discoverable.
 # This guards the no-secret commands README/docs recommend (`micro agent demo`,

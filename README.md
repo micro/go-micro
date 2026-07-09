@@ -78,6 +78,12 @@ access or provider keys, use:
 make install-smoke
 ```
 
+To verify the focused CLI inner-loop contract — scaffold → run/chat/inspect → deploy dry-run — use:
+
+```bash
+make inner-loop
+```
+
 To run the broader local contract (including the [0→hero services → agents → workflows path](internal/website/docs/guides/zero-to-hero.md),
 chat/inspect CLI boundaries, and deploy dry-run), use:
 
