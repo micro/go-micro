@@ -39,6 +39,8 @@ type config struct {
 	UseGoPath bool
 	// MicroVersion is the go-micro version to require in go.mod
 	MicroVersion string
+	// MicroReplace optionally points generated services at a local go-micro checkout.
+	MicroReplace string
 	// Files
 	Files []file
 	// Comments
@@ -67,6 +69,10 @@ func microVersion() string {
 		}
 	}
 	return "latest"
+}
+
+func microReplace() string {
+	return filepath.ToSlash(os.Getenv("MICRO_NEW_GO_MICRO_REPLACE"))
 }
 
 type file struct {
@@ -215,6 +221,7 @@ func Run(ctx *cli.Context) error {
 		GoPath:       goPath,
 		UseGoPath:    false,
 		MicroVersion: microVersion(),
+		MicroReplace: microReplace(),
 	}
 
 	if useProto {
