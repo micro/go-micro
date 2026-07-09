@@ -206,10 +206,10 @@ func writeSummaryMarkdown(path string, summary conformanceSummary) error {
 
 func capabilityMarkdown(rows []ai.CapabilityRow) string {
 	var b strings.Builder
-	b.WriteString("| Provider | Model | Image | Video | Streaming |\n")
-	b.WriteString("| --- | --- | --- | --- | --- |\n")
+	b.WriteString("| Provider | Model | Image | Video | Streaming | Tool streaming |\n")
+	b.WriteString("| --- | --- | --- | --- | --- | --- |\n")
 	for _, row := range rows {
-		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s |\n", row.Provider, mark(row.Model), mark(row.Image), mark(row.Video), mark(row.Stream))
+		fmt.Fprintf(&b, "| %s | %s | %s | %s | %s | %s |\n", row.Provider, mark(row.Model), mark(row.Image), mark(row.Video), mark(row.Stream), mark(row.ToolStream))
 	}
 	return b.String()
 }

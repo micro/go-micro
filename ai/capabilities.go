@@ -23,6 +23,10 @@ type Capabilities struct {
 	// Providers that only satisfy the Model interface with ErrStreamingUnsupported
 	// leave this false until their Stream implementation is usable.
 	Stream bool `json:"stream"`
+	// ToolStream reports whether the provider supports agent Stream requests that
+	// include tool schemas. Providers may support plain token streaming while
+	// leaving this false when their streaming API cannot accept tools.
+	ToolStream bool `json:"tool_stream"`
 }
 
 // ProviderCapabilities reports the capabilities registered for provider.
@@ -31,12 +35,14 @@ func ProviderCapabilities(provider string) Capabilities {
 	_, hasImage := imageProviders[provider]
 	_, hasVideo := videoProviders[provider]
 	_, hasStream := streamProviders[provider]
+	_, hasToolStream := toolStreamProviders[provider]
 
 	return Capabilities{
-		Model:  hasModel,
-		Image:  hasImage,
-		Video:  hasVideo,
-		Stream: hasStream,
+		Model:      hasModel,
+		Image:      hasImage,
+		Video:      hasVideo,
+		Stream:     hasStream,
+		ToolStream: hasToolStream,
 	}
 }
 
@@ -56,6 +62,9 @@ func CapabilityMatrix() map[string]Capabilities {
 		names[name] = struct{}{}
 	}
 	for name := range streamProviders {
+		names[name] = struct{}{}
+	}
+	for name := range toolStreamProviders {
 		names[name] = struct{}{}
 	}
 
@@ -88,10 +97,18 @@ func RegisterStream(provider string) {
 	streamProviders[provider] = struct{}{}
 }
 
+// RegisterToolStream records that provider can accept tool schemas in Stream
+// requests. This is intentionally separate from RegisterStream because some
+// providers can stream tokens but cannot expose tools while streaming.
+func RegisterToolStream(provider string) {
+	toolStreamProviders[provider] = struct{}{}
+}
+
 var streamProviders = make(map[string]struct{})
+var toolStreamProviders = make(map[string]struct{})
 
 // RegisteredProviders returns the registered provider names in sorted order.
-// kind may be "model", "image", "video", "stream", or empty for the union of all
+// kind may be "model", "image", "video", "stream", "tool_stream", or empty for the union of all
 // provider registries.
 func RegisteredProviders(kind string) []string {
 	names := map[string]struct{}{}
@@ -121,6 +138,8 @@ func RegisteredProviders(kind string) []string {
 		add(providers)
 	case "stream":
 		add(streamProviders)
+	case "tool_stream":
+		add(toolStreamProviders)
 	case "image":
 		add(imageProviders)
 	case "video":

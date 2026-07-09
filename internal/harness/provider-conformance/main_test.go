@@ -93,7 +93,7 @@ func TestWriteCapabilityMarkdown(t *testing.T) {
 	}
 	got := string(b)
 	for _, want := range []string{
-		"| Provider | Model | Image | Video | Streaming |",
+		"| Provider | Model | Image | Video | Streaming | Tool streaming |",
 		"| mock | ✅ | — | — | — |",
 		"| vision | — | ✅ | ✅ | — |",
 	} {

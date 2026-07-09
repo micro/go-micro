@@ -30,23 +30,23 @@ imports are linked in:
 
 ```go
 for _, row := range ai.CapabilityRows() {
-    fmt.Printf("%s: chat=%t image=%t video=%t stream=%t\n", row.Provider, row.Model, row.Image, row.Video, row.Stream)
+    fmt.Printf("%s: chat=%t image=%t video=%t stream=%t tool_stream=%t\n", row.Provider, row.Model, row.Image, row.Video, row.Stream, row.ToolStream)
 }
 ```
 
 The built-in providers currently register these capability interfaces:
 
-| Provider | Chat/text (`ai.Model`) | Image (`ai.ImageModel`) | Video (`ai.VideoModel`) | Streaming (`ai.Stream`) |
-| --- | --- | --- | --- | --- |
-| `anthropic` | Yes | No | No | Yes |
-| `atlascloud` | Yes | Yes | Yes | Yes |
-| `gemini` | Yes | No | No | No |
-| `groq` | Yes | No | No | Yes |
-| `minimax` | Yes | No | No | Yes |
-| `mistral` | Yes | No | No | Yes |
-| `ollama` | Yes | No | No | Yes |
-| `openai` | Yes | Yes | No | Yes |
-| `together` | Yes | No | No | Yes |
+| Provider | Chat/text (`ai.Model`) | Image (`ai.ImageModel`) | Video (`ai.VideoModel`) | Streaming (`ai.Stream`) | Tool streaming |
+| --- | --- | --- | --- | --- | --- |
+| `anthropic` | Yes | No | No | Yes | Yes |
+| `atlascloud` | Yes | Yes | Yes | Yes | No |
+| `gemini` | Yes | No | No | No | No |
+| `groq` | Yes | No | No | Yes | Yes |
+| `minimax` | Yes | No | No | Yes | Yes |
+| `mistral` | Yes | No | No | Yes | Yes |
+| `ollama` | Yes | No | No | Yes | Yes |
+| `openai` | Yes | Yes | No | Yes | Yes |
+| `together` | Yes | No | No | Yes | Yes |
 
 ## Step 1: Implement the `ai.Model` Interface
 

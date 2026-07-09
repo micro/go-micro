@@ -30,6 +30,7 @@ func init() {
 		return NewProvider(opts...)
 	})
 	ai.RegisterStream("minimax")
+	ai.RegisterToolStream("minimax")
 }
 
 type Provider struct {

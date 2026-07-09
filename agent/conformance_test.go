@@ -79,8 +79,12 @@ func runAgentStreamConformanceScenario(t *testing.T, provider conformanceProvide
 		if os.Getenv("GO_MICRO_AGENT_CONFORMANCE_LIVE") == "" {
 			t.Skipf("GO_MICRO_AGENT_CONFORMANCE_LIVE not set; skipping live %s stream conformance", provider.name)
 		}
-		if caps := ai.ProviderCapabilities(provider.name); !caps.Stream {
+		caps := ai.ProviderCapabilities(provider.name)
+		if !caps.Stream {
 			t.Fatalf("ProviderCapabilities(%q).Stream = false, want true for stream conformance", provider.name)
+		}
+		if !caps.ToolStream {
+			t.Skipf("ProviderCapabilities(%q).ToolStream = false; skipping live tool stream conformance", provider.name)
 		}
 	} else {
 		var sawToolSchema bool
