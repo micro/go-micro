@@ -158,7 +158,11 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			return nil, fmt.Errorf("atlascloud partial text tool-call repair failed for %q: %w", toolName, err)
 		}
 		if atlascloudPartialTextToolCallName(resp.Reply, req.Tools) != "" && len(resp.ToolCalls) == 0 {
-			return nil, fmt.Errorf("atlascloud returned incomplete text tool call for %q after repair", toolName)
+			if toolName == "plan" {
+				resp.Reply = atlascloudPlanFallbackTextToolCall(req.Prompt)
+			} else {
+				return nil, fmt.Errorf("atlascloud returned incomplete text tool call for %q after repair", toolName)
+			}
 		}
 	}
 
@@ -520,6 +524,23 @@ func atlascloudPartialTextToolCallName(text string, tools []ai.Tool) string {
 		}
 	}
 	return ""
+}
+
+func atlascloudPlanFallbackTextToolCall(prompt string) string {
+	task := strings.TrimSpace(prompt)
+	if task == "" {
+		task = "continue the requested work"
+	}
+	args, err := json.Marshal(map[string]any{
+		"steps": []map[string]string{{
+			"task":   task,
+			"status": "pending",
+		}},
+	})
+	if err != nil {
+		return `<tool_call name="plan">{"steps":[{"task":"continue the requested work","status":"pending"}]}</tool_call>`
+	}
+	return `<tool_call name="plan">` + string(args) + `</tool_call>`
 }
 
 func atlascloudMinimaxCompatTools(model string, input []ai.Tool) ([]map[string]any, string) {
