@@ -403,6 +403,9 @@ func TestProvider_GenerateExecutesFollowUpToolCall(t *testing.T) {
 	if !strings.Contains(resp.Answer, "blocked by policy") {
 		t.Fatalf("Answer = %q, want follow-up tool result", resp.Answer)
 	}
+	if !strings.Contains(resp.Answer, "agent-conformance-ok") {
+		t.Fatalf("Answer = %q, want conformance marker preserved from tool result", resp.Answer)
+	}
 	if _, ok := bodies[1]["tools"].([]any); !ok {
 		t.Fatalf("follow-up request did not include tools: %#v", bodies[1])
 	}
