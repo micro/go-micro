@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -42,6 +43,116 @@ func TestAgentProviderConformanceMatrix(t *testing.T) {
 		t.Run(provider.name, func(t *testing.T) {
 			runAgentConformanceScenario(t, provider)
 		})
+	}
+}
+
+func TestAgentProviderStreamConformanceMatrix(t *testing.T) {
+	providers := []conformanceProvider{
+		{name: "fake"},
+		{name: "openai", key: "OPENAI_API_KEY", model: "GO_MICRO_CONFORMANCE_OPENAI_MODEL", live: true},
+		{name: "anthropic", key: "ANTHROPIC_API_KEY", model: "GO_MICRO_CONFORMANCE_ANTHROPIC_MODEL", live: true},
+		{name: "atlascloud", key: "ATLASCLOUD_API_KEY", model: "GO_MICRO_CONFORMANCE_ATLASCLOUD_MODEL", live: true},
+		{name: "groq", key: "GROQ_API_KEY", model: "GO_MICRO_CONFORMANCE_GROQ_MODEL", live: true},
+		{name: "minimax", key: "MINIMAX_API_KEY", model: "GO_MICRO_CONFORMANCE_MINIMAX_MODEL", live: true},
+		{name: "mistral", key: "MISTRAL_API_KEY", model: "GO_MICRO_CONFORMANCE_MISTRAL_MODEL", live: true},
+		{name: "together", key: "TOGETHER_API_KEY", model: "GO_MICRO_CONFORMANCE_TOGETHER_MODEL", live: true},
+	}
+
+	selected := selectedConformanceProviders(os.Getenv("GO_MICRO_AGENT_CONFORMANCE_PROVIDERS"))
+	for _, provider := range providers {
+		provider := provider
+		if len(selected) > 0 && !selected[provider.name] {
+			continue
+		}
+		t.Run(provider.name, func(t *testing.T) {
+			runAgentStreamConformanceScenario(t, provider)
+		})
+	}
+}
+
+func runAgentStreamConformanceScenario(t *testing.T, provider conformanceProvider) {
+	t.Helper()
+	if provider.live {
+		if os.Getenv(provider.key) == "" {
+			t.Skipf("%s not set; skipping live %s stream conformance", provider.key, provider.name)
+		}
+		if os.Getenv("GO_MICRO_AGENT_CONFORMANCE_LIVE") == "" {
+			t.Skipf("GO_MICRO_AGENT_CONFORMANCE_LIVE not set; skipping live %s stream conformance", provider.name)
+		}
+		if caps := ai.ProviderCapabilities(provider.name); !caps.Stream {
+			t.Fatalf("ProviderCapabilities(%q).Stream = false, want true for stream conformance", provider.name)
+		}
+	} else {
+		var sawToolSchema bool
+		fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+			if req.Prompt != "Stream exactly: agent-stream-conformance-ok" {
+				return nil, fmt.Errorf("prompt = %q", req.Prompt)
+			}
+			if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" || req.Messages[len(req.Messages)-1].Content != req.Prompt {
+				return nil, fmt.Errorf("messages = %#v, want current user turn", req.Messages)
+			}
+			for _, tool := range req.Tools {
+				if tool.Name == "conformance_echo" {
+					sawToolSchema = true
+				}
+			}
+			if !sawToolSchema {
+				return nil, errors.New("stream request omitted conformance tool schema")
+			}
+			return &sliceStream{chunks: []string{"agent-stream-", "conformance-ok"}}, nil
+		}
+		defer func() { fakeStream = nil }()
+	}
+
+	agentOpts := []Option{
+		Name("stream-conformance-" + provider.name),
+		Provider(provider.name),
+		APIKey(os.Getenv(provider.key)),
+		Prompt("Stream conformance: preserve the exact requested marker in the final answer."),
+		WithRegistry(registry.NewMemoryRegistry()),
+		WithStore(store.NewMemoryStore()),
+		WithMemory(NewInMemory(8)),
+		ModelCallTimeout(45 * time.Second),
+		WithTool("conformance_echo", "Echo a conformance value and return a deterministic marker.", map[string]any{
+			"value": map[string]any{"type": "string", "description": "value to echo"},
+		}, func(ctx context.Context, input map[string]any) (string, error) {
+			return `{"marker":"agent-stream-conformance-ok"}`, nil
+		}),
+	}
+	if provider.model != "" {
+		if model := os.Getenv(provider.model); model != "" {
+			agentOpts = append(agentOpts, Model(model))
+		}
+	}
+
+	stream, err := New(agentOpts...).Stream(context.Background(), "Stream exactly: agent-stream-conformance-ok")
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	defer stream.Close()
+
+	var reply strings.Builder
+	deadline := time.After(45 * time.Second)
+	for {
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for streamed final output")
+		default:
+		}
+		chunk, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("Recv: %v", err)
+		}
+		reply.WriteString(chunk.Reply)
+		if strings.Contains(reply.String(), "agent-stream-conformance-ok") {
+			return
+		}
+	}
+	if got := reply.String(); !strings.Contains(got, "agent-stream-conformance-ok") {
+		t.Fatalf("streamed reply %q does not include conformance marker", got)
 	}
 }
 
