@@ -311,6 +311,26 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			},
 		},
 		{
+			name:    "repository examples wayfinding index",
+			file:    filepath.Join(root, "examples", "INDEX.md"),
+			heading: "## Recommended adoption path",
+			links: []string{
+				"./hello-world/",
+				"./first-agent/",
+				"./support/",
+			},
+		},
+		{
+			name:    "micro README first-agent on-ramp",
+			file:    filepath.Join(root, "cmd", "micro", "README.md"),
+			heading: "## First agent on-ramp",
+			links: []string{
+				"micro agent demo",
+				"micro examples",
+				"micro zero-to-hero",
+			},
+		},
+		{
 			name:    "website examples index",
 			file:    filepath.Join(root, "internal", "website", "docs", "examples", "index.md"),
 			heading: "## Start here",
@@ -412,6 +432,11 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 			name:    "repository examples index",
 			file:    filepath.Join(root, "examples", "README.md"),
 			heading: "## Recommended first-agent path",
+		},
+		{
+			name:    "repository examples wayfinding index",
+			file:    filepath.Join(root, "examples", "INDEX.md"),
+			heading: "## Recommended adoption path",
 		},
 		{
 			name:    "website examples index",
