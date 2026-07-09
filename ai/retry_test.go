@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -69,9 +70,9 @@ func TestGenerateWithRetryDoesNotRetryCallerCancellation(t *testing.T) {
 }
 
 func TestGenerateWithRetryHonorsPerAttemptTimeout(t *testing.T) {
-	attempts := 0
+	var attempts atomic.Int32
 	model := retryModel{generate: func(ctx context.Context, _ *Request, _ ...GenerateOption) (*Response, error) {
-		attempts++
+		attempts.Add(1)
 		<-ctx.Done()
 		return nil, ctx.Err()
 	}}
@@ -91,8 +92,8 @@ func TestGenerateWithRetryHonorsPerAttemptTimeout(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("error = %v, want context.DeadlineExceeded", err)
 	}
-	if attempts != 2 {
-		t.Fatalf("attempts = %d, want 2", attempts)
+	if got := attempts.Load(); got != 2 {
+		t.Fatalf("attempts = %d, want 2", got)
 	}
 }
 
