@@ -139,6 +139,29 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		}
 	}
 
+	if toolName := atlascloudPartialTextToolCallName(resp.Reply, req.Tools); toolName != "" {
+		repairReq := map[string]any{
+			"model": p.opts.Model,
+			"messages": append(append([]map[string]any(nil), messages...),
+				map[string]any{"role": "assistant", "content": resp.Reply},
+				map[string]any{"role": "user", "content": fmt.Sprintf("Your previous response started a %q tool call but did not finish valid tool-call markup or JSON arguments, so no tool was executed. Retry the same step now by emitting one complete valid tool call for %q. Do not describe the action in prose, and do not claim completion until the tool call succeeds.", toolName, toolName)},
+			),
+		}
+		if p.opts.MaxTokens > 0 {
+			repairReq["max_tokens"] = p.opts.MaxTokens
+		}
+		if len(tools) > 0 {
+			repairReq["tools"] = tools
+		}
+		resp, rawMessage, err = p.callAPI(ctx, "chat-partial-tool-repair", repairReq)
+		if err != nil {
+			return nil, fmt.Errorf("atlascloud partial text tool-call repair failed for %q: %w", toolName, err)
+		}
+		if atlascloudPartialTextToolCallName(resp.Reply, req.Tools) != "" && len(resp.ToolCalls) == 0 {
+			return nil, fmt.Errorf("atlascloud returned incomplete text tool call for %q after repair", toolName)
+		}
+	}
+
 	if len(resp.ToolCalls) == 0 {
 		return resp, nil
 	}
@@ -477,6 +500,26 @@ func atlascloudToolCallsText(calls any) string {
 		return fmt.Sprint(calls)
 	}
 	return string(b)
+}
+
+func atlascloudPartialTextToolCallName(text string, tools []ai.Tool) string {
+	if !strings.Contains(text, "<tool_call") {
+		return ""
+	}
+	if strings.Contains(text, "</tool_call>") {
+		return ""
+	}
+	for _, tool := range tools {
+		for _, name := range []string{tool.Name, tool.OriginalName} {
+			if name == "" {
+				continue
+			}
+			if strings.Contains(text, `name="`+name+`"`) || strings.Contains(text, `name='`+name+`'`) {
+				return tool.Name
+			}
+		}
+	}
+	return ""
 }
 
 func atlascloudMinimaxCompatTools(model string, input []ai.Tool) ([]map[string]any, string) {

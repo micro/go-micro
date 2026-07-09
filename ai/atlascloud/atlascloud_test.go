@@ -520,6 +520,78 @@ func TestProvider_GeneratePreservesFollowUpTextToolCallInReply(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateRepairsInitialPartialTextToolCall(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		switch len(bodies) {
+		case 1:
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"plan\">"}}]}`))
+		case 2:
+			messages := body["messages"].([]any)
+			last := messages[len(messages)-1].(map[string]any)
+			if last["role"] != "user" || !strings.Contains(last["content"].(string), "did not finish valid tool-call markup") {
+				t.Fatalf("repair prompt = %#v, want partial tool-call guidance", last)
+			}
+			if _, ok := body["tools"]; !ok {
+				t.Fatalf("repair request did not keep tools available: %#v", body)
+			}
+			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"plan\">{\"steps\":[{\"task\":\"create tasks\"}]}</tool_call>"}}]}`))
+		default:
+			t.Fatalf("unexpected API call %d", len(bodies))
+		}
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "plan and delegate",
+		Tools: []ai.Tool{
+			{Name: "plan", Description: "record a plan", Properties: map[string]any{"steps": map[string]any{"type": "array"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !strings.Contains(resp.Reply, `<tool_call name="plan">`) || !strings.Contains(resp.Reply, `</tool_call>`) {
+		t.Fatalf("Reply = %q, want completed text tool call", resp.Reply)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("requests = %d, want initial plus repair", len(bodies))
+	}
+}
+
+func TestProvider_GenerateErrorsAfterRepeatedPartialTextToolCall(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"plan\">"}}]}`))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+	)
+	_, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "plan and delegate",
+		Tools:  []ai.Tool{{Name: "plan", Description: "record a plan"}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "incomplete text tool call") {
+		t.Fatalf("Generate error = %v, want incomplete text tool call error", err)
+	}
+}
+
 func TestProvider_GenerateRetriesMinimaxBuiltInsAsTextTools(t *testing.T) {
 	var bodies []map[string]any
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
