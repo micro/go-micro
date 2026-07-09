@@ -18,12 +18,40 @@ below is kept current between tags and rolled into the next version when it ship
 ## [Unreleased]
 
 ### Added
+- **Agent stream provider conformance** — provider conformance now covers agent streaming behavior so streaming-capable providers stay aligned with the harness contract. (`agent/`, `internal/harness/`)
+
+### Changed
+- **Provider model call timeouts** — model call timeout enforcement now wraps provider calls more defensively, reducing hangs in agent and harness paths. (`agent/`, `ai/`)
+- **First-agent harness diagnostics** — getting-started harness logs now make first-run and 0→hero failures easier to locate. (`internal/harness/`)
+
+### Fixed
+- **Partial text tool calls** — text tool-call recovery now repairs partial function-style calls more reliably before fallback parsing continues. (`agent/`)
+- **Retry timeout test stability** — retry timeout coverage is less race-prone. (`agent/`)
+- **Checkpointed tool-call resume** — resumed agent runs now preserve checkpointed tool calls across startup resume paths. (`agent/`)
+
+### Documentation
+- **Roadmap agent status** — public roadmap docs now reflect the current agent lifecycle status more consistently. (`internal/website/docs/`)
+- **Agent resume limits** — docs now describe checkpoint resume boundaries for agent runs. (`internal/website/docs/`)
+
+---
+
+## [6.4.0] - July 2026
+
+### Added
 - **Provider HTTP retry signals** — provider failures now preserve HTTP status and `Retry-After` details so retry classification and backoff can respond to rate limits and unavailable providers. (`ai/`)
+- **Zero-to-hero deploy dry-run verification** — the maintained 0→hero harness now covers deploy dry-run boundaries for the services → agents → workflows lifecycle. (`internal/harness/`)
+- **First-agent CLI wayfinding verification** — the harness now checks that first-agent CLI wayfinding stays discoverable. (`internal/harness/`)
+- **Agent startup resume verification** — agent startup resume now has focused checkpoint coverage. (`agent/`, `internal/harness/`)
+- **Direct first-agent chat prompts** — first-agent flows can accept direct chat prompts, reducing friction in the first useful conversation. (`cmd/micro/`, `agent/`)
+- **Workflow run info on tool spans** — agent tool spans now include workflow run details for easier trace correlation. (`agent/`, `flow/`)
 
 ### Fixed
 - **Stream fallback memory** — unsupported streaming attempts no longer leave stale duplicate user turns before fallback paths continue with non-streaming agent calls. (`agent/`)
 - **Function-style text tool calls** — agent fallback parsing now recognizes provider replies that render tools as function-style calls, including nested JSON arguments. (`agent/`)
 - **Plan/delegate notify recovery** — plan-delegate recovery now waits for recovered notify side effects and routes retries through the communications agent that owns the notification. (`internal/harness/`)
+- **Onboarding side-effect enforcement** — the agent-flow harness now fails when required onboarding side effects are missing, making lifecycle regressions visible. (`internal/harness/`)
+- **Plan/delegate notify stability** — notify recovery is more deterministic across retry and replay paths. (`agent/`, `internal/harness/`)
+- **AtlasCloud MiniMax tool fallback** — AtlasCloud MiniMax service-tool fallback now handles 400 responses and follow-up retries more reliably. (`ai/atlascloud/`, `agent/`)
 
 ### Documentation
 - **First-agent docs wayfinding guard** — the local harness now includes a focused no-network check for first-agent and 0→hero docs links. (`Makefile`, `internal/harness/`)
