@@ -10,7 +10,9 @@ require (
 	github.com/golang/protobuf latest
 	google.golang.org/protobuf latest
 )
-`
+{{if .MicroReplace}}
+replace go-micro.dev/v6 => {{.MicroReplace}}
+{{end}}`
 
 	// ModuleNoProto is the default go.mod: no protobuf dependencies.
 	// MicroVersion is the version this CLI was built from (or "latest"), so a
@@ -20,5 +22,7 @@ require (
 go 1.23
 
 require go-micro.dev/v6 {{.MicroVersion}}
-`
+{{if .MicroReplace}}
+replace go-micro.dev/v6 => {{.MicroReplace}}
+{{end}}`
 )

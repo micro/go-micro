@@ -31,7 +31,7 @@ func TestZeroToOneContract(t *testing.T) {
 		}
 	}
 
-	generated.replaceModule(t)
+	generated.assertLocalModule(t)
 	generated.build(t)
 	generated.run(t)
 	generated.call(t, "Alice", "Hello Alice")
@@ -52,7 +52,7 @@ func TestZeroToOneNoMCPContract(t *testing.T) {
 		t.Fatalf("--no-mcp generated main.go with MCP wiring:\n%s", main)
 	}
 
-	generated.replaceModule(t)
+	generated.assertLocalModule(t)
 	generated.build(t)
 	generated.run(t)
 	generated.call(t, "Bob", "Hello Bob")
@@ -112,6 +112,7 @@ func generateService(t *testing.T, name string, args ...string) generatedService
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Setenv("MICRO_NEW_GO_MICRO_REPLACE", repoRoot)
 
 	tmp := t.TempDir()
 	oldwd, err := os.Getwd()
@@ -142,7 +143,7 @@ func generateService(t *testing.T, name string, args ...string) generatedService
 	return generatedService{dir: filepath.Join(tmp, name), repoRoot: repoRoot}
 }
 
-func (g generatedService) replaceModule(t *testing.T) {
+func (g generatedService) assertLocalModule(t *testing.T) {
 	t.Helper()
 
 	modPath := filepath.Join(g.dir, "go.mod")
@@ -150,10 +151,9 @@ func (g generatedService) replaceModule(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	modText := strings.Replace(string(mod), "go-micro.dev/v6 latest", "go-micro.dev/v6 v6.0.0", 1)
-	modText += "\nreplace go-micro.dev/v6 => " + filepath.ToSlash(g.repoRoot) + "\n"
-	if err := os.WriteFile(modPath, []byte(modText), 0644); err != nil {
-		t.Fatal(err)
+	want := "replace go-micro.dev/v6 => " + filepath.ToSlash(g.repoRoot)
+	if !strings.Contains(string(mod), want) {
+		t.Fatalf("generated go.mod missing local replace %q:\n%s", want, mod)
 	}
 }
 
