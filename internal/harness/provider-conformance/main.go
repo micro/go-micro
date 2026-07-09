@@ -250,9 +250,9 @@ func mark(ok bool) string {
 
 func printCapabilityMatrix() {
 	fmt.Println("Provider capability matrix:")
-	fmt.Println("provider     model  image  video  stream")
+	fmt.Println("provider     model  image  video  stream  tool-stream")
 	for _, row := range ai.CapabilityRows() {
-		fmt.Printf("%-12s %-5s  %-5s  %-5s  %-6s\n", row.Provider, yesNo(row.Model), yesNo(row.Image), yesNo(row.Video), yesNo(row.Stream))
+		fmt.Printf("%-12s %-5s  %-5s  %-5s  %-6s  %-11s\n", row.Provider, yesNo(row.Model), yesNo(row.Image), yesNo(row.Video), yesNo(row.Stream), yesNo(row.ToolStream))
 	}
 	fmt.Println()
 }

@@ -38,6 +38,16 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestBundledProviderImportsIncludeMiniMaxForConformance(t *testing.T) {
+	if model := ai.New("minimax", ai.WithAPIKey("test-key")); model == nil {
+		t.Fatal("ai.New(\"minimax\") returned nil; agent live conformance cannot exercise MiniMax")
+	}
+	caps := ai.ProviderCapabilities("minimax")
+	if !caps.Stream || !caps.ToolStream {
+		t.Fatalf("MiniMax capabilities = %#v, want streaming and tool streaming registered", caps)
+	}
+}
+
 func TestChatResponseIncludesRunIDs(t *testing.T) {
 	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
 		return &ai.Response{Reply: "ok"}, nil
