@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — With the provider-specific AtlasCloud tool-streaming mismatch shipped in #4477 and #4438 closed, the next highest-value risk is the broader streaming matrix. Expand provider-gated coverage so chat, agent RPC, and A2A streaming regressions are caught across keyed providers while local CI continues to skip cleanly without secrets.
+1. **Verify the CLI inner-loop contract** ([#4483](https://github.com/micro/go-micro/issues/4483)) — With provider streaming conformance closed by #4481 and the first-agent wayfinding/install smoke path recently tightened, the highest-value next gap is the adoption contract itself: scaffold → run → chat → inspect → deploy dry-run should be one provider-free, CI-verified path that matches the README, website guides, and examples. This keeps the services → agents → workflows lifecycle walkable before the loop returns to deeper resilience hardening.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
