@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -137,6 +139,126 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 			t.Fatalf("micro agent demo output missing %q:\n%s", want, out.String())
 		}
 	}
+}
+
+func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", ".."))
+	outputs := map[string]string{
+		"micro docs":         commandOutput(t, commandByName(t, "docs")),
+		"micro examples":     commandOutput(t, commandByName(t, "examples")),
+		"micro zero-to-hero": commandOutput(t, commandByName(t, "zero-to-hero")),
+	}
+	agent := commandByName(t, "agent")
+	outputs["micro agent demo"] = commandOutput(t, subcommandByName(t, agent, "demo"))
+
+	contracts := []struct {
+		name    string
+		file    string
+		markers []string
+	}{
+		{
+			name: "README first-agent on-ramp",
+			file: filepath.Join(root, "README.md"),
+			markers: []string{
+				"micro agent demo",
+				"micro examples",
+				"micro zero-to-hero",
+				"examples/first-agent/",
+				"examples/support/",
+				"internal/website/docs/guides/no-secret-first-agent.md",
+				"internal/website/docs/guides/your-first-agent.md",
+				"internal/website/docs/guides/debugging-agents.md",
+				"internal/website/docs/guides/zero-to-hero.md",
+			},
+		},
+		{
+			name: "website getting-started first-agent on-ramp",
+			file: filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			markers: []string{
+				"micro agent demo",
+				"micro examples",
+				"micro zero-to-hero",
+				"github.com/micro/go-micro/tree/master/examples/first-agent",
+				"github.com/micro/go-micro/tree/master/examples/support",
+				"guides/no-secret-first-agent.html",
+				"guides/your-first-agent.html",
+				"guides/debugging-agents.html",
+				"guides/zero-to-hero.html",
+			},
+		},
+	}
+
+	for _, contract := range contracts {
+		doc := readTestFile(t, contract.file)
+		for _, marker := range contract.markers {
+			if !strings.Contains(doc, marker) {
+				t.Fatalf("%s missing documented first-agent marker %q", contract.name, marker)
+			}
+			if isCLIContractMarker(marker) && !cliOutputsContain(outputs, marker) {
+				t.Fatalf("%s documents %q, but none of the first-agent CLI outputs mention it; keep README/website breadcrumbs aligned with micro agent demo/examples/zero-to-hero", contract.name, marker)
+			}
+			assertMaintainedFirstAgentPath(t, root, marker)
+		}
+	}
+}
+
+func commandOutput(t *testing.T, command *cli.Command) string {
+	t.Helper()
+	var out bytes.Buffer
+	app := cli.NewApp()
+	app.Writer = &out
+	if err := command.Action(cli.NewContext(app, nil, nil)); err != nil {
+		t.Fatalf("%s failed: %v", command.Name, err)
+	}
+	return out.String()
+}
+
+func cliOutputsContain(outputs map[string]string, marker string) bool {
+	for command, out := range outputs {
+		if command == marker || strings.Contains(out, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func isCLIContractMarker(marker string) bool {
+	return strings.HasPrefix(marker, "micro ") || strings.HasPrefix(marker, "go run ") || strings.HasPrefix(marker, "go test ") || strings.Contains(marker, ".html")
+}
+
+func assertMaintainedFirstAgentPath(t *testing.T, root, marker string) {
+	t.Helper()
+	pathChecks := map[string]string{
+		"go run ./examples/first-agent":                              "examples/first-agent",
+		"examples/first-agent/":                                      "examples/first-agent",
+		"examples/support/":                                          "examples/support",
+		"internal/website/docs/guides/no-secret-first-agent.md":      "internal/website/docs/guides/no-secret-first-agent.md",
+		"internal/website/docs/guides/your-first-agent.md":           "internal/website/docs/guides/your-first-agent.md",
+		"internal/website/docs/guides/debugging-agents.md":           "internal/website/docs/guides/debugging-agents.md",
+		"internal/website/docs/guides/zero-to-hero.md":               "internal/website/docs/guides/zero-to-hero.md",
+		"guides/no-secret-first-agent.html":                          "internal/website/docs/guides/no-secret-first-agent.md",
+		"guides/your-first-agent.html":                               "internal/website/docs/guides/your-first-agent.md",
+		"guides/debugging-agents.html":                               "internal/website/docs/guides/debugging-agents.md",
+		"guides/zero-to-hero.html":                                   "internal/website/docs/guides/zero-to-hero.md",
+		"github.com/micro/go-micro/tree/master/examples/first-agent": "examples/first-agent",
+		"github.com/micro/go-micro/tree/master/examples/support":     "examples/support",
+	}
+	path, ok := pathChecks[marker]
+	if !ok {
+		return
+	}
+	if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err != nil {
+		t.Fatalf("documented first-agent path %q from marker %q does not resolve: %v", path, marker, err)
+	}
+}
+
+func readTestFile(t *testing.T, path string) string {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read %s: %v", path, err)
+	}
+	return string(b)
 }
 
 func commandByName(t *testing.T, name string) *cli.Command {
