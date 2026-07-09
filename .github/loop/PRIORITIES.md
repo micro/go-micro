@@ -21,8 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Fix AtlasCloud tool streaming capability mismatch** ([#4438](https://github.com/micro/go-micro/issues/4438)) — With the offline `micro new` 0→1 contract shipped, the top open risk is the provider capability/implementation seam: AtlasCloud still advertises streaming capability beyond its tool-streaming implementation, causing live agent streaming conformance to run an unsupported assertion. Fixing this keeps provider-backed chat and agent streaming honest without re-opening the no-secret adoption path.
-2. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — Once the provider-specific AtlasCloud mismatch is resolved, expand the broader streaming matrix so chat, agent RPC, and A2A streaming regressions are caught across keyed providers while local CI continues to skip cleanly without secrets.
+1. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — With the provider-specific AtlasCloud tool-streaming mismatch shipped in #4477 and #4438 closed, the next highest-value risk is the broader streaming matrix. Expand provider-gated coverage so chat, agent RPC, and A2A streaming regressions are caught across keyed providers while local CI continues to skip cleanly without secrets.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
