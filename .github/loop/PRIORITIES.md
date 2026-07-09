@@ -21,9 +21,9 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Verify first-agent docs wayfinding stays in lockstep** ([#4441](https://github.com/micro/go-micro/issues/4441)) — Developer adoption remains the current goal after the 0→1/0→hero harness landed. Keep README, website guides, examples, and CLI breadcrumbs aligned so the no-secret first-agent path stays discoverable instead of becoming a stale documentation promise.
-2. **Fix AtlasCloud tool streaming capability mismatch** ([#4438](https://github.com/micro/go-micro/issues/4438)) — The provider matrix currently advertises AtlasCloud streaming capability beyond its tool-streaming implementation, causing the live agent streaming conformance path to run an unsupported assertion. Fixing the capability/implementation seam keeps streaming honest without blocking no-secret adoption work.
-3. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — Once the provider-specific AtlasCloud mismatch is resolved, expand the broader streaming matrix so chat, agent RPC, and A2A streaming regressions are caught across keyed providers while local CI continues to skip cleanly without secrets.
+1. **Handle AtlasCloud incomplete repaired plan tool calls** ([#4455](https://github.com/micro/go-micro/issues/4455)) — The latest provider harness failure is in the core services → agents → workflows path: AtlasCloud can complete the workspace and notification side effects, then fail the event-driven onboarding flow on an incomplete repaired `plan` tool call. Fix this first because it makes the live agent-flow contract unreliable and can mask real provider parsing defects.
+2. **Fix AtlasCloud tool streaming capability mismatch** ([#4438](https://github.com/micro/go-micro/issues/4438)) — The provider matrix still advertises AtlasCloud streaming capability beyond its tool-streaming implementation, causing the live agent streaming conformance path to run an unsupported assertion. Fixing the capability/implementation seam keeps streaming honest without blocking no-secret adoption work.
+3. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — Once the provider-specific AtlasCloud failures are resolved, expand the broader streaming matrix so chat, agent RPC, and A2A streaming regressions are caught across keyed providers while local CI continues to skip cleanly without secrets.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
