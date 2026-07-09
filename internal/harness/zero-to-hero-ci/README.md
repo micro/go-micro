@@ -32,8 +32,12 @@ and A2A with only the LLM mocked.
 
 The default GitHub harness workflow runs this script on every push and pull
 request after the install smoke check and 0→1 scaffold contract. Developers can
-verify the first-agent on-ramp links alone with `make docs-wayfinding`, verify
-the installed first-run CLI seam alone with `make install-smoke`, run just the documented
+verify the first-agent on-ramp links and CLI command-output parity with
+`make docs-wayfinding` whenever README or website first-agent breadcrumbs,
+`micro agent demo`, `micro examples`, or `micro zero-to-hero` change. That
+check is provider-free and fails if documented command names, guide links, or
+maintained no-secret example paths drift from the CLI outputs. To verify the
+installed first-run CLI seam alone, use `make install-smoke`; to run just the documented
 agent debugging quickcheck with
 `go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1`,
 or run the same no-secret contract locally with:

@@ -21,7 +21,7 @@ help:
 	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
 	@echo "  make inner-loop    - Verify scaffold → run/chat/inspect → deploy dry-run contract"
 	@echo "  make cli-wayfinding - Verify installed first-agent CLI wayfinding commands"
-	@echo "  make docs-wayfinding - Verify first-agent docs wayfinding links resolve locally"
+	@echo "  make docs-wayfinding - Verify first-agent docs/CLI wayfinding stays in sync"
 	@echo "  make install-smoke - Verify the local install.sh and first-run CLI smoke path"
 	@echo "  make provider-conformance-mock - Run cross-provider harness with deterministic mock provider"
 	@echo "  make provider-conformance - Run harnesses against configured live providers"
@@ -81,6 +81,7 @@ cli-wayfinding:
 # developer-adoption on-ramp.
 docs-wayfinding:
 	go test ./internal/harness/zero-to-hero-ci -run 'TestFirstAgentWayfindingDocs|TestFirstAgentWayfindingLinkTargetsResolve' -count=1
+	go test ./cmd/micro -run 'TestFirstAgentDocsMatchCLIOutput|TestFirstAgentWalkthroughCLIBoundaries' -count=1
 
 # Verify the documented install script and first-run CLI command boundaries without
 # provider keys or network access.
