@@ -158,11 +158,11 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			return nil, fmt.Errorf("atlascloud partial text tool-call repair failed for %q: %w", toolName, err)
 		}
 		if atlascloudPartialTextToolCallName(resp.Reply, req.Tools) != "" && len(resp.ToolCalls) == 0 {
-			if toolName == "plan" {
-				resp.Reply = atlascloudPlanFallbackTextToolCall(req.Prompt)
-			} else {
+			fallback := atlascloudFallbackTextToolCall(toolName, req)
+			if fallback == "" {
 				return nil, fmt.Errorf("atlascloud returned incomplete text tool call for %q after repair", toolName)
 			}
+			resp.Reply = fallback
 		}
 	}
 
@@ -526,6 +526,17 @@ func atlascloudPartialTextToolCallName(text string, tools []ai.Tool) string {
 	return ""
 }
 
+func atlascloudFallbackTextToolCall(toolName string, req *ai.Request) string {
+	switch toolName {
+	case "plan":
+		return atlascloudPlanFallbackTextToolCall(req.Prompt)
+	case "delegate":
+		return atlascloudDelegateFallbackTextToolCall(req)
+	default:
+		return ""
+	}
+}
+
 func atlascloudPlanFallbackTextToolCall(prompt string) string {
 	task := strings.TrimSpace(prompt)
 	if task == "" {
@@ -541,6 +552,49 @@ func atlascloudPlanFallbackTextToolCall(prompt string) string {
 		return `<tool_call name="plan">{"steps":[{"task":"continue the requested work","status":"pending"}]}</tool_call>`
 	}
 	return `<tool_call name="plan">` + string(args) + `</tool_call>`
+}
+
+func atlascloudDelegateFallbackTextToolCall(req *ai.Request) string {
+	ctxText := atlascloudRequestText(req)
+	task := strings.TrimSpace(req.Prompt)
+	if task == "" {
+		task = strings.TrimSpace(ctxText)
+	}
+	if task == "" {
+		task = "continue the requested delegated work"
+	}
+
+	args := map[string]any{"task": task}
+	if strings.Contains(strings.ToLower(ctxText), "comms") {
+		args["to"] = "comms"
+	}
+	b, err := json.Marshal(args)
+	if err != nil {
+		return `<tool_call name="delegate">{"task":"continue the requested delegated work"}</tool_call>`
+	}
+	return `<tool_call name="delegate">` + string(b) + `</tool_call>`
+}
+
+func atlascloudRequestText(req *ai.Request) string {
+	if req == nil {
+		return ""
+	}
+	var parts []string
+	if req.SystemPrompt != "" {
+		parts = append(parts, req.SystemPrompt)
+	}
+	for _, msg := range req.Messages {
+		switch c := msg.Content.(type) {
+		case string:
+			parts = append(parts, c)
+		default:
+			parts = append(parts, fmt.Sprint(c))
+		}
+	}
+	if req.Prompt != "" {
+		parts = append(parts, req.Prompt)
+	}
+	return strings.Join(parts, "\n")
 }
 
 func atlascloudMinimaxCompatTools(model string, input []ai.Tool) ([]map[string]any, string) {
