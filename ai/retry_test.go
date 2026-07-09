@@ -135,6 +135,34 @@ func TestGenerateWithRetryAddsAttemptMetadataToRunInfo(t *testing.T) {
 	}
 }
 
+func TestGenerateWithRetryReturnsWhenProviderIgnoresTimeout(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	model := retryModel{generate: func(ctx context.Context, req *Request, opts ...GenerateOption) (*Response, error) {
+		close(started)
+		<-release
+		return &Response{Reply: "late"}, nil
+	}}
+	defer close(release)
+
+	start := time.Now()
+	_, err := GenerateWithRetry(context.Background(), model, &Request{Prompt: "hi"}, GeneratePolicy{
+		Timeout:     10 * time.Millisecond,
+		MaxAttempts: 1,
+	})
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("GenerateWithRetry error = %v, want deadline exceeded", err)
+	}
+	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
+		t.Fatalf("GenerateWithRetry took %s after deadline, want prompt return", elapsed)
+	}
+	select {
+	case <-started:
+	default:
+		t.Fatal("provider was not called")
+	}
+}
+
 type statusErr int
 
 func (e statusErr) Error() string   { return "provider status" }

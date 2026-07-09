@@ -157,7 +157,7 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 			info.MaxAttempts = policy.MaxAttempts
 			callCtx = WithRunInfo(callCtx, info)
 		}
-		resp, err := m.Generate(callCtx, req, opts...)
+		resp, err := generateAttempt(callCtx, m, req, opts...)
 		cancel()
 
 		// Caller cancellation/deadline always wins and is not retried, even if
@@ -195,6 +195,27 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		}
 	}
 	return nil, &RetryError{Attempts: policy.MaxAttempts, Kind: ClassifyError(last), Err: last}
+}
+
+func generateAttempt(ctx context.Context, m Model, req *Request, opts ...GenerateOption) (*Response, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	type result struct {
+		resp *Response
+		err  error
+	}
+	done := make(chan result, 1)
+	go func() {
+		resp, err := m.Generate(ctx, req, opts...)
+		done <- result{resp: resp, err: err}
+	}()
+	select {
+	case res := <-done:
+		return res.resp, res.err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
 func retryBackoff(err error, attempt int, base time.Duration) time.Duration {
