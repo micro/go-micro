@@ -21,7 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Verify the CLI inner-loop contract** ([#4483](https://github.com/micro/go-micro/issues/4483)) — With provider streaming conformance closed by #4481 and the first-agent wayfinding/install smoke path recently tightened, the highest-value next gap is the adoption contract itself: scaffold → run → chat → inspect → deploy dry-run should be one provider-free, CI-verified path that matches the README, website guides, and examples. This keeps the services → agents → workflows lifecycle walkable before the loop returns to deeper resilience hardening.
+1. **Fix AtlasCloud plan-delegate incomplete delegate tool call** ([#4487](https://github.com/micro/go-micro/issues/4487)) — The adoption-facing inner-loop contract is now shipped, and there are no open `codex` PRs in flight, so the top remaining gap returns to a Now-phase resilience failure in the lived services → agents → workflows story: AtlasCloud can create task side effects, then stop on an incomplete repaired `delegate` tool call before notification/delegation completes. This is higher value than a single marker wording failure because it protects the cross-runtime handoff after real side effects and keeps the 0→hero/plan-delegate harness operable across providers.
+2. **Fix AtlasCloud agent harness missing conformance marker** ([#4486](https://github.com/micro/go-micro/issues/4486)) — Once the delegate repair path is stable, close the remaining scheduled live-conformance gap where AtlasCloud's agent harness exhausts retries without emitting the required marker. This is still a Now-phase provider-conformance item, but narrower: it verifies the core agent/model+tool contract rather than the full services → agents → workflows handoff.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
