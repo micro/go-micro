@@ -229,7 +229,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 						// inspects Reply for text fallback calls after Generate returns.
 						resp.Reply = followUpResp.Reply
 					} else {
-						resp.Answer = followUpResp.Reply
+						resp.Answer = atlascloudAnswerWithRequiredToolMarkers(followUpResp.Reply, toolResults, allToolCalls)
 					}
 				} else if len(toolResults) > 0 {
 					resp.Answer = strings.Join(toolResults, "\n")
@@ -247,6 +247,27 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	}
 
 	return resp, nil
+}
+
+func atlascloudAnswerWithRequiredToolMarkers(answer string, toolResults []string, toolCalls []ai.ToolCall) string {
+	if strings.Contains(answer, "agent-conformance") || !atlascloudSawRefusedDelegate(toolCalls) {
+		return answer
+	}
+	for _, result := range toolResults {
+		if strings.Contains(result, "agent-conformance") {
+			return strings.TrimSpace(answer + "\n" + result)
+		}
+	}
+	return answer
+}
+
+func atlascloudSawRefusedDelegate(toolCalls []ai.ToolCall) bool {
+	for _, call := range toolCalls {
+		if call.Name == "delegate" && call.Error != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // Stream generates a streaming response from Atlas Cloud's OpenAI-compatible
