@@ -252,6 +252,114 @@ func TestGenerateWithRetryCapsRetryAfter(t *testing.T) {
 	}
 }
 
+func TestGenerateWithRetryDoesNotRetryPermanentProviderErrors(t *testing.T) {
+	attempts := 0
+	model := retryModel{generate: func(context.Context, *Request, ...GenerateOption) (*Response, error) {
+		attempts++
+		return nil, statusErr(400)
+	}}
+
+	_, err := GenerateWithRetry(context.Background(), model, &Request{Prompt: "hi"}, GeneratePolicy{
+		MaxAttempts: 3,
+		Backoff:     time.Millisecond,
+	})
+	if !errors.Is(err, statusErr(400)) {
+		t.Fatalf("error = %v, want original provider status", err)
+	}
+	var retryErr *RetryError
+	if errors.As(err, &retryErr) {
+		t.Fatalf("error = %T %[1]v, want permanent provider error without retry wrapper", err)
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts = %d, want no retry for permanent provider errors", attempts)
+	}
+}
+
+func TestGenerateWithRetryDefaultsToSingleAttempt(t *testing.T) {
+	attempts := 0
+	model := retryModel{generate: func(context.Context, *Request, ...GenerateOption) (*Response, error) {
+		attempts++
+		return nil, errors.New("temporary provider outage")
+	}}
+
+	_, err := GenerateWithRetry(context.Background(), model, &Request{Prompt: "hi"}, GeneratePolicy{
+		Backoff: time.Millisecond,
+	})
+	var retryErr *RetryError
+	if !errors.As(err, &retryErr) {
+		t.Fatalf("error = %T %[1]v, want retry error for exhausted transient attempt", err)
+	}
+	if retryErr.Attempts != 1 {
+		t.Fatalf("retry attempts = %d, want default single attempt", retryErr.Attempts)
+	}
+	if attempts != 1 {
+		t.Fatalf("model attempts = %d, want default single attempt", attempts)
+	}
+}
+
+func TestGenerateWithRetryStopsDuringBackoffWhenCallerCancels(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var attempts atomic.Int32
+	model := retryModel{generate: func(context.Context, *Request, ...GenerateOption) (*Response, error) {
+		attempts.Add(1)
+		return nil, statusErr(503)
+	}}
+
+	errc := make(chan error, 1)
+	go func() {
+		_, err := GenerateWithRetry(ctx, model, &Request{Prompt: "hi"}, GeneratePolicy{
+			MaxAttempts: 3,
+			Backoff:     time.Hour,
+		})
+		errc <- err
+	}()
+
+	deadline := time.After(time.Second)
+	for attempts.Load() == 0 {
+		select {
+		case err := <-errc:
+			t.Fatalf("GenerateWithRetry returned before first attempt cancellation: %v", err)
+		case <-deadline:
+			t.Fatal("provider was not called")
+		default:
+			time.Sleep(time.Millisecond)
+		}
+	}
+
+	start := time.Now()
+	cancel()
+	select {
+	case err := <-errc:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("error = %v, want context.Canceled", err)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("GenerateWithRetry did not stop promptly during backoff cancellation")
+	}
+	if elapsed := time.Since(start); elapsed > 200*time.Millisecond {
+		t.Fatalf("backoff cancellation took %s, want prompt return", elapsed)
+	}
+	if got := attempts.Load(); got != 1 {
+		t.Fatalf("attempts = %d, want cancellation before retry", got)
+	}
+}
+
+func TestRetryBackoffUsesExponentialBaseAndCap(t *testing.T) {
+	if got := retryBackoff(statusErr(503), 1, 10*time.Millisecond); got != 10*time.Millisecond {
+		t.Fatalf("attempt 1 backoff = %s, want 10ms", got)
+	}
+	if got := retryBackoff(statusErr(503), 2, 10*time.Millisecond); got != 20*time.Millisecond {
+		t.Fatalf("attempt 2 backoff = %s, want 20ms", got)
+	}
+	if got := retryBackoff(statusErr(503), 3, 10*time.Millisecond); got != 40*time.Millisecond {
+		t.Fatalf("attempt 3 backoff = %s, want 40ms", got)
+	}
+	if got := retryBackoff(statusErr(503), 20, time.Second); got != 30*time.Second {
+		t.Fatalf("large backoff = %s, want 30s cap", got)
+	}
+}
+
 func TestHTTPErrorExposesStatusAndRetryAfter(t *testing.T) {
 	resp := &http.Response{
 		Status:     "429 Too Many Requests",
