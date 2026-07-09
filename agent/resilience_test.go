@@ -240,6 +240,55 @@ func TestAskCancellationDuringToolCallFailsRun(t *testing.T) {
 	}
 }
 
+func TestSlowProviderTimeoutPreventsLateToolSideEffects(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	done := make(chan struct{})
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		close(started)
+		<-release
+		defer close(done)
+		if opts.ToolHandler == nil {
+			t.Fatal("missing tool handler")
+		}
+		res := opts.ToolHandler(ctx, ai.ToolCall{ID: "late-1", Name: "external.create", Input: map[string]any{"title": "too late"}})
+		if !strings.Contains(res.Content, context.DeadlineExceeded.Error()) {
+			t.Errorf("late tool result = %q, want deadline exceeded", res.Content)
+		}
+		return &ai.Response{Reply: "late", ToolCalls: []ai.ToolCall{{ID: "late-1", Name: "external.create", Input: map[string]any{"title": "too late"}, Result: res.Content}}}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	toolRuns := 0
+	a := newTestAgent(
+		Name("slow-provider-late-tool"),
+		ModelCallTimeout(10*time.Millisecond),
+		WithTool("external.create", "create once", nil, func(context.Context, map[string]any) (string, error) {
+			toolRuns++
+			return "created", nil
+		}),
+	)
+
+	_, err := a.Ask(context.Background(), "provider times out before tool")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("Ask error = %v, want deadline exceeded", err)
+	}
+	select {
+	case <-started:
+	default:
+		t.Fatal("provider was not called")
+	}
+	close(release)
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("late provider call did not finish")
+	}
+	if toolRuns != 0 {
+		t.Fatalf("late tool executions = %d, want 0", toolRuns)
+	}
+}
+
 func TestAskCheckpointRecordsTerminalOperationalFailureStatus(t *testing.T) {
 	tests := []struct {
 		name string
