@@ -35,5 +35,5 @@ run_step "first-agent app: runnable provider-free example" \
   go test ./examples/first-agent -run TestRunFirstAgent -count=1
 run_step "0→hero app: support lifecycle smoke" \
   go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1
-run_step "workflows: deterministic services → agents → workflows harnesses" \
+run_step "flow history: deterministic services → agents → workflows harnesses" \
   go test ./internal/harness/universe ./internal/harness/plan-delegate -run 'Test.*Harness|TestPlanDelegateEndToEnd|TestPlanDelegateFlowHandoff' -count=1
