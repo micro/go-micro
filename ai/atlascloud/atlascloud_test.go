@@ -598,7 +598,7 @@ func TestProvider_GenerateFallsBackAfterRepeatedPartialPlanTextToolCall(t *testi
 	}
 }
 
-func TestProvider_GenerateErrorsAfterRepeatedPartialNonPlanTextToolCall(t *testing.T) {
+func TestProvider_GenerateFallsBackAfterRepeatedPartialDelegateTextToolCall(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"delegate\">"}}]}`))
@@ -610,12 +610,18 @@ func TestProvider_GenerateErrorsAfterRepeatedPartialNonPlanTextToolCall(t *testi
 		ai.WithBaseURL(ts.URL),
 		ai.WithModel("minimaxai/minimax-m3"),
 	)
-	_, err := p.Generate(context.Background(), &ai.Request{
-		Prompt: "plan and delegate",
-		Tools:  []ai.Tool{{Name: "delegate", Description: "delegate work"}},
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		SystemPrompt: "You coordinate launch work and delegate readiness notifications to the comms agent.",
+		Prompt:       "delegate the owner readiness notification to comms",
+		Tools:        []ai.Tool{{Name: "delegate", Description: "delegate work"}},
 	})
-	if err == nil || !strings.Contains(err.Error(), "incomplete text tool call") {
-		t.Fatalf("Generate error = %v, want incomplete text tool call error", err)
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	for _, want := range []string{`<tool_call name="delegate">`, `"task":"delegate the owner readiness notification to comms"`, `"to":"comms"`, `</tool_call>`} {
+		if !strings.Contains(resp.Reply, want) {
+			t.Fatalf("Reply = %q, want delegate fallback containing %q", resp.Reply, want)
+		}
 	}
 }
 
