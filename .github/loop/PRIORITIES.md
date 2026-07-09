@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Harden agent provider timeouts and cancellation** ([#4408](https://github.com/micro/go-micro/issues/4408)) — #4406 closed the durable-agent checkpoint slice, and the getting-started path is now covered by no-secret harnesses, so the highest-value Now-phase gap is failure behavior: deadlines, cancellations, and slow-provider exits must stop cleanly, avoid duplicate tool calls, and preserve debuggable run metadata without public API churn.
+1. **Fix race in GenerateWithRetry timeout test** ([#4415](https://github.com/micro/go-micro/issues/4415)) — #4411 closed the provider-timeout hardening slice, but the follow-up CI signal shows the new per-attempt timeout coverage has an unsafe test-local counter under `go test -race`. Restore the green evaluator first so the loop can safely continue shipping adoption and harness work.
 2. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — The blog says Anthropic streaming shipped, but the roadmap still calls for provider-backed streaming across chat and A2A. Add a focused, provider-gated conformance slice so streaming stays end-to-end rather than becoming a one-provider success story.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
