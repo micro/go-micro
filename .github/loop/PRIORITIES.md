@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Fix race in GenerateWithRetry timeout test** ([#4415](https://github.com/micro/go-micro/issues/4415)) — #4411 closed the provider-timeout hardening slice, but the follow-up CI signal shows the new per-attempt timeout coverage has an unsafe test-local counter under `go test -race`. Restore the green evaluator first so the loop can safely continue shipping adoption and harness work.
+1. **Reconcile roadmap status with shipped agent resume and observability** ([#4423](https://github.com/micro/go-micro/issues/4423)) — The lived code and recent PRs have moved durable agent checkpoint/resume and RunInfo/OpenTelemetry inspection forward, but the roadmap still reads as if those are wholly future work. Tighten the public status story so developer-adoption wayfinding reflects what actually shipped without turning this into a brand rewrite.
 2. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — The blog says Anthropic streaming shipped, but the roadmap still calls for provider-backed streaming across chat and A2A. Add a focused, provider-gated conformance slice so streaming stays end-to-end rather than becoming a one-provider success story.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
