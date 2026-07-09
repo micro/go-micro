@@ -11,7 +11,7 @@ Go Micro is a framework for building **agents and services** in Go. An agent is 
 The foundation is in place:
 
 - **Services** — register, discover, RPC, events; every endpoint is automatically an MCP tool.
-- **Agents** — a model with memory and tools that manages services, with `plan`, `delegate`, and guardrails (`MaxSteps`, `LoopLimit`, `ApproveTool`) built in, plus tool-execution middleware (`WrapTool`) and run metadata.
+- **Agents** — a model with memory and tools that manages services, with `plan`, `delegate`, guardrails (`MaxSteps`, `LoopLimit`, `ApproveTool`), tool-execution middleware (`WrapTool`), run metadata, checkpoint/resume, and OpenTelemetry run spans built in.
 - **Flows** — durable, event-driven workflows: ordered steps that checkpoint and resume after a crash.
 - **Interop** — the MCP gateway (services as tools) and the A2A gateway (agents as agents, both directions, including A2A streaming, push notifications, and multi-turn continuation), both generated from the registry; x402 for paid tools.
 - **Secure by default** — TLS verification on, state scoped per component.
@@ -34,10 +34,24 @@ The priority is that what exists works everywhere, under real conditions.
 - **Failure & resilience.** Provider timeouts, rate limits, and cancellation mid-run; deadline/`context` propagation through the agent loop; retry and backoff at the model call.
 - **The getting-started contract.** Define and CI-verify the 0→1 and 0→hero flows so they can't silently break.
 
+## Shipped agent depth
+
+- **Durable agent loop.** Opt-in `Checkpoint` support now lets agent `Ask` and
+  streaming runs persist, list pending work, and resume without replaying completed
+  tool calls. Human-input pauses resume through explicit input helpers.
+- **Agent observability.** `RunInfo` now feeds OpenTelemetry spans and events for
+  agent runs, model turns, tool calls, retries, delegation lineage, and resume
+  checkpoints so production runs are traceable.
+
 ## Next — agentic depth
 
 - **Streaming.** Broaden provider-backed `ai.Stream` coverage and keep chat plus A2A `message/stream` working end to end for real chat and long-task UX.
-- **Agent observability.** Wire the new `RunInfo` into OpenTelemetry spans so a run — steps, tool calls, delegation — is traceable. This is also what anyone running it in production will need.
+- **Resume operations polish.** Keep improving CLI/docs breadcrumbs for finding
+  pending agent runs and deciding whether to call resume, resume-input, or stream
+  resume in production.
+- **Observability hardening.** Keep span attributes and run inspection coherent
+  across agents, flows, and gateways as more providers and workflow paths are
+  exercised.
 
 ## Later
 
