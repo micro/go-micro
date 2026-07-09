@@ -50,6 +50,19 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 			t.Fatalf("0→hero CI run script missing lifecycle command %q", want)
 		}
 	}
+	for _, want := range []string{
+		"scaffold:",
+		"run/chat/inspect:",
+		"deploy dry-run:",
+		"chat/inspect:",
+		"first-agent app:",
+		"0→hero app:",
+		"flow history:",
+	} {
+		if !strings.Contains(runScript, want) {
+			t.Fatalf("0→hero CI run script missing debuggable boundary label %q", want)
+		}
+	}
 
 	readme := readFile(t, filepath.Join(root, "README.md"))
 	if !strings.Contains(readme, "internal/website/docs/guides/zero-to-hero.md") {
