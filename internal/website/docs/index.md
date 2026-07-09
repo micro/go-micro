@@ -16,14 +16,14 @@ It's built on a pluggable architecture of Go interfaces: service discovery, clie
 
 ## Learn More
 
-Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp in the same order as the README: `micro agent demo` for the installed no-secret CLI affordance, `micro examples` for the provider-free examples map, `micro zero-to-hero` for the maintained lifecycle harness, [examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md) for the runnable examples map, [the 0→hero support reference](https://github.com/micro/go-micro/tree/master/examples/support) for the full no-secret lifecycle example, [No-secret first-agent transcript](guides/no-secret-first-agent.html) to run a mock-model support agent, [Your First Agent](guides/your-first-agent.html) to build and chat with a service-backed agent, [Debugging your agent](guides/debugging-agents.html) to inspect runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
+Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp in the same order as the README: `micro agent demo` for the installed no-secret CLI affordance, `micro examples` for the provider-free examples map, `micro zero-to-hero` for the maintained lifecycle harness, [examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md) for the runnable examples map, [the 0→hero support reference](https://github.com/micro/go-micro/tree/master/examples/support) for the full no-secret lifecycle example, [No-secret first-agent transcript](guides/no-secret-first-agent.html) to run a mock-model support agent, [Your First Agent](guides/your-first-agent.html) to build and chat with a service-backed agent, [Debugging your agent](guides/debugging-agents.html) to use `micro inspect agent <name>` for runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
 
 Otherwise continue to read the docs for more information about the framework.
 
 ## Contents
 
 - [Getting Started](getting-started.html)
-- [0→hero Reference](guides/zero-to-hero.html) - Walk scaffold → run → chat → inspect → deploy dry-run with CI-backed commands
+- [0→hero Reference](guides/zero-to-hero.html) - Walk scaffold → run → chat → `micro inspect agent <name>` → deploy dry-run with CI-backed commands
 - `micro agent demo` - Show the provider-free first-agent demo command and next docs steps
 - `micro examples` - Show provider-free first-agent examples in copy/paste order
 - [Examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md) - Choose the first-agent, support, and interop examples from one map
@@ -52,7 +52,7 @@ Otherwise continue to read the docs for more information about the framework.
 
 ## AI & Agents
 
-- [0→hero Reference](guides/zero-to-hero.html) - Walk scaffold → run → chat → inspect → deploy dry-run with CI-backed commands
+- [0→hero Reference](guides/zero-to-hero.html) - Walk scaffold → run → chat → `micro inspect agent <name>` → deploy dry-run with CI-backed commands
 - [No-secret first-agent transcript](guides/no-secret-first-agent.html) - Run the first useful agent path without a provider key
 - [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
 - [Building AI-Native Services](guides/ai-native-services.html) - End-to-end tutorial for MCP-enabled services
