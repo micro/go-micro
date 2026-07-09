@@ -20,6 +20,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"))
 	for _, want := range []string{
 		"make harness",
+		"make inner-loop",
 		"go test ./cmd/micro/cli/new -run TestZeroToOne -count=1",
 		"go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1",
 		"go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1",
@@ -67,6 +68,9 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	readme := readFile(t, filepath.Join(root, "README.md"))
 	if !strings.Contains(readme, "internal/website/docs/guides/zero-to-hero.md") {
 		t.Fatal("README does not point to the canonical 0→hero guide")
+	}
+	if !strings.Contains(readme, "make inner-loop") {
+		t.Fatal("README does not expose the focused CLI inner-loop contract")
 	}
 
 	nav := readFile(t, filepath.Join(root, "internal", "website", "_data", "navigation.yml"))

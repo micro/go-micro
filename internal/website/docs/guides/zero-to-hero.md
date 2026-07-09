@@ -69,6 +69,12 @@ SSH access, or remote service is required.
 
 ## Run focused checks while iterating
 
+Use the dedicated inner-loop target when you need the provider-free CLI contract in one focused command:
+
+```sh
+make inner-loop
+```
+
 Use the smaller checks when you are working on one seam:
 
 ```sh
