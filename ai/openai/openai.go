@@ -22,6 +22,7 @@ func init() {
 		return NewProvider(opts...)
 	})
 	ai.RegisterStream("openai")
+	ai.RegisterToolStream("openai")
 }
 
 // Provider implements the ai.Model interface for OpenAI

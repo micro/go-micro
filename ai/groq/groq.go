@@ -30,6 +30,7 @@ func init() {
 		return NewProvider(opts...)
 	})
 	ai.RegisterStream("groq")
+	ai.RegisterToolStream("groq")
 }
 
 type Provider struct {

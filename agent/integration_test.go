@@ -68,6 +68,8 @@ func init() {
 		_ = m.Init(opts...)
 		return m
 	})
+	ai.RegisterStream("fake")
+	ai.RegisterToolStream("fake")
 }
 
 // fakeClient embeds the default client (so NewRequest works) and

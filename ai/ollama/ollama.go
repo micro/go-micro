@@ -45,6 +45,7 @@ func init() {
 		return NewProvider(opts...)
 	})
 	ai.RegisterStream("ollama")
+	ai.RegisterToolStream("ollama")
 }
 
 // Provider implements the ai.Model interface for Ollama.

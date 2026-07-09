@@ -34,7 +34,7 @@ func TestAIProviderGuideCapabilityMatrixMatchesRegistry(t *testing.T) {
 	guide := string(b)
 
 	for _, row := range ai.CapabilityRows() {
-		want := fmt.Sprintf("| `%s` | %s | %s | %s | %s |", row.Provider, yesNo(row.Model), yesNo(row.Image), yesNo(row.Video), yesNo(row.Stream))
+		want := fmt.Sprintf("| `%s` | %s | %s | %s | %s | %s |", row.Provider, yesNo(row.Model), yesNo(row.Image), yesNo(row.Video), yesNo(row.Stream), yesNo(row.ToolStream))
 		if !strings.Contains(guide, want) {
 			t.Fatalf("AI provider guide capability matrix is stale; missing row %q", want)
 		}

@@ -19,6 +19,7 @@ func init() {
 		return NewProvider(opts...)
 	})
 	ai.RegisterStream("anthropic")
+	ai.RegisterToolStream("anthropic")
 }
 
 // Provider implements the ai.Model interface for Anthropic Claude
