@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — The blog and roadmap now agree that Anthropic streaming shipped, but the roadmap still calls for provider-backed streaming across chat and A2A. Add a focused, provider-gated conformance slice so streaming stays end-to-end rather than becoming a one-provider success story.
-2. **CI-verify the getting-started 0→1 and 0→hero contract** ([#4428](https://github.com/micro/go-micro/issues/4428)) — Developer adoption is the current goal, and the README/website promise scaffold → run → call plus a no-secret services → agents → workflows path. Keep that on-ramp as a CI-verifiable contract with clear failure boundaries so first-agent success stays weighted alongside harness depth.
+1. **CI-verify the getting-started 0→1 and 0→hero contract** ([#4428](https://github.com/micro/go-micro/issues/4428)) — Developer adoption is the current goal, and the README/website promise scaffold → run → call plus a no-secret services → agents → workflows path. Keep that on-ramp as a CI-verifiable contract with clear failure boundaries so first-agent success stays weighted alongside harness depth.
+2. **Handle AtlasCloud plan-delegate partial tool calls** ([#4431](https://github.com/micro/go-micro/issues/4431)) — Recent live conformance showed AtlasCloud/minimax can stop at a partial XML-style tool call, leaving delegation without the required task/notify side effects. Fix this focused provider/tool-call seam next so cross-provider hardening covers the services → agents → workflows loop without masking failed delegation as success.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
