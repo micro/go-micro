@@ -15,6 +15,7 @@ var fencedJSONBlock = regexp.MustCompile("(?s)```(?:json)?\\s*(.*?)\\s*```")
 var taggedToolCallBlock = regexp.MustCompile(`(?s)<[^<>]*(?:tool_call|tool_calls|function=)[^<>]*>(.*?)</[^<>]*>`)
 var singleTaggedToolCall = regexp.MustCompile(`(?s)<(tool_call\b[^<>]*|[^<>]*function\s*=[^<>]*)>(.*?)</[^<>]*>`)
 var taggedToolNameAttr = regexp.MustCompile(`(?i)(?:function|name|tool)\s*=\s*["\']?([^"\'\s>]+)`)
+var openingTaggedToolCall = regexp.MustCompile(`(?i)<(tool_call\b[^<>]*|[^<>]*function\s*=[^<>]*)>`)
 
 type textToolCall struct {
 	ID        string         `json:"id"`
@@ -111,6 +112,37 @@ func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
 		}
 	}
 	return nil
+}
+
+func partialTextToolCallName(text string, tools []ai.Tool) string {
+	text = html.UnescapeString(text)
+	allowed := textToolNames(tools)
+	if len(allowed) == 0 {
+		return ""
+	}
+	openMatches := openingTaggedToolCall.FindAllStringSubmatchIndex(text, -1)
+	if len(openMatches) == 0 {
+		return ""
+	}
+	closedMatches := singleTaggedToolCall.FindAllStringSubmatchIndex(text, -1)
+	for _, open := range openMatches {
+		closed := false
+		for _, match := range closedMatches {
+			if match[0] == open[0] {
+				closed = true
+				break
+			}
+		}
+		if closed {
+			continue
+		}
+		tag := text[open[2]:open[3]]
+		name := taggedToolName(tag)
+		if canonical := allowed[name]; canonical != "" {
+			return canonical
+		}
+	}
+	return ""
 }
 
 func textToolNames(tools []ai.Tool) map[string]string {

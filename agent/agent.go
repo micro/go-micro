@@ -414,6 +414,15 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 				continue
 			}
 		}
+		if toolName := partialTextToolCallName(resp.Reply, toolList); len(resp.ToolCalls) == 0 && toolName != "" && planCompletionTurn < maxPlanCompletionTurns {
+			if resp.Reply != "" {
+				a.mem.Add("assistant", resp.Reply)
+			}
+			message = fmt.Sprintf("Your previous response started a %q tool call but did not finish valid tool-call markup or JSON arguments, so no tool was executed. Retry the same step now by emitting one complete valid tool call for %q. Do not describe the action in prose, and do not claim completion until the tool call succeeds.", toolName, toolName)
+			a.mem.Add("user", message)
+			messages = a.mem.Messages()
+			continue
+		}
 		break
 	}
 

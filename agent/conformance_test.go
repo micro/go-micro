@@ -742,6 +742,61 @@ func TestAgentExecutesProviderTextToolCallFallback(t *testing.T) {
 	}
 }
 
+func TestAgentRepairsPartialTextToolCallFallback(t *testing.T) {
+	attempts := 0
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		if opts.ToolHandler == nil {
+			return nil, errors.New("missing tool handler")
+		}
+		attempts++
+		if attempts == 1 {
+			return &ai.Response{Reply: `<tool_call name="conformance_echo">`}, nil
+		}
+		if !strings.Contains(req.Prompt, "did not finish valid tool-call markup") {
+			return nil, fmt.Errorf("repair prompt = %q, want partial tool-call repair guidance", req.Prompt)
+		}
+		return &ai.Response{
+			Reply: `<tool_call name="conformance_echo">{"value":"agent-conformance"}</tool_call>`,
+		}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	var sawTool bool
+	a := New(
+		Name("conformance-partial-text-tool"),
+		Provider("fake"),
+		WithRegistry(registry.NewMemoryRegistry()),
+		WithStore(store.NewMemoryStore()),
+		WithMemory(NewInMemory(4)),
+		WithTool("conformance_echo", "Echo a conformance value.", map[string]any{
+			"value": map[string]any{"type": "string"},
+		}, func(ctx context.Context, input map[string]any) (string, error) {
+			sawTool = true
+			if input["value"] != "agent-conformance" {
+				return "", fmt.Errorf("unexpected value %v", input["value"])
+			}
+			return `{"marker":"agent-conformance-ok"}`, nil
+		}),
+	)
+
+	resp, err := a.Ask(context.Background(), "Run the partial text tool call fallback.")
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("attempts = %d, want repair retry", attempts)
+	}
+	if !sawTool {
+		t.Fatal("repaired text tool call fallback did not execute the tool")
+	}
+	if len(resp.ToolCalls) != 1 || resp.ToolCalls[0].Name != "conformance_echo" {
+		t.Fatalf("ToolCalls = %+v, want conformance_echo", resp.ToolCalls)
+	}
+	if !strings.Contains(resp.Reply, "agent-conformance-ok") {
+		t.Fatalf("Reply = %q, want tool result marker", resp.Reply)
+	}
+}
+
 func TestAgentExecutesTextToolCallFallbackAfterStructuredToolCall(t *testing.T) {
 	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
 		if opts.ToolHandler == nil {
