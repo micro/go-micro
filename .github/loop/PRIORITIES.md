@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Reconcile roadmap status with shipped agent resume and observability** ([#4423](https://github.com/micro/go-micro/issues/4423)) — The lived code and recent PRs have moved durable agent checkpoint/resume and RunInfo/OpenTelemetry inspection forward, but the roadmap still reads as if those are wholly future work. Tighten the public status story so developer-adoption wayfinding reflects what actually shipped without turning this into a brand rewrite.
-2. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — The blog says Anthropic streaming shipped, but the roadmap still calls for provider-backed streaming across chat and A2A. Add a focused, provider-gated conformance slice so streaming stays end-to-end rather than becoming a one-provider success story.
+1. **Broaden provider streaming conformance** ([#4386](https://github.com/micro/go-micro/issues/4386)) — The blog and roadmap now agree that Anthropic streaming shipped, but the roadmap still calls for provider-backed streaming across chat and A2A. Add a focused, provider-gated conformance slice so streaming stays end-to-end rather than becoming a one-provider success story.
+2. **CI-verify the getting-started 0→1 and 0→hero contract** ([#4428](https://github.com/micro/go-micro/issues/4428)) — Developer adoption is the current goal, and the README/website promise scaffold → run → call plus a no-secret services → agents → workflows path. Keep that on-ramp as a CI-verifiable contract with clear failure boundaries so first-agent success stays weighted alongside harness depth.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
