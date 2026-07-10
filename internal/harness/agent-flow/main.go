@@ -99,7 +99,7 @@ type NotifyService struct {
 // Send delivers a notification message to a recipient.
 // @example {"to": "alice@acme.com", "message": "Welcome"}
 func (s *NotifyService) Send(ctx context.Context, req *SendRequest, rsp *SendResponse) error {
-	key := req.To + "\x00" + req.Message
+	key := strings.ToLower(strings.TrimSpace(req.To))
 	s.mu.Lock()
 	if s.sent == nil {
 		s.sent = make(map[string]bool)
@@ -202,14 +202,21 @@ func waitFor(reg registry.Registry, name string) {
 	}
 }
 
-func waitForOnboardingSideEffects(ctx context.Context, wsSvc *WorkspaceService, ntSvc *NotifyService) error {
+func waitForOnboardingSideEffects(ctx context.Context, wsSvc *WorkspaceService, ntSvc *NotifyService, recoverMissingNotify func(context.Context) error) error {
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
 
+	recovered := false
 	for {
 		workspaces, notifications := wsSvc.count(), ntSvc.count()
 		if workspaces >= 1 && notifications >= 1 {
 			return nil
+		}
+		if workspaces >= 1 && notifications == 0 && !recovered && recoverMissingNotify != nil {
+			recovered = true
+			if err := recoverMissingNotify(ctx); err != nil {
+				return fmt.Errorf("agent-flow created workspace but failed to recover missing onboarding notification: workspaces=%d/1 notifications=%d/1: %w", workspaces, notifications, err)
+			}
 		}
 
 		select {
@@ -304,7 +311,11 @@ func main() {
 	// effects. The 0→hero/provider conformance path must not print success
 	// unless the services → agent → workflow contract actually happened.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc)
+	err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc, func(ctx context.Context) error {
+		fmt.Print("\n\033[33mwarning:\033[0m workspace exists before notify; retrying the welcome notification once before the flow can complete.\n")
+		_, err := onboarder.Ask(ctx, "The workspace for alice@acme.com already exists. Send exactly one welcome notification to alice@acme.com now. Use the notify service. Do not create another workspace and do not answer until the notification tool call has succeeded.")
+		return err
+	})
 	cancel()
 
 	fmt.Printf("\n\033[1mresult:\033[0m workspaces created=%d, notifications sent=%d\n", wsSvc.count(), ntSvc.count())
