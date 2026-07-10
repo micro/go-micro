@@ -422,6 +422,106 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 	}
 }
 
+func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	onRampTrail := []string{
+		"micro agent demo",
+		"micro examples",
+		"micro zero-to-hero",
+		"examples/INDEX.md",
+		"examples/first-agent",
+		"examples/support",
+		"no-secret-first-agent",
+		"your-first-agent",
+		"debugging-agents",
+		"micro inspect agent <name>",
+		"zero-to-hero",
+	}
+	checks := []struct {
+		name    string
+		file    string
+		heading string
+		markers []string
+	}{
+		{
+			name:    "README first-agent on-ramp",
+			file:    filepath.Join(root, "README.md"),
+			heading: "### First agent on-ramp",
+			markers: onRampTrail,
+		},
+		{
+			name:    "website docs index first-agent path",
+			file:    filepath.Join(root, "internal", "website", "docs", "index.md"),
+			heading: "## Learn More",
+			markers: onRampTrail,
+		},
+		{
+			name:    "website getting-started first-agent on-ramp",
+			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			heading: "### First-agent on-ramp",
+			markers: onRampTrail,
+		},
+		{
+			name:    "website quickstart next steps",
+			file:    filepath.Join(root, "internal", "website", "docs", "quickstart.md"),
+			heading: "## Next Steps",
+			markers: onRampTrail,
+		},
+		{
+			name:    "examples map recommended adoption path",
+			file:    filepath.Join(root, "examples", "INDEX.md"),
+			heading: "",
+			markers: []string{
+				"micro examples",
+				"micro zero-to-hero",
+				"examples/INDEX.md",
+				"examples/first-agent",
+				"examples/support",
+				"zero-to-hero",
+			},
+		},
+		{
+			name:    "no-secret first-agent guide next steps",
+			file:    filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"),
+			heading: "",
+			markers: []string{
+				"micro agent demo",
+				"examples/first-agent",
+				"examples/support",
+				"your-first-agent",
+				"debugging-agents",
+				"micro inspect agent <name>",
+			},
+		},
+		{
+			name:    "0→hero guide related examples",
+			file:    filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"),
+			heading: "",
+			markers: []string{
+				"micro zero-to-hero",
+				"examples/first-agent",
+				"examples/support",
+				"micro inspect agent <name>",
+				"zero-to-hero",
+			},
+		},
+	}
+
+	for _, check := range checks {
+		t.Run(check.name, func(t *testing.T) {
+			section := readFile(t, check.file)
+			if check.heading != "" {
+				section = firstMarkdownSection(t, section, check.heading)
+			}
+			for _, marker := range check.markers {
+				if !containsWayfindingMarker(section, marker) {
+					t.Fatalf("%s missing canonical first-agent wayfinding marker %q; keep README, website, examples, no-secret, and 0→hero surfaces aligned", check.name, marker)
+				}
+			}
+		})
+	}
+}
+
 func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	checks := []struct {
@@ -543,7 +643,7 @@ func TestFirstAgentGuideChainDocumentsRequiredNextSteps(t *testing.T) {
 			name: "zero-to-hero guide exposes the provider-free contract commands",
 			file: filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"),
 			markers: []string{
-				"go test ./internal/harness/zero-to-hero-ci -run TestFirstAgentWayfindingDocs -count=1",
+				"go test ./internal/harness/zero-to-hero-ci -run TestFirstAgentWayfinding -count=1",
 				"micro zero-to-hero",
 				"go run ./examples/first-agent",
 				"go run ./examples/support",
@@ -1002,6 +1102,43 @@ func markdownLinks(section string) []string {
 		}
 	}
 	return links
+}
+
+func containsWayfindingMarker(section, marker string) bool {
+	if strings.Contains(section, marker) {
+		return true
+	}
+	switch marker {
+	case "examples/INDEX.md":
+		return strings.Contains(section, "examples/INDEX.md") ||
+			strings.Contains(section, "Recommended adoption path") ||
+			strings.Contains(section, "examples wayfinding index") ||
+			strings.Contains(section, "Examples wayfinding index") ||
+			strings.Contains(section, "./INDEX.md")
+	case "examples/first-agent":
+		return strings.Contains(section, "examples/first-agent") ||
+			strings.Contains(section, "./first-agent")
+	case "examples/support":
+		return strings.Contains(section, "examples/support") ||
+			strings.Contains(section, "./support")
+	case "no-secret-first-agent":
+		return strings.Contains(section, "no-secret-first-agent") ||
+			strings.Contains(section, "No-secret First Agent")
+	case "your-first-agent":
+		return strings.Contains(section, "your-first-agent") ||
+			strings.Contains(section, "Your First Agent")
+	case "debugging-agents":
+		return strings.Contains(section, "debugging-agents") ||
+			strings.Contains(section, "Debugging your agent")
+	case "zero-to-hero":
+		return strings.Contains(section, "zero-to-hero") ||
+			strings.Contains(section, "0→hero")
+	default:
+		if strings.HasPrefix(marker, "micro inspect agent ") {
+			return strings.Contains(section, "micro inspect agent ")
+		}
+		return false
+	}
 }
 
 func assertWayfindingTargetExists(t *testing.T, root, sourceFile, link string) {

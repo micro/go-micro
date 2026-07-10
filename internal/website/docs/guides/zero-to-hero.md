@@ -18,7 +18,7 @@ cloud credentials?"
 | Boundary | Contract | CI check |
 | --- | --- | --- |
 | Scaffold | `micro new` generates a runnable service with and without MCP support. | `go test ./cmd/micro/cli/new -run TestZeroToOne -count=1` |
-| First-agent wayfinding | README and the website getting-started docs keep the no-secret → first-agent → debugging → 0→hero links present and in order. | `go test ./internal/harness/zero-to-hero-ci -run TestFirstAgentWayfindingDocs -count=1` |
+| First-agent wayfinding | README, website index/quickstart, examples, and no-secret/0→hero docs keep the no-secret → first-agent → debugging → 0→hero links present and in order. | `go test ./internal/harness/zero-to-hero-ci -run TestFirstAgentWayfinding -count=1` |
 | First agent | `micro new`, `micro agent preflight`, `micro run`, `micro chat`, and `micro inspect agent <name>` stay available for the documented first-agent walkthrough. | `go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1` |
 | Run | `micro run` remains the local development entry point. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
 | Chat | `micro chat` remains the interactive agent entry point. | `go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1` |
