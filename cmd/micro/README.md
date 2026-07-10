@@ -684,7 +684,7 @@ micro loop init \
 ```
 
 - `--roles`: which roles to scaffold (`planner,builder,triage`, or `all`)
-- `--agent`: how the workflows summon the agent (an `@mention`)
+- `--agent`: how the workflows summon the agent — any `@mention`-driven coding agent (e.g. `@codex`, `@claude`)
 - `--token-secret`: repo secret holding the driving user PAT
 - `--branch`: base branch for the loop's PRs
 - `--ci-workflow`: `name:` of the CI workflow triage watches
