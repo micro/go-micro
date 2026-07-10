@@ -658,6 +658,46 @@ func TestProvider_GenerateFallsBackAfterRepeatedPartialNoArgumentServiceTextTool
 	}
 }
 
+func TestProvider_GenerateFallsBackAfterRepeatedPartialWorkspaceServiceTextToolCall(t *testing.T) {
+	var bodies []map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		bodies = append(bodies, body)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"workspace_WorkspaceService_Create\">"}}]}`))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		SystemPrompt: "Create an onboarding workspace only if it is still needed.",
+		Prompt:       "Onboard alice@acme.com. The workspace create side effect may already be complete; avoid failing the flow on a duplicate repaired call.",
+		Tools: []ai.Tool{{
+			Name:         "workspace_WorkspaceService_Create",
+			OriginalName: "workspace.WorkspaceService.Create",
+			Description:  "Create an onboarding workspace",
+			Properties:   map[string]any{"owner": map[string]any{"type": "string"}},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	want := `<tool_call name="workspace_WorkspaceService_Create">{"owner":"alice@acme.com"}</tool_call>`
+	if resp.Reply != want {
+		t.Fatalf("Reply = %q, want %q", resp.Reply, want)
+	}
+	if len(bodies) != 2 {
+		t.Fatalf("requests = %d, want initial plus repair", len(bodies))
+	}
+}
+
 func TestProvider_GenerateRetriesMinimaxBuiltInsAsTextTools(t *testing.T) {
 	var bodies []map[string]any
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
