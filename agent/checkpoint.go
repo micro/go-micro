@@ -235,28 +235,32 @@ func agentOperationalError(err error) error {
 
 func (a *agentImpl) checkpointToolWrap(next ai.ToolHandler) ai.ToolHandler {
 	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
-		if a.opts.Checkpoint == nil || a.currentRun == nil {
+		run := a.currentRun
+		if a.opts.Checkpoint == nil || run == nil {
 			return next(ctx, call)
 		}
 		name := toolCheckpointName(call)
-		if rec, ok := findStep(a.currentRun.Steps, name); ok && rec.Status == "done" {
+		if rec, ok := findStep(run.Steps, name); ok && rec.Status == "done" {
 			return ai.ToolResult{ID: call.ID, Value: rec.Result, Content: rec.Result}
 		}
 
-		idx := upsertStep(&a.currentRun.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
-		_ = a.saveRun(ctx, *a.currentRun)
+		idx := upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
+		_ = a.saveRun(ctx, *run)
 		res := next(ctx, call)
-		a.currentRun.Steps[idx].Attempts++
+		if idx < 0 || idx >= len(run.Steps) || run.Steps[idx].Name != name {
+			idx = upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
+		}
+		run.Steps[idx].Attempts++
 		if res.Refused != "" {
-			a.currentRun.Steps[idx].Status = "failed"
-			a.currentRun.Steps[idx].Error = res.Content
-			_ = a.saveRun(ctx, *a.currentRun)
+			run.Steps[idx].Status = "failed"
+			run.Steps[idx].Error = res.Content
+			_ = a.saveRun(ctx, *run)
 			return res
 		}
-		a.currentRun.Steps[idx].Status = "done"
-		a.currentRun.Steps[idx].Result = res.Content
-		a.currentRun.Steps[idx].Error = ""
-		_ = a.saveRun(ctx, *a.currentRun)
+		run.Steps[idx].Status = "done"
+		run.Steps[idx].Result = res.Content
+		run.Steps[idx].Error = ""
+		_ = a.saveRun(ctx, *run)
 		return res
 	}
 }
