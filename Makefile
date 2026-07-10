@@ -80,7 +80,7 @@ cli-wayfinding:
 # maintained local docs and examples. This is a focused no-network guard for the
 # developer-adoption on-ramp.
 docs-wayfinding:
-	go test ./internal/harness/zero-to-hero-ci -run 'TestFirstAgentWayfindingDocs|TestFirstAgentWayfindingLinkTargetsResolve' -count=1
+	go test ./internal/harness/zero-to-hero-ci -run 'TestFirstAgentWayfinding' -count=1
 	go test ./cmd/micro -run 'TestFirstAgentDocsMatchCLIOutput|TestFirstAgentWalkthroughCLIBoundaries' -count=1
 
 # Verify the documented install script and first-run CLI command boundaries without
