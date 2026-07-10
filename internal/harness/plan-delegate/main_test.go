@@ -261,6 +261,30 @@ func TestPlanDelegateIdempotentDuplicateDelegateReplay(t *testing.T) {
 	}
 }
 
+func TestNotifyServiceDeduplicatesAtlasCloudLaunchReadinessParaphrases(t *testing.T) {
+	svc := new(NotifyService)
+	variants := []SendRequest{
+		{To: "owner at acme dot com", Message: "The launch plan is ready."},
+		{To: "launch owner", Message: "Launch readiness is complete."},
+		{To: "Owner <owner@acme.com>", Message: "The launch plan is finished and the readiness notification was sent."},
+	}
+	for _, req := range variants {
+		var rsp SendResponse
+		if err := svc.Send(context.Background(), &req, &rsp); err != nil {
+			t.Fatalf("Send(%+v): %v", req, err)
+		}
+		if !rsp.Sent {
+			t.Fatalf("Send(%+v) returned sent=false", req)
+		}
+	}
+	if got := svc.count(); got != 1 {
+		t.Fatalf("notify side effects = %d, want 1 for launch-readiness paraphrase replays", got)
+	}
+	if got := svc.duplicateAttempts(); got != len(variants)-1 {
+		t.Fatalf("duplicate attempts = %d, want %d", got, len(variants)-1)
+	}
+}
+
 func TestTaskServiceAddIsIdempotentForLaunchTitles(t *testing.T) {
 	svc := new(TaskService)
 	for _, title := range []string{"Design", "design task", "Build", "Build launch task", "Ship", "ship readiness"} {

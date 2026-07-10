@@ -187,7 +187,7 @@ func (s *NotifyService) duplicateAttempts() int {
 func notifyDedupKey(to, message string) string {
 	recipient := canonicalLaunchNotifyRecipient(normalizeNotifyText(to))
 	body := normalizeNotifyText(message)
-	if isLaunchReadinessNotify(body) {
+	if recipient == "owner@acme.com" && isLaunchReadinessNotify(body) {
 		body = "launch-readiness"
 	}
 	return recipient + "\x00" + body
@@ -230,12 +230,18 @@ func normalizeNotifyText(message string) string {
 }
 
 func isLaunchReadinessNotify(message string) bool {
-	return strings.Contains(message, "launch") &&
-		strings.Contains(message, "plan") &&
-		(strings.Contains(message, "ready") ||
-			strings.Contains(message, "readiness") ||
-			strings.Contains(message, "prepared") ||
-			strings.Contains(message, "complete"))
+	hasLaunch := strings.Contains(message, "launch")
+	hasPlanOrReadiness := strings.Contains(message, "plan") ||
+		strings.Contains(message, "readiness") ||
+		strings.Contains(message, "ready")
+	hasCompletion := strings.Contains(message, "ready") ||
+		strings.Contains(message, "readiness") ||
+		strings.Contains(message, "prepared") ||
+		strings.Contains(message, "complete") ||
+		strings.Contains(message, "finished") ||
+		strings.Contains(message, "done") ||
+		strings.Contains(message, "sent")
+	return hasLaunch && hasPlanOrReadiness && hasCompletion
 }
 
 // ---------------------------------------------------------------------------

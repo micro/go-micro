@@ -196,16 +196,21 @@ func TestDelegateResultCacheReusesLaunchReadinessParaphrases(t *testing.T) {
 		t.Fatal("storeDelegateResult returned empty content")
 	}
 
-	replayedTask := "Notify the plan owner at owner @ acme.com that launch readiness is prepared and complete."
-	cached, ok := a.cachedDelegateResult("delegate-2", "  COMMS  ", replayedTask)
-	if !ok {
-		t.Fatal("cachedDelegateResult missed equivalent launch-readiness delegate replay")
+	replayedTasks := []string{
+		"Notify the plan owner at owner @ acme.com that launch readiness is prepared and complete.",
+		"Tell owner at acme dot com the launch readiness notification was sent and the plan is done.",
 	}
-	if cached.ID != "delegate-2" {
-		t.Fatalf("cached result ID = %q, want replay call ID", cached.ID)
-	}
-	if !containsStr(cached.Content, "Notified owner@acme.com") {
-		t.Fatalf("cached result content = %q, want original delegate reply", cached.Content)
+	for i, replayedTask := range replayedTasks {
+		cached, ok := a.cachedDelegateResult("delegate-replay", "  COMMS  ", replayedTask)
+		if !ok {
+			t.Fatalf("cachedDelegateResult missed equivalent launch-readiness delegate replay %d", i)
+		}
+		if cached.ID != "delegate-replay" {
+			t.Fatalf("cached result ID = %q, want replay call ID", cached.ID)
+		}
+		if !containsStr(cached.Content, "Notified owner@acme.com") {
+			t.Fatalf("cached result content = %q, want original delegate reply", cached.Content)
+		}
 	}
 }
 

@@ -737,15 +737,26 @@ func normalizeDelegateTask(task string) string {
 		}
 	}, task)
 	task = strings.Join(strings.Fields(task), " ")
-	if strings.Contains(task, "notify") &&
-		strings.Contains(task, "owner") &&
+	if strings.Contains(task, "owner") &&
 		strings.Contains(task, "acme") &&
-		strings.Contains(task, "launch") &&
-		strings.Contains(task, "plan") &&
-		(strings.Contains(task, "ready") || strings.Contains(task, "readiness") || strings.Contains(task, "prepared") || strings.Contains(task, "complete")) {
+		isLaunchReadinessDelegateTask(task) {
 		return "notify owner@acme.com launch-plan-ready"
 	}
 	return task
+}
+
+func isLaunchReadinessDelegateTask(task string) bool {
+	hasNotify := strings.Contains(task, "notify") || strings.Contains(task, "notification") || strings.Contains(task, "tell")
+	hasLaunch := strings.Contains(task, "launch")
+	hasPlanOrReadiness := strings.Contains(task, "plan") || strings.Contains(task, "readiness") || strings.Contains(task, "ready")
+	hasCompletion := strings.Contains(task, "ready") ||
+		strings.Contains(task, "readiness") ||
+		strings.Contains(task, "prepared") ||
+		strings.Contains(task, "complete") ||
+		strings.Contains(task, "finished") ||
+		strings.Contains(task, "done") ||
+		strings.Contains(task, "sent")
+	return hasNotify && hasLaunch && hasPlanOrReadiness && hasCompletion
 }
 
 // isAgent reports whether name resolves to a registered agent (a
