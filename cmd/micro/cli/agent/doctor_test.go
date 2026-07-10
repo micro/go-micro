@@ -73,3 +73,24 @@ func TestRunAgentDoctorReportsActionableRecoveryFailures(t *testing.T) {
 		}
 	}
 }
+
+func TestAgentQuickcheckPrintsProviderFreeFailureModeBreadcrumbs(t *testing.T) {
+	got := firstAgentQuickChecksHelp
+	for _, want := range []string{
+		"First-agent failure-mode quick checks",
+		"scaffold -> run -> chat -> inspect",
+		"micro agent preflight",
+		"micro run",
+		"micro agent doctor",
+		"micro inspect agent <name>",
+		"micro runs <name>",
+		"micro agent demo",
+		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1",
+		"debugging-agents.html",
+		"no-secret-first-agent.html",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("quickcheck output missing %q:\n%s", want, got)
+		}
+	}
+}

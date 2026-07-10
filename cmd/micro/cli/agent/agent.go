@@ -14,6 +14,32 @@ import (
 	"go-micro.dev/v6/store"
 )
 
+const firstAgentQuickChecksHelp = `First-agent failure-mode quick checks
+
+Use this when scaffold -> run -> chat -> inspect stalls and you want the
+smallest provider-free recovery loop before reading the full docs.
+
+1. Confirm prerequisites before starting the gateway:
+   micro agent preflight
+
+2. Start the project and keep it running in a separate terminal:
+   micro run
+
+3. Check the agent is registered and the chat gateway is reachable:
+   micro agent doctor
+
+4. If chat returns an answer or an error, inspect the latest run state:
+   micro inspect agent <name>
+   micro runs <name>
+
+5. If provider chat is not configured yet, prove the no-secret path still works:
+   micro agent demo
+   go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1
+
+Recovery docs:
+  https://go-micro.dev/docs/guides/debugging-agents.html
+  https://go-micro.dev/docs/guides/no-secret-first-agent.html`
+
 const noSecretDemoHelp = `No-secret first-agent demo
 
 Use this when you want the fastest provider-free agent success path before
@@ -69,6 +95,18 @@ the deterministic mock-model transcript, when to use it, and where to go next
 for live-provider chat and inspect/debugging.`,
 				Action: func(c *cli.Context) error {
 					fmt.Fprintln(c.App.Writer, noSecretDemoHelp)
+					return nil
+				},
+			},
+			{
+				Name:    "quickcheck",
+				Aliases: []string{"debug"},
+				Usage:   "Print first-agent failure-mode quick checks",
+				Description: `Print provider-free recovery breadcrumbs for the scaffold -> run ->
+chat -> inspect loop, including exact commands for registration, gateway, run
+history, and no-secret fallback checks.`,
+				Action: func(c *cli.Context) error {
+					fmt.Fprintln(c.App.Writer, firstAgentQuickChecksHelp)
 					return nil
 				},
 			},

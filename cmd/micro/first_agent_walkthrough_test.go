@@ -38,6 +38,9 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	if !subcommands["agent"]["doctor"] {
 		t.Fatal("first-agent walkthrough missing recovery boundary: agent doctor")
 	}
+	if !subcommands["agent"]["quickcheck"] {
+		t.Fatal("first-agent walkthrough missing failure-mode boundary: agent quickcheck")
+	}
 	if !subcommands["inspect"]["agent"] {
 		t.Fatal("first-agent walkthrough missing inspect boundary: inspect agent")
 	}
@@ -115,6 +118,28 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	for _, want := range []string{"chat", "gateway", "registration", "provider", "inspect", "after micro run"} {
 		if !strings.Contains(doctor.Usage, want) {
 			t.Fatalf("micro agent doctor usage should advertise after-run recovery for %q; usage was %q", want, doctor.Usage)
+		}
+	}
+
+	quickcheck := subcommandByName(t, agent, "quickcheck")
+	out.Reset()
+	if err := quickcheck.Action(cli.NewContext(app, nil, nil)); err != nil {
+		t.Fatalf("micro agent quickcheck failed: %v", err)
+	}
+	for _, want := range []string{
+		"First-agent failure-mode quick checks",
+		"scaffold -> run -> chat -> inspect",
+		"micro agent preflight",
+		"micro run",
+		"micro agent doctor",
+		"micro inspect agent <name>",
+		"micro runs <name>",
+		"micro agent demo",
+		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1",
+		"debugging-agents.html",
+	} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("micro agent quickcheck output missing %q:\n%s", want, out.String())
 		}
 	}
 
