@@ -154,6 +154,45 @@ func TestCheckpointSkipsDuplicateToolWithinAsk(t *testing.T) {
 	}
 }
 
+func TestCheckpointToolWrapSurvivesClearedCurrentRun(t *testing.T) {
+	ctx := context.Background()
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "tool-cleared-run-agent")
+	run := flow.Run{
+		ID:     "run-1",
+		Flow:   "tool-cleared-run-agent",
+		Status: "running",
+		Steps:  []flow.StepRecord{{Name: agentAskStep, Status: "in_progress"}},
+	}
+	a := &agentImpl{
+		opts:       newOptions(Name("tool-cleared-run-agent"), WithCheckpoint(cp)),
+		currentRun: &run,
+	}
+
+	handler := a.checkpointToolWrap(func(context.Context, ai.ToolCall) ai.ToolResult {
+		a.currentRun = nil
+		return ai.ToolResult{ID: "call-1", Content: "created"}
+	})
+	res := handler(ctx, ai.ToolCall{ID: "call-1", Name: "external.create", Input: map[string]any{"title": "Design"}})
+	if res.Content != "created" {
+		t.Fatalf("tool result = %q, want created", res.Content)
+	}
+
+	loaded, ok, err := cp.Load(ctx, "run-1")
+	if err != nil {
+		t.Fatalf("load checkpoint: %v", err)
+	}
+	if !ok {
+		t.Fatal("checkpoint missing")
+	}
+	rec, ok := findStep(loaded.Steps, `tool:external.create:{"title":"Design"}`)
+	if !ok {
+		t.Fatalf("checkpoint steps = %#v, want completed tool step", loaded.Steps)
+	}
+	if rec.Status != "done" || rec.Result != "created" || rec.Attempts != 1 {
+		t.Fatalf("tool checkpoint = %#v, want done result with one attempt", rec)
+	}
+}
+
 func TestCheckpointContinuesRunWithUnfinishedPlanStep(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "unfinished-plan-agent")
