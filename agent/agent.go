@@ -106,6 +106,11 @@ type agentImpl struct {
 	// durable delegate-result cache is written.
 	delegateMu    sync.Mutex
 	delegateCalls map[string]*delegateCall
+
+	// stopCh lets Stop unblock Run. Without this, tests and harnesses that
+	// start agents in goroutines can leave Run parked forever after the RPC
+	// server has been stopped.
+	stopCh chan struct{}
 }
 
 // New creates a new Agent.
@@ -540,6 +545,11 @@ func (a *agentImpl) Run() error {
 		return fmt.Errorf("failed to start agent: %w", err)
 	}
 
+	stopCh := make(chan struct{})
+	a.mu.Lock()
+	a.stopCh = stopCh
+	a.mu.Unlock()
+
 	fmt.Printf("Agent %s registered (manages: %s)\n", a.opts.Name, strings.Join(a.opts.Services, ", "))
 
 	// Optionally serve the agent directly over the A2A protocol, calling
@@ -561,12 +571,17 @@ func (a *agentImpl) Run() error {
 		fmt.Printf("Agent %s serving A2A on %s\n", a.opts.Name, a.opts.A2AAddress)
 	}
 
-	ch := make(chan struct{})
-	<-ch
+	<-stopCh
 	return nil
 }
 
 func (a *agentImpl) Stop() error {
+	a.mu.Lock()
+	if a.stopCh != nil {
+		close(a.stopCh)
+		a.stopCh = nil
+	}
+	a.mu.Unlock()
 	if a.server != nil {
 		return a.server.Stop()
 	}

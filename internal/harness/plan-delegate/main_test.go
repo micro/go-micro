@@ -53,14 +53,20 @@ func TestPlanDelegateEndToEnd(t *testing.T) {
 	if err := task.Handle(taskSvc); err != nil {
 		t.Fatalf("handle task: %v", err)
 	}
-	go task.Run()
+	if err := task.Start(); err != nil {
+		t.Fatalf("start task: %v", err)
+	}
+	defer task.Stop()
 
 	notifySvc := new(NotifyService)
 	notify := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := notify.Handle(notifySvc); err != nil {
 		t.Fatalf("handle notify: %v", err)
 	}
-	go notify.Run()
+	if err := notify.Start(); err != nil {
+		t.Fatalf("start notify: %v", err)
+	}
+	defer notify.Stop()
 
 	// Real comms agent (owns notify), registered so delegate reaches it over RPC.
 	comms := agent.New(
@@ -136,14 +142,20 @@ func TestFlowDispatchesToAgentEndToEnd(t *testing.T) {
 	if err := task.Handle(taskSvc); err != nil {
 		t.Fatalf("handle task: %v", err)
 	}
-	go task.Run()
+	if err := task.Start(); err != nil {
+		t.Fatalf("start task: %v", err)
+	}
+	defer task.Stop()
 
 	notifySvc := new(NotifyService)
 	notify := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := notify.Handle(notifySvc); err != nil {
 		t.Fatalf("handle notify: %v", err)
 	}
-	go notify.Run()
+	if err := notify.Start(); err != nil {
+		t.Fatalf("start notify: %v", err)
+	}
+	defer notify.Stop()
 
 	comms := agent.New(
 		agent.Name("comms"),

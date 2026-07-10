@@ -433,14 +433,20 @@ func runPlanDelegate(provider string) error {
 	if err := task.Handle(taskSvc); err != nil {
 		return fmt.Errorf("task handle: %w", err)
 	}
-	go task.Run()
+	if err := task.Start(); err != nil {
+		return fmt.Errorf("task start: %w", err)
+	}
+	defer task.Stop()
 
 	notifySvc := new(NotifyService)
 	notify := service.New(service.Name("notify"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl))
 	if err := notify.Handle(notifySvc); err != nil {
 		return fmt.Errorf("notify handle: %w", err)
 	}
-	go notify.Run()
+	if err := notify.Start(); err != nil {
+		return fmt.Errorf("notify start: %w", err)
+	}
+	defer notify.Stop()
 
 	// Real comms agent (owns notify), registered so delegate reaches it over RPC.
 	commsOpts := []agent.Option{
