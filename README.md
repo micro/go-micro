@@ -98,18 +98,20 @@ walkable agent path in this order:
 
 1. [Install troubleshooting](internal/website/docs/guides/install-troubleshooting.md) — verify the binary installer or `go install`, `PATH`, `micro --version`, and the no-secret smoke path before agent work.
 2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
-3. `micro examples` — print the maintained provider-free runnable examples in copy/paste order.
-4. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle harness and runnable examples.
-5. [Examples wayfinding index](examples/INDEX.md) — choose the smallest no-secret first-agent, maintained [0→hero support reference](examples/support/), and next interop examples from one map.
-6. [Smallest first-agent example](examples/first-agent/) — run one service-backed agent with a mock model and no provider key.
-7. [No-secret first-agent transcript](internal/website/docs/guides/no-secret-first-agent.md) — run the
+3. `micro agent quickcheck` (or `micro agent debug`) — when scaffold → run → chat → inspect stalls, print the short recovery map before you dive into the full debugging guide.
+4. `micro examples` — print the maintained provider-free runnable examples in copy/paste order.
+5. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle harness and runnable examples.
+6. [Examples wayfinding index](examples/INDEX.md) — choose the smallest no-secret first-agent, maintained [0→hero support reference](examples/support/), and next interop examples from one map.
+7. [Smallest first-agent example](examples/first-agent/) — run one service-backed agent with a mock model and no provider key.
+8. [No-secret first-agent transcript](internal/website/docs/guides/no-secret-first-agent.md) — run the
    maintained support agent with a mock model and see services → agents → workflows succeed without a key.
-8. [Your First Agent](internal/website/docs/guides/your-first-agent.md) — build a
+9. [Your First Agent](internal/website/docs/guides/your-first-agent.md) — build a
    service-backed agent and talk to it with `micro chat`.
-9. [Debugging your agent](internal/website/docs/guides/debugging-agents.md) — use
-   `micro inspect agent <name>`, run history, memory, and provider checks when the first
-   conversation does something unexpected.
-10. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
+10. [Debugging your agent](internal/website/docs/guides/debugging-agents.md) — use
+   `micro agent preflight` before `micro run`, `micro agent doctor` after `micro run`,
+   then `micro chat` and `micro inspect agent <name>` to recover run history, memory,
+   and provider checks when the first conversation does something unexpected.
+11. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
    services → agents → workflows loop with scaffold, run, chat, inspect, flow
    history, and deploy dry-run commands that match the maintained harness.
 
