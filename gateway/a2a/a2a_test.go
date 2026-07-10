@@ -523,6 +523,65 @@ func TestMessageStreamChunksFallsBackWhenUnsupported(t *testing.T) {
 	}
 }
 
+func TestMessageStreamFallbackDoesNotCompleteWithEmptyText(t *testing.T) {
+	d := newDispatcher()
+	body := `{"jsonrpc":"2.0","id":1,"method":"message/stream","params":{"message":{"role":"user","parts":[{"kind":"text","text":"ping"}],"kind":"message"}}}`
+	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
+	rr := httptest.NewRecorder()
+
+	d.serveWithStream(rr, req, func(context.Context, string) (string, error) {
+		return "", nil
+	}, func(context.Context, string) (ai.Stream, error) {
+		return nil, fmt.Errorf("%w: test provider", ai.ErrStreamingUnsupported)
+	})
+
+	var event struct {
+		Result Task      `json:"result"`
+		Error  *rpcError `json:"error"`
+	}
+	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
+		line = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "data: "))
+		if line == "" {
+			continue
+		}
+		if err := json.Unmarshal([]byte(line), &event); err != nil {
+			t.Fatalf("decode event %q: %v", line, err)
+		}
+	}
+	if event.Error != nil {
+		t.Fatalf("fallback event error: %+v", event.Error)
+	}
+	if event.Result.Status.State != stateFailed {
+		t.Fatalf("fallback state = %q, want failed", event.Result.Status.State)
+	}
+	if got := textOf(event.Result.Artifacts[0].Parts); got == "" {
+		t.Fatalf("fallback artifact text is empty: %+v", event.Result.Artifacts)
+	}
+	if got := textOf(event.Result.History[len(event.Result.History)-1].Parts); got == "" {
+		t.Fatalf("fallback history text is empty: %+v", event.Result.History)
+	}
+}
+
+func TestDecodeAgentChatReplyFallsBackToProviderTextFields(t *testing.T) {
+	for name, body := range map[string]string{
+		"answer":          `{"answer":"answer text"}`,
+		"content":         `{"content":"content text"}`,
+		"text":            `{"text":"text field"}`,
+		"message_content": `{"message":{"content":"message content"}}`,
+		"message_text":    `{"message":{"text":"message text"}}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, err := decodeAgentChatReply([]byte(body))
+			if err != nil {
+				t.Fatalf("decodeAgentChatReply error: %v", err)
+			}
+			if strings.TrimSpace(got) == "" {
+				t.Fatalf("decodeAgentChatReply(%s) returned empty text", body)
+			}
+		})
+	}
+}
+
 func TestTasksResubscribeStreamsCurrentAndSubsequentEvents(t *testing.T) {
 	d := newDispatcher()
 	initial := &Task{ID: "task-1", ContextID: "ctx-1", Kind: "task", Status: TaskStatus{State: stateWorking, Timestamp: time.Now().UTC().Format(time.RFC3339)}}

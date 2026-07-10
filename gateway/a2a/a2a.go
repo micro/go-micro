@@ -627,6 +627,9 @@ func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Inv
 			reply = err.Error()
 			state = stateInputRequired
 		}
+	} else if strings.TrimSpace(reply) == "" {
+		reply = "error: agent returned an empty response"
+		state = stateFailed
 	}
 	task := d.taskFromReply(p.Message, reply, state)
 	d.store(task)
@@ -750,13 +753,11 @@ func (g *Gateway) callAgent(ctx context.Context, name, message string) (string, 
 	if err := g.opts.Client.Call(ctx, req, &rsp); err != nil {
 		return "", err
 	}
-	var out struct {
-		Reply string `json:"reply"`
-	}
-	if err := json.Unmarshal(rsp.Data, &out); err != nil {
+	reply, err := decodeAgentChatReply(rsp.Data)
+	if err != nil {
 		return "", err
 	}
-	return out.Reply, nil
+	return reply, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -974,6 +975,35 @@ func textArtifact(text string) Artifact {
 		ArtifactID: uuid.New().String(),
 		Parts:      []Part{{Kind: "text", Text: text}},
 	}
+}
+
+func decodeAgentChatReply(data []byte) (string, error) {
+	var out struct {
+		Reply   string `json:"reply"`
+		Answer  string `json:"answer"`
+		Content string `json:"content"`
+		Text    string `json:"text"`
+		Message struct {
+			Content string `json:"content"`
+			Text    string `json:"text"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal(data, &out); err != nil {
+		return "", err
+	}
+	for _, candidate := range []string{
+		out.Reply,
+		out.Answer,
+		out.Content,
+		out.Text,
+		out.Message.Content,
+		out.Message.Text,
+	} {
+		if strings.TrimSpace(candidate) != "" {
+			return candidate, nil
+		}
+	}
+	return "", nil
 }
 
 // requestContext carries request cancellation and deadlines into the downstream
