@@ -69,6 +69,42 @@ func TestNotifyStepCompletesAfterObservedSideEffectTimeout(t *testing.T) {
 	}
 }
 
+func TestNotifyStepWaitsForObservedSideEffectAfterCanceledDispatchContext(t *testing.T) {
+	ntf := new(Notify)
+	before := atomic.LoadInt64(&ntf.sent)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		var rsp SendResponse
+		if err := ntf.Send(context.Background(), &SendRequest{
+			To:      "buyer@acme.com",
+			Message: "Your order is confirmed.",
+		}, &rsp); err != nil {
+			t.Errorf("send notification: %v", err)
+		}
+	}()
+
+	out, err := completeNotifyOnObservedSideEffect(
+		ctx,
+		flow.State{Data: []byte(`{"order":"order-1"}`)},
+		ntf,
+		before,
+		time.Second,
+		errors.New("client observed timeout"),
+	)
+	if err != nil {
+		t.Fatalf("notify completion returned error: %v", err)
+	}
+	if got := out.String(); got != "Buyer notified." {
+		t.Fatalf("result = %q, want Buyer notified.", got)
+	}
+	if got := atomic.LoadInt64(&ntf.sent); got != 1 {
+		t.Fatalf("notifications sent = %d, want 1", got)
+	}
+}
+
 func TestNotifyStepRejectsClaimedCompletionWithoutSideEffect(t *testing.T) {
 	ntf := new(Notify)
 	before := atomic.LoadInt64(&ntf.sent)

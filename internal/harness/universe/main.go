@@ -269,13 +269,21 @@ func completeNotifyOnObservedSideEffect(ctx context.Context, in flow.State, ntf 
 			in.Data = []byte("Buyer notified.")
 			return in, nil
 		}
+		wait := time.NewTimer(25 * time.Millisecond)
 		select {
 		case <-ctx.Done():
-			if dispatchErr != nil {
-				return in, dispatchErr
+			if !wait.Stop() {
+				<-wait.C
 			}
-			return in, ctx.Err()
-		case <-time.After(25 * time.Millisecond):
+			if dispatchErr == nil {
+				return in, ctx.Err()
+			}
+			// A timed-out Agent.Chat call can report the caller context as done
+			// while the remote agent is still finishing its notify tool call.
+			// Keep watching for the idempotent side effect until the local settle
+			// window expires so a post-side-effect timeout does not strand the
+			// durable checkout run as pending.
+		case <-wait.C:
 		}
 	}
 	if dispatchErr != nil {
