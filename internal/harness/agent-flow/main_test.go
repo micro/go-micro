@@ -109,7 +109,7 @@ func TestWaitForOnboardingSideEffectsFailsWhenMissing(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
-	err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc)
+	err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc, nil)
 	if err == nil {
 		t.Fatal("waitForOnboardingSideEffects returned nil, want missing side effects error")
 	}
@@ -131,8 +131,34 @@ func TestWaitForOnboardingSideEffectsPassesWhenComplete(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	if err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc); err != nil {
+	if err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc, nil); err != nil {
 		t.Fatalf("waitForOnboardingSideEffects returned %v, want nil", err)
+	}
+}
+
+func TestWaitForOnboardingSideEffectsRecoversMissingNotification(t *testing.T) {
+	wsSvc := new(WorkspaceService)
+	ntSvc := new(NotifyService)
+
+	if err := wsSvc.Create(context.Background(), &CreateRequest{Owner: "alice@acme.com"}, &CreateResponse{}); err != nil {
+		t.Fatalf("create workspace: %v", err)
+	}
+
+	recovered := false
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err := waitForOnboardingSideEffects(ctx, wsSvc, ntSvc, func(ctx context.Context) error {
+		recovered = true
+		return ntSvc.Send(ctx, &SendRequest{To: "alice@acme.com", Message: "Welcome — your workspace is ready."}, &SendResponse{})
+	})
+	if err != nil {
+		t.Fatalf("waitForOnboardingSideEffects returned %v, want recovered notification", err)
+	}
+	if !recovered {
+		t.Fatal("missing notification recovery did not run")
+	}
+	if got := ntSvc.count(); got != 1 {
+		t.Fatalf("notifications sent = %d, want 1 after recovery", got)
 	}
 }
 
@@ -167,5 +193,19 @@ func TestNotifySendSuppressesDuplicateMessage(t *testing.T) {
 
 	if got := ntSvc.count(); got != 1 {
 		t.Fatalf("notifications sent = %d, want 1 after duplicate message replay", got)
+	}
+}
+
+func TestNotifySendSuppressesDuplicateRecipient(t *testing.T) {
+	ntSvc := new(NotifyService)
+	if err := ntSvc.Send(context.Background(), &SendRequest{To: "Alice@Acme.com", Message: "Welcome — your workspace is ready."}, &SendResponse{}); err != nil {
+		t.Fatalf("send first notification: %v", err)
+	}
+	if err := ntSvc.Send(context.Background(), &SendRequest{To: " alice@acme.com ", Message: "Your workspace is ready."}, &SendResponse{}); err != nil {
+		t.Fatalf("send duplicate recipient notification: %v", err)
+	}
+
+	if got := ntSvc.count(); got != 1 {
+		t.Fatalf("notifications sent = %d, want 1 after duplicate recipient replay", got)
 	}
 }
