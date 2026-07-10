@@ -554,8 +554,28 @@ func atlascloudFallbackTextToolCall(toolName string, req *ai.Request) string {
 	case "delegate":
 		return atlascloudDelegateFallbackTextToolCall(req)
 	default:
+		if atlascloudToolTakesNoArguments(toolName, req.Tools) {
+			return atlascloudEmptyArgumentFallbackTextToolCall(toolName)
+		}
 		return ""
 	}
+}
+
+func atlascloudToolTakesNoArguments(toolName string, tools []ai.Tool) bool {
+	for _, tool := range tools {
+		if tool.Name != toolName {
+			continue
+		}
+		return len(tool.Properties) == 0
+	}
+	return false
+}
+
+func atlascloudEmptyArgumentFallbackTextToolCall(toolName string) string {
+	if toolName == "" {
+		return ""
+	}
+	return `<tool_call name="` + toolName + `">{}</tool_call>`
 }
 
 func atlascloudPlanFallbackTextToolCall(prompt string) string {
