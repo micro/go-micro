@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add a no-secret first-agent chat transcript check** ([#4618](https://github.com/micro/go-micro/issues/4618)) — Developer adoption is now the highest-value open Now-phase item after #4504 shipped in #4621. README, the website, and the v6.3.15 blog point at the provider-free first-agent path, but the 0→1 agent experience still needs an expected chat/tool-call transcript that a new developer can compare against before adding provider keys. Make the smallest first-agent path more walkable and CI-verifiable.
+1. **Add a 0→hero inspect transcript check** ([#4627](https://github.com/micro/go-micro/issues/4627)) — The no-secret first-agent transcript shipped in #4625 and closed #4618, so the next highest-value Now-phase adoption gap is the larger 0→hero contract. README, docs, and the v6.3.15 blog now make the provider-free first-agent path discoverable; the next seam is proving scaffold → run → chat → inspect → workflows with deterministic output a developer can compare against before provider keys. Keep this focused on the maintained support example/harness and CI-verify the transcript so the services → agents → workflows lifecycle stays walkable.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
