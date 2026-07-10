@@ -13,6 +13,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -33,13 +34,13 @@ type ListNotesResponse struct {
 	Notes []string `json:"notes" description:"Notes the assistant can summarize"`
 }
 
-type NotesService struct{}
+type NotesService struct{ w io.Writer }
 
 // List returns the starter notes the first agent can read.
 // @example {}
 func (s *NotesService) List(ctx context.Context, req *ListNotesRequest, rsp *ListNotesResponse) error {
 	rsp.Notes = []string{"Install the micro CLI", "Run a service", "Chat with an agent"}
-	fmt.Println("  [notes] listed starter notes")
+	fmt.Fprintln(s.w, "  [notes] listed starter notes")
 	return nil
 }
 
@@ -90,6 +91,10 @@ func waitFor(reg registry.Registry, names ...string) error {
 }
 
 func runFirstAgent() error {
+	return runFirstAgentWithWriter(os.Stdout)
+}
+
+func runFirstAgentWithWriter(w io.Writer) error {
 	ai.Register("first-agent-mock", newMock)
 
 	reg := registry.NewMemoryRegistry()
@@ -104,7 +109,7 @@ func runFirstAgent() error {
 	cl := client.NewClient(client.Registry(reg), client.Selector(selector.NewSelector(selector.Registry(reg))), client.Broker(br))
 
 	notes := service.New(service.Name("notes"), service.Address("127.0.0.1:0"), service.Registry(reg), service.Client(cl), service.Broker(br), service.HandleSignal(false))
-	if err := notes.Handle(new(NotesService)); err != nil {
+	if err := notes.Handle(&NotesService{w: w}); err != nil {
 		return fmt.Errorf("handle notes: %w", err)
 	}
 	svcErr := make(chan error, 1)
@@ -137,14 +142,14 @@ func runFirstAgent() error {
 		return err
 	}
 
-	fmt.Println("First agent (provider: mock, no API key)")
-	fmt.Println("> Summarize my next steps")
+	fmt.Fprintln(w, "First agent (provider: mock, no API key)")
+	fmt.Fprintln(w, "> Summarize my next steps")
 	resp, err := assistant.Ask(context.Background(), "Summarize my next steps")
 	if err != nil {
 		return fmt.Errorf("ask assistant: %w", err)
 	}
-	fmt.Println("assistant:", resp.Reply)
-	fmt.Println("✓ service-backed agent completed without provider secrets")
+	fmt.Fprintln(w, "assistant:", resp.Reply)
+	fmt.Fprintln(w, "✓ service-backed agent completed without provider secrets")
 	return nil
 }
 
