@@ -26,7 +26,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 		"go test ./cmd/micro -run TestZeroToHeroCLIBoundaries -count=1",
 		"go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1",
 		"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
-		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1",
+		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle|TestZeroToHeroInspectTranscript' -count=1",
 		"./internal/harness/zero-to-hero-ci/run.sh",
 		"micro zero-to-hero",
 		"go run ./internal/harness/agent-flow",
@@ -45,7 +45,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 		"go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestExamplesWayfindingIndexStaysLinked|TestExamplesCommandPointsAtWayfindingIndex|TestZeroToHeroCLIBoundaries|TestZeroToHeroCommandPrintsMaintainedNoSecretPath' -count=1",
 		"go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1",
 		"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
-		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1",
+		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle|TestZeroToHeroInspectTranscript' -count=1",
 	} {
 		if !strings.Contains(runScript, want) {
 			t.Fatalf("0→hero CI run script missing lifecycle command %q", want)

@@ -25,7 +25,7 @@ cloud credentials?"
 | Inspect | `micro inspect agent <name>`, `micro agent history <name>`, `micro inspect flow <flow>`, and `micro flow runs <flow>` remain discoverable for run history; the no-secret debugging smoke seeds durable agent history and runs the documented inspect/history commands without provider keys. | `go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1` |
 | Deploy | `micro deploy --dry-run prod` resolves the documented deploy target without touching remote infrastructure. | `go test ./internal/harness/zero-to-hero-ci -run TestZeroToHeroDeployDryRunCommandSmoke -count=1` |
 | Smallest first agent | `examples/first-agent` runs one service-backed agent with a deterministic mock model and no provider key. | `go test ./examples/first-agent -run TestRunFirstAgent -count=1` |
-| Runtime reference app | `examples/support` runs typed services, an agent using those services as tools, an event-driven flow handoff, and an approval gate with only the model mocked. | `go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1` |
+| Runtime reference app | `examples/support` runs typed services, an agent using those services as tools, an event-driven flow handoff, and an approval gate with only the model mocked. | `go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle|TestZeroToHeroInspectTranscript' -count=1` |
 | Runtime harnesses | Real services, agents, durable flows, store-backed history, delegation, and A2A run with only the model mocked. | `./internal/harness/zero-to-hero-ci/run.sh` and `make provider-conformance-mock` |
 
 ## Find the one-command entrypoint
@@ -96,7 +96,7 @@ go test ./internal/harness/zero-to-hero-ci -run TestZeroToHeroDeployDryRunComman
 go test ./examples/first-agent -run TestRunFirstAgent -count=1
 
 # Maintained 0→hero support-desk reference app.
-go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle' -count=1
+go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle|TestZeroToHeroInspectTranscript' -count=1
 
 # Durable services → agents → workflows reference scenarios.
 ./internal/harness/zero-to-hero-ci/run.sh
