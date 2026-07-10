@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Handle incomplete AtlasCloud agent-flow workspace tool calls** ([#4595](https://github.com/micro/go-micro/issues/4595)) — Highest-value open Now-phase hardening item after #4606 shipped in #4612: the event-driven agent-flow path observed the expected workspace/notification side effects once, suppressed duplicates, then still reported failure on an incomplete repaired workspace tool call. Fix this next so services → agents → workflows demos fail safely and consistently when a live provider emits malformed repaired tool calls.
-2. **Make AtlasCloud universe A2A reachability probe deterministic** ([#4504](https://github.com/micro/go-micro/issues/4504)) — The remaining live AtlasCloud interop seam is the universe A2A reachability probe intermittently timing out after the checkout flow succeeds. Keep it behind the repaired-tool-call failure because it is side-effect safe and isolated to reachability/probe timing rather than the core 0→hero side-effect path.
+1. **Make AtlasCloud universe A2A reachability probe deterministic** ([#4504](https://github.com/micro/go-micro/issues/4504)) — Highest-value remaining Now-phase hardening item after #4595 shipped in #4616: the universe checkout flow completes, but the live AtlasCloud A2A reachability probe can still time out after side effects succeed. Fix this next so the services → agents → workflows harness fails safely without turning a reachable agent into a false negative.
+2. **Add a no-secret first-agent chat transcript check** ([#4618](https://github.com/micro/go-micro/issues/4618)) — Developer adoption stays weighted alongside hardening: README, the website, and the v6.3.15 blog now point at the provider-free first-agent path, but the 0→1 agent experience still needs an expected chat/tool-call transcript that a new developer can compare against before adding provider keys. Make the smallest first-agent path more walkable and CI-verifiable.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
