@@ -194,6 +194,7 @@ func notifyDedupKey(to, message string) string {
 }
 
 func canonicalLaunchNotifyRecipient(recipient string) string {
+	recipient = canonicalSpokenEmailRecipient(recipient)
 	switch recipient {
 	case "owner", "launch owner", "plan owner", "owner acme com", "owner@acme com", "owner @ acme com":
 		return "owner@acme.com"
@@ -203,6 +204,14 @@ func canonicalLaunchNotifyRecipient(recipient string) string {
 		}
 		return recipient
 	}
+}
+
+func canonicalSpokenEmailRecipient(recipient string) string {
+	fields := strings.Fields(recipient)
+	if len(fields) == 5 && fields[1] == "at" && fields[3] == "dot" {
+		return fields[0] + "@" + fields[2] + "." + fields[4]
+	}
+	return recipient
 }
 
 func normalizeNotifyText(message string) string {

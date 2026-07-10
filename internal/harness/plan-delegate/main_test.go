@@ -562,6 +562,7 @@ func TestNotifyServiceCollapsesProviderReadinessParaphrases(t *testing.T) {
 	requests := []SendRequest{
 		{To: "owner@acme.com", Message: "The launch plan is ready"},
 		{To: "owner @ acme.com", Message: "Launch plan ready."},
+		{To: "owner at acme dot com", Message: "The launch plan is ready."},
 		{To: "launch owner", Message: "The launch readiness plan is prepared."},
 		{To: "plan owner", Message: "Launch plan is complete!"},
 	}
