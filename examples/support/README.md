@@ -54,6 +54,32 @@ agent, which:
   emailing a customer (`notify.Send`) passes through the gate first. Return
   `false` to hold it for a person or a policy; the example approves and logs.
 
+## Expected inspect transcript
+
+The provider-free run prints the same visible checkpoints a new developer should
+compare against after chat and flow execution. The transcript includes service
+tool calls, the approval gate, and the inspect/run-history commands that prove
+the workflow run was recorded.
+
+```text
+> event: events.ticket.created {"customer":"alice@acme.com","id":"ticket-1","subject":"Can't log in"}
+
+    [customers] looked up Alice (pro plan)
+    [tickets] ticket-1 → priority=high status=in_progress
+  ▣ approval gate notify_NotifyService_Send(alice@acme.com) — approved
+    [notify] 📨 to=alice@acme.com: "Hi Alice — thanks for reaching out. We've bumped this to high priority and are on it."
+
+support agent: Triaged ticket-1 for Alice and sent a reply.
+
+inspect transcript:
+  micro inspect flow intake
+  flow: intake runs=1 latest.reply="Triaged ticket-1 for Alice and sent a reply."
+  micro agent history support
+  agent: support runs=1 latest.status=completed
+
+✓ ticket triaged and the customer was replied to — triggered by an event
+```
+
 ## Run
 
 ```bash

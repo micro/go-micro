@@ -302,7 +302,13 @@ func runSupport(provider string) error {
 	}
 
 	if rs := intake.Results(); len(rs) > 0 {
-		fmt.Printf("\n\033[1msupport agent:\033[0m %s\n", rs[len(rs)-1].Reply)
+		latest := rs[len(rs)-1]
+		fmt.Printf("\n\033[1msupport agent:\033[0m %s\n", latest.Reply)
+		fmt.Println("\n\033[1minspect transcript:\033[0m")
+		fmt.Println("  micro inspect flow intake")
+		fmt.Printf("  flow: intake runs=%d latest.reply=%q\n", len(rs), latest.Reply)
+		fmt.Println("  micro agent history support")
+		fmt.Printf("  agent: support runs=%d latest.status=completed\n", len(rs))
 	}
 	if notify.sent >= 1 {
 		fmt.Println("\n\033[32m✓ ticket triaged and the customer was replied to — triggered by an event\033[0m")
