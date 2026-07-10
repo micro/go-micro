@@ -135,3 +135,37 @@ func TestWaitForOnboardingSideEffectsPassesWhenComplete(t *testing.T) {
 		t.Fatalf("waitForOnboardingSideEffects returned %v, want nil", err)
 	}
 }
+
+func TestWorkspaceCreateSuppressesDuplicateOwner(t *testing.T) {
+	wsSvc := new(WorkspaceService)
+	first := new(CreateResponse)
+	if err := wsSvc.Create(context.Background(), &CreateRequest{Owner: "alice@acme.com"}, first); err != nil {
+		t.Fatalf("create first workspace: %v", err)
+	}
+	second := new(CreateResponse)
+	if err := wsSvc.Create(context.Background(), &CreateRequest{Owner: "alice@acme.com"}, second); err != nil {
+		t.Fatalf("create duplicate workspace: %v", err)
+	}
+
+	if got := wsSvc.count(); got != 1 {
+		t.Fatalf("workspace creations = %d, want 1 after duplicate owner replay", got)
+	}
+	if first.Workspace == nil || second.Workspace == nil || second.Workspace.ID != first.Workspace.ID {
+		t.Fatalf("duplicate create returned workspace %#v, want original %#v", second.Workspace, first.Workspace)
+	}
+}
+
+func TestNotifySendSuppressesDuplicateMessage(t *testing.T) {
+	ntSvc := new(NotifyService)
+	req := &SendRequest{To: "alice@acme.com", Message: "Welcome — your workspace is ready."}
+	if err := ntSvc.Send(context.Background(), req, &SendResponse{}); err != nil {
+		t.Fatalf("send first notification: %v", err)
+	}
+	if err := ntSvc.Send(context.Background(), req, &SendResponse{}); err != nil {
+		t.Fatalf("send duplicate notification: %v", err)
+	}
+
+	if got := ntSvc.count(); got != 1 {
+		t.Fatalf("notifications sent = %d, want 1 after duplicate message replay", got)
+	}
+}
