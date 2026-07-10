@@ -357,14 +357,55 @@ func check(cond bool, format string, args ...any) {
 // should not depend on a live model deciding to send another notification.
 func a2aReachable(ctx context.Context, base, agent string) error {
 	probe := "A2A reachability probe only. Reply with the words concierge reachable. Do not call tools or send notifications."
-	reply, err := a2a.NewClient(base+"/agents/"+agent).Send(ctx, probe)
-	if err != nil {
-		return err
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		deadline = time.Now().Add(10 * time.Second)
 	}
-	if strings.TrimSpace(reply) == "" {
-		return fmt.Errorf("empty A2A reply")
+
+	var lastErr error
+	for attempt := 1; ; attempt++ {
+		if err := ctx.Err(); err != nil {
+			if lastErr != nil {
+				return fmt.Errorf("A2A reachability probe failed after %d attempt(s): %w", attempt-1, lastErr)
+			}
+			return err
+		}
+
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			if lastErr != nil {
+				return fmt.Errorf("A2A reachability probe failed after %d attempt(s): %w", attempt-1, lastErr)
+			}
+			return context.DeadlineExceeded
+		}
+
+		attemptTimeout := 4 * time.Second
+		if remaining < attemptTimeout {
+			attemptTimeout = remaining
+		}
+		attemptCtx, cancel := context.WithTimeout(ctx, attemptTimeout)
+		reply, err := a2a.NewClient(base+"/agents/"+agent).Send(attemptCtx, probe)
+		cancel()
+		if err == nil && strings.TrimSpace(reply) != "" {
+			return nil
+		}
+		if err == nil {
+			err = fmt.Errorf("empty A2A reply")
+		}
+		lastErr = err
+
+		if time.Until(deadline) <= 0 {
+			return fmt.Errorf("A2A reachability probe failed after %d attempt(s): %w", attempt, lastErr)
+		}
+		time.Sleep(minDuration(200*time.Millisecond*time.Duration(attempt), time.Until(deadline)))
 	}
-	return nil
+}
+
+func minDuration(a, b time.Duration) time.Duration {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func providerKey(provider string) string {
