@@ -21,8 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Polish resume and inspect breadcrumbs for agent runs** ([#4569](https://github.com/micro/go-micro/issues/4569)) — Durable runs, streaming, and human-input pauses are now part of the core story, but the developer inner loop still has to make the next command obvious when an agent pauses or needs inspection. Keep this first to match the current developer-adoption goal: chat → inspect → resume should feel like one walkable workflow, not an internal operations exercise.
-2. **Make AtlasCloud universe A2A reachability probe deterministic** ([#4504](https://github.com/micro/go-micro/issues/4504)) — With the universe notify timeout gap closed, the remaining live AtlasCloud seam is the A2A reachability probe intermittently timing out. Keep this next so agent reachability over the interop gateway does not produce false negatives once the durable services → agents → workflows path itself has finalized.
+1. **Add first-agent failure-mode quick checks to the CLI on-ramp** ([#4591](https://github.com/micro/go-micro/issues/4591)) — The adoption goal is still the highest-value gap: a new developer should recover when scaffold → run → chat → inspect stalls without reading the whole docs tree. Keep this first because the README, website, and blog now tell a coherent services → agents → workflows story; the next increment should make the CLI on-ramp self-rescuing with provider-free, CI-verified debugging breadcrumbs.
+2. **Make AtlasCloud universe A2A reachability probe deterministic** ([#4504](https://github.com/micro/go-micro/issues/4504)) — With resume breadcrumbs shipped and the universe notify timeout gap closed, the remaining live AtlasCloud seam is the A2A reachability probe intermittently timing out. Keep this next so agent reachability over the interop gateway does not produce false negatives once the durable services → agents → workflows path itself has finalized.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
