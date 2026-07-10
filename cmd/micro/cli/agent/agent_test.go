@@ -59,6 +59,46 @@ func TestWriteRunIndexHumanIncludesStatusAndDuration(t *testing.T) {
 	}
 }
 
+func TestWriteRunIndexIncludesResumeBreadcrumbs(t *testing.T) {
+	runs := []goagent.RunSummary{{
+		RunID:      "run-failed",
+		Agent:      "runner",
+		UpdatedAt:  time.Date(2026, 6, 25, 12, 34, 56, 0, time.UTC),
+		Events:     3,
+		Status:     "error",
+		LastKind:   "tool",
+		Checkpoint: "failed",
+		Stage:      "ask",
+	}}
+	var out bytes.Buffer
+	if err := writeRunIndex(&out, "runner", runs, false); err != nil {
+		t.Fatal(err)
+	}
+	got := out.String()
+	for _, want := range []string{"checkpoint=failed", "stage=ask", `micro agent history runner run-failed`, `micro.AgentResume(ctx, agent, "run-failed")`, `micro.ResumeStreamAsk(ctx, agent, "run-failed")`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("output missing %q:\n%s", want, got)
+		}
+	}
+}
+
+func TestWriteRunIndexInputRequiredUsesResumeInput(t *testing.T) {
+	runs := []goagent.RunSummary{{RunID: "run-input", Agent: "runner", Status: "running", LastKind: "checkpoint", Checkpoint: "paused", Stage: "input-required"}}
+	var out bytes.Buffer
+	if err := writeRunIndex(&out, "runner", runs, false); err != nil {
+		t.Fatal(err)
+	}
+	got := out.String()
+	for _, want := range []string{`micro agent history runner run-input`, `micro.AgentResumeInput(ctx, agent, "run-input", input)`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("output missing %q:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, `micro.AgentResume(ctx, agent, "run-input")`) || strings.Contains(got, "ResumeStreamAsk") {
+		t.Fatalf("input-required run should point at ResumeInput only, got:\n%s", got)
+	}
+}
+
 func TestWriteRunHistoryHumanAndJSON(t *testing.T) {
 	events := []goagent.RunEvent{{
 		Time:      time.Date(2026, 6, 25, 12, 34, 56, 7_000_000, time.UTC),

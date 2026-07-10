@@ -17,7 +17,7 @@ func TestWriteAgentInspectionIncludesActionableBreadcrumbs(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := out.String()
-	for _, want := range []string{"Agent \"support\" runs", "run-1", "status=error", "events=4", "last=tool", "checkpoint=failed", "stage=ask", `error="boom"`, "trace=1234567890ab", `micro.AgentResume(ctx, agent, "run-1")`} {
+	for _, want := range []string{"Agent \"support\" runs", "run-1", "status=error", "events=4", "last=tool", "checkpoint=failed", "stage=ask", `error="boom"`, "trace=1234567890ab", `micro agent history support run-1`, `micro.AgentResume(ctx, agent, "run-1")`, `micro.ResumeStreamAsk(ctx, agent, "run-1")`} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("output missing %q:\n%s", want, got)
 		}
@@ -31,10 +31,13 @@ func TestWriteAgentInspectionIncludesInputResumeBreadcrumb(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := out.String()
-	for _, want := range []string{"checkpoint=paused", "stage=input-required", `micro.AgentResumeInput(ctx, agent, "run-input", input)`} {
+	for _, want := range []string{"checkpoint=paused", "stage=input-required", `micro agent history support run-input`, `micro.AgentResumeInput(ctx, agent, "run-input", input)`} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("output missing %q:\n%s", want, got)
 		}
+	}
+	if strings.Contains(got, `micro.AgentResume(ctx, agent, "run-input")`) || strings.Contains(got, "ResumeStreamAsk") {
+		t.Fatalf("input-required run should point at ResumeInput only, got:\n%s", got)
 	}
 }
 

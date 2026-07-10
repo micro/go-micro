@@ -98,14 +98,23 @@ func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, a
 			fmt.Fprintf(w, "  trace=%s", shortID(run.TraceID))
 		}
 		fmt.Fprintln(w)
-		if isResumableAgentRun(run) {
-			fmt.Fprintf(w, "    resume: call micro.AgentResume(ctx, agent, %q) after recreating the agent with the same checkpoint store\n", run.RunID)
-		}
-		if run.Stage == "input-required" {
-			fmt.Fprintf(w, "    input:  call micro.AgentResumeInput(ctx, agent, %q, input) to continue the paused run\n", run.RunID)
-		}
+		writeAgentRunBreadcrumbs(w, name, run)
 	}
 	return nil
+}
+
+func writeAgentRunBreadcrumbs(w io.Writer, name string, run goagent.RunSummary) {
+	if run.Stage == "input-required" {
+		fmt.Fprintf(w, "    inspect: micro agent history %s %s\n", name, run.RunID)
+		fmt.Fprintf(w, "    input:   call micro.AgentResumeInput(ctx, agent, %q, input) to continue the input-required run\n", run.RunID)
+		return
+	}
+	if !isResumableAgentRun(run) {
+		return
+	}
+	fmt.Fprintf(w, "    inspect: micro agent history %s %s\n", name, run.RunID)
+	fmt.Fprintf(w, "    resume:  call micro.AgentResume(ctx, agent, %q) after recreating the agent with the same checkpoint store\n", run.RunID)
+	fmt.Fprintf(w, "    stream:  call micro.ResumeStreamAsk(ctx, agent, %q) to resume with streaming events\n", run.RunID)
 }
 
 func isResumableAgentRun(run goagent.RunSummary) bool {
