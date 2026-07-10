@@ -24,10 +24,11 @@ Use the recovery command that matches where you are in the first-agent journey:
 | Checkpoint | When to use it | Command |
 | --- | --- | --- |
 | Install troubleshooting | `micro` is not installed, not on `PATH`, or the shell cannot run it. | [Install troubleshooting](install-troubleshooting.html) |
+| Quick recovery map | The first-agent loop stalled and you want the short scaffold → run → chat → inspect checklist before reading this full guide. | `micro agent quickcheck` (alias: `micro agent debug`) |
 | Preflight before `micro run` | You have not started the local runtime yet and want to verify Go, CLI, provider-key, and gateway-port prerequisites. | `micro agent preflight` |
 | Doctor after `micro run` | `micro run` is active, but chat, the `/agent` gateway, agent registration, provider settings, or inspect/run history is not behaving. | `micro agent doctor` |
 
-`micro agent preflight` is read-only and runs before the first local run; failed
+`micro agent quickcheck` is the quickest breadcrumb when you are unsure where the first-agent path failed: it prints the preflight, run, doctor, inspect, and no-secret fallback commands in one place. `micro agent preflight` is read-only and runs before the first local run; failed
 checks include `Fix:` and `Next:` lines for Go, CLI installation, provider-key
 setup, and the local gateway port. Once `micro run` is already up, switch to
 `micro agent doctor` so the recovery output follows the live gateway, chat

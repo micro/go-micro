@@ -57,14 +57,15 @@ After this quick start, follow the agent path in order:
 
 1. [Install troubleshooting](guides/install-troubleshooting.html) — verify the CLI install before agent work.
 2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
-3. `micro examples` — print the maintained provider-free runnable examples in copy/paste order.
-4. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle harness and runnable examples.
-5. [Examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md) — choose the smallest no-secret first-agent, maintained [0→hero support reference](https://github.com/micro/go-micro/tree/master/examples/support), and next interop examples from one map.
-6. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
-7. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
-8. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
-9. [Debugging your agent](guides/debugging-agents.html) — use `micro inspect agent <name>` to inspect service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
-10. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
+3. `micro agent quickcheck` (or `micro agent debug`) — when scaffold → run → chat → inspect stalls, print the short recovery map before you dive into the full debugging guide.
+4. `micro examples` — print the maintained provider-free runnable examples in copy/paste order.
+5. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle harness and runnable examples.
+6. [Examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md) — choose the smallest no-secret first-agent, maintained [0→hero support reference](https://github.com/micro/go-micro/tree/master/examples/support), and next interop examples from one map.
+7. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
+8. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — run a useful support agent with a mock model before setting up a provider key.
+9. [Your First Agent](guides/your-first-agent.html) — build a service-backed agent and talk to it with `micro chat`.
+10. [Debugging your agent](guides/debugging-agents.html) — use `micro agent preflight` before `micro run`, `micro agent doctor` after `micro run`, then `micro chat` and `micro inspect agent <name>` to recover service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
+11. [0→hero reference path](guides/zero-to-hero.html) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
 
 ## Write a Service
 

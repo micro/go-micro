@@ -82,6 +82,9 @@ const docsWayfinding = `First-agent and 0→hero docs:
      prove service tools, mock-model chat, and inspectable run history without
      configuring a provider key.
 
+     If scaffold → run → chat → inspect stalls, print the short recovery map:
+       micro agent quickcheck
+
   2. No-secret first-agent transcript
      https://go-micro.dev/docs/guides/no-secret-first-agent.html
      Run the maintained support agent without a provider key:

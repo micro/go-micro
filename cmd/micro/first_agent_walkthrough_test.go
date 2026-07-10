@@ -175,6 +175,7 @@ func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
 	}
 	agent := commandByName(t, "agent")
 	outputs["micro agent demo"] = commandOutput(t, subcommandByName(t, agent, "demo"))
+	outputs["micro agent quickcheck"] = commandOutput(t, subcommandByName(t, agent, "quickcheck"))
 
 	contracts := []struct {
 		name    string
@@ -186,6 +187,10 @@ func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
 			file: filepath.Join(root, "README.md"),
 			markers: []string{
 				"micro agent demo",
+				"micro agent quickcheck",
+				"micro agent preflight",
+				"micro agent doctor",
+				"micro inspect agent <name>",
 				"micro examples",
 				"micro zero-to-hero",
 				"examples/first-agent/",
@@ -201,6 +206,10 @@ func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
 			file: filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
 			markers: []string{
 				"micro agent demo",
+				"micro agent quickcheck",
+				"micro agent preflight",
+				"micro agent doctor",
+				"micro inspect agent <name>",
 				"micro examples",
 				"micro zero-to-hero",
 				"github.com/micro/go-micro/tree/master/examples/first-agent",
