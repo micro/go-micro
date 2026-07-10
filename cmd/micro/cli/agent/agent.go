@@ -224,12 +224,42 @@ func writeRunIndex(w io.Writer, name string, runs []goagent.RunSummary, asJSON b
 		if run.TraceID != "" {
 			line += "  trace=" + shortTraceID(run.TraceID)
 		}
+		if run.Checkpoint != "" {
+			line += "  checkpoint=" + run.Checkpoint
+		}
+		if run.Stage != "" {
+			line += "  stage=" + run.Stage
+		}
 		if run.LastError != "" {
 			line += "  error=" + run.LastError
 		}
 		fmt.Fprintln(w, line)
+		writeRunIndexBreadcrumbs(w, name, run)
 	}
 	return nil
+}
+
+func writeRunIndexBreadcrumbs(w io.Writer, name string, run goagent.RunSummary) {
+	if run.Stage == "input-required" {
+		fmt.Fprintf(w, "      inspect: micro agent history %s %s\n", name, run.RunID)
+		fmt.Fprintf(w, "      input:   call micro.AgentResumeInput(ctx, agent, %q, input) to continue the input-required run\n", run.RunID)
+		return
+	}
+	if !isResumableRunSummary(run) {
+		return
+	}
+	fmt.Fprintf(w, "      inspect: micro agent history %s %s\n", name, run.RunID)
+	fmt.Fprintf(w, "      resume:  call micro.AgentResume(ctx, agent, %q) after recreating the agent with the same checkpoint store\n", run.RunID)
+	fmt.Fprintf(w, "      stream:  call micro.ResumeStreamAsk(ctx, agent, %q) to resume with streaming events\n", run.RunID)
+}
+
+func isResumableRunSummary(run goagent.RunSummary) bool {
+	switch run.Status {
+	case "running", "error", "failed", "refused":
+		return run.Checkpoint != "done" || run.Stage != ""
+	default:
+		return false
+	}
 }
 
 func printRunHistory(name, runID string, asJSON bool) error {
