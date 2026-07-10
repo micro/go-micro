@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,6 +25,31 @@ func TestUniverseHarnessContract(t *testing.T) {
 
 	if code := runUniverse("mock"); code != 0 {
 		t.Fatalf("universe harness exited with code %d", code)
+	}
+}
+
+func TestA2AReachableRetriesTransientTimeout(t *testing.T) {
+	var calls int64
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got, want := r.URL.Path, "/agents/concierge"; got != want {
+			t.Fatalf("path = %q, want %q", got, want)
+		}
+		if atomic.AddInt64(&calls, 1) == 1 {
+			time.Sleep(5 * time.Second)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"jsonrpc":"2.0","id":1,"result":{"kind":"task","id":"task-1","contextId":"ctx-1","status":{"state":"completed"},"artifacts":[{"artifactId":"artifact-1","parts":[{"kind":"text","text":"concierge reachable"}]}]}}`)
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+	defer cancel()
+	if err := a2aReachable(ctx, srv.URL, "concierge"); err != nil {
+		t.Fatalf("a2aReachable returned error: %v", err)
+	}
+	if got := atomic.LoadInt64(&calls); got < 2 {
+		t.Fatalf("A2A calls = %d, want retry after transient timeout", got)
 	}
 }
 
