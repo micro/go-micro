@@ -485,6 +485,99 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 	}
 }
 
+func TestFirstAgentGuideChainDocumentsRequiredNextSteps(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	checks := []struct {
+		name    string
+		file    string
+		markers []string
+	}{
+		{
+			name: "no-secret transcript hands off to live build and debug",
+			file: filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"),
+			markers: []string{
+				"micro agent demo",
+				"go run ./examples/first-agent",
+				"go run ./examples/support",
+				"go test ./examples/first-agent -run TestRunFirstAgent -count=1",
+				"go test ./examples/support -run TestRunSupportMockSmoke -count=1",
+				"make harness",
+				"micro agent preflight",
+				"micro run",
+				"micro chat assistant",
+				"micro inspect agent assistant",
+				"Debugging your agent",
+				"debugging-agents.html",
+			},
+		},
+		{
+			name: "your-first-agent keeps no-secret, preflight, doctor, inspect, and debug nearby",
+			file: filepath.Join(root, "internal", "website", "docs", "guides", "your-first-agent.md"),
+			markers: []string{
+				"no-secret-first-agent.html",
+				"go run ./examples/support",
+				"micro agent preflight",
+				"micro agent doctor",
+				"micro run",
+				"micro chat assistant",
+				"micro inspect agent assistant",
+				"debugging-agents.html",
+				"zero-to-hero.html",
+			},
+		},
+		{
+			name: "debugging guide starts at install/preflight and preserves inspect/history recovery",
+			file: filepath.Join(root, "internal", "website", "docs", "guides", "debugging-agents.md"),
+			markers: []string{
+				"install-troubleshooting.html",
+				"micro agent preflight",
+				"micro agent doctor",
+				"micro run",
+				"micro chat",
+				"micro inspect agent support",
+				"micro agent history",
+				"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1",
+			},
+		},
+		{
+			name: "zero-to-hero guide exposes the provider-free contract commands",
+			file: filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"),
+			markers: []string{
+				"go test ./internal/harness/zero-to-hero-ci -run TestFirstAgentWayfindingDocs -count=1",
+				"micro zero-to-hero",
+				"go run ./examples/first-agent",
+				"go run ./examples/support",
+				"make harness",
+				"go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1",
+				"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1",
+				"make provider-conformance-mock",
+			},
+		},
+	}
+
+	for _, check := range checks {
+		t.Run(check.name, func(t *testing.T) {
+			doc := readFile(t, check.file)
+			for _, marker := range check.markers {
+				if !strings.Contains(doc, marker) {
+					t.Fatalf("%s missing required first-agent next-step marker %q", check.name, marker)
+				}
+				if firstAgentMarkerIsLink(marker) {
+					assertWayfindingTargetExists(t, root, check.file, marker)
+				}
+			}
+		})
+	}
+}
+
+func firstAgentMarkerIsLink(marker string) bool {
+	return strings.HasSuffix(marker, ".html") ||
+		strings.HasSuffix(marker, ".md") ||
+		strings.HasPrefix(marker, "./") ||
+		strings.HasPrefix(marker, "../") ||
+		strings.HasPrefix(marker, "https://github.com/micro/go-micro/")
+}
+
 func TestFirstAgentLifecycleCommandOrderIsDocumented(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	checks := []struct {
