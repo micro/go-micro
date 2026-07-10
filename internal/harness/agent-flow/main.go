@@ -49,19 +49,31 @@ type CreateResponse struct {
 }
 
 type WorkspaceService struct {
-	mu sync.Mutex
-	n  int
+	mu      sync.Mutex
+	n       int
+	byOwner map[string]*Workspace
 }
 
 // Create provisions a workspace for a new user.
 // @example {"owner": "alice@acme.com"}
 func (s *WorkspaceService) Create(ctx context.Context, req *CreateRequest, rsp *CreateResponse) error {
 	s.mu.Lock()
+	if s.byOwner == nil {
+		s.byOwner = make(map[string]*Workspace)
+	}
+	if ws, ok := s.byOwner[req.Owner]; ok {
+		s.mu.Unlock()
+		fmt.Printf("    \033[32m[workspace]\033[0m duplicate suppressed %s for %s\n", ws.ID, req.Owner)
+		rsp.Workspace = ws
+		return nil
+	}
 	s.n++
 	id := fmt.Sprintf("ws-%d", s.n)
+	ws := &Workspace{ID: id, Owner: req.Owner}
+	s.byOwner[req.Owner] = ws
 	s.mu.Unlock()
 	fmt.Printf("    \033[32m[workspace]\033[0m created %s for %s\n", id, req.Owner)
-	rsp.Workspace = &Workspace{ID: id, Owner: req.Owner}
+	rsp.Workspace = ws
 	return nil
 }
 
@@ -79,14 +91,26 @@ type SendResponse struct {
 	Sent bool `json:"sent"`
 }
 type NotifyService struct {
-	mu sync.Mutex
-	n  int
+	mu   sync.Mutex
+	n    int
+	sent map[string]bool
 }
 
 // Send delivers a notification message to a recipient.
 // @example {"to": "alice@acme.com", "message": "Welcome"}
 func (s *NotifyService) Send(ctx context.Context, req *SendRequest, rsp *SendResponse) error {
+	key := req.To + "\x00" + req.Message
 	s.mu.Lock()
+	if s.sent == nil {
+		s.sent = make(map[string]bool)
+	}
+	if s.sent[key] {
+		s.mu.Unlock()
+		fmt.Printf("    \033[35m[notify]\033[0m duplicate suppressed to=%s message=%q\n", req.To, req.Message)
+		rsp.Sent = true
+		return nil
+	}
+	s.sent[key] = true
 	s.n++
 	s.mu.Unlock()
 	fmt.Printf("    \033[35m[notify]\033[0m 📨 to=%s message=%q\n", req.To, req.Message)
