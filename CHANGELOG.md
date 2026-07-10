@@ -18,20 +18,47 @@ below is kept current between tags and rolled into the next version when it ship
 ## [Unreleased]
 
 ### Added
+- **First-agent guide chain contract** — the harness now verifies the install → demo → examples → 0→hero guide chain stays connected for new agent builders. (`internal/harness/`, `internal/website/docs/`)
+
+### Fixed
+- **A2A fallback artifact text** — A2A fallback responses now avoid leaking provider artifact text into agent-visible output. (`gateway/a2a/`, `agent/`)
+- **Launch readiness notification replays** — launch-readiness notification replay paths now deduplicate repeated side effects. (`agent/`, `internal/harness/`)
+- **Plan-delegate harness cleanup** — plan/delegate harness cleanup is more reliable after conformance runs. (`internal/harness/`)
+- **AtlasCloud spoken notify replays** — AtlasCloud fallback handling now collapses spoken notification replays more consistently. (`ai/atlascloud/`, `agent/`)
+- **Agent-flow onboarding side effects** — onboarding side-effect checks are more stable across the agent-flow harness. (`agent/`, `internal/harness/`)
+
+---
+
+## [6.5.0] - July 2026
+
+### Added
 - **Agent stream provider conformance** — provider conformance now covers agent streaming behavior so streaming-capable providers stay aligned with the harness contract. (`agent/`, `internal/harness/`)
+- **First-agent docs CLI parity check** — the harness now verifies first-agent docs commands match the CLI wayfinding surface. (`internal/harness/`, `internal/website/docs/`)
+- **Focused CLI inner-loop contract** — the local harness now covers scaffold, run/chat/inspect, and deploy dry-run boundaries in one first-run contract. (`internal/harness/`)
+- **First-agent wayfinding breadcrumbs** — first-agent docs and examples now have locked breadcrumb coverage from the README through the runnable examples. (`README.md`, `internal/website/docs/`, `examples/`)
+- **Offline `micro new` contract** — project scaffolding now has an offline contract so the first service path stays runnable without network access. (`cmd/micro/`, `internal/harness/`)
 
 ### Changed
 - **Provider model call timeouts** — model call timeout enforcement now wraps provider calls more defensively, reducing hangs in agent and harness paths. (`agent/`, `ai/`)
 - **First-agent harness diagnostics** — getting-started harness logs now make first-run and 0→hero failures easier to locate. (`internal/harness/`)
+- **MiniMax streaming conformance** — MiniMax streaming coverage now exercises broader provider conformance behavior. (`ai/minimax/`, `internal/harness/`)
+- **AtlasCloud streaming tool capability** — AtlasCloud tool-streaming capability detection is now aligned with provider fallback behavior. (`ai/atlascloud/`, `agent/`)
 
 ### Fixed
 - **Partial text tool calls** — text tool-call recovery now repairs partial function-style calls more reliably before fallback parsing continues. (`agent/`)
 - **Retry timeout test stability** — retry timeout coverage is less race-prone. (`agent/`)
 - **Checkpointed tool-call resume** — resumed agent runs now preserve checkpointed tool calls across startup resume paths. (`agent/`)
+- **Model retry backoff contracts** — retry backoff behavior now has focused contract coverage for model-call failures. (`agent/`, `ai/`)
+- **AtlasCloud conformance markers** — AtlasCloud fallback paths now preserve conformance markers through tool-call recovery. (`ai/atlascloud/`, `agent/`)
+- **AtlasCloud delegate text fallback** — delegate text fallback recovery is more reliable for AtlasCloud responses. (`ai/atlascloud/`, `agent/`)
+- **AtlasCloud incomplete plan repairs** — incomplete plan repair paths now recover more consistently in AtlasCloud fallback handling. (`ai/atlascloud/`, `agent/`)
+- **AtlasCloud partial text tool calls** — AtlasCloud fallback handling now repairs partial text-rendered tool calls more reliably. (`ai/atlascloud/`, `agent/`)
 
 ### Documentation
 - **Roadmap agent status** — public roadmap docs now reflect the current agent lifecycle status more consistently. (`internal/website/docs/`)
 - **Agent resume limits** — docs now describe checkpoint resume boundaries for agent runs. (`internal/website/docs/`)
+- **Zero-to-hero harness boundaries** — docs now clarify which 0→hero lifecycle checks are maintained by the local harness. (`internal/website/docs/`, `internal/harness/`)
+- **First-agent wayfinding guard** — first-agent docs wayfinding now has tighter guard coverage around the README, docs, and examples chain. (`README.md`, `internal/website/docs/`)
 
 ---
 
