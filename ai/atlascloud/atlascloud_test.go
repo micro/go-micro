@@ -628,6 +628,36 @@ func TestProvider_GenerateFallsBackAfterRepeatedPartialDelegateTextToolCall(t *t
 	}
 }
 
+func TestProvider_GenerateFallsBackAfterRepeatedPartialNoArgumentServiceTextToolCall(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"task_TaskService_List\">"}}]}`))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL(ts.URL),
+		ai.WithModel("minimaxai/minimax-m3"),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "list the current launch-readiness tasks",
+		Tools: []ai.Tool{{
+			Name:         "task_TaskService_List",
+			OriginalName: "task.TaskService.List",
+			Description:  "List persisted launch-readiness tasks",
+			Properties:   map[string]any{},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	want := `<tool_call name="task_TaskService_List">{}</tool_call>`
+	if resp.Reply != want {
+		t.Fatalf("Reply = %q, want %q", resp.Reply, want)
+	}
+}
+
 func TestProvider_GenerateRetriesMinimaxBuiltInsAsTextTools(t *testing.T) {
 	var bodies []map[string]any
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
