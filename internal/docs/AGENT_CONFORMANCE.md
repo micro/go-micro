@@ -3,8 +3,11 @@
 `go test ./...` includes `TestAgentProviderConformanceMatrix`, a shared agent
 scenario that runs against every registered chat provider. The scenario asks an
 agent to call a deterministic local tool, verifies the tool receives `ai.RunInfo`,
-and checks the final response carries the conformance marker. A fake provider path
-runs on every machine without network access so CI always exercises the harness.
+and checks the final response carries the conformance marker. The live matrix
+includes MiniMax in the tool/guardrail path in addition to providers with
+streaming coverage, so every supported chat provider has at least one key-gated
+agent contract. A fake provider path runs on every machine without network
+access so CI always exercises the harness.
 
 Live providers are opt-in to avoid flaky unauthenticated PR checks and accidental
 API spend. To run the live matrix, set `GO_MICRO_AGENT_CONFORMANCE_LIVE=1` plus the

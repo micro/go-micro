@@ -22,17 +22,20 @@ type conformanceProvider struct {
 	live  bool
 }
 
+var agentConformanceProviders = []conformanceProvider{
+	{name: "fake"},
+	{name: "openai", key: "OPENAI_API_KEY", model: "GO_MICRO_CONFORMANCE_OPENAI_MODEL", live: true},
+	{name: "anthropic", key: "ANTHROPIC_API_KEY", model: "GO_MICRO_CONFORMANCE_ANTHROPIC_MODEL", live: true},
+	{name: "atlascloud", key: "ATLASCLOUD_API_KEY", model: "GO_MICRO_CONFORMANCE_ATLASCLOUD_MODEL", live: true},
+	{name: "gemini", key: "GEMINI_API_KEY", model: "GO_MICRO_CONFORMANCE_GEMINI_MODEL", live: true},
+	{name: "groq", key: "GROQ_API_KEY", model: "GO_MICRO_CONFORMANCE_GROQ_MODEL", live: true},
+	{name: "minimax", key: "MINIMAX_API_KEY", model: "GO_MICRO_CONFORMANCE_MINIMAX_MODEL", live: true},
+	{name: "mistral", key: "MISTRAL_API_KEY", model: "GO_MICRO_CONFORMANCE_MISTRAL_MODEL", live: true},
+	{name: "together", key: "TOGETHER_API_KEY", model: "GO_MICRO_CONFORMANCE_TOGETHER_MODEL", live: true},
+}
+
 func TestAgentProviderConformanceMatrix(t *testing.T) {
-	providers := []conformanceProvider{
-		{name: "fake"},
-		{name: "openai", key: "OPENAI_API_KEY", model: "GO_MICRO_CONFORMANCE_OPENAI_MODEL", live: true},
-		{name: "anthropic", key: "ANTHROPIC_API_KEY", model: "GO_MICRO_CONFORMANCE_ANTHROPIC_MODEL", live: true},
-		{name: "atlascloud", key: "ATLASCLOUD_API_KEY", model: "GO_MICRO_CONFORMANCE_ATLASCLOUD_MODEL", live: true},
-		{name: "gemini", key: "GEMINI_API_KEY", model: "GO_MICRO_CONFORMANCE_GEMINI_MODEL", live: true},
-		{name: "groq", key: "GROQ_API_KEY", model: "GO_MICRO_CONFORMANCE_GROQ_MODEL", live: true},
-		{name: "mistral", key: "MISTRAL_API_KEY", model: "GO_MICRO_CONFORMANCE_MISTRAL_MODEL", live: true},
-		{name: "together", key: "TOGETHER_API_KEY", model: "GO_MICRO_CONFORMANCE_TOGETHER_MODEL", live: true},
-	}
+	providers := agentConformanceProviders
 
 	selected := selectedConformanceProviders(os.Getenv("GO_MICRO_AGENT_CONFORMANCE_PROVIDERS"))
 	for _, provider := range providers {
@@ -47,16 +50,7 @@ func TestAgentProviderConformanceMatrix(t *testing.T) {
 }
 
 func TestAgentProviderStreamConformanceMatrix(t *testing.T) {
-	providers := []conformanceProvider{
-		{name: "fake"},
-		{name: "openai", key: "OPENAI_API_KEY", model: "GO_MICRO_CONFORMANCE_OPENAI_MODEL", live: true},
-		{name: "anthropic", key: "ANTHROPIC_API_KEY", model: "GO_MICRO_CONFORMANCE_ANTHROPIC_MODEL", live: true},
-		{name: "atlascloud", key: "ATLASCLOUD_API_KEY", model: "GO_MICRO_CONFORMANCE_ATLASCLOUD_MODEL", live: true},
-		{name: "groq", key: "GROQ_API_KEY", model: "GO_MICRO_CONFORMANCE_GROQ_MODEL", live: true},
-		{name: "minimax", key: "MINIMAX_API_KEY", model: "GO_MICRO_CONFORMANCE_MINIMAX_MODEL", live: true},
-		{name: "mistral", key: "MISTRAL_API_KEY", model: "GO_MICRO_CONFORMANCE_MISTRAL_MODEL", live: true},
-		{name: "together", key: "TOGETHER_API_KEY", model: "GO_MICRO_CONFORMANCE_TOGETHER_MODEL", live: true},
-	}
+	providers := streamConformanceProviders()
 
 	selected := selectedConformanceProviders(os.Getenv("GO_MICRO_AGENT_CONFORMANCE_PROVIDERS"))
 	for _, provider := range providers {
@@ -67,6 +61,46 @@ func TestAgentProviderStreamConformanceMatrix(t *testing.T) {
 		t.Run(provider.name, func(t *testing.T) {
 			runAgentStreamConformanceScenario(t, provider)
 		})
+	}
+}
+
+func streamConformanceProviders() []conformanceProvider {
+	providers := make([]conformanceProvider, 0, len(agentConformanceProviders))
+	for _, provider := range agentConformanceProviders {
+		// Gemini is covered by the non-streaming agent/tool matrix, but does not
+		// currently advertise streaming in the provider capability registry.
+		if provider.name == "gemini" {
+			continue
+		}
+		providers = append(providers, provider)
+	}
+	return providers
+}
+
+func TestAgentProviderConformanceMatrixIncludesEveryLiveProvider(t *testing.T) {
+	want := map[string]string{
+		"openai":     "OPENAI_API_KEY",
+		"anthropic":  "ANTHROPIC_API_KEY",
+		"atlascloud": "ATLASCLOUD_API_KEY",
+		"gemini":     "GEMINI_API_KEY",
+		"groq":       "GROQ_API_KEY",
+		"minimax":    "MINIMAX_API_KEY",
+		"mistral":    "MISTRAL_API_KEY",
+		"together":   "TOGETHER_API_KEY",
+	}
+	got := map[string]string{}
+	for _, provider := range agentConformanceProviders {
+		if provider.live {
+			got[provider.name] = provider.key
+		}
+	}
+	for name, key := range want {
+		if got[name] != key {
+			t.Fatalf("agentConformanceProviders[%q] key = %q, want %q", name, got[name], key)
+		}
+	}
+	if len(got) != len(want) {
+		t.Fatalf("agentConformanceProviders live providers = %#v, want exactly %#v", got, want)
 	}
 }
 
