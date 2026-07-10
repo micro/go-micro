@@ -600,6 +600,28 @@ func TestPlanDelegateExecutionAcceptsClientTimeoutAfterSideEffects(t *testing.T)
 	}
 }
 
+func TestPlanDelegateExecutionAcceptsApprovalPauseAfterSideEffects(t *testing.T) {
+	taskSvc := new(TaskService)
+	for _, title := range []string{"Design", "Build", "Ship"} {
+		var rsp AddResponse
+		if err := taskSvc.Add(context.Background(), &AddRequest{Title: title}, &rsp); err != nil {
+			t.Fatalf("Add(%q): %v", title, err)
+		}
+	}
+	notifySvc := new(NotifyService)
+	var rsp SendResponse
+	if err := notifySvc.Send(context.Background(), &SendRequest{To: "owner@acme.com", Message: "The launch plan is ready"}, &rsp); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+
+	done := make(chan error, 1)
+	done <- errors.New("agent run abc paused for approval: The comms agent is repeatedly timing out (408 errors) while retrying the launch-readiness notification")
+
+	if err := waitForPlanDelegateExecution(done, taskSvc, notifySvc, nil); err != nil {
+		t.Fatalf("waitForPlanDelegateExecution returned %v, want completed side effects to satisfy approval pause", err)
+	}
+}
+
 func TestPlanDelegateExecutionClassifiesClientTimeoutBeforeSideEffects(t *testing.T) {
 	done := make(chan error, 1)
 	done <- errors.New(`{"id":"go.micro.client","code":408,"detail":"<nil>","status":"Request Timeout"}`)

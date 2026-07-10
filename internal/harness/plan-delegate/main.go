@@ -630,11 +630,11 @@ func waitForPlanDelegateExecution(done <-chan error, taskSvc *TaskService, notif
 			tasks := taskSvc.count()
 			notify := notifySvc.count()
 			if err != nil {
+				if hasCompletedPlanDelegateSideEffects(tasks, notify) {
+					fmt.Printf("\n\033[33mwarning:\033[0m flow execute returned after completed side effects: %v\n", err)
+					return nil
+				}
 				if isClientTimeout(err) {
-					if tasks > 0 && notify == 1 {
-						fmt.Printf("\n\033[33mwarning:\033[0m flow execute returned after completed side effects: %v\n", err)
-						return nil
-					}
 					return classifiedPlanDelegateTimeout(tasks, notify, err)
 				}
 				if isUnfinishedPlanError(err) && tasks > 0 && notify == 0 && recoverMissingNotify != nil {
@@ -676,6 +676,10 @@ func waitForNotifySideEffect(notifySvc *NotifyService, timeout time.Duration) (b
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+}
+
+func hasCompletedPlanDelegateSideEffects(tasks, notify int) bool {
+	return tasks == 3 && notify == 1
 }
 
 func classifiedPlanDelegateTimeout(tasks, notify int, err error) error {
