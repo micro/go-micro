@@ -367,6 +367,27 @@ func TestPlanDelegateExecutionRejectsClaimedCompletionWithoutNotify(t *testing.T
 	}
 }
 
+type scriptedAgent struct {
+	replies []func(context.Context, string) (*agent.Response, error)
+	calls   int
+}
+
+func (a *scriptedAgent) Name() string                                      { return "scripted" }
+func (a *scriptedAgent) Init(...agent.Option)                              {}
+func (a *scriptedAgent) Options() agent.Options                            { return agent.Options{} }
+func (a *scriptedAgent) Stream(context.Context, string) (ai.Stream, error) { return nil, nil }
+func (a *scriptedAgent) Run() error                                        { return nil }
+func (a *scriptedAgent) Stop() error                                       { return nil }
+func (a *scriptedAgent) String() string                                    { return "scripted" }
+func (a *scriptedAgent) Ask(ctx context.Context, prompt string) (*agent.Response, error) {
+	if a.calls >= len(a.replies) {
+		return &agent.Response{Reply: "done"}, nil
+	}
+	reply := a.replies[a.calls]
+	a.calls++
+	return reply(ctx, prompt)
+}
+
 type failingAgent struct {
 	err error
 }
@@ -379,6 +400,60 @@ func (a failingAgent) Stream(context.Context, string) (ai.Stream, error)    { re
 func (a failingAgent) Run() error                                           { return nil }
 func (a failingAgent) Stop() error                                          { return nil }
 func (a failingAgent) String() string                                       { return "failing" }
+
+func TestPlanDelegateConductorRetriesAfterPlanOnlySuccess(t *testing.T) {
+	taskSvc := new(TaskService)
+	notifySvc := new(NotifyService)
+	ag := &scriptedAgent{replies: []func(context.Context, string) (*agent.Response, error){
+		func(context.Context, string) (*agent.Response, error) {
+			return &agent.Response{Reply: "Plan saved."}, nil
+		},
+		func(ctx context.Context, prompt string) (*agent.Response, error) {
+			if !strings.Contains(prompt, "Execute the persisted plan") {
+				return nil, errors.New("missing explicit side-effect recovery prompt")
+			}
+			for _, title := range []string{"Design", "Build", "Ship"} {
+				var rsp AddResponse
+				if err := taskSvc.Add(ctx, &AddRequest{Title: title}, &rsp); err != nil {
+					return nil, err
+				}
+			}
+			return &agent.Response{Reply: "Tasks created."}, nil
+		},
+	}}
+
+	step := planDelegateConductorStep(ag, taskSvc, notifySvc)
+	if _, err := step(context.Background(), flow.State{}); err != nil {
+		t.Fatalf("planDelegateConductorStep returned %v, want plan-only retry success", err)
+	}
+	if ag.calls != 2 {
+		t.Fatalf("conductor calls = %d, want initial plan-only call plus one side-effect retry", ag.calls)
+	}
+	if got := taskSvc.count(); got != 3 {
+		t.Fatalf("task count = %d, want recovered Design/Build/Ship side effects", got)
+	}
+}
+
+func TestPlanDelegateConductorFailsBeforeNotifyGateAfterPlanOnlyRetryMiss(t *testing.T) {
+	step := planDelegateConductorStep(&scriptedAgent{replies: []func(context.Context, string) (*agent.Response, error){
+		func(context.Context, string) (*agent.Response, error) {
+			return &agent.Response{Reply: "Plan saved."}, nil
+		},
+		func(context.Context, string) (*agent.Response, error) {
+			return &agent.Response{Reply: "Still planning."}, nil
+		},
+	}}, new(TaskService), new(NotifyService))
+
+	_, err := step(context.Background(), flow.State{})
+	if err == nil {
+		t.Fatal("planDelegateConductorStep returned nil, want pre-notify-gate task side-effect error")
+	}
+	for _, want := range []string{"before task side effects completed", "tasks=0/3", "task Add for Design, Build, and Ship"} {
+		if got := err.Error(); !strings.Contains(got, want) {
+			t.Fatalf("error = %q, want %q", got, want)
+		}
+	}
+}
 
 func TestPlanDelegateConductorAllowsNotifyRecoveryAfterUnfinishedDelegation(t *testing.T) {
 	taskSvc := new(TaskService)

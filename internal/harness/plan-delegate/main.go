@@ -559,6 +559,23 @@ func planDelegateConductorStep(conductor agent.Agent, taskSvc *TaskService, noti
 		if rsp != nil && rsp.Reply != "" {
 			fmt.Println("\n\033[1m< conductor reply:\033[0m", rsp.Reply)
 		}
+		if taskSvc != nil && notifySvc != nil && taskSvc.count() == 0 && notifySvc.count() == 0 {
+			fmt.Print("\n\033[33mwarning:\033[0m conductor persisted/planned without service side effects; retrying task execution before notify gate.\n")
+			rsp, err = conductor.Ask(ctx, "Continue the launch-readiness run now. Execute the persisted plan by calling the task Add tool exactly once for Design, Build, and Ship, then delegate the owner readiness notification to comms. Do not answer until at least one required tool call succeeds.")
+			if err != nil {
+				if isUnfinishedPlanError(err) && taskSvc.count() > 0 && notifySvc.count() == 0 {
+					fmt.Printf("\n\033[33mwarning:\033[0m conductor recovered tasks but stopped before notification; continuing to require-notify recovery: %v\n", err)
+					return in, nil
+				}
+				return in, err
+			}
+			if rsp != nil && rsp.Reply != "" {
+				fmt.Println("\n\033[1m< conductor reply:\033[0m", rsp.Reply)
+			}
+		}
+		if taskSvc != nil && notifySvc != nil && taskSvc.count() == 0 {
+			return in, fmt.Errorf("plan-delegate reached notify gate before task side effects completed (tasks=0/3 notify=%d/1); model produced a plan but did not call task Add for Design, Build, and Ship", notifySvc.count())
+		}
 		return in, nil
 	}
 }
