@@ -557,8 +557,84 @@ func atlascloudFallbackTextToolCall(toolName string, req *ai.Request) string {
 		if atlascloudToolTakesNoArguments(toolName, req.Tools) {
 			return atlascloudEmptyArgumentFallbackTextToolCall(toolName)
 		}
+		return atlascloudServiceFallbackTextToolCall(toolName, req)
+	}
+}
+
+func atlascloudServiceFallbackTextToolCall(toolName string, req *ai.Request) string {
+	if req == nil {
 		return ""
 	}
+	for _, tool := range req.Tools {
+		if tool.Name != toolName {
+			continue
+		}
+		args := atlascloudFallbackArgsForProperties(tool.Properties, atlascloudRequestText(req))
+		if args == nil {
+			return ""
+		}
+		b, err := json.Marshal(args)
+		if err != nil {
+			return ""
+		}
+		return `<tool_call name="` + toolName + `">` + string(b) + `</tool_call>`
+	}
+	return ""
+}
+
+func atlascloudFallbackArgsForProperties(properties map[string]any, ctxText string) map[string]any {
+	if len(properties) == 0 {
+		return map[string]any{}
+	}
+	args := make(map[string]any, len(properties))
+	for name, schema := range properties {
+		value, ok := atlascloudFallbackArgValue(name, schema, ctxText)
+		if !ok {
+			return nil
+		}
+		args[name] = value
+	}
+	return args
+}
+
+func atlascloudFallbackArgValue(name string, schema any, ctxText string) (any, bool) {
+	typeName := "string"
+	if m, ok := schema.(map[string]any); ok {
+		if t, _ := m["type"].(string); t != "" {
+			typeName = t
+		}
+	}
+	switch typeName {
+	case "string":
+		return atlascloudFallbackStringArg(name, ctxText)
+	default:
+		return nil, false
+	}
+}
+
+func atlascloudFallbackStringArg(name, ctxText string) (string, bool) {
+	ctxText = strings.TrimSpace(ctxText)
+	if ctxText == "" {
+		return "", false
+	}
+	if strings.Contains(strings.ToLower(name), "email") || strings.Contains(strings.ToLower(name), "owner") {
+		if email := atlascloudFirstEmail(ctxText); email != "" {
+			return email, true
+		}
+	}
+	return ctxText, true
+}
+
+func atlascloudFirstEmail(text string) string {
+	for _, field := range strings.FieldsFunc(text, func(r rune) bool {
+		return strings.ContainsRune(" \t\n\r<>\"'(),;", r)
+	}) {
+		field = strings.Trim(field, ".:")
+		if strings.Contains(field, "@") && strings.Contains(field, ".") {
+			return field
+		}
+	}
+	return ""
 }
 
 func atlascloudToolTakesNoArguments(toolName string, tools []ai.Tool) bool {
