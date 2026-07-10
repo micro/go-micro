@@ -50,6 +50,29 @@ branches, create pull requests, and enable auto-merge. Run `gh auth setup-git` i
 the environment that will push branches so `git push` uses the same credentials
 as `gh`.
 
+## Choosing an agent
+
+The loop is **agent-agnostic by design**. Each run opens a fresh tracking issue
+and summons the agent with an `@mention` comment; the prompt file
+(`.github/loop/prompts/<role>.md`) is the instruction. Any coding agent that
+(a) responds to an `@mention` on an issue and (b) can open a PR with `gh` works —
+you select it with `--agent`.
+
+- **Codex** (`--agent @codex`, the default). Point `--token-secret` at a PAT for
+  the user account Codex follows, and make sure the Codex environment installs
+  `gh` and runs `gh auth setup-git`. This is the path Go Micro itself runs on.
+- **Claude Code** (`--agent @claude`). Install
+  [`anthropics/claude-code-action`](https://github.com/anthropics/claude-code-action)
+  in the repo so a workflow responds to `@claude` comments and runs Claude with a
+  repo-scoped token; then the loop's dispatch triggers it like any other mention.
+- **Any other mention-driven agent** — pass its handle to `--agent`. The
+  mechanics don't care which agent it is.
+
+Not supported by the mention model: agents triggered by **issue assignment**
+rather than a comment (e.g. GitHub Copilot's coding agent, which you assign an
+issue to). The dispatch would need an "assign" adapter for those; it isn't wired
+yet, so stick to mention-driven agents.
+
 ## 3. Make CI the gate
 
 The loop should not be its own reviewer. Protect the default branch so PRs merge

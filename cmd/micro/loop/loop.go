@@ -123,7 +123,7 @@ Examples:
 					&cli.StringFlag{Name: "dir", Usage: "Target repo directory", Value: "."},
 					&cli.StringFlag{Name: "roles", Usage: "Comma-separated roles, or 'all'", Value: "planner,builder,triage"},
 					&cli.StringFlag{Name: "branch", Usage: "Base branch for the loop's PRs (auto-detected if empty)"},
-					&cli.StringFlag{Name: "agent", Usage: "How the workflows summon the agent (an @mention)", Value: "@codex"},
+					&cli.StringFlag{Name: "agent", Usage: "How the workflows summon the agent — any @mention-driven coding agent (e.g. @codex, @claude)", Value: "@codex"},
 					&cli.StringFlag{Name: "token-secret", Usage: "Repo secret holding the user PAT that drives dispatch", Value: "LOOP_TOKEN"},
 					&cli.StringFlag{Name: "ci-workflow", Usage: "CI workflow name(s) triage watches for failures (comma-separated)", Value: "CI"},
 					&cli.StringFlag{Name: "planner-cron", Usage: "Cron schedule for the planner", Value: "0 * * * *"},
