@@ -8,7 +8,7 @@ name: "Loop: Triage"
 
 on:
   workflow_run:
-    workflows: ["Harness (E2E)", "Lint", "Run Tests"]
+    workflows: ["Harness (E2E)", "Lint", "Run Tests", "govulncheck"]
     types: [completed]
 
 permissions:
