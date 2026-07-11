@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add end-to-end streaming chat conformance** ([#4738](https://github.com/micro/go-micro/issues/4738)) — #4736 closed the pgx/v5 security-upkeep item, and there are no open codex PRs in flight. The next highest-value user-visible gap is streaming chat that works coherently across the agent/CLI/A2A path, starting with a no-secret harness and extending to keyed provider checks without another provider-specific malformed-output workaround.
+1. **Add agent-level x402 spend budget guardrail** ([#4743](https://github.com/micro/go-micro/issues/4743)) — #4741 closed the streaming chat/A2A conformance item, and there are no open codex PRs in flight. The next highest-value user-facing gap is making paid tool calls safe for unattended agents: an explicit per-run spend cap beside `MaxSteps` and `ApproveTool`, deterministic in-process coverage, and inspectable refusals when the budget would be exceeded.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
