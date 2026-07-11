@@ -228,6 +228,9 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if a.model == nil {
 		a.setup()
 	}
@@ -235,6 +238,12 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 	if err != nil {
 		return nil, fmt.Errorf("discover tools: %w", err)
 	}
+	runID := uuid.New().String()
+	ctx = ai.WithRunInfo(ctx, ai.RunInfo{
+		RunID:    runID,
+		ParentID: a.parentRunID,
+		Agent:    a.opts.Name,
+	})
 	messages := append([]ai.Message(nil), a.mem.Messages()...)
 	messages = append(messages, ai.Message{Role: "user", Content: message})
 	stream, err := a.model.Stream(ctx, &ai.Request{
@@ -244,6 +253,10 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 		Messages:     messages,
 	})
 	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		_ = stream.Close()
 		return nil, err
 	}
 	a.mem.Add("user", message)

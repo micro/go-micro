@@ -118,8 +118,14 @@ func TestStreamAskHelperRejectsUnsupportedAgent(t *testing.T) {
 
 func TestAgentStreamUsesProviderStreamingAndRecordsAssistantMemory(t *testing.T) {
 	var sawRequest bool
+	var sawRunInfo bool
 	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
 		sawRequest = true
+		info, ok := ai.RunInfoFrom(ctx)
+		if !ok || info.RunID == "" || info.Agent != "provider-stream" {
+			t.Fatalf("RunInfo = %#v, %v; want provider stream run metadata", info, ok)
+		}
+		sawRunInfo = true
 		if req.Prompt != "stream the answer" {
 			t.Fatalf("Prompt = %q, want stream the answer", req.Prompt)
 		}
@@ -153,12 +159,38 @@ func TestAgentStreamUsesProviderStreamingAndRecordsAssistantMemory(t *testing.T)
 	if !sawRequest {
 		t.Fatal("provider Stream was not called")
 	}
+	if !sawRunInfo {
+		t.Fatal("provider Stream did not receive RunInfo")
+	}
 	if reply != "hello" {
 		t.Fatalf("reply = %q, want hello", reply)
 	}
 	got := a.mem.Messages()
 	if len(got) != 2 || got[0].Role != "user" || got[0].Content != "stream the answer" || got[1].Role != "assistant" || got[1].Content != "hello" {
 		t.Fatalf("memory = %#v, want user turn and streamed assistant reply", got)
+	}
+}
+
+func TestAgentStreamCanceledContextSkipsProviderCallAndMemory(t *testing.T) {
+	calls := 0
+	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+		calls++
+		return &sliceStream{chunks: []string{"late"}}, nil
+	}
+	defer func() { fakeStream = nil }()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	a := newTestAgent(Name("provider-stream-cancel"))
+	_, err := a.Stream(ctx, "do not start")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("Stream error = %v, want context canceled", err)
+	}
+	if calls != 0 {
+		t.Fatalf("provider Stream calls = %d, want 0 after caller cancellation", calls)
+	}
+	if got := a.mem.Messages(); len(got) != 0 {
+		t.Fatalf("memory = %#v, want no recorded canceled stream turn", got)
 	}
 }
 
