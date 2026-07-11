@@ -69,6 +69,50 @@ func TestGenerateWithRetryDoesNotRetryCallerCancellation(t *testing.T) {
 	}
 }
 
+func TestGenerateWithRetryCancellationDuringBackoffStopsRetry(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	attempts := 0
+	firstAttemptDone := make(chan struct{})
+	model := retryModel{generate: func(context.Context, *Request, ...GenerateOption) (*Response, error) {
+		attempts++
+		if attempts == 1 {
+			close(firstAttemptDone)
+			return nil, retryAfterErr{delay: time.Hour}
+		}
+		return &Response{Reply: "unexpected retry"}, nil
+	}}
+
+	errc := make(chan error, 1)
+	go func() {
+		_, err := GenerateWithRetry(ctx, model, &Request{Prompt: "hi"}, GeneratePolicy{
+			MaxAttempts: 3,
+			Backoff:     time.Hour,
+		})
+		errc <- err
+	}()
+
+	select {
+	case <-firstAttemptDone:
+	case <-time.After(time.Second):
+		t.Fatal("first provider attempt did not run")
+	}
+	cancel()
+
+	select {
+	case err := <-errc:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("error = %v, want context.Canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("GenerateWithRetry did not stop after cancellation during backoff")
+	}
+	if attempts != 1 {
+		t.Fatalf("attempts = %d, want cancellation to prevent retry", attempts)
+	}
+}
+
 func TestGenerateWithRetryHonorsPerAttemptTimeout(t *testing.T) {
 	var attempts atomic.Int32
 	model := retryModel{generate: func(ctx context.Context, _ *Request, _ ...GenerateOption) (*Response, error) {
