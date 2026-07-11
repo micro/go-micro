@@ -35,13 +35,14 @@ import (
 	_ "go-micro.dev/v6/ai/together"
 )
 
-const defaultHarnesses = "agent,universe,agent-flow,plan-delegate,a2a-stream-fallback"
+const defaultHarnesses = "agent,universe,agent-flow,plan-delegate,a2a-streaming,a2a-stream-fallback"
 
 var harnessPhases = map[string]string{
 	"agent":               "model call + tool call",
 	"universe":            "service discovery + tool call",
 	"agent-flow":          "workflow event + tool call",
 	"plan-delegate":       "plan persistence + delegation + tool call",
+	"a2a-streaming":       "A2A streaming + tool call",
 	"a2a-stream-fallback": "streaming fallback + tool call",
 }
 
