@@ -156,8 +156,11 @@ func TestWriteSummaryMarkdown(t *testing.T) {
 }
 
 func TestHarnessPhaseLabelsKnownHarnesses(t *testing.T) {
+	if got := harnessPhase("a2a-streaming"); got != "A2A streaming + tool call" {
+		t.Fatalf("harnessPhase(a2a-streaming) = %q, want A2A streaming phase", got)
+	}
 	if got := harnessPhase("a2a-stream-fallback"); got != "streaming fallback + tool call" {
-		t.Fatalf("harnessPhase() = %q, want streaming fallback phase", got)
+		t.Fatalf("harnessPhase(a2a-stream-fallback) = %q, want streaming fallback phase", got)
 	}
 	if got := harnessPhase("custom"); got != "harness" {
 		t.Fatalf("harnessPhase(custom) = %q, want fallback phase", got)
