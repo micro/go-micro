@@ -322,6 +322,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 				"internal/website/docs/guides/install-troubleshooting.md",
 				"make docs-wayfinding",
 				"micro agent demo",
+				"micro agent quickcheck",
 				"micro examples",
 				"micro zero-to-hero",
 				"internal/website/docs/guides/no-secret-first-agent.md",
@@ -367,6 +368,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			links: []string{
 				"make docs-wayfinding",
 				"micro agent demo",
+				"micro agent quickcheck",
 				"micro examples",
 				"micro zero-to-hero",
 			},
@@ -391,6 +393,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 				"guides/install-troubleshooting.html",
 				"make docs-wayfinding",
 				"micro agent demo",
+				"micro agent quickcheck",
 				"micro examples",
 				"micro zero-to-hero",
 				"https://github.com/micro/go-micro/blob/master/examples/INDEX.md",
@@ -411,6 +414,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			links: []string{
 				"guides/install-troubleshooting.html",
 				"micro agent demo",
+				"micro agent quickcheck",
 				"micro examples",
 				"micro zero-to-hero",
 				"https://github.com/micro/go-micro/blob/master/examples/INDEX.md",
@@ -465,6 +469,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	onRampTrail := []string{
 		"micro agent demo",
+		"micro agent quickcheck",
 		"micro examples",
 		"micro zero-to-hero",
 		"examples/INDEX.md",
@@ -889,6 +894,7 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 				"curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call",
 				"## Next Steps",
 				"micro agent demo",
+				"micro agent quickcheck",
 				"micro zero-to-hero",
 				"guides/no-secret-first-agent.html",
 				"guides/debugging-agents.html",
