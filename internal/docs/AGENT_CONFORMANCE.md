@@ -43,7 +43,20 @@ live model credits.
 
 Use `make provider-conformance` when you want the live-provider sweep: providers
 without keys are skipped, and configured providers must satisfy the same harness
-contract.
+contract. For the exact scheduled command, run:
+
+```sh
+go run ./internal/harness/provider-conformance \
+  -providers anthropic,openai,gemini,groq,minimax,mistral,together,atlascloud \
+  -harnesses agent,universe,agent-flow,plan-delegate,a2a-stream-fallback \
+  -summary-json provider-conformance-summary.json \
+  -summary-markdown provider-conformance-summary.md \
+  -capabilities-markdown provider-capabilities.md
+```
+
+The generated summary records one row for every selected provider/harness pair;
+missing live-provider keys become skipped rows for each harness, while configured
+providers produce pass/fail rows per harness.
 
 ## Scheduled CI
 

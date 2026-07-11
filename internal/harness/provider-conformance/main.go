@@ -92,11 +92,11 @@ func main() {
 			if *requireConfiguredFlag {
 				fmt.Printf("FAIL %s: missing API key (%s)\n", provider, msg)
 				failed++
-				results = append(results, conformanceResult{Provider: provider, Status: statusFailed, Error: "missing API key: " + msg})
+				results = append(results, missingKeyResults(provider, harnesses, statusFailed, "missing API key: "+msg)...)
 			} else {
 				fmt.Printf("- %s: skipped (%s)\n", provider, msg)
 				skipped++
-				results = append(results, conformanceResult{Provider: provider, Status: statusSkipped, Error: msg})
+				results = append(results, missingKeyResults(provider, harnesses, statusSkipped, msg)...)
 			}
 			continue
 		}
@@ -164,6 +164,20 @@ type conformanceSummary struct {
 	Passed       int                 `json:"passed"`
 	Skipped      int                 `json:"skipped"`
 	Failed       int                 `json:"failed"`
+}
+
+func missingKeyResults(provider string, harnesses []string, status, detail string) []conformanceResult {
+	results := make([]conformanceResult, 0, len(harnesses))
+	for _, harness := range harnesses {
+		results = append(results, conformanceResult{
+			Provider: provider,
+			Harness:  harness,
+			Phase:    harnessPhase(harness),
+			Status:   status,
+			Error:    detail,
+		})
+	}
+	return results
 }
 
 func writeSummaryJSON(path string, summary conformanceSummary) error {
