@@ -16,7 +16,7 @@ It's built on a pluggable architecture of Go interfaces: service discovery, clie
 
 ## Learn More
 
-Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp in the same order as the README: `micro agent demo` for the installed no-secret CLI affordance, `micro examples` for the provider-free examples map, `micro zero-to-hero` for the maintained lifecycle harness, [examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md) for the runnable examples map, [the smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) for the fastest provider-free run, [the 0→hero support reference](https://github.com/micro/go-micro/tree/master/examples/support) for the full no-secret lifecycle example, [No-secret first-agent transcript](guides/no-secret-first-agent.html) to run a mock-model support agent, [Your First Agent](guides/your-first-agent.html) to build and chat with a service-backed agent, [Debugging your agent](guides/debugging-agents.html) to use `micro inspect agent <name>` for runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
+Start with [Getting Started](getting-started.html) for install and the first local service. Then follow the first-agent on-ramp in the same order as the README: `micro agent demo` for the installed no-secret CLI affordance, `micro examples` for the provider-free examples map, `micro zero-to-hero` for the maintained lifecycle harness, [examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md) for the runnable examples map, [the smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) for the fastest provider-free run, [the 0→hero support reference](https://github.com/micro/go-micro/tree/master/examples/support) for the full no-secret lifecycle example, [No-secret first-agent transcript](guides/no-secret-first-agent.html) to run a mock-model support agent, [Your First Agent](guides/your-first-agent.html) to build a service-backed agent and talk to it with `micro chat`, [Debugging your agent](guides/debugging-agents.html) to use `micro inspect agent <name>` for runs and memory, and the [0→hero reference path](guides/zero-to-hero.html) to walk the full scaffold → run → chat → inspect → deploy dry-run lifecycle covered by CI.
 
 Otherwise continue to read the docs for more information about the framework.
 
@@ -30,7 +30,7 @@ Otherwise continue to read the docs for more information about the framework.
 - [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) - Run one service-backed agent with a deterministic mock model
 - [0→hero support reference](https://github.com/micro/go-micro/tree/master/examples/support) - Run the maintained no-secret services → agents → workflows example
 - [No-secret first-agent transcript](guides/no-secret-first-agent.html) - Run the first useful agent path without a provider key
-- [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
+- [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent and talk to it with `micro chat`
 - [MCP & AI Agents](mcp.html) - Turn services into AI-callable tools with the Model Context Protocol
 - [CLI & Gateway Guide](guides/cli-gateway.html) - Development vs Production modes
 - [`micro loop` quickstart](guides/micro-loop.html) - Scaffold an autonomous CI-gated improvement loop
@@ -55,7 +55,7 @@ Otherwise continue to read the docs for more information about the framework.
 
 - [0→hero Reference](guides/zero-to-hero.html) - Walk scaffold → run → chat → `micro inspect agent <name>` → deploy dry-run with CI-backed commands
 - [No-secret first-agent transcript](guides/no-secret-first-agent.html) - Run the first useful agent path without a provider key
-- [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent end to end
+- [Your First Agent](guides/your-first-agent.html) - Build a service-backed agent and talk to it with `micro chat`
 - [Building AI-Native Services](guides/ai-native-services.html) - End-to-end tutorial for MCP-enabled services
 - [MCP Security Guide](guides/mcp-security.html) - Auth, scopes, rate limiting, and audit logging
 - [Tool Description Best Practices](guides/tool-descriptions.html) - Writing docs that make agents effective
