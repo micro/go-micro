@@ -26,6 +26,7 @@ cloud credentials?"
 | Deploy | `micro deploy --dry-run prod` resolves the documented deploy target without touching remote infrastructure. | `go test ./internal/harness/zero-to-hero-ci -run TestZeroToHeroDeployDryRunCommandSmoke -count=1` |
 | Smallest first agent | `examples/first-agent` runs one service-backed agent with a deterministic mock model and no provider key. | `go test ./examples/first-agent -run TestRunFirstAgent -count=1` |
 | Runtime reference app | `examples/support` runs typed services, an agent using those services as tools, an event-driven flow handoff, and an approval gate with only the model mocked. | `go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle|TestZeroToHeroInspectTranscript' -count=1` |
+| Ordered 0→hero transcript | The maintained CI transcript walks scaffold → run/chat/inspect → support-agent chat → flow history → deploy dry-run without provider keys. | `make zero-to-hero-transcript` |
 | Runtime harnesses | Real services, agents, durable flows, store-backed history, delegation, and A2A run with only the model mocked. | `./internal/harness/zero-to-hero-ci/run.sh` and `make provider-conformance-mock` |
 
 ## Find the one-command entrypoint
@@ -60,6 +61,12 @@ From the repository root:
 
 ```sh
 make harness
+```
+
+For the focused ordered transcript only, run:
+
+```sh
+make zero-to-hero-transcript
 ```
 
 That target runs the scaffold contract, the CLI boundary smoke tests, the

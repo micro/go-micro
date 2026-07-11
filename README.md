@@ -84,8 +84,13 @@ To verify the focused CLI inner-loop contract — scaffold → run/chat/inspect 
 make inner-loop
 ```
 
-To run the broader local contract (including the [0→hero services → agents → workflows path](internal/website/docs/guides/zero-to-hero.md),
-chat/inspect CLI boundaries, and deploy dry-run), use:
+To run only the ordered [0→hero services → agents → workflows transcript](internal/website/docs/guides/zero-to-hero.md) that CI guards, use:
+
+```bash
+make zero-to-hero-transcript
+```
+
+To run the broader local contract (including that transcript, chat/inspect CLI boundaries, and deploy dry-run), use:
 
 ```bash
 make harness
