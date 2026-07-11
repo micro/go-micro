@@ -67,12 +67,12 @@ provider-free agent path. The focused no-secret docs/CLI contract is
 
 ```
 micro agent demo
+micro agent quickcheck
 micro examples
 micro zero-to-hero
 ```
 
-Those commands point at the smallest mock-model first-agent example, the no-secret
-transcript, and the 0→hero support app before you add provider-backed chat.
+`micro agent quickcheck` (alias: `micro agent debug`) prints the short recovery map when scaffold → run → chat → inspect stalls. Those commands point at the smallest mock-model first-agent example, the no-secret transcript, and the 0→hero support app before you add provider-backed chat.
 
 ### Output
 
