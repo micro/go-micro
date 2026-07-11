@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add agent-level x402 spend budget guardrail** ([#4743](https://github.com/micro/go-micro/issues/4743)) — #4741 closed the streaming chat/A2A conformance item, and there are no open codex PRs in flight. The next highest-value user-facing gap is making paid tool calls safe for unattended agents: an explicit per-run spend cap beside `MaxSteps` and `ApproveTool`, deterministic in-process coverage, and inspectable refusals when the budget would be exceeded.
+1. **Propagate agent run cancellation and deadlines through model and tool calls** ([#4750](https://github.com/micro/go-micro/issues/4750)) — #4748 closed the x402 spend-budget guardrail and there are no open codex PRs in flight. Do not re-queue more docs-link checks, AtlasCloud-specific text repair, or plan/delegate edge hardening for now; those areas have had several recent increments. The next highest-value user-facing gap is making long-running and unattended agents easier to stop safely and inspect: cancellation/deadline propagation through model calls, tool execution, delegation seams, and run metadata without breaking public APIs.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
