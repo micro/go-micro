@@ -1047,6 +1047,7 @@ func TestFirstAgentCLIChatInspectFixture(t *testing.T) {
 	}()
 
 	waitForCLIOutput(t, &fixtureOut, "first-agent fixture ready", 15*time.Second)
+	waitForRegisteredAgent(t, micro, home, "assistant", &fixtureOut, 15*time.Second)
 
 	chat := runMicroCLIWithHome(t, micro, home, "chat", "--prompt", "Summarize my first-agent next steps", "assistant")
 	for _, want := range []string{"assistant:", "install the CLI", "run a service", "chat with an agent"} {
@@ -1091,6 +1092,23 @@ func waitForCLIOutput(t *testing.T, out *lockedBuffer, want string, timeout time
 		time.Sleep(100 * time.Millisecond)
 	}
 	t.Fatalf("timed out waiting for fixture output %q; got:\n%s", want, out.String())
+}
+
+func waitForRegisteredAgent(t *testing.T, micro, home, agent string, fixtureOut *lockedBuffer, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	var lastOut []byte
+	var lastErr error
+	for time.Now().Before(deadline) {
+		cmd := exec.Command(micro, "agent", "list")
+		cmd.Env = microCLIEnv(home)
+		lastOut, lastErr = cmd.CombinedOutput()
+		if lastErr == nil && strings.Contains(string(lastOut), agent) {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for registered agent %q; last micro agent list error: %v\nlast output:\n%s\nfixture output:\n%s", agent, lastErr, lastOut, fixtureOut.String())
 }
 
 type lockedBuffer struct {
@@ -1211,18 +1229,22 @@ func buildMicroBinary(t *testing.T, root string) string {
 func runMicroCLIWithHome(t *testing.T, micro, home string, args ...string) string {
 	t.Helper()
 	cmd := exec.Command(micro, args...)
-	cmd.Env = append(os.Environ(),
+	cmd.Env = microCLIEnv(home)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("micro %s failed: %v\n%s", strings.Join(args, " "), err, out)
+	}
+	return string(out)
+}
+
+func microCLIEnv(home string) []string {
+	return append(os.Environ(),
 		"HOME="+home,
 		"MICRO_AI_API_KEY=",
 		"OPENAI_API_KEY=",
 		"ANTHROPIC_API_KEY=",
 		"GEMINI_API_KEY=",
 	)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("micro %s failed: %v\n%s", strings.Join(args, " "), err, out)
-	}
-	return string(out)
 }
 
 func TestFirstAgentWayfindingTargetsExist(t *testing.T) {
