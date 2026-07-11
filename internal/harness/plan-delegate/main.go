@@ -474,10 +474,11 @@ func runPlanDelegate(provider string) error {
 		agent.Name("conductor"),
 		agent.Address("127.0.0.1:0"),
 		agent.Services("task"),
-		agent.Prompt("You coordinate launch work. Plan first, create exactly one Design task, one Build task, and one Ship task, then delegate exactly one readiness notification to the \"comms\" agent. Do not create duplicate tasks and do not send notifications yourself."),
+		agent.Prompt("You coordinate launch work. Before any task or delegate tool call, you must persist the launch-readiness plan with the built-in plan tool. Then create exactly one Design task, one Build task, and one Ship task, then delegate exactly one readiness notification to the \"comms\" agent. Do not create duplicate tasks and do not send notifications yourself."),
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.WithRegistry(reg), agent.WithClient(cl), agent.WithStore(mem),
 		agent.WithCheckpoint(conductorCheckpoint),
+		agent.WrapTool(requirePersistedPlanBeforeConductorActions(mem)),
 	}
 	conductorOpts = append(conductorOpts, liveAgentOpts...)
 	conductor := agent.New(conductorOpts...)
@@ -540,6 +541,26 @@ func runPlanDelegate(provider string) error {
 
 	fmt.Println("\n\033[32m✓ 0→hero flow complete (services → agents → workflow)\033[0m")
 	return nil
+}
+
+func requirePersistedPlanBeforeConductorActions(mem store.Store) ai.ToolWrapper {
+	return func(next ai.ToolHandler) ai.ToolHandler {
+		return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			if call.Name == "plan" {
+				return next(ctx, call)
+			}
+			if recs, err := store.Scope(mem, "agent", "conductor").Read("plan"); err == nil && len(recs) > 0 {
+				return next(ctx, call)
+			}
+			msg := "persist the launch-readiness plan first by calling the built-in plan tool before task or delegate side effects"
+			return ai.ToolResult{
+				ID:      call.ID,
+				Value:   map[string]string{"error": msg},
+				Content: `{"error":"` + msg + `"}`,
+				Refused: ai.RefusedApproval,
+			}
+		}
+	}
 }
 
 func requireConductorPlan(ctx context.Context, mem store.Store, conductor agent.Agent) error {
