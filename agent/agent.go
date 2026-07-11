@@ -355,6 +355,8 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		})
 		if err != nil {
 			run.Status = agentRunFailureStatus(err)
+			failureKind := ai.ClassifyError(err)
+			attempts := agentRunFailureAttempts(err)
 			err = agentOperationalError(err)
 			if a.currentRun != nil {
 				run.Steps = a.currentRun.Steps
@@ -363,7 +365,9 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 				run.Steps = []flow.StepRecord{{Name: agentAskStep}}
 			}
 			run.Steps[0].Status = run.Status
+			run.Steps[0].Attempts = attempts
 			run.Steps[0].Error = err.Error()
+			run.Steps[0].ErrorKind = string(failureKind)
 			_ = a.saveRun(ctx, run)
 			return nil, err
 		}

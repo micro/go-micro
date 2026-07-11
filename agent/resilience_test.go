@@ -327,6 +327,12 @@ func TestAskCheckpointRecordsTerminalOperationalFailureStatus(t *testing.T) {
 			if len(runs[0].Steps) == 0 || runs[0].Steps[0].Status != tt.want {
 				t.Fatalf("step status = %#v, want %q", runs[0].Steps, tt.want)
 			}
+			if runs[0].Steps[0].Attempts != 1 {
+				t.Fatalf("step attempts = %d, want 1", runs[0].Steps[0].Attempts)
+			}
+			if got := runs[0].Steps[0].ErrorKind; got != string(ai.ClassifyError(tt.err)) {
+				t.Fatalf("step error kind = %q, want %q", got, ai.ClassifyError(tt.err))
+			}
 			if pending, err := Pending(context.Background(), a); err != nil || len(pending) != 0 {
 				t.Fatalf("Pending = %#v, %v; want no terminal run", pending, err)
 			}

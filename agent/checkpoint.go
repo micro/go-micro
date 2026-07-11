@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -213,6 +214,14 @@ func (e *operationalError) Unwrap() error {
 		return nil
 	}
 	return e.err
+}
+
+func agentRunFailureAttempts(err error) int {
+	var retryErr *ai.RetryError
+	if err != nil && errors.As(err, &retryErr) && retryErr.Attempts > 0 {
+		return retryErr.Attempts
+	}
+	return 1
 }
 
 func agentOperationalError(err error) error {
