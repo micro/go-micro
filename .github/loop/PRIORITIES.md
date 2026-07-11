@@ -21,8 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Gate mock provider plan-delegate resume scenarios** ([#4713](https://github.com/micro/go-micro/issues/4713)) — #4709 closed the live AtlasCloud nested tool-call rejection gap and #4725 closed the website first-agent wayfinding gap, so the highest-value remaining Now work is deterministic no-secret agent-loop coverage. Completed plan steps, notifications, unsafe fallback parsing, and resume semantics must stay stable without provider keys before broadening into live-provider conformance.
-2. **Migrate store/postgres from pgx/v4 to pgx/v5** ([#4556](https://github.com/micro/go-micro/issues/4556)) — Security upkeep matters to the service-framework half of the harness, and #4556 is the remaining open enhancement/security item. Keep it below the agent-loop contract because it is narrower than the current developer-adoption goal, but do not let reachable dependency risk drift indefinitely.
+1. **Migrate store/postgres from pgx/v4 to pgx/v5** ([#4556](https://github.com/micro/go-micro/issues/4556)) — #4713 closed the deterministic no-secret plan/delegate resume contract, and the recent first-agent/doc wayfinding increments have covered the current adoption on-ramp. The highest-value remaining open work is now service-framework security upkeep: remove the pgx/v4 dependency/CVE drift without changing the public store API.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
