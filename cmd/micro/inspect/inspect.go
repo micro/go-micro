@@ -106,7 +106,7 @@ func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, a
 func writeAgentRunBreadcrumbs(w io.Writer, name string, run goagent.RunSummary) {
 	if run.Stage == "input-required" {
 		fmt.Fprintf(w, "    inspect: micro agent history %s %s\n", name, run.RunID)
-		fmt.Fprintf(w, "    input:   call micro.AgentResumeInput(ctx, agent, %q, input) to continue the input-required run\n", run.RunID)
+		fmt.Fprintf(w, "    input:   micro agent resume-input %s %s --input <text>\n", name, run.RunID)
 		return
 	}
 	if !isResumableAgentRun(run) {

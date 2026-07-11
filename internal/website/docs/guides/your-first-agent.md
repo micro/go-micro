@@ -184,6 +184,14 @@ and timing behind the answer:
 micro inspect agent assistant
 ```
 
+If inspect shows `stage=input-required`, provide the missing value and inspect the
+completed run from the same local store:
+
+```sh
+micro agent resume-input assistant <run-id> --input "Approve the next step"
+micro inspect agent assistant --limit 1
+```
+
 If the model refuses to call tools, tighten the prompt so it explicitly
 uses the `task` service before answering.
 
