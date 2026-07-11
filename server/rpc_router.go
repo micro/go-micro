@@ -107,7 +107,7 @@ func isExported(name string) bool {
 
 // Is this type exported or a builtin?
 func isExportedOrBuiltinType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	// PkgPath will be non-empty even for an exported type,
@@ -160,7 +160,7 @@ func prepareMethod(method reflect.Method, logger log.Logger) *methodType {
 			return nil
 		}
 
-		if replyType.Kind() != reflect.Ptr {
+		if replyType.Kind() != reflect.Pointer {
 			logger.Logf(log.ErrorLevel, "method %v reply type not a pointer: %v", mname, replyType)
 			return nil
 		}
@@ -376,7 +376,7 @@ func (router *router) readRequest(r Request) (service *service, mtype *methodTyp
 
 	// Decode the argument value.
 	argIsValue := false // if true, need to indirect before calling.
-	if mtype.ArgType.Kind() == reflect.Ptr {
+	if mtype.ArgType.Kind() == reflect.Pointer {
 		argv = reflect.New(mtype.ArgType.Elem())
 	} else {
 		argv = reflect.New(mtype.ArgType)
@@ -576,7 +576,7 @@ func (router *router) ProcessMessage(ctx context.Context, subscriber string, msg
 			var req reflect.Value
 
 			// check whether the handler is a pointer
-			if handler.reqType.Kind() == reflect.Ptr {
+			if handler.reqType.Kind() == reflect.Pointer {
 				req = reflect.New(handler.reqType.Elem())
 			} else {
 				req = reflect.New(handler.reqType)

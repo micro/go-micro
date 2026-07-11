@@ -56,7 +56,7 @@ func TestExtractHandlerDocs(t *testing.T) {
 	}
 
 	// Test NoDoc (should have no metadata or only empty metadata)
-	if docs["NoDoc"] != nil && len(docs["NoDoc"]) > 0 {
+	if len(docs["NoDoc"]) > 0 {
 		t.Logf("NoDoc metadata: %+v", docs["NoDoc"])
 		// Check if all values are empty
 		allEmpty := true

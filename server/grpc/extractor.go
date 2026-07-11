@@ -16,7 +16,7 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 		return nil
 	}
 
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -55,7 +55,7 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 		}
 	case reflect.Slice:
 		p := v.Elem()
-		if p.Kind() == reflect.Ptr {
+		if p.Kind() == reflect.Pointer {
 			p = p.Elem()
 		}
 		arg.Type = "[]" + p.Name()

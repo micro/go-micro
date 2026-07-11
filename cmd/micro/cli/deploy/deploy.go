@@ -93,7 +93,7 @@ func showDeployTargets(cfg *config.Config) error {
 	var sb strings.Builder
 	sb.WriteString("Available deploy targets:\n\n")
 	for name, dt := range cfg.Deploy {
-		sb.WriteString(fmt.Sprintf("  %s -> %s\n", name, dt.SSH))
+		fmt.Fprintf(&sb, "  %s -> %s\n", name, dt.SSH)
 	}
 	sb.WriteString("\nDeploy with: micro deploy <target>")
 	return fmt.Errorf("%s", sb.String())

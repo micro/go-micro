@@ -502,18 +502,18 @@ func newModel(provider, apiKey, model string) ai.Model {
 
 func buildProto(dehyphen, titleName string, svc ServiceSpec) string {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("syntax = \"proto3\";\n\npackage %s;\n\noption go_package = \"./proto;%s\";\n\n", dehyphen, dehyphen))
+	fmt.Fprintf(&b, "syntax = \"proto3\";\n\npackage %s;\n\noption go_package = \"./proto;%s\";\n\n", dehyphen, dehyphen)
 
-	b.WriteString(fmt.Sprintf("service %s {\n", titleName))
+	fmt.Fprintf(&b, "service %s {\n", titleName)
 	for _, ep := range svc.Endpoints {
-		b.WriteString(fmt.Sprintf("\trpc %s(%sRequest) returns (%sResponse) {}\n", ep.Name, ep.Name, ep.Name))
+		fmt.Fprintf(&b, "\trpc %s(%sRequest) returns (%sResponse) {}\n", ep.Name, ep.Name, ep.Name)
 	}
 	b.WriteString("}\n\n")
 
 	// Record message
-	b.WriteString(fmt.Sprintf("message %sRecord {\n", titleName))
+	fmt.Fprintf(&b, "message %sRecord {\n", titleName)
 	for i, f := range svc.Fields {
-		b.WriteString(fmt.Sprintf("\t%s %s = %d; // %s\n", protoType(f.Type), f.Name, i+1, f.Description))
+		fmt.Fprintf(&b, "\t%s %s = %d; // %s\n", protoType(f.Type), f.Name, i+1, f.Description)
 	}
 	b.WriteString("}\n\n")
 
@@ -527,12 +527,12 @@ func buildProto(dehyphen, titleName string, svc ServiceSpec) string {
 				if f.Name == "id" || f.Name == "created" || f.Name == "updated" {
 					continue
 				}
-				b.WriteString(fmt.Sprintf("\t%s %s = %d;\n", protoType(f.Type), f.Name, n))
+				fmt.Fprintf(&b, "\t%s %s = %d;\n", protoType(f.Type), f.Name, n)
 				n++
 			}
-			b.WriteString(fmt.Sprintf("}\n\nmessage CreateResponse {\n\t%sRecord record = 1;\n}\n\n", titleName))
+			fmt.Fprintf(&b, "}\n\nmessage CreateResponse {\n\t%sRecord record = 1;\n}\n\n", titleName)
 		case "Read":
-			b.WriteString(fmt.Sprintf("message ReadRequest {\n\tstring id = 1;\n}\n\nmessage ReadResponse {\n\t%sRecord record = 1;\n}\n\n", titleName))
+			fmt.Fprintf(&b, "message ReadRequest {\n\tstring id = 1;\n}\n\nmessage ReadResponse {\n\t%sRecord record = 1;\n}\n\n", titleName)
 		case "Update":
 			b.WriteString("message UpdateRequest {\n\tstring id = 1;\n")
 			n := 2
@@ -540,26 +540,26 @@ func buildProto(dehyphen, titleName string, svc ServiceSpec) string {
 				if f.Name == "id" || f.Name == "created" || f.Name == "updated" {
 					continue
 				}
-				b.WriteString(fmt.Sprintf("\t%s %s = %d;\n", protoType(f.Type), f.Name, n))
+				fmt.Fprintf(&b, "\t%s %s = %d;\n", protoType(f.Type), f.Name, n)
 				n++
 			}
-			b.WriteString(fmt.Sprintf("}\n\nmessage UpdateResponse {\n\t%sRecord record = 1;\n}\n\n", titleName))
+			fmt.Fprintf(&b, "}\n\nmessage UpdateResponse {\n\t%sRecord record = 1;\n}\n\n", titleName)
 		case "Delete":
 			b.WriteString("message DeleteRequest {\n\tstring id = 1;\n}\n\nmessage DeleteResponse {\n\tbool deleted = 1;\n}\n\n")
 		case "List":
-			b.WriteString(fmt.Sprintf("message ListRequest {\n\tint64 limit = 1;\n\tint64 offset = 2;\n\tstring query = 3;\n}\n\nmessage ListResponse {\n\trepeated %sRecord records = 1;\n\tint64 total = 2;\n}\n\n", titleName))
+			fmt.Fprintf(&b, "message ListRequest {\n\tint64 limit = 1;\n\tint64 offset = 2;\n\tstring query = 3;\n}\n\nmessage ListResponse {\n\trepeated %sRecord records = 1;\n\tint64 total = 2;\n}\n\n", titleName)
 		default:
 			// Custom endpoint — use all fields as input, record as output
-			b.WriteString(fmt.Sprintf("message %sRequest {\n", ep.Name))
+			fmt.Fprintf(&b, "message %sRequest {\n", ep.Name)
 			n := 1
 			for _, f := range svc.Fields {
 				if f.Name == "created" || f.Name == "updated" {
 					continue
 				}
-				b.WriteString(fmt.Sprintf("\t%s %s = %d;\n", protoType(f.Type), f.Name, n))
+				fmt.Fprintf(&b, "\t%s %s = %d;\n", protoType(f.Type), f.Name, n)
 				n++
 			}
-			b.WriteString(fmt.Sprintf("}\n\nmessage %sResponse {\n\t%sRecord record = 1;\n\tstring message = 2;\n\tbool success = 3;\n}\n\n", ep.Name, titleName))
+			fmt.Fprintf(&b, "}\n\nmessage %sResponse {\n\t%sRecord record = 1;\n\tstring message = 2;\n\tbool success = 3;\n}\n\n", ep.Name, titleName)
 		}
 	}
 	return b.String()

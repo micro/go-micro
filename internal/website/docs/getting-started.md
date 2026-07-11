@@ -56,6 +56,9 @@ That install → scaffold → run → call loop is the 0→1 contract. It requir
 After this quick start, follow the agent path in order:
 
 1. [Install troubleshooting](guides/install-troubleshooting.html) — verify the CLI install before agent work.
+
+Run `make docs-wayfinding` to verify the focused no-secret docs/CLI contract that keeps these website and README commands aligned with the installed CLI.
+
 2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
 3. `micro agent quickcheck` (or `micro agent debug`) — when scaffold → run → chat → inspect stalls, print the short recovery map before you dive into the full debugging guide.
 4. `micro examples` — print the maintained provider-free runnable examples in copy/paste order.

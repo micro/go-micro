@@ -143,13 +143,13 @@ func (m *memoryModel) Delete(ctx context.Context, key string, v interface{}) err
 func (m *memoryModel) List(ctx context.Context, result interface{}, opts ...QueryOption) error {
 	// result must be *[]*T
 	rv := reflect.ValueOf(result)
-	if rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.Slice {
+	if rv.Kind() != reflect.Pointer || rv.Elem().Kind() != reflect.Slice {
 		return fmt.Errorf("model: result must be a pointer to a slice")
 	}
 	sliceVal := rv.Elem()
 	elemType := sliceVal.Type().Elem() // *T
 	structType := elemType
-	if structType.Kind() == reflect.Ptr {
+	if structType.Kind() == reflect.Pointer {
 		structType = structType.Elem()
 	}
 
@@ -193,7 +193,7 @@ func (m *memoryModel) List(ctx context.Context, result interface{}, opts ...Quer
 	for i, row := range rows {
 		vp := reflect.New(structType)
 		MapToStruct(s, row, vp.Interface())
-		if elemType.Kind() == reflect.Ptr {
+		if elemType.Kind() == reflect.Pointer {
 			results.Index(i).Set(vp)
 		} else {
 			results.Index(i).Set(vp.Elem())

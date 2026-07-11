@@ -48,7 +48,7 @@ func extractMethodDoc(method reflect.Method, rcvrType reflect.Type) (description
 
 	// Find the receiver type name (e.g., "Users" from *Users)
 	rcvrTypeName := rcvrType.Name()
-	if rcvrTypeName == "" && rcvrType.Kind() == reflect.Ptr {
+	if rcvrTypeName == "" && rcvrType.Kind() == reflect.Pointer {
 		rcvrTypeName = rcvrType.Elem().Name()
 	}
 
@@ -133,7 +133,7 @@ func extractHandlerDocs(handler interface{}) map[string]map[string]string {
 
 	// Get the receiver type for methods
 	rcvrType := typ
-	if rcvrType.Kind() == reflect.Ptr {
+	if rcvrType.Kind() == reflect.Pointer {
 		rcvrType = rcvrType.Elem()
 	}
 

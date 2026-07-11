@@ -289,6 +289,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			heading: "### First agent on-ramp",
 			links: []string{
 				"internal/website/docs/guides/install-troubleshooting.md",
+				"make docs-wayfinding",
 				"micro agent demo",
 				"micro examples",
 				"micro zero-to-hero",
@@ -333,6 +334,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			file:    filepath.Join(root, "cmd", "micro", "README.md"),
 			heading: "## First agent on-ramp",
 			links: []string{
+				"make docs-wayfinding",
 				"micro agent demo",
 				"micro examples",
 				"micro zero-to-hero",
@@ -356,6 +358,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 			heading: "### First-agent on-ramp",
 			links: []string{
 				"guides/install-troubleshooting.html",
+				"make docs-wayfinding",
 				"micro agent demo",
 				"micro examples",
 				"micro zero-to-hero",

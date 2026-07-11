@@ -367,7 +367,7 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 
 	// Decode the argument value.
 	argIsValue := false // if true, need to indirect before calling.
-	if mtype.ArgType.Kind() == reflect.Ptr {
+	if mtype.ArgType.Kind() == reflect.Pointer {
 		argv = reflect.New(mtype.ArgType.Elem())
 	} else {
 		argv = reflect.New(mtype.ArgType)
