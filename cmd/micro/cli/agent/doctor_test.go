@@ -86,6 +86,7 @@ func TestAgentQuickcheckPrintsProviderFreeFailureModeBreadcrumbs(t *testing.T) {
 		"micro runs <name>",
 		"micro agent demo",
 		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1",
+		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1",
 		"debugging-agents.html",
 		"no-secret-first-agent.html",
 	} {
