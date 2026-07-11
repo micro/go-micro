@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Propagate agent run cancellation and deadlines through model and tool calls** ([#4750](https://github.com/micro/go-micro/issues/4750)) — #4748 closed the x402 spend-budget guardrail and there are no open codex PRs in flight. Do not re-queue more docs-link checks, AtlasCloud-specific text repair, or plan/delegate edge hardening for now; those areas have had several recent increments. The next highest-value user-facing gap is making long-running and unattended agents easier to stop safely and inspect: cancellation/deadline propagation through model calls, tool execution, delegation seams, and run metadata without breaking public APIs.
+1. **Add CLI continuation for input-required agent runs** ([#4755](https://github.com/micro/go-micro/issues/4755)) — #4750 closed the cancellation/deadline propagation gap and there are no open codex PRs in flight. Do not re-queue more docs-link checks, AtlasCloud-specific text repair, or plan/delegate edge hardening for now; those areas have had several recent increments. The next highest-value user-facing gap is making human-in-the-loop pauses operable from the scaffold → run → chat → inspect path: list an `input-required` run, provide the missing input from the CLI, and inspect the completed run without requiring a developer to write a Go resume helper.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
