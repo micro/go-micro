@@ -25,7 +25,7 @@ run_step "run/chat/inspect: first-agent CLI boundaries" \
 run_step "deploy dry-run: configured target plan" \
   go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
 run_step "chat/inspect: no-secret first-agent transcript and docs" \
-  go test ./internal/harness/zero-to-hero-ci -run 'TestNoSecretFirstAgentTranscript|TestNoSecretFirstAgentDebuggingSmoke|TestZeroToHeroReferenceDocs|TestZeroToHeroDeployDryRunCommandSmoke|TestYourFirstAgentTutorialSmoke' -count=1
+  go test ./internal/harness/zero-to-hero-ci -run 'TestNoSecretFirstAgentTranscript|TestFirstAgentCLIChatInspectFixture|TestNoSecretFirstAgentDebuggingSmoke|TestZeroToHeroReferenceDocs|TestZeroToHeroDeployDryRunCommandSmoke|TestYourFirstAgentTutorialSmoke' -count=1
 
 # Deterministic no-secret reference scenarios. These use the real Go Micro
 # runtime and mock only the LLM provider. The support example is the maintained
