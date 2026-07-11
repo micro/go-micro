@@ -36,6 +36,9 @@ type subscriber struct {
 	retryLimit int
 	autoAck    bool
 	ackWait    time.Duration
+
+	pending []Event
+	notify  chan struct{}
 }
 
 type mem struct {
@@ -124,6 +127,7 @@ func (m *mem) Consume(topic string, opts ...ConsumeOption) (<-chan Event, error)
 		retryMap:   map[string]int{},
 		autoAck:    true,
 		retryLimit: options.GetRetryLimit(),
+		notify:     make(chan struct{}, 1),
 	}
 
 	if !options.AutoAck {
@@ -132,6 +136,7 @@ func (m *mem) Consume(topic string, opts ...ConsumeOption) (<-chan Event, error)
 		}
 		sub.autoAck = options.AutoAck
 		sub.ackWait = options.AckWait
+		go sub.dispatchManualAck()
 	}
 
 	// register the subscriber
@@ -197,56 +202,98 @@ func (m *mem) handleEvent(ev *Event) {
 }
 
 func sendEvent(ev *Event, sub *subscriber) {
-	go func(s *subscriber) {
-		evCopy := *ev
-		if s.autoAck {
-			s.Channel <- evCopy
-			return
-		}
-		evCopy.SetAckFunc(ackFunc(s, evCopy))
-		evCopy.SetNackFunc(nackFunc(s, evCopy))
-		s.Lock()
-		s.retryMap[evCopy.ID] = 0
-		s.Unlock()
-		tick := time.NewTicker(s.ackWait)
-		defer tick.Stop()
-		for range tick.C {
-			s.Lock()
-			count, ok := s.retryMap[evCopy.ID]
-			s.Unlock()
-			if !ok {
-				// success
-				break
-			}
+	evCopy := *ev
+	if !sub.autoAck {
+		sub.Lock()
+		sub.pending = append(sub.pending, evCopy)
+		sub.Unlock()
+		sub.wake()
+		return
+	}
 
-			if s.retryLimit > -1 && count > s.retryLimit {
-				if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
-					logger.Errorf("Message retry limit reached, discarding: %v %d %d", evCopy.ID, count, s.retryLimit)
-				}
-				s.Lock()
-				delete(s.retryMap, evCopy.ID)
-				s.Unlock()
-				return
-			}
-			s.Channel <- evCopy
-			s.Lock()
-			s.retryMap[evCopy.ID] = count + 1
-			s.Unlock()
-		}
+	go func(s *subscriber) {
+		s.Channel <- evCopy
 	}(sub)
 }
 
-func ackFunc(s *subscriber, evCopy Event) func() error {
-	return func() error {
-		s.Lock()
-		delete(s.retryMap, evCopy.ID)
-		s.Unlock()
-		return nil
+func (s *subscriber) wake() {
+	select {
+	case s.notify <- struct{}{}:
+	default:
 	}
 }
 
-func nackFunc(_ *subscriber, _ Event) func() error {
-	return func() error {
-		return nil
+func (s *subscriber) dispatchManualAck() {
+	for {
+		s.Lock()
+		for len(s.pending) == 0 {
+			s.Unlock()
+			<-s.notify
+			s.Lock()
+		}
+		ev := s.pending[0]
+		s.pending = s.pending[1:]
+		s.retryMap[ev.ID] = 0
+		s.Unlock()
+
+		s.deliverManualAck(ev)
+	}
+}
+
+func (s *subscriber) deliverManualAck(ev Event) {
+	retries := 0
+	for {
+		if s.retryLimit > -1 && retries > s.retryLimit {
+			if logger.V(logger.ErrorLevel, logger.DefaultLogger) {
+				logger.Errorf("Message retry limit reached, discarding: %v %d %d", ev.ID, retries, s.retryLimit)
+			}
+			s.Lock()
+			delete(s.retryMap, ev.ID)
+			s.Unlock()
+			return
+		}
+
+		result := make(chan bool, 1)
+		evCopy := ev
+		evCopy.SetAckFunc(func() error {
+			select {
+			case result <- true:
+			default:
+			}
+			return nil
+		})
+		evCopy.SetNackFunc(func() error {
+			select {
+			case result <- false:
+			default:
+			}
+			return nil
+		})
+
+		s.Channel <- evCopy
+
+		timer := time.NewTimer(s.ackWait)
+		select {
+		case acked := <-result:
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			if acked {
+				s.Lock()
+				delete(s.retryMap, ev.ID)
+				s.Unlock()
+				return
+			}
+			retries++
+		case <-timer.C:
+			retries++
+		}
+
+		s.Lock()
+		s.retryMap[ev.ID] = retries
+		s.Unlock()
 	}
 }
