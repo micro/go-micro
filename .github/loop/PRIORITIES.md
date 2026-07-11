@@ -21,7 +21,8 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Harden agent provider failure resilience** ([#4650](https://github.com/micro/go-micro/issues/4650)) — With scheduled cross-provider conformance closed by #4678 and the first-agent fixture race closed by #4684, the next Now-roadmap reliability seam is making timeouts, cancellation, rate limits, retry/backoff, and inspectable failure metadata predictable through the agent loop. Keep this scoped to existing behavior and tests; surface any breaking API or default changes as human review notes instead of queue work.
+1. **Fix in-memory stream Nack redelivery ordering** ([#4690](https://github.com/micro/go-micro/issues/4690)) — Master is red from `events` `TestStream/memory/AckingNacking`, where manual NACK can let unrelated queued messages arrive before the nacked event is redelivered. The loop depends on green CI as its evaluator, and reliable event redelivery underpins flows and agent-triggered workflows, so restore the existing contract before deeper feature work.
+2. **Harden agent provider failure resilience** ([#4650](https://github.com/micro/go-micro/issues/4650)) — With scheduled cross-provider conformance closed by #4678, the first-agent fixture races closed by #4684/#4667, and initial provider failure metadata recorded by #4688, the next Now-roadmap reliability seam is making timeouts, cancellation, rate limits, retry/backoff, and inspectable failure metadata predictable through the agent loop. Keep this scoped to existing behavior and tests; surface any breaking API or default changes as human review notes instead of queue work.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
