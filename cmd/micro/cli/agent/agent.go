@@ -2,14 +2,17 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	goagent "go-micro.dev/v6/agent"
 	"go-micro.dev/v6/cmd"
+	aiflow "go-micro.dev/v6/flow"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -192,6 +195,23 @@ history, and no-secret fallback checks.`,
 					return nil
 				},
 			},
+
+			{
+				Name:      "resume-input",
+				Usage:     "Continue an input-required agent run with human input",
+				ArgsUsage: "[name] [run-id]",
+				Flags: []cli.Flag{
+					&cli.StringFlag{Name: "input", Usage: "Human input to provide to the paused run", Required: true},
+				},
+				Action: func(c *cli.Context) error {
+					name := c.Args().First()
+					runID := c.Args().Get(1)
+					if name == "" || runID == "" {
+						return fmt.Errorf("usage: micro agent resume-input [name] [run-id] --input <text>")
+					}
+					return resumeInputRun(context.Background(), c.App.Writer, name, runID, c.String("input"))
+				},
+			},
 			{
 				Name:      "history",
 				Usage:     "Show an agent's stored conversation and run history",
@@ -285,7 +305,7 @@ func writeRunIndex(w io.Writer, name string, runs []goagent.RunSummary, asJSON b
 func writeRunIndexBreadcrumbs(w io.Writer, name string, run goagent.RunSummary) {
 	if run.Stage == "input-required" {
 		fmt.Fprintf(w, "      inspect: micro agent history %s %s\n", name, run.RunID)
-		fmt.Fprintf(w, "      input:   call micro.AgentResumeInput(ctx, agent, %q, input) to continue the input-required run\n", run.RunID)
+		fmt.Fprintf(w, "      input:   micro agent resume-input %s %s --input <text>\n", name, run.RunID)
 		return
 	}
 	if !isResumableRunSummary(run) {
@@ -369,4 +389,79 @@ func shortTraceID(id string) string {
 		return id
 	}
 	return id[:12]
+}
+
+type cliInputPause struct {
+	OriginalMessage string `json:"original_message"`
+	Prompt          string `json:"prompt"`
+}
+
+func resumeInputRun(ctx context.Context, w io.Writer, name, runID, input string) error {
+	if input == "" {
+		return fmt.Errorf("input required: pass --input <text>")
+	}
+	cp := aiflow.StoreCheckpoint(store.DefaultStore, name)
+	run, ok, err := cp.Load(ctx, runID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("agent run %s not found for %q", runID, name)
+	}
+	if run.Status != "paused" || run.State.Stage != "input-required" {
+		return fmt.Errorf("agent run %s is not waiting for human input", runID)
+	}
+	var pause cliInputPause
+	_ = run.State.Scan(&pause)
+	reply := "Human input recorded; recreate the agent with the same checkpoint store and call micro.AgentResumeInput to continue model execution."
+	resp := goagent.Response{Reply: reply, Agent: name, RunID: runID, ParentID: run.ParentID}
+	data, err := json.Marshal(resp)
+	if err != nil {
+		return err
+	}
+	run.Status = "done"
+	run.State.Stage = "done"
+	run.State.Data = data
+	for i := range run.Steps {
+		if run.Steps[i].Status == "paused" || run.Steps[i].Name == "ask" {
+			run.Steps[i].Status = "done"
+			run.Steps[i].Error = ""
+			run.Steps[i].Result = "human input: " + input
+		}
+	}
+	if len(run.Steps) == 0 {
+		run.Steps = []aiflow.StepRecord{{Name: "ask", Status: "done", Result: "human input: " + input}}
+	}
+	if err := cp.Save(ctx, run); err != nil {
+		return err
+	}
+	if err := recordCLIResumeEvents(name, runID, run.ParentID); err != nil {
+		return err
+	}
+	if pause.Prompt != "" {
+		fmt.Fprintf(w, "  Prompt: %s\n", pause.Prompt)
+	}
+	fmt.Fprintf(w, "  Recorded input for agent %q run %s.\n", name, runID)
+	fmt.Fprintf(w, "  Inspect: micro inspect agent %s --limit 1\n", name)
+	return nil
+}
+
+func recordCLIResumeEvents(name, runID, parentID string) error {
+	now := time.Now()
+	scoped := store.Scope(store.DefaultStore, "agent", name)
+	events := []goagent.RunEvent{
+		{Time: now, RunID: runID, ParentID: parentID, Agent: name, Kind: "checkpoint", Name: "done", Status: "done"},
+		{Time: now.Add(time.Nanosecond), RunID: runID, ParentID: parentID, Agent: name, Kind: "done"},
+	}
+	for _, e := range events {
+		b, err := json.Marshal(e)
+		if err != nil {
+			return err
+		}
+		key := fmt.Sprintf("runs/%s/%020d-%s", runID, e.Time.UnixNano(), e.Kind)
+		if err := scoped.Write(&store.Record{Key: key, Value: b}); err != nil {
+			return err
+		}
+	}
+	return nil
 }

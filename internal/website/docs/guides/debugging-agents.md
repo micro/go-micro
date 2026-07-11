@@ -112,6 +112,14 @@ Useful statuses include `done`, `refused`, `timeout`, `rate_limited`, `canceled`
 and `error`. Use `--json` when you want exact timestamps, trace/span ids, and error
 kinds for a bug report.
 
+When a run is paused at `stage=input-required`, continue it from the CLI and then
+inspect the completed checkpoint without writing a Go helper:
+
+```sh
+micro agent resume-input support <run-id> --input "Approve deploy to us-east-1"
+micro inspect agent support --limit 1
+```
+
 Run timelines are stored in the agent's state store under that agent's scoped
 state (`agent/<name>/runs/...`). The persisted timeline is recorded even without
 an OpenTelemetry exporter, so `micro inspect agent` remains useful in local

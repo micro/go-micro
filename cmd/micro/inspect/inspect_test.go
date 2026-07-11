@@ -31,7 +31,7 @@ func TestWriteAgentInspectionIncludesInputResumeBreadcrumb(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := out.String()
-	for _, want := range []string{"checkpoint=paused", "stage=input-required", `micro agent history support run-input`, `micro.AgentResumeInput(ctx, agent, "run-input", input)`} {
+	for _, want := range []string{"checkpoint=paused", "stage=input-required", `micro agent history support run-input`, `micro agent resume-input support run-input --input <text>`} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("output missing %q:\n%s", want, got)
 		}

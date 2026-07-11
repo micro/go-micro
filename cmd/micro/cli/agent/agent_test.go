@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -9,6 +10,8 @@ import (
 
 	goagent "go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
+	aiflow "go-micro.dev/v6/flow"
+	"go-micro.dev/v6/store"
 )
 
 func TestWriteRunIndexJSON(t *testing.T) {
@@ -89,7 +92,7 @@ func TestWriteRunIndexInputRequiredUsesResumeInput(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := out.String()
-	for _, want := range []string{`micro agent history runner run-input`, `micro.AgentResumeInput(ctx, agent, "run-input", input)`} {
+	for _, want := range []string{`micro agent history runner run-input`, `micro agent resume-input runner run-input --input <text>`} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("output missing %q:\n%s", want, got)
 		}
@@ -135,5 +138,43 @@ func TestWriteRunHistoryHumanAndJSON(t *testing.T) {
 	}
 	if len(got) != 1 || got[0].Name != "probe" || got[0].Tokens.TotalTokens != 5 {
 		t.Fatalf("decoded events = %#v", got)
+	}
+}
+
+func TestResumeInputRunCompletesCheckpointAndInspectSummary(t *testing.T) {
+	oldStore := store.DefaultStore
+	store.DefaultStore = store.NewMemoryStore()
+	t.Cleanup(func() { store.DefaultStore = oldStore })
+
+	ctx := context.Background()
+	cp := aiflow.StoreCheckpoint(store.DefaultStore, "runner")
+	run := aiflow.Run{ID: "run-input", Flow: "runner", Status: "paused", State: aiflow.State{Stage: "input-required"}, Steps: []aiflow.StepRecord{{Name: "ask", Status: "paused", Error: "Which region?"}}}
+	if err := run.State.Set(cliInputPause{OriginalMessage: "deploy", Prompt: "Which region?"}); err != nil {
+		t.Fatalf("set pause: %v", err)
+	}
+	if err := cp.Save(ctx, run); err != nil {
+		t.Fatalf("save checkpoint: %v", err)
+	}
+
+	var out bytes.Buffer
+	if err := resumeInputRun(ctx, &out, "runner", "run-input", "us-east-1"); err != nil {
+		t.Fatalf("resumeInputRun: %v", err)
+	}
+	if got := out.String(); !strings.Contains(got, "Recorded input") || !strings.Contains(got, "micro inspect agent runner --limit 1") {
+		t.Fatalf("output missing continuation hints:\n%s", got)
+	}
+	loaded, ok, err := cp.Load(ctx, "run-input")
+	if err != nil || !ok {
+		t.Fatalf("load checkpoint ok=%v err=%v", ok, err)
+	}
+	if loaded.Status != "done" || loaded.State.Stage != "done" {
+		t.Fatalf("loaded run status/stage = %s/%s, want done/done", loaded.Status, loaded.State.Stage)
+	}
+	summaries, err := goagent.ListRunSummariesWithOptions(store.DefaultStore, "runner", goagent.RunListOptions{Status: "done"})
+	if err != nil {
+		t.Fatalf("summaries: %v", err)
+	}
+	if len(summaries) != 1 || summaries[0].RunID != "run-input" || summaries[0].Status != "done" {
+		t.Fatalf("summaries = %#v, want completed run-input", summaries)
 	}
 }
