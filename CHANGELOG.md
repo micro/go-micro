@@ -42,6 +42,9 @@ below is kept current between tags and rolled into the next version when it ship
 - **AtlasCloud workspace repair fallback** — AtlasCloud fallback handling now recovers workspace-repair tool calls more reliably. (`ai/atlascloud/`, `agent/`)
 - **AtlasCloud empty-argument tool repair** — AtlasCloud text tool-call repair now handles empty-argument calls more consistently. (`ai/atlascloud/`, `agent/`)
 
+### Removed
+- **`go-micro.dev/v6/ai/flow`** — the alias-only backward-compatibility shim is removed; import the canonical [`go-micro.dev/v6/flow`](flow) instead (same types and functions). It had no internal callers. (`ai/flow/`)
+
 ### Fixed
 - **A2A fallback artifact text** — A2A fallback responses now avoid leaking provider artifact text into agent-visible output. (`gateway/a2a/`, `agent/`)
 - **Launch readiness notification replays** — launch-readiness notification replay paths now deduplicate repeated side effects. (`agent/`, `internal/harness/`)
