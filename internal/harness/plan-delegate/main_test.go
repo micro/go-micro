@@ -401,6 +401,44 @@ func (a failingAgent) Run() error                                           { re
 func (a failingAgent) Stop() error                                          { return nil }
 func (a failingAgent) String() string                                       { return "failing" }
 
+func TestRequireConductorPlanRecoversAfterCompletedSideEffects(t *testing.T) {
+	mem := store.NewMemoryStore()
+	ag := &scriptedAgent{replies: []func(context.Context, string) (*agent.Response, error){
+		func(ctx context.Context, prompt string) (*agent.Response, error) {
+			if !strings.Contains(prompt, "built-in plan tool") || !strings.Contains(prompt, "Do not call task or notify tools") {
+				return nil, errors.New("missing scoped plan recovery prompt")
+			}
+			if err := store.Scope(mem, "agent", "conductor").Write(&store.Record{Key: "plan", Value: []byte(`{"steps":[{"task":"Design launch task","status":"done"}]}`)}); err != nil {
+				return nil, err
+			}
+			return &agent.Response{Reply: "Plan persisted."}, nil
+		},
+	}}
+
+	if err := requireConductorPlan(context.Background(), mem, ag); err != nil {
+		t.Fatalf("requireConductorPlan returned %v, want recovered plan", err)
+	}
+	if ag.calls != 1 {
+		t.Fatalf("conductor calls = %d, want one plan recovery prompt", ag.calls)
+	}
+}
+
+func TestRequireConductorPlanFailureNamesScopedRecord(t *testing.T) {
+	err := requireConductorPlan(context.Background(), store.NewMemoryStore(), &scriptedAgent{replies: []func(context.Context, string) (*agent.Response, error){
+		func(context.Context, string) (*agent.Response, error) {
+			return &agent.Response{Reply: "Done without plan."}, nil
+		},
+	}})
+	if err == nil {
+		t.Fatal("requireConductorPlan returned nil, want missing plan diagnostic")
+	}
+	for _, want := range []string{"agent/conductor/plan", "without calling the built-in plan tool"} {
+		if got := err.Error(); !strings.Contains(got, want) {
+			t.Fatalf("error = %q, want %q", got, want)
+		}
+	}
+}
+
 func TestPlanDelegateConductorRetriesAfterPlanOnlySuccess(t *testing.T) {
 	taskSvc := new(TaskService)
 	notifySvc := new(NotifyService)
