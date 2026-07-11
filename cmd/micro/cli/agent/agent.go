@@ -35,6 +35,7 @@ smallest provider-free recovery loop before reading the full docs.
 5. If provider chat is not configured yet, prove the no-secret path still works:
    micro agent demo
    go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1
+   go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1
 
 Recovery docs:
   https://go-micro.dev/docs/guides/debugging-agents.html
@@ -52,6 +53,7 @@ What this proves:
   - service tools can be called by an agent
   - chat behavior is exercised without contacting a live provider
   - run history can be inspected after the prompt
+  - the debug smoke seeds a stalled-first-agent recovery transcript
 
 After it passes:
   - Build your own service-backed agent: https://go-micro.dev/docs/guides/your-first-agent.html
@@ -63,7 +65,10 @@ Use live-provider chat when you are ready for real model behavior:
   micro run
   micro chat
   micro agent doctor     # after micro run: chat/gateway/inspect recovery
-  micro inspect agent <name>`
+  micro inspect agent <name>
+
+Debug transcript smoke:
+  go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1`
 
 func init() {
 	cmd.Register(&cli.Command{

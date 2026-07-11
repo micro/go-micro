@@ -136,6 +136,7 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 		"micro runs <name>",
 		"micro agent demo",
 		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1",
+		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1",
 		"debugging-agents.html",
 	} {
 		if !strings.Contains(out.String(), want) {
@@ -151,7 +152,9 @@ func TestFirstAgentWalkthroughCLIBoundaries(t *testing.T) {
 	for _, want := range []string{
 		"No-secret first-agent demo",
 		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1",
+		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1",
 		"provider-free",
+		"stalled-first-agent recovery transcript",
 		"micro agent preflight  # before micro run: prerequisites",
 		"micro chat",
 		"micro agent doctor     # after micro run: chat/gateway/inspect recovery",
