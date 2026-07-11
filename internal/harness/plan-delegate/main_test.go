@@ -262,6 +262,24 @@ func TestPlanDelegateIdempotentDuplicateDelegateReplay(t *testing.T) {
 	}
 }
 
+func TestPlanDelegateRecoversInterruptedMockRunWithoutReplayingTasks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("0→hero harness boots an end-to-end system; skipped with -short")
+	}
+	if err := runPlanDelegate("mock-interrupt-after-tasks"); err != nil {
+		t.Fatalf("0→hero harness with interrupted task-complete run: %v", err)
+	}
+}
+
+func TestPlanDelegateRejectsNestedDelegateToolCallMarkup(t *testing.T) {
+	if testing.Short() {
+		t.Skip("0→hero harness boots an end-to-end system; skipped with -short")
+	}
+	if err := runPlanDelegate("mock-nested-delegate-markup"); err != nil {
+		t.Fatalf("0→hero harness with nested delegate markup refusal: %v", err)
+	}
+}
+
 func TestNotifyServiceDeduplicatesAtlasCloudLaunchReadinessParaphrases(t *testing.T) {
 	svc := new(NotifyService)
 	variants := []SendRequest{
