@@ -157,6 +157,7 @@ func runTestStream(t *testing.T, stream Stream) {
 		assert.NoError(t, err, "Unexpected error subscribing")
 		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 1"}))
 		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 2"}))
+		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 3"}))
 
 		ev := <-ch
 		ev.Ack()
@@ -169,6 +170,13 @@ func runTestStream(t *testing.T, stream Stream) {
 			assert.NoError(t, ev.Ack())
 		case <-time.After(7 * time.Second):
 			t.Fatalf("Timed out waiting for message to be put back on queue")
+		}
+		select {
+		case ev = <-ch:
+			assert.NotEqual(t, ev.ID, nacked, "Queued message should only be received after the nacked message is redelivered")
+			assert.NoError(t, ev.Ack())
+		case <-time.After(7 * time.Second):
+			t.Fatalf("Timed out waiting for queued message")
 		}
 
 	})
