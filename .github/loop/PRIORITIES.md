@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Migrate store/postgres from pgx/v4 to pgx/v5** ([#4556](https://github.com/micro/go-micro/issues/4556)) — #4713 closed the deterministic no-secret plan/delegate resume contract, and the recent first-agent/doc wayfinding increments have covered the current adoption on-ramp. The highest-value remaining open work is now service-framework security upkeep: remove the pgx/v4 dependency/CVE drift without changing the public store API.
+1. **Add end-to-end streaming chat conformance** ([#4738](https://github.com/micro/go-micro/issues/4738)) — #4736 closed the pgx/v5 security-upkeep item, and there are no open codex PRs in flight. The next highest-value user-visible gap is streaming chat that works coherently across the agent/CLI/A2A path, starting with a no-secret harness and extending to keyed provider checks without another provider-specific malformed-output workaround.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
