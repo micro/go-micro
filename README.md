@@ -97,6 +97,9 @@ After install and the first `micro new`/`micro run` smoke check, take the
 walkable agent path in this order:
 
 1. [Install troubleshooting](internal/website/docs/guides/install-troubleshooting.md) — verify the binary installer or `go install`, `PATH`, `micro --version`, and the no-secret smoke path before agent work.
+
+Run `make docs-wayfinding` to verify the focused no-secret docs/CLI contract that keeps these README and website commands aligned with the installed CLI.
+
 2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
 3. `micro agent quickcheck` (or `micro agent debug`) — when scaffold → run → chat → inspect stalls, print the short recovery map before you dive into the full debugging guide.
 4. `micro examples` — print the maintained provider-free runnable examples in copy/paste order.

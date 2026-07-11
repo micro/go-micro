@@ -246,17 +246,17 @@ func Compose(c *cli.Context) error {
 			imageName = registry + "/" + imageName
 		}
 
-		sb.WriteString(fmt.Sprintf("  %s:\n", svc.Name))
-		sb.WriteString(fmt.Sprintf("    image: %s\n", imageName))
+		fmt.Fprintf(&sb, "  %s:\n", svc.Name)
+		fmt.Fprintf(&sb, "    image: %s\n", imageName)
 
 		if svc.Port > 0 {
-			sb.WriteString(fmt.Sprintf("    ports:\n      - \"%d:%d\"\n", svc.Port, svc.Port))
+			fmt.Fprintf(&sb, "    ports:\n      - \"%d:%d\"\n", svc.Port, svc.Port)
 		}
 
 		if len(svc.Depends) > 0 {
 			sb.WriteString("    depends_on:\n")
 			for _, dep := range svc.Depends {
-				sb.WriteString(fmt.Sprintf("      - %s\n", dep))
+				fmt.Fprintf(&sb, "      - %s\n", dep)
 			}
 		}
 

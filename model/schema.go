@@ -33,7 +33,7 @@ type Field struct {
 // BuildSchema extracts a Schema from a struct type using reflection.
 func BuildSchema(v interface{}, opts ...RegisterOption) *Schema {
 	t := reflect.TypeOf(v)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -100,7 +100,7 @@ func BuildSchema(v interface{}, opts ...RegisterOption) *Schema {
 // StructToMap converts a struct pointer to a map of column name → value.
 func StructToMap(schema *Schema, v interface{}) map[string]any {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr {
+	if rv.Kind() == reflect.Pointer {
 		rv = rv.Elem()
 	}
 	fields := make(map[string]any, len(schema.Fields))
@@ -116,7 +116,7 @@ func StructToMap(schema *Schema, v interface{}) map[string]any {
 // MapToStruct fills a struct pointer from a map of column name → value.
 func MapToStruct(schema *Schema, fields map[string]any, v interface{}) {
 	rv := reflect.ValueOf(v)
-	if rv.Kind() == reflect.Ptr {
+	if rv.Kind() == reflect.Pointer {
 		rv = rv.Elem()
 	}
 	for _, f := range schema.Fields {
@@ -155,7 +155,7 @@ func KeyValue(schema *Schema, v interface{}) string {
 // ResolveType returns the struct reflect.Type from a value (handles pointers and slices).
 func ResolveType(v interface{}) reflect.Type {
 	t := reflect.TypeOf(v)
-	for t.Kind() == reflect.Ptr || t.Kind() == reflect.Slice {
+	for t.Kind() == reflect.Pointer || t.Kind() == reflect.Slice {
 		t = t.Elem()
 	}
 	return t

@@ -54,7 +54,7 @@ func isExported(name string) bool {
 
 // Is this type exported or a builtin?
 func isExportedOrBuiltinType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	// PkgPath will be non-empty even for an exported type,
@@ -107,7 +107,7 @@ func prepareEndpoint(method reflect.Method, log logger.Logger) *methodType {
 			return nil
 		}
 
-		if replyType.Kind() != reflect.Ptr {
+		if replyType.Kind() != reflect.Pointer {
 			log.Logf(logger.ErrorLevel, "method %v reply type not a pointer: %v", mname, replyType)
 			return nil
 		}

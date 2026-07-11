@@ -62,7 +62,8 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
 ## First agent on-ramp
 
 Once the scaffold → run → call path works, ask the installed CLI for the
-provider-free agent path:
+provider-free agent path. The focused no-secret docs/CLI contract is
+`make docs-wayfinding`:
 
 ```
 micro agent demo

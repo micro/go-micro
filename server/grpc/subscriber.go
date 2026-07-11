@@ -207,7 +207,7 @@ func (g *grpcServer) createSubHandler(sb *subscriber, opts server.Options) broke
 			var isVal bool
 			var req reflect.Value
 
-			if handler.reqType.Kind() == reflect.Ptr {
+			if handler.reqType.Kind() == reflect.Pointer {
 				req = reflect.New(handler.reqType.Elem())
 			} else {
 				req = reflect.New(handler.reqType)

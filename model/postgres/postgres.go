@@ -166,13 +166,13 @@ func (d *postgresModel) Delete(ctx context.Context, key string, v interface{}) e
 
 func (d *postgresModel) List(ctx context.Context, result interface{}, opts ...model.QueryOption) error {
 	rv := reflect.ValueOf(result)
-	if rv.Kind() != reflect.Ptr || rv.Elem().Kind() != reflect.Slice {
+	if rv.Kind() != reflect.Pointer || rv.Elem().Kind() != reflect.Slice {
 		return fmt.Errorf("model/postgres: result must be a pointer to a slice")
 	}
 	sliceVal := rv.Elem()
 	elemType := sliceVal.Type().Elem()
 	structType := elemType
-	if structType.Kind() == reflect.Ptr {
+	if structType.Kind() == reflect.Pointer {
 		structType = structType.Elem()
 	}
 
@@ -226,7 +226,7 @@ func (d *postgresModel) List(ctx context.Context, result interface{}, opts ...mo
 	for i, fields := range fieldMaps {
 		vp := reflect.New(structType)
 		model.MapToStruct(schema, fields, vp.Interface())
-		if elemType.Kind() == reflect.Ptr {
+		if elemType.Kind() == reflect.Pointer {
 			results.Index(i).Set(vp)
 		} else {
 			results.Index(i).Set(vp.Elem())
