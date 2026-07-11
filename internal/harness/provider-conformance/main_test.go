@@ -77,6 +77,23 @@ func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
 	}
 }
 
+func TestMissingKeyResultsReportsEachHarness(t *testing.T) {
+	results := missingKeyResults("openai", []string{"agent", "plan-delegate"}, statusSkipped, "set OPENAI_API_KEY")
+	if len(results) != 2 {
+		t.Fatalf("missingKeyResults returned %d results, want 2", len(results))
+	}
+
+	wants := []conformanceResult{
+		{Provider: "openai", Harness: "agent", Phase: harnessPhase("agent"), Status: statusSkipped, Error: "set OPENAI_API_KEY"},
+		{Provider: "openai", Harness: "plan-delegate", Phase: harnessPhase("plan-delegate"), Status: statusSkipped, Error: "set OPENAI_API_KEY"},
+	}
+	for i, want := range wants {
+		if results[i] != want {
+			t.Fatalf("result[%d] = %#v, want %#v", i, results[i], want)
+		}
+	}
+}
+
 func TestWriteCapabilityMarkdown(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "capabilities.md")
 	rows := []ai.CapabilityRow{
