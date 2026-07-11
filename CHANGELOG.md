@@ -20,6 +20,9 @@ below is kept current between tags and rolled into the next version when it ship
 ### Added
 - **First-agent guide chain contract** — the harness now verifies the install → demo → examples → 0→hero guide chain stays connected for new agent builders. (`internal/harness/`, `internal/website/docs/`)
 
+### Removed
+- **`go-micro.dev/v6/ai/flow`** — the alias-only backward-compatibility shim is removed; import the canonical [`go-micro.dev/v6/flow`](flow) instead (same types and functions). It had no internal callers. (`ai/flow/`)
+
 ### Fixed
 - **A2A fallback artifact text** — A2A fallback responses now avoid leaking provider artifact text into agent-visible output. (`gateway/a2a/`, `agent/`)
 - **Launch readiness notification replays** — launch-readiness notification replay paths now deduplicate repeated side effects. (`agent/`, `internal/harness/`)
