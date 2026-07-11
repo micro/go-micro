@@ -18,7 +18,29 @@ below is kept current between tags and rolled into the next version when it ship
 ## [Unreleased]
 
 ### Added
+- **First-agent chat/inspect fixture** — the maintained first-agent CLI fixture now covers chat and inspect boundaries together. (`internal/harness/`, `cmd/micro/`)
+- **Zero-to-hero inspect transcript check** — the 0→hero harness now verifies the inspect transcript path stays visible in the lifecycle walkthrough. (`internal/harness/zero-to-hero-ci/`, `internal/website/docs/`)
+
+### Changed
+- **Plan-delegate plan persistence** — plan/delegate runs now persist plan state more defensively across harness scenarios. (`agent/`, `internal/harness/`)
+
+### Fixed
+- **Zero-to-hero fixture output race** — 0→hero fixture output is less race-prone during harness runs. (`internal/harness/zero-to-hero-ci/`)
+
+---
+
+## [6.6.0] - July 2026
+
+### Added
 - **First-agent guide chain contract** — the harness now verifies the install → demo → examples → 0→hero guide chain stays connected for new agent builders. (`internal/harness/`, `internal/website/docs/`)
+- **First-agent docs wayfinding guard** — the local harness now includes a focused no-network check for first-agent and 0→hero docs links. (`Makefile`, `internal/harness/`)
+- **First-agent quickcheck breadcrumbs** — first-agent docs now surface quickcheck wayfinding for install, scaffold, chat, inspect, and recovery paths. (`internal/website/docs/`, `README.md`)
+- **First-agent chat wayfinding verification** — the harness now verifies first-agent chat wayfinding remains discoverable from the public docs route. (`internal/harness/`, `internal/website/docs/`)
+
+### Changed
+- **Universe A2A reachability probe** — the universe harness now exercises A2A reachability more defensively. (`internal/harness/`)
+- **AtlasCloud workspace repair fallback** — AtlasCloud fallback handling now recovers workspace-repair tool calls more reliably. (`ai/atlascloud/`, `agent/`)
+- **AtlasCloud empty-argument tool repair** — AtlasCloud text tool-call repair now handles empty-argument calls more consistently. (`ai/atlascloud/`, `agent/`)
 
 ### Fixed
 - **A2A fallback artifact text** — A2A fallback responses now avoid leaking provider artifact text into agent-visible output. (`gateway/a2a/`, `agent/`)
@@ -26,6 +48,20 @@ below is kept current between tags and rolled into the next version when it ship
 - **Plan-delegate harness cleanup** — plan/delegate harness cleanup is more reliable after conformance runs. (`internal/harness/`)
 - **AtlasCloud spoken notify replays** — AtlasCloud fallback handling now collapses spoken notification replays more consistently. (`ai/atlascloud/`, `agent/`)
 - **Agent-flow onboarding side effects** — onboarding side-effect checks are more stable across the agent-flow harness. (`agent/`, `internal/harness/`)
+- **Plan-delegate plan-only side effects** — plan/delegate recovery now preserves plan-only side effects more reliably. (`agent/`, `internal/harness/`)
+- **Checkpointed tool result recording** — checkpoint resume paths now guard tool-result recording against duplicate or stale writes. (`agent/`)
+- **Agent timeout notification completion** — universe runs now finalize observed notifications more reliably after agent timeouts. (`agent/`, `internal/harness/`)
+- **Completed plan-delegate side effects** — completed plan/delegate side effects are accepted more consistently in recovery paths. (`agent/`, `internal/harness/`)
+- **Agent-flow onboarding notifications** — agent-flow onboarding notification recovery is more reliable across replay scenarios. (`agent/`, `internal/harness/`)
+
+### Documentation
+- **Agent-agnostic mention model** — loop docs now describe the mention-driven agent model without binding it to one coding agent. (`internal/docs/`, `.github/loop/`)
+- **First-agent quickcheck docs** — public docs now surface the first-agent quickcheck path for faster troubleshooting. (`internal/website/docs/`)
+- **Agent resume breadcrumbs** — docs now add clearer resume breadcrumbs for checkpointed agent runs. (`internal/website/docs/`)
+
+### Security
+- **Govulncheck vulnerability gate** — CI now includes a govulncheck gate and wires vulnerability failures into loop triage. (`.github/workflows/`, `cmd/micro/loop/`)
+- **Dependency vulnerability patches** — toolchain and dependency updates patch reachable CVEs across the project. (`go.mod`, `go.sum`)
 
 ---
 

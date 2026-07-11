@@ -104,16 +104,25 @@ If you are new, follow the architecture in the same order the runtime composes i
    CLI, `PATH`, version, and no-secret smoke path are healthy.
 2. [`micro agent demo`](getting-started.html#first-agent-on-ramp) — print the
    provider-free first-agent command and next docs steps from the installed CLI.
-3. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent)
+3. `micro agent quickcheck` (or `micro agent debug`) — print the short recovery
+   map when scaffold → run → chat → inspect stalls.
+4. `micro examples` — list the maintained provider-free runnable examples in
+   copy/paste order.
+5. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle
+   harness and runnable examples.
+6. [Examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md)
+   — choose the smallest no-secret first-agent, support reference, and interop
+   examples from one map.
+7. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent)
    — run one service-backed agent with a mock model.
-4. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — see the
+8. [No-secret first-agent transcript](guides/no-secret-first-agent.html) — see the
    maintained support-agent path work without a provider key.
-5. [Your First Agent](guides/your-first-agent.html) — build and chat with a
+9. [Your First Agent](guides/your-first-agent.html) — build and chat with a
    service-backed agent.
-6. [Debugging your agent](guides/debugging-agents.html) — inspect service
-   registration, tools, memory, providers, and run history.
-7. [0→hero Reference](guides/zero-to-hero.html) — walk scaffold → run → chat →
-   inspect → flow → deploy dry-run as the maintained lifecycle contract.
+10. [Debugging your agent](guides/debugging-agents.html) — inspect service
+    registration, tools, memory, providers, and run history.
+11. [0→hero Reference](guides/zero-to-hero.html) — walk scaffold → run → chat →
+    inspect → flow → deploy dry-run as the maintained lifecycle contract.
 
 ## Related
 
