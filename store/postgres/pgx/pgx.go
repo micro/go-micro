@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v4"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 
 	"go-micro.dev/v6/logger"
@@ -131,7 +131,7 @@ func (s *sqlStore) initDB(database string) error {
 		return err
 	}
 
-	db, err := pgxpool.ConnectConfig(s.options.Context, config)
+	db, err := pgxpool.NewWithConfig(s.options.Context, config)
 	if err != nil {
 		return err
 	}
