@@ -296,6 +296,9 @@ func (a *agentImpl) planWrap(next ai.ToolHandler) ai.ToolHandler {
 		if call.Name == toolPlan {
 			return a.handlePlan(call)
 		}
+		if containsNestedTextToolCall(call.Input) {
+			return refused(call.ID, ai.RefusedApproval, "malformed tool call: nested text tool-call markup found inside arguments; call the intended tool directly with clean JSON arguments")
+		}
 		if call.Name == toolDelegate {
 			if blocked := a.unfinishedPlanStepsBeforeDelegation(); len(blocked) > 0 {
 				return refused(call.ID, ai.RefusedApproval, "complete these plan steps before delegating: "+strings.Join(blocked, ", "))

@@ -263,6 +263,27 @@ func textToolArguments(raw any) map[string]any {
 	return nil
 }
 
+func containsNestedTextToolCall(v any) bool {
+	switch x := v.(type) {
+	case string:
+		text := html.UnescapeString(x)
+		return openingTaggedToolCall.MatchString(text) || singleTaggedToolCall.MatchString(text)
+	case map[string]any:
+		for _, item := range x {
+			if containsNestedTextToolCall(item) {
+				return true
+			}
+		}
+	case []any:
+		for _, item := range x {
+			if containsNestedTextToolCall(item) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func decodeTaggedTextToolCalls(text string, allowed map[string]string) []ai.ToolCall {
 	var out []ai.ToolCall
 	for _, match := range singleTaggedToolCall.FindAllStringSubmatch(text, -1) {
