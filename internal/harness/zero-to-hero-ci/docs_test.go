@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -1032,7 +1033,7 @@ func TestFirstAgentCLIChatInspectFixture(t *testing.T) {
 		"ANTHROPIC_API_KEY=",
 		"GEMINI_API_KEY=",
 	)
-	var fixtureOut strings.Builder
+	var fixtureOut lockedBuffer
 	fixture.Stdout = &fixtureOut
 	fixture.Stderr = &fixtureOut
 	if err := fixture.Start(); err != nil {
@@ -1080,7 +1081,7 @@ func stopFixture(t *testing.T, cmd *exec.Cmd) {
 	}
 }
 
-func waitForCLIOutput(t *testing.T, out *strings.Builder, want string, timeout time.Duration) {
+func waitForCLIOutput(t *testing.T, out *lockedBuffer, want string, timeout time.Duration) {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
@@ -1090,6 +1091,23 @@ func waitForCLIOutput(t *testing.T, out *strings.Builder, want string, timeout t
 		time.Sleep(100 * time.Millisecond)
 	}
 	t.Fatalf("timed out waiting for fixture output %q; got:\n%s", want, out.String())
+}
+
+type lockedBuffer struct {
+	mu sync.Mutex
+	b  strings.Builder
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.b.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.b.String()
 }
 
 func firstAgentCLIFixtureSource() string {
