@@ -21,8 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Stabilize first-agent CLI fixture registration wait** ([#4680](https://github.com/micro/go-micro/issues/4680)) — Developer adoption is the current goal, and the first-agent chat/inspect fixture is part of the Now-roadmap getting-started contract. Make the provider-free fixture prove the `assistant` agent is registered before `micro chat` runs so scaffold → run → chat → inspect remains a reliable CI-verified on-ramp instead of a flaky promise.
-2. **Harden agent provider failure resilience** ([#4650](https://github.com/micro/go-micro/issues/4650)) — With scheduled cross-provider conformance closed by #4678, the next reliability seam is making timeouts, cancellation, rate limits, retry/backoff, and inspectable failure metadata predictable through the agent loop. Keep this scoped to existing behavior and tests; surface any breaking API or default changes as human review notes instead of queue work.
+1. **Harden agent provider failure resilience** ([#4650](https://github.com/micro/go-micro/issues/4650)) — With scheduled cross-provider conformance closed by #4678 and the first-agent fixture race closed by #4684, the next Now-roadmap reliability seam is making timeouts, cancellation, rate limits, retry/backoff, and inspectable failure metadata predictable through the agent loop. Keep this scoped to existing behavior and tests; surface any breaking API or default changes as human review notes instead of queue work.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
