@@ -1004,6 +1004,155 @@ func TestNoSecretFirstAgentDebuggingSmoke(t *testing.T) {
 	}
 }
 
+func TestFirstAgentCLIChatInspectFixture(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		t.Fatalf("resolve repository root: %v", err)
+	}
+
+	workspace := t.TempDir()
+	home := filepath.Join(workspace, "home")
+	if err := os.MkdirAll(home, 0o755); err != nil {
+		t.Fatalf("create fixture home: %v", err)
+	}
+	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent-cli-fixture\n\ngo 1.24\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+filepath.ToSlash(absRoot)+"\n")
+	writeFile(t, filepath.Join(workspace, "main.go"), firstAgentCLIFixtureSource())
+	runInWorkspace(t, workspace, "go", "mod", "tidy")
+
+	micro := buildMicroBinary(t, absRoot)
+	fixtureBin := filepath.Join(workspace, "first-agent-cli-fixture")
+	runInWorkspace(t, workspace, "go", "build", "-o", fixtureBin, ".")
+	fixture := exec.Command(fixtureBin)
+	fixture.Dir = workspace
+	fixture.Env = append(os.Environ(),
+		"HOME="+home,
+		"MICRO_AI_API_KEY=",
+		"OPENAI_API_KEY=",
+		"ANTHROPIC_API_KEY=",
+		"GEMINI_API_KEY=",
+	)
+	var fixtureOut strings.Builder
+	fixture.Stdout = &fixtureOut
+	fixture.Stderr = &fixtureOut
+	if err := fixture.Start(); err != nil {
+		t.Fatalf("start first-agent CLI fixture: %v\n%s", err, fixtureOut.String())
+	}
+	defer func() {
+		if fixture.Process != nil {
+			_ = fixture.Process.Signal(os.Interrupt)
+			_ = fixture.Process.Kill()
+		}
+	}()
+
+	waitForCLIOutput(t, &fixtureOut, "first-agent fixture ready", 15*time.Second)
+
+	chat := runMicroCLIWithHome(t, micro, home, "chat", "--prompt", "Summarize my first-agent next steps", "assistant")
+	for _, want := range []string{"assistant:", "install the CLI", "run a service", "chat with an agent"} {
+		if !strings.Contains(chat, want) {
+			t.Fatalf("micro chat assistant output missing %q:\n%s\nfixture output:\n%s", want, chat, fixtureOut.String())
+		}
+	}
+
+	stopFixture(t, fixture)
+
+	inspect := runMicroCLIWithHome(t, micro, home, "inspect", "agent", "assistant", "--limit", "1")
+	for _, want := range []string{`Agent "assistant" runs`, "status=done", "last=done"} {
+		if !strings.Contains(inspect, want) {
+			t.Fatalf("micro inspect agent assistant output missing %q:\n%s\nfixture output:\n%s", want, inspect, fixtureOut.String())
+		}
+	}
+}
+
+func stopFixture(t *testing.T, cmd *exec.Cmd) {
+	t.Helper()
+	if cmd.Process == nil {
+		return
+	}
+	done := make(chan error, 1)
+	_ = cmd.Process.Signal(os.Interrupt)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		_ = cmd.Process.Kill()
+		<-done
+	}
+}
+
+func waitForCLIOutput(t *testing.T, out *strings.Builder, want string, timeout time.Duration) {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if strings.Contains(out.String(), want) {
+			return
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for fixture output %q; got:\n%s", want, out.String())
+}
+
+func firstAgentCLIFixtureSource() string {
+	return `package main
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"syscall"
+
+	"go-micro.dev/v6/agent"
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/service"
+	"go-micro.dev/v6/store"
+)
+
+type NotesService struct{}
+type ListNotesRequest struct{}
+type ListNotesResponse struct { Notes []string ` + "`json:\"notes\" description:\"Notes the assistant can summarize\"`" + ` }
+
+func (s *NotesService) List(ctx context.Context, req *ListNotesRequest, rsp *ListNotesResponse) error {
+	rsp.Notes = []string{"Install the CLI", "Run a service", "Chat with an agent"}
+	return nil
+}
+
+type mockModel struct{ opts ai.Options }
+func newMock(opts ...ai.Option) ai.Model { m := &mockModel{}; _ = m.Init(opts...); return m }
+func (m *mockModel) Init(opts ...ai.Option) error { for _, o := range opts { o(&m.opts) }; return nil }
+func (m *mockModel) Options() ai.Options { return m.opts }
+func (m *mockModel) String() string { return "first-agent-cli-fixture" }
+func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) { return nil, fmt.Errorf("stream unsupported") }
+func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+	for _, tool := range req.Tools { if strings.Contains(tool.Name, "List") && m.opts.ToolHandler != nil { m.opts.ToolHandler(ctx, ai.ToolCall{ID:"list-notes", Name: tool.Name, Input: map[string]any{}}); break } }
+	return &ai.Response{Answer: "assistant: your first agent should install the CLI, run a service, then chat with an agent."}, nil
+}
+
+func main() {
+	ai.Register("first-agent-cli-fixture", newMock)
+	home, _ := os.UserHomeDir()
+	st := store.NewFileStore(store.DirOption(filepath.Join(home, "micro", "store")))
+	defer st.Close()
+
+	svc := service.New(service.Name("notes"), service.Address("127.0.0.1:0"))
+	if err := svc.Handle(&NotesService{}); err != nil { panic(err) }
+	go func() { if err := svc.Run(); err != nil { fmt.Println(err); os.Exit(1) } }()
+	defer svc.Server().Stop()
+
+	a := agent.New(agent.Name("assistant"), agent.Address("127.0.0.1:0"), agent.Services("notes"), agent.Provider("first-agent-cli-fixture"), agent.WithStore(st))
+	go func() { if err := a.Run(); err != nil { fmt.Println(err); os.Exit(1) } }()
+	defer a.Stop()
+
+	fmt.Println("first-agent fixture ready")
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+}
+`
+}
+
 func seedNoSecretAgentDebuggingState(t *testing.T, st store.Store) {
 	t.Helper()
 	scoped := store.Scope(st, "agent", "assistant")
