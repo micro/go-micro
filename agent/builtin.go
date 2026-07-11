@@ -131,6 +131,7 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 	h = a.toolRetryWrap(h)
 	h = a.checkpointToolWrap(h)
 	h = a.approveWrap(h)
+	h = a.spendWrap(h)
 	h = a.loopWrap(h)
 	h = a.stepWrap(h)
 	h = a.planWrap(h)
@@ -372,6 +373,27 @@ func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
 			}
 		}
 		return next(ctx, call)
+	}
+}
+
+// spendWrap reserves a per-run x402 spend budget before paid tool execution.
+func (a *agentImpl) spendWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		amount := a.opts.ToolSpend[call.Name]
+		if amount <= 0 || a.opts.MaxSpend <= 0 {
+			return next(ctx, call)
+		}
+		if a.spend+amount > a.opts.MaxSpend {
+			return refused(call.ID, ai.RefusedSpendBudget, fmt.Sprintf(
+				"x402 spend budget exceeded: paying %d for %s would exceed per-run budget (spent %d of %d)",
+				amount, call.Name, a.spend, a.opts.MaxSpend))
+		}
+		a.spend += amount
+		res := next(ctx, call)
+		if res.Refused != "" || toolErrorMessage(res) != "" {
+			a.spend -= amount
+		}
+		return res
 	}
 }
 

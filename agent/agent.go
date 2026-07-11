@@ -81,6 +81,8 @@ type agentImpl struct {
 
 	// steps counts tool executions in the current Ask, for MaxSteps.
 	steps int
+	// spend counts reserved paid-tool spend in the current Ask, for MaxSpend.
+	spend int64
 	// calls counts identical tool calls (name+args) in the current Ask,
 	// for LoopLimit.
 	calls map[string]int
@@ -304,6 +306,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		a.mem.Add("user", message)
 	}
 	a.steps = 0
+	a.spend = 0
 	a.calls = map[string]int{}
 	a.pause = nil
 
