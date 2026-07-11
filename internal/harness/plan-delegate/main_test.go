@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -436,6 +437,50 @@ func TestRequireConductorPlanFailureNamesScopedRecord(t *testing.T) {
 		if got := err.Error(); !strings.Contains(got, want) {
 			t.Fatalf("error = %q, want %q", got, want)
 		}
+	}
+}
+
+func TestRequirePersistedPlanBeforeConductorActionsBlocksSideEffects(t *testing.T) {
+	mem := store.NewMemoryStore()
+	called := false
+	wrapped := requirePersistedPlanBeforeConductorActions(mem)(func(context.Context, ai.ToolCall) ai.ToolResult {
+		called = true
+		return ai.ToolResult{ID: "call-1", Content: `{"ok":true}`}
+	})
+
+	res := wrapped(context.Background(), ai.ToolCall{ID: "call-1", Name: "task.Add"})
+	if called {
+		t.Fatal("side-effecting tool ran before persisted plan")
+	}
+	if res.Refused != ai.RefusedApproval {
+		t.Fatalf("Refused = %q, want %q", res.Refused, ai.RefusedApproval)
+	}
+	if !strings.Contains(res.Content, "built-in plan tool") {
+		t.Fatalf("Content = %q, want plan-first steering message", res.Content)
+	}
+}
+
+func TestRequirePersistedPlanBeforeConductorActionsAllowsPlanAndPlannedActions(t *testing.T) {
+	mem := store.NewMemoryStore()
+	var calls []string
+	wrapped := requirePersistedPlanBeforeConductorActions(mem)(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		calls = append(calls, call.Name)
+		if call.Name == "plan" {
+			if err := store.Scope(mem, "agent", "conductor").Write(&store.Record{Key: "plan", Value: []byte(`{"steps":[{"task":"Design","status":"pending"}]}`)}); err != nil {
+				t.Fatalf("write plan: %v", err)
+			}
+		}
+		return ai.ToolResult{ID: call.ID, Content: `{"ok":true}`}
+	})
+
+	if res := wrapped(context.Background(), ai.ToolCall{ID: "call-1", Name: "plan"}); res.Refused != "" {
+		t.Fatalf("plan Refused = %q, want allowed", res.Refused)
+	}
+	if res := wrapped(context.Background(), ai.ToolCall{ID: "call-2", Name: "task.Add"}); res.Refused != "" {
+		t.Fatalf("planned action Refused = %q, want allowed", res.Refused)
+	}
+	if want := []string{"plan", "task.Add"}; !reflect.DeepEqual(calls, want) {
+		t.Fatalf("calls = %v, want %v", calls, want)
 	}
 }
 
