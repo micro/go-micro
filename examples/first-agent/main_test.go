@@ -20,6 +20,32 @@ func TestRunFirstAgent(t *testing.T) {
 	}
 }
 
+func TestReadmeDocumentsNextBreadcrumbs(t *testing.T) {
+	b, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Fatalf("read README.md: %v", err)
+	}
+	readme := string(b)
+	start := strings.Index(readme, "## Next chat, inspect, and debug breadcrumbs")
+	if start < 0 {
+		t.Fatal("README.md missing next chat, inspect, and debug breadcrumbs section")
+	}
+	section := readme[start:]
+	for _, want := range []string{
+		"micro run",
+		"micro chat assistant --prompt \"Summarize my next steps\"",
+		"micro inspect agent assistant",
+		"micro agent doctor assistant",
+		"no-secret-first-agent.md",
+		"debugging-agents.md",
+		"examples/support",
+	} {
+		if !strings.Contains(section, want) {
+			t.Fatalf("README.md next breadcrumbs missing %q", want)
+		}
+	}
+}
+
 func readExpectedTranscript(t *testing.T) string {
 	t.Helper()
 	b, err := os.ReadFile("README.md")

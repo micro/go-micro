@@ -34,5 +34,22 @@ CI keeps this path runnable with:
 go test ./examples/first-agent
 ```
 
-After this, continue to [`examples/support`](../support/) for the full services →
-agents → workflows lifecycle with a flow trigger and an approval gate.
+## Next chat, inspect, and debug breadcrumbs
+
+This example exits after one in-process `assistant.Ask` call so it stays tiny and
+provider-free. When you move from this transcript to a long-running agent, keep
+these commands nearby:
+
+```bash
+micro run
+micro chat assistant --prompt "Summarize my next steps"
+micro inspect agent assistant
+micro agent doctor assistant
+```
+
+Use the [no-secret first-agent guide](../../internal/website/docs/guides/no-secret-first-agent.md)
+to compare this transcript with the CLI demo, then keep the
+[debugging guide](../../internal/website/docs/guides/debugging-agents.md) open for
+preflight, doctor, inspect, and history checks. After that, continue to
+[`examples/support`](../support/) for the full services → agents → workflows
+lifecycle with a flow trigger and an approval gate.
