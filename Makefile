@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: test test-race test-coverage harness inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: test test-race test-coverage harness zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
 	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
+	@echo "  make zero-to-hero-transcript - Verify the ordered 0→hero lifecycle transcript"
 	@echo "  make inner-loop    - Verify scaffold → run/chat/inspect → deploy dry-run contract"
 	@echo "  make cli-wayfinding - Verify installed first-agent CLI wayfinding commands"
 	@echo "  make docs-wayfinding - Verify first-agent docs/CLI wayfinding stays in sync"
@@ -54,9 +55,15 @@ test-coverage:
 harness:
 	$(MAKE) cli-wayfinding
 	$(MAKE) inner-loop
-	./internal/harness/zero-to-hero-ci/run.sh
+	$(MAKE) zero-to-hero-transcript
 	go run ./internal/harness/agent-flow
 	$(MAKE) provider-conformance-mock
+
+# Verify the maintained 0→hero transcript in the same order documented for new
+# developers: scaffold → run/chat/inspect → support-agent chat → flow history →
+# deploy dry-run. This is the focused CI contract for the full lifecycle path.
+zero-to-hero-transcript:
+	./internal/harness/zero-to-hero-ci/run.sh
 
 # Focused provider-free CLI inner-loop contract: scaffold a service, keep the
 # run/chat/inspect commands discoverable, and prove deploy dry-run reaches the

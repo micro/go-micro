@@ -21,6 +21,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"))
 	for _, want := range []string{
 		"make harness",
+		"make zero-to-hero-transcript",
 		"make inner-loop",
 		"go test ./cmd/micro/cli/new -run TestZeroToOne -count=1",
 		"go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1",
@@ -70,6 +71,9 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	if !strings.Contains(readme, "internal/website/docs/guides/zero-to-hero.md") {
 		t.Fatal("README does not point to the canonical 0→hero guide")
 	}
+	if !strings.Contains(readme, "make zero-to-hero-transcript") {
+		t.Fatal("README does not expose the focused ordered 0→hero transcript contract")
+	}
 	if !strings.Contains(readme, "make inner-loop") {
 		t.Fatal("README does not expose the focused CLI inner-loop contract")
 	}
@@ -77,6 +81,33 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	nav := readFile(t, filepath.Join(root, "internal", "website", "_data", "navigation.yml"))
 	if !strings.Contains(nav, "0→hero Reference") || !strings.Contains(nav, "/docs/guides/zero-to-hero.html") {
 		t.Fatal("website navigation does not expose the canonical 0→hero guide")
+	}
+}
+
+func TestZeroToHeroTranscriptTargetStaysOrdered(t *testing.T) {
+	root := filepath.Clean(filepath.Join("..", "..", ".."))
+	makefile := readFile(t, filepath.Join(root, "Makefile"))
+	if !strings.Contains(makefile, "zero-to-hero-transcript:") {
+		t.Fatal("Makefile missing focused zero-to-hero-transcript target")
+	}
+	if !strings.Contains(makefile, "./internal/harness/zero-to-hero-ci/run.sh") {
+		t.Fatal("zero-to-hero-transcript target must run the maintained CI transcript")
+	}
+
+	runScript := readFile(t, filepath.Join(root, "internal", "harness", "zero-to-hero-ci", "run.sh"))
+	assertOrderedMarkers(t, "0→hero CI transcript", runScript, []string{
+		`run_step "scaffold: 0→1 service contract"`,
+		`run_step "run/chat/inspect: first-agent CLI boundaries"`,
+		`run_step "chat/inspect: no-secret first-agent transcript and docs"`,
+		`run_step "first-agent app: runnable provider-free example"`,
+		`run_step "0→hero app: support lifecycle smoke"`,
+		`run_step "flow history: deterministic services → agents → workflows harnesses"`,
+		`run_step "deploy dry-run: configured target plan"`,
+	})
+
+	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"))
+	if !strings.Contains(guide, "make zero-to-hero-transcript") {
+		t.Fatal("0→hero guide must point developers at the focused ordered transcript target")
 	}
 }
 

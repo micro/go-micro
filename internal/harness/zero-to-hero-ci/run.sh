@@ -22,8 +22,6 @@ run_step "scaffold: 0→1 service contract" \
   go test ./cmd/micro/cli/new -run TestZeroToOne -count=1
 run_step "run/chat/inspect: first-agent CLI boundaries" \
   go test ./cmd/micro -run 'TestFirstAgentWalkthroughCLIBoundaries|TestExamplesWayfindingIndexStaysLinked|TestExamplesCommandPointsAtWayfindingIndex|TestZeroToHeroCLIBoundaries|TestZeroToHeroCommandPrintsMaintainedNoSecretPath' -count=1
-run_step "deploy dry-run: configured target plan" \
-  go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
 run_step "chat/inspect: no-secret first-agent transcript and docs" \
   go test ./internal/harness/zero-to-hero-ci -run 'TestNoSecretFirstAgentTranscript|TestFirstAgentCLIChatInspectFixture|TestNoSecretFirstAgentDebuggingSmoke|TestZeroToHeroReferenceDocs|TestZeroToHeroDeployDryRunCommandSmoke|TestYourFirstAgentTutorialSmoke' -count=1
 
@@ -37,3 +35,5 @@ run_step "0→hero app: support lifecycle smoke" \
   go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle|TestZeroToHeroInspectTranscript' -count=1
 run_step "flow history: deterministic services → agents → workflows harnesses" \
   go test ./internal/harness/universe ./internal/harness/plan-delegate -run 'Test.*Harness|TestPlanDelegateEndToEnd|TestPlanDelegateFlowHandoff' -count=1
+run_step "deploy dry-run: configured target plan" \
+  go test ./cmd/micro/cli/deploy -run TestDeployDryRun -count=1
