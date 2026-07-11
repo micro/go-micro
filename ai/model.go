@@ -109,6 +109,9 @@ const (
 	RefusedMaxSteps = "max_steps"
 	RefusedLoop     = "loop"
 	RefusedApproval = "approval"
+	// RefusedSpendBudget means an agent refused a paid tool before execution
+	// because the configured per-run x402 spend budget would be exceeded.
+	RefusedSpendBudget = "spend_budget"
 )
 
 // RunInfo describes the agent run a tool call belongs to. The agent

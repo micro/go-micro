@@ -98,6 +98,10 @@ type Options struct {
 	LoopLimit int
 	// Approve gates each action before it runs. Nil = allow all.
 	Approve ApproveFunc
+	// MaxSpend bounds paid x402 tool spend per Ask in the asset's smallest
+	// unit (0 = disabled). ToolSpend lists known paid tools and their prices.
+	MaxSpend  int64
+	ToolSpend map[string]int64
 
 	// A2AAddress, if set, makes Run serve this agent over the A2A protocol
 	// on that address directly (no separate gateway), e.g. ":4000".
@@ -222,6 +226,25 @@ func MaxSteps(n int) Option {
 // action (service tools and delegate). Returning false blocks the call.
 func ApproveTool(fn ApproveFunc) Option {
 	return func(o *Options) { o.Approve = fn }
+}
+
+// MaxSpend bounds paid x402 tool spend per Ask, in the asset's smallest unit
+// (0 = disabled). A paid tool that would exceed the cap is refused before the
+// tool handler runs or any payment can be made.
+func MaxSpend(amount int64) Option {
+	return func(o *Options) { o.MaxSpend = amount }
+}
+
+// ToolSpend records the x402 price for a tool, in the asset's smallest unit,
+// so MaxSpend can reserve budget before execution. Non-positive amounts are
+// treated as free.
+func ToolSpend(tool string, amount int64) Option {
+	return func(o *Options) {
+		if o.ToolSpend == nil {
+			o.ToolSpend = map[string]int64{}
+		}
+		o.ToolSpend[tool] = amount
+	}
 }
 
 // LoopLimit sets how many times the agent may repeat the same tool call

@@ -91,6 +91,77 @@ func TestApproveToolDoesNotGatePlan(t *testing.T) {
 	}
 }
 
+func TestMaxSpendAllowsPaidToolWithinBudget(t *testing.T) {
+	calls := 0
+	a := newTestAgent(Name("paid-within-budget"),
+		MaxSpend(10),
+		ToolSpend("paid.lookup", 7),
+		WithTool("paid.lookup", "paid lookup", nil, func(context.Context, map[string]any) (string, error) {
+			calls++
+			return `{"ok":true}`, nil
+		}),
+	)
+
+	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
+	if calls != 1 {
+		t.Fatalf("paid tool was not executed")
+	}
+	if res.Refused != "" {
+		t.Fatalf("paid tool was refused: %+v", res)
+	}
+	if res.Content != `{"ok":true}` {
+		t.Fatalf("content = %q, want paid result", res.Content)
+	}
+}
+
+func TestMaxSpendRefusesPaidToolBeforePaymentWhenBudgetExceeded(t *testing.T) {
+	calls := 0
+	a := newTestAgent(Name("paid-over-budget"),
+		MaxSpend(5),
+		ToolSpend("paid.lookup", 7),
+		WithTool("paid.lookup", "paid lookup", nil, func(context.Context, map[string]any) (string, error) {
+			calls++
+			return `{"ok":true}`, nil
+		}),
+	)
+
+	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
+	if calls != 0 {
+		t.Fatalf("paid tool ran despite budget refusal")
+	}
+	if res.Refused != ai.RefusedSpendBudget {
+		t.Fatalf("Refused = %q, want %q (result %+v)", res.Refused, ai.RefusedSpendBudget, res)
+	}
+	if !strings.Contains(res.Content, "x402 spend budget exceeded") {
+		t.Fatalf("content = %q, want inspectable budget refusal", res.Content)
+	}
+}
+
+func TestMaxSpendRollsBackFailedPaidToolReservation(t *testing.T) {
+	calls := 0
+	a := newTestAgent(Name("paid-rollback"),
+		MaxSpend(10),
+		ToolSpend("paid.lookup", 7),
+		WithTool("paid.lookup", "paid lookup", nil, func(context.Context, map[string]any) (string, error) {
+			calls++
+			if calls == 1 {
+				return "", context.Canceled
+			}
+			return `{"ok":true}`, nil
+		}),
+	)
+
+	h := a.toolHandler()
+	first := h(context.Background(), ai.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
+	if first.Refused != "" || !strings.Contains(first.Content, "context canceled") {
+		t.Fatalf("first result = %+v, want tool error without guardrail refusal", first)
+	}
+	second := h(context.Background(), ai.ToolCall{ID: "paid-2", Name: "paid.lookup", Input: map[string]any{}})
+	if second.Refused != "" || second.Content != `{"ok":true}` {
+		t.Fatalf("second result = %+v, want reservation rollback to allow retry", second)
+	}
+}
+
 func TestNestedTextToolCallArgumentsAreRefused(t *testing.T) {
 	called := false
 	a := newTestAgent(Name("nested-tool-arg"),

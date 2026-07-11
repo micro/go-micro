@@ -100,7 +100,21 @@ c := &x402.Client{
 resp, err := c.Do(req) // a 402 is paid and retried; over-budget calls error instead
 ```
 
-`Payer` is an interface (`Pay(ctx, Requirements) (payment string, error)`) — the consumer counterpart to `Facilitator`. The budget accumulates across calls, so a long-running agent can be handed a fixed allowance for a task. Budget is reserved before payment is created, which means parallel paid calls cannot race past the cap; if payment creation or verification fails, the reservation is released. (The agent-level `AgentMaxSpend` option, wiring this into the agent loop next to `MaxSteps`/`ApproveTool`, is the next step.)
+`Payer` is an interface (`Pay(ctx, Requirements) (payment string, error)`) — the consumer counterpart to `Facilitator`. The budget accumulates across calls, so a long-running agent can be handed a fixed allowance for a task. Budget is reserved before payment is created, which means parallel paid calls cannot race past the cap; if payment creation or verification fails, the reservation is released.
+
+## Agent-level spend guardrail
+
+For unattended agents, set the same cap at the agent tool-execution layer so paid tools are refused before their handler — and therefore before a payer — can run:
+
+```go
+agent := micro.NewAgent("buyer",
+    micro.AgentMaxSteps(8),
+    micro.AgentMaxSpend(20_000), // per Ask, smallest units
+    micro.AgentToolSpend("weather.Weather.Forecast", 10_000),
+)
+```
+
+`AgentMaxSpend` is disabled by default (`0`). `AgentToolSpend` records the price discovered from your shoppable MCP/x402 catalog for the tools this agent may call. When a call would exceed the per-run allowance, the result is a normal structured guardrail refusal with `Refused: "spend_budget"` and an explanatory error in the run timeline/inspect output, distinct from provider/model failures.
 
 ### Live facilitator conformance
 
@@ -121,7 +135,7 @@ Leave those variables unset in normal CI; the live test skips unless the facilit
 
 - **Opt-in.** No pay-to address (and no config), no payments — nothing changes.
 - **No crypto in the framework.** The facilitator does verification and settlement on-chain; Go Micro speaks HTTP.
-- **A paying agent needs a budget.** On the agent side, an unattended agent that spends money needs a spend cap next to `MaxSteps` and `ApproveTool` — see [Plan & Delegate](plan-delegate.html) for the guardrail model. This is active work.
+- **A paying agent needs a budget.** Use `AgentMaxSpend` plus `AgentToolSpend` next to `MaxSteps` and `ApproveTool` so a run has an explicit allowance before any paid tool can execute.
 
 ## See also
 

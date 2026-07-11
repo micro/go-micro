@@ -120,6 +120,16 @@ func AgentLoopLimit(n int) AgentOption { return agent.LoopLimit(n) }
 // each action the agent takes.
 func AgentApproveTool(fn ApproveFunc) AgentOption { return agent.ApproveTool(fn) }
 
+// AgentMaxSpend bounds paid x402 tool spend per Ask, in the asset's smallest
+// unit (0 = disabled). Calls that would exceed it are refused before payment.
+func AgentMaxSpend(amount int64) AgentOption { return agent.MaxSpend(amount) }
+
+// AgentToolSpend records the x402 price for a tool, in the asset's smallest
+// unit, so AgentMaxSpend can reserve budget before execution.
+func AgentToolSpend(tool string, amount int64) AgentOption {
+	return agent.ToolSpend(tool, amount)
+}
+
 // AgentModelCallTimeout sets the timeout for each provider Generate call.
 func AgentModelCallTimeout(d time.Duration) AgentOption { return agent.ModelCallTimeout(d) }
 
