@@ -1,125 +1,32 @@
 package kubernetes
 
-// CRDManifests contains the alpha CRDs for Go Micro lifecycle resources.
+import (
+	"embed"
+	"fmt"
+)
+
+// crdFS holds the canonical CRD manifests. They live as real YAML under
+// config/crd/ so they can be applied directly (`kubectl apply -f
+// deploy/kubernetes/config/crd/`) and are embedded here so the Go API serves
+// the exact same bytes — one source of truth, no drift.
+//
+//go:embed config/crd/agent.yaml config/crd/service.yaml config/crd/flow.yaml
+var crdFS embed.FS
+
+// CRDManifests contains the alpha CRDs for Go Micro lifecycle resources, loaded
+// from the embedded config/crd/ YAML.
 var CRDManifests = map[Kind]string{
-	KindAgent:   agentCRD,
-	KindService: serviceCRD,
-	KindFlow:    flowCRD,
+	KindAgent:   mustCRD("agent"),
+	KindService: mustCRD("service"),
+	KindFlow:    mustCRD("flow"),
 }
 
-const agentCRD = `apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: agents.micro.dev
-spec:
-  group: micro.dev
-  scope: Namespaced
-  names:
-    plural: agents
-    singular: agent
-    kind: Agent
-    shortNames: [magent]
-  versions:
-  - name: v1alpha1
-    served: true
-    storage: true
-    schema:
-      openAPIV3Schema:
-        type: object
-        required: [spec]
-        properties:
-          spec:
-            type: object
-            required: [image]
-            properties:
-              image: {type: string, minLength: 1}
-              command:
-                type: array
-                items: {type: string}
-              args:
-                type: array
-                items: {type: string}
-              replicas: {type: integer, minimum: 0}
-              registry: {type: string}
-              env:
-                type: object
-                additionalProperties: {type: string}
-`
-
-const serviceCRD = `apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: services.micro.dev
-spec:
-  group: micro.dev
-  scope: Namespaced
-  names:
-    plural: services
-    singular: service
-    kind: Service
-    shortNames: [mservice]
-  versions:
-  - name: v1alpha1
-    served: true
-    storage: true
-    schema:
-      openAPIV3Schema:
-        type: object
-        required: [spec]
-        properties:
-          spec:
-            type: object
-            required: [image]
-            properties:
-              image: {type: string, minLength: 1}
-              command:
-                type: array
-                items: {type: string}
-              args:
-                type: array
-                items: {type: string}
-              replicas: {type: integer, minimum: 0}
-              registry: {type: string}
-              env:
-                type: object
-                additionalProperties: {type: string}
-`
-
-const flowCRD = `apiVersion: apiextensions.k8s.io/v1
-kind: CustomResourceDefinition
-metadata:
-  name: flows.micro.dev
-spec:
-  group: micro.dev
-  scope: Namespaced
-  names:
-    plural: flows
-    singular: flow
-    kind: Flow
-    shortNames: [mflow]
-  versions:
-  - name: v1alpha1
-    served: true
-    storage: true
-    schema:
-      openAPIV3Schema:
-        type: object
-        required: [spec]
-        properties:
-          spec:
-            type: object
-            required: [image]
-            properties:
-              image: {type: string, minLength: 1}
-              command:
-                type: array
-                items: {type: string}
-              args:
-                type: array
-                items: {type: string}
-              replicas: {type: integer, minimum: 0}
-              registry: {type: string}
-              env:
-                type: object
-                additionalProperties: {type: string}
-`
+// mustCRD reads an embedded CRD manifest. The files are embedded at compile
+// time, so a read error means a build/packaging bug, not a runtime condition.
+func mustCRD(name string) string {
+	b, err := crdFS.ReadFile("config/crd/" + name + ".yaml")
+	if err != nil {
+		panic(fmt.Sprintf("kubernetes: embedded CRD %q missing: %v", name, err))
+	}
+	return string(b)
+}
