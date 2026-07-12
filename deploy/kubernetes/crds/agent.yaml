@@ -1,0 +1,60 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: agents.micro.go-micro.dev
+  labels:
+    app.kubernetes.io/managed-by: go-micro
+spec:
+  group: micro.go-micro.dev
+  scope: Namespaced
+  names:
+    kind: Agent
+    listKind: AgentList
+    plural: agents
+    singular: agent
+    shortNames:
+      - ag
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  description: Container image that runs the agent.
+                replicas:
+                  type: integer
+                  minimum: 0
+                  default: 1
+                  description: Desired number of agent pods.
+                registry:
+                  type: string
+                  description: go-micro registry address the agent registers with and discovers peers through.
+                port:
+                  type: integer
+                  description: Container port to expose via a Service (0 = none).
+                env:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Extra environment variables for the agent container.
+                args:
+                  type: array
+                  items:
+                    type: string
+                  description: Extra command-line arguments.
+      additionalPrinterColumns:
+        - name: Image
+          type: string
+          jsonPath: .spec.image
+        - name: Replicas
+          type: integer
+          jsonPath: .spec.replicas

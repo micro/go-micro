@@ -1,0 +1,60 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: flows.micro.go-micro.dev
+  labels:
+    app.kubernetes.io/managed-by: go-micro
+spec:
+  group: micro.go-micro.dev
+  scope: Namespaced
+  names:
+    kind: Flow
+    listKind: FlowList
+    plural: flows
+    singular: flow
+    shortNames:
+      - fl
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  description: Container image that runs the flow orchestrator.
+                replicas:
+                  type: integer
+                  minimum: 0
+                  default: 1
+                  description: Desired number of flow pods.
+                registry:
+                  type: string
+                  description: go-micro registry address the flow registers with and reaches services/agents through.
+                port:
+                  type: integer
+                  description: Container port to expose via a Service (0 = none).
+                env:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Extra environment variables for the flow container.
+                args:
+                  type: array
+                  items:
+                    type: string
+                  description: Extra command-line arguments.
+      additionalPrinterColumns:
+        - name: Image
+          type: string
+          jsonPath: .spec.image
+        - name: Replicas
+          type: integer
+          jsonPath: .spec.replicas

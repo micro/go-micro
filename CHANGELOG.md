@@ -22,6 +22,7 @@ below is kept current between tags and rolled into the next version when it ship
 - **Model retry jitter controls** — model retry behavior can now use jitter controls to reduce synchronized retry bursts. (`ai/`, `agent/`)
 - **Compacted memory summaries** — agent memory now exposes compacted run summaries for easier inspection and recovery. (`agent/`)
 - **CLI input resume for agent runs** — the CLI can resume agent runs that require additional user input. (`cmd/micro/`, `agent/`)
+- **Kubernetes CRD foundation (alpha)** — opt-in `Agent`/`Service`/`Flow` CustomResourceDefinitions (group `micro.go-micro.dev`, `v1alpha1`) plus a dependency-light `deploy/kubernetes` package that maps a resource to a Deployment (and a Service when a port is set), wired to the go-micro registry. `Render` is a pure function — no controller-runtime/client-go — so the mapping is CI-testable without a cluster. (`deploy/kubernetes/`)
 
 ### Changed
 - **Remote agent chat streaming** — `micro chat` now streams replies from remote agents instead of waiting for the full response. (`cmd/micro/`, `agent/`)
