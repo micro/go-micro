@@ -59,7 +59,7 @@ previous section.
 | --- | --- | --- | --- | --- | --- |
 | `anthropic` | ✅ Verified when configured | — Unsupported | — Unsupported | ✅ Verified when configured | ⚠️ Unverified |
 | `openai` | ✅ Verified when configured | ✅ Registered | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
-| `gemini` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
+| `gemini` | ✅ Verified when configured | — Unsupported | — Unsupported | ✅ Verified when configured | ⚠️ Unverified |
 | `groq` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
 | `mistral` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |
 | `together` | ✅ Verified when configured | — Unsupported | — Unsupported | ⚠️ Unverified | ⚠️ Unverified |

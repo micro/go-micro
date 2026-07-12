@@ -40,7 +40,7 @@ The built-in providers currently register these capability interfaces:
 | --- | --- | --- | --- | --- | --- |
 | `anthropic` | Yes | No | No | Yes | Yes |
 | `atlascloud` | Yes | Yes | Yes | Yes | No |
-| `gemini` | Yes | No | No | No | No |
+| `gemini` | Yes | No | No | Yes | No |
 | `groq` | Yes | No | No | Yes | Yes |
 | `minimax` | Yes | No | No | Yes | Yes |
 | `mistral` | Yes | No | No | Yes | Yes |
