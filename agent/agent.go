@@ -400,6 +400,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			Timeout:     a.opts.ModelTimeout,
 			MaxAttempts: a.opts.ModelMaxAttempts,
 			Backoff:     a.opts.ModelRetryBackoff,
+			Jitter:      a.opts.ModelRetryJitter,
 		})
 		if err != nil {
 			run.Status = agentRunFailureStatus(err)

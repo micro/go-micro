@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"strconv"
 	"strings"
@@ -130,6 +131,9 @@ type GeneratePolicy struct {
 	Timeout     time.Duration
 	MaxAttempts int
 	Backoff     time.Duration
+	// Jitter adds up to this duration of random delay to retry backoff.
+	// It is opt-in so existing retry timing remains deterministic by default.
+	Jitter time.Duration
 }
 
 // GenerateWithRetry calls m.Generate with per-attempt timeout and bounded retry.
@@ -183,7 +187,7 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		// Always back off between retries — exponential and capped — so an
 		// opt-in retry can never become a tight loop hammering the provider,
 		// even if Backoff was left at zero.
-		backoff := retryBackoff(err, attempt, policy.Backoff)
+		backoff := retryBackoffWithJitter(err, attempt, policy.Backoff, policy.Jitter)
 		t := time.NewTimer(backoff)
 		select {
 		case <-ctx.Done():
@@ -219,6 +223,10 @@ func generateAttempt(ctx context.Context, m Model, req *Request, opts ...Generat
 }
 
 func retryBackoff(err error, attempt int, base time.Duration) time.Duration {
+	return retryBackoffWithJitter(err, attempt, base, 0)
+}
+
+func retryBackoffWithJitter(err error, attempt int, base, jitter time.Duration) time.Duration {
 	backoff := base
 	if backoff <= 0 {
 		backoff = 200 * time.Millisecond
@@ -235,6 +243,9 @@ func retryBackoff(err error, attempt int, base time.Duration) time.Duration {
 		if delay := retryAfter.RetryAfter(); delay > backoff {
 			backoff = delay
 		}
+	}
+	if jitter > 0 {
+		backoff += time.Duration(rand.Int64N(int64(jitter) + 1))
 	}
 	if backoff > 30*time.Second {
 		return 30 * time.Second
