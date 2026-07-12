@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 	codecBytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/wrapper/x402"
 )
 
 // Built-in agent tools. These are not service endpoints — they are
@@ -128,6 +131,7 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 	// so the result runs plan → step → loop → approve → checkpoint → base.
 	h := a.baseHandler()
 	h = a.toolTimeoutWrap(h)
+	h = a.x402PayWrap(h)
 	h = a.toolRetryWrap(h)
 	h = a.checkpointToolWrap(h)
 	h = a.approveWrap(h)
@@ -171,6 +175,64 @@ func (a *agentImpl) toolTimeoutWrap(next ai.ToolHandler) ai.ToolHandler {
 		defer cancel()
 		return next(toolCtx, call)
 	}
+}
+
+// x402PayWrap pays an x402 Payment Required tool result and retries the
+// underlying HTTP tool once. Tools that proxy HTTP paid resources can return the
+// raw x402 402 challenge body and include a "url" input; the agent then uses
+// wrapper/x402.Client so payer and budget semantics stay in one place.
+func (a *agentImpl) x402PayWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		res := next(ctx, call)
+		if res.Refused != "" || !isX402Challenge(res.Content) {
+			return res
+		}
+		url, _ := call.Input["url"].(string)
+		if url == "" {
+			return errResult(call.ID, "x402: payment required but tool result did not include a retryable url input")
+		}
+		budget := a.opts.Budget
+		if budget > 0 {
+			remaining := budget - a.spend
+			if remaining <= 0 {
+				return refused(call.ID, ai.RefusedSpendBudget, fmt.Sprintf(
+					"x402 spend budget exceeded: no budget remaining for %s (spent %d of %d)",
+					call.Name, a.spend, budget))
+			}
+			budget = remaining
+		}
+		client := &x402.Client{Payer: a.opts.Payer, Budget: budget}
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return errResult(call.ID, err.Error())
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			if strings.Contains(err.Error(), "would exceed budget") {
+				return refused(call.ID, ai.RefusedSpendBudget, err.Error())
+			}
+			return errResult(call.ID, err.Error())
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return errResult(call.ID, err.Error())
+		}
+		a.spend += client.Spent()
+		var value any
+		if err := json.Unmarshal(body, &value); err != nil {
+			value = string(body)
+		}
+		return ai.ToolResult{ID: call.ID, Value: value, Content: string(body), Attempts: 2}
+	}
+}
+
+func isX402Challenge(content string) bool {
+	var ch struct {
+		X402Version int                 `json:"x402Version"`
+		Accepts     []x402.Requirements `json:"accepts"`
+	}
+	return json.Unmarshal([]byte(content), &ch) == nil && ch.X402Version > 0 && len(ch.Accepts) > 0
 }
 
 // toolRetryWrap retries transient tool failures with bounded backoff. It is

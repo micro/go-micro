@@ -10,6 +10,7 @@ import (
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/wrapper/x402"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -105,6 +106,10 @@ type Options struct {
 	// unit (0 = disabled). ToolSpend lists known paid tools and their prices.
 	MaxSpend  int64
 	ToolSpend map[string]int64
+	// Payer lets the agent settle x402 Payment Required challenges from tools.
+	// Budget bounds autonomous x402 payments per Ask (0 = unlimited).
+	Payer  x402.Payer
+	Budget int64
 
 	// A2AAddress, if set, makes Run serve this agent over the A2A protocol
 	// on that address directly (no separate gateway), e.g. ":4000".
@@ -248,6 +253,18 @@ func ToolSpend(tool string, amount int64) Option {
 		}
 		o.ToolSpend[tool] = amount
 	}
+}
+
+// Payer configures the wallet/signing hook used to settle x402-paid tools.
+// Without a payer, payment-required tool results are returned as clear errors.
+func Payer(p x402.Payer) Option {
+	return func(o *Options) { o.Payer = p }
+}
+
+// Budget bounds autonomous x402 payments per Ask, in the asset's smallest
+// unit (0 = unlimited). The budget is enforced by wrapper/x402.Client.
+func Budget(amount int64) Option {
+	return func(o *Options) { o.Budget = amount }
 }
 
 // LoopLimit sets how many times the agent may repeat the same tool call

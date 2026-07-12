@@ -2,12 +2,17 @@ package agent
 
 import (
 	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/wrapper/x402"
 )
 
 // toolContent runs a tool call through a handler and returns the content
@@ -179,5 +184,125 @@ func TestNestedTextToolCallArgumentsAreRefused(t *testing.T) {
 	}
 	if !strings.Contains(content, "nested text tool-call markup") {
 		t.Fatalf("content = %q, want nested tool-call refusal", content)
+	}
+}
+
+type agentMockPayer struct{ calls int }
+
+func (p *agentMockPayer) Pay(ctx context.Context, req x402.Requirements) (string, error) {
+	p.calls++
+	return "paid", nil
+}
+
+func TestAgentPayerPaysX402ToolResultAndRetries(t *testing.T) {
+	paid := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(x402.PaymentHeader) == "paid" {
+			paid = true
+			_, _ = w.Write([]byte(`{"ok":true}`))
+			return
+		}
+		w.WriteHeader(http.StatusPaymentRequired)
+		json.NewEncoder(w).Encode(map[string]any{
+			"x402Version": x402.Version,
+			"accepts":     []x402.Requirements{{Scheme: "exact", Network: "base", MaxAmountRequired: "7", Resource: r.URL.String(), PayTo: "0xmerchant"}},
+		})
+	}))
+	defer srv.Close()
+
+	payer := &agentMockPayer{}
+	a := newTestAgent(Name("x402-payer"), Payer(payer), Budget(10), WithTool("paid.http", "paid http", nil, func(ctx context.Context, input map[string]any) (string, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, nil)
+		if err != nil {
+			return "", err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+		return string(body), nil
+	}))
+
+	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
+	if !paid || payer.calls != 1 {
+		t.Fatalf("payment not made: paid=%v payer.calls=%d", paid, payer.calls)
+	}
+	if res.Content != `{"ok":true}` || res.Attempts != 2 {
+		t.Fatalf("result = %+v, want paid response with retry attempt", res)
+	}
+}
+
+func TestAgentPayerRefusesX402OverBudget(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPaymentRequired)
+		json.NewEncoder(w).Encode(map[string]any{
+			"x402Version": x402.Version,
+			"accepts":     []x402.Requirements{{Scheme: "exact", Network: "base", MaxAmountRequired: "70", Resource: r.URL.String(), PayTo: "0xmerchant"}},
+		})
+	}))
+	defer srv.Close()
+
+	payer := &agentMockPayer{}
+	a := newTestAgent(Name("x402-over-budget"), Payer(payer), Budget(10), WithTool("paid.http", "paid http", nil, func(ctx context.Context, input map[string]any) (string, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, nil)
+		if err != nil {
+			return "", err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+		return string(body), nil
+	}))
+
+	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
+	if payer.calls != 0 {
+		t.Fatalf("payer called despite over-budget refusal")
+	}
+	if res.Refused != ai.RefusedSpendBudget || !strings.Contains(res.Content, "would exceed budget") {
+		t.Fatalf("result = %+v, want budget refusal", res)
+	}
+}
+
+func TestAgentPayerRequiredWithoutPayerReturnsClearError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPaymentRequired)
+		json.NewEncoder(w).Encode(map[string]any{
+			"x402Version": x402.Version,
+			"accepts":     []x402.Requirements{{Scheme: "exact", Network: "base", MaxAmountRequired: "7", Resource: r.URL.String(), PayTo: "0xmerchant"}},
+		})
+	}))
+	defer srv.Close()
+
+	a := newTestAgent(Name("x402-no-payer"), Budget(10), WithTool("paid.http", "paid http", nil, func(ctx context.Context, input map[string]any) (string, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, nil)
+		if err != nil {
+			return "", err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+		return string(body), nil
+	}))
+
+	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
+	if !strings.Contains(res.Content, "no Payer configured") {
+		t.Fatalf("content = %q, want no payer error", res.Content)
 	}
 }

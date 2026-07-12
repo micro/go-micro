@@ -12,6 +12,7 @@ import (
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/wrapper/x402"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -129,6 +130,13 @@ func AgentMaxSpend(amount int64) AgentOption { return agent.MaxSpend(amount) }
 func AgentToolSpend(tool string, amount int64) AgentOption {
 	return agent.ToolSpend(tool, amount)
 }
+
+// AgentPayer configures the wallet/signing hook used to settle x402-paid tools.
+func AgentPayer(p x402.Payer) AgentOption { return agent.Payer(p) }
+
+// AgentBudget bounds autonomous x402 payments per Ask, in the asset's smallest
+// unit (0 = unlimited).
+func AgentBudget(amount int64) AgentOption { return agent.Budget(amount) }
 
 // AgentModelCallTimeout sets the timeout for each provider Generate call.
 func AgentModelCallTimeout(d time.Duration) AgentOption { return agent.ModelCallTimeout(d) }
