@@ -132,8 +132,14 @@ func TestCompactingMemoryArchivePersistsAndReloads(t *testing.T) {
 	m.Add("assistant", "noted")
 	m.Add("user", "beta budget is 7")
 	m.Add("assistant", "noted")
+	if summary := Summary(m); !strings.Contains(summary, "alpha budget is 42") {
+		t.Fatalf("inspectable summary = %q, want alpha budget", summary)
+	}
 
 	reloaded := NewCompactingMemory(st, "agent/reload/history", 3, 1)
+	if summary := Summary(reloaded); !strings.Contains(summary, "alpha budget is 42") {
+		t.Fatalf("reloaded summary = %q, want alpha budget", summary)
+	}
 	recall, ok := reloaded.(MemoryRecall)
 	if !ok {
 		t.Fatal("compacting memory should support recall")
@@ -165,8 +171,14 @@ func TestCompactingMemoryUsesCustomSummarizerAndReloadsRecall(t *testing.T) {
 	if len(msgs) == 0 || msgs[0].Content != "custom summary count=3" {
 		t.Fatalf("summary = %#v, want custom summarizer output", msgs)
 	}
+	if summary := Summary(m); summary != "custom summary count=3" {
+		t.Fatalf("inspectable custom summary = %q, want custom summary count=3", summary)
+	}
 
 	reloaded := NewCompactingMemoryWithOptions(st, "agent/custom/history", MemoryCompaction{MaxMessages: 3, KeepRecent: 1})
+	if summary := Summary(reloaded); summary != "custom summary count=3" {
+		t.Fatalf("reloaded custom summary = %q, want custom summary count=3", summary)
+	}
 	recall := reloaded.(MemoryRecall)
 	recalled := recall.Recall("alpha budget", 1)
 	if len(recalled) != 1 {

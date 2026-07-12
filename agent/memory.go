@@ -46,6 +46,27 @@ type MemoryRecall interface {
 	Recall(query string, limit int) []ai.Message
 }
 
+// MemorySummary is implemented by memory backends that expose their current
+// compacted summary for inspection. It lets long-running agents make memory
+// compaction observable without coupling callers to a concrete store.
+type MemorySummary interface {
+	Summary() string
+}
+
+// Summary returns the current compacted-memory summary for m, when supported.
+// It returns an empty string for memory backends that have not compacted or do
+// not expose an inspectable summary.
+func Summary(m Memory) string {
+	if m == nil {
+		return ""
+	}
+	summarizer, ok := m.(MemorySummary)
+	if !ok {
+		return ""
+	}
+	return summarizer.Summary()
+}
+
 // NewMemory returns the default store-backed memory: an in-process
 // conversation buffer (truncated to limit) that persists to the store
 // under key, so an agent picks up where it left off after a restart.
@@ -116,6 +137,7 @@ type storeMemory struct {
 	hist        *ai.History
 	compaction  MemoryCompaction
 	archive     []ai.Message
+	summary     string
 	retrieveAll bool
 }
 
@@ -140,8 +162,18 @@ func (m *storeMemory) Clear() {
 	m.mu.Lock()
 	m.hist.Reset()
 	m.archive = nil
+	m.summary = ""
 	m.mu.Unlock()
 	m.save()
+}
+
+// Summary returns the latest compacted summary text, if this memory has
+// compacted older turns. The returned value is safe to show in debug UIs or
+// checkpoints because it is exactly the summary retained in active context.
+func (m *storeMemory) Summary() string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.summary
 }
 
 // Recall returns archived messages whose content contains words from query.
@@ -202,11 +234,15 @@ func (m *storeMemory) load() {
 	}
 	m.mu.Lock()
 	m.archive = state.Archive
+	m.summary = state.Summary
 	if m.retrieveAll && len(m.archive) == 0 {
 		m.archive = append(m.archive, state.Messages...)
 	}
 	for _, msg := range state.Messages {
 		m.hist.Add(msg.Role, msg.Content)
+	}
+	if m.summary == "" {
+		m.summary = currentMemorySummary(state.Messages)
 	}
 	m.mu.Unlock()
 }
@@ -219,6 +255,7 @@ func (m *storeMemory) save() {
 	data, err := json.Marshal(memoryState{
 		Messages: m.hist.Messages(),
 		Archive:  m.archive,
+		Summary:  m.summary,
 	})
 	m.mu.Unlock()
 	if err != nil {
@@ -256,11 +293,25 @@ func (m *storeMemory) compact() {
 	if summary.Role == "" {
 		summary.Role = "system"
 	}
+	m.summary = fmt.Sprint(summary.Content)
 	m.hist.Reset()
 	m.hist.Add(summary.Role, summary.Content)
 	for _, msg := range recent {
 		m.hist.Add(msg.Role, msg.Content)
 	}
+}
+
+func currentMemorySummary(msgs []ai.Message) string {
+	for _, msg := range msgs {
+		if msg.Role != "system" {
+			continue
+		}
+		text := fmt.Sprint(msg.Content)
+		if strings.HasPrefix(text, "Conversation memory summary:") {
+			return text
+		}
+	}
+	return ""
 }
 
 func defaultMemorySummary(msgs []ai.Message) ai.Message {
@@ -317,4 +368,5 @@ func recallTerms(query string) []string {
 type memoryState struct {
 	Messages []ai.Message `json:"messages"`
 	Archive  []ai.Message `json:"archive,omitempty"`
+	Summary  string       `json:"summary,omitempty"`
 }
