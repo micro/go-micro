@@ -248,4 +248,12 @@ func TestCompactingMemorySummarizesAndRecallsArchivedContext(t *testing.T) {
 	if !sawRecall {
 		t.Error("model request did not recall archived matching context")
 	}
+	summary := Summary(a.mem)
+	if !strings.Contains(summary, "Conversation memory summary") || !strings.Contains(summary, "alpha") {
+		t.Fatalf("inspectable memory summary = %q, want compacted alpha summary", summary)
+	}
+	a.mem.Clear()
+	if summary := Summary(a.mem); summary != "" {
+		t.Fatalf("summary after Clear = %q, want empty", summary)
+	}
 }
