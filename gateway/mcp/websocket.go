@@ -275,7 +275,8 @@ func (wc *wsConn) handleToolsCall(req *JSONRPCRequest) {
 			AccountID: accountID, ScopesRequired: tool.Scopes,
 			Allowed: true, Duration: time.Since(start), Error: err.Error(),
 		})
-		wc.sendError(req.ID, InternalError, "RPC call failed", err.Error())
+		// Tool-execution failure → isError result (MCP spec), not a protocol error.
+		wc.sendResponse(req.ID, mcpToolError(traceID, "tool call failed: "+err.Error()))
 		return
 	}
 
@@ -291,23 +292,8 @@ func (wc *wsConn) handleToolsCall(req *JSONRPCRequest) {
 		Allowed: true, Duration: time.Since(start),
 	})
 
-	// Parse response
-	var result interface{}
-	if err := json.Unmarshal(rsp.Data, &result); err != nil {
-		result = map[string]interface{}{
-			"data": string(rsp.Data),
-		}
-	}
-
-	wc.sendResponse(req.ID, map[string]interface{}{
-		"content": []interface{}{
-			map[string]interface{}{
-				"type": "text",
-				"text": fmt.Sprintf("%v", result),
-			},
-		},
-		"trace_id": traceID,
-	})
+	// The downstream response is JSON — return it as JSON text, not %v.
+	wc.sendResponse(req.ID, mcpToolResult(traceID, rsp.Data))
 }
 
 // sendResponse sends a JSON-RPC success response.

@@ -114,12 +114,13 @@ func TestWebSocket_ToolsCall_NoAuth(t *testing.T) {
 		"arguments": map[string]interface{}{"msg": "hi"},
 	})
 
-	// RPC will fail (no backend), but auth should pass (no auth configured)
-	if resp.Error == nil {
-		t.Fatal("expected RPC error (no backend)")
+	// No auth required → the tool runs; the RPC fails (no backend), which the
+	// MCP spec surfaces as an isError result, not a JSON-RPC protocol error.
+	if resp.Error != nil {
+		t.Fatalf("expected no protocol error, got %+v", resp.Error)
 	}
-	if resp.Error.Code != InternalError {
-		t.Errorf("error code = %d, want %d", resp.Error.Code, InternalError)
+	if !isToolError(resp.Result) {
+		t.Fatalf("expected isError tool result, got %+v", resp.Result)
 	}
 }
 
@@ -168,12 +169,13 @@ func TestWebSocket_ToolsCall_AuthRequired(t *testing.T) {
 			"arguments": map[string]interface{}{},
 			"_token":    "valid-token",
 		})
-		// Auth passes, RPC fails (no backend)
-		if resp.Error == nil {
-			t.Fatal("expected RPC error")
+		// Auth passes → the tool runs; RPC fails (no backend) → isError result,
+		// not a JSON-RPC protocol error (which would mean auth failed).
+		if resp.Error != nil {
+			t.Fatalf("expected no protocol error (auth passed), got %+v", resp.Error)
 		}
-		if resp.Error.Code != InternalError {
-			t.Errorf("error code = %d, want %d (RPC fail, not auth fail)", resp.Error.Code, InternalError)
+		if !isToolError(resp.Result) {
+			t.Fatalf("expected isError tool result, got %+v", resp.Result)
 		}
 	})
 
@@ -185,12 +187,13 @@ func TestWebSocket_ToolsCall_AuthRequired(t *testing.T) {
 			"name":      "svc.Do",
 			"arguments": map[string]interface{}{},
 		})
-		// Auth passes via connection-level header, RPC fails (no backend)
-		if resp.Error == nil {
-			t.Fatal("expected RPC error")
+		// Auth passes via connection-level header → tool runs; RPC fails (no
+		// backend) → isError result, not a JSON-RPC protocol error.
+		if resp.Error != nil {
+			t.Fatalf("expected no protocol error (auth passed), got %+v", resp.Error)
 		}
-		if resp.Error.Code != InternalError {
-			t.Errorf("error code = %d, want %d (RPC fail, not auth fail)", resp.Error.Code, InternalError)
+		if !isToolError(resp.Result) {
+			t.Fatalf("expected isError tool result, got %+v", resp.Result)
 		}
 	})
 }

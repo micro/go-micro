@@ -239,7 +239,7 @@ func protoMessageSchema(msg protoreflect.MessageDescriptor) map[string]interface
 	fields := msg.Fields()
 	for i := 0; i < fields.Len(); i++ {
 		field := fields.Get(i)
-		props[string(field.JSONName())] = protoFieldSchema(field)
+		props[field.JSONName()] = protoFieldSchema(field)
 	}
 	return schema
 }
