@@ -230,9 +230,13 @@ func TestClassifyErrorDistinguishesOperationalOutcomes(t *testing.T) {
 		{name: "canceled", err: context.Canceled, want: ErrorKindCanceled},
 		{name: "timeout", err: context.DeadlineExceeded, want: ErrorKindTimeout},
 		{name: "rate limit status", err: statusErr(429), want: ErrorKindRateLimited},
+		{name: "auth status", err: statusErr(401), want: ErrorKindAuth},
+		{name: "configuration status", err: statusErr(400), want: ErrorKindConfiguration},
 		{name: "unavailable status", err: statusErr(503), want: ErrorKindUnavailable},
-		{name: "provider status", err: statusErr(400), want: ErrorKindProvider},
+		{name: "provider status", err: statusErr(409), want: ErrorKindProvider},
 		{name: "rate limit text", err: errors.New("rate limit exceeded"), want: ErrorKindRateLimited},
+		{name: "auth text", err: errors.New("invalid API key"), want: ErrorKindAuth},
+		{name: "configuration text", err: errors.New("model not found"), want: ErrorKindConfiguration},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
