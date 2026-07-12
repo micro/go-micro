@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add CLI continuation for input-required agent runs** ([#4755](https://github.com/micro/go-micro/issues/4755)) — #4750 closed the cancellation/deadline propagation gap and there are no open codex PRs in flight. Do not re-queue more docs-link checks, AtlasCloud-specific text repair, or plan/delegate edge hardening for now; those areas have had several recent increments. The next highest-value user-facing gap is making human-in-the-loop pauses operable from the scaffold → run → chat → inspect path: list an `input-required` run, provide the missing input from the CLI, and inspect the completed run without requiring a developer to write a Go resume helper.
+1. **Stream remote agent replies through `micro chat`** ([#4760](https://github.com/micro/go-micro/issues/4760)) — #4758 closed the input-required CLI continuation gap, so do not re-queue more resume breadcrumbs, docs-link guards, AtlasCloud-specific text repair, or plan/delegate edge hardening for now. The next highest-value user-facing gap is making the scaffold → run → chat → inspect loop feel live when `micro chat --stream` talks to a registered agent, not only when it uses the direct service/tool fallback: stream chunks from a stream-capable agent, fall back cleanly to `Agent.Chat`, and keep inspectable run history coherent.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
