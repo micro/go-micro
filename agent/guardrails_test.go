@@ -211,7 +211,8 @@ func TestAgentPayerPaysX402ToolResultAndRetries(t *testing.T) {
 	defer srv.Close()
 
 	payer := &agentMockPayer{}
-	a := newTestAgent(Name("x402-payer"), Payer(payer), Budget(10), WithTool("paid.http", "paid http", nil, func(ctx context.Context, input map[string]any) (string, error) {
+	st := store.NewMemoryStore()
+	a := newTestAgent(Name("x402-payer"), WithStore(st), Payer(payer), Budget(10), WithTool("paid.http", "paid http", nil, func(ctx context.Context, input map[string]any) (string, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, nil)
 		if err != nil {
 			return "", err
@@ -228,12 +229,20 @@ func TestAgentPayerPaysX402ToolResultAndRetries(t *testing.T) {
 		return string(body), nil
 	}))
 
-	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
+	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{RunID: "run-paid", Agent: "x402-payer"})
+	res := a.toolHandler()(ctx, ai.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
 	if !paid || payer.calls != 1 {
 		t.Fatalf("payment not made: paid=%v payer.calls=%d", paid, payer.calls)
 	}
 	if res.Content != `{"ok":true}` || res.Attempts != 2 {
 		t.Fatalf("result = %+v, want paid response with retry attempt", res)
+	}
+	events, err := LoadRunEvents(st, "x402-payer", "run-paid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != 1 || events[0].Spent != 7 || events[0].ToolSpend != 7 {
+		t.Fatalf("spend events = %#v, want one tool event with spent/tool_spend 7", events)
 	}
 }
 

@@ -451,6 +451,11 @@ func (a *agentImpl) spendWrap(next ai.ToolHandler) ai.ToolHandler {
 				amount, call.Name, a.spend, a.opts.MaxSpend))
 		}
 		a.spend += amount
+		if info, ok := ai.RunInfoFrom(ctx); ok {
+			info.Spent = a.spend
+			info.ToolSpend = amount
+			ctx = ai.WithRunInfo(ctx, info)
+		}
 		res := next(ctx, call)
 		if res.Refused != "" || toolErrorMessage(res) != "" {
 			a.spend -= amount
