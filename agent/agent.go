@@ -15,7 +15,9 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -261,6 +263,36 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 	}
 	a.mem.Add("user", message)
 	return &memoryRecordingStream{stream: stream, memory: a.mem}, nil
+}
+
+// StreamChat serves the Agent.StreamChat RPC endpoint by forwarding stream-capable
+// remote clients to the agent streaming path. If the model cannot stream, the
+// underlying error is returned so callers can fall back to Agent.Chat.
+func (a *agentImpl) StreamChat(ctx context.Context, stream pb.Agent_StreamChatStream) error {
+	req, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	aiStream, err := a.streamAskAI(ctx, req.Message)
+	if err != nil {
+		return err
+	}
+	defer aiStream.Close()
+	for {
+		chunk, err := aiStream.Recv()
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if chunk == nil || chunk.Reply == "" {
+			continue
+		}
+		if err := stream.Send(&pb.ChatResponse{Reply: chunk.Reply, Agent: a.opts.Name}); err != nil {
+			return err
+		}
+	}
 }
 
 // Pending returns checkpointed agent runs that have not completed. It mirrors
