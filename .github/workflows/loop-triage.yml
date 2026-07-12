@@ -7,9 +7,13 @@ name: "Loop: Triage"
 # failures become fixes with no human in the middle. Gated on CODEX_TRIGGER_TOKEN.
 
 on:
-  workflow_run:
-    workflows: ["Harness (E2E)", "Lint", "Run Tests", "govulncheck"]
-    types: [completed]
+  workflow_dispatch: {}
+  # PAUSED 2026-07-12: automatic CI-failure dispatch disabled while the team
+  # does focused 1:1 fixes, so failures don't auto-spawn agent tasks. Re-enable
+  # by uncommenting the workflow_run trigger below.
+  # workflow_run:
+  #   workflows: ["Harness (E2E)", "Lint", "Run Tests", "govulncheck"]
+  #   types: [completed]
 
 permissions:
   issues: write

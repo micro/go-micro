@@ -12,8 +12,11 @@ name: "Loop: Release"
 
 on:
   workflow_dispatch: {}
-  schedule:
-    - cron: "0 23 * * *"
+  # PAUSED 2026-07-12: automatic nightly release disabled while the team does
+  # focused 1:1 fixes. Cut a release on demand via workflow_dispatch. Re-enable
+  # by uncommenting the schedule below.
+  # schedule:
+  #   - cron: "0 23 * * *"
 
 permissions:
   contents: read
