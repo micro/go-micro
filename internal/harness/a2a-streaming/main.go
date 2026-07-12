@@ -166,7 +166,9 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if summary.WorkingEvents == 0 || summary.State != "completed" || !strings.Contains(summary.FinalText, "a2a-stream-ok") {
+	// Spec-shaped stream: at least one artifact-update carrying the reassembled
+	// answer, terminating in a completed status-update with final:true.
+	if summary.ArtifactEvents == 0 || summary.State != "completed" || !summary.Final || !strings.Contains(summary.FinalText, "a2a-stream-ok") {
 		fmt.Fprintf(os.Stderr, "unexpected stream summary: %+v\npayload:\n%s", summary, summary.Payload)
 		os.Exit(1)
 	}
@@ -174,14 +176,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "tool=%v runInfo=%v\n", sawTool, sawRunInfo)
 		os.Exit(1)
 	}
-	fmt.Println("\n\033[32m✓ A2A message/stream emitted incremental task updates and preserved tool/run metadata\033[0m")
+	fmt.Println("\n\033[32m✓ A2A message/stream emitted spec-shaped artifact/status updates and preserved tool/run metadata\033[0m")
 }
 
 type streamSummary struct {
-	Payload       string
-	State         string
-	FinalText     string
-	WorkingEvents int
+	Payload        string
+	State          string
+	FinalText      string
+	Final          bool
+	ArtifactEvents int
+	WorkingEvents  int
 }
 
 func readSSESummary(r io.Reader) (streamSummary, error) {
@@ -197,14 +201,23 @@ func readSSESummary(r io.Reader) (streamSummary, error) {
 		}
 		var envelope struct {
 			Result struct {
+				Kind   string `json:"kind"`
+				Final  bool   `json:"final"`
 				Status struct {
 					State string `json:"state"`
 				} `json:"status"`
+				// Task snapshots carry artifacts (plural)...
 				Artifacts []struct {
 					Parts []struct {
 						Text string `json:"text"`
 					} `json:"parts"`
 				} `json:"artifacts"`
+				// ...artifact-update events carry a single artifact.
+				Artifact struct {
+					Parts []struct {
+						Text string `json:"text"`
+					} `json:"parts"`
+				} `json:"artifact"`
 			} `json:"result"`
 			Error any `json:"error"`
 		}
@@ -216,15 +229,34 @@ func readSSESummary(r io.Reader) (streamSummary, error) {
 		}
 		seen = true
 		summary.Payload += data + "\n"
-		if envelope.Result.Status.State == "working" {
-			summary.WorkingEvents++
-		}
-		if envelope.Result.Status.State != "" {
-			summary.State = envelope.Result.Status.State
-		}
-		for _, artifact := range envelope.Result.Artifacts {
-			for _, part := range artifact.Parts {
-				summary.FinalText = part.Text
+		switch envelope.Result.Kind {
+		case "artifact-update":
+			// Incremental deltas: reassemble the streamed answer.
+			summary.ArtifactEvents++
+			for _, part := range envelope.Result.Artifact.Parts {
+				summary.FinalText += part.Text
+			}
+		case "status-update":
+			if envelope.Result.Status.State != "" {
+				summary.State = envelope.Result.Status.State
+			}
+			if envelope.Result.Final {
+				summary.Final = true
+			}
+		default: // "task" snapshot
+			if envelope.Result.Status.State == "working" {
+				summary.WorkingEvents++
+			}
+			if envelope.Result.Status.State != "" {
+				summary.State = envelope.Result.Status.State
+			}
+			// The non-streaming path carries the full text in the snapshot.
+			for _, artifact := range envelope.Result.Artifacts {
+				for _, part := range artifact.Parts {
+					if part.Text != "" {
+						summary.FinalText = part.Text
+					}
+				}
 			}
 		}
 		return nil
