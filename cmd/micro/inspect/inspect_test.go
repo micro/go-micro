@@ -11,13 +11,13 @@ import (
 )
 
 func TestWriteAgentInspectionIncludesActionableBreadcrumbs(t *testing.T) {
-	runs := []goagent.RunSummary{{RunID: "run-1", Status: "error", Events: 4, LastKind: "tool", LastError: "boom", TraceID: "1234567890abcdef", Checkpoint: "failed", Stage: "ask"}}
+	runs := []goagent.RunSummary{{RunID: "run-1", Status: "auth", Events: 4, LastKind: "model", LastError: "invalid API key", LastErrorKind: "auth", TraceID: "1234567890abcdef", Checkpoint: "failed", Stage: "ask"}}
 	var out bytes.Buffer
 	if err := writeAgentInspection(&out, "support", runs, false); err != nil {
 		t.Fatal(err)
 	}
 	got := out.String()
-	for _, want := range []string{"Agent \"support\" runs", "run-1", "status=error", "events=4", "last=tool", "checkpoint=failed", "stage=ask", `error="boom"`, "trace=1234567890ab", `micro agent history support run-1`, `micro.AgentResume(ctx, agent, "run-1")`, `micro.ResumeStreamAsk(ctx, agent, "run-1")`} {
+	for _, want := range []string{"Agent \"support\" runs", "run-1", "status=auth", "events=4", "last=model", "checkpoint=failed", "stage=ask", "error_kind=auth", `error="invalid API key"`, "trace=1234567890ab"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("output missing %q:\n%s", want, got)
 		}

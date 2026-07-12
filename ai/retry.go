@@ -85,12 +85,14 @@ func parseRetryAfter(value string, now time.Time) time.Duration {
 type ErrorKind string
 
 const (
-	ErrorKindUnknown     ErrorKind = "unknown"
-	ErrorKindCanceled    ErrorKind = "canceled"
-	ErrorKindTimeout     ErrorKind = "timeout"
-	ErrorKindRateLimited ErrorKind = "rate_limited"
-	ErrorKindUnavailable ErrorKind = "unavailable"
-	ErrorKindProvider    ErrorKind = "provider"
+	ErrorKindUnknown       ErrorKind = "unknown"
+	ErrorKindCanceled      ErrorKind = "canceled"
+	ErrorKindTimeout       ErrorKind = "timeout"
+	ErrorKindRateLimited   ErrorKind = "rate_limited"
+	ErrorKindUnavailable   ErrorKind = "unavailable"
+	ErrorKindAuth          ErrorKind = "auth"
+	ErrorKindConfiguration ErrorKind = "configuration"
+	ErrorKindProvider      ErrorKind = "provider"
 )
 
 // ClassifiedError is implemented by errors that expose a stable ErrorKind.
@@ -276,6 +278,10 @@ func ClassifyError(err error) ErrorKind {
 		switch {
 		case code == 429:
 			return ErrorKindRateLimited
+		case code == 401 || code == 403:
+			return ErrorKindAuth
+		case code == 400 || code == 404:
+			return ErrorKindConfiguration
 		case code >= 500:
 			return ErrorKindUnavailable
 		case code > 0:
@@ -288,6 +294,10 @@ func ClassifyError(err error) ErrorKind {
 		return ErrorKindRateLimited
 	case strings.Contains(msg, "timeout") || strings.Contains(msg, "deadline"):
 		return ErrorKindTimeout
+	case strings.Contains(msg, "unauthorized") || strings.Contains(msg, "forbidden") || strings.Contains(msg, "invalid api key") || strings.Contains(msg, "api key") || strings.Contains(msg, "credential"):
+		return ErrorKindAuth
+	case strings.Contains(msg, "missing") || strings.Contains(msg, "not configured") || strings.Contains(msg, "configuration") || strings.Contains(msg, "unsupported model") || strings.Contains(msg, "model not found"):
+		return ErrorKindConfiguration
 	case strings.Contains(msg, "temporar") || strings.Contains(msg, "unavailable"):
 		return ErrorKindUnavailable
 	default:

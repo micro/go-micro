@@ -663,7 +663,10 @@ func TestRunStatusClassifiesOperationalErrorKinds(t *testing.T) {
 		{name: "canceled", kind: ai.ErrorKindCanceled, want: "canceled"},
 		{name: "timeout", kind: ai.ErrorKindTimeout, want: "timeout"},
 		{name: "rate limited", kind: ai.ErrorKindRateLimited, want: "rate_limited"},
-		{name: "provider", kind: ai.ErrorKindProvider, want: "error"},
+		{name: "auth", kind: ai.ErrorKindAuth, want: "auth"},
+		{name: "configuration", kind: ai.ErrorKindConfiguration, want: "configuration"},
+		{name: "unavailable", kind: ai.ErrorKindUnavailable, want: "unavailable"},
+		{name: "provider", kind: ai.ErrorKindProvider, want: "provider_error"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

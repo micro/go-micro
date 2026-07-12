@@ -82,7 +82,8 @@ type Usage = ai.Usage
 type RunListOptions struct {
 	// Status, when set, keeps only runs with the matching status
 	// (for example "running", "done", "canceled", "timeout",
-	// "rate_limited", "error", or "refused").
+	// "rate_limited", "auth", "configuration", "unavailable",
+	// "provider_error", "error", or "refused").
 	Status string
 	// TraceID, when set, keeps only runs correlated with this trace id.
 	// A prefix is accepted so operators can paste the shortened trace id
@@ -662,6 +663,14 @@ func runErrorStatus(kind string) string {
 		return "timeout"
 	case ai.ErrorKindRateLimited:
 		return "rate_limited"
+	case ai.ErrorKindAuth:
+		return "auth"
+	case ai.ErrorKindConfiguration:
+		return "configuration"
+	case ai.ErrorKindUnavailable:
+		return "unavailable"
+	case ai.ErrorKindProvider:
+		return "provider_error"
 	default:
 		return "error"
 	}

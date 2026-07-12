@@ -43,7 +43,7 @@ It reads durable local run history, so it works after the agent or flow has stop
 func inspectAgentFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "json", Usage: "Print run summaries as JSON for automation"},
-		&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, error, refused)"},
+		&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, canceled, timeout, rate_limited, auth, configuration, unavailable, provider_error, error, refused)"},
 		&cli.StringFlag{Name: "trace", Usage: "Only show runs whose trace id matches this full id or prefix"},
 		&cli.IntFlag{Name: "limit", Usage: "Show the most recently updated N runs"},
 	}
@@ -90,6 +90,9 @@ func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, a
 		}
 		if run.Stage != "" {
 			fmt.Fprintf(w, "  stage=%s", run.Stage)
+		}
+		if run.LastErrorKind != "" {
+			fmt.Fprintf(w, "  error_kind=%s", run.LastErrorKind)
 		}
 		if run.LastError != "" {
 			fmt.Fprintf(w, "  error=%q", run.LastError)
