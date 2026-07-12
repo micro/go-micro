@@ -25,14 +25,14 @@ rewrites.
 ### Capability — the headline (roadmap: Now / Next)
 
 1. **Agents that pay — wire the x402 buyer into the agent runtime** ([#4786](https://github.com/micro/go-micro/issues/4786)) — the flagship. The buyer `x402.Client`/`Payer`/budget already exists; wire it so an agent autonomously settles a payment-required tool within budget and retries, opt-in and observable. Makes go-micro a runtime for autonomous agent commerce.
-2. **AP2 mandate foundation over A2A + x402** ([#3552](https://github.com/micro/go-micro/issues/3552)) — signed Checkout/Payment mandates attached over A2A, the Payment Mandate naming an x402 rail. The authorization/audit layer of the emerging agent-payments standard; additive and opt-in.
-3. **Agent spend observability** ([#4787](https://github.com/micro/go-micro/issues/4787)) — surface x402 spend in `RunInfo` and OpenTelemetry so payments are inspectable like every other agent action. (Follows #4786.)
-4. **Example: an agent that pays for a paid tool** ([#4788](https://github.com/micro/go-micro/issues/4788)) — the runnable artifact that makes it real for a developer, against a mock facilitator (no live funds). (Follows #4786/#4787.)
+2. **Agent spend observability** ([#4787](https://github.com/micro/go-micro/issues/4787)) — surface x402 spend in `RunInfo` and OpenTelemetry so payments are inspectable like every other agent action. (Follows #4786.)
+3. **Example: an agent that pays for a paid tool** ([#4788](https://github.com/micro/go-micro/issues/4788)) — the runnable artifact that makes it real for a developer, against a mock facilitator (no live funds). (Follows #4786/#4787.)
+4. **gRPC-reflection MCP** ([#4796](https://github.com/micro/go-micro/issues/4796)) — expose external reflected gRPC services as MCP tools, not only go-micro-native handlers. A large jump in what agents can operate without requiring teams to rewrite existing services.
+5. **Kubernetes operator + CRDs foundation** ([#4797](https://github.com/micro/go-micro/issues/4797)) — add the first opt-in `Agent`, `Service`, and `Flow` resource foundation so the services → agents → workflows lifecycle has a native deployment path for Kubernetes users.
 
 ### Background — hardening & DX (roadmap: Ongoing; capped)
 
-5. **Harden agent provider failure resilience** ([#4650](https://github.com/micro/go-micro/issues/4650)) — timeouts, cancellation, rate limits, retry/backoff, inspectable failure metadata through the agent loop. Real, but maintenance — keep it below the capability work.
-
-_Restocked by Claude Code from the roadmap's capability items; thereafter maintained
-by the planner. Next capability to decompose when the above land:
-gRPC-reflection MCP, Kubernetes operator + CRDs (roadmap: Next)._
+_Background hardening is intentionally empty right now. Recent work covered first-agent
+wayfinding, plan/delegate recovery, provider fallback repair, streaming, memory
+compaction, retry controls, and provider-failure inspection. Further churn in those
+areas should be marked `needs-human` unless it unlocks a clear user-visible capability._
