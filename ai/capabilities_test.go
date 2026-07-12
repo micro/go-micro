@@ -35,7 +35,7 @@ func TestRegisteredProviders(t *testing.T) {
 	}
 
 	got = ai.RegisteredProviders("stream")
-	want = []string{"anthropic", "atlascloud", "groq", "minimax", "mistral", "openai", "together"}
+	want = []string{"anthropic", "atlascloud", "gemini", "groq", "minimax", "mistral", "openai", "together"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(stream) = %#v, want %#v", got, want)
 	}
@@ -46,7 +46,7 @@ func TestCapabilityRows(t *testing.T) {
 	want := []ai.CapabilityRow{
 		{Provider: "anthropic", Capabilities: ai.Capabilities{Model: true, Stream: true, ToolStream: true}},
 		{Provider: "atlascloud", Capabilities: ai.Capabilities{Model: true, Image: true, Video: true, Stream: true}},
-		{Provider: "gemini", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "gemini", Capabilities: ai.Capabilities{Model: true, Stream: true}},
 		{Provider: "groq", Capabilities: ai.Capabilities{Model: true, Stream: true, ToolStream: true}},
 		{Provider: "minimax", Capabilities: ai.Capabilities{Model: true, Stream: true, ToolStream: true}},
 		{Provider: "mistral", Capabilities: ai.Capabilities{Model: true, Stream: true, ToolStream: true}},
@@ -90,7 +90,7 @@ func TestRegisterStream(t *testing.T) {
 	}
 
 	got := ai.RegisteredProviders("stream")
-	want := []string{"anthropic", "atlascloud", "groq", "minimax", "mistral", "openai", "test-stream", "together"}
+	want := []string{"anthropic", "atlascloud", "gemini", "groq", "minimax", "mistral", "openai", "test-stream", "together"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(stream) = %#v, want %#v", got, want)
 	}

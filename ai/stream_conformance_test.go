@@ -216,6 +216,7 @@ func TestConfiguredProviderStreamsSkipWithoutCredentials(t *testing.T) {
 		{provider: "together", keyEnv: "TOGETHER_API_KEY", modelEnv: "TOGETHER_MODEL"},
 		{provider: "atlascloud", keyEnv: "ATLASCLOUD_API_KEY", modelEnv: "ATLASCLOUD_MODEL"},
 		{provider: "anthropic", keyEnv: "ANTHROPIC_API_KEY", modelEnv: "ANTHROPIC_MODEL"},
+		{provider: "gemini", keyEnv: "GEMINI_API_KEY", modelEnv: "GEMINI_MODEL"},
 	} {
 		tc := tc
 		t.Run(tc.provider, func(t *testing.T) {
@@ -251,24 +252,6 @@ func TestConfiguredProviderStreamsSkipWithoutCredentials(t *testing.T) {
 				if chunk.Reply != "" {
 					return
 				}
-			}
-		})
-	}
-}
-
-func TestUnsupportedProvidersReturnStreamingUnsupportedAndStayUnregistered(t *testing.T) {
-	for _, provider := range []string{"gemini"} {
-		provider := provider
-		t.Run(provider, func(t *testing.T) {
-			if caps := ai.ProviderCapabilities(provider); caps.Stream {
-				t.Fatalf("ProviderCapabilities(%q).Stream = true, want false", provider)
-			}
-			_, err := ai.New(provider, ai.WithAPIKey("test-key")).Stream(context.Background(), &ai.Request{Prompt: "Hello"})
-			if !errors.Is(err, ai.ErrStreamingUnsupported) {
-				t.Fatalf("Stream error = %v, want ErrStreamingUnsupported", err)
-			}
-			if err != nil && strings.Contains(err.Error(), "test-key") {
-				t.Fatal("streaming unsupported error leaked API key")
 			}
 		})
 	}
