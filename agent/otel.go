@@ -51,6 +51,8 @@ const (
 	AttrDispatch         = "agent.dispatch"
 	AttrTrigger          = "agent.trigger"
 	AttrRunEventKind     = "agent.event.kind"
+	AttrSpend            = "agent.spend"
+	AttrToolSpend        = "agent.tool.spend"
 )
 
 type RunEvent struct {
@@ -73,6 +75,8 @@ type RunEvent struct {
 	Error       string    `json:"error,omitempty"`
 	ErrorKind   string    `json:"error_kind,omitempty"`
 	InputChars  int       `json:"input_chars,omitempty"`
+	Spent       int64     `json:"spent,omitempty"`
+	ToolSpend   int64     `json:"tool_spend,omitempty"`
 }
 
 type Usage = ai.Usage
@@ -111,6 +115,7 @@ type RunSummary struct {
 	LastKind      string    `json:"last_kind,omitempty"`
 	LastError     string    `json:"last_error,omitempty"`
 	LastErrorKind string    `json:"last_error_kind,omitempty"`
+	Spent         int64     `json:"spent,omitempty"`
 }
 
 func (a *agentImpl) tracer() trace.Tracer {
@@ -362,6 +367,7 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 		info, _ := ai.RunInfoFrom(ctx)
 		start := time.Now()
+		spentBefore := a.spend
 
 		if a.opts.TraceProvider == nil {
 			res := next(ctx, call)
@@ -371,7 +377,7 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 			if toolAttempts <= 0 {
 				toolAttempts = 1
 			}
-			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
+			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr), Spent: a.spend, ToolSpend: a.spend - spentBefore})
 			return res
 		}
 
@@ -385,6 +391,7 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		ctx, span := a.tracer().Start(ctx, spanNameToolCall, trace.WithAttributes(spanAttrs...))
 		res := next(ctx, call)
 		dur := time.Since(start).Milliseconds()
+		toolSpend := a.spend - spentBefore
 		attrs := []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}
 		toolAttempts := res.Attempts
 		if toolAttempts <= 0 {
@@ -393,6 +400,9 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		attrs = append(attrs, attribute.Int(AttrToolAttempt, toolAttempts))
 		if a.opts.ToolMaxAttempts > 0 {
 			attrs = append(attrs, attribute.Int(AttrToolMaxAttempts, a.opts.ToolMaxAttempts))
+		}
+		if toolSpend > 0 {
+			attrs = append(attrs, attribute.Int64(AttrSpend, a.spend), attribute.Int64(AttrToolSpend, toolSpend))
 		}
 		if res.Refused != "" {
 			attrs = append(attrs, attribute.Bool(AttrGuardrailBlock, true), attribute.String(AttrRefusal, res.Refused))
@@ -409,7 +419,7 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		} else {
 			span.SetStatus(codes.Ok, "")
 		}
-		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr)})
+		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr), Spent: a.spend, ToolSpend: toolSpend})
 		span.End()
 		return res
 	}
@@ -496,6 +506,12 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 	if e.InputChars > 0 {
 		attrs = append(attrs, attribute.Int(AttrInputChars, e.InputChars))
 	}
+	if e.Spent > 0 {
+		attrs = append(attrs, attribute.Int64(AttrSpend, e.Spent))
+	}
+	if e.ToolSpend > 0 {
+		attrs = append(attrs, attribute.Int64(AttrToolSpend, e.ToolSpend))
+	}
 	attrs = appendUsage(attrs, e.Tokens)
 	if e.Refused != "" {
 		attrs = append(attrs, attribute.Bool(AttrGuardrailBlock, true), attribute.String(AttrRefusal, e.Refused))
@@ -529,6 +545,12 @@ func appendRunInfoAttributes(attrs []attribute.KeyValue, info ai.RunInfo) []attr
 	}
 	if info.Trigger != "" {
 		attrs = append(attrs, attribute.String(AttrTrigger, info.Trigger))
+	}
+	if info.Spent > 0 {
+		attrs = append(attrs, attribute.Int64(AttrSpend, info.Spent))
+	}
+	if info.ToolSpend > 0 {
+		attrs = append(attrs, attribute.Int64(AttrToolSpend, info.ToolSpend))
 	}
 	return attrs
 }
@@ -615,6 +637,9 @@ func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOp
 			}
 			if e.ErrorKind != "" {
 				summary.LastErrorKind = e.ErrorKind
+			}
+			if e.Spent > summary.Spent {
+				summary.Spent = e.Spent
 			}
 		}
 		if opts.Status != "" && summary.Status != opts.Status {

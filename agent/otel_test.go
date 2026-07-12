@@ -421,6 +421,63 @@ func spanAttributes(attrs []attribute.KeyValue) map[string]string {
 	return out
 }
 
+func TestAgentOpenTelemetryToolSpanIncludesSpend(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+	st := store.NewMemoryStore()
+	a := New(Name("spender"), Provider("oteltest"), Model("unit-model"), WithStore(st), TraceProvider(tp), MaxSpend(10), ToolSpend("probe", 7), WithTool("probe", "probe", nil, func(ctx context.Context, input map[string]any) (string, error) {
+		info, ok := ai.RunInfoFrom(ctx)
+		if !ok {
+			t.Fatal("RunInfo missing from paid tool context")
+		}
+		if info.Spent != 7 || info.ToolSpend != 7 {
+			t.Fatalf("RunInfo spend = (%d, %d), want (7, 7)", info.Spent, info.ToolSpend)
+		}
+		return "ok", nil
+	}))
+	if _, err := a.Ask(context.Background(), "hello"); err != nil {
+		t.Fatal(err)
+	}
+
+	var sawToolSpan bool
+	for _, s := range exp.GetSpans().Snapshots() {
+		if s.Name() != spanNameToolCall {
+			continue
+		}
+		sawToolSpan = true
+		attrs := spanAttributes(s.Attributes())
+		if attrs[AttrSpend] != "7" || attrs[AttrToolSpend] != "7" {
+			t.Fatalf("tool span missing spend attributes: %#v", attrs)
+		}
+		if !spanEventHasAttribute(s.Events(), "agent.tool", AttrToolSpend, "7") {
+			t.Fatalf("tool event missing spend attribute: %#v", s.Events())
+		}
+	}
+	if !sawToolSpan {
+		t.Fatal("tool span not emitted")
+	}
+	summaries, err := ListRunSummaries(st, "spender")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 || summaries[0].Spent != 7 {
+		t.Fatalf("summary spend = %#v, want 7", summaries)
+	}
+}
+
+func spanEventHasAttribute(events []trace.Event, name, key, value string) bool {
+	for _, e := range events {
+		if e.Name != name {
+			continue
+		}
+		attrs := spanAttributes(e.Attributes)
+		if attrs[key] == value {
+			return true
+		}
+	}
+	return false
+}
+
 func TestAgentOpenTelemetrySpansDelegateLineage(t *testing.T) {
 	exp := tracetest.NewInMemoryExporter()
 	tp := trace.NewTracerProvider(trace.WithSyncer(exp))

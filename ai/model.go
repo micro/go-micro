@@ -135,6 +135,8 @@ type RunInfo struct {
 	VerificationFeedback string // feedback from the previous failed verifier attempt, when retrying a flow step
 	Dispatch             string // how the run was dispatched (direct, broker, schedule, resume) when known
 	Trigger              string // external trigger or schedule label that started the run, when known
+	Spent                int64  // cumulative paid x402 spend in this run, in the asset's smallest unit
+	ToolSpend            int64  // paid x402 spend attributed to the current tool call, in the asset's smallest unit
 }
 
 type runInfoKey struct{}

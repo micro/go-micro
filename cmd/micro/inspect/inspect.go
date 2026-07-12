@@ -94,6 +94,9 @@ func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, a
 		if run.LastErrorKind != "" {
 			fmt.Fprintf(w, "  error_kind=%s", run.LastErrorKind)
 		}
+		if run.Spent > 0 {
+			fmt.Fprintf(w, "  spent=%d", run.Spent)
+		}
 		if run.LastError != "" {
 			fmt.Fprintf(w, "  error=%q", run.LastError)
 		}
