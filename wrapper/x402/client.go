@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -81,7 +82,16 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 		return resp, fmt.Errorf("x402: 402 response carried no requirements")
 	}
 	reqd := ch.Accepts[0]
-	amount, _ := strconv.ParseInt(reqd.MaxAmountRequired, 10, 64)
+	// The amount governs the whole spend cap, so it must be a real positive
+	// integer. A swallowed parse error (non-decimal, overflow, empty) would
+	// yield 0 and pass the budget check trivially, and a negative amount would
+	// inflate the remaining allowance — either way the cap is defeated. Refuse
+	// before signing anything.
+	amount, err := strconv.ParseInt(strings.TrimSpace(reqd.MaxAmountRequired), 10, 64)
+	if err != nil || amount <= 0 {
+		return resp, fmt.Errorf("x402: refusing to pay %s: invalid maxAmountRequired %q",
+			reqd.Resource, reqd.MaxAmountRequired)
+	}
 
 	// Spend cap: reserve before paying so concurrent calls cannot all pass
 	// the check and overspend the caller's allowance. Roll the reservation
