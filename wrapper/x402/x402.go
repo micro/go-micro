@@ -126,6 +126,11 @@ type Config struct {
 	// FacilitatorURL is the verify/settle endpoint used when Facilitator
 	// is nil (e.g. Coinbase CDP or Alchemy).
 	FacilitatorURL string `json:"facilitator,omitempty"`
+	// RequireSettlement fails closed when a paid request cannot be settled:
+	// if the facilitator only verifies (does not implement Settler), Require
+	// refuses to serve rather than releasing the resource while no funds move.
+	// Leave false only for verify-only flows where authorization is enough.
+	RequireSettlement bool `json:"requireSettlement,omitempty"`
 }
 
 func (c Config) network() string {
@@ -222,7 +227,14 @@ func (c Config) Require(w http.ResponseWriter, r *http.Request, amount, resource
 	}
 	// Capture the funds when the facilitator can settle. Verify alone only
 	// authorizes the "exact" transfer; settlement broadcasts it.
-	if s, ok := fac.(Settler); ok {
+	s, canSettle := fac.(Settler)
+	if c.RequireSettlement && !canSettle {
+		// Fail closed: a paid config must not serve the resource on a
+		// verify-only facilitator, or it gives the tool away for free.
+		writeChallenge(w, req, "payment settlement unavailable")
+		return false
+	}
+	if canSettle {
 		sres, err := s.Settle(r.Context(), payment, req)
 		if err != nil {
 			writeChallenge(w, req, "payment settlement failed: "+err.Error())

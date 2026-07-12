@@ -159,4 +159,58 @@ func TestCDPAuthorizeAttachesBearer(t *testing.T) {
 	}
 }
 
+// TestRequireSettlementFailsClosed checks that a paid config with
+// RequireSettlement refuses to serve when the facilitator only verifies (does
+// not settle) — otherwise the resource is released while no funds move.
+func TestRequireSettlementFailsClosed(t *testing.T) {
+	// mockFacilitator implements Verify but not Settler.
+	cfg := Config{PayTo: "0xpay", Facilitator: mockFacilitator{valid: true}, RequireSettlement: true}
+	r := httptest.NewRequest(http.MethodGet, "/tool", nil)
+	r.Header.Set(PaymentHeader, "eyJ4IjoxfQ==")
+	rec := httptest.NewRecorder()
+
+	if cfg.Require(rec, r, "10000", "chat") {
+		t.Fatal("Require should fail closed when settlement is required but unavailable")
+	}
+	if rec.Code != http.StatusPaymentRequired {
+		t.Errorf("status = %d, want 402", rec.Code)
+	}
+
+	// Without RequireSettlement the verify-only facilitator still serves.
+	cfg.RequireSettlement = false
+	rec = httptest.NewRecorder()
+	r = httptest.NewRequest(http.MethodGet, "/tool", nil)
+	r.Header.Set(PaymentHeader, "eyJ4IjoxfQ==")
+	if !cfg.Require(rec, r, "10000", "chat") {
+		t.Fatalf("verify-only should serve when settlement is not required; body=%s", rec.Body.String())
+	}
+}
+
+// TestRequireSettlementServesWithSettler checks that a paid config with
+// RequireSettlement serves when the facilitator can settle.
+func TestRequireSettlementServesWithSettler(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/verify":
+			_ = json.NewEncoder(w).Encode(map[string]any{"isValid": true})
+		case "/settle":
+			_ = json.NewEncoder(w).Encode(map[string]any{"success": true, "transaction": "0xabc"})
+		}
+	}))
+	defer srv.Close()
+
+	// HTTPFacilitator implements Settler.
+	cfg := Config{PayTo: "0xpay", FacilitatorURL: srv.URL, RequireSettlement: true}
+	r := httptest.NewRequest(http.MethodGet, "/tool", nil)
+	r.Header.Set(PaymentHeader, "eyJ4IjoxfQ==")
+	rec := httptest.NewRecorder()
+
+	if !cfg.Require(rec, r, "10000", "chat") {
+		t.Fatalf("Require should serve with a settling facilitator; body=%s", rec.Body.String())
+	}
+	if got := rec.Header().Get(PaymentResponseHeader); got != "0xabc" {
+		t.Errorf("settlement header = %q, want 0xabc", got)
+	}
+}
+
 var _ Settler = (*HTTPFacilitator)(nil)

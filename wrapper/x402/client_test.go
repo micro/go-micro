@@ -172,6 +172,33 @@ func TestClientBudgetReservationRollsBackOnPayError(t *testing.T) {
 	}
 }
 
+// A 402 whose maxAmountRequired is not a positive integer must be refused
+// before any payment — otherwise a swallowed parse error (0) or a negative
+// amount defeats the spend cap. The payer is never called and nothing is spent.
+func TestClientRefusesInvalidAmount(t *testing.T) {
+	for _, amount := range []string{"abc", "-100", "99999999999999999999999999", "0x10", "1.5"} {
+		srv := paidServer(amount)
+
+		payer := &mockPayer{}
+		c := &Client{Payer: payer, Budget: 1_000_000}
+		req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
+		resp, err := c.Do(req)
+		if resp != nil {
+			resp.Body.Close()
+		}
+		if err == nil {
+			t.Errorf("amount %q: expected refusal, got nil error", amount)
+		}
+		if payer.calls != 0 {
+			t.Errorf("amount %q: payer called %d times, want 0", amount, payer.calls)
+		}
+		if c.Spent() != 0 {
+			t.Errorf("amount %q: spent %d, want 0", amount, c.Spent())
+		}
+		srv.Close()
+	}
+}
+
 type payerFunc func(context.Context, Requirements) (string, error)
 
 func (f payerFunc) Pay(ctx context.Context, req Requirements) (string, error) {

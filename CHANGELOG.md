@@ -29,6 +29,9 @@ below is kept current between tags and rolled into the next version when it ship
 ### Fixed
 - **Provider failure inspection metadata** — provider failures recorded during agent runs now retain classification metadata for inspection. (`agent/`, `ai/`)
 
+### Security
+- **x402 spend-cap hardening** — the paying `Client` now refuses a 402 whose `maxAmountRequired` is not a positive integer (a swallowed parse error or negative amount previously bypassed the budget cap), and a new `Config.RequireSettlement` fails closed when a paid request is served by a verify-only facilitator that never captures funds. (`wrapper/x402/`)
+
 ---
 
 ## [6.7.0] - July 2026
