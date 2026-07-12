@@ -12,6 +12,7 @@ provider-free unless the example README says otherwise.
 | Prove the maintained 0→hero path | [`support`](./support/) | `go run ./examples/support` and `go test ./examples/support` | [`zero-to-hero` guide](../internal/website/docs/guides/zero-to-hero.md) |
 | See planning and delegation | [`agent-plan-delegate`](./agent-plan-delegate/) | `go run ./examples/agent-plan-delegate` | [`plan-delegate` guide](../internal/website/docs/guides/plan-delegate.md) |
 | Expose services through MCP | [`mcp/hello`](./mcp/hello/) | follow [`mcp`](./mcp/) setup | [`mcp/crud`](./mcp/crud/) and [`mcp/workflow`](./mcp/workflow/) |
+| Try a paid tool with x402 | [`agent-x402-buyer`](./agent-x402-buyer/) | `go run ./examples/agent-x402-buyer` | [`Payments (x402)` guide](../internal/website/docs/guides/x402-payments.md) |
 | Try A2A or gRPC interop next | [`agent-demo`](./agent-demo/) plus gateway docs | run the example, then use the gateway docs | [`grpc-interop`](./grpc-interop/) |
 | Add workflow durability | [`flow-durable`](./flow-durable/) | `go run ./examples/flow-durable` | [`flow-loop`](./flow-loop/) |
 
@@ -28,7 +29,9 @@ provider-free unless the example README says otherwise.
 4. **Interop next:** use [`mcp/hello`](./mcp/hello/), [`mcp/crud`](./mcp/crud/),
    and [`mcp/workflow`](./mcp/workflow/) when you are ready to expose tools to
    external AI clients.
-5. **Workflow depth:** use [`flow-durable`](./flow-durable/) once the agent path
+5. **Paid tools:** run [`agent-x402-buyer`](./agent-x402-buyer/) to see an
+   agent pay a local x402-protected tool with a mock facilitator and budget.
+6. **Workflow depth:** use [`flow-durable`](./flow-durable/) once the agent path
    needs checkpointed, resumable deterministic work.
 
 ## CLI wayfinding
