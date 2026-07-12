@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Stream remote agent replies through `micro chat`** ([#4760](https://github.com/micro/go-micro/issues/4760)) — #4758 closed the input-required CLI continuation gap, so do not re-queue more resume breadcrumbs, docs-link guards, AtlasCloud-specific text repair, or plan/delegate edge hardening for now. The next highest-value user-facing gap is making the scaffold → run → chat → inspect loop feel live when `micro chat --stream` talks to a registered agent, not only when it uses the direct service/tool fallback: stream chunks from a stream-capable agent, fall back cleanly to `Agent.Chat`, and keep inspectable run history coherent.
+1. **Add memory compaction controls for long-running agents** ([#4765](https://github.com/micro/go-micro/issues/4765)) — #4763 closed the live registered-agent `micro chat --stream` gap, and the recent run also over-invested in docs-link guards, AtlasCloud-specific repair, and plan/delegate edge hardening. The next highest-value user-facing gap is memory that survives beyond toy conversations without unbounded prompt growth: add opt-in compaction/summarization that preserves recent turns/tool results, stores an inspectable summary, and keeps `Ask`/stream/checkpoint behavior coherent without changing defaults.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
