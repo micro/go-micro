@@ -99,6 +99,38 @@ func TestAgentCardFromRegistry(t *testing.T) {
 	}
 }
 
+// A2A 0.3.0 discovery is /.well-known/agent-card.json. The card must be
+// reachable there (canonical) as well as at the legacy agent.json alias, both
+// per-agent and at the single-agent top level.
+func TestAgentCardCanonicalWellKnownPath(t *testing.T) {
+	ts, cleanup := newGatewayWithAgent(t)
+	defer cleanup()
+
+	for _, path := range []string{
+		"/agents/echo/.well-known/agent-card.json",
+		"/agents/echo/.well-known/agent.json",
+		"/agents/echo/skills/task/.well-known/agent-card.json",
+	} {
+		resp, err := http.Get(ts.URL + path)
+		if err != nil {
+			t.Fatalf("get %s: %v", path, err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			t.Fatalf("%s status = %d, want 200", path, resp.StatusCode)
+		}
+		var card AgentCard
+		if err := json.NewDecoder(resp.Body).Decode(&card); err != nil {
+			resp.Body.Close()
+			t.Fatalf("%s decode card: %v", path, err)
+		}
+		resp.Body.Close()
+		if card.Name != "echo" {
+			t.Errorf("%s card name = %q, want echo", path, card.Name)
+		}
+	}
+}
+
 func TestSkillEndpointServesFocusedCardAndRoutesRPC(t *testing.T) {
 	ts, cleanup := newGatewayWithAgent(t)
 	defer cleanup()
@@ -335,6 +367,67 @@ func (s *sliceStream) Recv() (*ai.Response, error) {
 
 func (s *sliceStream) Close() error { return nil }
 
+// streamEvent is one decoded SSE JSON-RPC event from a message/stream response.
+// A2A streams carry heterogeneous results (Task, status-update, artifact-update)
+// discriminated by `kind`, so we keep the raw result and decode on demand.
+type streamEvent struct {
+	Result json.RawMessage `json:"result"`
+	Error  *rpcError       `json:"error"`
+}
+
+func (e streamEvent) kind() string {
+	var k struct {
+		Kind string `json:"kind"`
+	}
+	_ = json.Unmarshal(e.Result, &k)
+	return k.Kind
+}
+
+func (e streamEvent) task(t *testing.T) Task {
+	t.Helper()
+	var task Task
+	if err := json.Unmarshal(e.Result, &task); err != nil {
+		t.Fatalf("decode task event: %v", err)
+	}
+	return task
+}
+
+func (e streamEvent) status(t *testing.T) TaskStatusUpdateEvent {
+	t.Helper()
+	var s TaskStatusUpdateEvent
+	if err := json.Unmarshal(e.Result, &s); err != nil {
+		t.Fatalf("decode status-update event: %v", err)
+	}
+	return s
+}
+
+func (e streamEvent) artifactUpdate(t *testing.T) TaskArtifactUpdateEvent {
+	t.Helper()
+	var a TaskArtifactUpdateEvent
+	if err := json.Unmarshal(e.Result, &a); err != nil {
+		t.Fatalf("decode artifact-update event: %v", err)
+	}
+	return a
+}
+
+// collectSSE parses the `data:`-framed JSON-RPC events from an SSE body.
+func collectSSE(t *testing.T, body string) []streamEvent {
+	t.Helper()
+	var events []streamEvent
+	for _, line := range strings.Split(strings.TrimSpace(body), "\n") {
+		line = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "data:"))
+		if line == "" {
+			continue
+		}
+		var e streamEvent
+		if err := json.Unmarshal([]byte(line), &e); err != nil {
+			t.Fatalf("decode event %q: %v", line, err)
+		}
+		events = append(events, e)
+	}
+	return events
+}
+
 func TestMessageStreamChunksStoreFinalTask(t *testing.T) {
 	d := newDispatcher()
 	body := `{"jsonrpc":"2.0","id":1,"method":"message/stream","params":{"message":{"role":"user","parts":[{"kind":"text","text":"ping"}],"kind":"message"}}}`
@@ -351,47 +444,61 @@ func TestMessageStreamChunksStoreFinalTask(t *testing.T) {
 	if ct := rr.Result().Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
 		t.Fatalf("content-type = %q, want text/event-stream", ct)
 	}
-	var events []struct {
-		Result Task      `json:"result"`
-		Error  *rpcError `json:"error"`
+	events := collectSSE(t, rr.Body.String())
+	// Opening Task snapshot + one append artifact-update per chunk + terminal
+	// status-update.
+	if len(events) != 4 {
+		t.Fatalf("events = %d, want 4; body %s", len(events), rr.Body.String())
 	}
-	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		line = strings.TrimPrefix(line, "data: ")
-		var event struct {
-			Result Task      `json:"result"`
-			Error  *rpcError `json:"error"`
-		}
-		if err := json.Unmarshal([]byte(line), &event); err != nil {
-			t.Fatalf("decode event %q: %v", line, err)
-		}
-		events = append(events, event)
-	}
-	if len(events) != 3 {
-		t.Fatalf("events = %d, want 3; body %s", len(events), rr.Body.String())
-	}
-	for i, event := range events {
-		if event.Error != nil {
-			t.Fatalf("event %d error: %+v", i, event.Error)
-		}
-		if event.Result.ID != events[0].Result.ID || event.Result.ContextID != events[0].Result.ContextID {
-			t.Fatalf("event %d changed task identity: %+v vs %+v", i, event.Result, events[0].Result)
+	for i, e := range events {
+		if e.Error != nil {
+			t.Fatalf("event %d carried an error field: %+v", i, e.Error)
 		}
 	}
-	if events[0].Result.Status.State != stateWorking || textOf(events[0].Result.Artifacts[0].Parts) != "po" {
-		t.Fatalf("first event = %+v, want working po", events[0].Result)
+	if events[0].kind() != "task" {
+		t.Fatalf("first event kind = %q, want task", events[0].kind())
 	}
-	final := events[len(events)-1].Result
-	if final.Status.State != stateCompleted || textOf(final.Artifacts[0].Parts) != "pong" {
-		t.Fatalf("final event = %+v, want completed pong", final)
+	opening := events[0].task(t)
+	if opening.Status.State != stateWorking {
+		t.Fatalf("opening task state = %q, want working", opening.Status.State)
+	}
+	taskID := opening.ID
+
+	// The middle events are append artifact-updates carrying the chunk deltas.
+	var text strings.Builder
+	for _, e := range events[1:3] {
+		if e.kind() != "artifact-update" {
+			t.Fatalf("event kind = %q, want artifact-update", e.kind())
+		}
+		au := e.artifactUpdate(t)
+		if !au.Append {
+			t.Fatalf("artifact-update should be append: %+v", au)
+		}
+		if au.TaskID != taskID {
+			t.Fatalf("artifact-update taskId = %q, want %q", au.TaskID, taskID)
+		}
+		text.WriteString(textOf(au.Artifact.Parts))
+	}
+	if text.String() != "pong" {
+		t.Fatalf("accumulated artifact text = %q, want pong", text.String())
 	}
 
-	got := rpcTaskFromDispatcher(t, d, final.ID)
-	if got.ID != final.ID || got.Status.State != stateCompleted || textOf(got.Artifacts[0].Parts) != "pong" {
-		t.Fatalf("stored task = %+v, want final", got)
+	// The stream closes with a terminal status-update (final:true).
+	last := events[len(events)-1]
+	if last.kind() != "status-update" {
+		t.Fatalf("last event kind = %q, want status-update", last.kind())
+	}
+	su := last.status(t)
+	if !su.Final || su.Status.State != stateCompleted {
+		t.Fatalf("terminal event = %+v, want final completed", su)
+	}
+	if su.TaskID != taskID {
+		t.Fatalf("terminal taskId = %q, want %q", su.TaskID, taskID)
+	}
+
+	got := rpcTaskFromDispatcher(t, d, taskID)
+	if got.ID != taskID || got.Status.State != stateCompleted || textOf(got.Artifacts[0].Parts) != "pong" {
+		t.Fatalf("stored task = %+v, want final completed pong", got)
 	}
 }
 
@@ -432,37 +539,31 @@ func TestMessageStreamChunksPropagatesCancellationAndClosesStream(t *testing.T) 
 		t.Fatal("stream was not closed")
 	}
 
-	var events []struct {
-		Result Task      `json:"result"`
-		Error  *rpcError `json:"error"`
+	events := collectSSE(t, rr.Body.String())
+	// Opening Task snapshot, then a terminal failed status-update.
+	if len(events) != 2 {
+		t.Fatalf("events = %d, want 2; body %s", len(events), rr.Body.String())
 	}
-	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+	// A streaming failure must be a failed status-update, never `result` and
+	// `error` set together in one response.
+	for i, e := range events {
+		if e.Error != nil {
+			t.Fatalf("event %d carried an error field (result+error not allowed): %+v", i, e.Error)
 		}
-		line = strings.TrimPrefix(line, "data: ")
-		var event struct {
-			Result Task      `json:"result"`
-			Error  *rpcError `json:"error"`
-		}
-		if err := json.Unmarshal([]byte(line), &event); err != nil {
-			t.Fatalf("decode event %q: %v", line, err)
-		}
-		events = append(events, event)
 	}
-	if len(events) != 1 {
-		t.Fatalf("events = %d, want 1; body %s", len(events), rr.Body.String())
+	if events[0].kind() != "task" || events[0].task(t).Status.State != stateWorking {
+		t.Fatalf("first event = %s, want working task", string(events[0].Result))
 	}
-	event := events[0]
-	if event.Error == nil || event.Error.Code != errInternal || event.Error.Message != context.Canceled.Error() {
-		t.Fatalf("error = %+v, want context cancellation", event.Error)
+	last := events[1]
+	if last.kind() != "status-update" {
+		t.Fatalf("last event kind = %q, want status-update", last.kind())
 	}
-	if event.Result.Status.State != stateFailed || textOf(event.Result.Artifacts[0].Parts) != "error: context canceled" {
-		t.Fatalf("failed task = %+v, want context cancellation artifact", event.Result)
+	su := last.status(t)
+	if !su.Final || su.Status.State != stateFailed {
+		t.Fatalf("terminal event = %+v, want final failed", su)
 	}
 
-	got := rpcTaskFromDispatcher(t, d, event.Result.ID)
+	got := rpcTaskFromDispatcher(t, d, su.TaskID)
 	if got.Status.State != stateFailed || textOf(got.Artifacts[0].Parts) != "error: context canceled" {
 		t.Fatalf("stored task = %+v, want failed cancellation", got)
 	}
@@ -493,33 +594,24 @@ func TestMessageStreamChunksFallsBackWhenUnsupported(t *testing.T) {
 	if ct := rr.Result().Header.Get("Content-Type"); !strings.HasPrefix(ct, "text/event-stream") {
 		t.Fatalf("content-type = %q, want text/event-stream", ct)
 	}
-	var events []struct {
-		Result Task      `json:"result"`
-		Error  *rpcError `json:"error"`
+	events := collectSSE(t, rr.Body.String())
+	// The non-streaming fallback emits a completed Task snapshot then a terminal
+	// status-update.
+	if len(events) != 2 {
+		t.Fatalf("events = %d, want 2; body %s", len(events), rr.Body.String())
 	}
-	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+	for i, e := range events {
+		if e.Error != nil {
+			t.Fatalf("fallback event %d error: %+v", i, e.Error)
 		}
-		line = strings.TrimPrefix(line, "data: ")
-		var event struct {
-			Result Task      `json:"result"`
-			Error  *rpcError `json:"error"`
-		}
-		if err := json.Unmarshal([]byte(line), &event); err != nil {
-			t.Fatalf("decode event %q: %v", line, err)
-		}
-		events = append(events, event)
 	}
-	if len(events) != 1 {
-		t.Fatalf("events = %d, want 1; body %s", len(events), rr.Body.String())
+	task := events[0].task(t)
+	if task.Status.State != stateCompleted || textOf(task.Artifacts[0].Parts) != "pong" {
+		t.Fatalf("fallback task = %+v, want completed pong", task)
 	}
-	if events[0].Error != nil {
-		t.Fatalf("fallback event error: %+v", events[0].Error)
-	}
-	if events[0].Result.Status.State != stateCompleted || textOf(events[0].Result.Artifacts[0].Parts) != "pong" {
-		t.Fatalf("fallback task = %+v, want completed pong", events[0].Result)
+	su := events[1].status(t)
+	if !su.Final || su.Status.State != stateCompleted {
+		t.Fatalf("terminal event = %+v, want final completed", su)
 	}
 }
 
@@ -535,30 +627,34 @@ func TestMessageStreamFallbackDoesNotCompleteWithEmptyText(t *testing.T) {
 		return nil, fmt.Errorf("%w: test provider", ai.ErrStreamingUnsupported)
 	})
 
-	var event struct {
-		Result Task      `json:"result"`
-		Error  *rpcError `json:"error"`
-	}
-	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
-		line = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "data: "))
-		if line == "" {
-			continue
+	events := collectSSE(t, rr.Body.String())
+	var task Task
+	var foundTask bool
+	for _, e := range events {
+		if e.Error != nil {
+			t.Fatalf("fallback event error: %+v", e.Error)
 		}
-		if err := json.Unmarshal([]byte(line), &event); err != nil {
-			t.Fatalf("decode event %q: %v", line, err)
+		if e.kind() == "task" {
+			task = e.task(t)
+			foundTask = true
 		}
 	}
-	if event.Error != nil {
-		t.Fatalf("fallback event error: %+v", event.Error)
+	if !foundTask {
+		t.Fatalf("no task event in stream; body %s", rr.Body.String())
 	}
-	if event.Result.Status.State != stateFailed {
-		t.Fatalf("fallback state = %q, want failed", event.Result.Status.State)
+	if task.Status.State != stateFailed {
+		t.Fatalf("fallback state = %q, want failed", task.Status.State)
 	}
-	if got := textOf(event.Result.Artifacts[0].Parts); got == "" {
-		t.Fatalf("fallback artifact text is empty: %+v", event.Result.Artifacts)
+	if got := textOf(task.Artifacts[0].Parts); got == "" {
+		t.Fatalf("fallback artifact text is empty: %+v", task.Artifacts)
 	}
-	if got := textOf(event.Result.History[len(event.Result.History)-1].Parts); got == "" {
-		t.Fatalf("fallback history text is empty: %+v", event.Result.History)
+	if got := textOf(task.History[len(task.History)-1].Parts); got == "" {
+		t.Fatalf("fallback history text is empty: %+v", task.History)
+	}
+	// The stream still ends with a terminal marker.
+	last := events[len(events)-1]
+	if last.kind() != "status-update" || !last.status(t).Final {
+		t.Fatalf("stream must end with a final status-update; got %s", string(last.Result))
 	}
 }
 

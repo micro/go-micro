@@ -68,35 +68,79 @@ func TestA2AStreamUsesAgentChatPathWithTools(t *testing.T) {
 		t.Fatalf("stream body missing tool marker: %s", rr.Body.String())
 	}
 
-	var final struct {
-		Result struct {
-			Status struct {
-				State string `json:"state"`
-			} `json:"status"`
-			Artifacts []struct {
-				Parts []struct {
-					Text string `json:"text"`
-				} `json:"parts"`
-			} `json:"artifacts"`
-		} `json:"result"`
-		Error any `json:"error"`
-	}
+	// The spec-shaped stream carries the answer as append artifact-update
+	// deltas and closes with a completed status-update (final:true).
+	var (
+		text       strings.Builder
+		finalState string
+		sawFinal   bool
+	)
 	for _, line := range strings.Split(strings.TrimSpace(rr.Body.String()), "\n") {
 		line = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "data: "))
 		if line == "" {
 			continue
 		}
-		if err := json.Unmarshal([]byte(line), &final); err != nil {
+		var ev struct {
+			Result json.RawMessage `json:"result"`
+			Error  any             `json:"error"`
+		}
+		if err := json.Unmarshal([]byte(line), &ev); err != nil {
 			t.Fatalf("decode event %q: %v", line, err)
 		}
+		if ev.Error != nil {
+			t.Fatalf("event carried an error field: %+v", ev.Error)
+		}
+		var kind struct {
+			Kind string `json:"kind"`
+		}
+		_ = json.Unmarshal(ev.Result, &kind)
+		switch kind.Kind {
+		case "artifact-update":
+			var au struct {
+				Artifact struct {
+					Parts []struct {
+						Text string `json:"text"`
+					} `json:"parts"`
+				} `json:"artifact"`
+			}
+			_ = json.Unmarshal(ev.Result, &au)
+			for _, p := range au.Artifact.Parts {
+				text.WriteString(p.Text)
+			}
+		case "status-update":
+			var su struct {
+				Status struct {
+					State string `json:"state"`
+				} `json:"status"`
+				Final bool `json:"final"`
+			}
+			_ = json.Unmarshal(ev.Result, &su)
+			if su.Final {
+				sawFinal = true
+				finalState = su.Status.State
+			}
+		default: // opening "task" snapshot
+			var task struct {
+				Artifacts []struct {
+					Parts []struct {
+						Text string `json:"text"`
+					} `json:"parts"`
+				} `json:"artifacts"`
+			}
+			_ = json.Unmarshal(ev.Result, &task)
+			for _, a := range task.Artifacts {
+				for _, p := range a.Parts {
+					if p.Text != "" {
+						text.WriteString(p.Text)
+					}
+				}
+			}
+		}
 	}
-	if final.Error != nil {
-		t.Fatalf("final event error: %+v", final.Error)
+	if !sawFinal || finalState != "completed" {
+		t.Fatalf("want a completed final:true status-update; sawFinal=%v state=%q", sawFinal, finalState)
 	}
-	if final.Result.Status.State != "completed" {
-		t.Fatalf("final state = %q, want completed", final.Result.Status.State)
-	}
-	if len(final.Result.Artifacts) != 1 || len(final.Result.Artifacts[0].Parts) != 1 || !strings.Contains(final.Result.Artifacts[0].Parts[0].Text, "a2a-stream-ok") {
-		t.Fatalf("final artifacts = %+v, want tool marker", final.Result.Artifacts)
+	if !strings.Contains(text.String(), "a2a-stream-ok") {
+		t.Fatalf("reassembled stream text missing tool marker: %q", text.String())
 	}
 }

@@ -25,6 +25,7 @@ below is kept current between tags and rolled into the next version when it ship
 
 ### Changed
 - **Remote agent chat streaming** — `micro chat` now streams replies from remote agents instead of waiting for the full response. (`cmd/micro/`, `agent/`)
+- **A2A external-client conformance** — the A2A gateway now serves the Agent Card at the spec 0.3.0 `/.well-known/agent-card.json` (keeping `/.well-known/agent.json` as a legacy alias), and `message/stream` emits spec-shaped `status-update`/`artifact-update` events ending in a `final:true` status-update instead of repeated full `Task` snapshots — and never sends `result` and `error` together. Standard A2A clients (ADK, LangGraph, a2a-SDK) can now discover and stream from go-micro agents. (`gateway/a2a/`)
 
 ### Fixed
 - **Provider failure inspection metadata** — provider failures recorded during agent runs now retain classification metadata for inspection. (`agent/`, `ai/`)
