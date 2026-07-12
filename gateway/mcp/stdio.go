@@ -294,7 +294,9 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 			AccountID: accountID, ScopesRequired: tool.Scopes,
 			Allowed: true, Duration: time.Since(start), Error: err.Error(),
 		})
-		t.sendError(req.ID, InternalError, "RPC call failed", err.Error())
+		// A tool-execution failure is reported as an isError result, not a
+		// JSON-RPC protocol error (per the MCP spec), so the agent can read it.
+		t.sendResponse(req.ID, mcpToolError(traceID, "tool call failed: "+err.Error()))
 		return
 	}
 
@@ -311,24 +313,8 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 		Allowed: true, Duration: time.Since(start),
 	})
 
-	// Parse response
-	var result interface{}
-	if err := json.Unmarshal(rsp.Data, &result); err != nil {
-		// If unmarshal fails, return raw data
-		result = map[string]interface{}{
-			"data": string(rsp.Data),
-		}
-	}
-
-	t.sendResponse(req.ID, map[string]interface{}{
-		"content": []interface{}{
-			map[string]interface{}{
-				"type": "text",
-				"text": fmt.Sprintf("%v", result),
-			},
-		},
-		"trace_id": traceID,
-	})
+	// The downstream response is JSON — return it as JSON text, not %v.
+	t.sendResponse(req.ID, mcpToolResult(traceID, rsp.Data))
 }
 
 // sendResponse sends a JSON-RPC response
