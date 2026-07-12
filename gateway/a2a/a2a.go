@@ -108,6 +108,9 @@ func NewAgentHandler(card AgentCard, invoke Invoke) http.Handler {
 	card.URL = strings.TrimRight(card.URL, "/")
 	serveCard := func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, http.StatusOK, card) }
 	mux.HandleFunc("GET /{$}", serveCard)
+	// A2A 0.3.0 discovery is /.well-known/agent-card.json; agent.json is the
+	// pre-0.3 alias, kept so existing clients don't break.
+	mux.HandleFunc("GET /.well-known/agent-card.json", serveCard)
 	mux.HandleFunc("GET /.well-known/agent.json", serveCard)
 	mux.HandleFunc("POST /{$}", func(w http.ResponseWriter, r *http.Request) { d.serve(w, r, invoke) })
 	return mux
@@ -121,6 +124,7 @@ func NewAgentStreamHandler(card AgentCard, invoke Invoke, stream StreamInvoke) h
 	card.URL = strings.TrimRight(card.URL, "/")
 	serveCard := func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, http.StatusOK, card) }
 	mux.HandleFunc("GET /{$}", serveCard)
+	mux.HandleFunc("GET /.well-known/agent-card.json", serveCard)
 	mux.HandleFunc("GET /.well-known/agent.json", serveCard)
 	mux.HandleFunc("POST /{$}", func(w http.ResponseWriter, r *http.Request) { d.serveWithStream(w, r, invoke, stream) })
 	return mux
@@ -139,15 +143,19 @@ func (g *Gateway) Handler() http.Handler {
 	// Discovery: a directory of all agent cards.
 	mux.HandleFunc("GET /agents", g.handleList)
 	// Per-agent card (served at the agent's url and at its well-known path).
+	// A2A 0.3.0 uses agent-card.json; agent.json is the pre-0.3 alias.
 	mux.HandleFunc("GET /agents/{name}", g.handleCard)
+	mux.HandleFunc("GET /agents/{name}/.well-known/agent-card.json", g.handleCard)
 	mux.HandleFunc("GET /agents/{name}/.well-known/agent.json", g.handleCard)
 	mux.HandleFunc("GET /agents/{name}/skills/{skill}", g.handleSkillCard)
+	mux.HandleFunc("GET /agents/{name}/skills/{skill}/.well-known/agent-card.json", g.handleSkillCard)
 	mux.HandleFunc("GET /agents/{name}/skills/{skill}/.well-known/agent.json", g.handleSkillCard)
 	// Per-agent JSON-RPC endpoint.
 	mux.HandleFunc("POST /agents/{name}", g.handleRPC)
 	mux.HandleFunc("POST /agents/{name}/skills/{skill}", g.handleSkillRPC)
 	// Top-level well-known: serve the single agent's card if there's
 	// exactly one, otherwise point to the directory.
+	mux.HandleFunc("GET /.well-known/agent-card.json", g.handleWellKnown)
 	mux.HandleFunc("GET /.well-known/agent.json", g.handleWellKnown)
 	return mux
 }
@@ -220,6 +228,39 @@ type TaskStatus struct {
 type Artifact struct {
 	ArtifactID string `json:"artifactId"`
 	Parts      []Part `json:"parts"`
+}
+
+// TaskStatusUpdateEvent is an A2A streaming event reporting a change in a
+// task's status. External SSE clients parse stream events by `kind` and stop
+// on the event whose `final` is true — a full Task snapshot (which older
+// versions emitted) carries neither, so strict clients never terminate.
+type TaskStatusUpdateEvent struct {
+	TaskID    string     `json:"taskId"`
+	ContextID string     `json:"contextId"`
+	Kind      string     `json:"kind"` // "status-update"
+	Status    TaskStatus `json:"status"`
+	Final     bool       `json:"final"`
+}
+
+// TaskArtifactUpdateEvent is an A2A streaming event carrying an artifact (or,
+// with Append, one incremental chunk of one).
+type TaskArtifactUpdateEvent struct {
+	TaskID    string   `json:"taskId"`
+	ContextID string   `json:"contextId"`
+	Kind      string   `json:"kind"` // "artifact-update"
+	Artifact  Artifact `json:"artifact"`
+	Append    bool     `json:"append,omitempty"`
+	LastChunk bool     `json:"lastChunk,omitempty"`
+}
+
+func statusUpdateEvent(t *Task, final bool) TaskStatusUpdateEvent {
+	return TaskStatusUpdateEvent{
+		TaskID:    t.ID,
+		ContextID: t.ContextID,
+		Kind:      "status-update",
+		Status:    t.Status,
+		Final:     final,
+	}
 }
 
 // Task is the unit of work returned by message/send and tasks/get.
@@ -534,14 +575,11 @@ func (d *dispatcher) stream(ctx context.Context, w http.ResponseWriter, req rpcR
 		writeRPC(w, req.ID, nil, e)
 		return
 	}
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(sseWriter{w: w}).Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task})
-	if f, ok := w.(http.Flusher); ok {
-		f.Flush()
-	}
+	enc, flush := sseResponse(w)
+	// The Task snapshot first (carries ids and the final artifact), then a
+	// terminal status-update so external SSE clients see `final:true` and stop.
+	writeSSE(enc, flush, req.ID, task)
+	writeSSE(enc, flush, req.ID, statusUpdateEvent(task, true))
 }
 
 func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, req rpcRequest, invoke StreamInvoke, fallback Invoke) {
@@ -565,46 +603,53 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 		return
 	}
 	defer stream.Close()
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.WriteHeader(http.StatusOK)
-	enc := json.NewEncoder(sseWriter{w: w})
-	flush := func() {
-		if f, ok := w.(http.Flusher); ok {
-			f.Flush()
-		}
-	}
+	enc, flush := sseResponse(w)
 	taskID := uuid.New().String()
 	contextID := p.Message.ContextID
 	if contextID == "" {
 		contextID = uuid.New().String()
 	}
+	// One artifact id for the whole stream so append:true chunks target it.
+	artifactID := uuid.New().String()
+
+	// Open with the Task snapshot (working) so the client learns the ids.
+	initial := taskFromReplyWithIDs(p.Message, "", stateWorking, taskID, contextID)
+	d.store(initial)
+	writeSSE(enc, flush, req.ID, initial)
+
 	var reply strings.Builder
 	for {
 		chunk, err := stream.Recv()
 		if err == io.EOF {
 			task := taskFromReplyWithIDs(p.Message, reply.String(), stateCompleted, taskID, contextID)
 			d.store(task)
-			_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task})
-			flush()
+			// Spec-shaped terminal: a status-update with final:true — not a
+			// full Task snapshot, which carries no terminal marker.
+			writeSSE(enc, flush, req.ID, statusUpdateEvent(task, true))
 			return
 		}
 		if err != nil {
 			task := taskFromReplyWithIDs(p.Message, "error: "+err.Error(), stateFailed, taskID, contextID)
 			d.store(task)
-			_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task, Error: &rpcError{Code: errInternal, Message: err.Error()}})
-			flush()
+			// A failed status-update (final) — never `result` and `error`
+			// together in one response, which strict clients reject.
+			writeSSE(enc, flush, req.ID, statusUpdateEvent(task, true))
 			return
 		}
 		if chunk == nil || chunk.Reply == "" {
 			continue
 		}
 		reply.WriteString(chunk.Reply)
-		task := taskFromReplyWithIDs(p.Message, reply.String(), stateWorking, taskID, contextID)
-		d.store(task)
-		_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: task})
-		flush()
+		// Emit the delta as an append artifact-update; keep the stored task
+		// current for tasks/get and resubscribe watchers.
+		d.store(taskFromReplyWithIDs(p.Message, reply.String(), stateWorking, taskID, contextID))
+		writeSSE(enc, flush, req.ID, TaskArtifactUpdateEvent{
+			TaskID:    taskID,
+			ContextID: contextID,
+			Kind:      "artifact-update",
+			Artifact:  Artifact{ArtifactID: artifactID, Parts: []Part{{Kind: "text", Text: chunk.Reply}}},
+			Append:    true,
+		})
 	}
 }
 
@@ -653,20 +698,16 @@ func (d *dispatcher) resubscribe(ctx context.Context, w http.ResponseWriter, req
 	}
 	defer unsubscribe()
 
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.WriteHeader(http.StatusOK)
-	enc := json.NewEncoder(sseWriter{w: w})
-	flush := func() {
-		if f, ok := w.(http.Flusher); ok {
-			f.Flush()
-		}
-	}
+	enc, flush := sseResponse(w)
 	writeEvent := func(t *Task) bool {
-		_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: t})
-		flush()
-		return isTerminal(t.Status.State)
+		writeSSE(enc, flush, req.ID, t)
+		if isTerminal(t.Status.State) {
+			// Close the stream with a spec-shaped terminal marker so external
+			// clients see `final:true`.
+			writeSSE(enc, flush, req.ID, statusUpdateEvent(t, true))
+			return true
+		}
+		return false
 	}
 	if writeEvent(task) {
 		return
@@ -1027,6 +1068,27 @@ func requestContext(parent context.Context) context.Context {
 		cancel()
 	}()
 	return ctx
+}
+
+// sseResponse writes the SSE response headers and returns an encoder and a
+// flush func for emitting `data:`-framed JSON-RPC events.
+func sseResponse(w http.ResponseWriter) (*json.Encoder, func()) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	enc := json.NewEncoder(sseWriter{w: w})
+	return enc, func() {
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}
+}
+
+// writeSSE emits one JSON-RPC event (result only — never with an error) and flushes.
+func writeSSE(enc *json.Encoder, flush func(), id json.RawMessage, result any) {
+	_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: id, Result: result})
+	flush()
 }
 
 type sseWriter struct {
