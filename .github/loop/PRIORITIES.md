@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Normalize provider error status in agent inspection** ([#4777](https://github.com/micro/go-micro/issues/4777)) — #4775 closed the retry/timeout controls gap, so the next highest-value user-facing gap is operability when a provider still fails: classify timeout, cancellation, rate-limit, auth/configuration, and transient provider errors into stable RunInfo/inspect/tracing details so developers know whether to retry, fix credentials, raise deadlines, or wait out an outage without changing provider public APIs.
+1. **Add Gemini provider streaming support** ([#4784](https://github.com/micro/go-micro/issues/4784)) — #4782 closed the provider failure inspection gap, so the next highest-value user-facing gap is the last plain chat streaming hole in provider coverage: implement usable Gemini `ai.Stream` support so `micro chat`, agent streaming, and A2A streaming behave consistently across supported providers, with focused parser/error coverage and no broad public API changes.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
