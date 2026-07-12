@@ -59,6 +59,9 @@ type Options struct {
 	// ModelRetryBackoff is the base delay between transient provider failures
 	// (grows exponentially per attempt when retries are enabled).
 	ModelRetryBackoff time.Duration
+	// ModelRetryJitter adds up to this random delay to each provider retry
+	// backoff. Default 0 preserves deterministic timing unless explicitly set.
+	ModelRetryJitter time.Duration
 	// ToolTimeout bounds each tool execution (0 disables). The timeout is
 	// applied before custom tools, delegate, and service RPC calls so context
 	// deadlines propagate consistently through the agent loop.
@@ -273,6 +276,12 @@ func ModelRetry(maxAttempts int, backoff time.Duration) Option {
 		o.ModelMaxAttempts = maxAttempts
 		o.ModelRetryBackoff = backoff
 	}
+}
+
+// ModelRetryJitter adds bounded random jitter to provider retry backoff.
+// Set 0 to disable.
+func ModelRetryJitter(d time.Duration) Option {
+	return func(o *Options) { o.ModelRetryJitter = d }
 }
 
 // ToolRetry sets the tool retry budget and backoff for transient failures.

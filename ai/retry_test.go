@@ -423,3 +423,15 @@ func TestHTTPErrorExposesStatusAndRetryAfter(t *testing.T) {
 		t.Fatalf("RetryAfter() = %s, want 2s", got)
 	}
 }
+
+func TestRetryBackoffAddsBoundedJitter(t *testing.T) {
+	const base = 10 * time.Millisecond
+	const jitter = 5 * time.Millisecond
+
+	for range 100 {
+		got := retryBackoffWithJitter(errors.New("temporary"), 1, base, jitter)
+		if got < base || got > base+jitter {
+			t.Fatalf("retryBackoffWithJitter() = %s, want in [%s, %s]", got, base, base+jitter)
+		}
+	}
+}
