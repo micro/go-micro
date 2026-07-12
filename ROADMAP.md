@@ -34,7 +34,7 @@ default.
 
 The forward work is **net-new capability**, not more hardening. Maintenance
 (conformance, resilience, DX polish) continues in the background (see *Ongoing*
-below) — but it is not the roadmap. These bets are.
+below) — but it is not the roadmap. This capability work is.
 
 ## Now — capability
 
@@ -79,7 +79,7 @@ Continuous but **capped** so it never crowds out capability: cross-provider
 conformance, failure/resilience (timeouts, cancellation, retry/backoff), the
 0→1 and 0→hero getting-started contract, streaming/observability coherence, and a
 seamless CLI inner loop (scaffold → run → chat → inspect → deploy). Real, but
-maintenance — the loop should spend the majority of its cycles on the bets above,
+maintenance — the loop should spend the majority of its cycles on the capability above,
 not here.
 
 ## How it's sustained
