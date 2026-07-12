@@ -157,6 +157,11 @@ type Options struct {
 	// (the /mcp/call endpoint). Listing tools and health stay free.
 	// Opt-in: leave nil to disable payments.
 	Payment *x402.Config
+
+	// ReflectedGRPCTargets exposes unary methods from external gRPC servers
+	// that support server reflection as MCP tools. This bridges existing gRPC
+	// services into the agent tool catalog without requiring go-micro handlers.
+	ReflectedGRPCTargets []ReflectedGRPCTarget
 }
 
 // Server represents a running MCP gateway
@@ -285,6 +290,10 @@ func (s *Server) discoverServices() error {
 
 	s.toolsMu.Lock()
 	defer s.toolsMu.Unlock()
+
+	if err := s.discoverReflectedGRPC(); err != nil {
+		return err
+	}
 
 	for _, svc := range services {
 		// Get full service details
