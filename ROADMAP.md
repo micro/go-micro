@@ -32,44 +32,55 @@ default.
    and history, end to end.
 5. Battle-tested: works across every provider, fails safely, observable.
 
-## Now — hardening
+The forward work is **net-new capability**, not more hardening. Maintenance
+(conformance, resilience, DX polish) continues in the background (see *Ongoing*
+below) — but it is not the roadmap. These bets are.
 
-- **Cross-provider conformance** — the same agent scenario across all seven
-  providers, gated on keys, on a schedule.
-- **Failure & resilience** — timeouts, rate limits, cancellation, deadline/context
-  propagation, retry/backoff.
-- **Getting-started contract** — define and CI-verify the 0→1 and 0→hero flows.
+## Now — capability
 
-## Shipped agent depth
+- **Agents that pay (x402 buyer in the runtime).** The seller side ships (paid
+  tools via the `wrapper/x402` middleware) and the buyer `x402.Client` (a
+  budget-capped `Payer` that turns a `402` into pay-and-retry) exists — but an
+  agent can't yet *autonomously* pay for a paid tool. Wire the buyer into the
+  agent tool loop: a budget-capped `AgentPayer` so an agent that hits a
+  payment-required tool settles it within budget and retries, with the spend
+  gated (like `ApproveTool`) and observable in `RunInfo`/traces. This makes
+  go-micro a runtime for **autonomous agent commerce**. *(flagship — decomposed
+  into issues in the loop queue)*
+- **AP2 mandate foundation** ([#3552](https://github.com/micro/go-micro/issues/3552))
+  — verifiable payment **mandates** (a Checkout Mandate and a Payment Mandate),
+  signed and attached over A2A, with the Payment Mandate naming an x402 rail. The
+  authorization/audit layer above A2A + x402 that positions go-micro early in the
+  emerging agent-payments standard (Google's AP2, standardized via FIDO).
+  Additive and opt-in.
 
-- **Durable agent loop** — opt-in `Checkpoint` support lets agent `Ask` and
-  streaming runs persist, list pending work, and resume without replaying completed
-  tool calls. Human-input pauses resume through explicit input helpers.
-- **Agent observability** — agent `RunInfo` now feeds OpenTelemetry spans/events
-  across runs, model turns, tool calls, retries, delegation lineage, and resume
-  checkpoints.
+## Next — reach & deployment
 
-## Next — agentic depth
+- **gRPC-reflection MCP** — derive MCP tools from *any* gRPC service via server
+  reflection, not just go-micro-native handlers. Point the gateway at an external
+  gRPC service and its methods become agent tools — a large jump in what an agent
+  can operate.
+- **Kubernetes operator + CRDs** — `Agent`, `Service`, and `Flow` as first-class
+  Kubernetes resources; an operator reconciles them into Deployments wired to the
+  registry. The production deployment story for teams already on K8s.
 
-- **Streaming** — broaden provider-backed `ai.Stream` coverage and keep chat/A2A streaming end to end.
-- **Resume operations polish** — keep improving CLI/docs breadcrumbs for finding
-  pending agent runs and deciding whether to call resume, resume-input, or stream
-  resume in production.
-- **Observability hardening** — keep span attributes and run inspection coherent
-  across agents, flows, and gateways as more providers and workflow paths are
-  exercised.
+## Later — exploratory
 
-## Later
+- **Runtime-fitness loop** — a persistently-running dogfood app (Mu) plus an
+  operator/canary loop role, so the autonomous loop evolves go-micro against
+  **real runtime signal** (latency, errors, cost) with canary + rollback — not
+  just green CI. The demand signal the loop is missing today.
+- **HTTP/3 transport**; richer A2A live-stream reconnection (`tasks/resubscribe`,
+  `input-required` handoffs); memory management (summarization, retrieval/RAG).
 
-- Memory management (summarization, retrieval/RAG); human-in-the-loop pause/resume;
-  richer A2A live-stream reconnection (`tasks/resubscribe`) and `input-required`
-  handoffs.
+## Ongoing — hardening & DX (background, not the headline)
 
-## Developer experience (ongoing)
-
-- A seamless CLI inner loop (scaffold → run → chat → inspect → deploy); UI
-  discipline (trim what isn't great); a maintained real-world example that doubles
-  as the 0→hero reference; docs kept in lockstep with the code.
+Continuous but **capped** so it never crowds out capability: cross-provider
+conformance, failure/resilience (timeouts, cancellation, retry/backoff), the
+0→1 and 0→hero getting-started contract, streaming/observability coherence, and a
+seamless CLI inner loop (scaffold → run → chat → inspect → deploy). Real, but
+maintenance — the loop should spend the majority of its cycles on the bets above,
+not here.
 
 ## How it's sustained
 
