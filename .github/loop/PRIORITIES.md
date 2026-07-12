@@ -24,11 +24,10 @@ rewrites.
 
 ### Capability — the headline (roadmap: Now / Next)
 
-1. **Agents that pay — wire the x402 buyer into the agent runtime** ([#4786](https://github.com/micro/go-micro/issues/4786)) — the flagship. The buyer `x402.Client`/`Payer`/budget already exists; wire it so an agent autonomously settles a payment-required tool within budget and retries, opt-in and observable. Makes go-micro a runtime for autonomous agent commerce.
-2. **Agent spend observability** ([#4787](https://github.com/micro/go-micro/issues/4787)) — surface x402 spend in `RunInfo` and OpenTelemetry so payments are inspectable like every other agent action. (Follows #4786.)
-3. **Example: an agent that pays for a paid tool** ([#4788](https://github.com/micro/go-micro/issues/4788)) — the runnable artifact that makes it real for a developer, against a mock facilitator (no live funds). (Follows #4786/#4787.)
-4. **gRPC-reflection MCP** ([#4796](https://github.com/micro/go-micro/issues/4796)) — expose external reflected gRPC services as MCP tools, not only go-micro-native handlers. A large jump in what agents can operate without requiring teams to rewrite existing services.
-5. **Kubernetes operator + CRDs foundation** ([#4797](https://github.com/micro/go-micro/issues/4797)) — add the first opt-in `Agent`, `Service`, and `Flow` resource foundation so the services → agents → workflows lifecycle has a native deployment path for Kubernetes users.
+1. **Agent spend observability** ([#4787](https://github.com/micro/go-micro/issues/4787)) — surface x402 spend in `RunInfo` and OpenTelemetry so payments are inspectable like every other agent action. (Follows #4786.)
+2. **Example: an agent that pays for a paid tool** ([#4788](https://github.com/micro/go-micro/issues/4788)) — the runnable artifact that makes it real for a developer, against a mock facilitator (no live funds). (Follows #4786/#4787.)
+3. **gRPC-reflection MCP** ([#4796](https://github.com/micro/go-micro/issues/4796)) — expose external reflected gRPC services as MCP tools, not only go-micro-native handlers. A large jump in what agents can operate without requiring teams to rewrite existing services.
+4. **Kubernetes operator + CRDs foundation** ([#4797](https://github.com/micro/go-micro/issues/4797)) — add the first opt-in `Agent`, `Service`, and `Flow` resource foundation so the services → agents → workflows lifecycle has a native deployment path for Kubernetes users.
 
 ### Background — hardening & DX (roadmap: Ongoing; capped)
 
