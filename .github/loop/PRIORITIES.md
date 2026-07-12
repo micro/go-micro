@@ -24,18 +24,18 @@ rewrites.
 
 ### Capability — the headline (roadmap: Now / Next)
 
-1. **x402 buyer safety hard stop** ([#4814](https://github.com/micro/go-micro/issues/4814)) — close the budget-cap bypass and require a real settler for paid configs before autonomous paid-tool use becomes the next thing users copy into real agents.
-2. **Kubernetes operator + CRDs foundation** ([#4797](https://github.com/micro/go-micro/issues/4797)) — add the first opt-in `Agent`, `Service`, and `Flow` resource foundation so the services → agents → workflows lifecycle has a native deployment path for Kubernetes users.
-3. **A2A external-client conformance** ([#4815](https://github.com/micro/go-micro/issues/4815)) — make the gateway easier for non-go-micro agents to discover and stream from by serving the well-known agent card path and spec SSE events.
-4. **MCP stdio/ws result conformance** ([#4813](https://github.com/micro/go-micro/issues/4813)) — return JSON tool results with explicit `isError` semantics across transports, backed by a stdio round-trip test.
+1. **A2A external-client conformance** ([#4815](https://github.com/micro/go-micro/issues/4815)) — make the gateway easier for non-go-micro agents to discover and stream from by serving the well-known agent card path and spec SSE events.
+2. **AP2 mandate foundation for agent payments** ([#4841](https://github.com/micro/go-micro/issues/4841)) — add opt-in checkout/payment mandate signing and verification so A2A-carried payment authority can settle over x402 without changing defaults.
+3. **Kubernetes CRD reconciler foundation** ([#4842](https://github.com/micro/go-micro/issues/4842)) — turn the shipped alpha `Agent`, `Service`, and `Flow` CRDs into a minimally runnable native deployment path with workload reconciliation and status conditions.
 
 ### In flight — do not re-queue
 
-- **gRPC-reflection MCP lint follow-up** ([#4824](https://github.com/micro/go-micro/issues/4824), [PR #4826](https://github.com/micro/go-micro/pull/4826)) — fixes the lint fallout from the merged reflected-gRPC MCP work.
+_None right now._
 
 ### Background — hardening & DX (roadmap: Ongoing; capped)
 
 _Background hardening is intentionally empty right now. Recent work covered first-agent
 wayfinding, plan/delegate recovery, provider fallback repair, streaming, memory
-compaction, retry controls, and provider-failure inspection. Further churn in those
+compaction, retry controls, provider-failure inspection, x402 buyer safety, gRPC-reflection MCP,
+MCP result conformance, and the alpha Kubernetes CRD surface. Further churn in those
 areas should be marked `needs-human` unless it unlocks a clear user-visible capability._
