@@ -22,6 +22,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v6/agent"
+	agentpb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/ai"
 	clt "go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
@@ -187,6 +188,36 @@ func (s *session) callAgent(ctx context.Context, name, message string) (*agent.R
 		})
 	}
 	return r, nil
+}
+
+// streamAgent calls an agent's StreamChat endpoint and prints chunks as they
+// arrive. Agents that do not expose StreamChat return an error; callers use that
+// signal to fall back to Agent.Chat.
+func (s *session) streamAgent(ctx context.Context, name, message string) error {
+	stream, err := agentpb.NewAgentService(name, s.cl).StreamChat(ctx, &agentpb.ChatRequest{Message: message})
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+	var reply strings.Builder
+	for {
+		chunk, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		if chunk == nil || chunk.Reply == "" {
+			continue
+		}
+		fmt.Print(chunk.Reply)
+		reply.WriteString(chunk.Reply)
+	}
+	if reply.Len() > 0 {
+		fmt.Println()
+	}
+	return nil
 }
 
 // buildRouterPrompt creates a system prompt for the router that
@@ -552,6 +583,11 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 	if len(s.agents) == 1 {
 		for name := range s.agents {
 			fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", name)
+			if s.stream {
+				if err := s.streamAgent(ctx, name, prompt); err == nil {
+					return nil
+				}
+			}
 			resp, err := s.callAgent(ctx, name, prompt)
 			if err != nil {
 				return err
@@ -590,6 +626,11 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 		}
 
 		fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", agentName)
+		if s.stream {
+			if err := s.streamAgent(ctx, agentName, message); err == nil {
+				return ai.ToolResult{ID: call.ID, Value: map[string]string{"agent": agentName, "streamed": "true"}, Content: `{"streamed":true}`}
+			}
+		}
 		resp, err := s.callAgent(ctx, agentName, message)
 		if err != nil {
 			return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": err.Error()}, Content: `{"error":"` + err.Error() + `"}`}

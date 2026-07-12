@@ -29,6 +29,7 @@ var _ server.Option
 
 type AgentService interface {
 	Chat(ctx context.Context, in *ChatRequest, opts ...client.CallOption) (*ChatResponse, error)
+	StreamChat(ctx context.Context, in *ChatRequest, opts ...client.CallOption) (Agent_StreamChatService, error)
 }
 
 type agentService struct {
@@ -53,6 +54,40 @@ func (c *agentService) Chat(ctx context.Context, in *ChatRequest, opts ...client
 	return out, nil
 }
 
+func (c *agentService) StreamChat(ctx context.Context, in *ChatRequest, opts ...client.CallOption) (Agent_StreamChatService, error) {
+	req := c.c.NewRequest(c.name, "Agent.StreamChat", in)
+	stream, err := c.c.Stream(ctx, req, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if err := stream.Send(in); err != nil {
+		_ = stream.Close()
+		return nil, err
+	}
+	return &agentServiceStreamChat{stream}, nil
+}
+
+type Agent_StreamChatService interface {
+	Close() error
+	Recv() (*ChatResponse, error)
+}
+
+type agentServiceStreamChat struct {
+	stream client.Stream
+}
+
+func (x *agentServiceStreamChat) Close() error {
+	return x.stream.Close()
+}
+
+func (x *agentServiceStreamChat) Recv() (*ChatResponse, error) {
+	m := new(ChatResponse)
+	if err := x.stream.Recv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // Server API for Agent service
 
 type AgentHandler interface {
@@ -62,6 +97,7 @@ type AgentHandler interface {
 func RegisterAgentHandler(s server.Server, hdlr AgentHandler, opts ...server.HandlerOption) error {
 	type agent interface {
 		Chat(ctx context.Context, in *ChatRequest, out *ChatResponse) error
+		StreamChat(ctx context.Context, stream server.Stream) error
 	}
 	type Agent struct {
 		agent
@@ -76,4 +112,40 @@ type agentHandler struct {
 
 func (h *agentHandler) Chat(ctx context.Context, in *ChatRequest, out *ChatResponse) error {
 	return h.AgentHandler.Chat(ctx, in, out)
+}
+
+func (h *agentHandler) StreamChat(ctx context.Context, stream server.Stream) error {
+	streamer, ok := h.AgentHandler.(interface {
+		StreamChat(context.Context, Agent_StreamChatStream) error
+	})
+	if !ok {
+		return fmt.Errorf("agent: StreamChat unsupported")
+	}
+	return streamer.StreamChat(ctx, &agentStreamChatStream{stream})
+}
+
+type Agent_StreamChatStream interface {
+	Close() error
+	Send(*ChatResponse) error
+	Recv() (*ChatRequest, error)
+}
+
+type agentStreamChatStream struct {
+	stream server.Stream
+}
+
+func (x *agentStreamChatStream) Close() error {
+	return x.stream.Close()
+}
+
+func (x *agentStreamChatStream) Send(m *ChatResponse) error {
+	return x.stream.Send(m)
+}
+
+func (x *agentStreamChatStream) Recv() (*ChatRequest, error) {
+	m := new(ChatRequest)
+	if err := x.stream.Recv(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }

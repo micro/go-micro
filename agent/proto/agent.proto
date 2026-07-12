@@ -7,6 +7,7 @@ option go_package = "./proto;agent";
 // Agent is the RPC interface for an AI agent.
 service Agent {
 	rpc Chat(ChatRequest) returns (ChatResponse) {}
+	rpc StreamChat(ChatRequest) returns (stream ChatResponse) {}
 }
 
 message ChatRequest {
