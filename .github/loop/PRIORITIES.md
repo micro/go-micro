@@ -21,7 +21,7 @@ changes, architectural rewrites. Those go to the human.
 
 ## Work queue (ranked)
 
-1. **Add provider retry and timeout controls for agent model calls** ([#4771](https://github.com/micro/go-micro/issues/4771)) — #4769 closed the compacted-memory summary gap, so the next highest-value user-facing gap is resilience under real provider instability: add opt-in timeout/retry/backoff controls around agent model calls, preserve cancellation/deadline semantics, and make retry/timeout state visible through existing run inspection or tracing without changing defaults.
+1. **Normalize provider error status in agent inspection** ([#4777](https://github.com/micro/go-micro/issues/4777)) — #4775 closed the retry/timeout controls gap, so the next highest-value user-facing gap is operability when a provider still fails: classify timeout, cancellation, rate-limit, auth/configuration, and transient provider errors into stable RunInfo/inspect/tracing details so developers know whether to retry, fix credentials, raise deadlines, or wait out an outage without changing provider public APIs.
 
 _Seeded by Claude Code from the roadmap + open issues; thereafter maintained by the
 architecture-review pass._
