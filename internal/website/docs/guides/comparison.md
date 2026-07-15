@@ -150,29 +150,71 @@ See [Native gRPC Compatibility](grpc-compatibility.md) for a complete guide.
 
 ## vs Dapr
 
-### Dapr Approach
-- Multi-language via sidecar
-- Rich building blocks (state, pub/sub, bindings)
-- Cloud-native focused
-- Requires running sidecar process
+[Dapr](https://dapr.io/) is a distributed application runtime. Its building
+blocks cover service invocation, state, pub/sub, bindings, secrets,
+configuration, distributed locks, actors, jobs, and workflow, usually accessed
+through a sidecar from many languages. [Dapr Agents](https://docs.dapr.io/developing-ai/dapr-agents/)
+adds an agent framework on top of those runtime capabilities.
 
-### Go Micro Approach
-- Go library, no sidecar
-- Direct service-to-service calls
-- Simpler deployment
-- Lower latency (no extra hop)
+Go Micro overlaps with Dapr on distributed-systems primitives, but the product
+shape is different: Go Micro is a Go framework where services, agents, tools,
+and flows are built from the same runtime. A service endpoint can become an
+AI-callable tool, and an agent is itself a registered service with memory,
+guardrails, planning, delegation, MCP, and A2A around it.
 
-### When to Choose Dapr
-- You have polyglot services (Node, Python, Java, etc)
-- You want portable abstractions across clouds
-- You're fully on Kubernetes
-- You need state management abstractions
+### Decision table
 
-### When to Choose Go Micro
-- You're building Go services
-- You want lower latency
-- You prefer libraries over sidecars
-- You want simpler deployment (no sidecar management)
+| Need | Prefer Go Micro | Prefer Dapr | Use both |
+|---|---|---|---|
+| **Primary language** | Your core runtime is Go and you want library-native APIs | You run a polyglot estate and want one sidecar API across languages | Go services use Go Micro while non-Go services expose Dapr APIs |
+| **Agent model** | Agents should be ordinary services: registered, discoverable, callable by RPC, MCP, and A2A | Agents are primarily Python applications using Dapr Agents | Dapr-hosted agents call Go Micro MCP tools, or Go Micro agents call Dapr-backed services |
+| **Tools** | Existing service endpoints should become tools with minimal extra code | Tools are modeled through Dapr components, bindings, or agent framework code | Use Dapr components behind Go Micro services that expose a stable tool surface |
+| **Workflows** | Deterministic steps should live beside Go services and agents in the same codebase | You want Dapr Workflow's sidecar-backed orchestration model across languages | Let Dapr own cross-language workflows and let Go Micro own Go-native agent/tool execution |
+| **State and pub/sub** | You want Go interfaces and pluggable packages directly in-process | You want component YAML and sidecar portability across backing services | Put portable infrastructure behind Dapr and domain/tool logic in Go Micro |
+| **Deployment** | You want a simple Go binary/runtime first, with Kubernetes support as an explicit deployment target | You are already standardized on Dapr sidecars in Kubernetes | Run Go Micro services in clusters that already have Dapr for shared infrastructure |
+| **Interop** | MCP and A2A are first-class requirements for exposing services and agents | Dapr's app APIs and agent framework are the integration boundary | Bridge through MCP/A2A at the agent edge and Dapr APIs at the infrastructure edge |
+
+### When to choose Dapr
+
+- You need a **polyglot** runtime contract for Node, Python, Java, .NET, Go, and
+  other services.
+- Your platform team already operates sidecars and component configuration across
+  Kubernetes clusters.
+- You want Dapr's standard building blocks for state, pub/sub, bindings, secrets,
+  actors, jobs, and workflow more than you want a Go-native service framework.
+- You are adopting Dapr Agents and want to stay in its Python-first agent stack.
+
+### When to choose Go Micro
+
+- You are building mostly in Go and want the agent harness to be the same runtime
+  as your services.
+- You want service methods and their comments/examples to become AI-callable tools
+  without maintaining a separate tool layer.
+- You want agents to be deployed, discovered, called, load-balanced, and inspected
+  like ordinary services.
+- You need MCP and A2A at the agent/service boundary, not only an internal
+  application API.
+- You prefer library-native composition and direct Go interfaces over sidecar
+  component wiring.
+
+### Where Go Micro still needs to prove itself
+
+Dapr has a mature platform narrative and broad deployment footprint. Go Micro's
+agent-harness story is sharper for Go teams, but production adoption depends on
+keeping the no-secret getting-started path green, documenting durability
+semantics clearly, proving MCP/A2A conformance with external clients, and making
+Kubernetes deployment first-class.
+
+### Practical migration path
+
+1. Start with one Go Micro service that wraps a real domain capability.
+2. Add doc comments and examples so the endpoint is useful as an agent tool.
+3. Expose it through MCP for external agents or through A2A if the capability is
+   itself an agent.
+4. If your platform already uses Dapr, keep Dapr components behind the service
+   boundary and let Go Micro present the agent/tool contract.
+5. Move deterministic multi-step work into flows only after the service/tool
+   boundary is stable.
 
 ## vs Agent Frameworks (Google ADK)
 
