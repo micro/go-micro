@@ -33,6 +33,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -64,6 +65,14 @@ type Options struct {
 	Client client.Client
 	// Logger for startup/debug output (defaults to log.Default()).
 	Logger *log.Logger
+	// AllowPushURL authorizes an outbound push-notification callback URL
+	// (tasks/pushNotificationConfig/set). Return a non-nil error to reject it.
+	// When nil, a default SSRF-safe policy applies: only http/https URLs whose
+	// host does not resolve to a loopback, private, link-local, or unspecified
+	// address are allowed, and the connection is pinned to that check at dial
+	// time (DNS-rebinding safe). Set this to permit a trusted in-cluster
+	// receiver, or to narrow delivery to an allowlist.
+	AllowPushURL func(*url.URL) error
 }
 
 // Gateway serves the A2A protocol over HTTP for the registry's agents.
@@ -87,7 +96,14 @@ func New(opts Options) *Gateway {
 		opts.BaseURL = "http://localhost" + opts.Address
 	}
 	opts.BaseURL = strings.TrimRight(opts.BaseURL, "/")
-	return &Gateway{opts: opts, disp: newDispatcher()}
+	g := &Gateway{opts: opts, disp: newDispatcher()}
+	if opts.AllowPushURL != nil {
+		// Operator owns the trust decision: use their policy and skip the
+		// built-in private-IP dial guard so trusted in-cluster hosts resolve.
+		g.disp.allowPushURL = opts.AllowPushURL
+		g.disp.guardPushDial = false
+	}
+	return g
 }
 
 // Invoke runs an agent for one message and returns its reply. It is the
@@ -98,12 +114,33 @@ type Invoke func(ctx context.Context, text string) (string, error)
 // StreamInvoke runs an agent for one message and returns streaming output chunks.
 type StreamInvoke func(ctx context.Context, text string) (ai.Stream, error)
 
+// AgentHandlerOption configures an embedded A2A agent handler.
+type AgentHandlerOption func(*dispatcher)
+
+// WithPushURLPolicy sets the push-notification callback URL policy for an
+// embedded agent handler (the analog of Options.AllowPushURL on the gateway).
+// Return a non-nil error to reject a URL. Without it, the default SSRF-safe
+// policy applies. Supplying a policy also disables the built-in private-IP dial
+// guard, so a trusted in-cluster receiver resolves.
+func WithPushURLPolicy(allow func(*url.URL) error) AgentHandlerOption {
+	return func(d *dispatcher) {
+		if allow == nil {
+			return
+		}
+		d.allowPushURL = allow
+		d.guardPushDial = false
+	}
+}
+
 // NewAgentHandler returns an http.Handler that serves the A2A protocol
 // for a single agent: its Agent Card at / and /.well-known/agent.json,
 // and the JSON-RPC endpoint at /. invoke runs the agent. This is what an
 // agent embeds to speak A2A directly, without a separate gateway.
-func NewAgentHandler(card AgentCard, invoke Invoke) http.Handler {
+func NewAgentHandler(card AgentCard, invoke Invoke, opts ...AgentHandlerOption) http.Handler {
 	d := newDispatcher()
+	for _, o := range opts {
+		o(d)
+	}
 	mux := http.NewServeMux()
 	card.URL = strings.TrimRight(card.URL, "/")
 	serveCard := func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, http.StatusOK, card) }
@@ -118,8 +155,11 @@ func NewAgentHandler(card AgentCard, invoke Invoke) http.Handler {
 
 // NewAgentStreamHandler is like NewAgentHandler, but serves A2A message/stream
 // by forwarding model chunks as server-sent task updates when stream is non-nil.
-func NewAgentStreamHandler(card AgentCard, invoke Invoke, stream StreamInvoke) http.Handler {
+func NewAgentStreamHandler(card AgentCard, invoke Invoke, stream StreamInvoke, opts ...AgentHandlerOption) http.Handler {
 	d := newDispatcher()
+	for _, o := range opts {
+		o(d)
+	}
 	mux := http.NewServeMux()
 	card.URL = strings.TrimRight(card.URL, "/")
 	serveCard := func(w http.ResponseWriter, _ *http.Request) { writeJSON(w, http.StatusOK, card) }
@@ -510,10 +550,22 @@ type dispatcher struct {
 	pushConfigs map[string]PushNotificationConfig
 	watchers    map[string]map[chan *Task]struct{}
 	order       []string // task ids in insertion order, for bounded eviction
+
+	// allowPushURL authorizes an outbound push-notification callback URL; nil
+	// means the default SSRF-safe policy. guardPushDial applies the private-IP
+	// dial guard (on unless an operator supplied a custom policy).
+	allowPushURL  func(*url.URL) error
+	guardPushDial bool
 }
 
 func newDispatcher() *dispatcher {
-	return &dispatcher{tasks: map[string]*Task{}, pushConfigs: map[string]PushNotificationConfig{}, watchers: map[string]map[chan *Task]struct{}{}}
+	return &dispatcher{
+		tasks:         map[string]*Task{},
+		pushConfigs:   map[string]PushNotificationConfig{},
+		watchers:      map[string]map[chan *Task]struct{}{},
+		allowPushURL:  defaultPushURLPolicy,
+		guardPushDial: true,
+	}
 }
 
 func (d *dispatcher) serve(w http.ResponseWriter, r *http.Request, invoke Invoke) {
@@ -751,6 +803,11 @@ func (d *dispatcher) setPushConfig(w http.ResponseWriter, req rpcRequest) {
 		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "invalid params"})
 		return
 	}
+	// Reject SSRF-unsafe callback targets before storing them.
+	if err := d.checkPushURL(p.PushNotificationConfig.URL); err != nil {
+		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "push notification url not allowed"})
+		return
+	}
 	d.mu.Lock()
 	task := d.tasks[p.ID]
 	if task != nil {
@@ -919,6 +976,11 @@ func (d *dispatcher) deliverPush(taskID string, task *Task) {
 	if !ok || cfg.URL == "" || task == nil {
 		return
 	}
+	// Defense in depth: re-validate the callback URL at delivery time in case
+	// the policy tightened or the config was set before it applied.
+	if err := d.checkPushURL(cfg.URL); err != nil {
+		return
+	}
 	body, err := json.Marshal(task)
 	if err != nil {
 		return
@@ -933,7 +995,7 @@ func (d *dispatcher) deliverPush(taskID string, task *Task) {
 	if cfg.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+cfg.Token)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := d.pushClient().Do(req)
 	if err == nil && resp.Body != nil {
 		_ = resp.Body.Close()
 	}
