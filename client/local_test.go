@@ -81,15 +81,15 @@ func callEcho(t testing.TB, cl client.Client, msg string) EchoRsp {
 	return out
 }
 
-// TestLocalDispatchMatchesNetwork proves the in-process fast-path returns the
+// TestLocalMatchesNetwork proves the in-process fast-path returns the
 // exact same result as the network path for the same handler and request.
-func TestLocalDispatchMatchesNetwork(t *testing.T) {
+func TestLocalMatchesNetwork(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
 	stop := startEchoServer(t, reg)
 	defer stop()
 
-	net := newEchoClient(reg)                           // network path
-	local := newEchoClient(reg, client.LocalDispatch()) // in-process fast-path
+	net := newEchoClient(reg)                   // network path
+	local := newEchoClient(reg, client.Local()) // in-process fast-path
 
 	netRsp := callEcho(t, net, "hi")
 	localRsp := callEcho(t, local, "hi")
@@ -102,16 +102,16 @@ func TestLocalDispatchMatchesNetwork(t *testing.T) {
 	}
 }
 
-// TestLocalDispatchFallsBackWhenNotLocal confirms a service not registered
-// in-process still works via the network path even with LocalDispatch on.
-func TestLocalDispatchFallsBackWhenNotLocal(t *testing.T) {
+// TestLocalFallsBackWhenNotLocal confirms a service not registered
+// in-process still works via the network path even with Local on.
+func TestLocalFallsBackWhenNotLocal(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
 	stop := startEchoServer(t, reg)
 	defer stop()
 
-	// LocalDispatch is on, but the call still resolves — the fast-path only
+	// Local is on, but the call still resolves — the fast-path only
 	// engages when it fully applies, otherwise the network path runs.
-	local := newEchoClient(reg, client.LocalDispatch())
+	local := newEchoClient(reg, client.Local())
 	if got := callEcho(t, local, "x").Msg; got != "echo:x" {
 		t.Fatalf("reply = %q, want echo:x", got)
 	}
@@ -136,4 +136,4 @@ func benchmarkEcho(b *testing.B, opts ...client.Option) {
 }
 
 func BenchmarkNetworkCall(b *testing.B) { benchmarkEcho(b) }
-func BenchmarkLocalCall(b *testing.B)   { benchmarkEcho(b, client.LocalDispatch()) }
+func BenchmarkLocalCall(b *testing.B)   { benchmarkEcho(b, client.Local()) }

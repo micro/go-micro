@@ -69,10 +69,10 @@ type Options struct {
 	PoolTTL          time.Duration
 	PoolCloseTimeout time.Duration
 
-	// LocalDispatch, when true, lets a unary Call to a service running in this
+	// Local, when true, lets a unary Call to a service running in this
 	// same process skip the network transport and dispatch directly to that
 	// server's handlers (raw byte bodies only). Off by default.
-	LocalDispatch bool
+	Local bool
 }
 
 // CallOptions are options used to make calls to a server.
@@ -186,14 +186,14 @@ func ContentType(ct string) Option {
 	}
 }
 
-// LocalDispatch enables the in-process fast-path: a unary Call to a service
+// Local enables the in-process fast-path: a unary Call to a service
 // running in the same process dispatches straight to that server's handlers
 // (skipping dial, codec-over-socket, and the transport pump) when both request
 // and response bodies are raw frames (codec/bytes.Frame) — the shape agent,
 // MCP, and flow tool calls use. Falls back to the network path otherwise.
-func LocalDispatch() Option {
+func Local() Option {
 	return func(o *Options) {
-		o.LocalDispatch = true
+		o.Local = true
 	}
 }
 

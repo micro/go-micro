@@ -10,7 +10,7 @@ import (
 	"go-micro.dev/v6/transport/headers"
 )
 
-// localCall is the in-process fast-path for Call. When LocalDispatch is enabled
+// localCall is the in-process fast-path for Call. When Local is enabled
 // and the callee runs in this same process, a unary request whose body and
 // response are raw frames (codec/bytes.Frame) is dispatched straight to the
 // server's handlers via internal/network — no dial, no codec-over-socket,
@@ -19,7 +19,7 @@ import (
 // service not registered in-process), so behavior is unchanged unless the
 // fast-path fully applies.
 func (r *rpcClient) localCall(ctx context.Context, req Request, resp interface{}) (handled bool, err error) {
-	if !r.opts.LocalDispatch || req.Stream() {
+	if !r.opts.Local || req.Stream() {
 		return false, nil
 	}
 	reqFrame, ok := req.Body().(*raw.Frame)

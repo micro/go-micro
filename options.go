@@ -8,6 +8,7 @@ var Broker = service.Broker
 var Cache = service.Cache
 var Cmd = service.Cmd
 var Client = service.Client
+var Local = service.Local
 var Context = service.Context
 var Handle = service.Handle
 var HandleSignal = service.HandleSignal
