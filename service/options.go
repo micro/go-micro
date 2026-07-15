@@ -111,6 +111,18 @@ func Client(c client.Client) Option {
 	}
 }
 
+// Local enables the in-process fast-path on the service's client: a
+// unary call to another service running in the same process — agent tool calls,
+// flow dispatch, gateway → service — skips the network transport and dispatches
+// straight to that server's handlers (see client.Local). Off by
+// default; it falls back to the network path for anything not co-located, so
+// it is a pure win for all-in-one binaries and a no-op for distributed ones.
+func Local() Option {
+	return func(o *Options) {
+		_ = o.Client.Init(client.Local())
+	}
+}
+
 // Context specifies a context for the service.
 // Can be used to signal shutdown of the service and for extra option values.
 func Context(ctx context.Context) Option {
