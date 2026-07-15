@@ -48,7 +48,7 @@ Clean, spec-aware scaffold; no real money can move.
 ## Foundations (Mu-discovered)
 
 ### In-process dispatch — `client/`, `transport/`
-- **MAJOR** `client/rpc_client.go:148` — no in-process fast-path: an in-process `Call` still dials a transport and simulates a network hop; `transport/memory.go:82` double-serializes (gob over a pipe on top of the RPC codec) with ~4–5 goroutine handoffs. ~64µs/187 allocs confirmed. → a local transport / direct `router.ServeRequest` dispatch (the server already keeps a process-local handler table; the codec already passes `*Frame` bodies through unserialized). **Moderate, low-risk; plausibly low-single-digit µs.**
+- **MAJOR** `client/rpc_client.go:148` — no in-process fast-path: an in-process `Call` still dials a transport and simulates a network hop; `transport/memory.go:82` double-serializes (gob over a pipe on top of the RPC codec) with ~4–5 goroutine handoffs. ~64µs/187 allocs confirmed. → a local transport / direct `router.ServeRequest` dispatch (the server already keeps a process-local handler table; the codec already passes `*Frame` bodies through unserialized). **Low-risk; plausibly low-single-digit µs.**
 
 ### Durable agentic workflow — `flow/`
 `flow/` is genuinely close on the *deterministic* axis (checkpoints, resumes without replaying completed steps, `ParentID`, retry). The gap is the *agentic* axis:
