@@ -25,7 +25,7 @@ vs *grooms a proxy*, not *capability* vs *hardening*.
 Works as go-micro plumbing; does not speak MCP to the outside world.
 
 - **BLOCKER** `mcp.go:610` — default HTTP transport is bespoke `{tool,input}` REST, not JSON-RPC/MCP. A conformant JSON-RPC handler exists (`httpjsonrpc.go` `NewHandler`) but is **never mounted**. → mount it / implement Streamable HTTP; unify transports behind one pre-call pipeline.
-- **BLOCKER** `stdio.go:323`, `websocket.go:302` — tool results are `fmt.Sprintf("%v", result)` → Go map-syntax, not JSON, on the path Claude Desktop uses. **Zero stdio tests.** → marshal JSON; add a stdio round-trip test.
+- **BLOCKER** `stdio.go:327`, `websocket.go:306` — tool results are `fmt.Sprintf("%v", result)` → Go map-syntax, not JSON, on the path Claude Desktop uses. **Zero stdio tests.** → marshal JSON; add a stdio round-trip test.
 - **BLOCKER** `stdio.go:297`, `websocket.go:278` — downstream errors returned as JSON-RPC protocol errors, not `{isError:true}` results. → wrap as tool-error results.
 - **BLOCKER** `websocket.go:20` — `CheckOrigin` always `true` (DNS-rebinding); and `/mcp/ws` **bypasses payment + circuit breaker** → paid tools free over WS. → origin allowlist; one shared pre-call pipeline.
 - **MAJOR** deregistered tools never pruned (`mcp.go:280`); watcher never recovers + no `list_changed` (`mcp.go:564`); unbounded goroutines, no `recover()` (`stdio.go:112`); no HTTP/WS timeouts or body limits; unauthenticated `micro_store_write`/`micro_broker_publish` by default (`mcp.go:474`).
