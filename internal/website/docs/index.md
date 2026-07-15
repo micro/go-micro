@@ -64,7 +64,7 @@ Otherwise continue to read the docs for more information about the framework.
 
 ## Advanced
 
-- [Framework Comparison](guides/comparison.html)
+- [Framework Comparison](guides/comparison.html) - Including Go Micro vs Dapr for agents, services, and workflows
 - [Architecture Decisions](architecture/)
 - [Real-World Examples](examples/realworld/)
 - [Migration Guides](guides/migration/)
