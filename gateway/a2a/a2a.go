@@ -27,6 +27,7 @@ package a2a
 
 import (
 	"context"
+	"crypto/ed25519"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,6 +74,12 @@ type Options struct {
 	// time (DNS-rebinding safe). Set this to permit a trusted in-cluster
 	// receiver, or to narrow delivery to an allowlist.
 	AllowPushURL func(*url.URL) error
+	// AP2PublicKey, when set, verifies AP2 payment/checkout mandates carried on
+	// incoming A2A messages against this Ed25519 key and records the outcome in
+	// each task's ap2Verifications (signature + task/context binding). When
+	// unset, mandates are carried through unverified. This is opt-in so the
+	// default flow stays free of a payment trust decision.
+	AP2PublicKey ed25519.PublicKey
 }
 
 // Gateway serves the A2A protocol over HTTP for the registry's agents.
@@ -103,6 +110,12 @@ func New(opts Options) *Gateway {
 		g.disp.allowPushURL = opts.AllowPushURL
 		g.disp.guardPushDial = false
 	}
+	if len(opts.AP2PublicKey) > 0 {
+		pub := opts.AP2PublicKey
+		g.disp.ap2Verify = func(s AP2SignedMandate, task Task) AP2Verification {
+			return VerifyAP2ForTask(s, pub, task, nil)
+		}
+	}
 	return g
 }
 
@@ -129,6 +142,21 @@ func WithPushURLPolicy(allow func(*url.URL) error) AgentHandlerOption {
 		}
 		d.allowPushURL = allow
 		d.guardPushDial = false
+	}
+}
+
+// WithAP2PublicKey verifies AP2 mandates carried on incoming messages against
+// pub (the embedded-handler analog of Options.AP2PublicKey), recording the
+// outcome in each task's ap2Verifications. Without it, mandates are carried
+// unverified.
+func WithAP2PublicKey(pub ed25519.PublicKey) AgentHandlerOption {
+	return func(d *dispatcher) {
+		if len(pub) == 0 {
+			return
+		}
+		d.ap2Verify = func(s AP2SignedMandate, task Task) AP2Verification {
+			return VerifyAP2ForTask(s, pub, task, nil)
+		}
 	}
 }
 
@@ -556,6 +584,10 @@ type dispatcher struct {
 	// dial guard (on unless an operator supplied a custom policy).
 	allowPushURL  func(*url.URL) error
 	guardPushDial bool
+
+	// ap2Verify, when non-nil, verifies each AP2 mandate carried on a task and
+	// records the result in the task's AP2Verifications. Nil = carry unverified.
+	ap2Verify func(AP2SignedMandate, Task) AP2Verification
 }
 
 func newDispatcher() *dispatcher {
@@ -863,6 +895,15 @@ func (g *Gateway) callAgent(ctx context.Context, name, message string) (string, 
 // ---------------------------------------------------------------------------
 
 func (d *dispatcher) store(t *Task) {
+	// Verify any AP2 mandates carried on the task (opt-in) and surface the
+	// outcome so a downstream paid path can trust — or reject — the mandate.
+	if d.ap2Verify != nil && len(t.AP2Mandates) > 0 && len(t.AP2Verifications) == 0 {
+		v := make([]AP2Verification, 0, len(t.AP2Mandates))
+		for _, m := range t.AP2Mandates {
+			v = append(v, d.ap2Verify(m, *t))
+		}
+		t.AP2Verifications = v
+	}
 	d.mu.Lock()
 	_, exists := d.tasks[t.ID]
 	d.tasks[t.ID] = t
