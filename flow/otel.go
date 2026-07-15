@@ -92,7 +92,10 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 			span.SetAttributes(attribute.String(AttrFlowVerificationStatus, "failed"))
 		}
 	}
-	if err != nil {
+	if a, ok := isAwaitInput(err); ok {
+		// A suspend is normal control flow, not a step error.
+		span.SetStatus(codes.Ok, "waiting: "+a.Key)
+	} else if err != nil {
 		span.RecordError(err)
 		span.SetAttributes(attribute.String(AttrFlowErrorKind, string(ai.ClassifyError(err))))
 		span.SetStatus(codes.Error, err.Error())

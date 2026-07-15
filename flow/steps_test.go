@@ -87,6 +87,93 @@ func TestFlowCheckpointResume(t *testing.T) {
 	}
 }
 
+func TestFlowAwaitAndResumeWith(t *testing.T) {
+	mem := store.NewMemoryStore()
+	var firstCalls int
+	var secondInput string
+
+	steps := []Step{
+		{Name: "first", Run: func(_ context.Context, in State) (State, error) {
+			firstCalls++
+			in.Data = []byte("first-done")
+			return in, nil
+		}},
+		AwaitStep("approval", "approve", "Approve to continue?"),
+		{Name: "second", Run: func(_ context.Context, in State) (State, error) {
+			secondInput = in.String()
+			in.Data = []byte("second-done")
+			return in, nil
+		}},
+	}
+
+	f := New("hitl", WithCheckpoint(StoreCheckpoint(mem, "hitl")), Steps(steps...))
+
+	// Execute suspends at the await step — a clean return, not an error.
+	if err := f.Execute(context.Background(), "start"); err != nil {
+		t.Fatalf("Execute should suspend cleanly, got %v", err)
+	}
+	if firstCalls != 1 {
+		t.Fatalf("first step calls = %d, want 1", firstCalls)
+	}
+
+	// A waiting run is not pending (restart), it needs input.
+	if pend, _ := f.Pending(context.Background()); len(pend) != 0 {
+		t.Errorf("a waiting run must not be pending, got %d", len(pend))
+	}
+	waiting, err := f.Waiting(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(waiting) != 1 {
+		t.Fatalf("waiting runs = %d, want 1", len(waiting))
+	}
+	w := waiting[0]
+	if w.Status != "waiting" || w.Await == nil || w.Await.Key != "approve" ||
+		w.Await.Prompt != "Approve to continue?" || w.Await.Step != "approval" {
+		t.Fatalf("await metadata = %+v (status %q)", w.Await, w.Status)
+	}
+	if w.State.Stage != "approval" {
+		t.Fatalf("waiting stage = %q, want approval", w.State.Stage)
+	}
+
+	// Injecting input completes the awaited step and runs the rest.
+	if err := f.ResumeWith(context.Background(), w.ID, "approved"); err != nil {
+		t.Fatalf("ResumeWith: %v", err)
+	}
+	if firstCalls != 1 {
+		t.Errorf("completed step re-ran on resume; first calls = %d", firstCalls)
+	}
+	if secondInput != "approved" {
+		t.Errorf("second step input = %q, want the injected 'approved'", secondInput)
+	}
+	if wr, _ := f.Waiting(context.Background()); len(wr) != 0 {
+		t.Errorf("no waiting runs after resume, got %d", len(wr))
+	}
+	runs, _ := StoreCheckpoint(mem, "hitl").List(context.Background())
+	if len(runs) != 1 || runs[0].Status != "done" {
+		t.Fatalf("run should be done after resume, got %+v", runs)
+	}
+	if runs[0].Await != nil {
+		t.Errorf("await metadata should be cleared after resume, got %+v", runs[0].Await)
+	}
+}
+
+func TestFlowResumeWithRejectsNonWaiting(t *testing.T) {
+	mem := store.NewMemoryStore()
+	f := New("hitl2", WithCheckpoint(StoreCheckpoint(mem, "hitl2")),
+		Steps(Step{Name: "only", Run: func(_ context.Context, in State) (State, error) { return in, nil }}))
+	if err := f.Execute(context.Background(), "x"); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	runs, _ := StoreCheckpoint(mem, "hitl2").List(context.Background())
+	if len(runs) != 1 {
+		t.Fatalf("runs = %d", len(runs))
+	}
+	if err := f.ResumeWith(context.Background(), runs[0].ID, "input"); err == nil {
+		t.Error("ResumeWith on a completed (non-waiting) run should error")
+	}
+}
+
 func TestFlowStepContextIncludesRunInfo(t *testing.T) {
 	var got ai.RunInfo
 	step := Step{Name: "inspect", Run: func(ctx context.Context, in State) (State, error) {
