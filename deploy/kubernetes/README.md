@@ -11,8 +11,13 @@ production defaults.
   `services.micro.dev`, and `flows.micro.dev`.
 - A small dependency-free mapper that turns a desired Go Micro resource into the
   Kubernetes `Deployment` shape an operator reconciliation loop will own.
-- Unit tests that validate the structural CRD fragments and dry-run the
-  Agent-to-Deployment mapping.
+- A dependency-free `Reconcile(desired, observed)` core that decides the one
+  action needed to converge (create / update / noop) and the `Ready`/`Error`
+  status conditions — no controller-runtime, no client-go, fully unit-testable.
+  A future operator binary supplies the observed state and applies the action;
+  only that adapter needs the Kubernetes client.
+- Unit tests that validate the structural CRD fragments, the Agent-to-Deployment
+  mapping, and the reconcile decision/conditions.
 
 ## Local validation
 
