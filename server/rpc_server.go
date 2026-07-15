@@ -571,6 +571,9 @@ func (s *rpcServer) Start() error {
 	// Keep the service registered to registry
 	go s.registrar(listener, addr, config, exit)
 
+	// Make this server reachable in-process for the client fast-path.
+	s.registerLocal()
+
 	s.setStarted(true)
 
 	return nil
@@ -580,6 +583,8 @@ func (s *rpcServer) Stop() error {
 	if !s.isStarted() {
 		return nil
 	}
+
+	s.deregisterLocal()
 
 	ch := make(chan error)
 	s.exit <- ch

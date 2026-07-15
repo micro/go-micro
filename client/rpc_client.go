@@ -83,6 +83,12 @@ func (r *rpcClient) call(
 	resp interface{},
 	opts CallOptions,
 ) error {
+	// In-process fast-path: if the callee runs in this process and both bodies
+	// are raw frames, dispatch directly and skip the network entirely.
+	if handled, err := r.localCall(ctx, req, resp); handled {
+		return err
+	}
+
 	address := node.Address
 	logger := r.Options().Logger
 
