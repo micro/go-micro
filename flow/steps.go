@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"text/template"
@@ -110,7 +111,8 @@ type Run struct {
 	Flow     string       `json:"flow"`
 	State    State        `json:"state"`
 	Steps    []StepRecord `json:"steps"`
-	Status   string       `json:"status"` // running | done | failed
+	Status   string       `json:"status"` // running | waiting | done | failed
+	Await    *AwaitState  `json:"await,omitempty"`
 	Started  time.Time    `json:"started"`
 	Updated  time.Time    `json:"updated"`
 }
@@ -336,6 +338,54 @@ func LLM(prompt string) StepFunc {
 	}
 }
 
+// AwaitInput is the control signal a step returns (via Await) to suspend a run
+// pending external input. runFrom recognizes it, checkpoints the run as
+// "waiting", and returns cleanly — a suspend is not a failure. ResumeWith
+// injects the input and continues.
+type AwaitInput struct {
+	Key    string // labels what is awaited (e.g. "approval")
+	Prompt string // human-facing description of the input needed
+}
+
+func (e *AwaitInput) Error() string {
+	if e.Prompt != "" {
+		return fmt.Sprintf("flow: awaiting input %q: %s", e.Key, e.Prompt)
+	}
+	return fmt.Sprintf("flow: awaiting input %q", e.Key)
+}
+
+// AwaitState records, on a suspended run, what it is waiting for.
+type AwaitState struct {
+	Step   string `json:"step"`
+	Key    string `json:"key"`
+	Prompt string `json:"prompt,omitempty"`
+}
+
+func isAwaitInput(err error) (*AwaitInput, bool) {
+	var a *AwaitInput
+	if errors.As(err, &a) {
+		return a, true
+	}
+	return nil, false
+}
+
+// Await is a StepFunc that suspends the run pending external input. The run is
+// checkpointed with status "waiting" and returned cleanly; a later call to
+// Flow.ResumeWith(ctx, runID, input) completes this step with the injected
+// input and continues to the next step. key labels what is awaited (surfaced on
+// the run and via Flow.Waiting); prompt describes the input needed.
+func Await(key, prompt string) StepFunc {
+	return func(_ context.Context, in State) (State, error) {
+		return in, &AwaitInput{Key: key, Prompt: prompt}
+	}
+}
+
+// AwaitStep is a convenience for a named await step:
+// Step{Name: name, Run: Await(key, prompt)}.
+func AwaitStep(name, key, prompt string) Step {
+	return Step{Name: name, Run: Await(key, prompt)}
+}
+
 // startRun begins a fresh run of the flow's steps with the given input.
 func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
 	if err := validateSteps(f.opts.Steps); err != nil {
@@ -421,11 +471,77 @@ func (f *Flow) Pending(ctx context.Context) ([]Run, error) {
 	}
 	var out []Run
 	for _, r := range all {
-		if r.Flow == f.name && r.Status != "done" {
+		// Waiting runs need injected input (ResumeWith), not a restart, so a
+		// recovery loop (ResumePending) should not pick them up.
+		if r.Flow == f.name && r.Status != "done" && r.Status != "waiting" {
 			out = append(out, r)
 		}
 	}
 	return out, nil
+}
+
+// Waiting returns this flow's runs suspended awaiting external input, each with
+// its Await metadata, so a caller can prompt for and inject the needed input
+// with ResumeWith.
+func (f *Flow) Waiting(ctx context.Context) ([]Run, error) {
+	if f.checkpoint == nil {
+		return nil, nil
+	}
+	all, err := f.checkpoint.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var out []Run
+	for _, r := range all {
+		if r.Flow == f.name && r.Status == "waiting" {
+			out = append(out, r)
+		}
+	}
+	return out, nil
+}
+
+// ResumeWith completes a suspended (waiting) run: it injects input for the
+// awaited step — the input becomes that step's output state — and continues
+// from the next step. It errors if the run is not waiting for input.
+func (f *Flow) ResumeWith(ctx context.Context, runID, input string) error {
+	ctx, cancel := f.withTimeout(ctx)
+	defer cancel()
+
+	if err := validateSteps(f.opts.Steps); err != nil {
+		return err
+	}
+	if f.checkpoint == nil {
+		return fmt.Errorf("flow %s has no checkpoint configured", f.name)
+	}
+	run, ok, err := f.checkpoint.Load(ctx, runID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("run %s not found", runID)
+	}
+	if run.Status != "waiting" {
+		return fmt.Errorf("run %s is not waiting for input (status %q)", runID, run.Status)
+	}
+	steps := f.opts.Steps
+	i := stepIndex(steps, run.State.Stage)
+	if i < 0 {
+		return fmt.Errorf("run %s is waiting at unknown step %q", runID, run.State.Stage)
+	}
+	// The awaited step is satisfied by the injected input; record it done and
+	// advance so runFrom re-enters at the next step.
+	run.Steps[i].Status = "done"
+	run.Steps[i].Result = truncate(input, 200)
+	run.State.Data = []byte(input)
+	if i+1 < len(steps) {
+		run.State.Stage = steps[i+1].Name
+	} else {
+		run.State.Stage = ""
+	}
+	run.Await = nil
+	run.Status = "running"
+	_, err = f.runFrom(ctx, run)
+	return err
 }
 
 // runFrom executes steps from the run's current Stage to the end,
@@ -464,6 +580,19 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 		out, attempts, verification, err := f.runStepSpan(ctx, step, run.State)
 		run.Steps[i].Attempts = attempts
 		applyVerificationRecord(&run.Steps[i], verification)
+		if await, ok := isAwaitInput(err); ok {
+			// Suspend the run pending external input — checkpoint and return
+			// cleanly (not a failure). ResumeWith injects the input later.
+			run.Steps[i].Status = "waiting"
+			run.Status = "waiting"
+			run.Await = &AwaitState{Step: step.Name, Key: await.Key, Prompt: await.Prompt}
+			if saveErr := f.save(ctx, run); saveErr != nil {
+				spanErr = saveErr
+				return run, saveErr
+			}
+			f.log.Logf(logger.InfoLevel, "Flow %s run %s waiting for input %q at step %q", f.name, run.ID, await.Key, step.Name)
+			return run, nil
+		}
 		if err != nil {
 			spanErr = err
 			run.Steps[i].Status = "failed"
@@ -537,6 +666,11 @@ func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, Ve
 			attemptCtx = ai.WithRunInfo(ctx, info)
 		}
 		out, err := step.Run(attemptCtx, in)
+		// An await signal is control flow, not a failure: suspend immediately
+		// without retrying or grading.
+		if _, ok := isAwaitInput(err); ok {
+			return in, attempt, lastVerification, err
+		}
 		if err == nil && step.Verify != nil {
 			lastVerification, err = step.Verify(attemptCtx, out)
 			if err == nil && !lastVerification.Passed {
