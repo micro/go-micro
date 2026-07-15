@@ -22,6 +22,7 @@ below is kept current between tags and rolled into the next version when it ship
 - **Model retry jitter controls** — model retry behavior can now use jitter controls to reduce synchronized retry bursts. (`ai/`, `agent/`)
 - **Compacted memory summaries** — agent memory now exposes compacted run summaries for easier inspection and recovery. (`agent/`)
 - **CLI input resume for agent runs** — the CLI can resume agent runs that require additional user input. (`cmd/micro/`, `agent/`)
+- **A2A inbound AP2 mandate verification (opt-in)** — set `Options.AP2PublicKey` (or `a2a.WithPushURLPolicy`'s sibling `a2a.WithAP2PublicKey` for embedded handlers) and the gateway verifies AP2 payment/checkout mandates carried on incoming messages — signature and task/context binding — recording the outcome in each task's `ap2Verifications`, with the x402 settlement rail carried through for the paid path. Off by default; mandates are otherwise carried unverified. (`gateway/a2a/`)
 
 ### Changed
 - **Remote agent chat streaming** — `micro chat` now streams replies from remote agents instead of waiting for the full response. (`cmd/micro/`, `agent/`)
