@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -56,9 +57,11 @@ func TestClientSendAndCard(t *testing.T) {
 
 func TestClientContinuesTaskAndConfiguresPush(t *testing.T) {
 	card := Card("solo", "http://localhost:4000", "", []string{"task"})
+	// The push receiver below is a loopback test server; authorize it as a
+	// deployment would authorize its trusted push receiver.
 	h := NewAgentHandler(card, func(_ context.Context, text string) (string, error) {
 		return "echo:" + text, nil
-	})
+	}, WithPushURLPolicy(func(*url.URL) error { return nil }))
 	ts := httptest.NewServer(h)
 	defer ts.Close()
 

@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -223,6 +224,10 @@ func TestMessageSendContinuesExistingTask(t *testing.T) {
 
 func TestPushNotificationConfigDeliversTaskUpdates(t *testing.T) {
 	d := newDispatcher()
+	// The test receiver is a loopback httptest server; authorize it the way a
+	// deployment would authorize a trusted in-cluster push receiver.
+	d.allowPushURL = func(*url.URL) error { return nil }
+	d.guardPushDial = false
 	updates := make(chan Task, 2)
 	push := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if got := r.Header.Get("Authorization"); got != "Bearer secret" {

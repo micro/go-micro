@@ -32,6 +32,7 @@ below is kept current between tags and rolled into the next version when it ship
 
 ### Security
 - **x402 spend-cap hardening** — the paying `Client` now refuses a 402 whose `maxAmountRequired` is not a positive integer (a swallowed parse error or negative amount previously bypassed the budget cap), and a new `Config.RequireSettlement` fails closed when a paid request is served by a verify-only facilitator that never captures funds. (`wrapper/x402/`)
+- **A2A push-notification SSRF guard** — the A2A gateway no longer delivers task push notifications to caller-supplied URLs that resolve to loopback, private, link-local (incl. cloud metadata), or unspecified addresses. Callbacks are validated when set and re-checked at dial time on the resolved IP (DNS-rebinding safe); non-http(s) schemes are rejected. `Options.AllowPushURL` (and `a2a.WithPushURLPolicy` for embedded handlers) lets operators authorize trusted in-cluster receivers. (`gateway/a2a/`)
 
 ---
 
