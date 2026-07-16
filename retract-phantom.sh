@@ -3,9 +3,10 @@
 #
 # Usage:  ./retract-phantom.sh [--dry-run] [--push]
 #
-# For each phantom path, creates an orphan commit containing only a go.mod
-# with a retract directive, then tags it. Master is never touched.
-# The script survives orphan ops by saving itself to /tmp and restoring after.
+# Creates 3 orphan commits (one per module base: v4, v5, v6), each containing
+# all go.mod files with retract directives for phantom paths in that base.
+# Tags each phantom path on the appropriate orphan commit. Master is never
+# touched. The script survives orphan ops by saving itself to /tmp.
 
 set -euo pipefail
 
@@ -10262,6 +10263,16 @@ PHANTOM_PATHS=(
 
 )
 
+# ── Parse into per-base arrays ──────────────────────────────────────────────
+BASES_V4=() BASES_V5=() BASES_V6=()
+for p in "${PHANTOM_PATHS[@]}"; do
+    case "$p" in
+        go-micro.dev/v4/*) BASES_V4+=("$p") ;;
+        go-micro.dev/v5/*) BASES_V5+=("$p") ;;
+        go-micro.dev/v6/*) BASES_V6+=("$p") ;;
+    esac
+done
+
 # ── Sanity checks ───────────────────────────────────────────────────────────
 for p in "${PHANTOM_PATHS[@]}"; do
     rel="${p#go-micro.dev/v[0-9]*/}"
@@ -10274,26 +10285,30 @@ restore_script() {
     chmod +x "$REPO_ROOT/retract-phantom.sh"
 }
 
-make_orphan_commit() {
-    # make_orphan_commit <module_path> <rel_path>
-    local module_path="$1" rel_path="$2"
-    local branch="retract/phantom-$$-$(date +%s%N)"
+make_shared_orphan_commit() {
+    # make_shared_orphan_commit <label> <path1> <path2> ...
+    # Creates ONE orphan commit with ALL go.mod files for this module base.
+    local label="$1"; shift
+    local branch="retract/phantom-${label}-$$-$(date +%s%N)"
     git checkout --orphan "$branch" --quiet 2>/dev/null
     git rm -rf . --quiet 2>/dev/null
     git clean -fdx --quiet 2>/dev/null
-    mkdir -p "$rel_path"
-    cat > "${rel_path}/go.mod" <<GOMOD
+    for p in "$@"; do
+        local rel="${p#go-micro.dev/v[0-9]*/}"
+        mkdir -p "$rel"
+        cat > "${rel}/go.mod" <<GOMOD
 // Phantom module path. The Go proxy cached this as a separate module.
-// Every version is retracted so 'go install ${module_path}@latest'
+// Every version is retracted so 'go install ${p}@latest'
 // falls back to the root module.
-module ${module_path}
+module ${p}
 
 go 1.24
 
 retract [v0.0.0, v1.18.2]
 GOMOD
-    git add "${rel_path}/go.mod"
-    git commit -m "retract ${module_path} (phantom)" --quiet
+        git add "${rel}/go.mod"
+    done
+    git commit -m "retract ${label} phantom paths ($# modules)" --quiet
     local sha
     sha="$(git rev-parse HEAD)"
     git checkout master --quiet 2>/dev/null
@@ -10303,19 +10318,30 @@ GOMOD
 }
 
 # ── Execute ──────────────────────────────────────────────────────────────────
-echo "Retracting ${#PHANTOM_PATHS[@]} phantom paths..."
+total=$(( ${#BASES_V4[@]} + ${#BASES_V5[@]} + ${#BASES_V6[@]} ))
+echo "Retracting ${total} phantom paths across 3 orphan commits..."
 echo ""
 
-for p in "${PHANTOM_PATHS[@]}"; do
-    rel="${p#go-micro.dev/v[0-9]*/}"
-    tag="${rel}/v1.18.2"
-    echo "--- $p ---"
-    orphan_sha="$(make_orphan_commit "$p" "$rel")"
+for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}"; do
+    IFS=: read -r label count <<< "$base_info"
+    if [[ "$count" -eq 0 ]]; then
+        echo "=== $label: no phantom paths, skipping ==="
+        continue
+    fi
+    echo "=== $label orphan commit ($count paths) ==="
     if $DRY_RUN; then
-        echo "[dry-run] Would create tag: $tag -> $orphan_sha"
+        echo "[dry-run] Would create 1 orphan commit with ${count} go.mod files"
+        echo "[dry-run] Would tag ${count} paths on that commit"
     else
-        git tag -a "$tag" "$orphan_sha" -m "retract $tag (phantom)" 2>/dev/null
-        echo "  tagged: $tag -> $orphan_sha"
+        orphan_sha="$(make_shared_orphan_commit "$label" "${BASES_${label}[@]}")"
+        echo "  commit: $orphan_sha"
+        declare -n ref="BASES_${label}"
+        for p in "${ref[@]}"; do
+            rel="${p#go-micro.dev/v[0-9]*/}"
+            tag="${rel}/v1.18.2"
+            git tag -a "$tag" "$orphan_sha" -m "retract $tag (phantom)" 2>/dev/null
+            echo "  tagged: $tag"
+        done
     fi
     echo ""
 done
