@@ -1,44 +1,32 @@
 #!/usr/bin/env bash
 # retract-phantom.sh — Publish orphan retraction tags for phantom module paths.
 #
-# Usage:  ./retract-phantom.sh [--dry-run] [--push]
+# Usage:  ./retract-phantom.sh [--dry-run] [--push] [--pilot]
 #
 # Creates 3 orphan commits (one per module base: v4, v5, v6), each containing
 # all go.mod files with retract directives for phantom paths in that base.
 # Tags each phantom path on the appropriate orphan commit. Master is never
 # touched. The script survives orphan ops by saving itself to /tmp.
+#
+#   --dry-run  print what would happen, create nothing
+#   --pilot    process only the first path of each base (validate end-to-end)
+#   --push     push only the new phantom tags to origin (never git push --tags)
 
 set -euo pipefail
 
 DRY_RUN=false
 PUSH=false
+PILOT=false
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=true ;;
         --push)    PUSH=true ;;
+        --pilot)   PILOT=true ;;
     esac
 done
 
-# ── Self-preservation ───────────────────────────────────────────────────────
-# Orphan commits run: git rm -rf . && git clean -fdx  (deletes this script).
-# Strategy:
-#   1. First invocation (from repo): save script + REPO_ROOT to /tmp, exec from there.
-#   2. Second invocation (from /tmp): do the work, then restore script to repo.
-
-if [[ "$0" != /tmp/retract-* ]]; then
-    REPO_ROOT="$(pwd)"
-    RUN_ID="retract-$$-$(date +%s)"
-    DEST="/tmp/${RUN_ID}.sh"
-    cp "$0" "$DEST"
-    echo "$REPO_ROOT" > "/tmp/${RUN_ID}-repo-root"
-    chmod +x "$DEST"
-    exec bash "$DEST" "$@"
-fi
-
-# --- Second invocation: we're in /tmp, REPO_ROOT is in a marker file ---
-RUN_ID="${0##*/}" ; RUN_ID="${RUN_ID%.sh}"
-REPO_ROOT="$(cat "/tmp/${RUN_ID}-repo-root" 2>/dev/null || pwd)"
-SCRIPT_CONTENT="$(cat "$0")"
+# ── Repo root ───────────────────────────────────────────────────────────────
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
 # ── Phantom paths ────────────────────────────────────────────────────────────
@@ -6074,7 +6062,6 @@ PHANTOM_PATHS=(
     go-micro.dev/v4/cmd/protoc-gen-micro/plugin/micro
     go-micro.dev/v4/cmd/protoc-gen-micro/plugin/micro/cmd
     go-micro.dev/v4/cmd/protoc-gen-micror
-    go-micro.dev/v4/cmd/protoc-gen-micro~
     go-micro.dev/v4/cmd/protoc-gen-mirco
     go-micro.dev/v4/cmd/protoc-gen-openapi
     go-micro.dev/v4/cmd/registry
@@ -10279,41 +10266,46 @@ for p in "${PHANTOM_PATHS[@]}"; do
     [[ -f "$rel/go.mod" ]] && { echo "ERROR: $p has go.mod on master — not a phantom"; exit 1; }
 done
 
+# ── Pilot mode ───────────────────────────────────────────────────────────────
+# Keep only the first path of each base so the full mechanism can be validated
+# on a tiny case before the 10k-path blast.
+if $PILOT; then
+    for b in V4 V5 V6; do
+        declare -n ba="BASES_$b"
+        ((${#ba[@]})) && ba=("${ba[0]}")
+    done
+fi
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
-restore_script() {
-    echo "$SCRIPT_CONTENT" > "$REPO_ROOT/retract-phantom.sh"
-    chmod +x "$REPO_ROOT/retract-phantom.sh"
-}
+RETRACT_MAX="v1.18.2"
 
 make_shared_orphan_commit() {
     # make_shared_orphan_commit <label> <path1> <path2> ...
-    # Creates ONE orphan commit with ALL go.mod files for this module base.
+    # Creates ONE orphan commit (no branch, no working-tree touch) holding a
+    # go.mod per path, via git plumbing. Returns the commit SHA on stdout.
     local label="$1"; shift
-    local branch="retract/phantom-${label}-$$-$(date +%s%N)"
-    git checkout --orphan "$branch" --quiet 2>/dev/null
-    git rm -rf . --quiet 2>/dev/null
-    git clean -fdx --quiet 2>/dev/null
+    local tmpidx p rel blob tree sha
+    tmpidx="$(mktemp -u)"
+    export GIT_INDEX_FILE="$tmpidx"
     for p in "$@"; do
-        local rel="${p#go-micro.dev/v[0-9]*/}"
-        mkdir -p "$rel"
-        cat > "${rel}/go.mod" <<GOMOD
-// Phantom module path. The Go proxy cached this as a separate module.
-// Every version is retracted so 'go install ${p}@latest'
-// falls back to the root module.
+        rel="${p#go-micro.dev/v[0-9]*/}"
+        blob="$(git hash-object -w --path "$rel/go.mod" <(cat <<GOMOD
 module ${p}
 
 go 1.24
 
-retract [v0.0.0, v1.18.2]
+// Phantom module path. The Go proxy cached this as a separate module.
+// Every version is retracted so 'go install ${p}@latest' errors or
+// resolves to the next non-retracted version instead of this path.
+retract [v0.0.0, ${RETRACT_MAX}]
 GOMOD
-        git add "${rel}/go.mod"
+        ))"
+        git update-index --add --cacheinfo "100644,$blob,$rel/go.mod"
     done
-    git commit -m "retract ${label} phantom paths ($# modules)" --quiet
-    local sha
-    sha="$(git rev-parse HEAD)"
-    git checkout master --quiet 2>/dev/null
-    git branch -D "$branch" --quiet 2>/dev/null
-    restore_script
+    tree="$(git write-tree)"
+    sha="$(git commit-tree "$tree" -m "retract ${label} phantom paths ($# modules)")"
+    unset GIT_INDEX_FILE
+    rm -f "$tmpidx"
     echo "$sha"
 }
 
@@ -10321,6 +10313,8 @@ GOMOD
 total=$(( ${#BASES_V4[@]} + ${#BASES_V5[@]} + ${#BASES_V6[@]} ))
 echo "Retracting ${total} phantom paths across 3 orphan commits..."
 echo ""
+
+CREATED_TAGS=()
 
 for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}"; do
     IFS=: read -r label count <<< "$base_info"
@@ -10333,21 +10327,38 @@ for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}";
         echo "[dry-run] Would create 1 orphan commit with ${count} go.mod files"
         echo "[dry-run] Would tag ${count} paths on that commit"
     else
-        orphan_sha="$(make_shared_orphan_commit "$label" "${BASES_${label}[@]}")"
+        declare -n ref="BASES_${label^^}"
+        orphan_sha="$(make_shared_orphan_commit "$label" "${ref[@]}")"
         echo "  commit: $orphan_sha"
-        declare -n ref="BASES_${label}"
         for p in "${ref[@]}"; do
             rel="${p#go-micro.dev/v[0-9]*/}"
-            tag="${rel}/v1.18.2"
-            git tag -a "$tag" "$orphan_sha" -m "retract $tag (phantom)" 2>/dev/null
+            tag="${rel}/${RETRACT_MAX}"
+            if ! git check-ref-format "refs/tags/$tag" 2>/dev/null; then
+                echo "  skip (invalid tag name): $tag" >&2
+                continue
+            fi
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null 2>&1; then
+                echo "  exists: $tag (skip)"
+                CREATED_TAGS+=("refs/tags/$tag")
+                continue
+            fi
+            if ! git tag -a "$tag" "$orphan_sha" -m "retract $tag (phantom)"; then
+                echo "ERROR: failed to create tag $tag" >&2
+                exit 1
+            fi
+            CREATED_TAGS+=("refs/tags/$tag")
             echo "  tagged: $tag"
         done
     fi
     echo ""
 done
 
-if ! $PUSH && ! $DRY_RUN; then
-    echo "All tags created locally. Run with --push to publish to origin."
+if $PUSH && ! $DRY_RUN; then
+    echo "Pushing ${#CREATED_TAGS[@]} phantom tags to origin..."
+    printf '%s\n' "${CREATED_TAGS[@]}" | xargs -n 500 git push origin
+    echo "Done. Verify with: go list -m -u <path>"
+elif ! $DRY_RUN; then
+    echo "All tags created locally. Re-run with --push to publish the phantom tags to origin."
     echo ""
     echo "After push, verify with:"
     echo "  go list -m -versions go-micro.dev/v5/api/handler"
