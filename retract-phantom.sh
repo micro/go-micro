@@ -10265,7 +10265,7 @@ PHANTOM_PATHS=(
 # ── Sanity checks ───────────────────────────────────────────────────────────
 for p in "${PHANTOM_PATHS[@]}"; do
     rel="${p#go-micro.dev/v[0-9]*/}"
-    [[ -d "$rel" ]] && { echo "ERROR: $p exists on master — not a phantom"; exit 1; }
+    [[ -f "$rel/go.mod" ]] && { echo "ERROR: $p has go.mod on master — not a phantom"; exit 1; }
 done
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
