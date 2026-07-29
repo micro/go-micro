@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "ADR-001: Plugin Architecture"
 ---
-
-# ADR-001: Plugin Architecture
 
 ## Status
 **Accepted**

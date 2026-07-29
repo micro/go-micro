@@ -1,5 +1,4 @@
 ---
-layout: default
 title: Debugging your agent
 ---
 

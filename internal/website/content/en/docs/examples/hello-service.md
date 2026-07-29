@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Hello Service"
 ---
-
-# Hello Service
 
 A minimal HTTP service using Go Micro, with a single endpoint.
 

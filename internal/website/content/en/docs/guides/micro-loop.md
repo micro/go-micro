@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "`micro loop` quickstart"
 ---
-
-# `micro loop` quickstart
 
 `micro loop` scaffolds the autonomous improvement loop that Go Micro uses on
 this repository: GitHub Actions workflows for planning, building, evaluation

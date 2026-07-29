@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Agents and Workflows"
 ---
-
-# Agents and Workflows
 
 Go Micro's AI primitives map directly onto the taxonomy in Anthropic's [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents). That post draws one distinction that matters:
 

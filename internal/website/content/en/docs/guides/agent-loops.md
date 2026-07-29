@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Agent Loops"
 ---
-
-# Agent Loops
 
 Most agent work is one-shot: a prompt goes in, an answer comes out. The next
 step in agentic systems is the **loop** — run a step over and over, letting the

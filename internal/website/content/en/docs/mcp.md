@@ -1,4 +1,6 @@
-# Model Context Protocol (MCP)
+---
+title: "Model Context Protocol (MCP)"
+---
 
 Go Micro provides built-in support for the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/), enabling AI agents like Claude to discover and interact with your microservices as tools.
 
@@ -185,4 +187,3 @@ See \`examples/mcp/documented\` for a complete working example.
 - [MCP Specification](https://modelcontextprotocol.io/)
 - [Full Documentation Guide](https://github.com/micro/go-micro/blob/master/gateway/mcp/DOCUMENTATION.md)
 - [Examples](https://github.com/micro/go-micro/tree/master/examples/mcp)
-

@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Framework Comparison"
 ---
-
-# Framework Comparison
 
 How Go Micro compares to other Go microservices frameworks.
 

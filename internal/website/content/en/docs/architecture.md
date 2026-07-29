@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Architecture"
 ---
-
-# Architecture
 
 <img src="/images/generated/architecture.jpg" alt="Go Micro architecture" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
 

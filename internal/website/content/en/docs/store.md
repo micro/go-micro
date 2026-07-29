@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Store"
 ---
-
-# Store
 
 The store provides a pluggable interface for data storage in Go Micro.
 

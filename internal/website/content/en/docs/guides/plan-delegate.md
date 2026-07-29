@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Plan & Delegate"
 ---
-
-# Plan & Delegate
 
 Every Go Micro agent has two built-in capabilities, on top of the service tools it discovers:
 

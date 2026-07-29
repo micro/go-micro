@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Health Checks"
 ---
-
-# Health Checks
 
 The `health` package provides health check functionality for microservices, including Kubernetes-style liveness and readiness probes.
 

@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "No-secret first-agent transcript"
 ---
-
-# No-secret first-agent transcript
 
 This is the fastest first-agent success path when you do not have a provider key
 handy. It starts from the maintained `examples/support` app and uses the

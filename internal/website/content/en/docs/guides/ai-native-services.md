@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Building AI-Native Services"
 ---
-
-# Building AI-Native Services
 
 This guide walks you through building a Go Micro service that is AI-native from the start — meaning AI agents can discover, understand, and call your service automatically via the Model Context Protocol (MCP).
 

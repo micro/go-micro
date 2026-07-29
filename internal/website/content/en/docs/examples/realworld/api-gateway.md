@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "API Gateway with Backend Services"
 ---
-
-# API Gateway with Backend Services
 
 A complete example showing an API gateway routing to multiple backend microservices.
 

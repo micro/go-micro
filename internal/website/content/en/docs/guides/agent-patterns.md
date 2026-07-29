@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Agent Integration Patterns"
 ---
-
-# Agent Integration Patterns
 
 This guide covers common patterns for integrating AI agents with Go Micro services, from single-agent workflows to multi-agent architectures.
 

@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Your First Agent"
 ---
-
-# Your First Agent
 
 This walkthrough builds the smallest useful Go Micro agent path: one service
 with typed endpoints, one agent scoped to that service, and one CLI conversation

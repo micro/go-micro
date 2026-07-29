@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "ADR-XXX: Title"
 ---
-
-# ADR-XXX: Title
 
 Status: Proposed  
 Date: YYYY-MM-DD

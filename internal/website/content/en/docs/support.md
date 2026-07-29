@@ -1,4 +1,6 @@
-# Commercial Support
+---
+title: "Commercial Support"
+---
 
 Go Micro is free and open source. There are two ways to get help: the community, and commercial support.
 

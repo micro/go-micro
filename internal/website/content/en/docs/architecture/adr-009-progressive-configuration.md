@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "ADR-009: Progressive Configuration"
 ---
-
-# ADR-009: Progressive Configuration
 
 ## Status
 **Accepted**

@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "0→hero reference path"
 ---
-
-# 0→hero reference path
 
 The 0→hero path is the maintained, no-secret reference for the Go Micro
 services → agents → workflows lifecycle. It ties the CLI inner loop and the

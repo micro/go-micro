@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Agent2Agent (A2A)"
 ---
-
-# Agent2Agent (A2A)
 
 Go Micro speaks the [Agent2Agent (A2A) protocol](https://a2a-protocol.org) — the open standard for agents on different frameworks to discover and call each other over HTTP. The A2A gateway is the agent-side analogue of the [MCP gateway](../mcp.html): MCP exposes your services as tools, A2A exposes your agents as agents.
 

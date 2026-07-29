@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Payments (x402)"
 ---
-
-# Payments (x402)
 
 Go Micro can require a payment before a tool runs, using [x402](https://x402.org) — the open HTTP **402 Payment Required** standard for stablecoin payments, designed for AI agents and onchain APIs. It lets every Go Micro endpoint, already exposed as an AI-callable tool, become a *paid* tool: a service answers a call with `402` and payment requirements, the client pays and retries, and the gateway verifies the payment before serving.
 

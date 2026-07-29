@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Transport"
 ---
-
-# Transport
 
 <img src="/images/generated/transport.jpg" alt="Transport" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
 

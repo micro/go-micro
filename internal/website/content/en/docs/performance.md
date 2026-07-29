@@ -1,4 +1,6 @@
-# Performance Considerations
+---
+title: "Performance Considerations"
+---
 
 ## Overview
 

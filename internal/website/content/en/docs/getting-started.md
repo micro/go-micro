@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Getting Started"
 ---
-
-# Getting Started
 
 <img src="/images/generated/getting-started.jpg" alt="Getting started with Go Micro" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />
 

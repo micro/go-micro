@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "micro run - Local Development"
 ---
-
-# micro run - Local Development
 
 `micro run` provides a complete development environment for Go microservices.
 

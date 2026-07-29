@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Service Discovery with Consul"
 ---
-
-# Service Discovery with Consul
 
 Use Consul as the service registry.
 

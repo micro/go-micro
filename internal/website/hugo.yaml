@@ -1,6 +1,13 @@
 baseURL: https://go-micro.dev
 title: Go Micro
 disableAliases: true
+
+# The pre-migration Jekyll site served pages at .html (e.g. /docs/quickstart.html),
+# and every inbound link, bookmark, SEO entry, and in-content link uses that scheme.
+# Keep ugly URLs so those keep resolving after the Hugo migration. Section index
+# pages (_index.md) and leaf bundles (blog posts) are unaffected — only single
+# content pages gain the .html suffix, which is exactly what the old URLs expect.
+uglyURLs: true
 menus:
   main:
     - name: Discord

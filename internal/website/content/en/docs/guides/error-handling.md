@@ -1,5 +1,4 @@
 ---
-layout: default
 title: Error Handling for AI Agents
 ---
 

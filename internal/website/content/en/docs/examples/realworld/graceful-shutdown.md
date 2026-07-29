@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Graceful Shutdown"
 ---
-
-# Graceful Shutdown
 
 Properly shutting down services to avoid dropped requests and data loss.
 

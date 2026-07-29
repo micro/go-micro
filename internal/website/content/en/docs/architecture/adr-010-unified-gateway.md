@@ -1,4 +1,6 @@
-# ADR-010: Unified Gateway Architecture
+---
+title: "ADR-010: Unified Gateway Architecture"
+---
 
 **Status:** Accepted
 **Date:** 2026-02-11

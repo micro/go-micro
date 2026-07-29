@@ -1,4 +1,6 @@
-# Adding an AI Provider to Go Micro
+---
+title: "Adding an AI Provider to Go Micro"
+---
 
 This guide walks you through implementing a new AI model provider for
 go-micro's `ai` package. After following these steps your provider will
