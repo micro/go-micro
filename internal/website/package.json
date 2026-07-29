@@ -4,7 +4,7 @@
   "description": "Go-Micro Framework Documentation.",
   "repository": "github:micro/go-micro.dev",
   "homepage": "https://go-micro.dev",
-  "author": "GoMicro Team Authors",
+  "author": "Go Micro Team Authors",
   "license": "Apache-2.0",
   "bugs": "https://github.com/micro/go-micro.dev/issues",
   "spelling": "cSpell:ignore docsy hugo htmltest precheck postbuild rtlcss -",

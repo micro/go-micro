@@ -84,9 +84,9 @@ imaging:
 languages:
   en:
     label: English
-    title: GoMicro
+    title: Go Micro
     params:
-      description: Go-Micro
+      description: Go Micro
   # cSpell:disable
 
 markup:
