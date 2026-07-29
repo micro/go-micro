@@ -8,7 +8,7 @@
       {{- if $cover }} td-navbar-cover td-navbar-transparent {{- end }}"
       {{- if eq (.Param "ui.navbar_theme") "dark" }} data-bs-theme="dark" {{- end }}>
 <div class="td-navbar-container container flex-column flex-md-row">
-  <a class="navbar-brand" href="{{ .Site.Home.RelPermalink }}">
+  <a class="navbar-brand" href="{{ "/" | relLangURL }}">
     {{- /**/ -}}
     <span class="navbar-brand__logo navbar-logo">
       {{- if ne .Site.Params.ui.navbar_logo false -}}
@@ -19,7 +19,7 @@
     </span>
     {{- /**/ -}}
     <span class="navbar-brand__name">
-      <span class="fw-bold fs-5"><span class="text-primary fw-bolder">Go</span>Micro</span>
+      <span class="fw-bold fs-5"><span class="text-primary fw-bolder">Go</span> Micro</span>
     </span>
     {{- /**/ -}}
   </a>
