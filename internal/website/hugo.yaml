@@ -1,0 +1,259 @@
+baseURL: https://go-micro.dev
+title: Go Micro
+disableAliases: true
+menus:
+  main:
+    - name: Discord
+      params:
+        rel: external
+      pre: <i class="fa-brands fa-discord"></i>
+      url: https://discord.gg/G8Gk5j3uXr
+      weight: 40
+    - name: GitHub
+      params:
+        rel: external
+      pre: <i class="fa-brands fa-github"></i>
+      url: https://github.com/micro/go-micro
+      weight: 50
+
+# cSpell:ignore goldmark github hugo readingtime docsy subdir lastmod pygments linenos catmullrom norsk gu slugorcontentbasename
+
+# Language settings
+contentDir: content/en
+defaultContentLanguage: en
+defaultContentLanguageInSubdir: false
+# Useful when translating.
+enableMissingTranslationPlaceholders: true
+
+enableRobotsTXT: true
+
+# Will give values to .Lastmod etc.
+enableGitInfo: true
+
+# Comment out to disable taxonomies in Docsy
+# disableKinds: [taxonomy]
+
+# You can add your own taxonomies
+taxonomies:
+  tag: tags
+  category: categories
+
+# Highlighting config
+pygmentsCodeFences: true
+pygmentsUseClasses: false
+# Use the new Chroma Go highlighter in Hugo.
+pygmentsUseClassic: false
+# pygmentsOptions: "linenos=table"
+# See https://help.farbox.com/pygments.html
+pygmentsStyle: tango
+
+mediaTypes:
+  text/redirects:
+    delimiter: ''
+
+outputFormats:
+  redirects:
+    baseName: _redirects
+    isPlainText: true
+    mediaType: text/redirects
+    root: true
+
+# Configure how URLs look like per section.
+permalinks:
+  blog: /:section/:year/:month/:day/:slugorcontentbasename
+
+# Image processing configuration.
+imaging:
+  resampleFilter: CatmullRom
+  jpeg:
+    quality: 75
+  webp:
+    quality: 75
+  avif:
+    quality: 75
+  anchor: smart
+
+# Language configuration
+languages:
+  en:
+    label: English
+    title: GoMicro
+    params:
+      description: Go-Micro
+  # cSpell:disable
+
+markup:
+  goldmark:
+    parser:
+      attribute:
+        block: true
+    renderer:
+      unsafe: true
+  highlight:
+    # See a complete list of available styles at https://xyproto.github.io/splash/docs/all.html
+    style: tango
+    noClasses: false # Required for dark-mode support of code blocks
+    # Uncomment if you want your chosen highlight style used for code blocks without a specified language
+    # guessSyntax: true
+
+# Everything below this are Site Params
+
+# Comment out if you don't want the "print entire section" link enabled.
+outputs:
+  home: [HTML, print, RSS, redirects, markdown, LLMS]
+  page: [HTML, print, RSS, markdown]
+  section: [HTML, print, RSS, markdown]
+
+params:
+  taxonomy:
+    # set taxonomyCloud = [] to hide taxonomy clouds
+    taxonomyCloud: [tags, categories]
+
+    # If used, must have same length as taxonomyCloud
+    taxonomyCloudTitle: [Tag Cloud, Categories]
+
+    # set taxonomyPageHeader = [] to hide taxonomies on the page headers
+    taxonomyPageHeader: [tags, categories]
+
+  privacy_policy: https://policies.google.com/privacy
+
+  # First one is picked as the Twitter card image if not set on page.
+  # images: [images/project-illustration.png]
+
+  # Menu title if your navbar has a versions selector to access old versions of your site.
+  # This menu appears only if you have at least one [params.versions] set.
+  version_menu: Releases
+
+  # Flag used in the "version-banner" partial to decide whether to display a
+  # banner on every page indicating that this is an archived version of the docs.
+  # Set this flag to "true" if you want to display the banner.
+  archived_version: false
+
+  # The version number for the version of the docs represented in this doc set.
+  # Used in the "version-banner" partial to display a version number for the
+  # current doc set.
+  version: 0.14.4-dev
+
+  # Internal version number with build ID.
+  versionWithBuildId: 0.14.4-dev
+
+  # Repository configuration (URLs for in-page links to opening issues and suggesting changes)
+  github_repo: https://github.com/micro/go-micro
+
+  # An optional link to a related project repo. For example, the sibling repository where your product code lives.
+  github_project_repo: https://github.com/micro/go-micro
+
+  # An go.mod vanity module name (example.com/module)
+  go_module_name: go-micro.dev
+
+  # Specify a value here if your content directory is not in your repo's root directory
+  github_subdir: internal/website
+
+  # Uncomment this if your GitHub repo does not have "main" as the default branch,
+  # or specify a new value if you want to reference another branch in your GitHub links
+  github_branch: master
+
+  # Google Custom Search Engine ID. Remove or comment out to disable search.
+  # gcs_engine_id: d72aa9b2712488cc3
+
+  # Enable Lunr.js offline search
+  offlineSearch: true
+
+  # Enable syntax highlighting and copy buttons on code blocks with Prism
+  prism_syntax_highlighting: false
+
+  copyright:
+    authors: >-
+      Go Micro [Apache 2.0
+      Licensed](https://www.apache.org/licenses/LICENSE-2.0) |
+    from_year: 2026
+    to_year: 2026
+
+  # User interface configuration
+  ui:
+    # Set to true to disable breadcrumb navigation.
+    breadcrumb_disable: false
+    # Set to false if you don't want to display a logo (/assets/icons/logo.svg) in the top navbar
+    navbar_logo: true
+    # Set to true if you don't want the top navbar to be translucent when over a `block/cover`, like on the homepage.
+    navbar_translucent_over_cover_disable: false
+
+    sidebar_menu_foldable: true
+    # Enable to show the side bar menu in its compact state.
+    sidebar_menu_compact: false
+    # Set to true to hide the sidebar search box (the top nav search box will still be displayed if search is enabled)
+    sidebar_search_disable: true
+    # Enable light/dark mode toggle menu in the navbar
+    showLightDarkModeMenu: true
+
+    # Adds a H2 section titled "Feedback" to the bottom of each doc. The responses are sent to Google Analytics as events.
+    # This feature depends on [services.googleAnalytics] and will be disabled if "services.googleAnalytics.id" is not set.
+    # If you want this feature, but occasionally need to remove the "Feedback" section from a single page,
+    # add "hide_feedback: true" to the page's front matter.
+    feedback:
+      enable: true
+      # The responses that the user sees after clicking "yes" (the page was helpful) or "no" (the page was not helpful).
+      yes: >-
+        Glad to hear it! Please <a
+        href="https://github.com/micro/go-micro/issues/new">tell us
+        how we can improve</a>.
+      no: >-
+        Sorry to hear that. Please <a
+        href="https://github.com/micro/go-micro/issues/new">tell us
+        how we can improve</a>.
+
+    # Adds a reading time to the top of each doc.
+    # If you want this feature, but occasionally need to remove the Reading time from a single page,
+    # add "hide_readingtime: true" to the page's front matter
+    readingtime:
+      enable: false
+  mainBranchPreviewURL: https://go-micro.dev/
+  # Docs helpers: use with _param
+  btn-lg: class="btn btn-lg btn-{1}" role="button"
+  FA: <i class="fa-{1} fa-{2} text-{3} px-1"></i>
+
+  links:
+    # End user relevant links. These will show up on left side of footer and in the community page if you have one.
+    user:
+      - name: Discord
+        url: https://discord.gg/jwTYuUVAGh
+        icon: fa-brands fa-discord
+        desc: Discussion and help from your fellow users
+      # - name: Stack Overflow
+      #   url: https://example.org/stack
+      #   icon: fab fa-stack-overflow
+      #   desc: Practical questions and curated answers
+    # Developer relevant links. These will show up on right side of footer and in the community page if you have one.
+    developer:
+      - name: Site info
+        url: /site/
+        icon: fa-solid fa-hammer
+        desc: Site build information.
+      - name: GitHub
+        url: https://github.com/micro/go-micro
+        icon: fab fa-github
+        desc: Development takes place here!
+      # - name: Slack
+      #   url: https://example.org/slack
+      #   icon: fab fa-slack
+      #   desc: Chat with other project developers
+      # - name: Developer mailing list
+      #   url: https://example.org/mail
+      #   icon: fa fa-envelope
+      #   desc: Discuss development issues around the project
+
+security:
+  funcs: # cspell:disable-line
+    getenv: # cspell:disable-line
+      # Netlify build env var
+      - ^(BRANCH|BUILD_ID|COMMIT_REF|CONTEXT|DEPLOY_ID|NETLIFY|PULL_REQUEST|REVIEW_ID)$
+
+module:
+  # Uncomment the next line to build and serve using local docsy clone declared in the named Hugo workspace:
+  # workspace: docsy.work
+  hugoVersion:
+    extended: true
+    min: 0.155.0
+  imports:
+    - path: github.com/google/docsy
+      disable: false

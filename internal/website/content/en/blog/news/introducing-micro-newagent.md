@@ -1,0 +1,185 @@
+---
+title: "Introducing micro.NewAgent()"
+linkTitle: "Introducing micro.NewAgent()"
+date: 2026-06-05
+description: "Agent is now a first-class abstraction in Go Micro — alongside Service and Flow. Build intelligent agents that manage your services in Go."
+category:
+- release
+tags:
+- AI
+- agents
+aliases:
+  - /blog/16
+---
+Go Micro now has three core abstractions:
+
+```go
+service := micro.NewService("task")              // capability
+agent   := micro.NewAgent("task-mgr")     // intelligence
+flow    := micro.NewFlow("onboard-user")  // event-driven orchestration
+```
+
+Service has been the foundation since 2015. Flow added event-driven LLM orchestration. Now Agent completes the picture — an intelligent layer that manages services, with scoped tools, persistent memory, and multi-agent coordination.
+
+## What an Agent Is
+
+A Service has endpoints and handles requests. An Agent knows *how* to use those endpoints intelligently. The service doesn't know about its agent. The agent knows about its services.
+
+```go
+agent := micro.NewAgent("task-mgr",
+    micro.AgentServices("task", "project"),
+    micro.AgentPrompt("You manage tasks and projects. You understand deadlines, priorities, and assignments."),
+    micro.AgentProvider("anthropic"),
+)
+agent.Run()
+```
+
+That's it. The agent:
+- Discovers `task` and `project` from the registry
+- Only sees their endpoints (scoped tools — no access to unrelated services)
+- Maintains conversation memory in the store (survives restarts)
+- Registers as a real service with a proto-defined `Agent.Chat` RPC endpoint
+- Discoverable by `micro chat`, other agents, or any go-micro client
+
+Under the hood, an agent IS a service. It has a real server, a real address, and a real proto definition:
+
+```protobuf
+service Agent {
+    rpc Chat(ChatRequest) returns (ChatResponse) {}
+}
+```
+
+This means you can call an agent the same way you call any service:
+
+```bash
+micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
+```
+
+## Talking to an Agent
+
+Programmatically:
+
+```go
+resp, _ := agent.Ask(ctx, "What tasks are overdue for Alice?")
+fmt.Println(resp.Reply)
+```
+
+Via the CLI:
+
+```bash
+micro agent list
+  ◆ task-mgr    manages: task, project
+
+micro chat
+> What tasks are overdue for Alice?
+  [task-mgr] Checking overdue tasks...
+  → task_Task_ListOverdue({"user_id":"alice"})
+  ← {"records":[...],"total":"3"}
+
+  Alice has 3 overdue tasks:
+  1. Write quarterly report (due June 1)
+  2. Review PR #42 (due June 2)
+  3. Update deployment docs (due June 3)
+```
+
+`micro chat` discovers the agent from the registry and routes to it automatically. If multiple agents are registered, the router classifies intent and dispatches to the right one.
+
+## Multi-Service Agents
+
+An agent can manage multiple services that form a domain:
+
+```go
+agent := micro.NewAgent("project-mgr",
+    micro.AgentServices("task", "project", "milestone"),
+    micro.AgentPrompt("You manage the project system. Tasks belong to projects. Milestones track progress."),
+    micro.AgentProvider("anthropic"),
+)
+```
+
+The agent understands the relationships between its services because its prompt gives it domain knowledge. It coordinates across them without the services needing to know about each other.
+
+## Multi-Agent Systems
+
+Multiple agents coordinate via RPC — each is a service with an `Agent.Chat` endpoint:
+
+```go
+// Task management agent
+taskAgent := micro.NewAgent("task-mgr",
+    micro.AgentServices("task", "project"),
+    micro.AgentPrompt("You manage tasks and projects."),
+    micro.AgentProvider("anthropic"),
+)
+
+// Communications agent
+commsAgent := micro.NewAgent("comms-mgr",
+    micro.AgentServices("notification", "email"),
+    micro.AgentPrompt("You handle notifications and emails."),
+    micro.AgentProvider("anthropic"),
+)
+```
+
+When you ask `micro chat` to "reschedule Alice's tasks and notify her," the router dispatches to both agents. Each handles its domain. The user sees one conversation.
+
+## Persistent Memory
+
+Agents remember. Conversation history is stored in the go-micro store and persists across restarts:
+
+```text
+agent/task-mgr/history     — conversation history
+```
+
+The store backend determines durability — file-backed by default, Postgres or NATS KV for production. An agent that restarts picks up where it left off.
+
+## The Three Abstractions
+
+| | Service | Agent | Flow |
+|---|---------|-------|------|
+| **What** | Capability | Intelligence | Event orchestration |
+| **Does** | Handles requests | Manages services | Reacts to events |
+| **Knows** | Its endpoints | Its services' endpoints | Its trigger topic |
+| **State** | Store | Store-backed memory | Checkpointed run history |
+| **Create** | `micro.NewService("name")` | `micro.NewAgent("name")` | `micro.NewFlow("name")` |
+| **Package** | `service/` | `agent/` | `flow/` |
+
+They compose:
+- A **Service** handles requests and stores data
+- An **Agent** orchestrates one or more services intelligently
+- A **Flow** triggers LLM orchestration when events arrive on the broker
+
+You can use any combination. Services work without agents. Agents work without flows. Each adds a layer.
+
+## Getting Started
+
+```bash
+curl -fsSL https://go-micro.dev/install.sh | sh
+
+# Generate services
+micro run --prompt "task management system"
+
+# In another terminal — talk to them
+micro chat --provider anthropic
+> Create a project called Launch and add three tasks to it
+```
+
+Or build an agent in Go:
+
+```go
+package main
+
+import "go-micro.dev/v6"
+
+func main() {
+    agent := micro.NewAgent("task-mgr",
+        micro.AgentServices("task"),
+        micro.AgentPrompt("You manage tasks."),
+        micro.AgentProvider("anthropic"),
+    )
+    agent.Run()
+}
+```
+
+The agent implementation lives under `go-micro.dev/v6/agent`; most users create agents through the top-level `go-micro.dev/v6` API. The full interface design is documented in [AGENT_DESIGN.md](https://github.com/micro/go-micro/blob/master/internal/docs/AGENT_DESIGN.md).
+
+---
+
+*Go Micro is open source. Star us on [GitHub](https://github.com/micro/go-micro), join the [Discord](https://discord.gg/G8Gk5j3uXr), or read the [docs](https://go-micro.dev/docs).*

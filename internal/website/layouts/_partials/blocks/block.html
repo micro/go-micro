@@ -1,0 +1,60 @@
+{{- $ctx := .ctx -}}
+{{- $variant := .variant | default "box" -}}
+
+{{- if eq $variant "hero" -}}
+  {{- $blockID := printf "td-cover-block-%d" $ctx.Ordinal -}}
+  {{- $col_id := $ctx.Get "color" | default "dark" -}}
+  {{/* Height can be one of: auto, min, med, max, full. */ -}}
+  {{- $height := $ctx.Get "height" | default "max" -}}
+  {{/* pattern: adds the dotted bg-pattern overlay. See DESIGN.md. */ -}}
+  {{- $pattern := $ctx.Get "pattern" | default false -}}
+
+<section id="{{ $blockID }}" class="row td-hero-block td-cover-block--height-{{ $height -}}
+    {{ if not $ctx.Site.Params.ui.navbar_translucent_over_cover_disable }} js-td-cover
+    {{- end }} -bg-{{ $col_id }}{{ if $pattern }} bg-pattern{{ end }}" {{/**/ -}}
+>
+  <div class="col-12">
+    <div class="container td-overlay__inner">
+      <div class="text-center">
+        {{ with .title -}}
+          <h1 class="display-1 mt-0 mt-md-5 pb-4">
+            {{- $title := . -}}
+            {{ $title | html -}}
+          </h1>
+        {{ end -}}
+        {{ with .subtitle -}}
+          <p class="display-2 text-uppercase mb-0">{{ . | html }}</p>
+        {{ end -}}
+        <div class="pt-3 lead">
+          {{ $ctx.Inner -}}
+        </div>
+      </div>
+    </div>
+  </div>
+  {{ with .byline | default "" -}}
+    <div class="byline">{{ . }}</div>
+  {{- end }}
+</section>
+{{/**/ -}}
+
+{{- else -}}
+
+  {{- $color := $ctx.Get "color" | default $ctx.Ordinal -}}
+  {{- $height := $ctx.Get "height" | default "auto" -}}
+  {{- $type := .type | default "container" -}}
+  {{/* pattern: adds the dotted bg-pattern overlay. padding: vertical padding utility (e.g. py-5). See DESIGN.md. */ -}}
+  {{- $pattern := $ctx.Get "pattern" | default false -}}
+  {{- $padding := .padding | default "" -}}
+
+<div><a id="td-block-{{ $ctx.Ordinal }}" class="td-anchor-no-extra-offset"></a></div>
+<section class="row td-box td-box--{{ $color }} td-box--height-{{ $height }}{{ if $pattern }} bg-pattern{{ end }}{{ with $padding }} {{ . }}{{ end }}">
+  <div class="col container">
+    <div class="{{ $type }}">
+      {{/* Do NOT remove this comment! It ends the HTML block above. See https://spec.commonmark.org/0.30/#html-blocks, 7. */}}
+      {{ $ctx.Inner -}}
+    </div>
+  </div>
+</section>
+{{/**/ -}}
+
+{{- end -}}

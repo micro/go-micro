@@ -1,0 +1,39 @@
+{{- $site := . -}}
+{{- with .Site.Data.vanity -}}
+  {{- $repo := .repository -}}
+  {{- range .modules -}}
+    {{- $module := .module -}}
+    {{- $major := .major -}}
+    {{- $site.AddPage (dict
+      "path" $major
+      "title" $module
+      "kind" "section"
+      "type" "redirect"
+      "params" (dict
+        "go_module" $module
+        "repo" $repo
+        "pkg" $module
+      )
+      "content" (dict "mediaType" "text/markdown" "value" "")
+      "draft" false
+    ) -}}
+    {{- range .packages -}}
+      {{- $pkg := . -}}
+      {{- $rel := strings.TrimPrefix (printf "%s/" $module) $pkg -}}
+      {{- if eq $rel "" -}}{{- continue -}}{{- end -}}
+      {{- $site.AddPage (dict
+        "path" (printf "%s/%s" $major $rel)
+        "title" $pkg
+        "kind" "page"
+        "type" "redirect"
+        "params" (dict
+          "go_module" $module
+          "repo" $repo
+          "pkg" $pkg
+        )
+        "content" (dict "mediaType" "text/markdown" "value" "")
+        "draft" false
+      ) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
