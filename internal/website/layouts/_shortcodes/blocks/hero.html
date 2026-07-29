@@ -1,0 +1,4 @@
+{{- /* .Inner is consumed by the blocks/block.html partial via $ctx */ -}}
+{{- $_ := .Inner -}}
+{{ partial "blocks/block.html" (dict "ctx" . "variant" "hero"
+    "title" (.Get "title") "subtitle" (.Get "subtitle") "byline" (.Get "byline")) -}}

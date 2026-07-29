@@ -1,0 +1,26 @@
+{
+  "icon": {
+    "desktop": {
+      "regularIconTransformation": {
+        "type": "none"
+      },
+      "darkIconType": "none"
+    },
+    "touch": {
+      "transformation": {
+        "type": "none"
+      },
+      "appTitle": null
+    },
+    "webAppManifest": {
+      "transformation": {
+        "type": "none"
+      },
+      "backgroundColor": "#ffffff",
+      "name": "Go Micro",
+      "shortName": "GoMicro",
+      "themeColor": "#ffffff"
+    }
+  },
+  "path": "/favicons/"
+}

@@ -1,0 +1,108 @@
+---
+title: "Broker"
+weight: 20
+description: "The broker provides pub/sub messaging for Go Micro services."
+---
+![Broker](broker.jpg)
+
+## Features
+- Publish messages to topics
+- Subscribe to topics
+- Multiple broker implementations
+
+## Implementations
+Supported brokers include:
+- HTTP (default)
+- NATS (`go-micro.dev/v6/broker/nats`)
+- RabbitMQ (`go-micro.dev/v6/broker/rabbitmq`)
+- Memory (`go-micro.dev/v6/broker/memory`)
+
+Plugins are scoped under `go-micro.dev/v6/broker/<plugin>`.
+
+Configure the broker in code or via environment variables.
+
+## Example Usage
+
+Here's how to use the broker in your Go Micro service:
+
+```go
+package main
+
+import (
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/broker"
+    "log"
+)
+
+func main() {
+    service := micro.NewService("publisher")
+    service.Init()
+
+    // Publish a message
+    if err := broker.Publish("topic", &broker.Message{Body: []byte("hello world")}); err != nil {
+        log.Fatal(err)
+    }
+
+    // Subscribe to a topic
+    _, err := broker.Subscribe("topic", func(p broker.Event) error {
+        log.Printf("Received message: %s", string(p.Message().Body))
+        return nil
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Run the service
+    if err := service.Run(); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+## Configure a specific broker in code
+
+NATS:
+```go
+import (
+    "go-micro.dev/v6"
+    bnats "go-micro.dev/v6/broker/nats"
+)
+
+func main() {
+    b := bnats.NewNatsBroker()
+    svc := micro.NewService("publisher", micro.Broker(b))
+    svc.Init()
+    svc.Run()
+}
+```
+
+RabbitMQ:
+```go
+import (
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/broker/rabbitmq"
+)
+
+func main() {
+    b := rabbitmq.NewBroker()
+    svc := micro.NewService("publisher", micro.Broker(b))
+    svc.Init()
+    svc.Run()
+}
+```
+
+## Configure via environment
+
+Using the built-in configuration flags/env vars (no code changes):
+
+```bash
+MICRO_BROKER=nats MICRO_BROKER_ADDRESS=nats://127.0.0.1:4222 go run main.go
+```
+
+Common variables:
+- `MICRO_BROKER`: selects the broker implementation (`http`, `nats`, `rabbitmq`, `memory`).
+- `MICRO_BROKER_ADDRESS`: comma-separated list of broker addresses.
+
+Notes:
+- NATS addresses should be prefixed with `nats://`.
+- RabbitMQ addresses typically use `amqp://user:pass@host:5672`.

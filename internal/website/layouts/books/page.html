@@ -1,0 +1,26 @@
+{{ define "main" }}
+  <h1>{{ .Title }}</h1>
+
+  {{ with .Resources.GetMatch "cover.*" }}
+    <img src="{{ .RelPermalink }}" width="{{ .Width }}" height="{{ .Height }}" alt="{{ .Params.alt }}">
+  {{ end }}
+
+  <p>Author: {{ .Params.author }}</p>
+
+  <p>
+    ISBN: {{ .Params.isbn }}<br>
+    Rating: {{ .Params.rating }}<br>
+    Review date: {{ .Date | time.Format ":date_long" }}
+  </p>
+
+  {{ with .GetTerms "tags" }}
+    <p>Tags:</p>
+    <ul>
+      {{ range . }}
+        <li><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></li>
+      {{ end }}
+    </ul>
+  {{ end }}
+
+  {{ .Content }}
+{{ end }}

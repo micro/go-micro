@@ -1,0 +1,22 @@
+<!doctype html>
+<html itemscope itemtype="http://schema.org/WebPage"
+    {{- with .Site.Language.LanguageDirection }} dir="{{ . }}" {{- end -}}
+    {{ with .Site.Language.Lang }} lang="{{ . }}" {{- end }} {{/**/ -}}
+    class="no-js"
+    {{- $darkMode := partialCached "dark-mode-config.html" "dark-mode-global" -}}
+    {{- if $darkMode.enable }} data-theme-init{{ end }}>
+  <head>
+    {{ partial "go-meta.html" . }}
+    {{ partial "head.html" . }}
+  </head>
+  <body class="td-{{ .Kind }}{{ with .Page.Params.body_class }} {{ . }}{{ end }}">
+    <header>
+      {{ partial "navbar.html" . }}
+    </header>
+    <main role="main" class="container-fluid td-default td-outer td-main">
+      {{ block "main" . }}{{ end }}
+    </main>
+    {{ partial "footer.html" . }}
+    {{ partialCached "scripts.html" . }}
+  </body>
+</html>

@@ -1,0 +1,12 @@
+<svg width="32" height="32" viewBox="0 0 100 100" class="hexagon">
+    <polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" 
+            fill="none" stroke="#00ADD8" stroke-width="10"/>
+    <circle cx="50" cy="50" r="8" fill="#00ADD8"/>
+    <line x1="50" y1="50" x2="50" y2="27.5" stroke="#00ADD8" stroke-width="2" opacity="0.6"/>
+    <line x1="50" y1="50" x2="72.5" y2="38.75" stroke="#00ADD8" stroke-width="2" opacity="0.6"/>
+    <line x1="50" y1="50" x2="72.5" y2="61.25" stroke="#00ADD8" stroke-width="2" opacity="0.6"/>
+    <line x1="50" y1="50" x2="50" y2="72.5" stroke="#00ADD8" stroke-width="2" opacity="0.6"/>
+    <line x1="50" y1="50" x2="27.5" y2="61.25" stroke="#00ADD8" stroke-width="2" opacity="0.6"/>
+    <line x1="50" y1="50" x2="27.5" y2="38.75" stroke="#00ADD8" stroke-width="2" opacity="0.6"/>
+</svg>
+

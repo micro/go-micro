@@ -1,0 +1,6 @@
+# Note that Prettier ignore rules differ slightly from gitignore rules. The main
+# gotcha is that once a _directory_ is ignored, it's content cannot be
+# unignored.
+
+/content/fa
+/layouts

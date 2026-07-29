@@ -1,0 +1,34 @@
+{{/* Variant can be one of: dark, light, gradient. */ -}}
+{{ $color := .Get "color" | default "dark" -}}
+{{/* Height can be one of: auto, min, med, max, full. */ -}}
+{{ $height := .Get "height" | default "max" -}}
+{{/* Content can be one of: top, bottom. */ -}}
+{{ $content := .Get "content" | default "top" -}}
+
+
+<div class="variant-card variant-card--{{ $color }} rounded-4 p-4 border border-secondary{{ with .Get "class" | default "" }} {{ . }}{{end}}">
+<div class="variant-preview d-flex align-items-center justify-content-center rounded-3 mb-3">
+{{ if eq $content "top" }}
+<div class="pt-3 lead">
+{{ .Inner -}}
+</div>
+{{ end }}
+</div>
+{{ with .Get "title" -}}
+<h3 class="fw-semibold fs-5 mb-1">
+{{- $title := . -}}
+{{ $title | html -}}
+</h3>
+{{ end -}}
+{{ with .Get "subtitle" -}}
+<p class="small text-secondary mb-0">{{ . | html }}</p>
+{{ end -}}
+
+{{ if eq $content "bottom" }}
+<div class="pt-3 lead">
+{{ .Inner -}}
+</div>
+{{ end }}
+</div>
+
+{{/**/ -}}

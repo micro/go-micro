@@ -1,0 +1,73 @@
+{
+  "name": "Go Micro Dev Site",
+  "version": "0.1.0-dev",
+  "description": "Go-Micro Framework Documentation.",
+  "repository": "github:micro/go-micro.dev",
+  "homepage": "https://go-micro.dev",
+  "author": "GoMicro Team Authors",
+  "license": "Apache-2.0",
+  "bugs": "https://github.com/micro/go-micro.dev/issues",
+  "spelling": "cSpell:ignore docsy hugo htmltest precheck postbuild rtlcss -",
+  "scripts": {
+    "_build": "npm run _hugo-dev --",
+    "_check:format": "npx prettier --check .",
+    "_check:links": "echo IMPLEMENTATION PENDING for check-links; echo",
+    "_commit:public": "HASH=$(git rev-parse --short main); cd public && git add -A && git commit --allow-empty -m \"Site at $HASH\"",
+    "_diff:check": "git diff --name-only --exit-code",
+    "_fix:permissions": "chmod -R u+w public/* 2>/dev/null || true",
+    "_get:docsy": "hugo mod get github.com/google/docsy@v$npm_package_version",
+    "_hugo-dev": "npm run _hugo -- -e dev --logLevel info -DFE",
+    "_hugo": "hugo --cleanDestinationDir",
+    "_local": "npx cross-env HUGO_MODULE_WORKSPACE=docsy.work",
+    "_serve": "npm run _hugo-dev -- --minify serve --renderToMemory",
+    "build:preview": "npm run _hugo-dev -- --minify --baseURL \"${DEPLOY_PRIME_URL:-/}\"",
+    "build:production": "npm run _hugo -- --minify",
+    "build": "npm run _build -- ",
+    "check:links:all": "HTMLTEST_ARGS= npm run _check:links",
+    "check:links": "npm run _check:links",
+    "ci:prepare": "npm run _get:docsy && hugo mod graph && hugo mod tidy",
+    "ci:test": "npm run ci:prepare && npm run fix:format && npm run test && npm run _diff:check",
+    "clean": "rm -Rf public/* resources",
+    "fix:format:diff": "npm run fix:format",
+    "fix:format": "npm run _check:format -- --write",
+    "fix": "npm run fix:format",
+    "local": "npm run _local -- npm run",
+    "make:public": "git init -b main public",
+    "post_hugo": "npm run _fix:permissions",
+    "postbuild:preview": "npm run _check:links",
+    "postbuild:production": "npm run _check:links",
+    "precheck:links:all": "npm run build",
+    "precheck:links": "npm run build",
+    "seq": "bash -c 'for cmd in \"$@\"; do npm run $cmd || exit 1; done' - ",
+    "serve": "npm run _serve",
+    "test-and-fix": "npm run fix && npm run test-only",
+    "test-only": "npm run check:links",
+    "test": "npm run test-and-fix",
+    "update:docsy:main": "hugo mod get -u github.com/google/docsy@main && hugo mod tidy",
+    "update:docsy:mod": "hugo mod get -u github.com/google/docsy && hugo mod tidy",
+    "update:hugo": "npm install --save-dev --save-exact hugo-extended@latest",
+    "update:main": "npm run update:packages && npm run update:docsy:main",
+    "update:packages": "npx npm-check-updates -u",
+    "update": "npm run update:packages && npm run update:docsy:mod",
+    "vanity:generate": "bash scripts/generate-vanity-data.sh"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.4",
+    "cross-env": "^10.1.0",
+    "postcss-cli": "^11.0.1",
+    "rtlcss": "^4.3.0"
+  },
+  "optionalDependencies": {
+    "npm-check-updates": "^22.2.9",
+    "prettier": "^3.9.6"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "private": true,
+  "prettier": {
+    "proseWrap": "always",
+    "singleQuote": true
+  },
+  "cSpell:ignore": ""
+}
