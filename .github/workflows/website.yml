@@ -54,7 +54,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
       - name: Build site
-        run: hugo --gc --minify --baseURL "${{ steps.pages.outputs.base_url }}/"
+        # go-micro.dev is served by an nginx proxy that maps `/` to
+        # micro.github.io/go-micro/ (see the deploy nginx.conf). The site must
+        # therefore be built at its canonical ROOT baseURL — not the Pages
+        # project subpath from configure-pages (https://micro.github.io/go-micro/).
+        # Building at the subpath prefixes every asset/link with /go-micro/, which
+        # becomes /go-micro/go-micro/ through the proxy and 404s, leaving the site
+        # unstyled. hugo.yaml already declares baseURL: https://go-micro.dev/.
+        run: hugo --gc --minify --baseURL "https://go-micro.dev/"
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
