@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Architecture Decision Records"
 ---
-
-# Architecture Decision Records
 
 Documentation of architectural decisions made in Go Micro, following the ADR pattern.
 

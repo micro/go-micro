@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Plugins"
 ---
-
-# Plugins
 
 Plugins are scoped under each interface directory within this repository. To use a plugin, import it directly from the corresponding interface subpackage and pass it to your service via options.
 

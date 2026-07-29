@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "RPC Client"
 ---
-
-# RPC Client
 
 Call a running service using the Go Micro client.
 

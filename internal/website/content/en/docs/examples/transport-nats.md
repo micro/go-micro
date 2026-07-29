@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "NATS Transport"
 ---
-
-# NATS Transport
 
 Use NATS as the transport between services.
 

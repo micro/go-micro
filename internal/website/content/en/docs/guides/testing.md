@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Testing Micro Services"
 ---
-
-# Testing Micro Services
 
 The `testing` package provides utilities for testing micro services in isolation.
 

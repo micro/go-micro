@@ -3,7 +3,17 @@ title: Real-World Examples
 weight: 2
 description: Production-ready patterns and complete application examples.
 ---
-{{% alert title="Coming Soon" color=warning %}}
+
+# Real-World Examples
+
+Production-ready patterns and complete application examples.
+
+## Available Examples
+
+- [API Gateway with Backend Services](api-gateway.md) - Complete multi-service architecture with users, orders, and products services
+- [Graceful Shutdown](graceful-shutdown.md) - Production-ready shutdown patterns with Kubernetes integration
+
+## Coming Soon
 
 We're actively working on additional real-world examples. Contributions are welcome!
 
@@ -43,6 +53,4 @@ Each example will include:
 - Testing approach
 - Common pitfalls and solutions
 
-Want to contribute? See our [Contributing Guide](/docs/contributing).
-{{% /alert %}}
-
+Want to contribute? See our [Contributing Guide](../../contributing.md).

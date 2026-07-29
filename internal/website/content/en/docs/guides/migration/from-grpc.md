@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Migrating from gRPC"
 ---
-
-# Migrating from gRPC
 
 Step-by-step guide to migrating existing gRPC services to Go Micro.
 

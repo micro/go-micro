@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Micro Server (Optional)"
 ---
-
-# Micro Server (Optional)
 
 The Micro server is an optional web dashboard and authenticated API gateway for production environments. It provides a secure entrypoint for discovering and interacting with services that are already running (e.g., managed by systemd via `micro deploy`).
 

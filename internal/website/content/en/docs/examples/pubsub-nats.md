@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Pub/Sub with NATS Broker"
 ---
-
-# Pub/Sub with NATS Broker
 
 Use the NATS broker for pub/sub.
 

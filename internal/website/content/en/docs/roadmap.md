@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Roadmap"
 ---
-
-# Roadmap
 
 Go Micro is a framework for building **agents and services** in Go. An agent is a distributed system — it discovers services, calls them, holds state, and recovers from failure — so building an agent is building a service. The roadmap has two jobs: make **agentic development** excellent, and make the **developer experience** around it excellent. Nothing else.
 

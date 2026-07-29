@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Contributing"
 ---
-
-# Contributing
 
 This is a rendered copy of the repository `CONTRIBUTING.md` for convenient access via the documentation site.
 

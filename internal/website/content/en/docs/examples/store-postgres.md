@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "State with Postgres Store"
 ---
-
-# State with Postgres Store
 
 Use the Postgres store for persistent key/value state.
 

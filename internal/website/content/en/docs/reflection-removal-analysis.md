@@ -1,4 +1,6 @@
-# Analysis: Removing Reflection from go-micro
+---
+title: "Analysis: Removing Reflection from go-micro"
+---
 
 **Date**: 2026-02-03  
 **Author**: GitHub Copilot  

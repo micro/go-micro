@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Deployment Guide"
 ---
-
-# Deployment Guide
 
 This is a quick reference for deploying go-micro services. For the full guide, see the [Deployment documentation](../deployment.md).
 

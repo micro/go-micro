@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Configuration"
 ---
-
-# Configuration
 
 <img src="/images/generated/config.jpg" alt="Configuration" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
 

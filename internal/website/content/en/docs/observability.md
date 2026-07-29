@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Observability"
 ---
-
-# Observability
 
 <img src="/images/generated/observability.jpg" alt="Observability" style="width: 100%; border-radius: 8px; margin: 1rem 0 1.5rem;" />
 

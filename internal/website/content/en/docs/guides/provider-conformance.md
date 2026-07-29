@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Provider Conformance Matrix"
 ---
-
-# Provider Conformance Matrix
 
 Go Micro treats model providers as interchangeable pieces of the same agent
 harness: services expose tools, agents reason over them, and workflows stitch the

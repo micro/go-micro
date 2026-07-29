@@ -1,5 +1,4 @@
 ---
-layout: default
 title: Add MCP to Existing Services
 ---
 

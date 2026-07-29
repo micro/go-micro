@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Agent Guardrails"
 ---
-
-# Agent Guardrails
 
 An autonomous agent decides its own actions at runtime, which is what makes it useful — and what makes it risky. The common failure modes are mundane: it loops, repeating the same call without making progress; it runs away, taking far more steps (and cost) than the task warrants; it takes an action that should have had a human or a policy in the way.
 

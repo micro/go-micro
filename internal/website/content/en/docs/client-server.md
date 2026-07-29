@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Client/Server"
 ---
-
-# Client/Server
 
 Go Micro uses a client/server model for RPC communication between services.
 

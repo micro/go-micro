@@ -1,4 +1,6 @@
-# Quick Start
+---
+title: "Quick Start"
+---
 
 Get up and running with go-micro in under 5 minutes.
 

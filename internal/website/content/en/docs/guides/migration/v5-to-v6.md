@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "Migrating from v5 to v6"
 ---
-
-# Migrating from v5 to v6
 
 v6 is a small, mechanical upgrade. The bulk of it is the Go module path; the
 behavioral changes are two, both with a one-line fix.

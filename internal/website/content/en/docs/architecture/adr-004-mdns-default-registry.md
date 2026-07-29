@@ -1,8 +1,6 @@
 ---
-layout: default
+title: "ADR-004: mDNS as Default Registry"
 ---
-
-# ADR-004: mDNS as Default Registry
 
 ## Status
 **Accepted**
