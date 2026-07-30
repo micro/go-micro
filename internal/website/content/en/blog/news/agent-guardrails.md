@@ -66,4 +66,4 @@ When agents reach tools **through the MCP gateway**, the gateway adds its own pe
 
 None of this matters much when you're sitting in a chat watching the agent work — you are the guardrail. It matters when no one is. An agent triggered by an event, running unattended, needs to fail safely and recover by itself rather than burning resources in a loop nobody sees. Guardrails aren't a feature bolted onto agents; for an autonomous agent they're part of what makes it safe to run at all.
 
-See the [Agent Guardrails guide](/docs/guides/agent-guardrails) for the full reference.
+See the [Agent Guardrails guide](/docs/guides/agent-guardrails.html) for the full reference.

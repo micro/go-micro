@@ -74,7 +74,7 @@ The agent records a plan with the `plan` tool, then works through it. That's the
 }
 ```
 
-This builds directly on the memory we [already shipped](/blog/2026/06/05/introducing-micro-newagent/): the plan is saved to the same [store](/docs/store) every service uses — file-backed by default, Postgres or NATS KV in production — under `agent/{name}/plan`, and folded back into the system prompt on the next turn. The agent stays oriented across a long task and picks up where it left off after a restart.
+This builds directly on the memory we [already shipped](/blog/2026/06/05/introducing-micro-newagent/): the plan is saved to the same [store](/docs/store.html) every service uses — file-backed by default, Postgres or NATS KV in production — under `agent/{name}/plan`, and folded back into the system prompt on the next turn. The agent stays oriented across a long task and picks up where it left off after a restart.
 
 You get it for free. To make an agent reliably plan, just say so in its prompt:
 
@@ -163,7 +163,7 @@ go run main.go
 
 To start from scratch in your own project, use the smallest-agent snippet above (`go mod init` + `go get go-micro.dev/v5`).
 
-Read the [Plan & Delegate guide](/docs/guides/plan-delegate) for the full reference, or the [agent patterns guide](/docs/guides/agent-patterns) for where this fits among the other ways to build with agents.
+Read the [Plan & Delegate guide](/docs/guides/plan-delegate.html) for the full reference, or the [agent patterns guide](/docs/guides/agent-patterns.html) for where this fits among the other ways to build with agents.
 
 ---
 

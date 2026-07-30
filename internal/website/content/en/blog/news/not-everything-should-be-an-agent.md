@@ -85,7 +85,7 @@ The mistake is starting at 3. Agents are the most capable tool and the easiest t
 
 We didn't build a workflow engine and an agent framework. We built services that are tools, and then pointed an LLM at them two ways — a predefined path, or a dynamic one. `Flow` and `Agent` are modes, not frameworks, and they compose because they share everything underneath. That's the same principle we've held since [going all in on AI](/blog/2026/06/04/going-all-in-on-ai/): services are the only abstraction, the LLM calls them as tools, and everything else is how you arrange them.
 
-Read the [Agents and Workflows guide](/docs/guides/agents-and-workflows) for the full mapping, or [Plan & Delegate](/docs/guides/plan-delegate) for the agent side.
+Read the [Agents and Workflows guide](/docs/guides/agents-and-workflows.html) for the full mapping, or [Plan & Delegate](/docs/guides/plan-delegate.html) for the agent side.
 
 ```bash
 curl -fsSL https://go-micro.dev/install.sh | sh

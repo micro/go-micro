@@ -153,7 +153,7 @@ import _ "go-micro.dev/v5/ai/atlascloud"
 
 3. **Use it** in your service, the CLI, or the agent playground
 
-See the full [Atlas Cloud Integration Guide](/docs/guides/atlascloud-integration) for detailed examples, environment variable configuration, and model selection.
+See the full [Atlas Cloud Integration Guide](/docs/guides/atlascloud-integration.html) for detailed examples, environment variable configuration, and model selection.
 
 ## What This Means
 
