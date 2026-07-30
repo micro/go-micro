@@ -2,7 +2,7 @@
 title: "Your Microservices Are Already an AI Platform"
 linkTitle: "Your Microservices Are Already an AI Platform"
 date: 2026-03-05
-description: "How existing Go Micro services become agent-accessible with zero code changes. A walkthrough using the micro/blog platform as a real-world example."
+description: "How existing Go Micro services become agent-accessible with zero code changes. A walkthrough using a modular blogging platform as a real-world example."
 category:
 - tutorial
 tags:
@@ -20,7 +20,7 @@ With Go Micro + MCP, that gap is **zero lines of code**.
 
 ## The Setup: A Blogging Platform
 
-We'll use a blogging platform as our example — inspired by [micro/blog](https://github.com/micro/blog), a real microblogging platform built on Go Micro with four domains:
+We'll use a blogging platform as our example — a service built on Go Micro with four domains:
 
 - **Users** — signup, login, profiles
 - **Posts** — blog posts with markdown, tags, link previews
@@ -29,7 +29,7 @@ We'll use a blogging platform as our example — inspired by [micro/blog](https:
 
 ### A Note on Architecture
 
-Go Micro has always been a framework for building **multi-service, multi-process** systems. The [micro/blog](https://github.com/micro/blog) platform is a great example — each service runs as its own binary, communicates over RPC, and is independently deployable. If that's what you're after, check it out.
+Go Micro has always been a framework for building **multi-service, multi-process** systems — each service runs as its own binary, communicates over RPC, and is independently deployable. If that's what you're after, Go Micro supports it directly.
 
 For this walkthrough, we take a different approach: a **modular monolith**. All four domains live in a single process. This is a perfectly valid starting point — you get the clean separation of handler interfaces without the operational overhead of multiple services. And because Go Micro's handler registration works the same way in both models, you can break these out into separate services later as your team or requirements grow. No rewrite needed.
 
@@ -165,7 +165,7 @@ type CreatePostRequest struct {
 
 ## Adding MCP to Existing Services
 
-This demo runs everything in one process, but if you already have Go Micro services running as separate processes (like [micro/blog](https://github.com/micro/blog)), you have two additional options beyond the in-process approach shown above:
+This demo runs everything in one process, but if you already have Go Micro services running as separate processes, you have two additional options beyond the in-process approach shown above:
 
 ### Option 1: Standalone gateway binary
 
@@ -180,7 +180,7 @@ micro-mcp-gateway --registry consul:8500 --address :3001
 # docker-compose.yml
 services:
   blog:
-    image: micro/blog
+    image: myorg/blog
   mcp-gateway:
     image: micro/mcp-gateway
     environment:
@@ -227,4 +227,4 @@ We're working on a Kubernetes operator that automatically deploys MCP gateways a
 
 The core idea is simple: well-structured services — whether running as a modular monolith or as independently deployed microservices — already have the right shape for AI tools. We just needed to bridge the protocol gap. With MCP, that bridge is one line of code.
 
-Whether you start with a single process like this demo or go straight to multi-service like [micro/blog](https://github.com/micro/blog), the MCP integration works the same way.
+Whether you start with a single process like this demo or go straight to multi-service, the MCP integration works the same way.
