@@ -233,7 +233,7 @@ micro run --mcp-address :3000
 # Open http://localhost:8080/agent and chat with your service
 ```
 
-See the [MCP documentation](/docs/mcp) and [AI-native services guide](/docs/guides/ai-native-services) for the full walkthrough.
+See the [MCP documentation](/docs/mcp.html) and [AI-native services guide](/docs/guides/ai-native-services.html) for the full walkthrough.
 
 ---
 

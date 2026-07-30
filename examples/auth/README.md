@@ -379,7 +379,7 @@ if time.Until(token.Expiry) < 5*time.Minute {
 
 ## Next Steps
 
-- Read the [Auth Documentation](/docs/auth)
+- Read the [Auth Documentation](https://go-micro.dev/docs/auth.html)
 - Explore [JWT Auth](/auth/jwt)
 - Try [Custom Auth Provider](/examples/auth/custom)
 - See [Multi-Tenant Auth](/examples/auth/multi-tenant)

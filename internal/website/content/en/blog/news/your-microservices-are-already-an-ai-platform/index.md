@@ -223,7 +223,7 @@ The full example is at [`examples/mcp/platform/`](https://github.com/micro/go-mi
 
 ## What's Next
 
-We're working on a Kubernetes operator that automatically deploys MCP gateways alongside your services, request/response caching to reduce redundant calls from agents, and multi-tenant namespace isolation. See the [roadmap](/docs/roadmap-2026) for details.
+We're working on a Kubernetes operator that automatically deploys MCP gateways alongside your services, request/response caching to reduce redundant calls from agents, and multi-tenant namespace isolation. See the [roadmap](/docs/roadmap-2026.html) for details.
 
 The core idea is simple: well-structured services — whether running as a modular monolith or as independently deployed microservices — already have the right shape for AI tools. We just needed to bridge the protocol gap. With MCP, that bridge is one line of code.
 

@@ -297,6 +297,6 @@ The dedicated `atlascloud` provider simply sets these defaults for you.
 ## Links
 
 - [Atlas Cloud](https://www.atlascloud.ai/) — Sign up and get an API key
-- [AI Provider Integration Guide](/docs/guides/ai-provider-guide) — How providers are built
+- [AI Provider Integration Guide](/docs/guides/ai-provider-guide.html) — How providers are built
 - [ai.Tools](https://pkg.go.dev/go-micro.dev/v6/ai.Tools) — Service-to-tool discovery
-- [Blog: Atlas Cloud Sponsors Go Micro](/blog/8) — Announcement post
+- [Blog: Atlas Cloud Sponsors Go Micro](/blog/2026/05/28/atlas-cloud-sponsors-go-micro-300-ai-models-one-integration.html) — Announcement post

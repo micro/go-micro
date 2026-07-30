@@ -65,7 +65,7 @@ Exactly-once is impossible if a crash lands *inside* a step — you can't know w
 
 ## Where agents come in
 
-Go Micro draws the line from [Anthropic's taxonomy](/blog/2026/06/08/not-everything-should-be-an-agent/): **workflows** follow a predefined path; **agents** direct themselves. A flow is the workflow — *you* author the steps. An agent is the self-directed one — the *model* authors the steps at runtime. They are two kinds of control flow, and durability is orthogonal to both.
+Go Micro draws the line from [Anthropic's taxonomy](/blog/2026/06/08/not-everything-should-be-an-agent.html): **workflows** follow a predefined path; **agents** direct themselves. A flow is the workflow — *you* author the steps. An agent is the self-directed one — the *model* authors the steps at runtime. They are two kinds of control flow, and durability is orthogonal to both.
 
 So a workflow step can hand off to an agent:
 
@@ -90,4 +90,4 @@ type Checkpoint interface {
 
 That's the through-line. Durable execution isn't a workflow engine you adopt alongside your services; it's a store and an interface, and the workflow is still just an ordered list of steps you can read. Same as everything else in Go Micro — the abstraction is the service, and this is one more thing the substrate underneath it now handles.
 
-See the [Agents and Workflows guide](/docs/guides/agents-and-workflows) for the full reference.
+See the [Agents and Workflows guide](/docs/guides/agents-and-workflows.html) for the full reference.

@@ -12,7 +12,7 @@ tags:
 aliases:
   - /blog/33
 ---
-A few weeks ago we wrote [How Go Micro Builds Itself](/blog/2026/06/25/how-go-micro-builds-itself/): a loop of two AI agents — Codex writing scoped increments, Claude Code orchestrating and reviewing, a human setting direction — kept honest by CI. It was our own thesis, *an agent operating a system*, pointed at the repository that defines the thesis.
+A few weeks ago we wrote [How Go Micro Builds Itself](/blog/2026/06/25/how-go-micro-builds-itself.html): a loop of two AI agents — Codex writing scoped increments, Claude Code orchestrating and reviewing, a human setting direction — kept honest by CI. It was our own thesis, *an agent operating a system*, pointed at the repository that defines the thesis.
 
 People asked the obvious question: **can I run that on my repo?**
 

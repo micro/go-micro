@@ -60,4 +60,4 @@ Try these with Claude Code or any MCP client:
 4. **Auth scopes** — Read and write operations have separate scopes
 5. **`WithMCP` one-liner** — MCP gateway starts with a single option
 
-See the [blog post](/blog/4) for a detailed walkthrough.
+See the [blog post](https://go-micro.dev/blog/2026/03/04/agents-meet-microservices-a-hands-on-demo.html) for a detailed walkthrough.

@@ -14,7 +14,7 @@ aliases:
 ---
 Almost every agent demo starts the same way: a human types a prompt, the agent responds. That framing is a habit from chat, and it hides the more useful case. The agents worth running don't wait for you to ask. They run because something happened — a user signed up, a payment failed, a deployment finished, a metric crossed a line. In those systems there is no prompt, because there is no human in the loop. The event is the prompt.
 
-Go Micro has had the pieces for this since we added [workflows](/blog/2026/06/08/not-everything-should-be-an-agent/): a `Flow` subscribes to a broker topic, and an `Agent` reasons and acts. Putting them together is the point of this post.
+Go Micro has had the pieces for this since we added [workflows](/blog/2026/06/08/not-everything-should-be-an-agent.html): a `Flow` subscribes to a broker topic, and an `Agent` reasons and acts. Putting them together is the point of this post.
 
 ## The shape
 
@@ -54,7 +54,7 @@ There's a runnable version of exactly this in [`internal/harness/agent-flow`](ht
 
 ## This is where microagents become real
 
-A chat agent is something you visit. An event-driven agent is something that runs. That difference is what makes [an agent for everything](/blog/2026/06/10/doubling-down-on-agents/) practical: each domain gets a small agent that wakes on its own events and acts. Payments has an agent that responds to failed charges. Ops has one that reacts to alerts. Support has one that triages new tickets. None of them is a monolithic brain holding the whole system in one context; each is scoped, each runs on its events, and they reach each other over RPC when they need to. It's the microservices decomposition, applied to the intelligence.
+A chat agent is something you visit. An event-driven agent is something that runs. That difference is what makes [an agent for everything](/blog/2026/06/10/doubling-down-on-agents.html) practical: each domain gets a small agent that wakes on its own events and acts. Payments has an agent that responds to failed charges. Ops has one that reacts to alerts. Support has one that triages new tickets. None of them is a monolithic brain holding the whole system in one context; each is scoped, each runs on its events, and they reach each other over RPC when they need to. It's the microservices decomposition, applied to the intelligence.
 
 The mechanics are already there: an agent is a service, agents call each other with `delegate`, and a flow is the trigger. The only thing that changed is the absence of a person at the start of the loop.
 
@@ -66,7 +66,7 @@ Taking the human out of the loop raises the bar, and it's worth being honest abo
 - **Observability becomes the interface.** If no one is reading the agent's replies, the trace of what it did is the only way to know it did the right thing. The reply text matters less than a record of the tools it called and the results it got.
 - **Execution has to be durable.** An event-driven agent may run longer than a request, and it has to survive a restart without dropping the work or repeating it. Its memory is already store-backed and durable; the loop itself needs to be checkpointed and resumable in the same way.
 
-The first of these is shipped today. The other two are the next things to build, and they're the same gaps the [last post](/blog/2026/06/10/doubling-down-on-agents/) named — autonomy is what makes them urgent.
+The first of these is shipped today. The other two are the next things to build, and they're the same gaps the [last post](/blog/2026/06/10/doubling-down-on-agents.html) named — autonomy is what makes them urgent.
 
 ## Three primitives, one substrate
 

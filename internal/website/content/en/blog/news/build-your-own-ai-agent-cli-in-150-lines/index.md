@@ -14,7 +14,7 @@ aliases:
 ---
 ![](developer-experience.jpg)
 
-We [introduced `micro chat`](/blog/2026/05/29/micro-chat-talk-to-your-services/) — a CLI that lets you talk to your microservices through an LLM. People asked how it works under the hood. The honest answer: it's about 150 lines, and there's no magic. This post walks through every piece so you can build your own — for go-micro, for your own framework, or for whatever services you have.
+We [introduced `micro chat`](/blog/2026/05/29/micro-chat-talk-to-your-services.html) — a CLI that lets you talk to your microservices through an LLM. People asked how it works under the hood. The honest answer: it's about 150 lines, and there's no magic. This post walks through every piece so you can build your own — for go-micro, for your own framework, or for whatever services you have.
 
 By the end, you'll understand the four moving parts of any tool-calling agent and have working code you can adapt.
 
@@ -167,7 +167,7 @@ The 150 lines are a starting point. Ideas for extending it:
 - **Filter the tool list** so the agent only sees certain services
 - **Swap the REPL for a Slack bot** — same `ask`, different input source
 - **Pre-load a system prompt** with domain knowledge about your services
-- **Trigger it from events** instead of stdin — that's exactly what [`micro flow`](/blog/2026/05/29/from-chat-to-flows-what-if-your-services-could-orchestrate-themselves/) does
+- **Trigger it from events** instead of stdin — that's exactly what [`micro flow`](/blog/2026/05/29/from-chat-to-flows-what-if-your-services-could-orchestrate-themselves.html) does
 
 The point of `micro chat` was never to be a finished product. It's a demonstration that turning services into an agent is a small, comprehensible amount of code — not a framework you have to learn, just a pattern you can copy.
 

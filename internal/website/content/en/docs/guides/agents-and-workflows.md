@@ -189,7 +189,7 @@ These are harness guardrails, not a separate policy engine — a counter and a c
 
 ## Why no graph DSL
 
-Anthropic: "be cautious with frameworks… understand the underlying code." Go Micro's answer is that there is no separate framework to understand — the harness is the service runtime. Workflows and agents are services, and tool use is RPC. `plan` and `delegate` are tools, not a graph DSL. The patterns above are code you can read, not a DSL you have to learn. That's the [direction we took going all in on AI](/blog/14).
+Anthropic: "be cautious with frameworks… understand the underlying code." Go Micro's answer is that there is no separate framework to understand — the harness is the service runtime. Workflows and agents are services, and tool use is RPC. `plan` and `delegate` are tools, not a graph DSL. The patterns above are code you can read, not a DSL you have to learn. That's the [direction we took going all in on AI](/blog/2026/06/04/going-all-in-on-ai.html).
 
 ## See also
 

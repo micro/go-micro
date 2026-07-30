@@ -66,7 +66,7 @@ The priority is that what exists works everywhere, under real conditions.
 
 ## How it's sustained
 
-The framework is the product. It's funded by **sponsorship** from the people and companies who run it — not a hosted service, not an enterprise tier, not venture funding. The model is deliberate: keep refining the framework, aligned users adopt and depend on it, and that dependence funds the work. (See [blog/27](/blog/27) for why.)
+The framework is the product. It's funded by **sponsorship** from the people and companies who run it — not a hosted service, not an enterprise tier, not venture funding. The model is deliberate: keep refining the framework, aligned users adopt and depend on it, and that dependence funds the work. (See [Bringing an OSS project back from the dead](/blog/2026/06/18/bringing-an-open-source-project-back-from-the-dead.html) for why.)
 
 ## Feedback
 

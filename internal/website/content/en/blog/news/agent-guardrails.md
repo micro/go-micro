@@ -12,7 +12,7 @@ tags:
 aliases:
   - /blog/23
 ---
-The interesting failures of an autonomous agent aren't dramatic. It calls the same tool with the same arguments over and over, making no progress. It takes thirty steps on a task that needed three, quietly running up cost. It performs an action that a human, or a policy, should have stood in front of. When an agent [runs on its own](/blog/2026/06/15/when-the-event-is-the-prompt/), there's no one watching to catch any of it.
+The interesting failures of an autonomous agent aren't dramatic. It calls the same tool with the same arguments over and over, making no progress. It takes thirty steps on a task that needed three, quietly running up cost. It performs an action that a human, or a policy, should have stood in front of. When an agent [runs on its own](/blog/2026/06/15/when-the-event-is-the-prompt.html), there's no one watching to catch any of it.
 
 A useful way to think about this — which came up in a community discussion recently — is to separate **orchestration** from **execution safety**. The model decides what to do; that's orchestration. Whether a decided action is actually allowed to run is a separate concern, and it shouldn't be tangled into the model or the services. Go Micro keeps them apart: every tool call an agent makes passes through one choke point, and that's where the guardrails live. They apply uniformly to service calls, custom tools, and `delegate`, and they touch neither the model nor your services.
 
@@ -66,4 +66,4 @@ When agents reach tools **through the MCP gateway**, the gateway adds its own pe
 
 None of this matters much when you're sitting in a chat watching the agent work — you are the guardrail. It matters when no one is. An agent triggered by an event, running unattended, needs to fail safely and recover by itself rather than burning resources in a loop nobody sees. Guardrails aren't a feature bolted onto agents; for an autonomous agent they're part of what makes it safe to run at all.
 
-See the [Agent Guardrails guide](/docs/guides/agent-guardrails) for the full reference.
+See the [Agent Guardrails guide](/docs/guides/agent-guardrails.html) for the full reference.

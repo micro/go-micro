@@ -480,5 +480,5 @@ go mcp.Serve(mcp.Options{
 micro run --mcp-address :3000
 ```
 
-See the [MCP Gateway documentation](/docs/mcp) for full details.
+See the [MCP Gateway documentation](/docs/mcp.html) for full details.
 

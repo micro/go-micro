@@ -51,6 +51,6 @@ This is the synchronous JSON-RPC binding: `message/send` runs the agent and retu
 
 ## Where it fits
 
-A2A completes the interop set. MCP exposes services as tools, A2A exposes agents as agents, and [x402](/blog/2026/06/15/integrating-x402-payments-for-agents/) handles payment between them — all derived from the registry, none of them a new runtime. An agent stays a service; A2A is one more way to reach it, alongside the `Chat` RPC, `micro chat`, and a flow. Building an agent that the rest of the world can talk to is, again, building a service.
+A2A completes the interop set. MCP exposes services as tools, A2A exposes agents as agents, and [x402](/blog/2026/06/15/integrating-x402-payments-for-agents.html) handles payment between them — all derived from the registry, none of them a new runtime. An agent stays a service; A2A is one more way to reach it, alongside the `Chat` RPC, `micro chat`, and a flow. Building an agent that the rest of the world can talk to is, again, building a service.
 
-See the [A2A guide](/docs/guides/a2a-protocol) for the full reference.
+See the [A2A guide](/docs/guides/a2a-protocol.html) for the full reference.

@@ -44,5 +44,5 @@ That list is the roadmap's [Now and Next](/docs/roadmap.html), tracked as open i
 ## Read more
 
 - [The Agent Harness](/docs/guides/agent-harness.html) — what the harness is, piece by piece, with status
-- [Roadmap](/docs/project/roadmap)
+- [Roadmap](/docs/project/roadmap.html)
 

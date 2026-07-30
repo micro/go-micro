@@ -204,7 +204,7 @@ Or use the WebSocket endpoint at `ws://localhost:3000/mcp/ws` from any MCP-compa
 This demo is a starting point. In production you'd run each service as a separate process, use Consul or etcd for discovery, add JWT authentication, and deploy the standalone `micro-mcp-gateway` binary in front of everything.
 
 The guides cover all of this:
-- [Building AI-Native Services](/docs/guides/ai-native-services) — End-to-end tutorial
-- [MCP Security](/docs/guides/mcp-security) — Auth, scopes, rate limiting
-- [Agent Patterns](/docs/guides/agent-patterns) — Architecture patterns for production
+- [Building AI-Native Services](/docs/guides/ai-native-services.html) — End-to-end tutorial
+- [MCP Security](/docs/guides/mcp-security.html) — Auth, scopes, rate limiting
+- [Agent Patterns](/docs/guides/agent-patterns.html) — Architecture patterns for production
 

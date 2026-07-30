@@ -190,7 +190,7 @@ ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
 ```
 
 See also:
-- [MCP Documentation](/docs/mcp) — detailed MCP gateway guide
-- [Atlas Cloud Integration](/docs/guides/atlascloud-integration) — using Atlas Cloud as a provider
-- [AI Provider Guide](/docs/guides/ai-provider-guide) — adding new providers
+- [MCP Documentation](/docs/mcp.html) — detailed MCP gateway guide
+- [Atlas Cloud Integration](/docs/guides/atlascloud-integration.html) — using Atlas Cloud as a provider
+- [AI Provider Guide](/docs/guides/ai-provider-guide.html) — adding new providers
 - [gRPC Interop Example](https://github.com/micro/go-micro/tree/master/examples/grpc-interop) — calling go-micro from standard gRPC clients

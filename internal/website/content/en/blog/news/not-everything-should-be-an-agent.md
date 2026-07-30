@@ -12,7 +12,7 @@ tags:
 aliases:
   - /blog/18
 ---
-The last two posts were about agents — [the abstraction](/blog/2026/06/05/introducing-micro-newagent/), and then [agents that plan and delegate](/blog/2026/06/07/agents-that-plan-and-delegate/), directing their own work over many turns. That's the exciting part. It's also, honestly, the part you should reach for *least often*.
+The last two posts were about agents — [the abstraction](/blog/2026/06/05/introducing-micro-newagent.html), and then [agents that plan and delegate](/blog/2026/06/07/agents-that-plan-and-delegate.html), directing their own work over many turns. That's the exciting part. It's also, honestly, the part you should reach for *least often*.
 
 An agent decides its own path at runtime. That's powerful when the task genuinely needs it, and a liability when it doesn't — you trade predictability, latency, and cost for flexibility you may not want. Most real work has a known shape: *when this event happens, do these things.* For that, you don't want a model improvising. You want a **workflow**.
 
@@ -55,7 +55,7 @@ f := micro.NewFlow("onboard-user",
 )
 ```
 
-Now the event fires the flow, the flow renders the prompt, and a registered `conductor` agent handles it over RPC — with its full toolkit: [plan, delegate](/blog/2026/06/07/agents-that-plan-and-delegate/), memory, and guardrails. **Flow triggers, Agent reasons.** The deterministic and dynamic halves compose along one clean seam, because an agent is just a service and the hand-off is just an RPC.
+Now the event fires the flow, the flow renders the prompt, and a registered `conductor` agent handles it over RPC — with its full toolkit: [plan, delegate](/blog/2026/06/07/agents-that-plan-and-delegate.html), memory, and guardrails. **Flow triggers, Agent reasons.** The deterministic and dynamic halves compose along one clean seam, because an agent is just a service and the hand-off is just an RPC.
 
 ## Predictability, even in agents
 
@@ -83,9 +83,9 @@ The mistake is starting at 3. Agents are the most capable tool and the easiest t
 
 ## One set of pieces
 
-We didn't build a workflow engine and an agent framework. We built services that are tools, and then pointed an LLM at them two ways — a predefined path, or a dynamic one. `Flow` and `Agent` are modes, not frameworks, and they compose because they share everything underneath. That's the same principle we've held since [going all in on AI](/blog/2026/06/04/going-all-in-on-ai/): services are the only abstraction, the LLM calls them as tools, and everything else is how you arrange them.
+We didn't build a workflow engine and an agent framework. We built services that are tools, and then pointed an LLM at them two ways — a predefined path, or a dynamic one. `Flow` and `Agent` are modes, not frameworks, and they compose because they share everything underneath. That's the same principle we've held since [going all in on AI](/blog/2026/06/04/going-all-in-on-ai.html): services are the only abstraction, the LLM calls them as tools, and everything else is how you arrange them.
 
-Read the [Agents and Workflows guide](/docs/guides/agents-and-workflows) for the full mapping, or [Plan & Delegate](/docs/guides/plan-delegate) for the agent side.
+Read the [Agents and Workflows guide](/docs/guides/agents-and-workflows.html) for the full mapping, or [Plan & Delegate](/docs/guides/plan-delegate.html) for the agent side.
 
 ```bash
 curl -fsSL https://go-micro.dev/install.sh | sh
