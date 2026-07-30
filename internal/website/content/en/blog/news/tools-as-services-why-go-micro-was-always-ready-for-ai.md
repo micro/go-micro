@@ -79,7 +79,7 @@ The reason the AI integration was straightforward — not months of work, not a 
 
 When we added MCP, we didn't add a new way to call services. We added a new way to *discover* them — one that LLMs understand. The calling mechanism was already there.
 
-When we added `micro chat`, we didn't build an agent framework. We connected the existing tool discovery to an existing model interface and added a for-loop. The whole thing is [~150 lines](/blog/2026/05/30/build-your-own-ai-agent-cli-in-150-lines/).
+When we added `micro chat`, we didn't build an agent framework. We connected the existing tool discovery to an existing model interface and added a for-loop. The whole thing is [~150 lines](/blog/2026/05/30/build-your-own-ai-agent-cli-in-150-lines.html).
 
 ## The Access Layer Pattern
 

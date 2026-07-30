@@ -19,7 +19,7 @@ We're excited to announce that **[Atlas Cloud](https://www.atlascloud.ai/)** is 
 
 Atlas Cloud is an enterprise AI infrastructure platform that provides a unified API for LLM, image, and video generation. They partner with OpenRouter and ComfyUI, offer SOC 2 and HIPAA compliance, and run a custom inference engine (Atlas Photon) with FP4 quantization for fast, cost-effective inference.
 
-Their sponsorship supports Go Micro's continued development as an AI-native microservices framework. Like Anthropic's Claude Max sponsorship that accelerated our [MCP integration](/blog/2026/03/04/building-the-ai-native-future-of-go-micro-with-claude/), Atlas Cloud's support helps us maintain and expand the framework for the growing community of developers building AI-powered services.
+Their sponsorship supports Go Micro's continued development as an AI-native microservices framework. Like Anthropic's Claude Max sponsorship that accelerated our [MCP integration](/blog/2026/03/04/building-the-ai-native-future-of-go-micro-with-claude.html), Atlas Cloud's support helps us maintain and expand the framework for the growing community of developers building AI-powered services.
 
 ## What Atlas Cloud Brings
 

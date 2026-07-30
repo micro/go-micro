@@ -11,7 +11,7 @@ tags:
 aliases:
   - /blog/17
 ---
-When we [introduced `micro.NewAgent()`](/blog/2026/06/05/introducing-micro-newagent/), an agent was already a service with an LLM inside: scoped tools, persistent memory, and a `micro chat` router that dispatches across agents. And in [Agents for Services](/blog/2026/06/04/agents-for-services-a-new-model-for-microservices/) we made the case that intelligence should be distributed — agents coordinate "not through code… through understanding."
+When we [introduced `micro.NewAgent()`](/blog/2026/06/05/introducing-micro-newagent.html), an agent was already a service with an LLM inside: scoped tools, persistent memory, and a `micro chat` router that dispatches across agents. And in [Agents for Services](/blog/2026/06/04/agents-for-services-a-new-model-for-microservices.html) we made the case that intelligence should be distributed — agents coordinate "not through code… through understanding."
 
 This post is the next beat. An agent that only reacts, one tool call at a time, isn't really understanding anything — it's improvising. Two things turn reaction into intent: the agent should **plan** what it's doing before it does it, and **delegate** what it shouldn't be doing itself. Go Micro now gives every agent both.
 
@@ -74,7 +74,7 @@ The agent records a plan with the `plan` tool, then works through it. That's the
 }
 ```
 
-This builds directly on the memory we [already shipped](/blog/2026/06/05/introducing-micro-newagent/): the plan is saved to the same [store](/docs/store.html) every service uses — file-backed by default, Postgres or NATS KV in production — under `agent/{name}/plan`, and folded back into the system prompt on the next turn. The agent stays oriented across a long task and picks up where it left off after a restart.
+This builds directly on the memory we [already shipped](/blog/2026/06/05/introducing-micro-newagent.html): the plan is saved to the same [store](/docs/store.html) every service uses — file-backed by default, Postgres or NATS KV in production — under `agent/{name}/plan`, and folded back into the system prompt on the next turn. The agent stays oriented across a long task and picks up where it left off after a restart.
 
 You get it for free. To make an agent reliably plan, just say so in its prompt:
 
@@ -86,7 +86,7 @@ micro.AgentPrompt("For multi-step requests, call the plan tool first to record y
 
 The harder move is knowing what *not* to do yourself.
 
-A single agent managing ten services is a different kind of monolith — it knows a little about everything and a lot about nothing. We argued in [Agents for Services](/blog/2026/06/04/agents-for-services-a-new-model-for-microservices/) that the fix is the same one microservices made for code: distribute it. Give each domain its own agent, and let them hand work to each other over RPC.
+A single agent managing ten services is a different kind of monolith — it knows a little about everything and a lot about nothing. We argued in [Agents for Services](/blog/2026/06/04/agents-for-services-a-new-model-for-microservices.html) that the fix is the same one microservices made for code: distribute it. Give each domain its own agent, and let them hand work to each other over RPC.
 
 That hand-off already existed — an agent is a service, so any agent can call any other agent's `Agent.Chat` endpoint. `delegate` simply lets the agent reach for it *as part of its own reasoning*, instead of you wiring the routing. The model calls `delegate` with a subtask, and Go Micro resolves it **delegate-first**:
 
@@ -140,13 +140,13 @@ A typical run:
   📨 notify: to=owner@acme.com message="The launch plan is ready"
 ```
 
-The conductor never learned how to send a notification. It learned *who does*. `comms` handled it with its own service, in its own context, over RPC — exactly the distributed-intelligence picture from [blog 15](/blog/2026/06/04/agents-for-services-a-new-model-for-microservices/), now driven by the agent itself rather than a router.
+The conductor never learned how to send a notification. It learned *who does*. `comms` handled it with its own service, in its own context, over RPC — exactly the distributed-intelligence picture from [blog 15](/blog/2026/06/04/agents-for-services-a-new-model-for-microservices.html), now driven by the agent itself rather than a router.
 
 The full runnable code is in [examples/agent-plan-delegate](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate). Set any provider key (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, …) and `go run main.go`.
 
 ## Why it's only two tools
 
-It would have been easy to ship a planning engine, a sub-agent scheduler, a delegation graph. We didn't, on purpose. Every one of those is a new abstraction to learn and maintain, and Go Micro's bet has been consistent since we [went all in on AI](/blog/2026/06/04/going-all-in-on-ai/): services are the only abstraction, the LLM calls them as tools, and an agent's own capabilities are no exception.
+It would have been easy to ship a planning engine, a sub-agent scheduler, a delegation graph. We didn't, on purpose. Every one of those is a new abstraction to learn and maintain, and Go Micro's bet has been consistent since we [went all in on AI](/blog/2026/06/04/going-all-in-on-ai.html): services are the only abstraction, the LLM calls them as tools, and an agent's own capabilities are no exception.
 
 `plan` and `delegate` are two small tools added to mechanisms that already existed — the store, and agent-to-agent RPC. That's the entire feature. It's also why there's nothing to configure: if you've written a `micro.NewAgent`, you already have them.
 

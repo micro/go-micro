@@ -58,7 +58,7 @@ intake := micro.NewFlow("intake",
 )
 ```
 
-Now a `ticket.created` event on the broker is enough to set the agent going — no human in the loop to start it. ([When the event is the prompt](/blog/2026/06/15/when-the-event-is-the-prompt/) is the idea in full.)
+Now a `ticket.created` event on the broker is enough to set the agent going — no human in the loop to start it. ([When the event is the prompt](/blog/2026/06/15/when-the-event-is-the-prompt.html) is the idea in full.)
 
 ## 4. The guardrail is the point
 
@@ -74,7 +74,7 @@ micro.AgentApproveTool(func(tool string, input map[string]any) (bool, string) {
 })
 ```
 
-Return `false` and the send is refused with a reason the model sees — that's your human-in-the-loop, your spend cap, your billing sign-off. The agent never gets to email a customer on its own unless you let it. ([Agent guardrails](/blog/2026/06/16/agent-guardrails/) covers the rest.)
+Return `false` and the send is refused with a reason the model sees — that's your human-in-the-loop, your spend cap, your billing sign-off. The agent never gets to email a customer on its own unless you let it. ([Agent guardrails](/blog/2026/06/16/agent-guardrails.html) covers the rest.)
 
 ## Run it
 
@@ -95,4 +95,4 @@ With the mock model it follows a fixed triage so it runs anywhere. Point it at a
 
 Count what's AI-specific: the prompt, and one model option. Everything else is services, a flow, the broker, and a guardrail — the things Go Micro has always done. The agent didn't need a framework of its own; it's a service that calls other services, triggered by an event, with a gate on the dangerous action.
 
-That's the shape of a real agent system, and it's the same shape as a real service system. From here you'd make the gate enforce a real policy, add a knowledge-base service for the agent to search, or expose the agent over [A2A](/blog/2026/06/18/agents-across-frameworks-a2a/) so another team's agent can file tickets. The code is in [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) — clone it and change one thing.
+That's the shape of a real agent system, and it's the same shape as a real service system. From here you'd make the gate enforce a real policy, add a knowledge-base service for the agent to search, or expose the agent over [A2A](/blog/2026/06/18/agents-across-frameworks-a2a.html) so another team's agent can file tickets. The code is in [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) — clone it and change one thing.
