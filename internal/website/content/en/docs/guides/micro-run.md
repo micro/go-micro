@@ -208,9 +208,9 @@ micro status        # Show running services
 micro stop users    # Stop a specific service
 ```
 
-## Example: micro/blog
+## Example: a multi-service app
 
-The [micro/blog](https://github.com/micro/blog) project demonstrates a multi-service setup:
+A multi-service app is described with a `micro.mu` file:
 
 ```
 # micro.mu
@@ -234,9 +234,10 @@ service web
     depends users posts comments
 ```
 
-Run it:
+Run it — from the local directory, or straight from a repo:
 ```bash
-micro run github.com/micro/blog
+micro run .                       # current directory
+micro run github.com/myorg/blog   # remote repo
 ```
 
 ## Options
