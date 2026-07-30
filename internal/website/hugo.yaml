@@ -2,12 +2,18 @@ baseURL: https://go-micro.dev
 title: Go Micro
 disableAliases: true
 
-# The pre-migration Jekyll site served pages at .html (e.g. /docs/quickstart.html),
-# and every inbound link, bookmark, SEO entry, and in-content link uses that scheme.
-# Keep ugly URLs so those keep resolving after the Hugo migration. Section index
-# pages (_index.md) and leaf bundles (blog posts) are unaffected — only single
-# content pages gain the .html suffix, which is exactly what the old URLs expect.
-uglyURLs: true
+# The pre-migration Jekyll DOCS were served at .html (e.g. /docs/quickstart.html),
+# and every inbound link, bookmark, and SEO entry for docs uses that scheme, so
+# the docs section keeps ugly URLs. Everything else — notably the blog — uses
+# clean pretty URLs (/blog/2026/03/04/<slug>/). The blog's own permalinks config
+# and its in-content cross-links are written in that pretty form, so making the
+# section pretty is what lets those links (and a trailing-slash request) resolve
+# to the post. Applying uglyURLs globally instead put each post at <slug>.html
+# while its links pointed at <slug>/, which 404'd (or served the stray per-page
+# RSS index.xml). The one legacy root page, /support.html, is pinned via `url`
+# in its own front matter.
+uglyURLs:
+  docs: true
 menus:
   main:
     - name: Discord

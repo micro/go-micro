@@ -1,6 +1,9 @@
 ---
 title: Support
 linkTitle: Support
+# Pinned: the pre-migration Jekyll site served this page at /support.html.
+# Docs stay ugly via config; this lone root page opts in explicitly.
+url: /support.html
 description: "Go Micro support — free community help, plus commercial support, consulting, and sponsorship for teams running Go Micro in production."
 menu:
   main:
