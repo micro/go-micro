@@ -1,6 +1,9 @@
 baseURL: https://go-micro.dev
 title: Go Micro
-disableAliases: true
+# Aliases are enabled (default). 35 blog posts carry `aliases: [/blog/N]` — the
+# old numbered Jekyll blog URLs — and rely on Hugo emitting redirect stubs so
+# those inbound links keep resolving. `disableAliases: true` (the migration
+# default) previously suppressed all of them, 404ing every old /blog/N link.
 
 # The pre-migration Jekyll DOCS were served at .html (e.g. /docs/quickstart.html),
 # and every inbound link, bookmark, and SEO entry for docs uses that scheme, so
