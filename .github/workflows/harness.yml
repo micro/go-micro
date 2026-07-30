@@ -33,6 +33,7 @@ jobs:
   harness:
     name: Harnesses (mock LLM)
     runs-on: ubuntu-latest
+    if: github.event_name != 'schedule' || github.repository == 'micro/go-micro'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -51,7 +52,7 @@ jobs:
     # every push/PR, so changes don't quietly burn API credits. Trigger it
     # by hand (Actions → Harness → Run workflow) when changing the agent,
     # flow, or AI internals and you want a real-model check.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: (github.event_name == 'schedule' && github.repository == 'micro/go-micro') || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
