@@ -112,7 +112,7 @@ Together with the agent-side guardrails, that's a full set: bound the count, sto
 
 ## Why it matters for autonomous agents
 
-These are most important when no human is in the loop. An agent [triggered by an event](/blog/21) runs unattended — there's no one to notice it looping or to approve a risky call. The guardrails are what let it fail safely and recover on its own rather than quietly burning resources.
+These are most important when no human is in the loop. An agent [triggered by an event](/blog/2026/06/15/when-the-event-is-the-prompt.html) runs unattended — there's no one to notice it looping or to approve a risky call. The guardrails are what let it fail safely and recover on its own rather than quietly burning resources.
 
 ## See also
 
