@@ -106,9 +106,15 @@ markup:
 # Everything below this are Site Params
 
 # Comment out if you don't want the "print entire section" link enabled.
+# Note: RSS is intentionally NOT in `page`. A per-page RSS feed is meaningless
+# (feeds belong to lists), and under uglyURLs it renders to `<slug>/index.xml`
+# while the page HTML renders to `<slug>.html`. That leaves the `<slug>/`
+# directory with index.xml as its only index, so a trailing-slash request
+# (e.g. /blog/.../post/) is served the XML feed instead of the post. Section
+# and home feeds (/blog/index.xml, /index.xml) are unaffected.
 outputs:
   home: [HTML, print, RSS, redirects, markdown, LLMS]
-  page: [HTML, print, RSS, markdown]
+  page: [HTML, print, markdown]
   section: [HTML, print, RSS, markdown]
 
 params:
