@@ -21,7 +21,7 @@ func TestHarnessWorkflowSchedulesLiveProviderMatrix(t *testing.T) {
 		`cron: "17 * * * *"`,
 		`workflow_dispatch:`,
 		`harness-live:`,
-		`if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'`,
+		`if: (github.event_name == 'schedule' && github.repository == 'micro/go-micro') || github.event_name == 'workflow_dispatch'`,
 		`ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`,
 		`OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}`,
 		`GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}`,
