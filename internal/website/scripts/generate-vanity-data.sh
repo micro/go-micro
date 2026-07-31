@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO="https://github.com/micro/go-micro"
-OUT="${1:-data/vanity.yaml}"
+OUT="${1:-internal/website/data/vanity.yaml}"
 mkdir -p "$(dirname "$OUT")"
 
 command -v go >/dev/null 2>&1 || { echo "go not found in PATH" >&2; exit 1; }
