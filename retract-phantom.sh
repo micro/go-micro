@@ -21310,6 +21310,11 @@ for p in "${PHANTOM_PATHS[@]}"; do
     esac
 done
 
+for b in V6 V5 V4 V0; do
+    declare -n ba="BASES_$b"
+    mapfile -t ba < <(printf '%s\n' "${ba[@]}" | awk '!seen[$0]++')
+done
+
 # ── Sanity checks ───────────────────────────────────────────────────────────
 for p in "${PHANTOM_PATHS[@]}"; do
     case "$p" in
@@ -21332,37 +21337,38 @@ fi
 # ── Helpers ──────────────────────────────────────────────────────────────────
 RETRACT_MAX="v1.18.2"
 
+valid_tag_ref() {
+    local t="$1"
+    if [[ "$t" == *..* || "$t" == *"@{"* || "$t" == *"//"* || "$t" == *"/."* || "$t" == *".lock"* || "$t" == .* || "$t" == */ || "$t" == *. ]] || ! [[ "$t" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
+        git check-ref-format "refs/tags/$t" 2>/dev/null
+        return $?
+    fi
+    return 0
+}
+
 make_shared_orphan_commit() {
-    # make_shared_orphan_commit <label> <path1> <path2> ...
-    # Creates ONE orphan commit (no branch, no working-tree touch) holding a
-    # go.mod per path, via git plumbing. Returns the commit SHA on stdout.
-    local label="$1"; shift
-    local tmpidx p rel blob tree sha
-    tmpidx="$(mktemp -u)"
-    export GIT_INDEX_FILE="$tmpidx"
-    for p in "$@"; do
-        case "$p" in
-            go-micro.dev/v[0-9]*/*) rel="${p#go-micro.dev/v[0-9]*/}" ;;
-            *) rel="${p#go-micro.dev/}" ;;
-        esac
-        blob="$(git hash-object -w --path "$rel/go.mod" <(cat <<GOMOD
-module ${p}
-
-go 1.24
-
-// Phantom module path. The Go proxy cached this as a separate module.
-// Every version is retracted so 'go install ${p}@latest' errors or
-// resolves to the next non-retracted version instead of this path.
-retract [v0.0.0, ${RETRACT_MAX}]
-GOMOD
-        ))"
-        git update-index --add --cacheinfo "100644,$blob,$rel/go.mod"
-    done
-    tree="$(git write-tree)"
-    sha="$(git commit-tree "$tree" -m "retract ${label} phantom paths ($# modules)")"
-    unset GIT_INDEX_FILE
-    rm -f "$tmpidx"
-    echo "$sha"
+    # make_shared_orphan_commit <label> <tmpdir> <count> <ident>
+    # Runs ONE `git fast-import` that creates the orphan commit (a parentless
+    # commit holding a go.mod per new tag) plus its annotated tags, then deletes
+    # the temporary branch. Prints the commit SHA on stdout.
+    local label="$1" tmpdir="$2" count="$3" ident="$4"
+    local branch="refs/heads/phantom-retract-$label"
+    local msg="retract ${label} phantom paths (${count} modules)"
+    local stream="$tmpdir/stream"
+    {
+        cat "$tmpdir/blobs"
+        printf 'commit %s\nmark :1000000\nauthor %s\ncommitter %s\ndata %d\n%s\n' \
+            "$branch" "$ident" "$ident" "$(( ${#msg} + 1 ))" "$msg"
+        cat "$tmpdir/trees"
+        printf '\n'
+        cat "$tmpdir/tags"
+    } > "$stream"
+    if ! git fast-import --force < "$stream"; then
+        echo "ERROR: fast-import failed for $label" >&2
+        exit 1
+    fi
+    git rev-parse "$branch"
+    git update-ref -d "$branch"
 }
 
 # ── Execute ──────────────────────────────────────────────────────────────────
@@ -21371,6 +21377,15 @@ echo "Retracting ${total} phantom paths across 4 orphan commits..."
 echo ""
 
 CREATED_TAGS=()
+ident="$(git var GIT_COMMITTER_IDENT)"
+declare -A EXISTING_TAGS=()
+while IFS= read -r t; do
+    [[ -n "$t" ]] && EXISTING_TAGS["$t"]=1
+done < <(git for-each-ref --format='%(refname:short)' refs/tags)
+declare -A REMOTE_TAGS=()
+while read -r _ ref; do
+    [[ -n "$ref" ]] && REMOTE_TAGS["${ref#refs/tags/}"]=1
+done < <(git ls-remote --tags --refs origin)
 
 for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}" "v0:${#BASES_V0[@]}"; do
     IFS=: read -r label count <<< "$base_info"
@@ -21384,37 +21399,72 @@ for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}" 
         echo "[dry-run] Would tag ${count} paths on that commit"
     else
         declare -n ref="BASES_${label^^}"
-        orphan_sha="$(make_shared_orphan_commit "$label" "${ref[@]}")"
-        echo "  commit: $orphan_sha"
+        tmpdir="$(mktemp -d)"
+        : > "$tmpdir/blobs"
+        : > "$tmpdir/trees"
+        : > "$tmpdir/tags"
+        n=0
         for p in "${ref[@]}"; do
             case "$p" in
                 go-micro.dev/v[0-9]*/*) rel="${p#go-micro.dev/v[0-9]*/}" ;;
                 *) rel="${p#go-micro.dev/}" ;;
             esac
             tag="${rel}/${RETRACT_MAX}"
-            if ! git check-ref-format "refs/tags/$tag" 2>/dev/null; then
+            if ! valid_tag_ref "$tag"; then
                 echo "  skip (invalid tag name): $tag" >&2
                 continue
             fi
-            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null 2>&1; then
-                echo "  exists: $tag (skip)"
+            if [[ -n "${REMOTE_TAGS[$tag]+x}" ]]; then
+                echo "  exists on origin: $tag (skip)"
+                continue
+            fi
+            if [[ -n "${EXISTING_TAGS[$tag]+x}" ]]; then
+                echo "  exists locally: $tag (queue for push)"
                 CREATED_TAGS+=("refs/tags/$tag")
                 continue
             fi
-            if ! git tag -a "$tag" "$orphan_sha" -m "retract $tag (phantom)"; then
-                echo "ERROR: failed to create tag $tag" >&2
-                exit 1
-            fi
+            n=$((n+1))
+            content="module ${p}
+
+go 1.24
+
+// Phantom module path. The Go proxy cached this as a separate module.
+// Every version is retracted so 'go install ${p}@latest' errors or
+// resolves to the next non-retracted version instead of this path.
+retract [v0.0.0, ${RETRACT_MAX}]
+"
+            printf 'blob\nmark :%d\ndata %d\n%s' "$n" "${#content}" "$content" >> "$tmpdir/blobs"
+            printf 'M 100644 :%d %s/go.mod\n' "$n" "$rel" >> "$tmpdir/trees"
+            tmsg="retract $tag (phantom)"
+            printf 'tag %s\nfrom :1000000\ntagger %s\ndata %d\n%s\n\n' \
+                "$tag" "$ident" "$(( ${#tmsg} + 1 ))" "$tmsg" >> "$tmpdir/tags"
+            EXISTING_TAGS["$tag"]=1
             CREATED_TAGS+=("refs/tags/$tag")
             echo "  tagged: $tag"
         done
+        orphan_sha="$(make_shared_orphan_commit "$label" "$tmpdir" "$n" "$ident")"
+        echo "  commit: $orphan_sha"
+        rm -rf "$tmpdir"
     fi
     echo ""
 done
 
+mapfile -t CREATED_TAGS < <(printf '%s\n' "${CREATED_TAGS[@]}" | awk 'NF' | sort -u)
+
 if $PUSH && ! $DRY_RUN; then
     echo "Pushing ${#CREATED_TAGS[@]} phantom tags to origin..."
-    printf '%s\n' "${CREATED_TAGS[@]}" | xargs -n 500 git push origin
+    for ((offset = 0; offset < ${#CREATED_TAGS[@]}; offset += 500)); do
+        declare -A CURRENT_REMOTE_TAGS=()
+        while read -r _ ref; do
+            [[ -n "$ref" ]] && CURRENT_REMOTE_TAGS["$ref"]=1
+        done < <(git ls-remote --tags --refs origin)
+
+        batch=()
+        for ref in "${CREATED_TAGS[@]:offset:500}"; do
+            [[ -z "${CURRENT_REMOTE_TAGS[$ref]+x}" ]] && batch+=("$ref")
+        done
+        ((${#batch[@]})) && git push origin "${batch[@]}"
+    done
     echo "Done. Verify with: go list -m -u <path>"
 elif ! $DRY_RUN; then
     echo "All tags created locally. Re-run with --push to publish the phantom tags to origin."
