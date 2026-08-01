@@ -21382,6 +21382,10 @@ declare -A EXISTING_TAGS=()
 while IFS= read -r t; do
     [[ -n "$t" ]] && EXISTING_TAGS["$t"]=1
 done < <(git for-each-ref --format='%(refname:short)' refs/tags)
+declare -A REMOTE_TAGS=()
+while read -r _ ref; do
+    [[ -n "$ref" ]] && REMOTE_TAGS["${ref#refs/tags/}"]=1
+done < <(git ls-remote --tags --refs origin)
 
 for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}" "v0:${#BASES_V0[@]}"; do
     IFS=: read -r label count <<< "$base_info"
@@ -21410,8 +21414,12 @@ for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}" 
                 echo "  skip (invalid tag name): $tag" >&2
                 continue
             fi
+            if [[ -n "${REMOTE_TAGS[$tag]+x}" ]]; then
+                echo "  exists on origin: $tag (skip)"
+                continue
+            fi
             if [[ -n "${EXISTING_TAGS[$tag]+x}" ]]; then
-                echo "  exists: $tag (skip)"
+                echo "  exists locally: $tag (queue for push)"
                 CREATED_TAGS+=("refs/tags/$tag")
                 continue
             fi
@@ -21441,11 +21449,22 @@ retract [v0.0.0, ${RETRACT_MAX}]
     echo ""
 done
 
-mapfile -t CREATED_TAGS < <(printf '%s\n' "${CREATED_TAGS[@]}" | sort -u)
+mapfile -t CREATED_TAGS < <(printf '%s\n' "${CREATED_TAGS[@]}" | awk 'NF' | sort -u)
 
 if $PUSH && ! $DRY_RUN; then
     echo "Pushing ${#CREATED_TAGS[@]} phantom tags to origin..."
-    printf '%s\n' "${CREATED_TAGS[@]}" | xargs -n 500 git push origin
+    for ((offset = 0; offset < ${#CREATED_TAGS[@]}; offset += 500)); do
+        declare -A CURRENT_REMOTE_TAGS=()
+        while read -r _ ref; do
+            [[ -n "$ref" ]] && CURRENT_REMOTE_TAGS["$ref"]=1
+        done < <(git ls-remote --tags --refs origin)
+
+        batch=()
+        for ref in "${CREATED_TAGS[@]:offset:500}"; do
+            [[ -z "${CURRENT_REMOTE_TAGS[$ref]+x}" ]] && batch+=("$ref")
+        done
+        ((${#batch[@]})) && git push origin "${batch[@]}"
+    done
     echo "Done. Verify with: go list -m -u <path>"
 elif ! $DRY_RUN; then
     echo "All tags created locally. Re-run with --push to publish the phantom tags to origin."
