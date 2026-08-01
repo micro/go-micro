@@ -21310,6 +21310,11 @@ for p in "${PHANTOM_PATHS[@]}"; do
     esac
 done
 
+for b in V6 V5 V4 V0; do
+    declare -n ba="BASES_$b"
+    mapfile -t ba < <(printf '%s\n' "${ba[@]}" | awk '!seen[$0]++')
+done
+
 # ── Sanity checks ───────────────────────────────────────────────────────────
 for p in "${PHANTOM_PATHS[@]}"; do
     case "$p" in
@@ -21411,6 +21416,8 @@ for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}" 
     fi
     echo ""
 done
+
+mapfile -t CREATED_TAGS < <(printf '%s\n' "${CREATED_TAGS[@]}" | sort -u)
 
 if $PUSH && ! $DRY_RUN; then
     echo "Pushing ${#CREATED_TAGS[@]} phantom tags to origin..."
