@@ -6,6 +6,8 @@ title: "micro run - Local Development"
 
 > **Note**: This guide focuses on `micro run` features. For a comparison with `micro server` and gateway architecture details, see the [CLI & Gateway Guide](cli-gateway.md).
 
+> **`micro run` is a development tool.** It builds and supervises your service processes locally with hot reload. There is no daemon — everything stops when `micro run` exits. For running services in production, see [Going to production](#going-to-production).
+
 ## Quick Start
 
 ```bash
@@ -191,22 +193,24 @@ If no `micro.mu` or `micro.json` exists:
 
 ## Logs
 
-Service logs are written to:
-- Terminal: Colorized with service name prefix
-- File: `~/micro/logs/{service}-{hash}.log`
-
-View logs:
-```bash
-micro logs          # List available logs
-micro logs users    # Show logs for 'users' service
-```
-
-## Process Management
+Every service streams to the terminal running `micro run`, colorized and
+prefixed with the service name. The same output is also written to a file:
 
 ```bash
-micro status        # Show running services
-micro stop users    # Stop a specific service
+tail -f ~/micro/logs/users-*.log   # one file per service: {service}-{hash}.log
 ```
+
+## Lifecycle
+
+`micro run` is itself the process manager for as long as it runs — there is no
+daemon and no `micro status`/`micro stop` command. Stop everything with
+`Ctrl-C`; services are shut down in reverse dependency order.
+
+On a `.go` change a service is rebuilt in place. If the rebuild fails to
+compile, the **previous version keeps running** and the build error is printed —
+a typo never takes your service offline. New service directories added while
+`micro run` is up (e.g. by `micro new` or `micro chat`) are picked up and started
+automatically.
 
 ## Example: a multi-service app
 
@@ -250,6 +254,22 @@ micro run --no-watch             # Disable hot reload
 micro run --env production       # Use production environment
 micro run --mcp-address :3000    # Enable MCP protocol gateway for AI clients
 ```
+
+## Going to production
+
+`micro run` has no production mode by design — it's the dev inner loop. In
+development it also hands you a gateway for free (`--no-gateway` to skip); in
+production you don't run `micro run` at all. To ship:
+
+1. **Build each service**: `go build` produces a static binary.
+2. **Run it under a process manager or scheduler** — systemd, Docker/Compose, or
+   Kubernetes (see the Kubernetes deploy assets). That is your daemon: restarts,
+   log capture, and boot persistence come from there, not from Go Micro.
+3. **Point them at a shared registry** (Consul, etcd, or NATS) so they discover
+   each other.
+4. **Front them with the gateway** — the API/MCP gateway that turns your services
+   into an HTTP API and AI-callable MCP tools, with a dashboard and auth (see the
+   MCP gateway deploy assets).
 
 ## Tips
 
