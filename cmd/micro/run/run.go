@@ -69,20 +69,25 @@ type serviceProcess struct {
 	running bool
 }
 
-func (s *serviceProcess) start(logDir string) error {
+// build compiles the service to the given output path. It is slow (invokes the
+// Go toolchain) and must be called WITHOUT holding s.mu, so the running process
+// keeps serving while a rebuild is in flight.
+func (s *serviceProcess) build(out string) error {
+	buildCmd := exec.Command("go", "build", "-o", out, ".")
+	buildCmd.Dir = s.dir
+	if buildOut, err := buildCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("build failed: %s\n%s", err, string(buildOut))
+	}
+	return nil
+}
+
+// launch starts the already-built binary at s.binPath and streams its output.
+func (s *serviceProcess) launch(logDir string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.running {
 		return nil
-	}
-
-	// Build
-	buildCmd := exec.Command("go", "build", "-o", s.binPath, ".")
-	buildCmd.Dir = s.dir
-	buildOut, buildErr := buildCmd.CombinedOutput()
-	if buildErr != nil {
-		return fmt.Errorf("build failed: %s\n%s", buildErr, string(buildOut))
 	}
 
 	// Open log file
@@ -101,10 +106,13 @@ func (s *serviceProcess) start(logDir string) error {
 	s.cmd.Stdout = pw
 	s.cmd.Stderr = pw
 
-	// Stream output
+	// Stream output. The larger buffer keeps long lines (JSON logs, stack
+	// traces) from overflowing the scanner and silently dropping a service's
+	// logs from that point on.
 	go func(name string, color string, pr *io.PipeReader, logFile *os.File) {
 		defer logFile.Close()
 		scanner := bufio.NewScanner(pr)
+		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 		for scanner.Scan() {
 			line := scanner.Text()
 			fmt.Printf("%s[%s]%s %s\n", color, name, colorReset, line)
@@ -125,6 +133,14 @@ func (s *serviceProcess) start(logDir string) error {
 	fmt.Printf("%s[%s]%s started (pid %d)\n", s.color, s.name, colorReset, s.cmd.Process.Pid)
 
 	return nil
+}
+
+// start builds the service and launches it (initial start).
+func (s *serviceProcess) start(logDir string) error {
+	if err := s.build(s.binPath); err != nil {
+		return err
+	}
+	return s.launch(logDir)
 }
 
 func (s *serviceProcess) stop() {
@@ -161,9 +177,21 @@ func (s *serviceProcess) stop() {
 	s.running = false
 }
 
-func (s *serviceProcess) restart(logDir string) error {
+// reload rebuilds the service and swaps in the new binary ONLY if the build
+// succeeds. A failing build (a typo, a broken import) leaves the running
+// process untouched, so a compile error never takes the service offline — the
+// caller reports the error and the previous version keeps serving.
+func (s *serviceProcess) reload(logDir string) error {
+	newBin := s.binPath + ".new"
+	if err := s.build(newBin); err != nil {
+		_ = os.Remove(newBin)
+		return err
+	}
 	s.stop()
-	return s.start(logDir)
+	if err := os.Rename(newBin, s.binPath); err != nil {
+		return fmt.Errorf("swap binary: %w", err)
+	}
+	return s.launch(logDir)
 }
 
 // waitForHealth waits for a service's health endpoint to respond
@@ -381,6 +409,16 @@ func Run(c *cli.Context) error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
+	// shutdown is closed once when teardown begins. Background goroutines watch
+	// it instead of sigCh — a signal is delivered to only one channel receiver,
+	// so sharing sigCh would let a goroutine steal the interrupt and hang the
+	// main wait below.
+	shutdown := make(chan struct{})
+
+	// svcMu guards services/servicesByDir, which the new-service scanner mutates
+	// concurrently with the shutdown loop.
+	var svcMu sync.Mutex
+
 	// Watch mode
 	watchEnabled := !c.Bool("no-watch")
 	var watch *watcher.Watcher
@@ -396,11 +434,17 @@ func Run(c *cli.Context) error {
 
 		go func() {
 			for event := range watch.Events() {
-				if svc, ok := servicesByDir[event.Dir]; ok {
-					fmt.Printf("%s[%s]%s rebuilding...\n", svc.color, svc.name, colorReset)
-					if err := svc.restart(logsDir); err != nil {
-						fmt.Fprintf(os.Stderr, "%s[%s]%s restart failed: %v\n", svc.color, svc.name, colorReset, err)
-					}
+				svcMu.Lock()
+				svc, ok := servicesByDir[event.Dir]
+				svcMu.Unlock()
+				if !ok {
+					continue
+				}
+				fmt.Printf("%s[%s]%s rebuilding...\n", svc.color, svc.name, colorReset)
+				if err := svc.reload(logsDir); err != nil {
+					// Build failed — the previous version is still serving.
+					fmt.Fprintf(os.Stderr, "%s[%s]%s build failed, keeping previous version running:\n%v\n",
+						svc.color, svc.name, colorReset, err)
 				}
 			}
 		}()
@@ -411,13 +455,17 @@ func Run(c *cli.Context) error {
 			defer ticker.Stop()
 			for {
 				select {
-				case <-sigCh:
+				case <-shutdown:
 					return
 				case <-ticker.C:
+					svcMu.Lock()
 					newSvcs := discoverNewServices(absDir, servicesByDir, binDir, runDir, logsDir, envVars, len(services))
 					for _, sp := range newSvcs {
 						services = append(services, sp)
 						servicesByDir[sp.dir] = sp
+					}
+					svcMu.Unlock()
+					for _, sp := range newSvcs {
 						watch.AddDir(sp.dir)
 						if err := sp.start(logsDir); err != nil {
 							fmt.Fprintf(os.Stderr, "[%s] %v\n", sp.name, err)
@@ -438,6 +486,8 @@ func Run(c *cli.Context) error {
 	}
 	fmt.Println("\nShutting down...")
 
+	close(shutdown)
+
 	if watch != nil {
 		watch.Stop()
 	}
@@ -446,9 +496,14 @@ func Run(c *cli.Context) error {
 		_ = gw.Stop()
 	}
 
-	// Stop services in reverse order
-	for i := len(services) - 1; i >= 0; i-- {
-		services[i].stop()
+	// Stop services in reverse order. Snapshot under the lock — the scanner
+	// goroutine may still be appending as teardown begins.
+	svcMu.Lock()
+	all := make([]*serviceProcess, len(services))
+	copy(all, services)
+	svcMu.Unlock()
+	for i := len(all) - 1; i >= 0; i-- {
+		all[i].stop()
 	}
 
 	return nil
@@ -687,6 +742,12 @@ Starts an HTTP gateway on :8080 providing:
 
 With a micro.mu or micro.json config file, services start in dependency order.
 Without config, all main.go files are discovered and run.
+
+micro run is a local development tool — it builds and supervises service
+processes with hot reload. It is not a production runtime: there is no daemon,
+and processes stop when micro run exits. For production, build each service
+(go build) and run it under a process manager or scheduler — systemd,
+Docker/Compose, or Kubernetes (see deploy/kubernetes).
 
 Examples:
   micro run                    # Run with gateway on :8080
