@@ -36,7 +36,7 @@ When you run `micro run`, you get:
 | http://localhost:8080/services | Service list - JSON |
 
 Plus:
-- **Authentication** - JWT auth enabled with default credentials (`admin`/`micro`)
+- **Authentication** - off on loopback (the dev default), automatically on when the gateway is bound to a non-loopback address — using a token printed once at startup, never a default credential
 - **Hot Reload** - File changes trigger automatic rebuild
 - **Dependency Ordering** - Services start in the right order
 - **Environment Management** - Dev/staging/production configs
@@ -46,20 +46,35 @@ Plus:
 
 ### API Gateway
 
-The gateway converts HTTP requests to RPC calls. All API calls require authentication:
+The gateway converts HTTP requests to RPC calls. On loopback (the `micro run` default) no auth is needed — just call it:
 
 ```bash
-# Log in at http://localhost:8080 with admin/micro to get a session
-# Or use a token for programmatic access:
 curl -X POST http://localhost:8080/api/helloworld/Say.Hello \
-  -H "Authorization: Bearer <token>" \
   -d '{"name": "World"}'
 
 # Response
 {"message": "Hello World"}
 ```
 
-Create tokens at `/auth/tokens`. The default admin token has `*` scope (full access).
+See [Authentication](#authentication) for when a token is required.
+
+### Authentication
+
+**Auth follows the socket, not the command.** The bind address decides the default:
+
+- **Loopback** (`127.0.0.1`/`localhost`, the `micro run` default) → **auth off**. You're already behind the OS boundary, so there's no login to call your own tools.
+- **Non-loopback** (`0.0.0.0` or a routable IP) → **auth on automatically**. The instant it's reachable by others it's protected.
+
+When auth is on there is **no default credential**. A machine token is printed once at startup (or supply your own with `--auth-token` / `MICRO_AUTH_TOKEN`), and every `/api` and `/mcp` call carries it:
+
+```bash
+curl -H "Authorization: Bearer <token>" http://HOST:8080/api/helloworld/Say.Hello -d '{"name":"World"}'
+# SSE / browser links can use ?token=<token> instead
+```
+
+Override the default either way with `--auth` / `--no-auth` (or `MICRO_AUTH=on|off`).
+
+**Capability-aware, even locally:** a tool that declares a required **scope** — actions, paid tools — always needs a token bearing that scope, even on a loopback gateway with auth off. Read-only tools stay open; dangerous ones don't. Manage per-endpoint scopes at `/auth/scopes`.
 
 ### Agent Playground
 

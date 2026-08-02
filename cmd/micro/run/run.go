@@ -369,15 +369,20 @@ func Run(c *cli.Context) error {
 	var gw *gateway.Gateway
 	gatewayAddr := c.String("address")
 	if gatewayAddr == "" {
-		gatewayAddr = ":8080"
+		gatewayAddr = "127.0.0.1:8080"
 	}
+
+	// Auth follows the socket. micro run binds loopback by default, so auth is
+	// off for the local dev loop — no login to call your own tools — while
+	// scoped/paid tools still require the machine token.
+	authEnabled, authToken := gateway.ResolveAuth(c, gatewayAddr)
 
 	if !c.Bool("no-gateway") {
 		var err error
 		mcpAddr := c.String("mcp-address")
 		gw, err = gateway.StartGateway(gateway.GatewayOptions{
 			Address:     gatewayAddr,
-			AuthEnabled: true, // Auth enabled with default admin/micro user
+			AuthEnabled: authEnabled,
 			Context:     context.Background(),
 			MCPEnabled:  mcpAddr != "",
 			MCPAddress:  mcpAddr,
@@ -403,7 +408,7 @@ func Run(c *cli.Context) error {
 	}
 
 	// Print startup banner
-	printBanner(services, gw, !c.Bool("no-watch"), c.String("mcp-address"))
+	printBanner(services, gw, !c.Bool("no-watch"), c.String("mcp-address"), authEnabled, authToken)
 
 	// Setup signal handling
 	sigCh := make(chan os.Signal, 1)
@@ -544,7 +549,7 @@ func discoverNewServices(baseDir string, known map[string]*serviceProcess, binDi
 	return newSvcs
 }
 
-func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool, mcpAddr string) {
+func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool, mcpAddr string, authEnabled bool, authToken string) {
 	fmt.Println()
 	fmt.Println("  \033[1mMicro\033[0m")
 	fmt.Println()
@@ -596,7 +601,19 @@ func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool,
 	}
 
 	fmt.Println()
-	fmt.Println("  Auth: \033[32menabled\033[0m (admin / micro)")
+	if authEnabled {
+		fmt.Println("  Auth: \033[32mon\033[0m (address is exposed)")
+		if authToken != "" {
+			fmt.Printf("  Token: \033[36m%s\033[0m \033[2m(shown once — use as Authorization: Bearer)\033[0m\n", authToken)
+		} else {
+			fmt.Println("  Token: \033[2mset via MICRO_AUTH_TOKEN\033[0m")
+		}
+	} else {
+		fmt.Println("  Auth: \033[2moff (loopback — no login needed)\033[0m")
+		if authToken != "" {
+			fmt.Printf("  \033[2mScoped/paid tools need a token: %s\033[0m\n", authToken)
+		}
+	}
 
 	if watching {
 		fmt.Println("  \033[33mWatching for changes...\033[0m")
@@ -758,12 +775,12 @@ Examples:
   micro run --mcp-address :3000  # Enable MCP protocol gateway
   micro run --prompt "an order system for dropshipping"  # Generate and run`,
 		Action: Run,
-		Flags: []cli.Flag{
+		Flags: append([]cli.Flag{
 			&cli.StringFlag{
 				Name:    "address",
 				Aliases: []string{"a"},
-				Usage:   "Gateway address (default :8080)",
-				Value:   ":8080",
+				Usage:   "Gateway address (default 127.0.0.1:8080, loopback). A non-loopback address turns auth on.",
+				Value:   "127.0.0.1:8080",
 			},
 			&cli.BoolFlag{
 				Name:  "no-gateway",
@@ -804,7 +821,7 @@ Examples:
 				Usage:   "API key for --prompt (or set ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)",
 				EnvVars: []string{"MICRO_AI_API_KEY"},
 			},
-		},
+		}, gateway.AuthFlags()...),
 	})
 }
 
