@@ -36,7 +36,7 @@ type Facilitator interface {
 
 ## At the MCP gateway
 
-Because every endpoint is already an MCP tool, the gateway is where you charge. Payments are wired into both `micro mcp serve` and the standalone `micro-mcp-gateway`, gated on `/mcp/call` (listing tools and health stay free), and **off unless you set a pay-to address**.
+Because every endpoint is already an MCP tool, the gateway is where you charge. Payments are wired into both `micro mcp serve` and the `micro gateway` command, gated on `/mcp/call` (listing tools and health stay free), and **off unless you set a pay-to address**.
 
 ```bash
 micro mcp serve --address :3000 \

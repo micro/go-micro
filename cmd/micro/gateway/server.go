@@ -1,4 +1,4 @@
-package server
+package gateway
 
 import (
 	"context"
@@ -33,11 +33,14 @@ import (
 	_ "go-micro.dev/v6/ai/openai"
 	_ "go-micro.dev/v6/ai/together"
 	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/auth/jwt"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
 	codecBytes "go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/gateway/mcp"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/wrapper/x402"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -1499,16 +1502,114 @@ func Run(c *cli.Context) error {
 
 	mcpAddr := c.String("mcp-address")
 
-	// Run the gateway with authentication enabled
+	// Run the HTTP gateway (dashboard, REST, auth) with authentication enabled.
 	opts := GatewayOptions{
 		Address:     addr,
 		AuthEnabled: true,
 		Context:     c.Context,
-		MCPEnabled:  mcpAddr != "",
-		MCPAddress:  mcpAddr,
+	}
+
+	// If an MCP protocol address is set, run the full MCP gateway ourselves with
+	// the production controls (rate limiting, scopes, auth, audit, circuit
+	// breaker, x402 payments). gateway/api would otherwise start a bare MCP
+	// listener with none of these, so we start it here and leave api's own MCP
+	// disabled. Registry selection comes from the global --registry flags.
+	if mcpAddr != "" {
+		mcpOpts, err := buildMCPOptions(c, mcpAddr)
+		if err != nil {
+			return err
+		}
+		go func() {
+			if err := mcp.ListenAndServe(mcpAddr, mcpOpts); err != nil {
+				log.Printf("[mcp] gateway error: %v", err)
+			}
+		}()
+		log.Printf("[mcp] gateway on %s", mcpAddr)
 	}
 
 	return RunGateway(opts)
+}
+
+// buildMCPOptions assembles the MCP gateway options from the command flags. It
+// carries the same production controls the standalone gateway binary had.
+func buildMCPOptions(c *cli.Context, addr string) (mcp.Options, error) {
+	logger := log.New(os.Stdout, "[mcp-gateway] ", log.LstdFlags)
+	opts := mcp.Options{
+		Registry: registry.DefaultRegistry,
+		Address:  addr,
+		Context:  c.Context,
+		Logger:   logger,
+	}
+
+	// x402 payments: a config file (per-tool amounts) or the flags.
+	if cfgPath := c.String("x402-config"); cfgPath != "" {
+		cfg, err := x402.LoadConfig(cfgPath)
+		if err != nil {
+			return opts, fmt.Errorf("x402 config: %w", err)
+		}
+		opts.Payment = cfg
+		logger.Printf("x402 payments enabled from %s (payTo %s)", cfgPath, cfg.PayTo)
+	} else if payTo := c.String("x402-pay-to"); payTo != "" {
+		opts.Payment = &x402.Config{
+			PayTo:          payTo,
+			Amount:         c.String("x402-amount"),
+			Network:        c.String("x402-network"),
+			FacilitatorURL: c.String("x402-facilitator"),
+		}
+	}
+
+	if rps := c.Float64("rate-limit"); rps > 0 {
+		opts.RateLimit = &mcp.RateLimitConfig{RequestsPerSecond: rps, Burst: c.Int("rate-burst")}
+		logger.Printf("rate limit: %.0f req/s, burst %d", rps, c.Int("rate-burst"))
+	}
+
+	if c.Bool("auth") {
+		opts.Auth = jwt.NewAuth()
+		logger.Printf("JWT authentication enabled")
+	}
+
+	if scopes := c.StringSlice("scope"); len(scopes) > 0 {
+		opts.Scopes = parseScopes(scopes)
+	}
+
+	if maxFail := c.Int("circuit-breaker"); maxFail > 0 {
+		opts.CircuitBreaker = &mcp.CircuitBreakerConfig{
+			MaxFailures: maxFail,
+			Timeout:     c.Duration("circuit-breaker-timeout"),
+		}
+	}
+
+	if c.Bool("audit") {
+		opts.AuditFunc = func(r mcp.AuditRecord) {
+			status := "ALLOWED"
+			if !r.Allowed {
+				status = "DENIED:" + r.DeniedReason
+			}
+			logger.Printf("[audit] %s tool=%s account=%s status=%s duration=%s",
+				r.TraceID, r.Tool, r.AccountID, status, r.Duration)
+		}
+		logger.Printf("audit logging enabled")
+	}
+
+	return opts, nil
+}
+
+// parseScopes turns "tool=scope1,scope2" flag values into a tool→scopes map.
+func parseScopes(raw []string) map[string][]string {
+	scopes := make(map[string][]string)
+	for _, s := range raw {
+		parts := strings.SplitN(s, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		tool := strings.TrimSpace(parts[0])
+		scopeList := strings.Split(parts[1], ",")
+		for i := range scopeList {
+			scopeList[i] = strings.TrimSpace(scopeList[i])
+		}
+		scopes[tool] = scopeList
+	}
+	return scopes
 }
 
 // mapGoTypeToJSON maps Go types to JSON schema types
@@ -1592,23 +1693,119 @@ func initAuth() error {
 func parseStartTime(s string) (time.Time, error) {
 	return time.Parse(time.RFC3339, s)
 }
+
+// gatewayFlags are shared by `micro gateway` and its deprecated `server` alias.
+func gatewayFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{
+			Name:    "address",
+			Usage:   "HTTP address for the dashboard/API",
+			EnvVars: []string{"MICRO_SERVER_ADDRESS"},
+			Value:   ":8080",
+		},
+		&cli.StringFlag{
+			Name:    "mcp-address",
+			Usage:   "MCP protocol address (e.g., :3000). Enables the MCP gateway for AI tools.",
+			EnvVars: []string{"MICRO_MCP_ADDRESS"},
+		},
+		&cli.Float64Flag{
+			Name:    "rate-limit",
+			Usage:   "MCP: requests per second per tool (0 = unlimited)",
+			EnvVars: []string{"MCP_RATE_LIMIT"},
+		},
+		&cli.IntFlag{
+			Name:    "rate-burst",
+			Usage:   "MCP: rate limit burst size",
+			Value:   20,
+			EnvVars: []string{"MCP_RATE_BURST"},
+		},
+		&cli.BoolFlag{
+			Name:    "auth",
+			Usage:   "MCP: enable JWT authentication on the MCP gateway",
+			EnvVars: []string{"MCP_AUTH"},
+		},
+		&cli.BoolFlag{
+			Name:    "audit",
+			Usage:   "MCP: enable audit logging to stdout",
+			EnvVars: []string{"MCP_AUDIT"},
+		},
+		&cli.StringSliceFlag{
+			Name:  "scope",
+			Usage: "MCP: tool scope requirement (format: tool=scope1,scope2)",
+		},
+		&cli.IntFlag{
+			Name:    "circuit-breaker",
+			Usage:   "MCP: circuit breaker max failures before opening (0 = disabled)",
+			EnvVars: []string{"MCP_CIRCUIT_BREAKER"},
+		},
+		&cli.DurationFlag{
+			Name:    "circuit-breaker-timeout",
+			Usage:   "MCP: circuit breaker open-state timeout before half-open probe",
+			Value:   30 * time.Second,
+			EnvVars: []string{"MCP_CIRCUIT_BREAKER_TIMEOUT"},
+		},
+		&cli.StringFlag{
+			Name:    "x402-pay-to",
+			Usage:   "MCP: enable x402 payments for tool calls; the address payments are sent to",
+			EnvVars: []string{"X402_PAY_TO"},
+		},
+		&cli.StringFlag{
+			Name:    "x402-amount",
+			Usage:   "MCP: default amount required per tool call, in the asset's smallest unit (e.g. 10000 = 0.01 USDC)",
+			EnvVars: []string{"X402_AMOUNT"},
+		},
+		&cli.StringFlag{
+			Name:    "x402-network",
+			Usage:   "MCP: payment network: base (default), solana, ...",
+			Value:   "base",
+			EnvVars: []string{"X402_NETWORK"},
+		},
+		&cli.StringFlag{
+			Name:    "x402-facilitator",
+			Usage:   "MCP: x402 facilitator URL (Coinbase CDP, Alchemy, or self-hosted)",
+			EnvVars: []string{"X402_FACILITATOR"},
+		},
+		&cli.StringFlag{
+			Name:    "x402-config",
+			Usage:   "MCP: path to an x402 config file; overrides the x402-* flags",
+			EnvVars: []string{"X402_CONFIG"},
+		},
+	}
+}
+
 func init() {
 	cmd.Register(&cli.Command{
-		Name:   "server",
-		Usage:  "Production mode: run the micro server with dashboard and auth",
+		Name:  "gateway",
+		Usage: "Run the gateway: HTTP API, dashboard, auth, and MCP tools for your services",
+		Description: `Run the gateway in front of your running services.
+
+It serves an HTTP API and dashboard (with auth) on --address, and — when
+--mcp-address is set — an MCP gateway that exposes every discovered service as
+an AI-callable tool, with optional rate limiting, scopes, JWT auth, audit
+logging, circuit breaking, and x402 payments.
+
+Services are discovered through the registry (select it with the global
+--registry / --registry_address flags). This is the gateway you deploy in
+production; for the local development loop use ` + "`micro run`" + `.
+
+Examples:
+  micro gateway                                 # dashboard/API on :8080
+  micro gateway --mcp-address :3000             # + MCP gateway on :3000
+  micro gateway --mcp-address :3000 --auth --audit --rate-limit 100
+  micro gateway --registry consul --registry_address consul:8500 --mcp-address :3000`,
 		Action: Run,
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:    "address",
-				Usage:   "Address to listen on",
-				EnvVars: []string{"MICRO_SERVER_ADDRESS"},
-				Value:   ":8080",
-			},
-			&cli.StringFlag{
-				Name:    "mcp-address",
-				Usage:   "MCP gateway address (e.g., :3000). Enables MCP protocol support for AI tools.",
-				EnvVars: []string{"MICRO_MCP_ADDRESS"},
-			},
+		Flags:  gatewayFlags(),
+	})
+
+	// Deprecated alias: `micro server` still works but is hidden and warns.
+	cmd.Register(&cli.Command{
+		Name:   "server",
+		Hidden: true,
+		Usage:  "Deprecated alias for `micro gateway`",
+		Action: func(c *cli.Context) error {
+			fmt.Fprintln(os.Stderr, "warning: `micro server` is deprecated and will be removed; use `micro gateway`")
+			return Run(c)
 		},
+		Flags: gatewayFlags(),
 	})
 }

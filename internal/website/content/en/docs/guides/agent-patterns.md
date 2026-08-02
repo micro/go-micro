@@ -360,30 +360,30 @@ Run the MCP gateway as a separate, horizontally scalable process.
 
 ```
                     ┌──────────────────┐
-Claude/GPT/Agent ──→│ micro-mcp-gateway │──→ Service A (consul)
-                    │   (standalone)    │──→ Service B (consul)
+Claude/GPT/Agent ──→│  micro gateway   │──→ Service A (consul)
+                    │   (standalone)   │──→ Service B (consul)
                     └──────────────────┘──→ Service C (consul)
 ```
 
 ### Setup
 
 ```bash
-micro-mcp-gateway \
-  --registry consul \
-  --registry-address consul:8500 \
-  --address :3000 \
-  --auth jwt \
+micro --registry consul --registry_address consul:8500 \
+  gateway \
+  --mcp-address :3000 \
+  --auth \
   --rate-limit 10 \
   --rate-burst 20 \
   --audit
 ```
 
-Or via Docker:
+Or via Docker (registry via env, since the global flags precede the subcommand):
 
 ```bash
-docker run -p 3000:3000 ghcr.io/micro/micro-mcp-gateway \
-  --registry consul \
-  --registry-address consul:8500
+docker run -p 3000:3000 \
+  -e MICRO_REGISTRY=consul -e MICRO_REGISTRY_ADDRESS=consul:8500 \
+  ghcr.io/micro/go-micro \
+  gateway --mcp-address :3000
 ```
 
 ### When to Use

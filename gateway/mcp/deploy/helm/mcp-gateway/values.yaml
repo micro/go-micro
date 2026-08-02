@@ -2,8 +2,10 @@
 
 replicaCount: 1
 
+# The MCP gateway ships in the micro CLI image; the container runs
+# `micro gateway --mcp-address ...` (see the deployment template).
 image:
-  repository: ghcr.io/micro/mcp-gateway
+  repository: ghcr.io/micro/go-micro
   pullPolicy: IfNotPresent
   tag: "" # Defaults to appVersion
 
@@ -13,7 +15,7 @@ fullnameOverride: ""
 
 # MCP Gateway configuration
 gateway:
-  # Listen address (port inside the container)
+  # MCP protocol listen address (the container port; passed as --mcp-address)
   address: ":3000"
 
   # Service registry backend: mdns, consul, etcd
