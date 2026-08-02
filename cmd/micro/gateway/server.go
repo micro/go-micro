@@ -164,20 +164,7 @@ func deleteUserTokens(storeInst store.Store, userID string) {
 func authRequired(storeInst store.Store) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			var token string
-			// 1. Check Authorization: Bearer header
-			authz := r.Header.Get("Authorization")
-			if strings.HasPrefix(authz, "Bearer ") {
-				token = strings.TrimPrefix(authz, "Bearer ")
-				token = strings.TrimSpace(token)
-			}
-			// 2. Fallback to micro_token cookie if no header
-			if token == "" {
-				cookie, err := r.Cookie("micro_token")
-				if err == nil && cookie.Value != "" {
-					token = cookie.Value
-				}
-			}
+			token := extractToken(r)
 			if token == "" {
 				if strings.HasPrefix(r.URL.Path, "/api/") && r.URL.Path != "/api" && r.URL.Path != "/api/" {
 					w.Header().Set("Content-Type", "application/json")
@@ -192,6 +179,11 @@ func authRequired(storeInst store.Store) func(http.HandlerFunc) http.HandlerFunc
 					return
 				}
 				http.Redirect(w, r, "/auth/login", http.StatusFound)
+				return
+			}
+			// A matching static machine token authenticates as admin.
+			if tokenMatches(token) {
+				next(w, r)
 				return
 			}
 			claims, err := ParseJWT(token)
@@ -335,9 +327,10 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 	// required scopes for a service endpoint. Returns true if allowed.
 	// If not allowed, writes a 403 response and returns false.
 	checkEndpointScopes := func(w http.ResponseWriter, r *http.Request, endpointKey string) bool {
-		if !authEnabled {
-			return true
-		}
+		// Scope enforcement is independent of the auth on/off decision: an
+		// endpoint that declares a required scope always needs a token bearing
+		// it, even on a loopback gateway with auth off. That is what keeps
+		// action/paid tools gated locally while read-only tools stay open.
 		recs, _ := storeInst.Read("endpoint-scopes/" + endpointKey)
 		if len(recs) == 0 {
 			return true // no scopes configured = unrestricted
@@ -346,17 +339,13 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		if err := json.Unmarshal(recs[0].Value, &requiredScopes); err != nil || len(requiredScopes) == 0 {
 			return true
 		}
+		// A matching static machine token is admin (all scopes).
+		token := extractToken(r)
+		if tokenMatches(token) {
+			return true
+		}
 		// Extract caller's scopes from JWT
 		callerScopes := []string{}
-		token := ""
-		if authz := r.Header.Get("Authorization"); strings.HasPrefix(authz, "Bearer ") {
-			token = strings.TrimPrefix(authz, "Bearer ")
-		}
-		if token == "" {
-			if cookie, err := r.Cookie("micro_token"); err == nil {
-				token = cookie.Value
-			}
-		}
 		if token != "" {
 			if claims, err := ParseJWT(token); err == nil {
 				if s, ok := claims["scopes"].([]interface{}); ok {
@@ -903,11 +892,17 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 				apiCache.time = time.Now()
 			}
 			apiCache.Unlock()
-			// Add API auth doc at the top
-			apiData["ApiAuthDoc"] = `<div style='background:#f8f8e8; border:1px solid #e0e0b0; padding:1em; margin-bottom:2em; font-size:1.08em;'>
-<b>API Authentication Required:</b> All API calls to <code>/api/...</code> endpoints (except this page) must include an <b>Authorization: Bearer &lt;token&gt;</b> header. <br>
-You can generate tokens on the <a href='/auth/tokens'>Tokens page</a>.
+			// Add API auth doc at the top — reflects the address-based policy.
+			if authEnabled {
+				apiData["ApiAuthDoc"] = `<div style='background:#f8f8e8; border:1px solid #e0e0b0; padding:1em; margin-bottom:2em; font-size:1.08em;'>
+<b>Authentication required:</b> this gateway is exposed, so all <code>/api/...</code> calls must include an <b>Authorization: Bearer &lt;token&gt;</b> header (or <code>?token=</code>). <br>
+Use the token printed at startup, or generate more on the <a href='/auth/tokens'>Tokens page</a>.
 </div>`
+			} else {
+				apiData["ApiAuthDoc"] = `<div style='background:#eef6ee; border:1px solid #bcd8bc; padding:1em; margin-bottom:2em; font-size:1.08em;'>
+<b>Auth is off</b> (gateway on loopback) — call <code>/api/...</code> directly, no token needed. Tools with a required <a href='/auth/scopes'>scope</a> (actions, paid) still need a token.
+</div>`
+			}
 			_ = renderPage(w, tmpls.api, apiData)
 			return
 		}
@@ -1502,11 +1497,26 @@ func Run(c *cli.Context) error {
 
 	mcpAddr := c.String("mcp-address")
 
-	// Run the HTTP gateway (dashboard, REST, auth) with authentication enabled.
+	// Auth follows the socket: on when the bind address is exposed, off on
+	// loopback, overridable with --auth/--no-auth. When on, a machine token is
+	// provisioned (supplied or generated); print a generated one once.
+	authEnabled, genToken := ResolveAuth(c, addr)
+
+	// Run the HTTP gateway (dashboard, REST, auth).
 	opts := GatewayOptions{
 		Address:     addr,
-		AuthEnabled: true,
+		AuthEnabled: authEnabled,
 		Context:     c.Context,
+	}
+
+	if authEnabled {
+		if genToken != "" {
+			log.Printf("[auth] on (%s is exposed). Token (shown once): %s", addr, genToken)
+		} else {
+			log.Printf("[auth] on (%s is exposed). Using supplied MICRO_AUTH_TOKEN.", addr)
+		}
+	} else {
+		log.Printf("[auth] off (%s is loopback). Scoped/paid tools still require a token.", addr)
 	}
 
 	// If an MCP protocol address is set, run the full MCP gateway ourselves with
@@ -1662,30 +1672,10 @@ func initAuth() error {
 	}
 	_, _ = os.ReadFile(privPath)
 	_, _ = os.ReadFile(pubPath)
-	storeInst := store.DefaultStore
-	// --- Ensure default admin account exists on first run ---
-	// If the admin was explicitly deleted (marker key exists), don't recreate.
-	adminID := "admin"
-	adminPass := "micro"
-	adminKey := "auth/" + adminID
-	adminDeletedKey := "auth/.admin-deleted"
-	if recs, _ := storeInst.Read(adminDeletedKey); len(recs) > 0 {
-		// Admin was explicitly deleted — don't recreate
-	} else if recs, _ := storeInst.Read(adminKey); len(recs) == 0 {
-		// Hash the admin password with bcrypt
-		hash, err := bcrypt.GenerateFromPassword([]byte(adminPass), bcrypt.DefaultCost)
-		if err != nil {
-			return err
-		}
-		acc := &Account{
-			ID:       adminID,
-			Type:     "admin",
-			Scopes:   []string{"*"},
-			Metadata: map[string]string{"created": time.Now().Format(time.RFC3339), "password_hash": string(hash)},
-		}
-		b, _ := json.Marshal(acc)
-		_ = storeInst.Write(&store.Record{Key: adminKey, Value: b})
-	}
+	// No default credential is created. The gateway authenticates with the
+	// per-process machine token (see ResolveAuth) plus any accounts/tokens an
+	// operator creates via /auth. A guessable admin/micro would be friction and
+	// no security at once.
 	return nil
 }
 
@@ -1696,7 +1686,7 @@ func parseStartTime(s string) (time.Time, error) {
 
 // gatewayFlags are shared by `micro gateway` and its deprecated `server` alias.
 func gatewayFlags() []cli.Flag {
-	return []cli.Flag{
+	flags := []cli.Flag{
 		&cli.StringFlag{
 			Name:    "address",
 			Usage:   "HTTP address for the dashboard/API",
@@ -1718,11 +1708,6 @@ func gatewayFlags() []cli.Flag {
 			Usage:   "MCP: rate limit burst size",
 			Value:   20,
 			EnvVars: []string{"MCP_RATE_BURST"},
-		},
-		&cli.BoolFlag{
-			Name:    "auth",
-			Usage:   "MCP: enable JWT authentication on the MCP gateway",
-			EnvVars: []string{"MCP_AUTH"},
 		},
 		&cli.BoolFlag{
 			Name:    "audit",
@@ -1771,6 +1756,7 @@ func gatewayFlags() []cli.Flag {
 			EnvVars: []string{"X402_CONFIG"},
 		},
 	}
+	return append(flags, AuthFlags()...)
 }
 
 func init() {
