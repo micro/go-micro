@@ -1,11 +1,19 @@
 ---
-title: Architecture Decision Records
-description: Documentation of architectural decisions made in Go Micro, following the ADR pattern.
+title: "Architecture Decision Records"
 ---
+
+Documentation of architectural decisions made in Go Micro, following the ADR pattern.
 
 ## What are ADRs?
 
 Architecture Decision Records (ADRs) capture important architectural decisions along with their context and consequences. They help understand why certain design choices were made.
+
+## Index
+
+### Available
+- [ADR-001: Plugin Architecture](adr-001-plugin-architecture.md)
+- [ADR-004: mDNS as Default Registry](adr-004-mdns-default-registry.md)
+- [ADR-009: Progressive Configuration](adr-009-progressive-configuration.md)
 
 ### Planned
 

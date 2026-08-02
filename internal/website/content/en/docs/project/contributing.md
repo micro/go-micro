@@ -1,6 +1,5 @@
 ---
 title: "Contributing"
-weight: 30
 description: "This is a rendered copy of the repository CONTRIBUTING.md for convenient access via the documentation site."
 ---
 This is a rendered copy of the repository `CONTRIBUTING.md` for convenient access via the documentation site.

@@ -1,10 +1,9 @@
 ---
-title: Examples
+title: Learn by Example
+linkTitle: Examples
 description: Learn by building real microservices with go-micro
 weight: 3
 ---
-
-# Learn by Example
 
 Runnable examples are the fastest way to move from reading the guides to changing
 one thing. Start with the path that matches where you are in the services →

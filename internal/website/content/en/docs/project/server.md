@@ -1,6 +1,5 @@
 ---
 title: "Server (optional)"
-weight: 60
 description: "The Micro server is an optional web dashboard and authenticated API gateway for production environments. It provides a secure entrypoint for discovering and interacting with services that are already "
 ---
 # Micro Server (Optional)

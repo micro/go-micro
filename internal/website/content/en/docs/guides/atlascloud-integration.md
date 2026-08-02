@@ -1,11 +1,8 @@
 ---
 title: Atlas Cloud Integration
+description: >-
+  [Atlas Cloud](https://www.atlascloud.ai/) is an enterprise AI infrastructure platform offering 300+ models across text, image, and video through a unified, OpenAI-compatible API. It is an official Go Micro sponsor and a first-class provider in the `ai` package.
 ---
-
-# Atlas Cloud Integration Guide
-
-[Atlas Cloud](https://www.atlascloud.ai/) is an enterprise AI infrastructure platform offering 300+ models across text, image, and video through a unified, OpenAI-compatible API. It is an official Go Micro sponsor and a first-class provider in the `ai` package.
-
 ## Quick Start
 
 Install or update Go Micro:
