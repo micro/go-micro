@@ -23,4 +23,4 @@ COPY $TARGETPLATFORM/protoc-gen-micro /usr/local/go/bin/
 WORKDIR /micro
 EXPOSE 8080
 ENTRYPOINT ["/usr/local/go/bin/micro"]
-CMD ["server"]
+CMD ["gateway"]

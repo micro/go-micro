@@ -12,12 +12,12 @@ import (
 	_ "go-micro.dev/v6/cmd/micro/cli/build"
 	_ "go-micro.dev/v6/cmd/micro/cli/deploy"
 	_ "go-micro.dev/v6/cmd/micro/flow"
+	"go-micro.dev/v6/cmd/micro/gateway"
 	_ "go-micro.dev/v6/cmd/micro/inspect"
 	_ "go-micro.dev/v6/cmd/micro/loop"
 	_ "go-micro.dev/v6/cmd/micro/mcp"
 	_ "go-micro.dev/v6/cmd/micro/resource"
 	_ "go-micro.dev/v6/cmd/micro/run"
-	"go-micro.dev/v6/cmd/micro/server"
 )
 
 //go:embed web/styles.css web/main.js web/templates/*
@@ -26,7 +26,7 @@ var webFS embed.FS
 var version = "5.0.0-dev"
 
 func init() {
-	server.HTML = webFS
+	gateway.HTML = webFS
 }
 
 func main() {

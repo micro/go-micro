@@ -41,14 +41,9 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "--address"
+            - "gateway"
+            - "--mcp-address"
             - {{ .Values.gateway.address | quote }}
-            - "--registry"
-            - {{ .Values.gateway.registry | quote }}
-            {{- if .Values.gateway.registryAddress }}
-            - "--registry-address"
-            - {{ .Values.gateway.registryAddress | quote }}
-            {{- end }}
             {{- if gt (float64 .Values.gateway.rateLimit) 0.0 }}
             - "--rate-limit"
             - {{ .Values.gateway.rateLimit | quote }}
@@ -64,6 +59,15 @@ spec:
             {{- range .Values.gateway.scopes }}
             - "--scope"
             - {{ . | quote }}
+            {{- end }}
+          # Registry selection uses the micro CLI's global flags, which are
+          # read from the environment (they must precede the subcommand).
+          env:
+            - name: MICRO_REGISTRY
+              value: {{ .Values.gateway.registry | quote }}
+            {{- if .Values.gateway.registryAddress }}
+            - name: MICRO_REGISTRY_ADDRESS
+              value: {{ .Values.gateway.registryAddress | quote }}
             {{- end }}
           ports:
             - name: http

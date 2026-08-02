@@ -251,11 +251,10 @@ This starts the MCP gateway on port 3000 alongside your service. All registered 
 For production, run the MCP gateway as a separate process that discovers all services:
 
 ```bash
-micro-mcp-gateway \
-  --registry consul \
-  --registry-address consul:8500 \
-  --address :3000 \
-  --auth jwt \
+micro --registry consul --registry_address consul:8500 \
+  gateway \
+  --mcp-address :3000 \
+  --auth \
   --rate-limit 10
 ```
 

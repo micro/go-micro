@@ -15,7 +15,7 @@ helm install mcp-gateway ./deploy/helm/mcp-gateway \
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `replicaCount` | Number of gateway replicas | `1` |
-| `image.repository` | Container image | `ghcr.io/micro/mcp-gateway` |
+| `image.repository` | Container image | `ghcr.io/micro/go-micro` |
 | `image.tag` | Image tag (defaults to appVersion) | `""` |
 | `gateway.address` | Listen address | `:3000` |
 | `gateway.registry` | Registry backend (mdns, consul, etcd) | `consul` |

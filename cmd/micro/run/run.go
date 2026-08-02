@@ -22,9 +22,9 @@ import (
 	clt "go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
 	"go-micro.dev/v6/cmd/micro/cli/generate"
+	"go-micro.dev/v6/cmd/micro/gateway"
 	"go-micro.dev/v6/cmd/micro/run/config"
 	"go-micro.dev/v6/cmd/micro/run/watcher"
-	"go-micro.dev/v6/cmd/micro/server"
 	"go-micro.dev/v6/registry"
 
 	_ "go-micro.dev/v6/ai/anthropic"
@@ -338,7 +338,7 @@ func Run(c *cli.Context) error {
 	}
 
 	// Start gateway unless disabled
-	var gw *server.Gateway
+	var gw *gateway.Gateway
 	gatewayAddr := c.String("address")
 	if gatewayAddr == "" {
 		gatewayAddr = ":8080"
@@ -347,7 +347,7 @@ func Run(c *cli.Context) error {
 	if !c.Bool("no-gateway") {
 		var err error
 		mcpAddr := c.String("mcp-address")
-		gw, err = server.StartGateway(server.GatewayOptions{
+		gw, err = gateway.StartGateway(gateway.GatewayOptions{
 			Address:     gatewayAddr,
 			AuthEnabled: true, // Auth enabled with default admin/micro user
 			Context:     context.Background(),
@@ -489,7 +489,7 @@ func discoverNewServices(baseDir string, known map[string]*serviceProcess, binDi
 	return newSvcs
 }
 
-func printBanner(services []*serviceProcess, gw *server.Gateway, watching bool, mcpAddr string) {
+func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool, mcpAddr string) {
 	fmt.Println()
 	fmt.Println("  \033[1mMicro\033[0m")
 	fmt.Println()

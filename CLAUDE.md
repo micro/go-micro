@@ -109,7 +109,7 @@ Build compelling demos showing agents interacting with go-micro services in real
 - **Documentation Guides** - Six guides: AI-native services, MCP security, tool descriptions, agent patterns, error handling, troubleshooting
 - **WithMCP Option** - One-line MCP setup (`gateway/mcp/option.go`)
 - **Agent Playground Redesign** - Chat-focused UI with collapsible tool calls
-- **Standalone Gateway Binary** - `micro-mcp-gateway` with Docker support
+- **Gateway command** - `micro gateway` (formerly `micro server`) runs the HTTP API, dashboard, auth, and — with `--mcp-address` — the MCP gateway with production controls (rate limit, scopes, auth, audit, circuit breaker, x402). Deployed via the micro CLI image; the standalone `micro-mcp-gateway` binary was folded into it.
 - **WebSocket Transport** - Bidirectional JSON-RPC 2.0 streaming (`gateway/mcp/websocket.go`)
 - **OpenTelemetry Integration** - Full span instrumentation with W3C trace context (`gateway/mcp/otel.go`)
 - **LlamaIndex SDK** - Python package with RAG examples (`contrib/go-micro-llamaindex/`)

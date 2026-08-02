@@ -322,7 +322,6 @@ modules:
       - go-micro.dev/v6/client/grpc
       - go-micro.dev/v6/cmd
       - go-micro.dev/v6/cmd/micro
-      - go-micro.dev/v6/cmd/micro-mcp-gateway
       - go-micro.dev/v6/cmd/micro/a2a
       - go-micro.dev/v6/cmd/micro/ai
       - go-micro.dev/v6/cmd/micro/api
@@ -346,7 +345,7 @@ modules:
       - go-micro.dev/v6/cmd/micro/run
       - go-micro.dev/v6/cmd/micro/run/config
       - go-micro.dev/v6/cmd/micro/run/watcher
-      - go-micro.dev/v6/cmd/micro/server
+      - go-micro.dev/v6/cmd/micro/gateway
       - go-micro.dev/v6/cmd/protoc-gen-micro
       - go-micro.dev/v6/cmd/protoc-gen-micro/examples/greeter
       - go-micro.dev/v6/cmd/protoc-gen-micro/generator
