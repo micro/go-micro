@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/urfave/cli/v2"
+
 	microcmd "go-micro.dev/v6/cmd"
 )
 
@@ -207,7 +208,7 @@ func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
 		},
 		{
 			name: "website getting-started first-agent on-ramp",
-			file: filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			file: filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
 			markers: []string{
 				"micro agent demo",
 				"micro agent quickcheck",
@@ -219,10 +220,10 @@ func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
 				"make docs-wayfinding",
 				"github.com/micro/go-micro/tree/master/examples/first-agent",
 				"github.com/micro/go-micro/tree/master/examples/support",
-				"guides/no-secret-first-agent.html",
-				"guides/your-first-agent.html",
-				"guides/debugging-agents.html",
-				"guides/zero-to-hero.html",
+				"guides/no-secret-first-agent.md",
+				"guides/your-first-agent.md",
+				"guides/debugging-agents.md",
+				"guides/zero-to-hero.md",
 			},
 		},
 	}
@@ -233,8 +234,11 @@ func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
 			if !strings.Contains(doc, marker) {
 				t.Fatalf("%s missing documented first-agent marker %q", contract.name, marker)
 			}
-			if isCLIContractMarker(marker) && !cliOutputsContain(outputs, marker) {
-				t.Fatalf("%s documents %q, but none of the first-agent CLI outputs mention it; keep README/website breadcrumbs aligned with micro agent demo/examples/zero-to-hero", contract.name, marker)
+			if isCLIContractMarker(marker) {
+				cliMarker := strings.ReplaceAll(marker, ".md", ".html")
+				if !cliOutputsContain(outputs, cliMarker) {
+					t.Fatalf("%s documents %q, but none of the first-agent CLI outputs mention it; keep README/website breadcrumbs aligned with micro agent demo/examples/zero-to-hero", contract.name, marker)
+				}
 			}
 			assertMaintainedFirstAgentPath(t, root, marker)
 		}
@@ -262,7 +266,7 @@ func cliOutputsContain(outputs map[string]string, marker string) bool {
 }
 
 func isCLIContractMarker(marker string) bool {
-	return strings.HasPrefix(marker, "micro ") || strings.HasPrefix(marker, "go run ") || strings.HasPrefix(marker, "go test ") || strings.Contains(marker, ".html")
+	return strings.HasPrefix(marker, "micro ") || strings.HasPrefix(marker, "go run ") || strings.HasPrefix(marker, "go test ") || strings.HasPrefix(marker, "guides/") || strings.Contains(marker, ".html")
 }
 
 func assertMaintainedFirstAgentPath(t *testing.T, root, marker string) {
@@ -279,6 +283,10 @@ func assertMaintainedFirstAgentPath(t *testing.T, root, marker string) {
 		"guides/your-first-agent.html":                               "internal/website/docs/guides/your-first-agent.md",
 		"guides/debugging-agents.html":                               "internal/website/docs/guides/debugging-agents.md",
 		"guides/zero-to-hero.html":                                   "internal/website/docs/guides/zero-to-hero.md",
+		"guides/no-secret-first-agent.md":                            "internal/website/content/en/docs/guides/no-secret-first-agent.md",
+		"guides/your-first-agent.md":                                 "internal/website/content/en/docs/guides/your-first-agent.md",
+		"guides/debugging-agents.md":                                 "internal/website/content/en/docs/guides/debugging-agents.md",
+		"guides/zero-to-hero.md":                                     "internal/website/content/en/docs/guides/zero-to-hero.md",
 		"github.com/micro/go-micro/tree/master/examples/first-agent": "examples/first-agent",
 		"github.com/micro/go-micro/tree/master/examples/support":     "examples/support",
 	}
