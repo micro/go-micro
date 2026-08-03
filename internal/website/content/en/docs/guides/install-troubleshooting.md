@@ -2,8 +2,6 @@
 title: Install troubleshooting
 ---
 
-# Install troubleshooting
-
 Use this page before `micro new` or `micro agent demo` when the CLI install is
 unclear. The goal is to prove three boundaries in order: the `micro` binary is on
 `PATH`, it is the version you expected, and the no-secret first-run path works

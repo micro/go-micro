@@ -1,6 +1,5 @@
 ---
 title: "Getting Started"
-weight: 10
 description: "Go Micro has three core abstractions:"
 ---
 ![Getting started with Go Micro](getting-started.jpg)
@@ -247,3 +246,4 @@ The flow discovers all services as tools and lets the LLM decide which RPCs to c
 - [MCP & AI Agents](mcp) — MCP gateway, tool discovery, and auth
 - [Data Model](model) — typed persistence with CRUD and queries
 - [Deployment](deployment) — deploy via SSH + systemd
+

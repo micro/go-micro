@@ -1,7 +1,6 @@
 ---
 title: "Deploying Go Micro Services"
 linkTitle: "Deployment"
-weight: 70
 description: "This guide covers deploying go-micro services to a Linux server using systemd."
 ---
 ![Go Micro deployment](deployment.jpg)

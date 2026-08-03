@@ -1,6 +1,5 @@
 ---
 title: "Observability"
-weight: 100
 description: "Observability in Go Micro spans logs, metrics, and traces. The goal is rapid insight into service behavior with minimal configuration."
 ---
 ![Observability](observability.jpg)

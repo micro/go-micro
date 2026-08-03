@@ -1,9 +1,7 @@
 ---
 title: "RPC Client"
+description: Call a running service using the Go Micro client.
 ---
-
-Call a running service using the Go Micro client.
-
 ```go
 package main
 

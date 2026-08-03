@@ -1,9 +1,7 @@
 ---
 title: "Hello Service"
+description: A minimal HTTP service using Go Micro, with a single endpoint.
 ---
-
-A minimal HTTP service using Go Micro, with a single endpoint.
-
 ## Service
 
 ```go

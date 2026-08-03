@@ -1,9 +1,7 @@
 ---
 title: "State with Postgres Store"
+description: Use the Postgres store for persistent key/value state.
 ---
-
-Use the Postgres store for persistent key/value state.
-
 ## In code
 
 ```go
