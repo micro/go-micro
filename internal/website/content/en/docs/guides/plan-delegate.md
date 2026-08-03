@@ -75,7 +75,7 @@ The model calls `plan` with an ordered list of steps, each with a `task` and a `
 }
 ```
 
-The plan is persisted under `agent/{name}/plan` in the [store](../store.html) — file-backed by default, Postgres or NATS KV in production — and re-injected into the system prompt on subsequent turns. Memory survives restarts.
+The plan is persisted under `agent/{name}/plan` in the [store](../store.md) — file-backed by default, Postgres or NATS KV in production — and re-injected into the system prompt on subsequent turns. Memory survives restarts.
 
 You don't have to do anything to enable this. Nudge the agent to use it from the prompt when you want disciplined multi-step behaviour:
 
@@ -153,6 +153,6 @@ The full, runnable code is in [examples/agent-plan-delegate](https://github.com/
 
 `plan` and `delegate` don't add a new layer to the framework — they're tools, the same primitive everything else uses. That's deliberate: services are the only abstraction, the LLM calls them as tools, and an agent's own capabilities are no exception.
 
-- [Agent Integration Patterns](agent-patterns.html) — Pattern 9 covers planning and delegation
-- [AI Integration](../ai-integration.html) — agents, flows, and the model interface
-- [Store](../store.html) — where agent memory lives
+- [Agent Integration Patterns](agent-patterns.md) — Pattern 9 covers planning and delegation
+- [AI Integration](../ai-integration/index.md) — agents, flows, and the model interface
+- [Store](../store.md) — where agent memory lives

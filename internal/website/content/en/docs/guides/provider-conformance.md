@@ -101,7 +101,7 @@ go run ./internal/harness/provider-conformance \
 
 ## Related docs
 
-- [The Agent Harness](agent-harness.html)
-- [Agents and Workflows](agents-and-workflows.html)
-- [AI Provider Guide](ai-provider-guide.html)
+- [The Agent Harness](agent-harness.md)
+- [Agents and Workflows](agents-and-workflows.md)
+- [AI Provider Guide](ai-provider-guide.md)
 - [Roadmap](/docs/roadmap.html)

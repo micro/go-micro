@@ -36,4 +36,4 @@ We're working on additional migration guides:
 - Check the [Framework Comparison](../comparison.md) guide
 - Review [Architecture Decisions](../../architecture/index.md) to understand design choices
 - Ask questions in [GitHub Discussions](https://github.com/micro/go-micro/discussions)
-- See the [Contributing Guide](../../contributing.md) to contribute new migration guides
+- See the [Contributing Guide](../../project/contributing.md) to contribute new migration guides

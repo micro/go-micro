@@ -360,4 +360,4 @@ wait
 ## Related
 
 - [API Gateway Example](api-gateway.md) - Multi-service architecture
-- [Getting Started Guide](../../getting-started.md) - Basic service setup
+- [Getting Started Guide](../../getting-started/index.md) - Basic service setup

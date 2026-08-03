@@ -69,8 +69,8 @@ You can combine both — either firing stops the loop.
 loop always terminates even if the stop condition never fires. When the cap is
 hit, the loop returns the latest state rather than erroring — the guardrail did
 its job. **Always set it.** For tighter budgets, keep the cap low and pair the
-loop with [agent guardrails](agent-guardrails.html) (e.g. token/spend limits)
-and [paid tools](x402-payments.html) (per-call metering) so a background loop
+loop with [agent guardrails](agent-guardrails.md) (e.g. token/spend limits)
+and [paid tools](x402-payments.md) (per-call metering) so a background loop
 can't run up an unbounded bill.
 
 ## Watching progress
@@ -87,7 +87,7 @@ micro.FlowOnIteration(func(iter int, s micro.FlowState) {
 ## Durability
 
 A loop runs as a **single flow step**. The flow checkpoints the loop's outcome
-(before and after the step) through its [Checkpoint](../deployment.html), and a
+(before and after the step) through its [Checkpoint](../deployment.md), and a
 resume re-enters the step — so keep loop bodies safe to repeat. For long loops,
 use `FlowOnIteration` to persist per-pass progress.
 
@@ -110,6 +110,6 @@ stop check for `micro.FlowUntilLLM(...)` to turn it into a real agent loop.
 
 ## See also
 
-- [Agents and Workflows](agents-and-workflows.html) — flows vs. agents
-- [Agent Guardrails](agent-guardrails.html) — bounding what a loop can do
-- [Plan & Delegate](plan-delegate.html) — splitting work across agents
+- [Agents and Workflows](agents-and-workflows.md) — flows vs. agents
+- [Agent Guardrails](agent-guardrails.md) — bounding what a loop can do
+- [Plan & Delegate](plan-delegate.md) — splitting work across agents

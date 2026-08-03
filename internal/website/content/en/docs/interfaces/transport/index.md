@@ -34,7 +34,7 @@ service := micro.NewService("myservice",
 )
 ```
 
-See [Native gRPC Compatibility](guides/grpc-compatibility) for a complete guide.
+See [Native gRPC Compatibility](../../guides/grpc-compatibility.md) for a complete guide.
 
 Plugins are scoped under `go-micro.dev/v6/transport/<plugin>`.
 

@@ -23,7 +23,7 @@ Every endpoint is automatically a tool, so the augmented LLM is the default, not
 
 ## Workflow ↔ `flow`
 
-A [`Flow`](../ai-integration.html) is a workflow in Anthropic's exact sense: a **predefined path** — an event on a broker topic triggers a prompt with a fixed set of tools, deterministically. Use it when the task is well-defined and you want predictability.
+A [`Flow`](../ai-integration/index.md) is a workflow in Anthropic's exact sense: a **predefined path** — an event on a broker topic triggers a prompt with a fixed set of tools, deterministically. Use it when the task is well-defined and you want predictability.
 
 ```go
 f := micro.NewFlow("onboard-user",
@@ -71,7 +71,7 @@ The pluggability is the usual go-micro shape: the built-in `Checkpoint` is store
 
 ## Agent ↔ `agent`
 
-An [`Agent`](plan-delegate.html) is an agent in Anthropic's exact sense: it **directs itself** — plans, calls tools, evaluates results, and decides the next step over many turns, with memory across them. Use it when you want flexibility and model-driven decisions.
+An [`Agent`](plan-delegate.md) is an agent in Anthropic's exact sense: it **directs itself** — plans, calls tools, evaluates results, and decides the next step over many turns, with memory across them. Use it when you want flexibility and model-driven decisions.
 
 ```go
 a := micro.NewAgent("conductor",
@@ -143,7 +143,7 @@ Anthropic lists five workflow patterns. Go Micro implements the two richest ones
 | Pattern | Go Micro |
 |---|---|
 | **Routing** — classify input, dispatch to a specialist | `micro chat`'s router — discovers agents, classifies intent, routes over RPC |
-| **Orchestrator-workers** — a central LLM breaks down a task, delegates to workers, synthesizes | the `agent` with **`plan`** (break down) + **`delegate`** (hand to workers) + reply (synthesize) — see [Plan & Delegate](plan-delegate.html) |
+| **Orchestrator-workers** — a central LLM breaks down a task, delegates to workers, synthesizes | the `agent` with **`plan`** (break down) + **`delegate`** (hand to workers) + reply (synthesize) — see [Plan & Delegate](plan-delegate.md) |
 | **Prompt chaining** — sequential steps | chain flows, or steps in an agent's plan |
 | **Parallelization** — independent subtasks at once | Go concurrency + multiple services/agents; fan out with `delegate` |
 | **Evaluator-optimizer** — one LLM generates, another critiques in a loop | two agents over RPC (generator + evaluator) |
@@ -194,6 +194,6 @@ Anthropic: "be cautious with frameworks… understand the underlying code." Go M
 ## See also
 
 - [Building Effective Agents](https://www.anthropic.com/engineering/building-effective-agents) — Anthropic
-- [Plan & Delegate](plan-delegate.html) — the agent's built-in tools
-- [Agent Integration Patterns](agent-patterns.html) — multi-agent architectures
-- [AI Integration](../ai-integration.html) — agents, flows, and the model interface
+- [Plan & Delegate](plan-delegate.md) — the agent's built-in tools
+- [Agent Integration Patterns](agent-patterns.md) — multi-agent architectures
+- [AI Integration](../ai-integration/index.md) — agents, flows, and the model interface

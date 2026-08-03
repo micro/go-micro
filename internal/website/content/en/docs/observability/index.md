@@ -88,6 +88,6 @@ Start with only structured logs. Add metrics when operating multiple services. I
 
 ## Related
 
-- [Getting Started](getting-started)
-- [Plugins](plugins)
-- [Architecture Decisions](architecture/index.md)
+- [Getting Started](../getting-started/index.md)
+- [Plugins](../plugins.md)
+- [Architecture Decisions](../architecture/index.md)

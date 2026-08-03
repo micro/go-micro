@@ -11,7 +11,7 @@ run on events or schedules.
 
 ## Runnable reference first
 
-If you want to run the lifecycle before copying code, start with the [no-secret first-agent transcript](no-secret-first-agent.html) or run the maintained support-desk example from the repository root:
+If you want to run the lifecycle before copying code, start with the [no-secret first-agent transcript](no-secret-first-agent.md) or run the maintained support-desk example from the repository root:
 
 ```sh
 go run ./examples/support
@@ -234,11 +234,11 @@ agent for judgment, tool use, and handoffs when the path is not known up front.
 
 ## Next steps
 
-- Read the [0→hero reference path](zero-to-hero.html) for the CI-verified
+- Read the [0→hero reference path](zero-to-hero.md) for the CI-verified
   lifecycle contract.
-- Run the [no-secret first-agent transcript](no-secret-first-agent.html) or [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the no-secret support-desk lifecycle.
+- Run the [no-secret first-agent transcript](no-secret-first-agent.md) or [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the no-secret support-desk lifecycle.
 - Run [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate)
   to see planning and delegation across agents.
-- Read [Debugging your agent](debugging-agents.html) when a chat turn does not call the tool you expected, loops, refuses a call, loses memory, or fails after a flow handoff.
-- Read [Agents and Workflows](agents-and-workflows.html) when you are ready to
+- Read [Debugging your agent](debugging-agents.md) when a chat turn does not call the tool you expected, loops, refuses a call, loses memory, or fails after a flow handoff.
+- Read [Agents and Workflows](agents-and-workflows.md) when you are ready to
   compose agents behind durable flows.

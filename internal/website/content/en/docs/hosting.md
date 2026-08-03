@@ -122,7 +122,7 @@ The platform should monitor service health and provide visibility into behavior.
 - **Metrics** (request rates, latencies, error rates) scraped or pushed
 - **Distributed tracing** across service boundaries
 
-See [Observability](observability.md) for details on logs, metrics, and traces.
+See [Observability](observability/index.md) for details on logs, metrics, and traces.
 
 ### Security
 
@@ -206,8 +206,8 @@ micro deploy prod     ─────▶   Place on compute
 ## Related
 
 - [Deployment](deployment.md) — Deploy services to a Linux server with systemd
-- [Registry](registry.md) — Service discovery backends
-- [Architecture](architecture.md) — Go Micro design and components
-- [Observability](observability.md) — Logs, metrics, and tracing
+- [Registry](interfaces/registry/index.md) — Service discovery backends
+- [Architecture](architecture/index.md) — Go Micro design and components
+- [Observability](observability/index.md) — Logs, metrics, and tracing
 - [Performance](performance.md) — Performance characteristics and tuning
 

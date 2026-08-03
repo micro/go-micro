@@ -133,9 +133,9 @@ surface without duplicate wiring.
 
 If you are new, follow the architecture in the same order the runtime composes it:
 
-1. [Install troubleshooting](../guides/install-troubleshooting.html) — make sure the
+1. [Install troubleshooting](../guides/install-troubleshooting.md) — make sure the
    CLI, `PATH`, version, and no-secret smoke path are healthy.
-2. [`micro agent demo`](../getting-started/index.html#first-agent-on-ramp) — print the
+2. [`micro agent demo`](../getting-started/index.md#first-agent-on-ramp) — print the
    provider-free first-agent command and next docs steps from the installed CLI.
 3. `micro agent quickcheck` (or `micro agent debug`) — print the short recovery
    map when scaffold → run → chat → inspect stalls.
@@ -148,23 +148,23 @@ If you are new, follow the architecture in the same order the runtime composes i
    examples from one map.
 7. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent)
    — run one service-backed agent with a mock model.
-8. [No-secret first-agent transcript](../guides/no-secret-first-agent.html) — see the
+8. [No-secret first-agent transcript](../guides/no-secret-first-agent.md) — see the
    maintained support-agent path work without a provider key.
-9. [Your First Agent](../guides/your-first-agent.html) — build and chat with a
+9. [Your First Agent](../guides/your-first-agent.md) — build and chat with a
    service-backed agent.
-10. [Debugging your agent](../guides/debugging-agents.html) — inspect service
+10. [Debugging your agent](../guides/debugging-agents.md) — inspect service
     registration, tools, memory, providers, and run history.
-11. [0→hero Reference](../guides/zero-to-hero.html) — walk scaffold → run → chat →
+11. [0→hero Reference](../guides/zero-to-hero.md) — walk scaffold → run → chat →
     inspect → flow → deploy dry-run as the maintained lifecycle contract.
 
 ## Related
 
-- [AI Integration](../ai-integration/index.html) — layer-by-layer services → agents → workflows wiring
-- [Getting Started](../getting-started/index.html) — first service and first-agent on-ramp
+- [AI Integration](../ai-integration/index.md) — layer-by-layer services → agents → workflows wiring
+- [Getting Started](../getting-started/index.md) — first service and first-agent on-ramp
 - [Examples](../examples/) — runnable examples mapped to the lifecycle
 - [ADR Index](../project/architecture/) — architecture decision records
 - [Configuration](../config/)
-- [Plugins](../plugins.html)
+- [Plugins](../plugins.md)
 
 ## Example Usage
 

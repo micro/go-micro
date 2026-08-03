@@ -53,4 +53,4 @@ Each example will include:
 - Testing approach
 - Common pitfalls and solutions
 
-Want to contribute? See our [Contributing Guide](../../contributing.md).
+Want to contribute? See our [Contributing Guide](../../project/contributing.md).

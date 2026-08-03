@@ -18,7 +18,7 @@ import (
 func TestZeroToHeroReferenceDocs(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 
-	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"))
+	guide := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "zero-to-hero.md"))
 	for _, want := range []string{
 		"make harness",
 		"make zero-to-hero-transcript",
@@ -105,7 +105,7 @@ func TestZeroToHeroTranscriptTargetStaysOrdered(t *testing.T) {
 		`run_step "deploy dry-run: configured target plan"`,
 	})
 
-	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"))
+	guide := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "zero-to-hero.md"))
 	if !strings.Contains(guide, "make zero-to-hero-transcript") {
 		t.Fatal("0→hero guide must point developers at the focused ordered transcript target")
 	}
@@ -161,7 +161,7 @@ deploy prod
 		}
 	}
 
-	guide := readFile(t, filepath.Join(absRoot, "internal", "website", "docs", "guides", "zero-to-hero.md"))
+	guide := readFile(t, filepath.Join(absRoot, "internal", "website", "content", "en", "docs", "guides", "zero-to-hero.md"))
 	if !strings.Contains(guide, "micro deploy --dry-run prod") {
 		t.Fatal("0→hero guide must document the same deploy dry-run command covered by CI")
 	}
@@ -195,7 +195,7 @@ func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
 		last = idx
 
 		doc := strings.TrimPrefix(strings.TrimSuffix(guide, ".html"), "/docs/") + ".md"
-		if _, err := os.Stat(filepath.Join(root, "internal", "website", "docs", doc)); err != nil {
+		if _, err := os.Stat(filepath.Join(root, "internal", "website", "content", "en", "docs", doc)); err != nil {
 			t.Fatalf("navigation links to missing guide %s: %v", guide, err)
 		}
 	}
@@ -207,7 +207,7 @@ func TestYourFirstAgentTutorialSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("resolve repository root: %v", err)
 	}
-	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "your-first-agent.md"))
+	guide := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "your-first-agent.md"))
 
 	for _, want := range []string{
 		"go test ./internal/harness/zero-to-hero-ci -run TestYourFirstAgentTutorialSmoke -count=1",
@@ -273,7 +273,7 @@ func runInWorkspace(t *testing.T, workspace, name string, args ...string) {
 
 func TestArchitectureDocsAlignWithAgentHarnessLifecycle(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	doc := readFile(t, filepath.Join(root, "internal", "website", "docs", "architecture.md"))
+	doc := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "architecture", "index.md"))
 
 	for _, want := range []string{
 		"services → agents → workflows lifecycle",
@@ -288,9 +288,9 @@ func TestArchitectureDocsAlignWithAgentHarnessLifecycle(t *testing.T) {
 		"`flow`",
 		"`micro mcp`",
 		"`micro a2a`",
-		"[AI Integration](ai-integration.html)",
-		"[Your First Agent](guides/your-first-agent.html)",
-		"[0→hero Reference](guides/zero-to-hero.html)",
+		"[AI Integration](../ai-integration/index.md)",
+		"[Your First Agent](../guides/your-first-agent.md)",
+		"[0→hero Reference](../guides/zero-to-hero.md)",
 	} {
 		if !strings.Contains(doc, want) {
 			t.Fatalf("architecture doc missing lifecycle marker %q", want)
@@ -375,22 +375,22 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 		},
 		{
 			name:    "website examples index",
-			file:    filepath.Join(root, "internal", "website", "docs", "examples", "index.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "examples", "_index.md"),
 			heading: "## Start here",
 			links: []string{
 				"https://github.com/micro/go-micro/tree/master/examples/first-agent",
-				"../guides/no-secret-first-agent.html",
-				"../guides/your-first-agent.html",
-				"../guides/debugging-agents.html",
-				"../guides/zero-to-hero.html",
+				"../guides/no-secret-first-agent.md",
+				"../guides/your-first-agent.md",
+				"../guides/debugging-agents.md",
+				"../guides/zero-to-hero.md",
 			},
 		},
 		{
 			name:    "website getting-started on-ramp",
-			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
 			heading: "### First-agent on-ramp",
 			links: []string{
-				"guides/install-troubleshooting.html",
+				"../guides/install-troubleshooting.md",
 				"make docs-wayfinding",
 				"micro agent demo",
 				"micro agent quickcheck",
@@ -399,20 +399,20 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 				"https://github.com/micro/go-micro/blob/master/examples/INDEX.md",
 				"https://github.com/micro/go-micro/tree/master/examples/support",
 				"https://github.com/micro/go-micro/tree/master/examples/first-agent",
-				"guides/no-secret-first-agent.html",
-				"guides/your-first-agent.html",
+				"../guides/no-secret-first-agent.md",
+				"../guides/your-first-agent.md",
 				"micro chat",
-				"guides/debugging-agents.html",
+				"../guides/debugging-agents.md",
 				"micro inspect agent <name>",
-				"guides/zero-to-hero.html",
+				"../guides/zero-to-hero.md",
 			},
 		},
 		{
 			name:    "website quickstart next steps",
-			file:    filepath.Join(root, "internal", "website", "docs", "quickstart.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
 			heading: "## Next Steps",
 			links: []string{
-				"guides/install-troubleshooting.html",
+				"guides/install-troubleshooting.md",
 				"micro agent demo",
 				"micro agent quickcheck",
 				"micro examples",
@@ -420,28 +420,28 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 				"https://github.com/micro/go-micro/blob/master/examples/INDEX.md",
 				"https://github.com/micro/go-micro/tree/master/examples/support",
 				"https://github.com/micro/go-micro/tree/master/examples/first-agent",
-				"guides/no-secret-first-agent.html",
-				"guides/your-first-agent.html",
+				"guides/no-secret-first-agent.md",
+				"guides/your-first-agent.md",
 				"micro chat",
-				"guides/debugging-agents.html",
+				"guides/debugging-agents.md",
 				"micro inspect agent <name>",
-				"guides/zero-to-hero.html",
+				"guides/zero-to-hero.md",
 			},
 		},
 		{
 			name:    "website docs index learn more",
-			file:    filepath.Join(root, "internal", "website", "docs", "index.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "_index.md"),
 			heading: "## Learn More",
 			links: []string{
-				"getting-started.html",
+				"getting-started/index.md",
 				"https://github.com/micro/go-micro/blob/master/examples/INDEX.md",
 				"https://github.com/micro/go-micro/tree/master/examples/support",
-				"guides/no-secret-first-agent.html",
-				"guides/your-first-agent.html",
+				"guides/no-secret-first-agent.md",
+				"guides/your-first-agent.md",
 				"micro chat",
-				"guides/debugging-agents.html",
+				"guides/debugging-agents.md",
 				"micro inspect agent <name>",
-				"guides/zero-to-hero.html",
+				"guides/zero-to-hero.md",
 			},
 		},
 	}
@@ -496,19 +496,19 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 		},
 		{
 			name:    "website docs index first-agent path",
-			file:    filepath.Join(root, "internal", "website", "docs", "index.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "_index.md"),
 			heading: "## Learn More",
 			markers: onRampTrail,
 		},
 		{
 			name:    "website getting-started first-agent on-ramp",
-			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
 			heading: "### First-agent on-ramp",
 			markers: onRampTrail,
 		},
 		{
 			name:    "website quickstart next steps",
-			file:    filepath.Join(root, "internal", "website", "docs", "quickstart.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
 			heading: "## Next Steps",
 			markers: onRampTrail,
 		},
@@ -527,7 +527,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 		},
 		{
 			name:    "no-secret first-agent guide next steps",
-			file:    filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "no-secret-first-agent.md"),
 			heading: "",
 			markers: []string{
 				"micro agent demo",
@@ -541,7 +541,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 		},
 		{
 			name:    "0→hero guide related examples",
-			file:    filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "zero-to-hero.md"),
 			heading: "",
 			markers: []string{
 				"micro zero-to-hero",
@@ -597,22 +597,22 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 		},
 		{
 			name:    "website examples index",
-			file:    filepath.Join(root, "internal", "website", "docs", "examples", "index.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "examples", "_index.md"),
 			heading: "## Start here",
 		},
 		{
 			name:    "website getting-started on-ramp",
-			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
 			heading: "### First-agent on-ramp",
 		},
 		{
 			name:    "website quickstart next steps",
-			file:    filepath.Join(root, "internal", "website", "docs", "quickstart.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
 			heading: "## Next Steps",
 		},
 		{
 			name:    "website docs index learn more",
-			file:    filepath.Join(root, "internal", "website", "docs", "index.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "_index.md"),
 			heading: "## Learn More",
 		},
 	}
@@ -640,7 +640,7 @@ func TestFirstAgentGuideChainDocumentsRequiredNextSteps(t *testing.T) {
 	}{
 		{
 			name: "no-secret transcript hands off to live build and debug",
-			file: filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"),
+			file: filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "no-secret-first-agent.md"),
 			markers: []string{
 				"micro agent demo",
 				"go run ./examples/first-agent",
@@ -653,29 +653,29 @@ func TestFirstAgentGuideChainDocumentsRequiredNextSteps(t *testing.T) {
 				"micro chat assistant",
 				"micro inspect agent assistant",
 				"Debugging your agent",
-				"debugging-agents.html",
+				"debugging-agents.md",
 			},
 		},
 		{
 			name: "your-first-agent keeps no-secret, preflight, doctor, inspect, and debug nearby",
-			file: filepath.Join(root, "internal", "website", "docs", "guides", "your-first-agent.md"),
+			file: filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "your-first-agent.md"),
 			markers: []string{
-				"no-secret-first-agent.html",
+				"no-secret-first-agent.md",
 				"go run ./examples/support",
 				"micro agent preflight",
 				"micro agent doctor",
 				"micro run",
 				"micro chat assistant",
 				"micro inspect agent assistant",
-				"debugging-agents.html",
-				"zero-to-hero.html",
+				"debugging-agents.md",
+				"zero-to-hero.md",
 			},
 		},
 		{
 			name: "debugging guide starts at install/preflight and preserves inspect/history recovery",
-			file: filepath.Join(root, "internal", "website", "docs", "guides", "debugging-agents.md"),
+			file: filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "debugging-agents.md"),
 			markers: []string{
-				"install-troubleshooting.html",
+				"install-troubleshooting.md",
 				"micro agent preflight",
 				"micro agent doctor",
 				"micro run",
@@ -687,7 +687,7 @@ func TestFirstAgentGuideChainDocumentsRequiredNextSteps(t *testing.T) {
 		},
 		{
 			name: "zero-to-hero guide exposes the provider-free contract commands",
-			file: filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"),
+			file: filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "zero-to-hero.md"),
 			markers: []string{
 				"go test ./internal/harness/zero-to-hero-ci -run TestFirstAgentWayfinding -count=1",
 				"micro zero-to-hero",
@@ -734,7 +734,7 @@ func TestFirstAgentLifecycleCommandOrderIsDocumented(t *testing.T) {
 	}{
 		{
 			name:    "0→hero guide lifecycle",
-			file:    filepath.Join(root, "internal", "website", "docs", "guides", "zero-to-hero.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "zero-to-hero.md"),
 			heading: "## What the contract covers",
 			markers: []string{"micro new", "micro run", "micro chat", "micro inspect agent", "micro deploy --dry-run"},
 		},
@@ -794,7 +794,7 @@ func TestExamplesIndexesPreserveLifecycleMap(t *testing.T) {
 		},
 		{
 			name:    "website examples lifecycle map",
-			file:    filepath.Join(root, "internal", "website", "docs", "examples", "index.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "examples", "_index.md"),
 			heading: "## Start here",
 			want: []string{
 				"examples/hello-world",
@@ -804,7 +804,7 @@ func TestExamplesIndexesPreserveLifecycleMap(t *testing.T) {
 				"services",
 				"agents",
 				"workflows",
-				"debugging-agents.html",
+				"debugging-agents.md",
 			},
 			ordered: []string{"0→1 service", "Provider-free first agent", "0→hero lifecycle"},
 		},
@@ -871,7 +871,7 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 		},
 		{
 			name:    "website getting started",
-			file:    filepath.Join(root, "internal", "website", "docs", "getting-started.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
 			section: "Install troubleshooting",
 			want: []string{
 				"Install troubleshooting",
@@ -886,7 +886,7 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 		},
 		{
 			name:    "website quickstart",
-			file:    filepath.Join(root, "internal", "website", "docs", "quickstart.md"),
+			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
 			section: "## Create Your First Service",
 			want: []string{
 				"micro new helloworld",
@@ -896,10 +896,10 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 				"micro agent demo",
 				"micro agent quickcheck",
 				"micro zero-to-hero",
-				"guides/no-secret-first-agent.html",
-				"guides/debugging-agents.html",
+				"guides/no-secret-first-agent.md",
+				"guides/debugging-agents.md",
 				"micro inspect agent <name>",
-				"guides/zero-to-hero.html",
+				"guides/zero-to-hero.md",
 			},
 		},
 	}
@@ -931,7 +931,7 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 
 func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	guide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "no-secret-first-agent.md"))
+	guide := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "no-secret-first-agent.md"))
 
 	for _, want := range []string{
 		"micro agent demo",
@@ -959,14 +959,14 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 		"micro agent history assistant",
 		"status, event count, last event",
 		"Debugging your agent",
-		"debugging-agents.html",
+		"debugging-agents.md",
 	} {
 		if !strings.Contains(debugCheckpoint, want) {
 			t.Fatalf("no-secret debug transcript checkpoint missing %q", want)
 		}
 	}
 
-	debuggingGuide := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "debugging-agents.md"))
+	debuggingGuide := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "debugging-agents.md"))
 	for _, want := range []string{
 		"Provider-free quickcheck",
 		"go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentDebuggingSmoke -count=1",
@@ -989,8 +989,8 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 		t.Fatal("README does not point to the no-secret first-agent transcript")
 	}
 
-	firstAgent := readFile(t, filepath.Join(root, "internal", "website", "docs", "guides", "your-first-agent.md"))
-	if !strings.Contains(firstAgent, "no-secret-first-agent.html") {
+	firstAgent := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "your-first-agent.md"))
+	if !strings.Contains(firstAgent, "no-secret-first-agent.md") {
 		t.Fatal("Your First Agent guide does not point to the no-secret transcript")
 	}
 }
@@ -1066,7 +1066,8 @@ func TestFirstAgentCLIChatInspectFixture(t *testing.T) {
 	runInWorkspace(t, workspace, "go", "build", "-o", fixtureBin, ".")
 	fixture := exec.Command(fixtureBin)
 	fixture.Dir = workspace
-	fixture.Env = append(os.Environ(),
+	fixture.Env = append(
+		os.Environ(),
 		"HOME="+home,
 		"MICRO_AI_API_KEY=",
 		"OPENAI_API_KEY=",
@@ -1278,7 +1279,8 @@ func runMicroCLIWithHome(t *testing.T, micro, home string, args ...string) strin
 }
 
 func microCLIEnv(home string) []string {
-	return append(os.Environ(),
+	return append(
+		os.Environ(),
 		"HOME="+home,
 		"MICRO_AI_API_KEY=",
 		"OPENAI_API_KEY=",
@@ -1292,11 +1294,11 @@ func TestFirstAgentWayfindingTargetsExist(t *testing.T) {
 	for _, target := range []string{
 		"examples/README.md",
 		"examples/first-agent/README.md",
-		"internal/website/docs/examples/index.md",
-		"internal/website/docs/guides/no-secret-first-agent.md",
-		"internal/website/docs/guides/your-first-agent.md",
-		"internal/website/docs/guides/debugging-agents.md",
-		"internal/website/docs/guides/zero-to-hero.md",
+		"internal/website/content/en/docs/examples/_index.md",
+		"internal/website/content/en/docs/guides/no-secret-first-agent.md",
+		"internal/website/content/en/docs/guides/your-first-agent.md",
+		"internal/website/content/en/docs/guides/debugging-agents.md",
+		"internal/website/content/en/docs/guides/zero-to-hero.md",
 	} {
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(target))); err != nil {
 			t.Fatalf("first-agent wayfinding target %s disappeared: %v", target, err)
@@ -1385,28 +1387,31 @@ func assertWayfindingTargetExists(t *testing.T, root, sourceFile, link string) {
 		switch {
 		case strings.HasPrefix(link, "https://go-micro.dev/docs/"):
 			link = strings.TrimPrefix(link, "https://go-micro.dev/docs/")
-			link = filepath.ToSlash(filepath.Join("internal", "website", "docs", strings.TrimSuffix(link, ".html")+".md"))
+			link = filepath.ToSlash(filepath.Join("internal", "website", "content", "en", "docs", strings.TrimSuffix(link, ".html")+".md"))
 		case strings.HasPrefix(link, "https://github.com/micro/go-micro/tree/master/"):
 			link = strings.TrimPrefix(link, "https://github.com/micro/go-micro/tree/master/")
 		default:
 			return
 		}
-	} else if strings.HasSuffix(link, ".html") {
-		sourceDir := filepath.Dir(sourceFile)
-		websiteDocs := filepath.Join(root, "internal", "website", "docs")
-		resolved := filepath.Clean(filepath.Join(sourceDir, filepath.FromSlash(link)))
-		if rel, err := filepath.Rel(websiteDocs, resolved); err == nil && !strings.HasPrefix(rel, "..") {
-			link = filepath.ToSlash(filepath.Join("internal", "website", "docs", strings.TrimSuffix(rel, ".html")+".md"))
-		}
-	} else if strings.HasPrefix(link, ".") {
-		target := filepath.Clean(filepath.Join(filepath.Dir(sourceFile), filepath.FromSlash(link)))
+		target := filepath.Join(root, filepath.FromSlash(link))
 		if _, err := os.Stat(target); err != nil {
 			t.Fatalf("first-agent wayfinding link %q in %s resolves to missing target %s: %v", link, sourceFile, target, err)
 		}
 		return
 	}
+	if strings.HasPrefix(link, "/") {
+		return
+	}
 
-	target := filepath.Join(root, filepath.FromSlash(link))
+	var target string
+	switch {
+	case strings.HasPrefix(link, "./") || strings.HasPrefix(link, "../"):
+		target = filepath.Clean(filepath.Join(filepath.Dir(sourceFile), filepath.FromSlash(link)))
+	case strings.Contains(sourceFile, filepath.Join("internal", "website", "content")):
+		target = filepath.Clean(filepath.Join(filepath.Dir(sourceFile), filepath.FromSlash(link)))
+	default:
+		target = filepath.Clean(filepath.Join(root, filepath.FromSlash(link)))
+	}
 	if _, err := os.Stat(target); err != nil {
 		t.Fatalf("first-agent wayfinding link %q in %s resolves to missing target %s: %v", link, sourceFile, target, err)
 	}

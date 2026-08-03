@@ -229,6 +229,6 @@ If rate limits are too low, requests queue up. Check your rate limit configurati
 
 ## Still Stuck?
 
-- Check the [MCP Documentation](../../mcp.md) for full API reference
+- Check the [MCP Documentation](../mcp.md) for full API reference
 - Search [GitHub Issues](https://github.com/micro/go-micro/issues) for similar problems
 - Ask in [GitHub Discussions](https://github.com/micro/go-micro/discussions)

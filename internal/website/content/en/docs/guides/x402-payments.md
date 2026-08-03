@@ -137,8 +137,8 @@ Leave those variables unset in normal CI; the live test skips unless the facilit
 
 ## See also
 
-- [Building Effective Agents — Agents and Workflows](agents-and-workflows.html)
-- [MCP & AI Agents](../mcp.html)
+- [Building Effective Agents — Agents and Workflows](agents-and-workflows.md)
+- [MCP & AI Agents](../mcp.md)
 - [x402 — Coinbase Developer Docs](https://docs.cdp.coinbase.com/x402/welcome) · [x402 on Solana](https://solana.com/x402/what-is-x402)
 
 ## AP2 payment mandates

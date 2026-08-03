@@ -84,10 +84,10 @@ calling a model provider.
 After install verification succeeds, continue in order:
 
 1. `micro agent demo` — print the provider-free first-agent demo command and next docs steps.
-2. [No-secret first-agent transcript](no-secret-first-agent.html) — prove an agent can use services without a provider key.
-3. [Your First Agent](your-first-agent.html) — build and chat with your own service-backed agent.
-4. [Debugging your agent](debugging-agents.html) — inspect registration, tool calls, run history, and provider failures.
-5. [0→hero Reference](zero-to-hero.html) — walk the full services → agents → workflows lifecycle.
+2. [No-secret first-agent transcript](no-secret-first-agent.md) — prove an agent can use services without a provider key.
+3. [Your First Agent](your-first-agent.md) — build and chat with your own service-backed agent.
+4. [Debugging your agent](debugging-agents.md) — inspect registration, tool calls, run history, and provider failures.
+5. [0→hero Reference](zero-to-hero.md) — walk the full services → agents → workflows lifecycle.
 
 For repository contributors, `make install-smoke` runs the same installer seam
 against a local build without network access.

@@ -116,5 +116,5 @@ These are most important when no human is in the loop. An agent [triggered by an
 
 ## See also
 
-- [Plan & Delegate](plan-delegate.html) — the agent's built-in tools
-- [Agents and Workflows](agents-and-workflows.html) — where agents fit
+- [Plan & Delegate](plan-delegate.md) — the agent's built-in tools
+- [Agents and Workflows](agents-and-workflows.md) — where agents fit

@@ -11,7 +11,7 @@ agents → workflows lifecycle.
 
 ## Start here
 
-For the provider-free first-agent route, run [`examples/first-agent`](https://github.com/micro/go-micro/tree/master/examples/first-agent), then follow [No-secret First Agent](../guides/no-secret-first-agent.html), [Your First Agent](../guides/your-first-agent.html), [Debugging your agent](../guides/debugging-agents.html), and the [0→hero Reference](../guides/zero-to-hero.html).
+For the provider-free first-agent route, run [`examples/first-agent`](https://github.com/micro/go-micro/tree/master/examples/first-agent), then follow [No-secret First Agent](../guides/no-secret-first-agent.md), [Your First Agent](../guides/your-first-agent.md), [Debugging your agent](../guides/debugging-agents.md), and the [0→hero Reference](../guides/zero-to-hero.md).
 
 | Goal | Runnable example | Why it is useful |
 | --- | --- | --- |
@@ -26,25 +26,25 @@ For the provider-free first-agent route, run [`examples/first-agent`](https://gi
 
 ## Guide-to-example map
 
-- [Getting Started](../getting-started.html) → run
+- [Getting Started](../getting-started/index.md) → run
   [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support)
   to see the full lifecycle before generating your own service.
-- [No-secret First Agent](../guides/no-secret-first-agent.html) → run
+- [No-secret First Agent](../guides/no-secret-first-agent.md) → run
   [`examples/first-agent`](https://github.com/micro/go-micro/tree/master/examples/first-agent)
   first for the smallest provider-free agent transcript.
-- [Your First Agent](../guides/your-first-agent.html) → run
+- [Your First Agent](../guides/your-first-agent.md) → run
   [`examples/agent-demo`](https://github.com/micro/go-micro/tree/master/examples/agent-demo)
   or [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support)
   when you want a complete service-backed agent to inspect.
-- [Debugging your agent](../guides/debugging-agents.html) → keep
+- [Debugging your agent](../guides/debugging-agents.md) → keep
   [`examples/first-agent`](https://github.com/micro/go-micro/tree/master/examples/first-agent)
   nearby as the smallest mock-model reproduction before inspecting richer runs.
-- [0→hero Reference](../guides/zero-to-hero.html) → run
+- [0→hero Reference](../guides/zero-to-hero.md) → run
   [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support)
   for the human-readable scenario, then `make harness` for the full CI contract.
-- [Plan & Delegate](../guides/plan-delegate.html) → run
+- [Plan & Delegate](../guides/plan-delegate.md) → run
   [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate).
-- [Agents and Workflows](../guides/agents-and-workflows.html) → run
+- [Agents and Workflows](../guides/agents-and-workflows.md) → run
   [`examples/flow-durable`](https://github.com/micro/go-micro/tree/master/examples/flow-durable)
   for deterministic checkpointed steps,
   [`examples/agent-durable`](https://github.com/micro/go-micro/tree/master/examples/agent-durable)
@@ -60,4 +60,4 @@ agent, and flow examples.
 
 ## More
 
-- [Real-World Examples](realworld/index.md)
+- [Real-World Examples](realworld/)
