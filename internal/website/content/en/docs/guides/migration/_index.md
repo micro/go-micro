@@ -1,13 +1,7 @@
 ---
 title: Migration Guides
-weight: 2
 description: Step-by-step guides for migrating to Go Micro from other frameworks.
 ---
-
-# Migration Guides
-
-Step-by-step guides for migrating to Go Micro from other frameworks.
-
 ## Available Guides
 
 - [v5 to v6](v5-to-v6.md) - Upgrade to v6: new module path, TLS secure by default, `NewService`

@@ -1,11 +1,7 @@
 ---
 title: Error Handling for AI Agents
+description: "When AI agents call your services through MCP, they need to understand errors well enough to recover or inform the user. This guide covers how to write services that give agents useful error information."
 ---
-
-# Error Handling for AI Agents
-
-When AI agents call your services through MCP, they need to understand errors well enough to recover or inform the user. This guide covers how to write services that give agents useful error information.
-
 ## Use Typed Errors
 
 Go Micro's `errors` package provides structured errors that the MCP gateway forwards to agents with status codes and detail messages.

@@ -1,11 +1,8 @@
 ---
-title: "Server (optional)"
+title: "Micro Server (Optional)"
+linkTitle: "Server (optional)"
 description: "The Micro server is an optional web dashboard and authenticated API gateway for production environments. It provides a secure entrypoint for discovering and interacting with services that are already "
 ---
-# Micro Server (Optional)
-
-The Micro server is an optional web dashboard and authenticated API gateway for production environments. It provides a secure entrypoint for discovering and interacting with services that are already running (e.g., managed by systemd via `micro deploy`).
-
 **`micro server` does not build, run, or watch services.** It only discovers services via the registry and provides a UI/API to interact with them.
 
 ## micro server vs micro run

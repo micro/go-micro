@@ -1,9 +1,8 @@
 ---
-title: "Security Migration"
+title: "TLS Security Migration Guide"
+linkTitle: "Security Migration"
 description: "Go Micro v6 verifies TLS certificates by default. This guide is for teams"
 ---
-# TLS Security Migration Guide
-
 ## Overview
 
 Go Micro v6 verifies TLS certificates by default. This guide is for teams

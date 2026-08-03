@@ -1,16 +1,12 @@
 ---
 title: Documentation
 linkTitle: Docs
+description: "Documentation for the Go Micro agent harness and service framework."
 menu:
   main:
     weight: 10
     pre: <i class='fa-solid fa-book'></i>
 ---
-
-# Docs
-
-Documentation for the Go Micro agent harness and service framework.
-
 ## Overview
 
 <img src="/images/generated/architecture.jpg" alt="Go Micro architecture" style="width: 100%; border-radius: 8px; margin-bottom: 1.5rem;" />

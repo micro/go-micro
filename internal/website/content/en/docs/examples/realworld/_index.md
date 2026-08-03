@@ -1,13 +1,7 @@
 ---
 title: Real-World Examples
-weight: 2
 description: Production-ready patterns and complete application examples.
 ---
-
-# Real-World Examples
-
-Production-ready patterns and complete application examples.
-
 ## Available Examples
 
 - [API Gateway with Backend Services](api-gateway.md) - Complete multi-service architecture with users, orders, and products services
