@@ -400,12 +400,12 @@ svc := micro.NewService("greeter",
 
 ## Next Steps
 
-- Read [Go Micro Architecture](../architecture.md)
-- Explore [Plugin System](../plugins.md)
-- Check [Production Patterns](../examples/realworld/)
+- Read [Go Micro Architecture](../../architecture/index.md)
+- Explore [Plugin System](../../plugins.md)
+- Check [Production Patterns](../../examples/realworld/)
 
 ## Need Help?
 
-- [Examples](../examples/)
+- [Examples](../../examples/)
 - [GitHub Issues](https://github.com/micro/go-micro/issues)
 - [API Documentation](https://pkg.go.dev/go-micro.dev/v6)

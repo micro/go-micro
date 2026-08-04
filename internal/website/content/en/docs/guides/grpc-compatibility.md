@@ -297,6 +297,6 @@ For native gRPC compatibility with tools like `grpcurl` or polyglot clients, alw
 
 ## Related Documentation
 
-- [Transport](../transport.md) - Understanding transports in Go Micro
+- [Transport](../interfaces/transport/index.md) - Understanding transports in Go Micro
 - [Plugins](../plugins.md) - Available plugins including gRPC
 - [Migration from gRPC](migration/from-grpc.md) - Migrating existing gRPC services

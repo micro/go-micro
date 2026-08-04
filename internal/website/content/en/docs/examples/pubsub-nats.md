@@ -1,9 +1,7 @@
 ---
 title: "Pub/Sub with NATS Broker"
+description: Use the NATS broker for pub/sub.
 ---
-
-Use the NATS broker for pub/sub.
-
 ## In code
 
 ```go

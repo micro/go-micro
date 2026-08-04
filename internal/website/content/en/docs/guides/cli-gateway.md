@@ -413,10 +413,10 @@ micro server --address :9000
 
 ## Next Steps
 
-- [Getting Started](../getting-started.md) - Build your first service
+- [Getting Started](../getting-started/index.md) - Build your first service
 - [micro run Guide](micro-run.md) - Full development workflow
 - [Deployment Guide](../deployment.md) - Deploy to production
-- [Architecture](../architecture.md) - How it works internally
+- [Architecture](../architecture/index.md) - How it works internally
 
 ## Need Help?
 

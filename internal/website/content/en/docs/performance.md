@@ -219,9 +219,9 @@ For most applications, go-micro's productivity benefits far outweigh the minimal
 
 ## Related Documents
 
-- [Reflection Removal Analysis](reflection-removal-analysis.html) - Detailed technical analysis
-- [Architecture](architecture.html) - go-micro design principles
-- [Comparison with gRPC](grpc-comparison.md) - When to use each
+- [Reflection Removal Analysis](reflection-removal-analysis.md) - Detailed technical analysis
+- [Architecture](architecture/index.md) - go-micro design principles
+- [Comparison with gRPC](guides/grpc-compatibility.md) - When to use each
 
 ## References
 

@@ -1,7 +1,6 @@
 ---
 title: "Powered by Go Micro Badge"
 linkTitle: "Get Badge"
-weight: 50
 description: "Documentation for Get Badge. Show your support and let others know your project is built with Go Micro!"
 ---
 ## Markdown Badges

@@ -472,4 +472,4 @@ Keep services as pure business logic. Let the agent harness handle orchestration
 - [Building AI-Native Services](ai-native-services.md) - End-to-end tutorial
 - [MCP Security Guide](mcp-security.md) - Auth and scopes
 - [Tool Description Best Practices](tool-descriptions.md) - Better docs for agents
-- [AI Package](../../ai/README.md) - AI provider interface
+- [AI Package](https://pkg.go.dev/go-micro.dev/v6/ai) - AI provider interface

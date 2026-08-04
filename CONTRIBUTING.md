@@ -191,20 +191,18 @@ When reporting bugs:
 
 ## Documentation Contributions
 
-Documentation improvements are always welcome!
+Documentation improvements are always welcome! There are several ways to edit the
+documentation pages:
 
-- Fix typos and grammar
-- Improve clarity
-- Add missing examples
-- Update outdated information
+- **Fix or edit an existing page**: submit a pull request with your changes — either
+  directly on the site via a commit + PR, or by proposing changes from a fork of the
+  repository.
+- **Add a new page**: create a new Markdown page under
+  `internal/website/content/en/docs/` and open a PR as above.
 
-Documentation lives in `internal/website/docs/`. Preview locally with Jekyll:
-
-```bash
-cd internal/website
-bundle install
-bundle exec jekyll serve --livereload
-```
+The site is built with the Hugo engine and content lives in
+`internal/website/content/en`. 
+For local development instructions (Hugo Extended, `npm ci`, `npm run serve`, production build), see the [internal/website README](internal/website/README.md).
 
 ## Community
 
@@ -223,8 +221,8 @@ Maintainers handle releases:
 
 ## Questions?
 
-- Check [documentation](internal/website/docs/)
-- Browse [examples](internal/website/docs/examples/)
+- Check [documentation](internal/website/content/en/docs/)
+- Browse [examples](internal/website/content/en/docs/examples/)
 - Open a [question issue](.github/ISSUE_TEMPLATE/question.md)
 
 Thank you for contributing to Go Micro! 🎉

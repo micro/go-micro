@@ -1,7 +1,8 @@
 ---
 title: "TLS Security Migration Guide"
+linkTitle: "Security Migration"
+description: "Go Micro v6 verifies TLS certificates by default. This guide is for teams"
 ---
-
 ## Overview
 
 Go Micro v6 verifies TLS certificates by default. This guide is for teams
@@ -195,3 +196,4 @@ Create a test service and verify it:
 
 For issues or questions about TLS security migration, open an issue on GitHub or
 check the documentation at https://go-micro.dev/docs/.
+

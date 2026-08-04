@@ -1,9 +1,7 @@
 ---
 title: "Service Discovery with Consul"
+description: Use Consul as the service registry.
 ---
-
-Use Consul as the service registry.
-
 ## In code
 
 ```go

@@ -31,7 +31,7 @@ For production deployments:
 
 ## Documentation
 
-See [SECURITY_MIGRATION.md](SECURITY_MIGRATION.html) for the detailed migration
+See [SECURITY_MIGRATION.md](SECURITY_MIGRATION.md) for the detailed migration
 guide.
 
 ## Questions?

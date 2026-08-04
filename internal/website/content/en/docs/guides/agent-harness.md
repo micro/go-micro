@@ -138,9 +138,9 @@ harness. When that loop has to touch production, you do.
 
 ## See also
 
-- [Agents and Workflows](agents-and-workflows.html) — flows vs. agents
-- [Agent Loops](agent-loops.html) — run-until-done, with a ceiling
-- [Plan & Delegate](plan-delegate.html)
-- [Agent Guardrails](agent-guardrails.html)
-- [Provider Conformance](provider-conformance.html) — verified provider behavior
+- [Agents and Workflows](agents-and-workflows.md) — flows vs. agents
+- [Agent Loops](agent-loops.md) — run-until-done, with a ceiling
+- [Plan & Delegate](plan-delegate.md)
+- [Agent Guardrails](agent-guardrails.md)
+- [Provider Conformance](provider-conformance.md) — verified provider behavior
 - [Roadmap](/docs/roadmap.html)

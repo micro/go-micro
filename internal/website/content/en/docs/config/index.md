@@ -1,6 +1,5 @@
 ---
 title: "Configuration"
-weight: 90
 description: "Go Micro follows a progressive configuration model so you can start with zero setup and layer in complexity only when needed."
 ---
 ![Configuration](config.jpg)
@@ -123,6 +122,6 @@ Load with your process manager or container orchestrator.
 
 ## Related
 
-- [ADR-009: Progressive Configuration](architecture/adr-009-progressive-configuration.md)
-- [Getting Started](getting-started)
-- [Plugins](plugins)
+- [ADR-009: Progressive Configuration](../project/architecture/adr-009-progressive-configuration.md)
+- [Getting Started](../getting-started/index.md)
+- [Plugins](../plugins.md)

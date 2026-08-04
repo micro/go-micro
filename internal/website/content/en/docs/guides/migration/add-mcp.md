@@ -1,11 +1,7 @@
 ---
 title: Add MCP to Existing Services
+description: "You have a working go-micro service and want to make it accessible to AI agents via MCP. This guide covers the three approaches, from simplest to most flexible."
 ---
-
-# Add MCP to Existing Services
-
-You have a working go-micro service and want to make it accessible to AI agents via MCP. This guide covers the three approaches, from simplest to most flexible.
-
 ## Option 1: One-Line Setup (Recommended)
 
 Add a single option to your service constructor:

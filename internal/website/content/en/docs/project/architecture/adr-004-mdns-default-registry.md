@@ -116,4 +116,4 @@ MICRO_REGISTRY=nats MICRO_REGISTRY_ADDRESS=nats://nats:4222 ./service
 
 - [ADR-001: Plugin Architecture](adr-001-plugin-architecture.md)
 - [ADR-009: Progressive Configuration](adr-009-progressive-configuration.md)
-- [Registry Documentation](../registry.md)
+- [Registry Documentation](../../interfaces/registry/index.md)

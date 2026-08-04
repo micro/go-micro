@@ -1,12 +1,8 @@
 ---
-title: "Server (optional)"
-weight: 60
+title: "Micro Server (Optional)"
+linkTitle: "Server (optional)"
 description: "The Micro server is an optional web dashboard and authenticated API gateway for production environments. It provides a secure entrypoint for discovering and interacting with services that are already "
 ---
-# Micro Server (Optional)
-
-The Micro server is an optional web dashboard and authenticated API gateway for production environments. It provides a secure entrypoint for discovering and interacting with services that are already running (e.g., managed by systemd via `micro deploy`).
-
 **`micro server` does not build, run, or watch services.** It only discovers services via the registry and provides a UI/API to interact with them.
 
 ## micro server vs micro run
@@ -22,7 +18,7 @@ The Micro server is an optional web dashboard and authenticated API gateway for 
 | **Dashboard** | Full gateway UI with auth, scopes, agent | Full dashboard with API explorer, logs, user/token management |
 | **When to use** | Day-to-day development | Deployed environments, shared servers |
 
-For local development, use [`micro run`](guides/micro-run) instead.
+For local development, use [`micro run`](../guides/micro-run.md) instead.
 
 ## Install
 
@@ -55,7 +51,7 @@ Then open http://localhost:8080 and log in with the default admin account (`admi
 
 ## Typical Production Setup
 
-After deploying services with [`micro deploy`](deployment):
+After deploying services with [`micro deploy`](../deployment/index.md):
 
 ```bash
 # On your server, start the dashboard

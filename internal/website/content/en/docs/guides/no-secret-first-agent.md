@@ -8,7 +8,7 @@ repository harness that CI already runs: real Go Micro services, registry,
 broker, client, store, agent loop, flow handoff, and guardrail code with only the
 LLM provider mocked.
 
-Use it before the live-provider [Your First Agent](your-first-agent.html)
+Use it before the live-provider [Your First Agent](your-first-agent.md)
 walkthrough when you want to see the services → agents → workflows lifecycle run
 end to end with no secrets.
 
@@ -83,7 +83,7 @@ make harness
 ## Equivalent scaffold → run → chat → inspect path
 
 When you are ready to build the smaller live-agent version yourself, follow
-[Your First Agent](your-first-agent.html). The command shape is the same, but a
+[Your First Agent](your-first-agent.md). The command shape is the same, but a
 live `micro chat` turn needs a provider key because the model is no longer
 mocked:
 
@@ -118,9 +118,9 @@ chat: it should show a recent agent run with a status, event count, last event,
 and trace breadcrumb when tracing is configured. `micro agent history assistant`
 then confirms the conversation memory that future turns will reuse. If either
 command is empty after a successful chat turn, keep the failing transcript and
-use [Debugging your agent](debugging-agents.html) to check provider failures, run
+use [Debugging your agent](debugging-agents.md) to check provider failures, run
 history, memory, and tool-call inspection before changing application code.
 
 If `micro agent preflight` reports a missing provider key, you can still use this no-secret path because it runs against the mock model; the command now prints this guide as the next step for that failure. If chat behaves unexpectedly, continue to
-[Debugging your agent](debugging-agents.html) for provider checks, run history,
+[Debugging your agent](debugging-agents.md) for provider checks, run history,
 memory, and tool-call inspection.

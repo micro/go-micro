@@ -1,6 +1,5 @@
 ---
 title: "Observability"
-weight: 100
 description: "Observability in Go Micro spans logs, metrics, and traces. The goal is rapid insight into service behavior with minimal configuration."
 ---
 ![Observability](observability.jpg)
@@ -89,6 +88,6 @@ Start with only structured logs. Add metrics when operating multiple services. I
 
 ## Related
 
-- [Getting Started](getting-started)
-- [Plugins](plugins)
-- [Architecture Decisions](architecture/index.md)
+- [Getting Started](../getting-started/index.md)
+- [Plugins](../plugins.md)
+- [Architecture Decisions](../architecture/index.md)

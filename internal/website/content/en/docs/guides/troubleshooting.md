@@ -1,11 +1,7 @@
 ---
 title: MCP Troubleshooting
+description: "Common issues when using the MCP gateway and AI agents with Go Micro services."
 ---
-
-# MCP Troubleshooting
-
-Common issues when using the MCP gateway and AI agents with Go Micro services.
-
 ## Agent Can't Find My Tools
 
 **Symptom:** Agent says "no tools available" or doesn't list your service endpoints.
@@ -229,6 +225,6 @@ If rate limits are too low, requests queue up. Check your rate limit configurati
 
 ## Still Stuck?
 
-- Check the [MCP Documentation](../../mcp.md) for full API reference
+- Check the [MCP Documentation](../mcp.md) for full API reference
 - Search [GitHub Issues](https://github.com/micro/go-micro/issues) for similar problems
 - Ask in [GitHub Discussions](https://github.com/micro/go-micro/discussions)

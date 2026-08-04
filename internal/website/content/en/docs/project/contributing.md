@@ -1,6 +1,5 @@
 ---
 title: "Contributing"
-weight: 30
 description: "This is a rendered copy of the repository CONTRIBUTING.md for convenient access via the documentation site."
 ---
 This is a rendered copy of the repository `CONTRIBUTING.md` for convenient access via the documentation site.
@@ -51,7 +50,7 @@ Place new plugins under the appropriate interface directory (e.g. `registry/cons
 
 ## Documentation
 
-Docs live in `internal/website/docs/`. Add new examples under `internal/website/docs/examples/`.
+Docs live in `internal/website/content/en/docs/`. Add new examples under `internal/website/content/en/docs/examples/`.
 
 ## Help & Questions
 
