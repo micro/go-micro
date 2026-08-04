@@ -846,7 +846,7 @@ func TestAgentExecutesTextToolCallFallbackAfterStructuredToolCall(t *testing.T) 
 			Input: map[string]any{"value": "agent-conformance"},
 		})
 		return &ai.Response{
-			Reply:  echo.Content + "\n<tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>",
+			Reply:  "<tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>",
 			Answer: echo.Content,
 			ToolCalls: []ai.ToolCall{
 				{ID: "structured-echo-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
@@ -856,7 +856,7 @@ func TestAgentExecutesTextToolCallFallbackAfterStructuredToolCall(t *testing.T) 
 	defer func() { fakeGen = nil }()
 
 	var sawTool bool
-	var sawBlockedDelegate bool
+	var delegateCalls int
 	a := New(
 		Name("conformance-mixed-text-tool"),
 		Provider("fake"),
@@ -865,7 +865,7 @@ func TestAgentExecutesTextToolCallFallbackAfterStructuredToolCall(t *testing.T) 
 		WithMemory(NewInMemory(4)),
 		ApproveTool(func(tool string, input map[string]any) (bool, string) {
 			if tool == "delegate" {
-				sawBlockedDelegate = true
+				delegateCalls++
 				return false, "cross-provider conformance blocks delegate side effects"
 			}
 			return true, ""
@@ -885,8 +885,8 @@ func TestAgentExecutesTextToolCallFallbackAfterStructuredToolCall(t *testing.T) 
 	if !sawTool {
 		t.Fatal("structured conformance_echo did not execute")
 	}
-	if !sawBlockedDelegate {
-		t.Fatal("tagged text delegate fallback did not execute")
+	if delegateCalls != 1 {
+		t.Fatalf("tagged text delegate fallback calls = %d, want 1", delegateCalls)
 	}
 	if len(resp.ToolCalls) != 2 {
 		t.Fatalf("ToolCalls = %+v, want structured echo and text delegate", resp.ToolCalls)
