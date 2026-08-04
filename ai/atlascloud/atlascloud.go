@@ -228,6 +228,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 						// it may contain a text-encoded tool call. The agent harness
 						// inspects Reply for text fallback calls after Generate returns.
 						resp.Reply = followUpResp.Reply
+						if len(toolResults) > 0 {
+							resp.Answer = strings.Join(toolResults, "\n")
+						}
 					} else {
 						resp.Answer = atlascloudAnswerWithRequiredToolMarkers(followUpResp.Reply, toolResults, allToolCalls)
 					}

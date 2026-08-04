@@ -13,6 +13,27 @@ import (
 	"go-micro.dev/v6/ai"
 )
 
+type atlascloudRoundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn atlascloudRoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
+}
+
+func useAtlascloudJSONTransport(t *testing.T, handler func(*http.Request) string) {
+	t.Helper()
+	previous := http.DefaultTransport
+	http.DefaultTransport = atlascloudRoundTripFunc(func(req *http.Request) (*http.Response, error) {
+		body := handler(req)
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(body)),
+			Request:    req,
+		}, nil
+	})
+	t.Cleanup(func() { http.DefaultTransport = previous })
+}
+
 func TestProvider_String(t *testing.T) {
 	p := NewProvider()
 	if p.String() != "atlascloud" {
@@ -477,27 +498,26 @@ func TestProvider_GenerateExecutesMultiStepFollowUpToolCalls(t *testing.T) {
 
 func TestProvider_GeneratePreservesFollowUpTextToolCallInReply(t *testing.T) {
 	var bodies []map[string]any
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	useAtlascloudJSONTransport(t, func(r *http.Request) string {
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			t.Fatalf("decode request: %v", err)
 		}
 		bodies = append(bodies, body)
-		w.Header().Set("Content-Type", "application/json")
 		switch len(bodies) {
 		case 1:
-			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`))
+			return `{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`
 		case 2:
-			_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"<tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>"}}]}`))
+			return `{"choices":[{"message":{"content":"<tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>"}}]}`
 		default:
 			t.Fatalf("unexpected API call %d", len(bodies))
+			return ""
 		}
-	}))
-	defer ts.Close()
+	})
 
 	p := NewProvider(
 		ai.WithAPIKey("test-key"),
-		ai.WithBaseURL(ts.URL),
+		ai.WithBaseURL("https://atlascloud.test"),
 		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
 			if call.Name != "conformance_echo" {
 				t.Fatalf("unexpected structured tool call %+v", call)
@@ -518,8 +538,48 @@ func TestProvider_GeneratePreservesFollowUpTextToolCallInReply(t *testing.T) {
 	if !strings.Contains(resp.Reply, `<tool_call name="delegate">`) {
 		t.Fatalf("Reply = %q, want tagged delegate follow-up for agent text fallback", resp.Reply)
 	}
+	if !strings.Contains(resp.Answer, "agent-conformance-ok") {
+		t.Fatalf("Answer = %q, want structured tool result preserved separately", resp.Answer)
+	}
+}
+
+func TestProvider_GenerateFollowUpTextToolCallWithoutToolResultLeavesAnswerEmpty(t *testing.T) {
+	var calls int
+	useAtlascloudJSONTransport(t, func(r *http.Request) string {
+		calls++
+		switch calls {
+		case 1:
+			return `{"choices":[{"message":{"content":"","tool_calls":[{"id":"call-1","function":{"name":"conformance_echo","arguments":"{\"value\":\"agent-conformance\"}"}}]}}]}`
+		case 2:
+			return `{"choices":[{"message":{"content":"<tool_call name=\"delegate\">{\"task\":\"summarize\",\"to\":\"blocked-reviewer\"}</tool_call>"}}]}`
+		default:
+			t.Fatalf("unexpected API call %d", calls)
+			return ""
+		}
+	})
+
+	p := NewProvider(
+		ai.WithAPIKey("test-key"),
+		ai.WithBaseURL("https://atlascloud.test"),
+		ai.WithToolHandler(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+			return ai.ToolResult{ID: call.ID}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		Prompt: "run conformance",
+		Tools: []ai.Tool{
+			{Name: "conformance_echo", Description: "echo conformance marker", Properties: map[string]any{"value": map[string]any{"type": "string"}}},
+			{Name: "delegate", Description: "delegate work", Properties: map[string]any{"task": map[string]any{"type": "string"}, "to": map[string]any{"type": "string"}}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if !strings.Contains(resp.Reply, `<tool_call name="delegate">`) {
+		t.Fatalf("Reply = %q, want tagged delegate follow-up", resp.Reply)
+	}
 	if resp.Answer != "" {
-		t.Fatalf("Answer = %q, want follow-up text preserved only as Reply", resp.Answer)
+		t.Fatalf("Answer = %q, want no invented answer without structured tool content", resp.Answer)
 	}
 }
 
