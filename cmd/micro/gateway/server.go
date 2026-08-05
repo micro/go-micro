@@ -906,6 +906,60 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 			_ = renderPage(w, tmpls.api, apiData)
 			return
 		}
+		// HTTP->RPC proxy: /api/{service}/{method} (e.g. /api/helloworld/Helloworld.Call)
+		// also accepts /api/{service}/{pkg}/{method} as linked from the API explorer.
+		if strings.HasPrefix(path, "/api/") {
+			parts := strings.Split(strings.TrimPrefix(path, "/api/"), "/")
+			var service, endpoint string
+			switch len(parts) {
+			case 2:
+				service, endpoint = parts[0], parts[1]
+			case 3:
+				service, endpoint = parts[0], parts[1]+"."+parts[2]
+			default:
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte("Not found"))
+				return
+			}
+			svcs, err := registry.GetService(service)
+			if err != nil || len(svcs) == 0 {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte("Service not found: " + service))
+				return
+			}
+			valid := false
+			for _, ep := range svcs[0].Endpoints {
+				if ep.Name == endpoint {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte("Endpoint not found: " + endpoint))
+				return
+			}
+			if !checkEndpointScopes(w, r, service+"."+endpoint) {
+				return
+			}
+			inputBytes, err := io.ReadAll(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			rpcReq := client.DefaultClient.NewRequest(service, endpoint, &codecBytes.Frame{Data: inputBytes})
+			var rsp codecBytes.Frame
+			if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadGateway)
+				w.Write([]byte(`{"error":` + strconv.Quote(err.Error()) + `}`))
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(rsp.Data)
+			return
+		}
 		if path == "/services" {
 			// Do NOT include SidebarEndpoints on this page
 			services, _ := registry.ListServices()
