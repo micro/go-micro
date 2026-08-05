@@ -14,7 +14,7 @@ RUN addgroup --gid "$GID" "$GROUPNAME" \
     --uid "$UID" "$USER"
 
 ENV PATH=/usr/local/go/bin:$PATH
-RUN apk --no-cache add git make curl
+RUN apk --no-cache add git make curl protoc
 COPY --from=golang:1.26.0-alpine /usr/local/go /usr/local/go
 
 COPY $TARGETPLATFORM/micro /usr/local/go/bin/
