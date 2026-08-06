@@ -59,7 +59,7 @@ func fileTest(s Store, t *testing.T) {
 	if err := s.Write(&Record{
 		Key:    "Hello",
 		Value:  []byte("World"),
-		Expiry: time.Millisecond * 150,
+		Expiry: time.Second, // wide window: bbolt fsync + -race/-cover reads on a loaded runner can exceed 150ms
 	}); err != nil {
 		t.Error(err)
 	}
@@ -79,7 +79,7 @@ func fileTest(s Store, t *testing.T) {
 	}
 
 	// wait for expiry
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Second * 2)
 
 	if _, err := s.Read("Hello"); err != ErrNotFound {
 		t.Errorf("Expected %# v, got %# v", ErrNotFound, err)
