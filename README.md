@@ -9,11 +9,11 @@ Go Micro gives you the harness as Go code. Build an agent and it gets a model, m
 
 ## Sponsors
 
-<a href="https://go-micro.dev/blog/3"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Anthropic_logo.svg" height="26" /></a>
+<a href="https://go-micro.dev/blog/2026/03/04/building-the-ai-native-future-of-go-micro-with-claude.html"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Anthropic_logo.svg" height="26" /></a>
 &nbsp;&nbsp;
-<a href="https://go-micro.dev/blog/29"><img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" height="26" /></a>
+<a href="https://go-micro.dev/blog/2026/06/23/go-micro-joins-openai-s-codex-for-open-source.html"><img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" height="26" /></a>
 &nbsp;&nbsp;
-<a href="https://go-micro.dev/blog/8"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
+<a href="https://go-micro.dev/blog/2026/05/28/atlas-cloud-sponsors-go-micro-300-ai-models-one-integration.html"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
 
 **Want to support Go Micro and see your logo here?** [Become a sponsor](https://discord.gg/G8Gk5j3uXr) — reach out on Discord.
 
@@ -64,6 +64,14 @@ Scaffold a service, run it, call it:
 micro new helloworld
 cd helloworld
 micro run
+```
+
+Prefer Docker? The `micro` image (Docker Hub `micro/micro` or GitHub Container Registry `ghcr.io/micro/go-micro`) bundles the CLI and its runtime dependencies:
+
+```bash
+docker pull micro/micro:latest          # or ghcr.io/micro/go-micro:latest
+docker run --rm -it micro/micro new helloworld
+docker run --rm -it --network host -v "$(pwd)":/micro/helloworld micro/micro run
 ```
 
 Then in another terminal:
