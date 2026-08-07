@@ -140,13 +140,16 @@ Authentication and authorization example.
 ### [graceful-stop](./graceful-stop/)
 Graceful shutdown behavior for long-running services.
 
+### [grpc](./grpc/)
+go-micro v6 as a standard gRPC-compatible server: reflection enabled, callable
+by grpcurl and any standard gRPC client.
+
 ### [grpc-interop](./grpc-interop/)
 gRPC interoperability example.
 
 ## Coming Soon
 
 - **pubsub-events** - Event-driven architecture with NATS
-- **grpc-integration** - Using go-micro with gRPC
 
 ## Prerequisites
 
