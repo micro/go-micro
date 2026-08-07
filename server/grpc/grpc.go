@@ -34,7 +34,9 @@ import (
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
+	gproto "google.golang.org/protobuf/proto"
 )
 
 func init() {
@@ -154,7 +156,143 @@ func (g *grpcServer) configure(opts ...server.Option) {
 	}
 
 	g.srv = grpc.NewServer(gopts...)
+
+	if g.getReflection() {
+		reflection.Register(g.srv)
+		// re-register already-registered handlers on the fresh server
+		g.rpc.mu.Lock()
+		for _, svc := range g.rpc.serviceMap {
+			g.registerReflectionServiceFor(svc)
+		}
+		g.rpc.mu.Unlock()
+	}
 }
+
+func (g *grpcServer) getReflection() bool {
+	if g.opts.Context == nil {
+		return false
+	}
+
+	v, ok := g.opts.Context.Value(reflectionKey{}).(bool)
+	return ok && v
+}
+
+// registerReflectionService registers a go-micro handler in the underlying
+// grpc.Server's service registry so server reflection can discover it. Calls
+// still route through go-micro's normal request path.
+func (g *grpcServer) registerReflectionService(rcvr interface{}) {
+	sname := reflect.Indirect(reflect.ValueOf(rcvr)).Type().Name()
+
+	g.rpc.mu.Lock()
+	svc := g.rpc.serviceMap[sname]
+	g.rpc.mu.Unlock()
+	if svc == nil {
+		return
+	}
+
+	g.Lock()
+	defer g.Unlock()
+	g.registerReflectionServiceFor(svc)
+}
+
+// registerReflectionServiceFor registers svc in the current grpc.Server's
+// service registry. The caller must hold g.Lock.
+func (g *grpcServer) registerReflectionServiceFor(svc *service) {
+	if g.srv == nil {
+		return
+	}
+
+	sd := &grpc.ServiceDesc{
+		ServiceName: svc.name,
+		HandlerType: (*interface{})(nil),
+		Metadata:    svc.name,
+	}
+
+	for mname, mtype := range svc.method {
+		if mtype.stream {
+			continue
+		}
+		if name := protoServiceName(mtype.ArgType, mname); name != "" {
+			sd.ServiceName = name
+		}
+		mn, mt := mname, mtype
+		sd.Methods = append(sd.Methods, grpc.MethodDesc{
+			MethodName: mn,
+			Handler: func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+				return g.reflectUnary(ctx, svc, mt, dec)
+			},
+		})
+	}
+
+	if len(sd.Methods) == 0 {
+		return
+	}
+
+	g.srv.RegisterService(sd, g)
+}
+
+// protoServiceName resolves the full proto service name (e.g. helloworld.Say)
+// from a method's request type, or "" when the type isn't a proto message.
+func protoServiceName(t reflect.Type, methodName string) string {
+	var arg reflect.Type
+	if t.Kind() == reflect.Pointer {
+		arg = t.Elem()
+	} else {
+		arg = t
+	}
+	msg, ok := reflect.New(arg).Interface().(gproto.Message)
+	if !ok {
+		return ""
+	}
+	fd := msg.ProtoReflect().Descriptor().ParentFile()
+	if fd == nil {
+		return ""
+	}
+	reqName := msg.ProtoReflect().Descriptor().FullName()
+	for i := 0; i < fd.Services().Len(); i++ {
+		sd := fd.Services().Get(i)
+		for j := 0; j < sd.Methods().Len(); j++ {
+			md := sd.Methods().Get(j)
+			if string(md.Name()) == methodName && string(md.Input().FullName()) == string(reqName) {
+				return string(sd.FullName())
+			}
+		}
+	}
+	return ""
+}
+
+// reflectUnary runs a go-micro unary method against a reflection-dispatched
+// call, adapting the grpc codec dec/send closures into a ServerStream.
+func (g *grpcServer) reflectUnary(ctx context.Context, svc *service, mtype *methodType, dec func(interface{}) error) (interface{}, error) {
+	var reply interface{}
+	stream := &reflectServerStream{
+		ctx: ctx,
+		dec: dec,
+		send: func(m interface{}) error {
+			reply = m
+			return nil
+		},
+	}
+	if err := g.processRequest(stream, svc, mtype, defaultContentType, ctx); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
+
+// reflectServerStream adapts a unary RPC (dec + send closures) into a
+// grpc.ServerStream so go-micro's processRequest can consume it.
+type reflectServerStream struct {
+	ctx  context.Context
+	dec  func(interface{}) error
+	send func(interface{}) error
+}
+
+func (s *reflectServerStream) SetHeader(metadata.MD) error  { return nil }
+func (s *reflectServerStream) SendHeader(metadata.MD) error { return nil }
+func (s *reflectServerStream) SetTrailer(metadata.MD)       {}
+func (s *reflectServerStream) Context() context.Context     { return s.ctx }
+func (s *reflectServerStream) SendMsg(m interface{}) error  { return s.send(m) }
+func (s *reflectServerStream) RecvMsg(m interface{}) error  { return s.dec(m) }
 
 func (g *grpcServer) getMaxMsgSize() int {
 	if g.opts.Context == nil {
@@ -575,6 +713,11 @@ func (g *grpcServer) Handle(h server.Handler) error {
 	}
 
 	g.handlers[h.Name()] = h
+
+	if g.getReflection() {
+		g.registerReflectionService(h.Handler())
+	}
+
 	return nil
 }
 

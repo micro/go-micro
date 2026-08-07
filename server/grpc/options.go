@@ -24,6 +24,7 @@ type maxConnKey struct{}
 type tlsAuth struct{}
 type grpcServerKey struct{}
 type gracefulStopTimeoutKey struct{}
+type reflectionKey struct{}
 
 // gRPC Codec to be used to encode/decode requests for a given content type.
 func Codec(contentType string, c encoding.Codec) server.Option {
@@ -77,6 +78,12 @@ func MaxMsgSize(s int) server.Option {
 // GracefulStopTimeout sets how long Stop waits for active RPCs before forcing Stop.
 func GracefulStopTimeout(timeout time.Duration) server.Option {
 	return setServerOption(gracefulStopTimeoutKey{}, timeout)
+}
+
+// Reflection registers the gRPC server reflection service, letting native
+// clients (grpcurl, grpcui) discover services without local proto files.
+func Reflection() server.Option {
+	return setServerOption(reflectionKey{}, true)
 }
 
 func newOptions(opt ...server.Option) server.Options {

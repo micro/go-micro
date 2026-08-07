@@ -13,7 +13,8 @@ provider-free unless the example README says otherwise.
 | See planning and delegation | [`agent-plan-delegate`](./agent-plan-delegate/) | `go run ./examples/agent-plan-delegate` | [`plan-delegate` guide](../internal/website/docs/guides/plan-delegate.md) |
 | Expose services through MCP | [`mcp/hello`](./mcp/hello/) | follow [`mcp`](./mcp/) setup | [`mcp/crud`](./mcp/crud/) and [`mcp/workflow`](./mcp/workflow/) |
 | Try a paid tool with x402 | [`agent-x402-buyer`](./agent-x402-buyer/) | `go run ./examples/agent-x402-buyer` | [`Payments (x402)` guide](../internal/website/docs/guides/x402-payments.md) |
-| Try A2A or gRPC interop next | [`agent-demo`](./agent-demo/) plus gateway docs | run the example, then use the gateway docs | [`grpc-interop`](./grpc-interop/) |
+| Try A2A or gRPC interop next | [`agent-demo`](./agent-demo/) plus gateway docs | run the example, then use the gateway docs | [`grpc`](./grpc/) and [`grpc-interop`](./grpc-interop/) |
+| Call a service with grpcurl | [`grpc`](./grpc/) | `grpcurl -plaintext localhost:8080 list` then `grpcurl -plaintext -d '{"name":"World"}' localhost:8080 helloworld.Say.Hello` | [`grpc-interop`](./grpc-interop/) |
 | Add workflow durability | [`flow-durable`](./flow-durable/) | `go run ./examples/flow-durable` | [`flow-loop`](./flow-loop/) |
 
 ## Recommended adoption path

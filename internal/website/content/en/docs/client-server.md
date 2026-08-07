@@ -1,9 +1,7 @@
 ---
 title: "Client/Server"
+description: Go Micro uses a client/server model for RPC communication between services.
 ---
-
-Go Micro uses a client/server model for RPC communication between services.
-
 ## Client
 The client is used to make requests to other services.
 
