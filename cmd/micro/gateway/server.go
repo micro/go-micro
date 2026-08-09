@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -42,6 +43,7 @@ import (
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/sync/errgroup"
 )
 
 // HTML is the embedded filesystem for templates and static files, set by main.go
@@ -1573,25 +1575,53 @@ func Run(c *cli.Context) error {
 		log.Printf("[auth] off (%s is loopback). Scoped/paid tools still require a token.", addr)
 	}
 
-	// If an MCP protocol address is set, run the full MCP gateway ourselves with
-	// the production controls (rate limiting, scopes, auth, audit, circuit
-	// breaker, x402 payments). gateway/api would otherwise start a bare MCP
-	// listener with none of these, so we start it here and leave api's own MCP
-	// disabled. Registry selection comes from the global --registry flags.
+	// The MCP gateway runs independently of the HTTP API gateway, carrying the
+	// production controls (rate limiting, scopes, auth, audit, circuit breaker,
+	// x402 payments). Both gateways are started explicitly below and shut down
+	// together when the first one exits or a signal arrives.
+	var mcpServer *mcp.Server
 	if mcpAddr != "" {
 		mcpOpts, err := buildMCPOptions(c, mcpAddr)
 		if err != nil {
 			return err
 		}
-		go func() {
-			if err := mcp.ListenAndServe(mcpAddr, mcpOpts); err != nil {
-				log.Printf("[mcp] gateway error: %v", err)
-			}
-		}()
+		mcpServer, err = mcp.NewServer(mcpOpts)
+		if err != nil {
+			return fmt.Errorf("failed to start MCP gateway: %w", err)
+		}
 		log.Printf("[mcp] gateway on %s", mcpAddr)
 	}
 
-	return RunGateway(opts)
+	gw, err := StartGateway(opts)
+	if err != nil {
+		return fmt.Errorf("failed to start gateway: %w", err)
+	}
+
+	// Run both gateways until a signal or the first gateway exits.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	var eg errgroup.Group
+	eg.Go(func() error { return gw.Wait() })
+	if mcpServer != nil {
+		eg.Go(func() error { return mcpServer.Serve() })
+	}
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- eg.Wait() }()
+
+	select {
+	case <-sigCh:
+		log.Printf("[gateway] shutting down")
+	case err = <-errCh:
+		log.Printf("[gateway] gateway exited: %v", err)
+	}
+
+	_ = gw.Stop()
+	if mcpServer != nil {
+		_ = mcpServer.Stop()
+	}
+	return err
 }
 
 // buildMCPOptions assembles the MCP gateway options from the command flags. It

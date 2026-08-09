@@ -29,6 +29,7 @@ import (
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/gateway/schema"
 	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
@@ -172,6 +173,11 @@ type Server struct {
 	server   *http.Server
 	watching bool
 
+	// resolver is the shared service schema resolver; it owns registry
+	// watching and endpoint parsing so discovery is not duplicated with the
+	// HTTP API gateway.
+	resolver *schema.Resolver
+
 	// limiters holds per-tool rate limiters (nil if rate limiting is disabled).
 	limiters   map[string]*rateLimiter
 	limitersMu sync.RWMutex
@@ -235,10 +241,12 @@ func (s *Server) paymentFor(toolName string) *PaymentInfo {
 	}
 }
 
-// Serve starts an MCP gateway with the given options.
-// For stdio transport, leave Address empty.
-// For SSE transport, set Address (e.g., ":3000").
-func Serve(opts Options) error {
+// NewServer creates an MCP gateway server from opts and starts service
+// discovery and registry watching. It does not begin serving; call
+// (*Server).Serve to start a transport and (*Server).Stop to shut down
+// gracefully. This lets callers (e.g. the micro CLI) orchestrate the MCP
+// gateway independently of any other gateway.
+func NewServer(opts Options) (*Server, error) {
 	// Set defaults
 	if opts.Client == nil {
 		opts.Client = client.DefaultClient
@@ -250,7 +258,7 @@ func Serve(opts Options) error {
 		opts.Logger = log.Default()
 	}
 	if opts.Registry == nil {
-		return fmt.Errorf("registry is required")
+		return nil, fmt.Errorf("registry is required")
 	}
 
 	server := &Server{
@@ -262,17 +270,33 @@ func Serve(opts Options) error {
 
 	// Discover services and build tool list
 	if err := server.discoverServices(); err != nil {
-		return fmt.Errorf("failed to discover services: %w", err)
+		return nil, fmt.Errorf("failed to discover services: %w", err)
 	}
 
 	// Watch for service changes
 	go server.watchServices()
 
-	// Start server based on transport
-	if opts.Address != "" {
-		return server.serveHTTP()
+	return server, nil
+}
+
+// Serve starts an MCP gateway with the given options.
+// For stdio transport, leave Address empty.
+// For SSE transport, set Address (e.g., ":3000").
+func Serve(opts Options) error {
+	server, err := NewServer(opts)
+	if err != nil {
+		return err
 	}
-	return server.serveStdio()
+	return server.Serve()
+}
+
+// Serve starts the configured transport and blocks until it stops.
+func (s *Server) Serve() error {
+	// Start server based on transport
+	if s.opts.Address != "" {
+		return s.serveHTTP()
+	}
+	return s.serveStdio()
 }
 
 // ListenAndServe is a convenience function that starts an MCP gateway on the given address.
@@ -281,101 +305,97 @@ func ListenAndServe(address string, opts Options) error {
 	return Serve(opts)
 }
 
-// discoverServices queries the registry and builds the tool list
+// discoverServices builds the tool catalog from the shared schema resolver.
+// It refreshes the resolver's registry cache so it works standalone (e.g. in
+// tests) as well as when driven by the resolver's watch loop.
 func (s *Server) discoverServices() error {
-	services, err := s.opts.Registry.ListServices()
-	if err != nil {
+	if s.resolver == nil {
+		s.resolver = schema.New(s.opts.Registry)
+	}
+	if err := s.resolver.Refresh(); err != nil {
 		return err
 	}
 
 	s.toolsMu.Lock()
 	defer s.toolsMu.Unlock()
 
-	if err := s.discoverReflectedGRPC(); err != nil {
-		return err
+	s.tools = make(map[string]*Tool)
+
+	for _, ep := range s.resolver.Endpoints() {
+		inputSchema := make(map[string]any, 2)
+		inputSchema["type"] = "object"
+		props := make(map[string]any, len(ep.Request))
+		for _, f := range ep.Request {
+			props[f.Name] = map[string]any{
+				"type":        schema.JSONType(f.Type),
+				"description": fmt.Sprintf("%s field", f.Name),
+			}
+		}
+		inputSchema["properties"] = props
+
+		tool := &Tool{
+			Name:        ep.Name,
+			Description: ep.Description,
+			InputSchema: inputSchema,
+			Service:     ep.Service,
+			Endpoint:    ep.Method,
+		}
+
+		if len(ep.Scopes) > 0 {
+			tool.Scopes = ep.Scopes
+		}
+
+		// Gateway-level Scopes override service-level scopes
+		if s.opts.Scopes != nil {
+			if scopes, ok := s.opts.Scopes[tool.Name]; ok {
+				tool.Scopes = scopes
+			}
+		}
+
+		// Add example from metadata if available
+		if ep.Example != "" {
+			inputSchema["examples"] = []string{ep.Example}
+		}
+
+		s.tools[tool.Name] = tool
+
+		// Create rate limiter for this tool if rate limiting is configured
+		if s.opts.RateLimit != nil && s.opts.RateLimit.RequestsPerSecond > 0 {
+			s.limitersMu.Lock()
+			if s.limiters == nil {
+				s.limiters = make(map[string]*rateLimiter)
+			}
+			if _, exists := s.limiters[tool.Name]; !exists {
+				s.limiters[tool.Name] = newRateLimiter(
+					s.opts.RateLimit.RequestsPerSecond,
+					s.opts.RateLimit.Burst,
+				)
+			}
+			s.limitersMu.Unlock()
+		}
+
+		// Create circuit breaker for this tool if configured
+		if s.opts.CircuitBreaker != nil {
+			s.breakersMu.Lock()
+			if s.breakers == nil {
+				s.breakers = make(map[string]*circuitBreaker)
+			}
+			if _, exists := s.breakers[tool.Name]; !exists {
+				s.breakers[tool.Name] = newCircuitBreaker(*s.opts.CircuitBreaker)
+			}
+			s.breakersMu.Unlock()
+		}
 	}
 
-	for _, svc := range services {
-		// Get full service details
-		fullSvcs, err := s.opts.Registry.GetService(svc.Name)
-		if err != nil || len(fullSvcs) == 0 {
-			continue
-		}
-
-		// Convert endpoints to tools
-		for _, ep := range fullSvcs[0].Endpoints {
-			toolName := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
-
-			// Build input schema from endpoint request type
-			inputSchema := s.buildInputSchema(ep.Request)
-
-			// Get description from endpoint metadata (set by service during registration)
-			description := fmt.Sprintf("Call %s on %s service", ep.Name, svc.Name)
-			if ep.Metadata != nil {
-				if desc, ok := ep.Metadata["description"]; ok && desc != "" {
-					description = desc
-				}
-			}
-
-			tool := &Tool{
-				Name:        toolName,
-				Description: description,
-				InputSchema: inputSchema,
-				Service:     svc.Name,
-				Endpoint:    ep.Name,
-			}
-
-			// Extract scopes from endpoint metadata
-			if ep.Metadata != nil {
-				if scopes, ok := ep.Metadata["scopes"]; ok && scopes != "" {
-					tool.Scopes = strings.Split(scopes, ",")
-				}
-			}
-
-			// Gateway-level Scopes override service-level scopes
-			if s.opts.Scopes != nil {
-				if scopes, ok := s.opts.Scopes[toolName]; ok {
-					tool.Scopes = scopes
-				}
-			}
-
-			// Add example from metadata if available
-			if ep.Metadata != nil {
-				if example, ok := ep.Metadata["example"]; ok && example != "" {
-					inputSchema["examples"] = []string{example}
-				}
-			}
-
-			s.tools[toolName] = tool
-
-			// Create rate limiter for this tool if rate limiting is configured
-			if s.opts.RateLimit != nil && s.opts.RateLimit.RequestsPerSecond > 0 {
-				s.limitersMu.Lock()
-				if _, exists := s.limiters[toolName]; !exists {
-					s.limiters[toolName] = newRateLimiter(
-						s.opts.RateLimit.RequestsPerSecond,
-						s.opts.RateLimit.Burst,
-					)
-				}
-				s.limitersMu.Unlock()
-			}
-
-			// Create circuit breaker for this tool if configured
-			if s.opts.CircuitBreaker != nil {
-				s.breakersMu.Lock()
-				if _, exists := s.breakers[toolName]; !exists {
-					s.breakers[toolName] = newCircuitBreaker(*s.opts.CircuitBreaker)
-				}
-				s.breakersMu.Unlock()
-			}
-		}
+	if err := s.discoverReflectedGRPC(); err != nil {
+		return err
 	}
 
 	// Register framework primitives as tools.
 	// When Auth is configured, they require micro:admin scope.
 	s.registerFrameworkTools()
 
-	s.opts.Logger.Printf("[mcp] Discovered %d tools from %d services (incl. framework)", len(s.tools), len(services))
+	s.opts.Logger.Printf("[mcp] Discovered %d tools from %d services (incl. framework)", len(s.tools), len(s.resolver.Services()))
 	return nil
 }
 
@@ -531,73 +551,22 @@ func (s *Server) registerFrameworkTools() {
 	})
 }
 
-// buildInputSchema converts registry value type information to JSON schema
-func (s *Server) buildInputSchema(value *registry.Value) map[string]interface{} {
-	schema := map[string]interface{}{
-		"type":       "object",
-		"properties": make(map[string]interface{}),
-	}
-
-	if value == nil || len(value.Values) == 0 {
-		return schema
-	}
-
-	properties := schema["properties"].(map[string]interface{})
-	for _, field := range value.Values {
-		properties[field.Name] = map[string]interface{}{
-			"type":        s.mapGoTypeToJSON(field.Type),
-			"description": fmt.Sprintf("%s field", field.Name),
-		}
-	}
-
-	return schema
-}
-
-// mapGoTypeToJSON maps Go types to JSON schema types
-func (s *Server) mapGoTypeToJSON(goType string) string {
-	switch goType {
-	case "string":
-		return "string"
-	case "int", "int32", "int64", "uint", "uint32", "uint64":
-		return "integer"
-	case "float32", "float64":
-		return "number"
-	case "bool":
-		return "boolean"
-	default:
-		return "object"
-	}
-}
-
-// watchServices watches for service registry changes
+// watchServices watches for service registry changes via the shared schema
+// resolver and rebuilds the tool catalog on each change.
 func (s *Server) watchServices() {
 	if s.watching {
 		return
 	}
 	s.watching = true
 
-	watcher, err := s.opts.Registry.Watch()
-	if err != nil {
-		s.opts.Logger.Printf("[mcp] Failed to watch registry: %v", err)
-		return
+	if s.resolver == nil {
+		s.resolver = schema.New(s.opts.Registry)
 	}
-	defer watcher.Stop()
-
-	for {
-		select {
-		case <-s.opts.Context.Done():
-			return
-		default:
-			_, err := watcher.Next()
-			if err != nil {
-				time.Sleep(time.Second)
-				continue
-			}
-
-			// Rediscover services on any change
-			if err := s.discoverServices(); err != nil {
-				s.opts.Logger.Printf("[mcp] Failed to rediscover services: %v", err)
-			}
+	s.resolver.Start(s.opts.Context)
+	for range s.resolver.Changes() {
+		// Rediscover services on any change
+		if err := s.discoverServices(); err != nil {
+			s.opts.Logger.Printf("[mcp] Failed to rediscover services: %v", err)
 		}
 	}
 }
