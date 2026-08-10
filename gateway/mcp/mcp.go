@@ -18,6 +18,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -172,6 +173,10 @@ type Server struct {
 	toolsMu  sync.RWMutex
 	server   *http.Server
 	watching bool
+
+	// sessions holds streamable-HTTP MCP client sessions (see streamable.go).
+	sessions   map[string]*httpSession
+	sessionsMu sync.RWMutex
 
 	// resolver is the shared service schema resolver; it owns registry
 	// watching and endpoint parsing so discovery is not duplicated with the
@@ -571,13 +576,18 @@ func (s *Server) watchServices() {
 	}
 }
 
-// serveHTTP starts an HTTP server with SSE and WebSocket transports
-func (s *Server) serveHTTP() error {
+// handler returns the HTTP mux with all MCP routes. Shared by serveHTTP and
+// tests.
+func (s *Server) handler() *http.ServeMux {
+	if s.sessions == nil {
+		s.sessions = make(map[string]*httpSession)
+	}
+
 	mux := http.NewServeMux()
 
-	// MCP endpoints. Tool calls can be gated behind an x402 payment
-	// (enforced per-tool inside handleCallTool); listing tools and health
-	// stay free.
+	// Legacy REST API. Tool calls can be gated behind an x402 payment
+	// (enforced per-tool inside invokeTool); listing tools and health stay
+	// free.
 	if s.opts.Payment != nil {
 		net := s.opts.Payment.Network
 		if net == "" {
@@ -589,17 +599,43 @@ func (s *Server) serveHTTP() error {
 	mux.HandleFunc("/mcp/call", s.handleCallTool)
 	mux.HandleFunc("/health", s.handleHealth)
 
+	// Streamable-HTTP MCP transport (JSON-RPC 2.0 over POST/GET/DELETE).
+	// This is the endpoint for spec-compliant MCP clients.
+	mux.HandleFunc("/mcp", s.handleStreamableHTTP)
+
 	// WebSocket endpoint for bidirectional streaming
-	ws := NewWebSocketTransport(s)
-	mux.Handle("/mcp/ws", ws)
+	mux.Handle("/mcp/ws", NewWebSocketTransport(s))
+
+	return mux
+}
+
+// serveHTTP starts an HTTP server with SSE and WebSocket transports
+func (s *Server) serveHTTP() error {
+	ctx := s.opts.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	go s.sweepSessions(ctx)
 
 	s.server = &http.Server{
 		Addr:    s.opts.Address,
-		Handler: mux,
+		Handler: s.handler(),
 	}
 
+	// Stop the server when the context is canceled (e.g. Ctrl-C).
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = s.server.Shutdown(shutdownCtx)
+	}()
+
 	s.opts.Logger.Printf("[mcp] MCP gateway listening on %s (HTTP + WebSocket)", s.opts.Address)
-	return s.server.ListenAndServe()
+	err := s.server.ListenAndServe()
+	if err == http.ErrServerClosed && ctx.Err() != nil {
+		return nil
+	}
+	return err
 }
 
 // serveStdio starts stdio-based MCP server (for Claude Code, etc.)
@@ -608,16 +644,12 @@ func (s *Server) serveStdio() error {
 	return transport.Serve()
 }
 
-// handleListTools returns the list of available tools
-func (s *Server) handleListTools(w http.ResponseWriter, r *http.Request) {
-	if s.opts.AuthFunc != nil {
-		if err := s.opts.AuthFunc(r); err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-	}
-
+// toolCatalog returns a snapshot of the tool catalog, attaching payment info
+// for the catalog. Callers must not mutate the returned tools.
+func (s *Server) toolCatalog() []*Tool {
 	s.toolsMu.RLock()
+	defer s.toolsMu.RUnlock()
+
 	tools := make([]*Tool, 0, len(s.tools))
 	for _, tool := range s.tools {
 		// Attach payment info for the catalog. Copy when pricing so the
@@ -630,11 +662,21 @@ func (s *Server) handleListTools(w http.ResponseWriter, r *http.Request) {
 		}
 		tools = append(tools, tool)
 	}
-	s.toolsMu.RUnlock()
+	return tools
+}
+
+// handleListTools returns the list of available tools
+func (s *Server) handleListTools(w http.ResponseWriter, r *http.Request) {
+	if s.opts.AuthFunc != nil {
+		if err := s.opts.AuthFunc(r); err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"tools": tools,
+		"tools": s.toolCatalog(),
 	})
 }
 
@@ -657,22 +699,73 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	payload, traceID, raw, err := s.invokeTool(w, r, req.Tool, req.Input)
+	if err == errResponseWritten {
+		return
+	}
+	if err != nil {
+		if te, ok := err.(*toolError); ok {
+			http.Error(w, te.message, te.status)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if raw {
+		// Framework tools respond directly with their result.
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(payload)
+		return
+	}
+
+	// Return response with trace ID
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(TraceIDKey, traceID)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"result":   payload,
+		"trace_id": traceID,
+	})
+}
+
+// errResponseWritten marks that the x402 payment gate already wrote an HTTP
+// response (the 402 challenge); the caller must not write anything further.
+var errResponseWritten = errors.New("x402 response already written")
+
+// toolError is a tool-call failure carrying the HTTP status the legacy REST
+// transport returns. The streamable MCP transport maps it to a JSON-RPC error
+// (or an isError result for execution failures).
+type toolError struct {
+	status  int
+	message string
+}
+
+func (e *toolError) Error() string { return e.message }
+
+// invokeTool runs the shared tool-call pipeline (lookup, x402 payment gate,
+// auth/scope inspection, rate limiting, circuit breaker, tracing, audit, and
+// the RPC or framework-handler dispatch) used by both the legacy REST
+// /mcp/call endpoint and the streamable-HTTP MCP transport. On success it
+// returns the tool's JSON payload and trace id; raw is true for framework
+// tools whose payload is the response itself. On failure it returns a
+// *toolError, or errResponseWritten if the x402 gate already wrote the 402
+// challenge.
+func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName string, input map[string]interface{}) (json.RawMessage, string, bool, error) {
 	// Get tool info
 	s.toolsMu.RLock()
-	tool, exists := s.tools[req.Tool]
+	tool, exists := s.tools[toolName]
 	s.toolsMu.RUnlock()
 
 	if !exists {
-		http.Error(w, "Tool not found", http.StatusNotFound)
-		return
+		return nil, "", false, &toolError{status: http.StatusNotFound, message: "Tool not found"}
 	}
 
 	// x402 payment gate: require the tool's amount before doing work.
 	// Free tools (amount "" or "0") pass through; Require writes the 402
 	// challenge itself when payment is missing or invalid.
 	if s.opts.Payment != nil {
-		if !s.opts.Payment.Require(w, r, s.opts.Payment.AmountFor(req.Tool), req.Tool) {
-			return
+		if !s.opts.Payment.Require(w, r, s.opts.Payment.AmountFor(toolName), toolName) {
+			return nil, "", false, errResponseWritten
 		}
 	}
 
@@ -680,7 +773,7 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	traceID := uuid.New().String()
 
 	// Start OTel span (noop if TraceProvider is nil)
-	ctx, span := s.startToolSpan(r.Context(), req.Tool, "http", traceID)
+	ctx, span := s.startToolSpan(r.Context(), toolName, "http", traceID)
 	defer span.End()
 
 	// Authenticate and authorize
@@ -691,17 +784,15 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		if token == "" {
 			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
 			setSpanError(span, fmt.Errorf("missing token"))
-			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool, Allowed: false, DeniedReason: "missing token"})
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: toolName, Allowed: false, DeniedReason: "missing token"})
+			return nil, traceID, false, &toolError{status: http.StatusUnauthorized, message: "Unauthorized"}
 		}
 		acc, err := s.opts.Auth.Inspect(token)
 		if err != nil {
 			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))
 			setSpanError(span, fmt.Errorf("invalid token"))
-			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool, Allowed: false, DeniedReason: "invalid token"})
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: toolName, Allowed: false, DeniedReason: "invalid token"})
+			return nil, traceID, false, &toolError{status: http.StatusUnauthorized, message: "Unauthorized"}
 		}
 		account = acc
 		span.SetAttributes(attribute.String(AttrAccountID, account.ID))
@@ -713,18 +804,17 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "insufficient scopes"))
 				setSpanError(span, fmt.Errorf("insufficient scopes"))
 				s.audit(AuditRecord{
-					TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+					TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
 					AccountID: account.ID, ScopesRequired: tool.Scopes,
 					Allowed: false, DeniedReason: "insufficient scopes",
 				})
-				http.Error(w, "Forbidden: insufficient scopes", http.StatusForbidden)
-				return
+				return nil, traceID, false, &toolError{status: http.StatusForbidden, message: "Forbidden: insufficient scopes"}
 			}
 		}
 	}
 
 	// Rate limit check
-	if err := s.allowRate(req.Tool); err != nil {
+	if err := s.allowRate(toolName); err != nil {
 		span.SetAttributes(attribute.Bool(AttrRateLimited, true))
 		setSpanError(span, err)
 		accountID := ""
@@ -732,17 +822,16 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 			accountID = account.ID
 		}
 		s.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+			TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
 			AccountID: accountID, Allowed: false, DeniedReason: "rate limited",
 		})
-		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
-		return
+		return nil, traceID, false, &toolError{status: http.StatusTooManyRequests, message: "Rate limit exceeded"}
 	}
 
 	span.SetAttributes(attribute.Bool(AttrAuthAllowed, true))
 
 	// Circuit breaker check
-	if err := s.allowCircuit(req.Tool); err != nil {
+	if err := s.allowCircuit(toolName); err != nil {
 		span.SetAttributes(attribute.String("mcp.circuit_breaker", "open"))
 		setSpanError(span, err)
 		accountID := ""
@@ -750,11 +839,10 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 			accountID = account.ID
 		}
 		s.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+			TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
 			AccountID: accountID, Allowed: false, DeniedReason: "circuit breaker open",
 		})
-		http.Error(w, "Service unavailable: circuit breaker open", http.StatusServiceUnavailable)
-		return
+		return nil, traceID, false, &toolError{status: http.StatusServiceUnavailable, message: "Service unavailable: circuit breaker open"}
 	}
 
 	// Build context with tracing metadata
@@ -764,7 +852,7 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		md = make(metadata.Metadata)
 	}
 	md.Set(TraceIDKey, traceID)
-	md.Set(ToolNameKey, req.Tool)
+	md.Set(ToolNameKey, toolName)
 	if account != nil {
 		md.Set(AccountIDKey, account.ID)
 	}
@@ -774,22 +862,24 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 
 	// Framework tools have a direct handler; service tools go through RPC.
 	if tool.Handler != nil {
-		result, err := tool.Handler(req.Input)
+		result, err := tool.Handler(input)
 		if err != nil {
 			setSpanError(span, err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			return nil, traceID, false, &toolError{status: http.StatusInternalServerError, message: err.Error()}
 		}
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(result)
-		return
+		payload, err := json.Marshal(result)
+		if err != nil {
+			setSpanError(span, err)
+			return nil, traceID, false, &toolError{status: http.StatusInternalServerError, message: err.Error()}
+		}
+		setSpanOK(span)
+		return payload, traceID, true, nil
 	}
 
 	// Convert input to JSON bytes for RPC call
-	inputBytes, err := json.Marshal(req.Input)
+	inputBytes, err := json.Marshal(input)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, traceID, false, &toolError{status: http.StatusInternalServerError, message: err.Error()}
 	}
 
 	// Make RPC call
@@ -797,7 +887,7 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 	var rsp bytes.Frame
 
 	if err := s.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
-		s.recordCircuit(req.Tool, false)
+		s.recordCircuit(toolName, false)
 		setSpanError(span, err)
 		s.opts.Logger.Printf("[mcp] RPC call failed: %v", err)
 		accountID := ""
@@ -805,15 +895,14 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 			accountID = account.ID
 		}
 		s.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+			TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
 			AccountID: accountID, ScopesRequired: tool.Scopes,
 			Allowed: true, Duration: time.Since(start), Error: err.Error(),
 		})
-		http.Error(w, fmt.Sprintf("RPC call failed: %v", err), http.StatusInternalServerError)
-		return
+		return nil, traceID, false, &toolError{status: http.StatusInternalServerError, message: fmt.Sprintf("RPC call failed: %v", err)}
 	}
 
-	s.recordCircuit(req.Tool, true)
+	s.recordCircuit(toolName, true)
 	setSpanOK(span)
 
 	// Audit successful call
@@ -822,18 +911,12 @@ func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
 		accountID = account.ID
 	}
 	s.audit(AuditRecord{
-		TraceID: traceID, Timestamp: time.Now(), Tool: req.Tool,
+		TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
 		AccountID: accountID, ScopesRequired: tool.Scopes,
 		Allowed: true, Duration: time.Since(start),
 	})
 
-	// Return response with trace ID
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set(TraceIDKey, traceID)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"result":   json.RawMessage(rsp.Data),
-		"trace_id": traceID,
-	})
+	return json.RawMessage(rsp.Data), traceID, false, nil
 }
 
 // handleHealth returns gateway health status
