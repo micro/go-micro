@@ -40,7 +40,7 @@ Plus:
 - **Hot Reload** - File changes trigger automatic rebuild
 - **Dependency Ordering** - Services start in the right order
 - **Environment Management** - Dev/staging/production configs
-- **MCP Gateway** - Optional dedicated MCP protocol listener via `--mcp-address`
+- **MCP Gateway** - Optional standalone MCP protocol listener via `--mcp-address`, run independently of the HTTP gateway (streamable-HTTP at `/mcp`, WebSocket at `/mcp/ws`)
 
 ## Features
 
@@ -267,7 +267,7 @@ micro run --address :3000        # Custom gateway port
 micro run --no-gateway           # Services only, no HTTP gateway
 micro run --no-watch             # Disable hot reload
 micro run --env production       # Use production environment
-micro run --mcp-address :3000    # Enable MCP protocol gateway for AI clients
+micro run --mcp-address :3000    # Enable the MCP gateway for AI clients (runs alongside the HTTP gateway)
 ```
 
 ## Going to production

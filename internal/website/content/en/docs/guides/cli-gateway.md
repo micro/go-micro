@@ -221,9 +221,35 @@ Scopes provide fine-grained access control over which tokens can call which endp
 
 - Direct API calls (`/api/{service}/{endpoint}`)
 - MCP tool calls (`/mcp/call`)
+- Streamable-HTTP MCP tool calls (`/mcp`)
+- WebSocket MCP tool calls (`/mcp/ws`)
 - Agent playground tool invocations
 
 The gateway uses `auth.Account` from the go-micro framework. The account's `Scopes` field carries the same `[]string` used by the framework's `wrapper/auth` package for service-level auth.
+
+### 7. MCP Gateway (AI Tool Access)
+
+Every discovered service endpoint is an AI-callable MCP tool. The MCP gateway is its own server, independent of the HTTP API gateway — `--mcp-address` starts it alongside the HTTP gateway and the CLI shuts both down gracefully when the first one exits or a signal arrives.
+
+```bash
+# Dashboard/API on :8080 + MCP gateway on :3000
+micro gateway --mcp-address :3000
+
+# With production controls on the MCP gateway (scopes, rate limiting, audit, x402)
+micro gateway --mcp-address :3000 --auth --audit --rate-limit 100
+
+# Development loop, same flag
+micro run --mcp-address :3000
+```
+
+The MCP gateway serves four transports on its address (`:3000` in the examples):
+
+- **Streamable-HTTP** at `/mcp` — spec-compliant JSON-RPC 2.0; the endpoint for browser MCP clients (CORS enabled)
+- **WebSocket** at `/mcp/ws` — bidirectional streaming for agent frameworks
+- **Legacy REST** at `/mcp/tools` and `/mcp/call` — simple tool listing and calls
+- **Stdio** via `micro mcp serve` — for local CLI agents (Claude Code)
+
+Scopes set in `/auth/scopes` are enforced on MCP tool calls across all transports. See the [MCP guide](../mcp/index.md) for the full walkthrough.
 
 ## Architecture Benefits
 

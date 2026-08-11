@@ -15,7 +15,9 @@ MCP gateway automatically exposes your microservices as AI-accessible tools thro
 - **Automatic service discovery** via the registry
 - **Dynamic tool generation** from service endpoints
 - **Stdio transport** for local AI tools (Claude Code, etc.)
-- **HTTP/SSE transport** for web-based agents
+- **Streamable-HTTP transport** (spec-compliant JSON-RPC 2.0 at `/mcp`) for browser MCP clients
+- **WebSocket transport** at `/mcp/ws` for streaming agent frameworks
+- **Legacy REST endpoints** at `/mcp/tools` and `/mcp/call` for simple tool access
 - **Automatic documentation extraction** from Go comments
 
 ## Quick Start
@@ -98,6 +100,8 @@ micro mcp serve --address :3000
 
 Access tools at \`http://localhost:3000/mcp/tools\`
 
+For spec-compliant MCP clients (browser and desktop agents), use the streamable-HTTP endpoint at `http://localhost:3000/mcp` — see [Streamable-HTTP Transport](#streamable-http-transport-browser-mcp-clients) below.
+
 ### 3. Use Your Service with AI
 
 Claude can now discover and call your service:
@@ -176,10 +180,50 @@ micro mcp test greeter.GreeterService.SayHello
 
 ### Transport Options
 
-- **Stdio** - For local AI tools (Claude Code, recommended)
-- **HTTP/SSE** - For web-based agents
+The MCP gateway serves four transports from one HTTP server (or stdio when no address is set):
+
+- **Stdio** - For local AI tools (Claude Code, recommended). Start with `micro mcp serve`.
+- **Streamable-HTTP** - Spec-compliant JSON-RPC 2.0 at `/mcp`. The endpoint for browser MCP clients; CORS is enabled so it works without a proxy.
+- **WebSocket** - Bidirectional streaming at `/mcp/ws` for streaming agent frameworks.
+- **Legacy REST** - Tool listing and calls at `/mcp/tools` and `/mcp/call`.
 
 See examples for complete usage.
+
+### Streamable-HTTP Transport (Browser MCP Clients)
+
+Point any spec-compliant MCP client (Claude desktop, browser agents) at `http://localhost:3000/mcp`. The client SDK handles the handshake; the endpoint behaves like this:
+
+1. **`POST /mcp`** with `initialize` mints a session, returned in the `Mcp-Session-Id` response header:
+
+```bash
+curl -i -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"my-agent","version":"1.0"}}}'
+
+# Mcp-Session-Id: <session-id>   <- echo this header on later requests
+```
+
+2. **`POST /mcp`** with `tools/list` and `tools/call`, echoing the session id:
+
+```bash
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Mcp-Session-Id: <session-id>" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Mcp-Session-Id: <session-id>" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"greeter.GreeterService.SayHello","arguments":{"name":"World"}}}'
+```
+
+3. **`GET /mcp`** opens a `text/event-stream` for server→client messages; **`DELETE /mcp`** terminates the session. JSON-RPC notifications (no `id`) return `202 Accepted` with no body.
+
+Supported methods: `initialize`, `ping`, `tools/list`, `tools/call`. Tool calls share the same auth, scope, rate-limit, circuit-breaker, and x402 payment pipeline as the REST endpoints, so scopes set in `/auth/scopes` are enforced identically.
+
+### Gateway Independence
+
+The MCP gateway is its own server, independent of the HTTP API gateway. The CLI (`micro gateway --mcp-address :3000`, or `micro run --mcp-address :3000`) starts both servers and shuts them down together; library users start each explicitly with `mcp.NewServer` (see the [gateway guide](../guides/cli-gateway.md)).
 
 ## Examples
 
