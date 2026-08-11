@@ -258,7 +258,10 @@ if $PUSH && ! $DRY_RUN; then
         done < <(git ls-remote --tags --refs origin)
 
         batch=()
-        for ref in "${CREATED_TAGS[@]:offset:500}"; do
+        end=$((offset + 500))
+        ((end > ${#CREATED_TAGS[@]})) && end=${#CREATED_TAGS[@]}
+        for ((i = offset; i < end; i++)); do
+            ref="${CREATED_TAGS[i]}"
             [[ -z "${CURRENT_REMOTE_TAGS[$ref]+x}" ]] && batch+=("$ref")
         done
         ((${#batch[@]})) && git push origin "${batch[@]}"
