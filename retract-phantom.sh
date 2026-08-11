@@ -110,7 +110,7 @@ done
 
 for b in V6 V5 V4 V0; do
     declare -n ba="BASES_$b"
-    mapfile -t ba < <(printf '%s\n' "${ba[@]}" | awk '!seen[$0]++')
+    mapfile -t ba < <(printf '%s\n' "${ba[@]}" | awk 'NF && !seen[$0]++')
 done
 
 # ── Sanity checks ───────────────────────────────────────────────────────────
