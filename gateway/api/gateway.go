@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"time"
 
-	"go-micro.dev/v6/gateway/mcp"
 	"go-micro.dev/v6/registry"
 )
 
@@ -34,12 +33,6 @@ type Options struct {
 	// HandlerRegistrar is called to register HTTP handlers on the mux
 	// This allows different configurations (dev vs prod) to register different handlers
 	HandlerRegistrar func(mux *http.ServeMux) error
-
-	// MCPEnabled controls whether to start MCP gateway
-	MCPEnabled bool
-
-	// MCPAddress is the address for MCP gateway (e.g., ":3000")
-	MCPAddress string
 
 	// Registry for service discovery (if nil, uses registry.DefaultRegistry)
 	Registry registry.Registry
@@ -90,20 +83,6 @@ func New(opts Options) (*Gateway, error) {
 		opts:   opts,
 		server: server,
 		mux:    mux,
-	}
-
-	// Start MCP gateway if enabled
-	if opts.MCPEnabled && opts.MCPAddress != "" {
-		go func() {
-			if err := mcp.ListenAndServe(opts.MCPAddress, mcp.Options{
-				Registry: opts.Registry,
-				Context:  opts.Context,
-				Logger:   opts.Logger,
-			}); err != nil {
-				opts.Logger.Printf("[mcp] MCP gateway error: %v", err)
-			}
-		}()
-		opts.Logger.Printf("[mcp] MCP gateway enabled on %s", opts.MCPAddress)
 	}
 
 	// Start server in background

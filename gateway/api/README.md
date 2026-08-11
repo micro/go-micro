@@ -47,13 +47,23 @@ func main() {
 }
 ```
 
-### Gateway with MCP
+### Run the MCP gateway alongside
+
+The HTTP API gateway no longer starts MCP. Run the MCP gateway independently
+so each has its own lifecycle:
 
 ```go
+mcpSrv, err := mcp.NewServer(mcp.Options{
+    Address:  ":3000",
+    Registry: registry.DefaultRegistry,
+})
+if err != nil {
+    panic(err)
+}
+go mcpSrv.Serve()
+
 gw, err := api.New(api.Options{
     Address:    ":8080",
-    MCPEnabled: true,
-    MCPAddress: ":3000", // MCP on separate port
     HandlerRegistrar: registerHandlers,
 })
 ```
@@ -101,12 +111,6 @@ type Options struct {
     // HandlerRegistrar registers HTTP handlers on the mux
     HandlerRegistrar func(mux *http.ServeMux) error
 
-    // MCPEnabled enables the MCP gateway
-    MCPEnabled bool
-
-    // MCPAddress is the address for MCP gateway (e.g., ":3000")
-    MCPAddress string
-
     // Registry for service discovery (default: registry.DefaultRegistry)
     Registry registry.Registry
 }
@@ -121,7 +125,6 @@ type Options struct {
 │  │  Gateway                           │ │
 │  │  - Manages HTTP server             │ │
 │  │  - Calls HandlerRegistrar          │ │
-│  │  - Starts MCP if enabled           │ │
 │  └────────────────────────────────────┘ │
 └─────────────────────────────────────────┘
                ↓ delegates to

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -25,6 +26,7 @@ import (
 	"go-micro.dev/v6/cmd/micro/gateway"
 	"go-micro.dev/v6/cmd/micro/run/config"
 	"go-micro.dev/v6/cmd/micro/run/watcher"
+	"go-micro.dev/v6/gateway/mcp"
 	"go-micro.dev/v6/registry"
 
 	_ "go-micro.dev/v6/ai/anthropic"
@@ -367,6 +369,7 @@ func Run(c *cli.Context) error {
 
 	// Start gateway unless disabled
 	var gw *gateway.Gateway
+	var mcpServer *mcp.Server
 	gatewayAddr := c.String("address")
 	if gatewayAddr == "" {
 		gatewayAddr = "127.0.0.1:8080"
@@ -379,17 +382,34 @@ func Run(c *cli.Context) error {
 
 	if !c.Bool("no-gateway") {
 		var err error
-		mcpAddr := c.String("mcp-address")
 		gw, err = gateway.StartGateway(gateway.GatewayOptions{
 			Address:     gatewayAddr,
 			AuthEnabled: authEnabled,
 			Context:     context.Background(),
-			MCPEnabled:  mcpAddr != "",
-			MCPAddress:  mcpAddr,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to start gateway: %w", err)
 		}
+	}
+
+	// The MCP gateway runs independently of the HTTP API gateway. When
+	// --mcp-address is set, start it explicitly with the production controls
+	// (rate limiting, scopes, auth, x402 payments) instead of letting the API
+	// gateway spawn a bare listener.
+	if mcpAddr := c.String("mcp-address"); mcpAddr != "" {
+		mcpOpts, err := buildRunMCPOptions(c, mcpAddr)
+		if err != nil {
+			return fmt.Errorf("failed to configure MCP gateway: %w", err)
+		}
+		mcpServer, err = mcp.NewServer(mcpOpts)
+		if err != nil {
+			return fmt.Errorf("failed to start MCP gateway: %w", err)
+		}
+		go func() {
+			if err := mcpServer.Serve(); err != nil {
+				fmt.Fprintf(os.Stderr, "[mcp] gateway error: %v\n", err)
+			}
+		}()
 	}
 
 	// Start services
@@ -501,6 +521,10 @@ func Run(c *cli.Context) error {
 		_ = gw.Stop()
 	}
 
+	if mcpServer != nil {
+		_ = mcpServer.Stop()
+	}
+
 	// Stop services in reverse order. Snapshot under the lock — the scanner
 	// goroutine may still be appending as teardown begins.
 	svcMu.Lock()
@@ -512,6 +536,19 @@ func Run(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+// buildRunMCPOptions assembles MCP gateway options for `micro run`. The dev
+// command keeps a minimal setup (registry, context, logger) — the same bare
+// listener the API gateway used to spawn — while production controls (rate
+// limiting, scopes, x402) stay on the standalone `micro gateway` command.
+func buildRunMCPOptions(c *cli.Context, addr string) (mcp.Options, error) {
+	return mcp.Options{
+		Registry: registry.DefaultRegistry,
+		Address:  addr,
+		Context:  context.Background(),
+		Logger:   log.Default(),
+	}, nil
 }
 
 func discoverNewServices(baseDir string, known map[string]*serviceProcess, binDir, runDir, logsDir string, envVars []string, colorOffset int) []*serviceProcess {

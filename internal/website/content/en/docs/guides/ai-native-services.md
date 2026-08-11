@@ -224,6 +224,7 @@ Your service is now available at:
 - **Web Dashboard:** http://localhost:8080/
 - **Agent Playground:** http://localhost:8080/agent
 - **MCP Tools:** http://localhost:8080/mcp/tools
+- **MCP Streamable-HTTP:** http://localhost:3000/mcp (browser MCP clients)
 - **WebSocket:** ws://localhost:3000/mcp/ws
 - **API Gateway:** http://localhost:8080/api/tasks/TaskService/Create
 
@@ -313,6 +314,16 @@ ws.send(JSON.stringify({
   params: {}
 }));
 ```
+
+### Use with Browser MCP Clients
+
+Point any spec-compliant MCP client (Claude desktop, browser agents) at the streamable-HTTP endpoint:
+
+```text
+http://localhost:3000/mcp
+```
+
+It speaks JSON-RPC 2.0 over `POST`/`GET`/`DELETE` and allows cross-origin requests, so browser-based agents can discover and call your services directly — no WebSocket or proxy needed. See the [MCP guide](../mcp/index.md#streamable-http-transport-browser-mcp-clients) for the full handshake.
 
 ## Step 6: Test Your Tools
 
