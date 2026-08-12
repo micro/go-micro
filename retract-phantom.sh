@@ -114,17 +114,11 @@ for b in V6 V5 V4 V0; do
 done
 
 # ── Sanity checks ───────────────────────────────────────────────────────────
-module_relative_path() {
-    local path="$1"
-    if [[ "$path" =~ ^go-micro\.dev/v[0-9]+/(.+)$ ]]; then
-        printf '%s\n' "${BASH_REMATCH[1]}"
-    else
-        printf '%s\n' "${path#go-micro.dev/}"
-    fi
-}
-
 for p in "${PHANTOM_PATHS[@]}"; do
-    rel="$(module_relative_path "$p")"
+    case "$p" in
+        go-micro.dev/v[0-9]*/*) rel="${p#go-micro.dev/v[0-9]*/}" ;;
+        *) rel="${p#go-micro.dev/}" ;;
+    esac
     [[ -f "$rel/go.mod" ]] && { echo "ERROR: $p has go.mod on master — not a phantom"; exit 1; }
 done
 
@@ -209,7 +203,10 @@ for base_info in "v6:${#BASES_V6[@]}" "v5:${#BASES_V5[@]}" "v4:${#BASES_V4[@]}" 
         : > "$tmpdir/tags"
         n=0
         for p in "${ref[@]}"; do
-            rel="$(module_relative_path "$p")"
+            case "$p" in
+                go-micro.dev/v[0-9]*/*) rel="${p#go-micro.dev/v[0-9]*/}" ;;
+                *) rel="${p#go-micro.dev/}" ;;
+            esac
             tag="${rel}/${RETRACT_MAX}"
             if ! valid_tag_ref "$tag"; then
                 echo "  skip (invalid tag name): $tag" >&2
