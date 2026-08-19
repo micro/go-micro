@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	rclient "github.com/go-redis/redis/v8"
+	rclient "github.com/redis/go-redis/v9"
 	"go-micro.dev/v6/cache"
 )
 
