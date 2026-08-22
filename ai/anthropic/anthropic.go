@@ -84,6 +84,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		"system":     req.SystemPrompt,
 		"messages":   threadAnthropicMessages(req),
 	}
+	applyReasoningOptions(apiReq, p.opts)
 
 	if len(anthropicTools) > 0 {
 		apiReq["tools"] = anthropicTools
@@ -131,6 +132,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			"system":     req.SystemPrompt,
 			"messages":   messages,
 		}
+		applyReasoningOptions(followUpReq, p.opts)
 		if len(anthropicTools) > 0 {
 			followUpReq["tools"] = anthropicTools
 		}
@@ -168,6 +170,7 @@ func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.Gener
 		"messages":   threadAnthropicMessages(req),
 		"stream":     true,
 	}
+	applyReasoningOptions(apiReq, p.opts)
 	reqBody, err := json.Marshal(apiReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal stream request: %w", err)
@@ -214,8 +217,9 @@ func (s *streamReader) Recv() (*ai.Response, error) {
 		var chunk struct {
 			Type  string `json:"type"`
 			Delta struct {
-				Type string `json:"type"`
-				Text string `json:"text"`
+				Type       string `json:"type"`
+				Text       string `json:"text"`
+				StopReason string `json:"stop_reason"`
 			} `json:"delta"`
 			Message struct {
 				Usage struct {
@@ -241,8 +245,12 @@ func (s *streamReader) Recv() (*ai.Response, error) {
 				return &ai.Response{Usage: usage(chunk.Message.Usage.InputTokens, chunk.Message.Usage.OutputTokens)}, nil
 			}
 		case "message_delta":
-			if chunk.Usage != nil {
-				return &ai.Response{Usage: usage(chunk.Usage.InputTokens, chunk.Usage.OutputTokens)}, nil
+			if chunk.Delta.StopReason != "" || chunk.Usage != nil {
+				response := &ai.Response{StopReason: chunk.Delta.StopReason}
+				if chunk.Usage != nil {
+					response.Usage = usage(chunk.Usage.InputTokens, chunk.Usage.OutputTokens)
+				}
+				return response, nil
 			}
 		case "message_stop":
 			return nil, io.EOF
@@ -296,7 +304,10 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 	defer httpResp.Body.Close()
 
 	// Read response
-	respBody, _ := io.ReadAll(httpResp.Body)
+	respBody, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read response: %w", err)
+	}
 	if httpResp.StatusCode != http.StatusOK {
 		return nil, nil, ai.NewHTTPError(httpResp, respBody)
 	}
@@ -317,7 +328,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
 		return nil, nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	response := &ai.Response{}
+	response := &ai.Response{StopReason: anthropicResp.StopReason}
 
 	// Extract text reply
 	var replyParts []string
@@ -394,4 +405,13 @@ func anthropicMaxTokens(o ai.Options) int {
 		return o.MaxTokens
 	}
 	return 8192
+}
+
+func applyReasoningOptions(req map[string]any, opts ai.Options) {
+	if opts.Thinking != "" {
+		req["thinking"] = map[string]any{"type": string(opts.Thinking)}
+	}
+	if opts.Effort != "" {
+		req["output_config"] = map[string]any{"effort": opts.Effort}
+	}
 }

@@ -31,6 +31,9 @@ func Stream(ctx context.Context, opts ai.Options, req *ai.Request, basePath stri
 	if opts.MaxTokens > 0 {
 		apiReq["max_tokens"] = opts.MaxTokens
 	}
+	if opts.Effort != "" {
+		apiReq["reasoning_effort"] = opts.Effort
+	}
 	reqBody, err := json.Marshal(apiReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal stream request: %w", err)

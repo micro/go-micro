@@ -2,6 +2,7 @@ package anthropic
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -11,6 +12,34 @@ import (
 
 	"go-micro.dev/v6/ai"
 )
+
+func TestProvider_GenerateReasoningOptionsAndStopReason(t *testing.T) {
+	var body map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"content":[{"type":"text","text":"done"}],"stop_reason":"max_tokens"}`))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL),
+		ai.WithThinking(ai.ThinkingAdaptive), ai.WithEffort("low"))
+	resp, err := p.Generate(context.Background(), &ai.Request{Prompt: "Hello"})
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+	if got := body["thinking"].(map[string]any)["type"]; got != "adaptive" {
+		t.Fatalf("thinking type = %v, want adaptive", got)
+	}
+	if got := body["output_config"].(map[string]any)["effort"]; got != "low" {
+		t.Fatalf("effort = %v, want low", got)
+	}
+	if resp.StopReason != "max_tokens" {
+		t.Fatalf("stop reason = %q, want max_tokens", resp.StopReason)
+	}
+}
 
 func TestProvider_String(t *testing.T) {
 	p := NewProvider()
@@ -109,7 +138,7 @@ func TestProvider_Stream(t *testing.T) {
 		_, _ = w.Write([]byte("event: content_block_delta\n"))
 		_, _ = w.Write([]byte(`data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"lo"}}` + "\n\n"))
 		_, _ = w.Write([]byte("event: message_delta\n"))
-		_, _ = w.Write([]byte(`data: {"type":"message_delta","usage":{"output_tokens":3}}` + "\n\n"))
+		_, _ = w.Write([]byte(`data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":3}}` + "\n\n"))
 		_, _ = w.Write([]byte("event: message_stop\n"))
 		_, _ = w.Write([]byte(`data: {"type":"message_stop"}` + "\n\n"))
 	}))
@@ -129,6 +158,7 @@ func TestProvider_Stream(t *testing.T) {
 
 	var reply strings.Builder
 	var usage ai.Usage
+	var stopReason string
 	for {
 		chunk, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -141,11 +171,17 @@ func TestProvider_Stream(t *testing.T) {
 		if chunk.Usage.TotalTokens > 0 {
 			usage = chunk.Usage
 		}
+		if chunk.StopReason != "" {
+			stopReason = chunk.StopReason
+		}
 	}
 	if got := reply.String(); got != "hello" {
 		t.Fatalf("reply = %q, want hello", got)
 	}
 	if usage.TotalTokens != 3 {
 		t.Fatalf("usage = %+v, want total 3", usage)
+	}
+	if stopReason != "end_turn" {
+		t.Fatalf("stop reason = %q, want end_turn", stopReason)
 	}
 }
