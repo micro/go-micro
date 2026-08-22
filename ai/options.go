@@ -18,7 +18,20 @@ type Options struct {
 	ToolHandler ToolHandler
 	// MaxTokens caps the length of the response (0 = provider default)
 	MaxTokens int
+	// Thinking controls Anthropic's extended-thinking mode. Empty leaves the
+	// provider default in place.
+	Thinking ThinkingMode
+	// Effort controls reasoning depth for providers that support it.
+	Effort string
 }
+
+// ThinkingMode controls whether a reasoning-capable model uses extended thinking.
+type ThinkingMode string
+
+const (
+	ThinkingAdaptive ThinkingMode = "adaptive"
+	ThinkingDisabled ThinkingMode = "disabled"
+)
 
 // GenerateOptions for generate call
 type GenerateOptions struct {
@@ -99,5 +112,20 @@ func WithTools(t *Tools) Option {
 func WithMaxTokens(n int) Option {
 	return func(o *Options) {
 		o.MaxTokens = n
+	}
+}
+
+// WithThinking sets the extended-thinking mode for providers that support it.
+func WithThinking(mode ThinkingMode) Option {
+	return func(o *Options) {
+		o.Thinking = mode
+	}
+}
+
+// WithEffort sets the reasoning effort for providers that support it. An empty
+// value leaves the provider default in place.
+func WithEffort(effort string) Option {
+	return func(o *Options) {
+		o.Effort = effort
 	}
 }
