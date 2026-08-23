@@ -3,9 +3,47 @@
 Go Micro is an **agent harness** and service framework for Go.
 
 ## Overview
-A harness is the runtime around an agent: the tools it can call, the memory it keeps, the guardrails that bound it, the workflows that trigger it, the services it depends on, and the protocols other agents use to reach it. 
+
+A harness is the runtime around an agent: the tools it can call, the memory it keeps, the guardrails that bound it, the workflows that trigger it, the services it depends on, and the protocols other agents use to reach it.
 
 Go Micro gives you the harness as Go code. Build an agent and it gets a model, memory, tools, planning, delegation, guardrails, and service discovery; it is reachable over [MCP](https://modelcontextprotocol.io/) and [A2A](https://a2a-protocol.org). Write services and every endpoint becomes an AI-callable tool. Orchestrate the deterministic parts with durable flows. Agents, services, and flows share one runtime because an agent is a distributed system, and building one is building a service.
+
+## See it
+
+Describe a system and Go Micro designs the services, writes the handlers, compiles them, starts them, and gives you an agent to talk to:
+
+```
+$ micro run --prompt "a task management system with categories"
+
+Services:
+  ● task — Task management with status tracking
+  ● project — Project organization
+
+Generate? [Y/n]
+
+> Create a project called Launch, then add three tasks to it
+
+→ project_Project_Create({"name":"Launch"})
+→ task_Task_Create({"title":"Design specs","project_id":"p1..."})
+→ task_Task_Create({"title":"Write code","project_id":"p1..."})
+→ task_Task_Create({"title":"Ship it","project_id":"p1..."})
+
+Created project Launch and added three tasks to it.
+```
+
+And when the agent needs a capability that doesn't exist, it builds the service mid-conversation:
+
+```
+> I need to track shipping. Create a shipment for order 123 to London.
+
+  ⚡ generating shipping service...
+  ✓ shipping
+  → shipping_Shipping_Create({"order_id":"123","destination":"London"})
+
+  Created shipment for order 123 going to London.
+```
+
+The generated code is plain Go on disk — edit it by hand at any time; re-running preserves your changes. No key? The [no-secret path below](#fastest-start--no-api-key) works without any provider.
 
 ## Sponsors
 
@@ -17,14 +55,6 @@ Go Micro gives you the harness as Go code. Build an agent and it gets a model, m
 
 **Want to support Go Micro and see your logo here?** [Become a sponsor](https://discord.gg/G8Gk5j3uXr) — reach out on Discord.
 
-## Community
-
-Questions, ideas, or just want to build alongside us? [Join the Discord](https://discord.gg/G8Gk5j3uXr).
-
-## Commercial Support
-
-Running Go Micro in production, or building on it and want help? Paid **support, consulting, training, and retainers** are available directly from the maintainer — and they're what keep the project maintained. See [**Support**](SUPPORT.md) for the tiers, or [open a request](https://github.com/micro/go-micro/issues/new?template=commercial_support.md).
-
 ## Contents
 
 - [Quick Start](#quick-start)
@@ -34,11 +64,12 @@ Running Go Micro in production, or building on it and want help? Paid **support,
 - [Building Agents](#building-agents) — [Plan & Delegate](#plan--delegate), [Pluggable](#batteries-included-pluggable), [Paid tools (x402)](#paid-tools-x402), [A2A](#reachable-by-other-agents-a2a)
 - [Features](#features)
 - [CLI](#cli)
-- [Autonomous improvement loop](#autonomous-improvement-loop)
 - [Multi-Service Projects](#multi-service-projects)
 - [Data Model](#data-model)
 - [AI Providers](#ai-providers)
 - [Examples](#examples)
+- [Autonomous improvement loop](#autonomous-improvement-loop)
+- [Community](#community)
 - [Commercial Support](#commercial-support)
 - [Docs](#docs)
 
@@ -54,7 +85,7 @@ curl -fsSL https://go-micro.dev/install.sh | sh
 go install go-micro.dev/v6/cmd/micro@latest
 ```
 
-If install or `PATH` checks fail, use the [install troubleshooting guide](internal/website/docs/guides/install-troubleshooting.md) before scaffolding your first service.
+If install or `PATH` checks fail, use the [install troubleshooting guide](internal/website/docs/guides/install-troubleshooting.md).
 
 ### Fastest start — no API key
 
@@ -66,14 +97,6 @@ cd helloworld
 micro run
 ```
 
-Prefer Docker? The `micro` image (Docker Hub `micro/micro` or GitHub Container Registry `ghcr.io/micro/go-micro`) bundles the CLI and its runtime dependencies:
-
-```bash
-docker pull micro/micro:latest          # or ghcr.io/micro/go-micro:latest
-docker run --rm -it micro/micro new helloworld
-docker run --rm -it --network host -v "$(pwd)":/micro/helloworld micro/micro run
-```
-
 Then in another terminal:
 
 ```bash
@@ -81,132 +104,32 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
   -H 'Content-Type: application/json' -d '{"name":"World"}'
 ```
 
-This install → scaffold → run → call path is covered by no-secret CI harnesses. To
-verify just the local installer and first-run CLI boundaries without network
-access or provider keys, use:
+Prefer Docker? The `micro` image (Docker Hub `micro/micro` or `ghcr.io/micro/go-micro`) bundles the CLI:
 
 ```bash
-make install-smoke
-```
-
-To verify the focused CLI inner-loop contract — scaffold → run/chat/inspect → deploy dry-run — use:
-
-```bash
-make inner-loop
-```
-
-To run only the ordered [0→hero services → agents → workflows transcript](internal/website/docs/guides/zero-to-hero.md) that CI guards, use:
-
-```bash
-make zero-to-hero-transcript
-```
-
-To run the broader local contract (including that transcript, chat/inspect CLI boundaries, and deploy dry-run), use:
-
-```bash
-make harness
+docker run --rm -it micro/micro new helloworld
+docker run --rm -it --network host -v "$(pwd)":/micro/helloworld micro/micro run
 ```
 
 ### First agent on-ramp
 
-After install and the first `micro new`/`micro run` smoke check, take the
-walkable agent path in this order:
+New to agents? The shortest path, in order — every step works without a provider key:
 
-1. [Install troubleshooting](internal/website/docs/guides/install-troubleshooting.md) — verify the binary installer or `go install`, `PATH`, `micro --version`, and the no-secret smoke path before agent work.
-
-Run `make docs-wayfinding` to verify the focused no-secret docs/CLI contract that keeps these README and website commands aligned with the installed CLI.
-
-2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
-3. `micro agent quickcheck` (or `micro agent debug`) — when scaffold → run → chat → inspect stalls, print the short recovery map before you dive into the full debugging guide.
-4. `micro examples` — print the maintained provider-free runnable examples in copy/paste order.
-5. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle harness and runnable examples.
-6. [Examples wayfinding index](examples/INDEX.md) — choose the smallest no-secret first-agent, maintained [0→hero support reference](examples/support/), and next interop examples from one map.
-7. [Smallest first-agent example](examples/first-agent/) — run one service-backed agent with a mock model and no provider key.
-8. [No-secret first-agent transcript](internal/website/docs/guides/no-secret-first-agent.md) — run the
-   maintained support agent with a mock model and see services → agents → workflows succeed without a key.
-9. [Your First Agent](internal/website/docs/guides/your-first-agent.md) — build a
-   service-backed agent and talk to it with `micro chat`.
-10. [Debugging your agent](internal/website/docs/guides/debugging-agents.md) — use
-   `micro agent preflight` before `micro run`, `micro agent doctor` after `micro run`,
-   then `micro chat` and `micro inspect agent <name>` to recover run history, memory,
-   and provider checks when the first conversation does something unexpected.
-11. [0→hero Reference](internal/website/docs/guides/zero-to-hero.md) — complete the
-   services → agents → workflows loop with scaffold, run, chat, inspect, flow
-   history, and deploy dry-run commands that match the maintained harness.
-
-### Autonomous improvement loop
-
-Want the same services → agents → workflows lifecycle applied to your
-repository? `micro loop` scaffolds the autonomous improvement loop used by Go
-Micro itself: a North Star, ranked issue queue, role prompts, GitHub Actions
-workflows, and verification for CI-gated PRs.
-
-```bash
-micro loop init --roles all
-micro loop verify
-```
-
-Before turning on the schedule, configure a dispatch token such as
-`CODEX_TRIGGER_TOKEN`, protect the default branch with required CI checks
-(`go build ./...`, `go test ./...`, and `golangci-lint run ./...` for this
-repository), and seed `.github/loop/PRIORITIES.md` with one scoped issue per
-increment. See the [`micro loop` quickstart](internal/website/docs/guides/micro-loop.md)
-for the setup checklist and operating model.
+1. **Verify the install** — the [install troubleshooting guide](internal/website/docs/guides/install-troubleshooting.md) covers `PATH`, `micro --version`, and first-run checks. (`make docs-wayfinding` keeps these steps aligned with the installed CLI.)
+2. **Run the built-in demo** — `micro agent demo` prints the provider-free first-agent walkthrough, and `micro agent quickcheck` prints the short recovery map if a step stalls; `micro examples` and `micro zero-to-hero` print the runnable examples and the one-command lifecycle harness. Start from the [smallest first-agent example](examples/first-agent/) or the [examples wayfinding index](examples/INDEX.md).
+3. **Build your own** — follow [No-secret first agent](internal/website/docs/guides/no-secret-first-agent.md) (mock model, no key), then [Your First Agent](internal/website/docs/guides/your-first-agent.md), and talk to it with `micro chat`.
+4. **When something's off** — `micro agent preflight` before `micro run`, `micro agent doctor` after; the [debugging guide](internal/website/docs/guides/debugging-agents.md) walks the full recovery path, and `micro inspect agent <name>` recovers run history, memory, and provider checks. The [0→hero reference](internal/website/docs/guides/zero-to-hero.md) then closes the loop — services → agents → workflows — with the maintained [support example](examples/support/) as the reference app.
 
 ### Generate from a prompt — with an LLM key
 
-Set a provider key, describe what you want, and the AI designs services, writes handlers, compiles, and starts them:
+The [See it](#see-it) transcript above is real. Set a provider key and run it:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, ...
 micro run --prompt "a task management system with categories" --provider anthropic
 ```
 
-The AI designs the architecture, you review it, then it generates handlers with real business logic, compiles them, and starts them:
-
-```
-Services:
-  ● task — Task management with status tracking
-  ● project — Project organization
-
-Generate? [Y/n]
-
-Micro
-  Services:
-    ● task
-    ● project
-  Agents:
-    ◆ agent
-```
-
-Then talk to your services from the console:
-
-```
-> Create a project called Launch, then add three tasks to it
-
-→ project_Project_Create({"name":"Launch"})
-← {"record":{"id":"p1..."},"success":true}
-→ task_Task_Create({"title":"Design specs","project_id":"p1..."})
-→ task_Task_Create({"title":"Write code","project_id":"p1..."})
-→ task_Task_Create({"title":"Ship it","project_id":"p1..."})
-
-Created project Launch and added three tasks to it.
-```
-
-When you need a capability that doesn't exist, the agent generates a new service mid-conversation:
-
-```
-> I need to track shipping. Create a shipment for order 123 to London.
-
-  ⚡ generating shipping service...
-  ✓ shipping
-  → shipping_Shipping_Create({"order_id":"123","destination":"London"})
-  ← {"record":{"id":"xyz...","status":"pending"}}
-
-  Created shipment for order 123 going to London.
-```
-
-Edit the generated code by hand at any time — re-running preserves your changes. [Read more](https://go-micro.dev/blog/13).
+The AI designs the architecture, you review it, then it generates handlers with real business logic, compiles them, and starts them — and the console drops you into a conversation with your running system. [Read more](https://go-micro.dev/blog/13).
 
 ## Why an Agent Harness
 
@@ -506,6 +429,25 @@ New to agents? Follow the [first-agent on-ramp](#first-agent-on-ramp), then use 
 
 See [all examples](examples/README.md).
 
+## Autonomous improvement loop
+
+Go Micro maintains itself with the same services → agents → workflows lifecycle it ships: a scheduled loop of AI agents opens issues, writes increments, and merges CI-gated PRs, with a human setting direction. `micro loop` scaffolds that loop for your own repository — a North Star, ranked issue queue, role prompts, GitHub Actions workflows, and verification:
+
+```bash
+micro loop init --roles all
+micro loop verify
+```
+
+See the [`micro loop` quickstart](internal/website/docs/guides/micro-loop.md) for the setup checklist (dispatch token, branch protection, seeded priorities) and operating model.
+
+## Community
+
+Questions, ideas, or just want to build alongside us? [Join the Discord](https://discord.gg/G8Gk5j3uXr).
+
+## Commercial Support
+
+Running Go Micro in production, or building on it and want help? Paid **support, consulting, training, and retainers** are available directly from the maintainer — and they're what keep the project maintained. See [**Support**](SUPPORT.md) for the tiers, or [open a request](https://github.com/micro/go-micro/issues/new?template=commercial_support.md).
+
 ## Docs
 
 - [Getting Started](internal/website/docs/getting-started.md)
@@ -521,5 +463,7 @@ See [all examples](examples/README.md).
 - [Data Model](internal/website/docs/model.md)
 - [Deployment](internal/website/docs/deployment.md)
 - [Plugins](internal/website/docs/plugins.md)
+
+Every path in this README is guarded by CI: `make install-smoke` verifies install → first run, `make inner-loop` verifies scaffold → run/chat/inspect → deploy dry-run, `make zero-to-hero-transcript` verifies the ordered [0→hero lifecycle](internal/website/docs/guides/zero-to-hero.md), and `make harness` runs the broader local contract.
 
 Package reference: https://pkg.go.dev/go-micro.dev/v6
