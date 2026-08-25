@@ -36,7 +36,7 @@ func NatsProfile() (profile.Profile, error) {
 		addr = "nats://0.0.0.0:4222"
 	}
 	// Split the address by comma, trim whitespace, and convert to a slice of strings
-	addrs := splitNatsAdressList(addr)
+	addrs := splitNatsAddressList(addr)
 
 	reg := nreg.NewNatsRegistry(registry.Addrs(addrs...))
 
@@ -64,7 +64,7 @@ func NatsProfile() (profile.Profile, error) {
 	}, err
 }
 
-func splitNatsAdressList(addr string) []string {
+func splitNatsAddressList(addr string) []string {
 	// Split the address by comma
 	addrs := strings.Split(addr, ",")
 	// Trim any whitespace from each address
