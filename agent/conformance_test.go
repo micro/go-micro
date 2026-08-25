@@ -126,8 +126,10 @@ func runAgentStreamConformanceScenario(t *testing.T, provider conformanceProvide
 			if req.Prompt != "Stream exactly: agent-stream-conformance-ok" {
 				return nil, fmt.Errorf("prompt = %q", req.Prompt)
 			}
-			if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" || req.Messages[len(req.Messages)-1].Content != req.Prompt {
-				return nil, fmt.Errorf("messages = %#v, want current user turn", req.Messages)
+			// Messages is history only — the current turn travels in Prompt,
+			// and must not be duplicated as the trailing history entry.
+			if n := len(req.Messages); n > 0 && req.Messages[n-1].Role == "user" && req.Messages[n-1].Content == req.Prompt {
+				return nil, fmt.Errorf("messages = %#v, current prompt duplicated in history", req.Messages)
 			}
 			for _, tool := range req.Tools {
 				if tool.Name == "conformance_echo" {
@@ -477,8 +479,14 @@ func validateConformanceRequest(req *ai.Request, opts ai.Options) error {
 	if req.Prompt == "" {
 		return errors.New("missing prompt")
 	}
-	if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" {
-		return fmt.Errorf("missing user history: %+v", req.Messages)
+	// Messages is history only; the turn being answered travels in Prompt.
+	// Providers append Prompt after Messages, so a Messages that ends with
+	// the current prompt would reach the model twice.
+	if n := len(req.Messages); n > 0 {
+		last := req.Messages[n-1]
+		if s, ok := last.Content.(string); ok && last.Role == "user" && s == req.Prompt {
+			return fmt.Errorf("current prompt duplicated in history: %+v", req.Messages)
+		}
 	}
 	if len(req.Tools) == 0 {
 		return errors.New("missing tools")

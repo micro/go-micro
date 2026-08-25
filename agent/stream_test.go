@@ -129,8 +129,10 @@ func TestAgentStreamUsesProviderStreamingAndRecordsAssistantMemory(t *testing.T)
 		if req.Prompt != "stream the answer" {
 			t.Fatalf("Prompt = %q, want stream the answer", req.Prompt)
 		}
-		if len(req.Messages) != 1 || req.Messages[0].Role != "user" || req.Messages[0].Content != "stream the answer" {
-			t.Fatalf("Messages = %#v, want current user turn in memory", req.Messages)
+		// Fresh agent: no history yet. The current turn travels in Prompt
+		// only — duplicating it into Messages would reach the model twice.
+		if len(req.Messages) != 0 {
+			t.Fatalf("Messages = %#v, want empty history with the turn in Prompt", req.Messages)
 		}
 		return &sliceStream{chunks: []string{"hel", "lo"}}, nil
 	}
@@ -277,8 +279,11 @@ func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
 
 func TestAgentStreamDoesNotRecordUserWhenProviderStreamingUnsupported(t *testing.T) {
 	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
-		if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" || req.Messages[len(req.Messages)-1].Content != "stream fallback" {
-			t.Fatalf("stream request messages = %+v, want pending user message", req.Messages)
+		if req.Prompt != "stream fallback" {
+			t.Fatalf("stream request prompt = %q, want pending user message in Prompt", req.Prompt)
+		}
+		if n := len(req.Messages); n > 0 && req.Messages[n-1].Role == "user" && req.Messages[n-1].Content == req.Prompt {
+			t.Fatalf("stream request messages = %+v, current prompt duplicated in history", req.Messages)
 		}
 		return nil, ai.ErrStreamingUnsupported
 	}
