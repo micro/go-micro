@@ -41,6 +41,14 @@ below is kept current between tags and rolled into the next version when it ship
 
 ---
 
+## [6.12.0] - August 2026
+
+### Changed
+- **BREAKING: CLI plugin linkage moved behind `cmd/defaults`** — `cmd` no longer imports the external plugins (NATS broker/registry/store/transport, Consul, etcd, RabbitMQ, Redis, Postgres, MySQL); they register into the `cmd.Default*` maps from the new `go-micro.dev/v6/cmd/defaults` package, which the micro CLI blank-imports (CLI flag behavior unchanged). A **library** binary that relies on `service.Init()` resolving `--registry`/`--broker`/`--store`/`--transport`/`--profile` flag values to external plugins must add `import _ "go-micro.dev/v6/cmd/defaults"`; the runtime error on a miss names exactly that fix. `profile.NatsProfile` moved to `service/profile/natsprofile` (self-registering). A minimal service binary drops from 78 linked go-micro packages (41 plugin machinery) to 53 with none, shedding the NATS/Consul/etcd/Redis/SQL client dependencies. (`cmd/`, `cmd/defaults/`, `service/profile/`)
+
+### Fixed
+- **Current message no longer sent to the provider twice** — every `Ask`/`Stream` sent the turn being answered both as the trailing `Messages` entry and as `Prompt`, and providers replay both, so the model saw each user message twice and every turn paid input tokens for the repeat. `Messages` now carries history only (`Prompt` carries the turn): the Ask path trims the just-recorded duplicate, the streaming path no longer appends it, and the conformance tests pin the inverse guard. Reported by a downstream user with a reproducer. (`agent/`)
+
 ## [6.7.0] - July 2026
 
 ### Added
