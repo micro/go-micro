@@ -52,8 +52,10 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 	if req.Prompt == "" {
 		return nil, errors.New("missing prompt")
 	}
-	if len(req.Messages) == 0 || req.Messages[len(req.Messages)-1].Role != "user" {
-		return nil, fmt.Errorf("missing user history: %+v", req.Messages)
+	// Messages is history only; the current turn travels in Prompt and must
+	// not be duplicated as the trailing history entry.
+	if n := len(req.Messages); n > 0 && req.Messages[n-1].Role == "user" && req.Messages[n-1].Content == req.Prompt {
+		return nil, fmt.Errorf("current prompt duplicated in history: %+v", req.Messages)
 	}
 	if len(req.Tools) == 0 || m.opts.ToolHandler == nil {
 		return nil, errors.New("missing tools or tool handler")

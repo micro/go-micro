@@ -220,6 +220,34 @@ func (a *agentImpl) stateStore() store.Store {
 
 // Ask sends a message and returns the agent's response.
 // This is the programmatic API for direct use.
+// requestHistory returns the conversation history to send alongside the
+// current message.
+//
+// A request carries history in Messages and the message being answered in
+// Prompt, and providers build their payload as Messages followed by Prompt —
+// see threadAnthropicMessages, which documents exactly that. Memory records
+// the current turn before the request is built, so a Messages that already
+// ends with the current message would send it to the model twice: once as
+// history, once as the prompt.
+//
+// Trimming here rather than at each recording site keeps memory correct — the
+// turn really did happen and must survive for the next request — while making
+// the request carry it exactly once.
+func requestHistory(msgs []ai.Message, message string) []ai.Message {
+	n := len(msgs)
+	if n == 0 || message == "" {
+		return msgs
+	}
+	last := msgs[n-1]
+	if last.Role != "user" {
+		return msgs
+	}
+	if s, ok := last.Content.(string); ok && s == message {
+		return msgs[:n-1]
+	}
+	return msgs
+}
+
 func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) {
 	return a.ask(ctx, message, a.parentRunID)
 }
@@ -246,8 +274,10 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 		ParentID: a.parentRunID,
 		Agent:    a.opts.Name,
 	})
-	messages := append([]ai.Message(nil), a.mem.Messages()...)
-	messages = append(messages, ai.Message{Role: "user", Content: message})
+	// Messages carries the history; Prompt carries the turn being answered.
+	// Providers build their payload as Messages followed by Prompt, so
+	// appending the current message here would send it to the model twice.
+	messages := requestHistory(append([]ai.Message(nil), a.mem.Messages()...), message)
 	stream, err := a.model.Stream(ctx, &ai.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
@@ -395,7 +425,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			Prompt:       message,
 			SystemPrompt: a.buildPrompt(),
 			Tools:        toolList,
-			Messages:     messages,
+			Messages:     requestHistory(messages, message),
 		}, ai.GeneratePolicy{
 			Timeout:     a.opts.ModelTimeout,
 			MaxAttempts: a.opts.ModelMaxAttempts,
