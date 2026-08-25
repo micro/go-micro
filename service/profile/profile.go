@@ -1,22 +1,14 @@
-// Package profileconfig provides grouped plugin profiles for go-micro
+// Package profile provides grouped plugin profiles for go-micro
 package profile
 
 import (
-	"os"
-	"strings"
+	"fmt"
 
-	natslib "github.com/nats-io/nats.go"
 	"go-micro.dev/v6/broker"
-	"go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/events"
-	nevents "go-micro.dev/v6/events/natsjs"
 	"go-micro.dev/v6/registry"
-	nreg "go-micro.dev/v6/registry/nats"
 	"go-micro.dev/v6/store"
-	nstore "go-micro.dev/v6/store/nats-js-kv"
-
 	"go-micro.dev/v6/transport"
-	ntx "go-micro.dev/v6/transport/nats"
 )
 
 type Profile struct {
@@ -25,6 +17,35 @@ type Profile struct {
 	Store     store.Store
 	Transport transport.Transport
 	Stream    events.Stream
+}
+
+// profiles holds the registered named profiles. Only zero-dependency profiles
+// live in this package; profiles that pull plugin machinery (e.g. NATS)
+// register themselves from their own subpackage so that importing this
+// package — and therefore cmd/service — does not link them.
+var profiles = map[string]func() (Profile, error){
+	"local": LocalProfile,
+}
+
+// Register makes a named profile loadable. Plugin-backed profiles call this
+// from their package init (see service/profile/natsprofile); importing that
+// package — directly or via go-micro.dev/v6/cmd/defaults — is what makes the
+// profile available.
+func Register(name string, fn func() (Profile, error)) {
+	profiles[name] = fn
+}
+
+// Load returns the named profile, or an error naming the import that
+// registers it when the profile is not linked into the binary.
+func Load(name string) (Profile, error) {
+	fn, ok := profiles[name]
+	if !ok {
+		return Profile{}, fmt.Errorf(
+			"profile %q is not registered: import go-micro.dev/v6/cmd/defaults (all plugins) or the profile's own package to link it",
+			name,
+		)
+	}
+	return fn()
 }
 
 // LocalProfile returns a profile with local mDNS as the registry, HTTP as the broker, file as the store, and HTTP as the transport
@@ -39,52 +60,3 @@ func LocalProfile() (Profile, error) {
 		Stream:    stream,
 	}, err
 }
-
-// NatsProfile returns a profile with NATS as the registry, broker, store, and transport
-// It uses the environment variable MICR_NATS_ADDRESS to set the NATS server address
-// If the variable is not set, it defaults to nats://0.0.0.0:4222 which will connect to a local NATS server
-func NatsProfile() (Profile, error) {
-	addr := os.Getenv("MICRO_NATS_ADDRESS")
-	if addr == "" {
-		addr = "nats://0.0.0.0:4222"
-	}
-	// Split the address by comma, trim whitespace, and convert to a slice of strings
-	addrs := splitNatsAdressList(addr)
-
-	reg := nreg.NewNatsRegistry(registry.Addrs(addrs...))
-
-	nopts := natslib.GetDefaultOptions()
-	nopts.Servers = addrs
-	brok := nats.NewNatsBroker(broker.Addrs(addrs...), nats.Options(nopts))
-
-	st := nstore.NewStore(nstore.NatsOptions(natslib.Options{Servers: addrs}))
-	tx := ntx.NewTransport(ntx.Options(natslib.Options{Servers: addrs}))
-
-	stream, err := nevents.NewStream(
-		nevents.Address(addr),
-	)
-
-	registry.DefaultRegistry = reg
-	broker.DefaultBroker = brok
-	store.DefaultStore = st
-	transport.DefaultTransport = tx
-	return Profile{
-		Registry:  reg,
-		Broker:    brok,
-		Store:     st,
-		Transport: tx,
-		Stream:    stream,
-	}, err
-}
-
-func splitNatsAdressList(addr string) []string {
-	// Split the address by comma
-	addrs := strings.Split(addr, ",")
-	// Trim any whitespace from each address
-	for i, a := range addrs {
-		addrs[i] = strings.TrimSpace(a)
-	}
-	return addrs
-}
-
-// Add more profiles as needed, e.g. grpc
