@@ -4,6 +4,10 @@ import (
 	"embed"
 	"go-micro.dev/v6/cmd"
 
+	// Link every plugin so CLI flag selection (--registry etcd, --broker nats,
+	// --profile nats, ...) keeps working; library users omit this import.
+	_ "go-micro.dev/v6/cmd/defaults"
+
 	_ "go-micro.dev/v6/cmd/micro/a2a"
 	_ "go-micro.dev/v6/cmd/micro/ai"
 	_ "go-micro.dev/v6/cmd/micro/api"
