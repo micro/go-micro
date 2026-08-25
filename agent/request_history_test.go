@@ -85,6 +85,39 @@ func TestCurrentMessageReachesProviderOnceStreaming(t *testing.T) {
 	}
 }
 
+// The streaming path records the turn only after the stream starts, so its
+// history cannot contain the current turn — and a trailing user message that
+// happens to equal the prompt (e.g. a retry after an interrupted stream that
+// recorded the user turn but no reply) is real prior context that must NOT be
+// trimmed away.
+func TestStreamPreservesIdenticalTrailingHistoryTurn(t *testing.T) {
+	var last *ai.Request
+	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+		last = req
+		return &sliceStream{chunks: []string{"ok"}}, nil
+	}
+	defer func() { fakeStream = nil }()
+
+	mem := NewInMemory(8)
+	mem.Add("user", "the question") // earlier attempt: recorded, never answered
+
+	a := newTestAgent(Name("stream-retry"), WithMemory(mem))
+	stream, err := a.Stream(context.Background(), "the question")
+	if err != nil {
+		t.Fatalf("Stream: %v", err)
+	}
+	defer stream.Close()
+	if last == nil {
+		t.Fatal("provider never called")
+	}
+	if len(last.Messages) != 1 {
+		t.Errorf("history = %+v, want the earlier unanswered turn preserved", last.Messages)
+	}
+	if last.Prompt != "the question" {
+		t.Errorf("Prompt = %q", last.Prompt)
+	}
+}
+
 func TestRequestHistoryTrimsOnlyTrailingCurrentTurn(t *testing.T) {
 	history := []ai.Message{
 		{Role: "user", Content: "a"},
