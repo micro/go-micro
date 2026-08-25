@@ -17,29 +17,88 @@ below is kept current between tags and rolled into the next version when it ship
 
 ## [Unreleased]
 
-### Added
-- **Gemini streaming support** — the Gemini provider now supports streaming model responses. (`ai/gemini/`)
-- **Model retry jitter controls** — model retry behavior can now use jitter controls to reduce synchronized retry bursts. (`ai/`, `agent/`)
-- **Compacted memory summaries** — agent memory now exposes compacted run summaries for easier inspection and recovery. (`agent/`)
-- **CLI input resume for agent runs** — the CLI can resume agent runs that require additional user input. (`cmd/micro/`, `agent/`)
-- **A2A inbound AP2 mandate verification (opt-in)** — set `Options.AP2PublicKey` (or `a2a.WithPushURLPolicy`'s sibling `a2a.WithAP2PublicKey` for embedded handlers) and the gateway verifies AP2 payment/checkout mandates carried on incoming messages — signature and task/context binding — recording the outcome in each task's `ap2Verifications`, with the x402 settlement rail carried through for the paid path. Off by default; mandates are otherwise carried unverified. (`gateway/a2a/`)
-- **Flow human-in-the-loop pause/resume** — a flow step can suspend a run for external input with `flow.Await(key, prompt)` (or `flow.AwaitStep`): the run checkpoints with status `waiting` and `Execute` returns cleanly. `Flow.Waiting` lists suspended runs with what they await, and `Flow.ResumeWith(ctx, runID, input)` injects the input and continues from the next step. Recovery (`ResumePending`) skips waiting runs since they need input, not a restart. (`flow/`)
-- **Kubernetes reconcile core (alpha)** — `kubernetes.Reconcile(desired, observed)` decides the single action needed to converge an `Agent`/`Service`/`Flow` resource toward its Deployment (create / update / noop) and returns `Ready`/`Error` status conditions. Dependency-free (no controller-runtime / client-go) and fully unit-testable; a future operator binary supplies observed state and applies the action. (`deploy/kubernetes/`)
-- **In-process "local network" fast-path (opt-in)** — `client.Local()` lets a unary `Call` to a service running in the same process skip the network transport and dispatch straight to that server's handlers (for raw `codec/bytes.Frame` bodies — the shape agent/MCP/flow tool calls use), running the same router, wrappers, and codecs. In a benchmark this cut an in-process call from ~545µs to ~28µs (≈20×) with ~3.6× fewer allocations. Off by default; falls back to the network path for anything it doesn't cover. (`client/`, `server/`, `internal/network/`)
-- **`micro.Local()` service option** — turn on the in-process fast-path for a whole service in one place: every co-located unary call its client makes (agent tool calls, flow dispatch, gateway → service) takes the fast-path, with no per-call wiring. Off by default; a no-op for distributed deployments. (`service/`, root `options.go`)
-
-### Changed
-- **Remote agent chat streaming** — `micro chat` now streams replies from remote agents instead of waiting for the full response. (`cmd/micro/`, `agent/`)
-- **A2A external-client conformance** — the A2A gateway now serves the Agent Card at the spec 0.3.0 `/.well-known/agent-card.json` (keeping `/.well-known/agent.json` as a legacy alias), and `message/stream` emits spec-shaped `status-update`/`artifact-update` events ending in a `final:true` status-update instead of repeated full `Task` snapshots — and never sends `result` and `error` together. Standard A2A clients (ADK, LangGraph, a2a-SDK) can now discover and stream from go-micro agents. (`gateway/a2a/`)
-
-### Fixed
-- **Provider failure inspection metadata** — provider failures recorded during agent runs now retain classification metadata for inspection. (`agent/`, `ai/`)
-
-### Security
-- **x402 spend-cap hardening** — the paying `Client` now refuses a 402 whose `maxAmountRequired` is not a positive integer (a swallowed parse error or negative amount previously bypassed the budget cap), and a new `Config.RequireSettlement` fails closed when a paid request is served by a verify-only facilitator that never captures funds. (`wrapper/x402/`)
-- **A2A push-notification SSRF guard** — the A2A gateway no longer delivers task push notifications to caller-supplied URLs that resolve to loopback, private, link-local (incl. cloud metadata), or unspecified addresses. Callbacks are validated when set and re-checked at dial time on the resolved IP (DNS-rebinding safe); non-http(s) schemes are rejected. `Options.AllowPushURL` (and `a2a.WithPushURLPolicy` for embedded handlers) lets operators authorize trusted in-cluster receivers. (`gateway/a2a/`)
+_Nothing yet — rolled into a version section on each release._
 
 ---
+
+## [6.12.0] - 2026-08-25
+
+### Added
+- **Model reasoning controls** — configurable reasoning/thinking options on model requests, carried through the provider layer. (`ai/`)
+
+### Changed
+- **BREAKING: CLI plugin linkage moved behind `cmd/defaults`** — `cmd` no longer imports the external plugins (NATS broker/registry/store/transport, Consul, etcd, RabbitMQ, Redis, Postgres, MySQL); they register into the `cmd.Default*` maps from the new `go-micro.dev/v6/cmd/defaults` package, which the micro CLI blank-imports (CLI flag behavior unchanged). A **library** binary that relies on `service.Init()` resolving `--registry`/`--broker`/`--store`/`--transport`/`--profile` flag values to external plugins must add `import _ "go-micro.dev/v6/cmd/defaults"`; the runtime error on a miss names exactly that fix. `profile.NatsProfile` moved to `service/profile/natsprofile` (self-registering). A minimal service binary drops from 78 linked go-micro packages (41 plugin machinery) to 53 with none, shedding the NATS/Consul/etcd/Redis/SQL client dependencies. (`cmd/`, `cmd/defaults/`, `service/profile/`)
+- **README front door** — the README leads with the `micro run --prompt` demo, a four-step first-agent on-ramp, and moves CI-contract detail out of Quick Start; VHS tapes for reproducible demo recordings live in `internal/demo/`. (`README.md`, `internal/demo/`)
+
+### Fixed
+- **Current message no longer sent to the provider twice** — every `Ask`/`Stream` sent the turn being answered both as the trailing `Messages` entry and as `Prompt`, and providers replay both, so the model saw each user message twice and every turn paid input tokens for the repeat. `Messages` now carries history only (`Prompt` carries the turn): the Ask path trims the just-recorded duplicate, the streaming path no longer appends it, and the conformance tests pin the inverse guard. Reported by a downstream user with a reproducer. (`agent/`)
+- **MiniMax multimodal message history** — multimodal content is preserved across MiniMax message history instead of being flattened. (`ai/minimax/`)
+
+## [6.11.0] - 2026-08-19
+
+### Added
+- **gRPC reflection option and native example** — a first-class option for reflection-derived tools plus a runnable native gRPC example. (`gateway/mcp/`, `examples/`)
+- **HTTP SSE support on the API gateway** — server-sent events over the HTTP gateway. (`gateway/api/`)
+
+### Changed
+- **API and MCP gateways decoupled via a shared service resolver** — the HTTP API gateway and MCP gateway now consume one resolver instead of duplicating discovery. (`gateway/api/`, `gateway/mcp/`)
+- **Redis client upgraded to v9.** (`cache/redis/`)
+
+### Fixed
+- **Phantom-tag retraction tooling** — batch pushes made reliable, non-major tag prefixes preserved, and missed paths covered in a second round. (`retract-phantom.sh`)
+
+## [6.10.0] - 2026-08-06
+
+### Fixed
+- **Gateway HTTP→RPC endpoint parsing** — endpoint handling via URL parsing implemented for the `micro gateway` proxy. (`cmd/micro/gateway/`)
+- **AtlasCloud conformance markers** — markers preserved across text tool fallbacks. (`ai/atlascloud/`)
+- **Website ugly-URLs documentation** — docs aligned with the `.html` URL scheme. (`internal/website/`)
+
+## [6.9.0] - 2026-08-02
+
+### Added
+- **Auth follows the socket** — gateway authentication defaults by bind address: off on loopback (frictionless `micro run` and localhost MCP clients), automatically on when exposed — with a machine token generated and printed once (never a default credential), `Authorization: Bearer` plus `?token=` accepted, `--auth`/`--no-auth` overrides, and scoped/paid tools still requiring a token even on loopback. The `admin/micro` default credential is gone. (`cmd/micro/gateway/`, `cmd/micro/run/`)
+- **Phantom module path retraction** — `retract-phantom.sh` publishes orphan retraction tags for Go-proxy-cached phantom module paths. (`retract-phantom.sh`)
+
+### Changed
+- **`micro server` renamed to `micro gateway`** — one gateway command with the production MCP controls (rate limit, scopes, auth, audit, circuit breaker, x402) folded in from the deleted standalone `micro-mcp-gateway` binary; `micro server` remains as a hidden deprecated alias, and the Helm chart/Docker image run `micro gateway`. (`cmd/micro/gateway/`, `cmd/micro-mcp-gateway/` removed)
+- **`micro run` scoped as a dev tool** — loopback bind by default, build-before-swap hot reload (a compile error never takes the service offline), clean Ctrl-C shutdown, and docs that no longer imply a daemon. (`cmd/micro/run/`)
+
+### Fixed
+- **Website migration hardening** — canonical root baseURL behind the nginx proxy, docs leaf-bundle/front-matter fixes, pretty blog URLs with `/blog/N` redirects restored, brand spacing, and removal of references to a nonexistent example repo. (`internal/website/`)
+
+### Security
+- **Dependency CVEs cleared** — gRPC and `golang.org/x/text` bumped past reachable advisories flagged by govulncheck. (`go.mod`)
+
+## [6.8.0] - 2026-07-15
+
+### Added
+- **A2A inbound AP2 mandate verification (opt-in)** — set `Options.AP2PublicKey` (or `a2a.WithAP2PublicKey` for embedded handlers) and the gateway verifies AP2 payment/checkout mandates carried on incoming messages — signature and task/context binding — recording the outcome in each task's `ap2Verifications`, with the x402 settlement rail carried through for the paid path. Off by default. (`gateway/a2a/`)
+- **Flow human-in-the-loop pause/resume** — a flow step can suspend a run for external input with `flow.Await(key, prompt)`: the run checkpoints with status `waiting`, `Flow.Waiting` lists suspended runs, and `Flow.ResumeWith(ctx, runID, input)` injects the input and continues. Recovery skips waiting runs since they need input, not a restart. (`flow/`)
+- **Kubernetes reconcile core (alpha)** — `kubernetes.Reconcile(desired, observed)` decides the action needed to converge an `Agent`/`Service`/`Flow` resource toward its Deployment and returns `Ready`/`Error` conditions; dependency-free and unit-testable, on top of the embedded CRD foundation. (`deploy/kubernetes/`)
+- **In-process "local network" fast-path (opt-in)** — `client.Local()` lets a unary `Call` to a co-located service skip the network transport and dispatch straight to the server's handlers (raw `codec/bytes.Frame` bodies — the shape agent/MCP/flow tool calls use). Benchmark: ~545µs → ~28µs (≈20×) with ~3.6× fewer allocations. `micro.Local()` turns it on service-wide. Off by default. (`client/`, `server/`, `service/`, `internal/network/`)
+- **gRPC-reflection MCP** — the MCP gateway can expose reflected gRPC services as agent tools. (`gateway/mcp/`)
+- **x402 buyer example and agent spend observability** — a runnable buyer-agent example, with x402 spend surfaced in run observability. (`examples/`, `agent/`, `wrapper/x402/`)
+
+### Changed
+- **A2A external-client conformance** — Agent Card served at the spec 0.3.0 `/.well-known/agent-card.json` (legacy alias kept) and `message/stream` emits spec-shaped `status-update`/`artifact-update` events ending in a `final:true` status-update. Standard A2A clients (ADK, LangGraph, a2a-SDK) can discover and stream from go-micro agents. (`gateway/a2a/`)
+
+### Fixed
+- **MCP stdio/WebSocket tool results** — results are JSON with `isError`, fixing garbled output to Claude Desktop. (`gateway/mcp/`)
+
+### Security
+- **x402 spend-cap hardening** — the paying `Client` refuses a 402 whose `maxAmountRequired` is not a positive integer, and `Config.RequireSettlement` fails closed on verify-only facilitators. (`wrapper/x402/`)
+- **A2A push-notification SSRF guard** — callbacks resolving to loopback/private/link-local/unspecified addresses are refused, re-checked at dial time (DNS-rebinding safe); `Options.AllowPushURL` authorizes trusted receivers. (`gateway/a2a/`)
+
+## [6.7.1] - 2026-07-12
+
+### Added
+- **Gemini streaming support** — the Gemini provider supports streaming model responses. (`ai/gemini/`)
+- **Model retry jitter controls** — retry backoff can add jitter to reduce synchronized retry bursts. (`ai/`)
+- **CLI input resume for agent runs** — `micro agent resume-input` records human input for a paused run so it can continue. (`cmd/micro/`, `agent/`)
+
+### Changed
+- **Remote agent chat streaming** — `micro chat` streams replies from remote agents instead of waiting for the full response. (`cmd/micro/`, `agent/`)
 
 ## [6.7.0] - July 2026
 
