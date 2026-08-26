@@ -1,0 +1,308 @@
+# Builds the go-micro image locally from internal/docker/Dockerfile (compiles
+# the micro CLI from source). No prebuilt binaries or remote image needed.
+
+x-micro: &micro-build
+  build:
+    context: .
+    dockerfile: Dockerfile
+    additional_contexts:
+      repo: ../..
+
+# Shared registry/broker for all containers: NATS (see the nats service
+# below). MICRO_REGISTRY/MICRO_BROKER point every service at it.
+x-nats: &nats-env
+  MICRO_REGISTRY: "nats"
+  MICRO_REGISTRY_ADDRESS: "nats://nats-0:4222"
+  MICRO_BROKER: "nats"
+  MICRO_BROKER_ADDRESS: "nats://nats-0:4222"
+
+x-logging: &default-logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  nats-0:
+    image: nats:latest
+    restart: unless-stopped
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command:
+      - "-js"
+      - "-sd"
+      - "/data"
+      - "-m"
+      - "8222"
+      - "--name"
+      - "n0"
+      - "--cluster_name"
+      - "go-micro"
+      - "--cluster"
+      - "nats://0.0.0.0:6222"
+      - "--routes"
+      - "nats://nats-1:6222,nats://nats-2:6222"
+    volumes:
+      - nats-0-data:/data
+    <<: *default-logging
+
+  nats-1:
+    image: nats:latest
+    restart: unless-stopped
+    command:
+      - "-js"
+      - "-sd"
+      - "/data"
+      - "-m"
+      - "8222"
+      - "--name"
+      - "n1"
+      - "--cluster_name"
+      - "go-micro"
+      - "--cluster"
+      - "nats://0.0.0.0:6222"
+      - "--routes"
+      - "nats://nats-0:6222,nats://nats-2:6222"
+    volumes:
+      - nats-1-data:/data
+    <<: *default-logging
+
+  nats-2:
+    image: nats:latest
+    restart: unless-stopped
+    command:
+      - "-js"
+      - "-sd"
+      - "/data"
+      - "-m"
+      - "8222"
+      - "--name"
+      - "n2"
+      - "--cluster_name"
+      - "go-micro"
+      - "--cluster"
+      - "nats://0.0.0.0:6222"
+      - "--routes"
+      - "nats://nats-0:6222,nats://nats-1:6222"
+    volumes:
+      - nats-2-data:/data
+    <<: *default-logging
+
+  llama:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config/llama/models:/models
+      - ./config/llama/llama-entrypoint.sh:/llama-entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/llama-entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    <<: *default-logging
+
+  # Runs the services from /repo/micro.mu plus the HTTP/MCP gateways.
+  # Builds the micro CLI from the repo root (same as the x-micro anchor;
+  # spelled out because YAML forbids two merge keys in one mapping).
+  micro-run:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      additional_contexts:
+        repo: ../..
+    working_dir: /repo
+    restart: unless-stopped
+    environment:
+      <<: *nats-env
+      MICRO_AI_PROVIDER: "openai"
+      MICRO_AI_BASE_URL: "http://llama:8000"
+      MICRO_AI_MODEL: "any"
+      MICRO_AI_API_KEY: "not-required"
+      MICRO_ADMIN_USER: "admin"
+      MICRO_ADMIN_PASSWORD: "micro"
+      MICRO_LOG_LEVEL: "debug"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_SERVICE_NAME: "go-micro-run"
+    volumes:
+      - ./src:/repo
+      # Repo source for the `replace go-micro.dev/v6 => /src` directives in
+      # src/*/go.mod — services built by `micro run` compile against the same
+      # (patched) library as the micro CLI image.
+      - ../..:/src:ro
+      - micro-run-state:/root/micro/run
+      - micro-logs:/root/micro/logs
+    ports:
+      - "8080:8080"
+      - "3000:3000"
+    depends_on:
+      - nats-0
+    command: run --detach --address :8080 --mcp-address :3000
+    <<: *default-logging
+
+  # --- Observability stack ---
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - "--web.enable-remote-write-receiver"
+      - "--config.file=/etc/prometheus/prometheus-config.yml"
+      - "--web.enable-admin-api"
+    restart: unless-stopped
+    ports:
+      - "9000:9090"
+    volumes:
+      - ./config/prometheus/prometheus-config.yml:/etc/prometheus/prometheus-config.yml:ro
+      - prometheus-data:/prometheus
+    <<: *default-logging
+
+  tempo:
+    image: grafana/tempo:latest
+    restart: unless-stopped
+    command:
+      - "-config.file=/etc/tempo/tempo-config.yml"
+    volumes:
+      - ./config/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
+      - tempo-data:/var/tempo
+    <<: *default-logging
+
+  loki:
+    image: grafana/loki:latest
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./config/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    <<: *default-logging
+
+  pyroscope:
+    image: grafana/pyroscope:latest
+    restart: unless-stopped
+    # Image default user (pyroscope/1001) cannot write the root-owned named
+    # volume Docker Desktop creates; profile data is dev-local anyway.
+    user: "0"
+    command:
+      - -config.file=/etc/pyroscope/pyroscope-config.yml
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./config/pyroscope/pyroscope-config.yml:/etc/pyroscope/pyroscope-config.yml:ro
+      - pyroscope-data:/var/lib/pyroscope
+    <<: *default-logging
+
+  nats-exporter:
+    image: natsio/prometheus-nats-exporter:latest
+    restart: unless-stopped
+    command:
+      - -varz
+      - -connz
+      - -subz
+      - http://nats-0:8222
+      - http://nats-1:8222
+      - http://nats-2:8222
+    ports:
+      - "7777:7777"
+    depends_on:
+      - nats-0
+      - nats-1
+      - nats-2
+    <<: *default-logging
+
+  # Alloy collects all signals: metrics → Prometheus, logs → Loki,
+  # traces → Tempo, profiles → Pyroscope.
+  alloy:
+    image: grafana/alloy:v1.17.1
+    restart: unless-stopped
+    command:
+      - run
+      - --storage.path=/var/lib/alloy
+      - --stability.level=generally-available
+      - /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./config/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+      - pyroscope
+    <<: *default-logging
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_INSTALL_PLUGINS=grafana-pyroscope-datasource
+    ports:
+      - "3333:3000"
+    volumes:
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+    <<: *default-logging
+
+  # REST API load test against the micro-run gateway (k6/loadtest.js).
+  # One-shot run: docker compose --profile test up k6
+  # Scaled:       VUS=10 ITERATIONS=50 docker compose --profile test up k6
+  # Ramp stress:  docker compose --profile test run --rm k6 run /scripts/stress.js
+  k6:
+    image: grafana/k6:latest
+    container_name: loadtest-k6
+    profiles:
+      - test
+    environment:
+      - BASE_URL=http://micro-run:8080
+      - MICRO_ADMIN_USER=${MICRO_ADMIN_USER:-admin}
+      - MICRO_ADMIN_PASSWORD=${MICRO_ADMIN_PASSWORD:-micro}
+      - VUS=${VUS:-10}
+      - ITERATIONS=${ITERATIONS:-50}
+    volumes:
+      - ./k6:/scripts:ro
+    depends_on:
+      - micro-run
+    command:
+      - run
+      - /scripts/loadtest.js
+    <<: *default-logging
+
+  # Ramp stress test against the micro-run gateway (k6/stress.js).
+  # Run: docker compose --profile test up k6-stress
+  k6-stress:
+    image: grafana/k6:latest
+    container_name: loadtest-k6-stress
+    profiles:
+      - test
+    environment:
+      - BASE_URL=http://micro-run:8080
+      - MICRO_ADMIN_USER=${MICRO_ADMIN_USER:-admin}
+      - MICRO_ADMIN_PASSWORD=${MICRO_ADMIN_PASSWORD:-micro}
+    volumes:
+      - ./k6:/scripts:ro
+    depends_on:
+      - micro-run
+    command:
+      - run
+      - /scripts/stress.js
+    <<: *default-logging
+
+volumes:
+  micro-run-state:
+  micro-logs:
+  prometheus-data:
+  tempo-data:
+  loki-data:
+  pyroscope-data:
+  alloy-data:
+  nats-0-data:
+  nats-1-data:
+  nats-2-data:

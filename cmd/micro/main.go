@@ -2,7 +2,9 @@ package main
 
 import (
 	"embed"
+
 	"go-micro.dev/v6/cmd"
+	"go-micro.dev/v6/internal/otel"
 
 	_ "go-micro.dev/v6/cmd/micro/a2a"
 	_ "go-micro.dev/v6/cmd/micro/ai"
@@ -30,6 +32,7 @@ func init() {
 }
 
 func main() {
+	otel.Init()
 	_ = cmd.Init(
 		cmd.Name("micro"),
 		cmd.Version(version),

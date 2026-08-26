@@ -58,6 +58,15 @@ examples/mcp/hello/hello
 .DS_Store
 /micro
 
+# Local docker compose runtime data (LLM model files, mounted home dirs)
+/internal/docker/models/
+/internal/docker/micro/
+
+# Observability stack runtime state (grafana/prometheus/tempo data dirs)
+/internal/docker/grafana/data/
+/internal/docker/prometheus/data/
+/internal/docker/tempo/data/
+
 # Built example/harness binaries (go build ./path/... drops these at repo root)
 /plan-delegate
 /agent-plan-delegate

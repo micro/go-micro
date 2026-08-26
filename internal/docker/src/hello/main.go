@@ -9,9 +9,11 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 
 	"go-micro.dev/v6"
 	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/registry/nats"
 )
 
 // Greeter service handles greeting operations
@@ -37,10 +39,13 @@ type HelloResponse struct {
 
 func main() {
 	// Create service
-	service := micro.NewService("greeter",
+	rnats := nats.NewNatsRegistry()
+	service := micro.NewService(
+		"greeter",
 		micro.Address(":9091"),
 		// Start MCP gateway alongside the service
 		mcp.WithMCP(":3002"),
+		micro.Registry(rnats),
 	)
 
 	service.Init()
@@ -50,13 +55,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("Greeter service starting...")
-	log.Println("Service:     http://localhost:9091")
-	log.Println("MCP Gateway: http://localhost:3002")
-	log.Println("MCP Tools:   http://localhost:3002/mcp/tools")
-	log.Println()
-	log.Println("Use with Claude Code:")
-	log.Println("  micro mcp serve")
+	slog.Info("started", "service", "greeter", "addr", ":9091", "mcp", "http://localhost:3002/mcp/tools")
 
 	// Run service
 	if err := service.Run(); err != nil {

@@ -8,6 +8,7 @@ import (
 
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
+	internalotel "go-micro.dev/v6/internal/otel"
 	signalutil "go-micro.dev/v6/internal/util/signal"
 	log "go-micro.dev/v6/logger"
 	"go-micro.dev/v6/model"
@@ -174,6 +175,7 @@ func (s *serviceImpl) Handle(v interface{}, opts ...server.HandlerOption) error 
 }
 
 func (s *serviceImpl) Run() (err error) {
+	defer internalotel.Shutdown()
 	logger := s.opts.Logger
 
 	// exit when help flag is provided

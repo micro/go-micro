@@ -21,12 +21,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 	"sync"
 	"time"
 
 	"go-micro.dev/v6"
 	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/registry/nats"
 )
 
 // ---------------------------------------------------------------------------
@@ -347,9 +349,12 @@ func (s *NotificationService) List(ctx context.Context, req *ListNotificationsRe
 // ---------------------------------------------------------------------------
 
 func main() {
-	service := micro.NewService("shop",
+	rnats := nats.NewNatsRegistry()
+	service := micro.NewService(
+		"shop",
 		micro.Address(":9093"),
 		mcp.WithMCP(":3004"),
+		micro.Registry(rnats),
 	)
 	service.Init()
 
@@ -373,19 +378,7 @@ func main() {
 	service.Handle(orders)
 	service.Handle(notifications)
 
-	fmt.Println()
-	fmt.Println("  Shop Workflow Demo")
-	fmt.Println()
-	fmt.Println("  MCP Tools:  http://localhost:3004/mcp/tools")
-	fmt.Println()
-	fmt.Println("  Try asking an agent:")
-	fmt.Println()
-	fmt.Println("    \"What laptops do you have in stock?\"")
-	fmt.Println("    \"Order a ThinkPad for alice@example.com and send her a confirmation\"")
-	fmt.Println("    \"Check if 'The Go Programming Language' is available\"")
-	fmt.Println("    \"Show me all orders for alice@example.com\"")
-	fmt.Println("    \"Order 3 Go Gopher t-shirts for bob@example.com, reserve the stock, and notify him\"")
-	fmt.Println()
+	slog.Info("started", "service", "shop", "mcp", "http://localhost:3004/mcp/tools")
 
 	if err := service.Run(); err != nil {
 		log.Fatal(err)

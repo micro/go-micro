@@ -1,0 +1,8 @@
+.git
+.dockerignore
+.DS_Store
+internal/docker/models/
+internal/docker/micro/
+internal/website/
+linux/
+*.gguf

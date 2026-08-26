@@ -100,13 +100,14 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 	if p.opts.ToolHandler != nil {
 		var resultParts []map[string]any
-		for _, tc := range resp.ToolCalls {
-			result := p.opts.ToolHandler(ctx, tc).Value
+		for i, tc := range resp.ToolCalls {
+			tr := p.opts.ToolHandler(ctx, tc)
+			resp.ToolCalls[i].Result = tr.Content
 			resultParts = append(resultParts, map[string]any{
 				"functionResponse": map[string]any{
 					"name":     tc.Name,
 					"id":       tc.ID,
-					"response": result,
+					"response": tr.Value,
 				},
 			})
 		}

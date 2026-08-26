@@ -3,15 +3,18 @@ package micro
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	internalotel "go-micro.dev/v6/internal/otel"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/wrapper/trace/opentelemetry"
 	"go-micro.dev/v6/wrapper/x402"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -64,6 +67,19 @@ type Publisher = Event
 //	service := micro.NewService("greeter")
 //	service := micro.NewService("greeter", micro.Address(":8080"))
 func NewService(name string, opts ...Option) Service {
+	// OTEL_EXPORTER_OTLP_ENDPOINT is the switch for automatic tracing: when
+	// set, boot the global tracer provider and wrap handlers, subscribers and
+	// client calls so every service emits spans without app-level wiring.
+	// Unset => exact previous behavior (noop provider, no wrappers).
+	if os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "" {
+		internalotel.Init()
+		opts = append(opts,
+			WrapHandler(opentelemetry.NewHandlerWrapper()),
+			WrapSubscriber(opentelemetry.NewSubscriberWrapper()),
+			WrapClient(opentelemetry.NewClientWrapper()),
+			WrapCall(opentelemetry.NewCallWrapper()),
+		)
+	}
 	return service.New(append([]Option{service.Name(name)}, opts...)...)
 }
 

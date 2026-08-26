@@ -30,6 +30,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"log/slog"
 	"sort"
 	"strings"
 	"sync"
@@ -37,6 +38,7 @@ import (
 
 	"go-micro.dev/v6"
 	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/registry/nats"
 	"go-micro.dev/v6/server"
 )
 
@@ -84,10 +86,12 @@ type UpdateStatusResponse struct {
 	User *User `json:"user" description:"Updated user profile"`
 }
 
-type ListUsersRequest struct{}
-type ListUsersResponse struct {
-	Users []*User `json:"users" description:"All registered users"`
-}
+type (
+	ListUsersRequest  struct{}
+	ListUsersResponse struct {
+		Users []*User `json:"users" description:"All registered users"`
+	}
+)
 
 type Users struct {
 	mu        sync.RWMutex
@@ -149,8 +153,8 @@ func (s *Users) Signup(ctx context.Context, req *SignupRequest, rsp *SignupRespo
 //
 // @example {"name": "alice", "password": "secret123"}
 func (s *Users) Login(ctx context.Context, req *LoginRequest, rsp *LoginResponse) error {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	pass, ok := s.passwords[req.Name]
 	if !ok || pass != req.Password {
@@ -286,10 +290,12 @@ type UntagPostResponse struct {
 	Post *Post `json:"post" description:"Post with updated tags"`
 }
 
-type ListTagsRequest struct{}
-type ListTagsResponse struct {
-	Tags []string `json:"tags" description:"All tags in use, sorted alphabetically"`
-}
+type (
+	ListTagsRequest  struct{}
+	ListTagsResponse struct {
+		Tags []string `json:"tags" description:"All tags in use, sorted alphabetically"`
+	}
+)
 
 type Posts struct {
 	mu     sync.RWMutex
@@ -687,9 +693,12 @@ func (s *Mail) Read(ctx context.Context, req *ReadMailRequest, rsp *ReadMailResp
 // ---------------------------------------------------------------------------
 
 func main() {
-	service := micro.NewService("platform",
+	rnats := nats.NewNatsRegistry()
+	service := micro.NewService(
+		"platform",
 		micro.Address(":9092"),
 		mcp.WithMCP(":3003"),
+		micro.Registry(rnats),
 	)
 	service.Init()
 
@@ -702,7 +711,8 @@ func main() {
 	service.Handle(users)
 	service.Handle(posts)
 	service.Handle(&Comments{})
-	service.Handle(&Mail{},
+	service.Handle(
+		&Mail{},
 		server.WithEndpointScopes("Mail.Send", "mail:write"),
 		server.WithEndpointScopes("Mail.Read", "mail:read"),
 	)
@@ -745,26 +755,12 @@ func seedData(users *Users, posts *Posts) {
 }
 
 func printBanner() {
-	fmt.Println()
-	fmt.Println("  Platform Demo — AI-Native Microservices")
-	fmt.Println()
-	fmt.Println("  Services:   Users, Posts, Comments, Mail")
-	fmt.Println("  MCP Tools:  http://localhost:3003/mcp/tools")
-	fmt.Println("  RPC:        localhost:9092")
-	fmt.Println()
-	fmt.Println("  Seeded:     alice (user-1), bob (user-2)")
-	fmt.Println("              1 post with tags [welcome, go-micro]")
-	fmt.Println()
-	fmt.Println("  Try asking an agent:")
-	fmt.Println()
-	fmt.Println(`    "Sign up a new user called carol"`)
-	fmt.Println(`    "Log in as alice and write a post about Go concurrency patterns"`)
-	fmt.Println(`    "List all posts and comment on the welcome post as bob"`)
-	fmt.Println(`    "Tag alice's post with 'tutorial' and 'golang'"`)
-	fmt.Println(`    "Send a mail from alice to bob welcoming him to the platform"`)
-	fmt.Println(`    "Show me bob's inbox"`)
-	fmt.Println(`    "List all users and show me all tags in use"`)
-	fmt.Println()
+	slog.Info("started",
+		"service", "platform",
+		"addr", ":9092",
+		"mcp", "http://localhost:3003/mcp/tools",
+		"seeded", "alice (user-1), bob (user-2), 1 post [welcome, go-micro]",
+	)
 }
 
 func generateToken() string {
