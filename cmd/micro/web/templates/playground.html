@@ -159,13 +159,13 @@
         if (data.api_key) document.getElementById('api-key').value = data.api_key;
         if (data.model) document.getElementById('model-name').value = data.model;
         if (data.base_url) document.getElementById('base-url').value = data.base_url;
-        // Hide setup hint if API key is configured
-        if (data.api_key) {
+        // Hide setup hint if provider+model+base_url are configured
+        if (data.provider && data.model && data.base_url) {
           var hint = document.getElementById('setup-hint');
           if (hint) hint.style.display = 'none';
         }
-        // Auto-show settings if no API key configured
-        if (!data.api_key) {
+        // Auto-show settings only if required fields are missing
+        if (!data.provider || !data.model || !data.base_url) {
           document.getElementById('settings-panel').classList.add('open');
         }
       })

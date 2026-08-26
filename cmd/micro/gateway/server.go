@@ -24,6 +24,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v6/ai"
 	_ "go-micro.dev/v6/ai/anthropic"
@@ -39,9 +40,15 @@ import (
 	"go-micro.dev/v6/cmd"
 	codecBytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/sync/errgroup"
 )
@@ -256,6 +263,17 @@ func wrapAuth(authRequired func(http.HandlerFunc) http.HandlerFunc) func(http.Ha
 	}
 }
 
+// registryServices returns the set of currently-registered service names.
+func registryServices() map[string]bool {
+	set := map[string]bool{}
+	if svcs, err := registry.ListServices(); err == nil {
+		for _, s := range svcs {
+			set[s.Name] = true
+		}
+	}
+	return set
+}
+
 func getDashboardData() (serviceCount, runningCount, stoppedCount int, statusDot string) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -266,6 +284,9 @@ func getDashboardData() (serviceCount, runningCount, stoppedCount int, statusDot
 	if err != nil {
 		return
 	}
+	// A service is "running" if it heartbeats in the registry. The PID signal
+	// check can't work across containers, so never rely on local processes.
+	running := registryServices()
 	for _, entry := range dirEntries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".pid") || strings.HasPrefix(entry.Name(), ".") {
 			continue
@@ -276,21 +297,13 @@ func getDashboardData() (serviceCount, runningCount, stoppedCount int, statusDot
 			continue
 		}
 		lines := strings.Split(string(pidBytes), "\n")
-		pid := "-"
-		if len(lines) > 0 && len(lines[0]) > 0 {
-			pid = lines[0]
+		name := ""
+		if len(lines) > 2 {
+			name = lines[2]
 		}
 		serviceCount++
-		if pid != "-" {
-			if _, err := os.FindProcess(parsePid(pid)); err == nil {
-				if processRunning(pid) {
-					runningCount++
-				} else {
-					stoppedCount++
-				}
-			} else {
-				stoppedCount++
-			}
+		if name != "" && running[name] {
+			runningCount++
 		} else {
 			stoppedCount++
 		}
@@ -303,6 +316,17 @@ func getDashboardData() (serviceCount, runningCount, stoppedCount int, statusDot
 		statusDot = "red"
 	}
 	return
+}
+
+// defaultAgentSettings returns the agent chat prefill from the gateway's own
+// AI environment variables, used until the user saves settings via POST.
+func defaultAgentSettings() map[string]string {
+	return map[string]string{
+		"provider": os.Getenv("MICRO_AI_PROVIDER"),
+		"model":    os.Getenv("MICRO_AI_MODEL"),
+		"api_key":  os.Getenv("MICRO_AI_API_KEY"),
+		"base_url": os.Getenv("MICRO_AI_BASE_URL"),
+	}
 }
 
 func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Store, authEnabled bool) {
@@ -377,6 +401,9 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		})
 		return false
 	}
+
+	// Prometheus scrape endpoint (Alloy scrapes micro-run:8080)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	// Serve static files with correct Content-Type
 	mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
@@ -529,13 +556,13 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		if r.Method == http.MethodGet {
 			recs, _ := storeInst.Read("agent/settings")
 			if len(recs) == 0 {
-				json.NewEncoder(w).Encode(map[string]string{})
+				json.NewEncoder(w).Encode(defaultAgentSettings())
 				return
 			}
 			var settings map[string]string
 			if err := json.Unmarshal(recs[0].Value, &settings); err != nil {
 				log.Printf("[agent] failed to parse settings: %v", err)
-				json.NewEncoder(w).Encode(map[string]string{})
+				json.NewEncoder(w).Encode(defaultAgentSettings())
 				return
 			}
 			json.NewEncoder(w).Encode(settings)
@@ -601,7 +628,19 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			}
 		}
 		if apiKey == "" {
-			json.NewEncoder(w).Encode(map[string]string{"error": "No API key configured. Go to Agent settings to add one."})
+			apiKey = os.Getenv("MICRO_AI_API_KEY")
+		}
+		if modelName == "" {
+			modelName = os.Getenv("MICRO_AI_MODEL")
+		}
+		if baseURL == "" {
+			baseURL = os.Getenv("MICRO_AI_BASE_URL")
+		}
+		if provider == "" {
+			provider = os.Getenv("MICRO_AI_PROVIDER")
+		}
+		if provider == "" && baseURL == "" {
+			json.NewEncoder(w).Encode(map[string]string{"error": "No provider configured. Go to Agent settings to add one."})
 			return
 		}
 
@@ -767,9 +806,17 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		if len(response.ToolCalls) > 0 {
 			var toolCalls []map[string]any
 			for _, tc := range response.ToolCalls {
+				var result any
+				if tc.Result != "" {
+					if err := json.Unmarshal([]byte(tc.Result), &result); err != nil {
+						result = tc.Result
+					}
+				}
 				toolCalls = append(toolCalls, map[string]any{
-					"tool":  tc.Name,
-					"input": tc.Input,
+					"tool":   tc.Name,
+					"input":  tc.Input,
+					"result": result,
+					"error":  tc.Error,
 				})
 			}
 			result["tool_calls"] = toolCalls
@@ -850,7 +897,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						if len(parts) != 2 {
 							continue
 						}
-						apiPath := fmt.Sprintf("/api/%s/%s/%s", s.Name, parts[0], parts[1])
+						apiPath := fmt.Sprintf("/%s/%s", s.Name, ep.Name)
 						var params, response string
 						if ep.Request != nil && len(ep.Request.Values) > 0 {
 							params += "<ul class=no-bullets>"
@@ -923,8 +970,31 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 				w.Write([]byte("Not found"))
 				return
 			}
+			// Trace the proxy call so gateway activity shows up in Tempo
+			// alongside the agent/flow spans it fans out to. A caller's
+			// traceparent header continues the trace.
+			ctx, span := otel.Tracer("go-micro.dev/v6/gateway/api").Start(
+				otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header)),
+				"api.proxy",
+				trace.WithSpanKind(trace.SpanKindServer),
+				trace.WithAttributes(
+					attribute.String("rpc.service", service),
+					attribute.String("rpc.method", endpoint),
+				),
+			)
+			spanErr := error(nil)
+			defer func() {
+				if spanErr != nil {
+					span.RecordError(spanErr)
+					span.SetStatus(codes.Error, spanErr.Error())
+				} else {
+					span.SetStatus(codes.Ok, "")
+				}
+				span.End()
+			}()
 			svcs, err := registry.GetService(service)
 			if err != nil || len(svcs) == 0 {
+				spanErr = fmt.Errorf("service %q not found", service)
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte("Service not found: " + service))
 				return
@@ -937,22 +1007,38 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 				}
 			}
 			if !valid {
+				spanErr = fmt.Errorf("endpoint %q not found", endpoint)
 				w.WriteHeader(http.StatusNotFound)
 				w.Write([]byte("Endpoint not found: " + endpoint))
 				return
 			}
 			if !checkEndpointScopes(w, r, service+"."+endpoint) {
+				spanErr = fmt.Errorf("endpoint %s blocked by scopes", service+"."+endpoint)
 				return
 			}
 			inputBytes, err := io.ReadAll(r.Body)
 			if err != nil {
+				spanErr = err
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(err.Error()))
 				return
 			}
+			// Carry the proxy span's trace context in the RPC metadata so an
+			// instrumented target service's spans nest under this one.
+			md, _ := metadata.FromContext(ctx)
+			if md == nil {
+				md = metadata.Metadata{}
+			}
+			carrier := make(propagation.MapCarrier)
+			otel.GetTextMapPropagator().Inject(ctx, carrier)
+			for k, v := range carrier {
+				md.Set(strings.Title(k), v)
+			}
+			ctx = metadata.NewContext(ctx, md)
 			rpcReq := client.DefaultClient.NewRequest(service, endpoint, &codecBytes.Frame{Data: inputBytes})
 			var rsp codecBytes.Frame
-			if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
+			if err := client.DefaultClient.Call(ctx, rpcReq, &rsp); err != nil {
+				spanErr = err
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusBadGateway)
 				w.Write([]byte(`{"error":` + strconv.Quote(err.Error()) + `}`))
@@ -988,6 +1074,11 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 				return
 			}
 			logsDir := homeDir + "/micro/logs"
+			if err := os.MkdirAll(logsDir, 0755); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Could not create logs directory: " + err.Error()))
+				return
+			}
 			dirEntries, err := os.ReadDir(logsDir)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -1045,6 +1136,11 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 				return
 			}
 			pidDir := homeDir + "/micro/run"
+			if err := os.MkdirAll(pidDir, 0755); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Could not create pid directory: " + err.Error()))
+				return
+			}
 			dirEntries, err := os.ReadDir(pidDir)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -1052,6 +1148,7 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 				return
 			}
 			statuses := []map[string]string{}
+			running := registryServices()
 			for _, entry := range dirEntries {
 				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".pid") || strings.HasPrefix(entry.Name(), ".") {
 					continue
@@ -1086,15 +1183,11 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 				if len(lines) > 3 && len(lines[3]) > 0 {
 					start = lines[3]
 				}
+				// Running = heartbeats in the registry (pid signal checks cannot
+				// reach processes in other containers).
 				status := "stopped"
-				if pid != "-" {
-					if _, err := os.FindProcess(parsePid(pid)); err == nil {
-						if processRunning(pid) {
-							status = "running"
-						}
-					} else {
-						status = "stopped"
-					}
+				if service != "" && running[service] {
+					status = "running"
 				}
 				uptime := "-"
 				if start != "-" {
@@ -1183,7 +1276,7 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 						"ServiceName":  service,
 						"EndpointName": ep.Name,
 						"Inputs":       inputs,
-						"Action":       service + "/" + endpoint,
+						"Action":       "/api/" + service + "/" + endpoint,
 						"User":         user,
 					})
 					return
@@ -1723,19 +1816,6 @@ func mapGoTypeToJSON(goType string) string {
 }
 
 // --- PID FILES ---
-func parsePid(pidStr string) int {
-	pid, _ := strconv.Atoi(pidStr)
-	return pid
-}
-func processRunning(pid string) bool {
-	proc, err := os.FindProcess(parsePid(pid))
-	if err != nil {
-		return false
-	}
-	// On unix, sending syscall.Signal(0) checks if process exists
-	return proc.Signal(syscall.Signal(0)) == nil
-}
-
 func initAuth() error {
 	// --- AUTH SETUP ---
 	homeDir, _ := os.UserHomeDir()
@@ -1756,10 +1836,47 @@ func initAuth() error {
 	}
 	_, _ = os.ReadFile(privPath)
 	_, _ = os.ReadFile(pubPath)
-	// No default credential is created. The gateway authenticates with the
-	// per-process machine token (see ResolveAuth) plus any accounts/tokens an
-	// operator creates via /auth. A guessable admin/micro would be friction and
-	// no security at once.
+	// No hardcoded default credential. An admin account is created only when
+	// the operator explicitly opts in via MICRO_ADMIN_PASSWORD (the docker-compose
+	// file sets it to the documented admin/micro); otherwise the gateway runs on
+	// the per-process machine token (see ResolveAuth) plus any accounts/tokens
+	// created via /auth.
+	return ensureAdminFromEnv(store.DefaultStore)
+}
+
+// ensureAdminFromEnv creates the operator-configured admin account when
+// MICRO_ADMIN_PASSWORD is set. The default user is "admin" (override with
+// MICRO_ADMIN_USER). Never overwrites an existing account, and an admin
+// explicitly deleted via /auth/users stays deleted across restarts.
+func ensureAdminFromEnv(storeInst store.Store) error {
+	pass := os.Getenv("MICRO_ADMIN_PASSWORD")
+	if pass == "" {
+		return nil
+	}
+	adminID := os.Getenv("MICRO_ADMIN_USER")
+	if adminID == "" {
+		adminID = "admin"
+	}
+	adminKey := "auth/" + adminID
+	if delRecs, _ := storeInst.Read("auth/.admin-deleted"); len(delRecs) > 0 && adminID == "admin" {
+		return nil
+	}
+	if recs, _ := storeInst.Read(adminKey); len(recs) > 0 {
+		return nil
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(pass), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	acc := &Account{
+		ID:       adminID,
+		Type:     "admin",
+		Scopes:   []string{"*"},
+		Metadata: map[string]string{"created": time.Now().Format(time.RFC3339), "password_hash": string(hash)},
+	}
+	b, _ := json.Marshal(acc)
+	_ = storeInst.Write(&store.Record{Key: adminKey, Value: b})
+	log.Printf("[auth] created admin account %q from MICRO_ADMIN_PASSWORD", adminID)
 	return nil
 }
 
