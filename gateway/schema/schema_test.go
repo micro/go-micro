@@ -46,7 +46,7 @@ func TestResolverDiscoversEndpoints(t *testing.T) {
 	}
 
 	r := New(reg)
-	if err := r.Refresh(); err != nil {
+	if _, err := r.Refresh(); err != nil {
 		t.Fatal(err)
 	}
 
