@@ -28,6 +28,7 @@ import (
 	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
+	internalotel "go-micro.dev/v6/internal/otel"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/store"
 
@@ -574,6 +575,7 @@ func (a *agentImpl) Chat(ctx context.Context, req *pb.ChatRequest, rsp *pb.ChatR
 
 // Run starts the agent as a service with a Chat RPC endpoint.
 func (a *agentImpl) Run() error {
+	defer internalotel.Shutdown()
 	if a.model == nil {
 		a.setup()
 	}
@@ -628,7 +630,11 @@ func (a *agentImpl) Run() error {
 	return nil
 }
 
+// Stop stops the agent and flushes any pending OTel spans. Stop is the
+// synchronous exit point short-lived agent processes hit, so it also
+// drains the exporter (agent.Run may not return before process exit).
 func (a *agentImpl) Stop() error {
+	defer internalotel.Shutdown()
 	a.mu.Lock()
 	if a.stopCh != nil {
 		close(a.stopCh)

@@ -35,23 +35,22 @@ const (
 	AttrRateLimited = "mcp.rate_limited"
 )
 
-// tracer returns the OTel tracer from the configured provider.
-// If no TraceProvider is set, returns a noop tracer.
+// tracer returns the OTel tracer from the configured provider, falling back to
+// the global provider (set by internal/otel in the micro binary) when none is
+// configured. Unset everywhere => noop tracer, no spans.
 func (s *Server) tracer() trace.Tracer {
 	if s.opts.TraceProvider != nil {
 		return s.opts.TraceProvider.Tracer(instrumentationName)
 	}
-	return trace.NewNoopTracerProvider().Tracer(instrumentationName)
+	return otel.Tracer(instrumentationName)
 }
 
 // startToolSpan creates a new server span for an MCP tool call.
 // It extracts any incoming trace context from metadata and injects
 // the new span's context back into metadata for downstream propagation.
+// Transport callers that carry HTTP headers must extract the trace context
+// from the request first (see invokeTool); stdio/websocket pass their own ctx.
 func (s *Server) startToolSpan(ctx context.Context, toolName, transport, mcpTraceID string) (context.Context, trace.Span) {
-	if s.opts.TraceProvider == nil {
-		return ctx, trace.SpanFromContext(ctx)
-	}
-
 	// Extract incoming trace context from go-micro metadata (if any).
 	md, ok := metadata.FromContext(ctx)
 	if ok {
