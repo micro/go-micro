@@ -66,6 +66,8 @@ type Response struct {
 	Answer string
 	// Usage contains provider token usage when available.
 	Usage Usage
+	// StopReason describes why the provider stopped generating, when available.
+	StopReason string
 }
 
 // ToolCall represents a request to call a tool and its result

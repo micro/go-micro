@@ -74,10 +74,21 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		})
 	}
 
-	messages := []map[string]any{
-		{"role": "system", "content": req.SystemPrompt},
-		{"role": "user", "content": req.Prompt},
+	messages := make([]map[string]any, 0, len(req.Messages)+2)
+	messages = append(messages, map[string]any{
+		"role":    "system",
+		"content": req.SystemPrompt,
+	})
+	for _, message := range req.Messages {
+		messages = append(messages, map[string]any{
+			"role":    message.Role,
+			"content": message.Content,
+		})
 	}
+	messages = append(messages, map[string]any{
+		"role":    "user",
+		"content": req.Prompt,
+	})
 
 	apiReq := map[string]any{
 		"model":    p.opts.Model,

@@ -86,6 +86,26 @@ func TestProvider_Generate_NoAPIKey(t *testing.T) {
 	}
 }
 
+func TestProvider_GenerateReasoningEffort(t *testing.T) {
+	var body map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"done"}}]}`))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL), ai.WithEffort("high"))
+	if _, err := p.Generate(context.Background(), &ai.Request{Prompt: "Hello"}); err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+	if got := body["reasoning_effort"]; got != "high" {
+		t.Fatalf("reasoning_effort = %v, want high", got)
+	}
+}
+
 func TestProvider_Stream(t *testing.T) {
 	var sawStream bool
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

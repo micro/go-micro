@@ -219,6 +219,37 @@ func (a *agentImpl) stateStore() store.Store {
 	return store.Scope(s, "agent", a.opts.Name)
 }
 
+// requestHistory returns the conversation history to send alongside the
+// current message on the Ask path.
+//
+// A request carries history in Messages and the message being answered in
+// Prompt, and providers build their payload as Messages followed by Prompt —
+// see threadAnthropicMessages, which documents exactly that. askLocked records
+// the current turn in memory before the request is built, so a Messages that
+// already ends with the current message would send it to the model twice:
+// once as history, once as the prompt.
+//
+// Trimming here rather than at each recording site keeps memory correct — the
+// turn really did happen and must survive for the next request — while making
+// the request carry it exactly once. The streaming path must NOT use this:
+// it records the turn only after the stream starts, so its history cannot
+// contain the current turn, and a trailing identical user message there is
+// legitimate prior context (e.g. a retry after an interrupted stream).
+func requestHistory(msgs []ai.Message, message string) []ai.Message {
+	n := len(msgs)
+	if n == 0 || message == "" {
+		return msgs
+	}
+	last := msgs[n-1]
+	if last.Role != "user" {
+		return msgs
+	}
+	if s, ok := last.Content.(string); ok && s == message {
+		return msgs[:n-1]
+	}
+	return msgs
+}
+
 // Ask sends a message and returns the agent's response.
 // This is the programmatic API for direct use.
 func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) {
@@ -247,8 +278,13 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 		ParentID: a.parentRunID,
 		Agent:    a.opts.Name,
 	})
+	// Messages carries the history; Prompt carries the turn being answered.
+	// Providers build their payload as Messages followed by Prompt, so
+	// appending the current message here would send it to the model twice.
+	// Memory has not recorded this turn yet (that happens after the stream
+	// starts), so the copy is passed through untrimmed: a trailing user
+	// message equal to this one is real prior context, not a duplicate.
 	messages := append([]ai.Message(nil), a.mem.Messages()...)
-	messages = append(messages, ai.Message{Role: "user", Content: message})
 	stream, err := a.model.Stream(ctx, &ai.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
@@ -396,7 +432,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			Prompt:       message,
 			SystemPrompt: a.buildPrompt(),
 			Tools:        toolList,
-			Messages:     messages,
+			Messages:     requestHistory(messages, message),
 		}, ai.GeneratePolicy{
 			Timeout:     a.opts.ModelTimeout,
 			MaxAttempts: a.opts.ModelMaxAttempts,

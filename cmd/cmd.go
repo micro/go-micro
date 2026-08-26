@@ -11,10 +11,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v6/auth"
 	"go-micro.dev/v6/broker"
-	nbroker "go-micro.dev/v6/broker/nats"
-	rabbit "go-micro.dev/v6/broker/rabbitmq"
 	"go-micro.dev/v6/cache"
-	"go-micro.dev/v6/cache/redis"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/config"
 	"go-micro.dev/v6/debug/profile"
@@ -24,18 +21,11 @@ import (
 	"go-micro.dev/v6/events"
 	"go-micro.dev/v6/logger"
 	"go-micro.dev/v6/registry"
-	"go-micro.dev/v6/registry/consul"
-	"go-micro.dev/v6/registry/etcd"
-	"go-micro.dev/v6/registry/nats"
 	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/server"
 	mprofile "go-micro.dev/v6/service/profile"
 	"go-micro.dev/v6/store"
-	"go-micro.dev/v6/store/mysql"
-	natsjskv "go-micro.dev/v6/store/nats-js-kv"
-	postgres "go-micro.dev/v6/store/postgres"
 	"go-micro.dev/v6/transport"
-	ntransport "go-micro.dev/v6/transport/nats"
 )
 
 type Cmd interface {
@@ -246,36 +236,34 @@ var (
 		},
 	}
 
+	// The Default* maps carry only the zero-dependency in-core plugins.
+	// External plugins (NATS, Consul, etcd, RabbitMQ, Redis, Postgres, MySQL,
+	// ...) register themselves into these maps from
+	// go-micro.dev/v6/cmd/defaults — blank-import it (the micro CLI does) to
+	// make every flag value selectable. Keeping them out of this package means
+	// a library binary that supplies its own plugins does not link ~40
+	// packages of infrastructure it never runs.
+
 	DefaultBrokers = map[string]func(...broker.Option) broker.Broker{
-		"memory":   broker.NewMemoryBroker,
-		"http":     broker.NewHttpBroker,
-		"nats":     nbroker.NewNatsBroker,
-		"rabbitmq": rabbit.NewBroker,
+		"memory": broker.NewMemoryBroker,
+		"http":   broker.NewHttpBroker,
 	}
 
 	DefaultClients = map[string]func(...client.Option) client.Client{}
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
-		"consul": consul.NewConsulRegistry,
 		"memory": registry.NewMemoryRegistry,
-		"nats":   nats.NewNatsRegistry,
 		"mdns":   registry.NewMDNSRegistry,
-		"etcd":   etcd.NewEtcdRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{}
 
 	DefaultServers = map[string]func(...server.Option) server.Server{}
 
-	DefaultTransports = map[string]func(...transport.Option) transport.Transport{
-		"nats": ntransport.NewTransport,
-	}
+	DefaultTransports = map[string]func(...transport.Option) transport.Transport{}
 
 	DefaultStores = map[string]func(...store.Option) store.Store{
-		"memory":   store.NewMemoryStore,
-		"mysql":    mysql.NewMysqlStore,
-		"natsjskv": natsjskv.NewStore,
-		"postgres": postgres.NewStore,
+		"memory": store.NewMemoryStore,
 	}
 
 	DefaultTracers = map[string]func(...trace.Option) trace.Tracer{}
@@ -289,9 +277,8 @@ var (
 
 	DefaultConfigs = map[string]func(...config.Option) (config.Config, error){}
 
-	DefaultCaches = map[string]func(...cache.Option) cache.Cache{
-		"redis": redis.NewRedisCache,
-	}
+	DefaultCaches = map[string]func(...cache.Option) cache.Cache{}
+
 	DefaultStreams = map[string]func(...events.Option) (events.Stream, error){}
 )
 
@@ -401,10 +388,13 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			*c.opts.Broker = imported.Broker
 			*c.opts.Store = imported.Store
 			*c.opts.Transport = imported.Transport
-		case "nats":
-			imported, ierr := mprofile.NatsProfile()
+		default:
+			// Plugin-backed profiles (e.g. nats) register themselves from their
+			// own package — linked via go-micro.dev/v6/cmd/defaults or a direct
+			// import — so binaries that never select them do not carry them.
+			imported, ierr := mprofile.Load(profileName)
 			if ierr != nil {
-				return fmt.Errorf("failed to load nats profile: %v", ierr)
+				return fmt.Errorf("failed to load %s profile: %v", profileName, ierr)
 			}
 			// Set the registry
 			sopts, clopts := c.setRegistry(imported.Registry)
@@ -430,10 +420,6 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			sopts, clopts = c.setStream(imported.Stream)
 			serverOpts = append(serverOpts, sopts...)
 			clientOpts = append(clientOpts, clopts...)
-
-		// Add more profiles as needed
-		default:
-			return fmt.Errorf("unsupported profile: %s", profileName)
 		}
 	}
 	// Set the client
@@ -456,7 +442,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("store"); len(name) > 0 {
 		s, ok := c.opts.Stores[name]
 		if !ok {
-			return fmt.Errorf("unsupported store: %s", name)
+			return fmt.Errorf("store %q is not linked into this binary: import go-micro.dev/v6/cmd/defaults to enable flag-selected plugins", name)
 		}
 
 		*c.opts.Store = s(store.WithClient(*c.opts.Client))
@@ -502,7 +488,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("registry"); len(name) > 0 && (*c.opts.Registry).String() != name {
 		r, ok := c.opts.Registries[name]
 		if !ok {
-			return fmt.Errorf("Registry %s not found", name)
+			return fmt.Errorf("registry %q is not linked into this binary: import go-micro.dev/v6/cmd/defaults to enable flag-selected plugins", name)
 		}
 
 		sopts, clopts := c.setRegistry(r())
@@ -523,7 +509,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("broker"); len(name) > 0 && (*c.opts.Broker).String() != name {
 		b, ok := c.opts.Brokers[name]
 		if !ok {
-			return fmt.Errorf("Broker %s not found", name)
+			return fmt.Errorf("broker %q is not linked into this binary: import go-micro.dev/v6/cmd/defaults to enable flag-selected plugins", name)
 		}
 		sopts, clopts := c.setBroker(b())
 		serverOpts = append(serverOpts, sopts...)
@@ -547,7 +533,7 @@ func (c *cmd) Before(ctx *cli.Context) error {
 	if name := ctx.String("transport"); len(name) > 0 && (*c.opts.Transport).String() != name {
 		t, ok := c.opts.Transports[name]
 		if !ok {
-			return fmt.Errorf("Transport %s not found", name)
+			return fmt.Errorf("transport %q is not linked into this binary: import go-micro.dev/v6/cmd/defaults to enable flag-selected plugins", name)
 		}
 
 		sopts, clopts := c.setTransport(t())

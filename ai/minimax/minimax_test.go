@@ -85,6 +85,47 @@ func TestProvider_Stream(t *testing.T) {
 	}
 }
 
+func TestProvider_GeneratePreservesMessageContent(t *testing.T) {
+	var body map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"ok"}}]}`))
+	}))
+	defer ts.Close()
+
+	structured := []any{map[string]any{
+		"type":      "image_url",
+		"image_url": map[string]any{"url": "https://example.com/input.png"},
+	}}
+	p := NewProvider(ai.WithAPIKey("test-key"), ai.WithBaseURL(ts.URL))
+	resp, err := p.Generate(context.Background(), &ai.Request{
+		SystemPrompt: "system",
+		Messages:     []ai.Message{{Role: "user", Content: structured}},
+		Prompt:       "describe this image",
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+	if resp.Reply != "ok" {
+		t.Fatalf("reply = %q, want ok", resp.Reply)
+	}
+	messages, ok := body["messages"].([]any)
+	if !ok || len(messages) != 3 {
+		t.Fatalf("messages = %#v, want system, history, prompt", body["messages"])
+	}
+	history, ok := messages[1].(map[string]any)
+	if !ok || history["role"] != "user" {
+		t.Fatalf("history message = %#v", messages[1])
+	}
+	content, ok := history["content"].([]any)
+	if !ok || content[0].(map[string]any)["type"] != "image_url" {
+		t.Fatalf("structured content = %#v", history["content"])
+	}
+}
+
 func TestProvider_Registration(t *testing.T) {
 	m := ai.New("minimax", ai.WithAPIKey("test"))
 	if m == nil {

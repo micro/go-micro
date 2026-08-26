@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: test test-race test-coverage harness zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: test test-race test-coverage harness demo-gif zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
 	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
+	@echo "  make demo-gif      - Record the README quick-start demo GIF (VHS)"
 	@echo "  make zero-to-hero-transcript - Verify the ordered 0→hero lifecycle transcript"
 	@echo "  make inner-loop    - Verify scaffold → run/chat/inspect → deploy dry-run contract"
 	@echo "  make cli-wayfinding - Verify installed first-agent CLI wayfinding commands"
@@ -58,6 +59,12 @@ harness:
 	$(MAKE) zero-to-hero-transcript
 	go run ./internal/harness/agent-flow
 	$(MAKE) provider-conformance-mock
+
+# Record the README quick-start demo GIF with VHS (no provider key needed).
+# See internal/demo/README.md for the keyed hero demo (prompt-demo.tape).
+demo-gif:
+	@command -v vhs >/dev/null || { echo "vhs not found — install with: go install github.com/charmbracelet/vhs@latest (needs ttyd + ffmpeg)"; exit 1; }
+	vhs internal/demo/first-run.tape
 
 # Verify the maintained 0→hero transcript in the same order documented for new
 # developers: scaffold → run/chat/inspect → support-agent chat → flow history →

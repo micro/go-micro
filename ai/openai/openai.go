@@ -102,6 +102,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	if p.opts.MaxTokens > 0 {
 		apiReq["max_tokens"] = p.opts.MaxTokens
 	}
+	if p.opts.Effort != "" {
+		apiReq["reasoning_effort"] = p.opts.Effort
+	}
 
 	if len(openaiTools) > 0 {
 		apiReq["tools"] = openaiTools
@@ -141,6 +144,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			"model":    p.opts.Model,
 			"messages": followUpMessages,
 		}
+		if p.opts.Effort != "" {
+			followUpReq["reasoning_effort"] = p.opts.Effort
+		}
 
 		// Make follow-up API call
 		followUpResp, _, err := p.callAPI(ctx, followUpReq)
@@ -171,6 +177,9 @@ func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.Gener
 	}
 	if p.opts.MaxTokens > 0 {
 		apiReq["max_tokens"] = p.opts.MaxTokens
+	}
+	if p.opts.Effort != "" {
+		apiReq["reasoning_effort"] = p.opts.Effort
 	}
 	reqBody, err := json.Marshal(apiReq)
 	if err != nil {
