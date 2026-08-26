@@ -1,0 +1,87 @@
+# Grafana Tempo 3.x
+# Single-binary deployment for a small/self-hosted environment.
+#
+# Trace path:
+#   Applications -> Tempo OTLP (gRPC :4317 / HTTP :4318)
+#
+# Metrics paths:
+#   Tempo self-metrics -> Prometheus scrape
+#   Trace-derived metrics -> Tempo metrics-generator -> Prometheus remote write
+#
+# 3.x notes vs 2.x: ingester/compactor blocks removed (block building and
+# compaction handled by block-builder/live-store/backend scheduler); the
+# metrics-generator local-blocks processor and traces_storage are gone.
+
+stream_over_http_enabled: true
+multitenancy_enabled: false
+
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+  log_level: info
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+
+query_frontend:
+  search:
+    duration_slo: 5s
+    throughput_bytes_slo: 1.073741824e+09
+  trace_by_id:
+    duration_slo: 100ms
+  metrics:
+    # Permit TraceQL metrics queries across the full retention period.
+    max_duration: 168h
+    query_backend_after: 5m
+    duration_slo: 5s
+    throughput_bytes_slo: 1.073741824e+09
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+
+# Compaction/retention moved from the removed `compactor` block to the
+# backend scheduler. Seven-day trace retention.
+backend_scheduler:
+  provider:
+    compaction:
+      compaction:
+        block_retention: 168h
+
+# Generates service-graph and span RED metrics from traces.
+# Prometheus must run with --web.enable-remote-write-receiver.
+metrics_generator:
+  registry:
+    # Keep counters flushing during idle periods so dashboards show flat
+    # zeros instead of "No data" once the last traffic goes stale.
+    # (Default 15m deletes idle series and stops emitting them entirely.)
+    stale_duration: 8760h
+    external_labels:
+      source: tempo
+      cluster: micro_docker
+
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+        - service-graphs
+        - span-metrics
+      # Keep classic histograms for broad dashboard compatibility while also
+      # producing native histograms for Prometheus versions that support them.
+      generate_native_histograms: both
