@@ -1,10 +1,10 @@
 # Contributing to Go Micro
 
-Thank you for your interest in contributing to Go Micro! This document provides guidelines and instructions for contributing.
+Guidelines/instructions for contributing.
 
 ## Code of Conduct
 
-Be respectful, inclusive, and collaborative. We're all here to build great software together.
+Respectful, inclusive, collaborative.
 
 ## How Go Micro is built
 
@@ -19,10 +19,10 @@ Human contributions follow the same gate: green CI, one concern per PR.
 
 ## Getting Started
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/go-micro.git`
-3. Add upstream remote: `git remote add upstream https://github.com/micro/go-micro.git`
-4. Create a feature branch: `git checkout -b feature/my-feature`
+1. Fork repo
+2. Clone: `git clone https://github.com/YOUR_USERNAME/go-micro.git`
+3. Add upstream: `git remote add upstream https://github.com/micro/go-micro.git`
+4. Feature branch: `git checkout -b feature/my-feature`
 
 ## Development Setup
 
@@ -46,21 +46,21 @@ make lint
 make fmt
 ```
 
-See `make help` for all available commands.
+See `make help` for all commands.
 
 ## Making Changes
 
 ### Code Guidelines
 
-- Follow standard Go conventions (use `gofmt`, `golint`)
-- Write clear, descriptive commit messages
-- Add tests for new functionality
-- Update documentation for API changes
-- Keep PRs focused - one feature/fix per PR
+- Follow Go conventions (`gofmt`, `golint`)
+- Clear commit messages
+- Tests for new functionality
+- Update docs for API changes
+- Focused PRs (one feature/fix per PR)
 
 ### Commit Messages
 
-Use conventional commits format:
+Conventional commits format:
 
 ```
 type(scope): subject
@@ -73,11 +73,11 @@ footer
 Types:
 - `feat`: New feature
 - `fix`: Bug fix
-- `docs`: Documentation changes
-- `test`: Test additions/changes
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `chore`: Maintenance tasks
+- `docs`: Docs changes
+- `test`: Test changes
+- `refactor`: Refactoring
+- `perf`: Performance
+- `chore`: Maintenance
 
 Examples:
 ```
@@ -88,10 +88,10 @@ docs(examples): add streaming example
 
 ### Testing
 
-- Write unit tests for all new code
+- Unit tests for new code
 - Ensure existing tests pass
-- Add integration tests for plugin implementations
-- Test with multiple Go versions (1.20+)
+- Integration tests for plugins
+- Test Go 1.20+
 
 ```bash
 # Run specific package tests
@@ -110,61 +110,61 @@ richgo test -v ./...
 
 ### Documentation
 
-- Update relevant markdown files in `internal/website/docs/`
-- Add examples to `internal/website/docs/examples/` for new features
+- Update markdown in `internal/website/docs/`
+- Add examples to `internal/website/docs/examples/`
 - Update README.md for major features
-- Add godoc comments for exported functions/types
+- Add godoc comments for exported items
 
 ## Pull Request Process
 
-1. **Update your branch**
+1. **Update branch**
    ```bash
    git fetch upstream
    git rebase upstream/master
    ```
 
-2. **Run tests and linting**
+2. **Run tests and lint**
    ```bash
    go test ./...
    golangci-lint run
    ```
 
-3. **Push to your fork**
+3. **Push fork**
    ```bash
    git push origin feature/my-feature
    ```
 
-4. **Create Pull Request**
-   - Use a descriptive title
-   - Reference any related issues
-   - Describe what changed and why
-   - Add screenshots for UI changes
-   - Mark as draft if work in progress
+4. **Create PR**
+   - Descriptive title
+   - Reference issues
+   - Describe changes/why
+   - Screenshots for UI
+   - Mark draft if WIP
 
-5. **PR Review**
-   - Respond to feedback promptly
+5. **Review**
+   - Respond promptly
    - Make requested changes
-   - Re-request review after updates
+   - Re-request review
 
 ### PR Checklist
 
 - [ ] Tests pass locally
 - [ ] Code follows Go conventions
-- [ ] Documentation updated
-- [ ] Commit messages are clear
-- [ ] Branch is up to date with master
+- [ ] Docs updated
+- [ ] Clear commit messages
+- [ ] Branch up to date with master
 - [ ] No merge conflicts
 
 ## Adding Plugins
 
-New plugins should:
+New plugins:
 
-1. Live in the appropriate interface directory (e.g., `registry/myplugin/`)
-2. Implement the interface completely
-3. Include comprehensive tests
-4. Provide usage examples
-5. Document configuration options (env vars, options)
-6. Add to plugin documentation
+1. In interface directory (e.g., `registry/myplugin/`)
+2. Implement interface fully
+3. Comprehensive tests
+4. Usage examples
+5. Document config (env vars, options)
+6. Add plugin docs
 
 Example structure:
 ```
@@ -177,37 +177,32 @@ registry/myplugin/
 
 ## Reporting Issues
 
-Before creating an issue:
+Before creating issue:
 
 1. Search existing issues
-2. Check documentation
-3. Try the latest version
+2. Check docs
+3. Try latest version
 
-When reporting bugs:
-- Use the bug report template
-- Include minimal reproduction code
+Bug reports:
+- Use bug report template
+- Minimal reproduction code
 - Specify versions (Go, Go Micro, plugins)
-- Provide relevant logs
+- Relevant logs
 
 ## Documentation Contributions
 
-Documentation improvements are always welcome! There are several ways to edit the
-documentation pages:
+Welcome. Ways to edit docs:
 
-- **Fix or edit an existing page**: submit a pull request with your changes — either
-  directly on the site via a commit + PR, or by proposing changes from a fork of the
-  repository.
-- **Add a new page**: create a new Markdown page under
-  `internal/website/content/en/docs/` and open a PR as above.
+- **Fix/edit existing page**: submit PR.
+- **Add new page**: create Markdown under `internal/website/content/en/docs/` and open PR.
 
-The site is built with the Hugo engine and content lives in
-`internal/website/content/en`. 
-For local development instructions (Hugo Extended, `npm ci`, `npm run serve`, production build), see the [internal/website README](internal/website/README.md).
+Site built with Hugo, content in `internal/website/content/en`. 
+Local dev instructions (Hugo Extended, `npm ci`, `npm run serve`, production build): [internal/website README](internal/website/README.md).
 
 ## Community
 
-- GitHub Issues: Bug reports and feature requests
-- GitHub Discussions: Questions, ideas, and community chat
+- GitHub Issues: Bug reports, feature requests
+- GitHub Discussions: Questions, ideas, chat
 - Sponsorship: [GitHub Sponsors](https://github.com/sponsors/micro)
 
 ## Release Process
@@ -215,7 +210,7 @@ For local development instructions (Hugo Extended, `npm ci`, `npm run serve`, pr
 Maintainers handle releases:
 
 1. Update CHANGELOG.md
-2. Tag release: `git tag -a v5.x.x -m "Release v5.x.x"`
+2. Tag: `git tag -a v5.x.x -m "Release v5.x.x"`
 3. Push tag: `git push origin v5.x.x`
 4. GitHub Actions creates release
 
@@ -223,6 +218,6 @@ Maintainers handle releases:
 
 - Check [documentation](internal/website/content/en/docs/)
 - Browse [examples](internal/website/content/en/docs/examples/)
-- Open a [question issue](.github/ISSUE_TEMPLATE/question.md)
+- Open [question issue](.github/ISSUE_TEMPLATE/question.md)
 
-Thank you for contributing to Go Micro! 🎉
+Thanks for contributing! 🎉

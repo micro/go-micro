@@ -695,6 +695,11 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			*c.opts.Config = rc
 		}
 	}
+
+	// Sync the configured registry back to the package global so helpers like
+	// registry.ListServices (used by the CLI registry command, the gateway and
+	// MCP discovery) see the registry selected via flags/env, not the default.
+	registry.DefaultRegistry = *c.opts.Registry
 	return nil
 }
 

@@ -1,25 +1,21 @@
 # Repository agent instructions
 
-These instructions apply to the entire repository.
+Repo-wide instructions.
 
 ## Pull requests from Codex tasks
 
-When a Codex task makes repository changes and the requested outcome is a PR:
+For PR-focused Codex tasks:
 
-1. Keep the change focused on the assigned issue or prompt.
-2. Run the relevant verification commands and capture their results
-   (`go build ./...`, `go test ./...`, `golangci-lint run ./...`).
-3. Check `git status --short` and review the diff before finishing.
-4. Create a uniquely-named branch under the `codex/` prefix (do not work on
-   `master`, and do not use a generic name like `work`):
+1. Focus changes on issue/prompt.
+2. Run verification (`go build ./...`, `go test ./...`, `golangci-lint run ./...`).
+3. Check `git status --short` and diff.
+4. Branch under `codex/` (not `master` or `work`):
 
    ```sh
    git switch -c codex/<issue-number>-<short-slug>
    ```
-5. Stage the intended files and commit on that branch.
-6. Open the pull request yourself with the GitHub CLI, which is installed in the
-   environment and whose `origin` points at this repository, then enable
-   auto-merge so GitHub merges it once the required CI checks pass:
+5. Stage and commit.
+6. Open PR via GitHub CLI (`origin` set), enable auto-merge:
 
    ```sh
    git push -u origin HEAD
@@ -29,11 +25,6 @@ When a Codex task makes repository changes and the requested outcome is a PR:
    gh pr merge --squash --auto --delete-branch
    ```
 
-The branch should start with `codex/` and the PR should carry the `codex`
-label. Auto-merge waits for the required status checks (build, tests,
-golangci-lint) — never merge a PR manually before CI is green.
+Branch `codex/`, PR label `codex`. Auto-merge waits for CI (build, tests, golangci-lint) — never merge manually before CI green.
 
-Do not just say that a PR was opened, and do **not** rely on the `make_pr` tool:
-in this environment `make_pr` only records the title/body and never pushes a
-branch or creates a PR. The task is not complete until `gh pr create` has opened
-a real pull request and printed its URL.
+Don't just claim PR opened. DO NOT use `make_pr` tool (`make_pr` only records title/body, never pushes/creates). Task incomplete until `gh pr create` opens real PR and prints URL.
