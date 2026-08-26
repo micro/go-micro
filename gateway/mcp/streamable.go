@@ -240,6 +240,7 @@ func (s *Server) mcpInitialize(params json.RawMessage, id json.RawMessage) json.
 		"protocolVersion": version,
 		"capabilities":    map[string]interface{}{"tools": map[string]interface{}{}},
 		"serverInfo":      map[string]interface{}{"name": "go-micro-mcp", "version": "1.0.0"},
+		"instructions":    mcpInstructions,
 	})
 }
 
