@@ -174,13 +174,15 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		var allToolCalls []ai.ToolCall
 		var toolResults []string
 		pendingToolCalls := append([]ai.ToolCall(nil), resp.ToolCalls...)
-		followUpMessages := append(messages, map[string]any{
+		// Copied rather than aliased: append on a slice that shares an array
+		// with messages would overwrite it on a later round.
+		followUpMessages := append(append([]map[string]any(nil), messages...), map[string]any{
 			"role":       "assistant",
 			"content":    rawMessage["content"],
 			"tool_calls": rawMessage["tool_calls"],
 		})
 
-		for attempt := 0; len(pendingToolCalls) > 0 && attempt < 4; attempt++ {
+		for attempt := 0; len(pendingToolCalls) > 0 && attempt < maxToolRounds; attempt++ {
 			for _, tc := range pendingToolCalls {
 				result := p.opts.ToolHandler(ctx, tc)
 				if result.Refused != "" {
@@ -202,6 +204,9 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 			followUpReq := map[string]any{
 				"model":    p.opts.Model,
 				"messages": followUpMessages,
+			}
+			if p.opts.MaxTokens > 0 {
+				followUpReq["max_tokens"] = p.opts.MaxTokens
 			}
 			if len(tools) > 0 {
 				// Keep the tool schema available during follow-up turns. Minimax
@@ -251,6 +256,12 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 
 	return resp, nil
 }
+
+// maxToolRounds bounds the tool-execution loop in a single Generate. Each
+// round is a model call plus the tools it asks for, so this is the ceiling on
+// one question's cost as well as its length; it is high enough that no honest
+// piece of multi-step work reaches it.
+const maxToolRounds = 12
 
 func atlascloudAnswerWithRequiredToolMarkers(answer string, toolResults []string, toolCalls []ai.ToolCall) string {
 	if strings.Contains(answer, "agent-conformance") || !atlascloudSawRefusedDelegate(toolCalls) {
