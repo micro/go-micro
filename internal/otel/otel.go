@@ -1,92 +1,39 @@
 // Package otel bootstraps the global OpenTelemetry tracer provider from
-// OTEL_EXPORTER_OTLP_ENDPOINT. Idempotent: safe to call from any
-// entrypoint (CLI, agent, flow, service). No env var => noop, no error.
+// OTEL_EXPORTER_OTLP_ENDPOINT. It is a lightweight facade: the actual OTLP
+// wiring lives behind the go-micro.dev/v6/otel backend, which registers
+// itself here via Register and is linked by blank import. Core packages
+// (service, agent, flow, and the micro constructor) call Init and Shutdown
+// unconditionally; with no backend linked both are no-ops and nothing heavy
+// (the otel SDK, otlptrace exporter, or grpc) enters the build.
+//
+// Runtime behavior is unchanged: no env var => noop, no error; idempotent.
 package otel
 
-import (
-	"context"
-	"log"
-	"os"
-	"path/filepath"
-	"sync"
-	"time"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.40.0"
-)
-
-var once sync.Once
-
 var (
-	mu sync.Mutex
-	tp *sdktrace.TracerProvider
+	build func()
+	flush func()
 )
 
-// Init wires the OTLP HTTP trace exporter and W3C propagators into the
-// global provider when OTEL_EXPORTER_OTLP_ENDPOINT is set. Subsequent
-// calls are no-ops.
+// Register mounts the OTLP backend. Called from go-micro.dev/v6/otel's init;
+// exported only so that package can install itself.
+func Register(initFn, shutdownFn func()) {
+	build = initFn
+	flush = shutdownFn
+}
+
+// Init wires the global tracer provider from OTEL_EXPORTER_OTLP_ENDPOINT
+// when an OTLP backend is linked. Subsequent calls are no-ops. No backend
+// and no env var are both no-ops.
 func Init() {
-	once.Do(initOnce)
+	if build != nil {
+		build()
+	}
 }
 
 // Shutdown flushes pending spans to the exporter. Safe to call multiple
-// times and when Init was a no-op. Call from process exit paths so
-// short-lived binaries do not lose spans.
+// times and when Init was a no-op.
 func Shutdown() {
-	mu.Lock()
-	defer mu.Unlock()
-	if tp == nil {
-		return
+	if flush != nil {
+		flush()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_ = tp.Shutdown(ctx)
-	tp = nil
-}
-
-func initOnce() {
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if endpoint == "" {
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	exp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpoint))
-	if err != nil {
-		log.Printf("otel: create exporter: %v", err)
-		return
-	}
-	// Name the service so traces do not show up as "unknown_service:<binary>".
-	// OTEL_SERVICE_NAME wins; otherwise fall back to the binary basename
-	// (the default resource would otherwise label the process unknown_service).
-	// ponytail: schemaless so Merge never fights resource.Default()'s
-	// bundled schema URL (semconv versions drift across SDK releases).
-	attrs := resource.NewSchemaless(semconv.ServiceName(serviceName()))
-	res, err := resource.Merge(resource.Default(), attrs)
-	if err != nil {
-		log.Printf("otel: build resource: %v", err)
-		res = attrs
-	}
-	tp = sdktrace.NewTracerProvider(sdktrace.WithBatcher(exp), sdktrace.WithResource(res))
-	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
-}
-
-// serviceName is the resource attribute OTEL_SERVICE_NAME carries into
-// traces; without it the SDK labels spans "unknown_service:<executable>".
-func serviceName() string {
-	if name := os.Getenv("OTEL_SERVICE_NAME"); name != "" {
-		return name
-	}
-	if len(os.Args) > 0 {
-		return filepath.Base(os.Args[0])
-	}
-	return "go-micro"
 }

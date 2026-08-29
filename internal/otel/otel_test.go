@@ -1,44 +1,31 @@
 package otel
 
 import (
-	"context"
-	"os"
-	"path/filepath"
+	"sync/atomic"
 	"testing"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-func TestShutdownFlushes(t *testing.T) {
-	exp, err := stdouttrace.New(stdouttrace.WithWriter(testWriter{t}))
-	if err != nil {
-		t.Fatal(err)
-	}
-	// simulate initOnce by wiring a batcher provider directly
-	tp = sdktrace.NewTracerProvider(sdktrace.WithBatcher(exp))
-	otel.SetTracerProvider(tp)
-
-	_, span := otel.Tracer("t").Start(context.Background(), "shutdown-probe")
-	span.End()
+func TestInitNoopWithoutBackend(t *testing.T) {
+	// Reset for the test: no backend registered => Init/Shutdown must no-op.
+	build, flush = nil, nil
+	Init()
 	Shutdown()
 }
 
-type testWriter struct{ t *testing.T }
+func TestRegisterWiresInitAndShutdown(t *testing.T) {
+	var initCalls, shutdownCalls atomic.Int32
+	Register(func() { initCalls.Add(1) }, func() { shutdownCalls.Add(1) })
 
-func (w testWriter) Write(p []byte) (int, error) {
-	w.t.Logf("EXPORTED: %s", p)
-	return len(p), nil
-}
+	Init()
+	Init()
+	if got := initCalls.Load(); got != 2 {
+		t.Fatalf("Init() = %d calls, want 2", got)
+	}
+	Shutdown()
+	if got := shutdownCalls.Load(); got != 1 {
+		t.Fatalf("Shutdown() = %d calls, want 1", got)
+	}
 
-func TestServiceName(t *testing.T) {
-	t.Setenv("OTEL_SERVICE_NAME", "support")
-	if got := serviceName(); got != "support" {
-		t.Fatalf("serviceName() = %q, want %q", got, "support")
-	}
-	os.Unsetenv("OTEL_SERVICE_NAME")
-	if got := serviceName(); got != filepath.Base(os.Args[0]) {
-		t.Fatalf("serviceName() = %q, want binary basename %q", got, filepath.Base(os.Args[0]))
-	}
+	// Restore clean state for any later tests.
+	build, flush = nil, nil
 }
