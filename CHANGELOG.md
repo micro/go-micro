@@ -17,7 +17,8 @@ below is kept current between tags and rolled into the next version when it ship
 
 ## [Unreleased]
 
-_Nothing yet — rolled into a version section on each release._
+### Added
+- **Handler before/after hooks** — `server.BeforeHandler` and `server.AfterHandler` turn a `func(context.Context, server.Request) error` into a `HandlerWrapper`, giving RPC handlers declarative before/after request hooks to complement the existing start/stop hooks (`service.BeforeStart`/`AfterStart`/`BeforeStop`/`AfterStop`). The maintenance idea from issue #15 ("before/after functions for start, stop and handler requests") is now fully covered. (`server/`)
 
 ---
 
