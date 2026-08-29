@@ -253,7 +253,6 @@ var (
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
 		"memory": registry.NewMemoryRegistry,
-		"mdns":   registry.NewMDNSRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{}

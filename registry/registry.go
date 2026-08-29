@@ -94,6 +94,11 @@ func String() string {
 	return DefaultRegistry.String()
 }
 
+// DefaultRegistry is the discovery used by the package helpers above and by
+// components that default to it (client, server, agent). Core keeps a
+// zero-dependency implementation (memory); importing the mdns backend —
+// directly (`registry.DefaultRegistry = mdns.NewRegistry()`) or via
+// go-micro.dev/v6/cmd/defaults — replaces it with multicast dns discovery.
 var (
-	DefaultRegistry = NewMDNSRegistry()
+	DefaultRegistry = NewMemoryRegistry()
 )

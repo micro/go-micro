@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	helloworld "go-micro.dev/v6/test/helloworld"
 	"google.golang.org/grpc"
-	helloworld "google.golang.org/grpc/examples/helloworld/helloworld"
 	"google.golang.org/grpc/reflection"
 )
 

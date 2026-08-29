@@ -12,8 +12,14 @@ import (
 var (
 	// ErrNotFound is returned when a key doesn't exist.
 	ErrNotFound = errors.New("not found")
-	// DefaultStore is the file store (persists to ~/micro/store/).
-	DefaultStore Store = NewStore()
+	// newStore builds the store NewStore returns. Core keeps a
+	// zero-dependency implementation (memory); opt-in backends (store/file)
+	// swap it via RegisterDefault so importing them links their storage
+	// engine (bbolt) into the binary.
+	newStore func(...Option) Store = NewMemoryStore
+	// DefaultStore is the store components fall back to when none is given
+	// (agent, flow, cmd). Memory unless an opt-in backend is linked.
+	DefaultStore Store = NewMemoryStore()
 )
 
 // Store is a data storage interface.
@@ -49,7 +55,18 @@ type Record struct {
 }
 
 func NewStore(opts ...Option) Store {
-	return NewFileStore(opts...)
+	return newStore(opts...)
+}
+
+// RegisterDefault installs ctor as the backend NewStore builds and rebuilds
+// DefaultStore from it. Opt-in store backends call it from their package
+// init; see store/file for the historical file-backed default.
+func RegisterDefault(ctor func(...Option) Store) {
+	if ctor == nil {
+		return
+	}
+	newStore = ctor
+	DefaultStore = ctor()
 }
 
 func NewRecord(key string, val interface{}) *Record {
