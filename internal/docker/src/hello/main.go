@@ -12,6 +12,7 @@ import (
 	"log/slog"
 
 	"go-micro.dev/v6"
+	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
 	"go-micro.dev/v6/registry/nats"
 )
@@ -40,12 +41,14 @@ type HelloResponse struct {
 func main() {
 	// Create service
 	rnats := nats.NewNatsRegistry()
+	bnats := natsbroker.NewNatsBroker()
 	service := micro.NewService(
 		"greeter",
 		micro.Address(":9091"),
 		// Start MCP gateway alongside the service
 		mcp.WithMCP(":3002"),
 		micro.Registry(rnats),
+		micro.Broker(bnats),
 	)
 
 	service.Init()

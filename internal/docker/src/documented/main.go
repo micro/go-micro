@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"go-micro.dev/v6"
+	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
 	"go-micro.dev/v6/registry/nats"
 	"go-micro.dev/v6/server"
@@ -101,12 +102,14 @@ func (u *Users) CreateUser(ctx context.Context, req *CreateUserRequest, rsp *Cre
 func main() {
 	// Create service
 	rnats := nats.NewNatsRegistry()
+	bnats := natsbroker.NewNatsBroker()
 	service := micro.NewService(
 		"users",
 		micro.Address(":9090"),
 		// Start MCP gateway alongside the service
 		mcp.WithMCP(":3000"),
 		micro.Registry(rnats),
+		micro.Broker(bnats),
 	)
 
 	service.Init()

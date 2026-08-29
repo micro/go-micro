@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"go-micro.dev/v6"
+	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
 	"go-micro.dev/v6/registry/nats"
 )
@@ -255,11 +256,13 @@ func (h *Contacts) Search(ctx context.Context, req *SearchRequest, rsp *SearchRe
 
 func main() {
 	rnats := nats.NewNatsRegistry()
+	bnats := natsbroker.NewNatsBroker()
 	service := micro.NewService(
 		"contacts",
 		micro.Address(":9010"),
 		mcp.WithMCP(":3001"),
 		micro.Registry(rnats),
+		micro.Broker(bnats),
 	)
 	service.Init()
 

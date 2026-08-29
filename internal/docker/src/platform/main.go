@@ -37,6 +37,7 @@ import (
 	"time"
 
 	"go-micro.dev/v6"
+	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
 	"go-micro.dev/v6/registry/nats"
 	"go-micro.dev/v6/server"
@@ -694,11 +695,13 @@ func (s *Mail) Read(ctx context.Context, req *ReadMailRequest, rsp *ReadMailResp
 
 func main() {
 	rnats := nats.NewNatsRegistry()
+	bnats := natsbroker.NewNatsBroker()
 	service := micro.NewService(
 		"platform",
 		micro.Address(":9092"),
 		mcp.WithMCP(":3003"),
 		micro.Registry(rnats),
+		micro.Broker(bnats),
 	)
 	service.Init()
 

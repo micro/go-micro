@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"go-micro.dev/v6"
+	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
 	"go-micro.dev/v6/registry/nats"
 )
@@ -350,11 +351,13 @@ func (s *NotificationService) List(ctx context.Context, req *ListNotificationsRe
 
 func main() {
 	rnats := nats.NewNatsRegistry()
+	bnats := natsbroker.NewNatsBroker()
 	service := micro.NewService(
 		"shop",
 		micro.Address(":9093"),
 		mcp.WithMCP(":3004"),
 		micro.Registry(rnats),
+		micro.Broker(bnats),
 	)
 	service.Init()
 
