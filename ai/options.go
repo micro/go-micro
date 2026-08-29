@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"net/http"
 )
 
 // Options for model configuration
@@ -23,6 +24,10 @@ type Options struct {
 	Thinking ThinkingMode
 	// Effort controls reasoning depth for providers that support it.
 	Effort string
+	// Transport is the HTTP round tripper used by providers that make live
+	// API calls. Nil uses the standard library default transport. Inject a
+	// fake for tests.
+	Transport http.RoundTripper
 }
 
 // ThinkingMode controls whether a reasoning-capable model uses extended thinking.
@@ -127,5 +132,14 @@ func WithThinking(mode ThinkingMode) Option {
 func WithEffort(effort string) Option {
 	return func(o *Options) {
 		o.Effort = effort
+	}
+}
+
+// WithTransport sets the HTTP round tripper used for provider API calls.
+// Nil uses the standard library default transport. Inject a fake
+// RoundTripper in tests to stub provider responses without a live server.
+func WithTransport(rt http.RoundTripper) Option {
+	return func(o *Options) {
+		o.Transport = rt
 	}
 }
