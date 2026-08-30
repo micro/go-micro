@@ -104,8 +104,38 @@ jobs:
           # say so loudly — a release must not be blocked on the docs commit.
           if printf '%s\n' "$UNRELEASED" | grep -qE '^### '; then
             DATE=$(date -u +%Y-%m-%d)
-            sed -i "s/^## \[Unreleased\]$/## [Unreleased]\n\n_Nothing yet — rolled into a version section on each release._\n\n---\n\n## [${NEXT#v}] - ${DATE}/" CHANGELOG.md
-            if grep -q "^## \[${NEXT#v}\] - ${DATE}$" CHANGELOG.md; then
+            if DATE="$DATE" NEXT="$NEXT" python3 - <<'PY'
+import os
+import sys
+
+path = "CHANGELOG.md"
+next_ver = os.environ["NEXT"].lstrip("v")
+date = os.environ["DATE"]
+
+with open(path, "r", encoding="utf-8") as f:
+    txt = f.read()
+
+needle = "## [Unreleased]\n"
+placeholder = "\n\n_Nothing yet — rolled into a version section on each release._\n\n---\n\n"
+
+pos = txt.find(needle)
+if pos == -1:
+    sys.exit(1)
+
+after = txt[pos + len(needle):]
+# If the placeholder block is still present under [Unreleased], strip it so it
+# does not get carried into the versioned section.
+if after.startswith(placeholder):
+    after = after[len(placeholder):]
+# Normalize spacing so the version header is followed by exactly one blank line.
+after = after.lstrip("\n")
+
+out = txt[:pos + len(needle)] + placeholder + f"## [{next_ver}] - {date}\n\n" + after
+
+with open(path, "w", encoding="utf-8") as f:
+    f.write(out)
+PY
+            then
               git add CHANGELOG.md
               git commit -m "docs(changelog): roll [Unreleased] into ${NEXT#v}"
               if git push "https://x-access-token:${RELEASE_TOKEN}@github.com/${REPO}.git" HEAD:master; then
