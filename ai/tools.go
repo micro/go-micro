@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -116,6 +117,13 @@ func (t *Tools) Discover() ([]Tool, error) {
 			})
 		}
 	}
+
+	// Deterministic order. The registry iterates a map, so without this the
+	// tool list is shuffled on every discovery — which silently defeats
+	// provider prompt caching (Anthropic cache_control, Gemini implicit
+	// caching): both key on a byte-identical prefix, and the tool catalogue
+	// is the bulk of that prefix.
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 
 	return out, nil
 }
