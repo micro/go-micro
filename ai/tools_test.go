@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"go-micro.dev/v6/registry"
@@ -135,13 +136,39 @@ func TestDiscoverOrderIsDeterministic(t *testing.T) {
 		}
 	}
 
+	// Two versions of one service, with different endpoint sets: discovery
+	// must not duplicate its tools, and must pick the same version — the
+	// highest — every time, or the serialized catalogue still churns.
+	for _, v := range []struct{ version, endpoint string }{
+		{"1.0.0", "Svc.Old"},
+		{"2.0.0", "Svc.New"},
+	} {
+		if err := reg.Register(&registry.Service{
+			Name:      "versioned",
+			Version:   v.version,
+			Endpoints: []*registry.Endpoint{{Name: v.endpoint}},
+			Nodes:     []*registry.Node{{Id: "versioned-" + v.version, Address: "127.0.0.1:0"}},
+		}); err != nil {
+			t.Fatalf("register versioned %s: %v", v.version, err)
+		}
+	}
+
 	tools := NewTools(reg)
 	first, err := tools.Discover()
 	if err != nil {
 		t.Fatalf("discover: %v", err)
 	}
-	if len(first) != 10 {
-		t.Fatalf("discovered %d tools, want 10", len(first))
+	if len(first) != 11 {
+		t.Fatalf("discovered %d tools, want 11 (10 + one from the versioned service, not one per version)", len(first))
+	}
+	var fromVersioned []string
+	for _, tool := range first {
+		if strings.HasPrefix(tool.Name, "versioned_") {
+			fromVersioned = append(fromVersioned, tool.Name)
+		}
+	}
+	if len(fromVersioned) != 1 || fromVersioned[0] != "versioned_Svc_New" {
+		t.Fatalf("versioned service tools = %v, want exactly [versioned_Svc_New] (highest version wins)", fromVersioned)
 	}
 	for i := 1; i < len(first); i++ {
 		if first[i-1].Name > first[i].Name {
