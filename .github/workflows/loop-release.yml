@@ -95,6 +95,33 @@ jobs:
 
           git config user.name "loop release bot"
           git config user.email "noreply@users.noreply.github.com"
+
+          # Roll [Unreleased] into the new version's section BEFORE tagging, so
+          # the changelog can never drift behind the tags again (it once fell
+          # five releases behind, with everything piled under [Unreleased]).
+          # The rolled commit is what gets tagged. If master rejects the push
+          # (e.g. branch protection), fall back to tagging the current HEAD and
+          # say so loudly — a release must not be blocked on the docs commit.
+          if printf '%s\n' "$UNRELEASED" | grep -qE '^### '; then
+            DATE=$(date -u +%Y-%m-%d)
+            sed -i "s/^## \[Unreleased\]$/## [Unreleased]\n\n_Nothing yet — rolled into a version section on each release._\n\n---\n\n## [${NEXT#v}] - ${DATE}/" CHANGELOG.md
+            if grep -q "^## \[${NEXT#v}\] - ${DATE}$" CHANGELOG.md; then
+              git add CHANGELOG.md
+              git commit -m "docs(changelog): roll [Unreleased] into ${NEXT#v}"
+              if git push "https://x-access-token:${RELEASE_TOKEN}@github.com/${REPO}.git" HEAD:master; then
+                echo "Rolled CHANGELOG [Unreleased] into ${NEXT#v}."
+              else
+                echo "::warning::CHANGELOG roll push to master was rejected — tagging without it. Roll [Unreleased] into ${NEXT#v} manually."
+                git reset --hard HEAD^
+              fi
+            else
+              echo "::warning::CHANGELOG [Unreleased] header not found in the expected shape — tagging without the roll."
+              git checkout -- CHANGELOG.md
+            fi
+          else
+            echo "CHANGELOG [Unreleased] has no entries — nothing to roll."
+          fi
+
           git tag -a "$NEXT" -m "Release $NEXT — automated $KIND ($COUNT commits since $LATEST)"
           git push "https://x-access-token:${RELEASE_TOKEN}@github.com/${REPO}.git" "$NEXT"
           echo "Pushed $NEXT."
