@@ -62,6 +62,50 @@ func (p *Provider) String() string {
 	return "anthropic"
 }
 
+// cacheable is the system prompt as a block the API can cache.
+//
+// An agent's request is mostly the same request every time. The tools and the
+// system prompt are byte-identical from one turn to the next — for a caller
+// with a hundred tools that is tens of thousands of tokens re-sent, and
+// re-billed at full rate, on every turn and on every round of a tool loop.
+//
+// Anthropic caches the prefix up to a breakpoint, and the order of a request is
+// tools, then system, then messages. So one breakpoint at the end of the system
+// prompt caches the tools as well, which is why there is only one here and it
+// is not on the tools array.
+//
+// A string is still returned where there is nothing worth caching: below the
+// minimum cacheable prefix the API refuses the block, and a caller with no
+// tools and a one-line system prompt is under it. The cost of guessing wrong in
+// that direction is an error; in the other it is a cache miss, which is what
+// was happening anyway.
+func cacheableSystem(system string, tools []map[string]any) any {
+	if strings.TrimSpace(system) == "" {
+		return system
+	}
+	// Roughly four characters to a token, and the smallest prefix the API will
+	// cache is 1024 of them. Tools count towards it because they precede the
+	// breakpoint.
+	size := len(system)
+	for _, t := range tools {
+		if b, err := json.Marshal(t); err == nil {
+			size += len(b)
+		}
+	}
+	if size < minCacheChars {
+		return system
+	}
+	return []map[string]any{{
+		"type":          "text",
+		"text":          system,
+		"cache_control": map[string]any{"type": "ephemeral"},
+	}}
+}
+
+// minCacheChars is the smallest prefix worth asking the API to cache, in
+// characters: 1024 tokens at about four characters each.
+const minCacheChars = 4096
+
 // Generate generates a response from the model
 func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
 	// Build tools for Anthropic format
@@ -81,7 +125,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 	apiReq := map[string]any{
 		"model":      p.opts.Model,
 		"max_tokens": anthropicMaxTokens(p.opts),
-		"system":     req.SystemPrompt,
+		"system":     cacheableSystem(req.SystemPrompt, anthropicTools),
 		"messages":   threadAnthropicMessages(req),
 	}
 	applyReasoningOptions(apiReq, p.opts)
@@ -129,7 +173,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		followUpReq := map[string]any{
 			"model":      p.opts.Model,
 			"max_tokens": anthropicMaxTokens(p.opts),
-			"system":     req.SystemPrompt,
+			"system":     cacheableSystem(req.SystemPrompt, anthropicTools),
 			"messages":   messages,
 		}
 		applyReasoningOptions(followUpReq, p.opts)
@@ -166,7 +210,7 @@ func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.Gener
 	apiReq := map[string]any{
 		"model":      p.opts.Model,
 		"max_tokens": anthropicMaxTokens(p.opts),
-		"system":     req.SystemPrompt,
+		"system":     cacheableSystem(req.SystemPrompt, nil),
 		"messages":   threadAnthropicMessages(req),
 		"stream":     true,
 	}
