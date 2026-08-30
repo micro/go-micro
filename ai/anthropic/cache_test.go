@@ -21,7 +21,7 @@ func TestABigPrefixIsMarkedForCaching(t *testing.T) {
 		})
 	}
 
-	got := cacheableSystem("You are an assistant with tools.", tools)
+	got := cacheableSystem("You are an assistant with tools.", tools, false)
 	blocks, ok := got.([]map[string]any)
 	if !ok {
 		t.Fatalf("system is %T, so nothing is cached", got)
@@ -47,7 +47,7 @@ func TestABigPrefixIsMarkedForCaching(t *testing.T) {
 // second of the four breakpoints a request is allowed for nothing.
 func TestTheToolsAreNotMarkedSeparately(t *testing.T) {
 	tools := []map[string]any{{"name": "a", "description": strings.Repeat("x", 5000)}}
-	cacheableSystem("system", tools)
+	cacheableSystem("system", tools, false)
 	for _, tl := range tools {
 		if _, marked := tl["cache_control"]; marked {
 			t.Error("a tool was marked; the system breakpoint already covers them")
@@ -68,7 +68,7 @@ func TestASmallRequestIsLeftAlone(t *testing.T) {
 		{"empty prompt", "", nil},
 		{"whitespace only", "   \n ", nil},
 	} {
-		got := cacheableSystem(tc.system, tc.tools)
+		got := cacheableSystem(tc.system, tc.tools, false)
 		if _, isString := got.(string); !isString {
 			t.Errorf("%s: system is %T, want a plain string", tc.name, got)
 		}
@@ -80,11 +80,54 @@ func TestASmallRequestIsLeftAlone(t *testing.T) {
 // and would not reach the threshold on its own.
 func TestToolsCountTowardsTheThreshold(t *testing.T) {
 	short := "Be helpful."
-	if _, plain := cacheableSystem(short, nil).(string); !plain {
+	if _, plain := cacheableSystem(short, nil, false).(string); !plain {
 		t.Fatal("a short prompt with no tools should be left alone")
 	}
-	big := []map[string]any{{"name": "a", "description": strings.Repeat("x", minCacheChars)}}
-	if _, plain := cacheableSystem(short, big).(string); plain {
+	big := []map[string]any{{"name": "a", "description": strings.Repeat("x", minCacheBytes)}}
+	if _, plain := cacheableSystem(short, big, false).(string); plain {
 		t.Error("the same short prompt with a big tool list was left uncached")
+	}
+}
+
+// With no system prompt to carry the breakpoint, a large tool catalogue gets
+// it on the last tool instead — otherwise the whole catalogue is re-sent and
+// re-billed on every call of a system-prompt-less caller. The original slice
+// and its maps are left untouched.
+func TestAToolOnlyPrefixIsCachedOnTheLastTool(t *testing.T) {
+	tools := []map[string]any{
+		{"name": "a", "description": strings.Repeat("x", minCacheBytes)},
+		{"name": "b", "description": "small"},
+	}
+
+	marked := cacheableTools(tools, "   ", false)
+	if _, ok := marked[len(marked)-1]["cache_control"]; !ok {
+		t.Fatal("the last tool carries no cache_control, so a tool-only prefix is never cached")
+	}
+	if _, ok := tools[1]["cache_control"]; ok {
+		t.Error("the caller's tool map was mutated")
+	}
+	if _, ok := marked[0]["cache_control"]; ok {
+		t.Error("only the last tool should carry the breakpoint")
+	}
+
+	// With a system prompt present, the system breakpoint covers the tools and
+	// they must not be marked.
+	unmarked := cacheableTools(tools, "You are an assistant.", false)
+	if _, ok := unmarked[len(unmarked)-1]["cache_control"]; ok {
+		t.Error("tools were marked even though the system breakpoint covers them")
+	}
+}
+
+// WithoutCache turns the whole mechanism off: system stays a plain string and
+// tools are never marked, whatever their size.
+func TestNoCacheDisablesEveryBreakpoint(t *testing.T) {
+	big := []map[string]any{{"name": "a", "description": strings.Repeat("x", minCacheBytes)}}
+
+	if _, plain := cacheableSystem("You are an assistant.", big, true).(string); !plain {
+		t.Error("system was wrapped for caching despite NoCache")
+	}
+	marked := cacheableTools(big, "", true)
+	if _, ok := marked[len(marked)-1]["cache_control"]; ok {
+		t.Error("tools were marked despite NoCache")
 	}
 }
