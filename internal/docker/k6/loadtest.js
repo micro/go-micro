@@ -25,7 +25,7 @@ function randomString(length, charset = '') {
 
 const USERNAME = __ENV.MICRO_ADMIN_USER || 'admin';
 const PASSWORD = __ENV.MICRO_ADMIN_PASSWORD || 'micro';
-const BASE_URL = __ENV.BASE_URL || 'http://micro-run:8080';
+const BASE_URL = __ENV.BASE_URL || 'http://micro-gw:8080';
 
 export function setup() {
   const res = http.post(
@@ -43,7 +43,7 @@ export function setup() {
   return authToken;
 }
 
-export default function (authToken) {
+export default function(authToken) {
   const headers = (tag) => ({
     headers: {
       Authorization: `Bearer ${authToken}`,

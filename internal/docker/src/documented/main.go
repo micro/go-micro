@@ -10,13 +10,20 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
+	"strings"
 	"sync"
 
+	natslib "github.com/nats-io/nats.go"
 	"go-micro.dev/v6"
+	"go-micro.dev/v6/broker"
 	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
+	_ "go-micro.dev/v6/otel"
+	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/registry/nats"
 	"go-micro.dev/v6/server"
+	ntx "go-micro.dev/v6/transport/nats"
 )
 
 // User represents a user in the system
@@ -100,17 +107,22 @@ func (u *Users) CreateUser(ctx context.Context, req *CreateUserRequest, rsp *Cre
 }
 
 func main() {
+	regAddr := strings.Split(os.Getenv("MICRO_REGISTRY_ADDRESS"), ",")
+	brokAddr := strings.Split(os.Getenv("MICRO_BROKER_ADDRESS"), ",")
+	natsAddr := strings.Split(os.Getenv("MICRO_TRANSPORT_ADDRESS"), ",")
+	mcpAddr := os.Getenv("MICRO_MCP_ADDRESS")
 	// Create service
-	rnats := nats.NewNatsRegistry()
-	bnats := natsbroker.NewNatsBroker()
-	service := micro.NewService(
-		"users",
-		micro.Address(":9090"),
-		// Start MCP gateway alongside the service
-		mcp.WithMCP(":3000"),
+	rnats := nats.NewNatsRegistry(registry.Addrs(regAddr...))
+	bnats := natsbroker.NewNatsBroker(broker.Addrs(brokAddr...))
+	opts := []micro.Option{
 		micro.Registry(rnats),
 		micro.Broker(bnats),
-	)
+		micro.Transport(ntx.NewTransport(ntx.Options(natslib.Options{Servers: natsAddr}))),
+	}
+	if mcpAddr != "" {
+		opts = append(opts, mcp.WithMCP(mcpAddr))
+	}
+	service := micro.NewService("users", opts...)
 
 	service.Init()
 
@@ -130,7 +142,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	slog.Info("started", "service", "users", "mcp", "http://localhost:3000/mcp/tools")
+	slog.Info("started", "service", "users", "mcp", mcpAddr)
 
 	// Run service
 	if err := service.Run(); err != nil {

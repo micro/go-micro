@@ -31,16 +31,22 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	natslib "github.com/nats-io/nats.go"
 	"go-micro.dev/v6"
+	"go-micro.dev/v6/broker"
 	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
+	_ "go-micro.dev/v6/otel"
+	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/registry/nats"
 	"go-micro.dev/v6/server"
+	ntx "go-micro.dev/v6/transport/nats"
 )
 
 // ---------------------------------------------------------------------------
@@ -694,15 +700,21 @@ func (s *Mail) Read(ctx context.Context, req *ReadMailRequest, rsp *ReadMailResp
 // ---------------------------------------------------------------------------
 
 func main() {
-	rnats := nats.NewNatsRegistry()
-	bnats := natsbroker.NewNatsBroker()
-	service := micro.NewService(
-		"platform",
-		micro.Address(":9092"),
-		mcp.WithMCP(":3003"),
+	regAddr := strings.Split(os.Getenv("MICRO_REGISTRY_ADDRESS"), ",")
+	brokAddr := strings.Split(os.Getenv("MICRO_BROKER_ADDRESS"), ",")
+	natsAddr := strings.Split(os.Getenv("MICRO_TRANSPORT_ADDRESS"), ",")
+	mcpAddr := os.Getenv("MICRO_MCP_ADDRESS")
+	rnats := nats.NewNatsRegistry(registry.Addrs(regAddr...))
+	bnats := natsbroker.NewNatsBroker(broker.Addrs(brokAddr...))
+	opts := []micro.Option{
 		micro.Registry(rnats),
 		micro.Broker(bnats),
-	)
+		micro.Transport(ntx.NewTransport(ntx.Options(natslib.Options{Servers: natsAddr}))),
+	}
+	if mcpAddr != "" {
+		opts = append(opts, mcp.WithMCP(mcpAddr))
+	}
+	service := micro.NewService("platform", opts...)
 	service.Init()
 
 	users := NewUsers()
@@ -760,7 +772,6 @@ func seedData(users *Users, posts *Posts) {
 func printBanner() {
 	slog.Info("started",
 		"service", "platform",
-		"addr", ":9092",
 		"mcp", "http://localhost:3003/mcp/tools",
 		"seeded", "alice (user-1), bob (user-2), 1 post [welcome, go-micro]",
 	)

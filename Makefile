@@ -33,7 +33,7 @@ help:
 	@echo "  make clean         - Clean build artifacts"
 
 $(NAME):
-	CGO_ENABLED=0 go build -ldflags "-s -w ${LDFLAGS}" -o $(NAME) cmd/micro/main.go
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w ${LDFLAGS}" -o $(NAME) cmd/micro/main.go
 
 # Run tests
 test:

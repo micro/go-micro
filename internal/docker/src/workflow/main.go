@@ -22,14 +22,20 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	natslib "github.com/nats-io/nats.go"
 	"go-micro.dev/v6"
+	"go-micro.dev/v6/broker"
 	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
+	_ "go-micro.dev/v6/otel"
+	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/registry/nats"
+	ntx "go-micro.dev/v6/transport/nats"
 )
 
 // ---------------------------------------------------------------------------
@@ -350,15 +356,21 @@ func (s *NotificationService) List(ctx context.Context, req *ListNotificationsRe
 // ---------------------------------------------------------------------------
 
 func main() {
-	rnats := nats.NewNatsRegistry()
-	bnats := natsbroker.NewNatsBroker()
-	service := micro.NewService(
-		"shop",
-		micro.Address(":9093"),
-		mcp.WithMCP(":3004"),
+	regAddr := strings.Split(os.Getenv("MICRO_REGISTRY_ADDRESS"), ",")
+	brokAddr := strings.Split(os.Getenv("MICRO_BROKER_ADDRESS"), ",")
+	natsAddr := strings.Split(os.Getenv("MICRO_TRANSPORT_ADDRESS"), ",")
+	mcpAddr := os.Getenv("MICRO_MCP_ADDRESS")
+	rnats := nats.NewNatsRegistry(registry.Addrs(regAddr...))
+	bnats := natsbroker.NewNatsBroker(broker.Addrs(brokAddr...))
+	opts := []micro.Option{
 		micro.Registry(rnats),
 		micro.Broker(bnats),
-	)
+		micro.Transport(ntx.NewTransport(ntx.Options(natslib.Options{Servers: natsAddr}))),
+	}
+	if mcpAddr != "" {
+		opts = append(opts, mcp.WithMCP(mcpAddr))
+	}
+	service := micro.NewService("shop", opts...)
 	service.Init()
 
 	inventory := &InventoryService{products: map[string]*Product{

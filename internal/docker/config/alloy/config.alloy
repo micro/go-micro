@@ -11,7 +11,7 @@ prometheus.remote_write "prometheus" {
 
 prometheus.scrape "go_services" {
   targets = [
-    { "__address__" = "micro-run:8080" },
+    { "__address__" = "micro-gw:8080" },
   ]
   forward_to      = [prometheus.remote_write.prometheus.receiver]
   scrape_interval = "15s"
@@ -32,7 +32,7 @@ discovery.docker "containers" {
 }
 
 // Map each container's logs to its compose service name
-// (/docker-micro-run-1 → micro-run) so Grafana service pages work.
+// (/docker-micro-gw-1 → micro-gw) so Grafana service pages work.
 discovery.relabel "containers" {
   targets = discovery.docker.containers.targets
 
@@ -92,7 +92,7 @@ pyroscope.write "pyroscope" {
 // catch-all answers text/html, which pyroscope.scrape rejects.
 pyroscope.scrape "go_services" {
   targets = [
-    { "__address__" = "micro-run:6060", "service_name" = "micro-run" },
+    { "__address__" = "micro-gw:6060", "service_name" = "micro-gw" },
   ]
   forward_to = [pyroscope.write.pyroscope.receiver]
 }

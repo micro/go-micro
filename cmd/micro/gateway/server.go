@@ -13,6 +13,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -404,6 +405,15 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 
 	// Prometheus scrape endpoint (Alloy scrapes micro-run:8080)
 	mux.Handle("/metrics", promhttp.Handler())
+
+	// pprof endpoints on the gateway mux so Pyroscope (via Alloy) can scrape
+	// continuous profiles from the compose gateway without a dedicated :6060
+	// listener (that only exists under `micro run`, not in docker).
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
 	// Serve static files with correct Content-Type
 	mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {

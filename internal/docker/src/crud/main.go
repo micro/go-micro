@@ -14,16 +14,24 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
 	"strings"
 	"sync"
 
+	natslib "github.com/nats-io/nats.go"
 	"go-micro.dev/v6"
+	"go-micro.dev/v6/broker"
 	natsbroker "go-micro.dev/v6/broker/nats"
 	"go-micro.dev/v6/gateway/mcp"
+	_ "go-micro.dev/v6/otel"
+	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/registry/nats"
+	gmservice "go-micro.dev/v6/service"
+	ntx "go-micro.dev/v6/transport/nats"
 )
 
 // --- Types ---
@@ -100,10 +108,11 @@ type Contacts struct {
 	mu      sync.RWMutex
 	store   map[string]*Contact
 	counter int
+	br      broker.Broker
 }
 
-func NewContacts() *Contacts {
-	c := &Contacts{store: make(map[string]*Contact)}
+func NewContacts(br broker.Broker) *Contacts {
+	c := &Contacts{store: make(map[string]*Contact), br: br}
 	// Seed with example data
 	c.store["c-1"] = &Contact{ID: "c-1", Name: "Alice Johnson", Email: "alice@example.com", Phone: "+1-555-0101", Role: "Engineer", Notes: "Backend team lead"}
 	c.store["c-2"] = &Contact{ID: "c-2", Name: "Bob Smith", Email: "bob@example.com", Phone: "+1-555-0102", Role: "Designer", Notes: "UI/UX specialist"}
@@ -138,6 +147,18 @@ func (h *Contacts) Create(ctx context.Context, req *CreateRequest, rsp *CreateRe
 	}
 	h.store[id] = contact
 	rsp.Contact = contact
+
+	// Broadcast a broker event so other services can react to the new contact.
+	if h.br != nil {
+		body, err := json.Marshal(contact)
+		if err == nil {
+			h.br.Publish("contacts.created", &broker.Message{
+				Header: map[string]string{"service": "contacts", "type": "created"},
+				Body:   body,
+			})
+		}
+	}
+
 	return nil
 }
 
@@ -255,24 +276,44 @@ func (h *Contacts) Search(ctx context.Context, req *SearchRequest, rsp *SearchRe
 }
 
 func main() {
-	rnats := nats.NewNatsRegistry()
-	bnats := natsbroker.NewNatsBroker()
-	service := micro.NewService(
-		"contacts",
-		micro.Address(":9010"),
-		mcp.WithMCP(":3001"),
+	regAddr := strings.Split(os.Getenv("MICRO_REGISTRY_ADDRESS"), ",")
+	brokAddr := strings.Split(os.Getenv("MICRO_BROKER_ADDRESS"), ",")
+	natsAddr := strings.Split(os.Getenv("MICRO_TRANSPORT_ADDRESS"), ",")
+	mcpAddr := os.Getenv("MICRO_MCP_ADDRESS")
+	rnats := nats.NewNatsRegistry(registry.Addrs(regAddr...))
+	bnats := natsbroker.NewNatsBroker(broker.Addrs(brokAddr...))
+	opts := []micro.Option{
 		micro.Registry(rnats),
 		micro.Broker(bnats),
+		micro.Transport(ntx.NewTransport(ntx.Options(natslib.Options{Servers: natsAddr}))),
+	}
+	if mcpAddr != "" {
+		opts = append(opts, mcp.WithMCP(mcpAddr))
+	}
+	var svc micro.Service
+	svc = micro.NewService("contacts",
+		append(opts,
+			// Broker event exchange: subscribe to contact events in AfterStart
+			// (fires after the server/registry/broker come up, so the NATS
+			// broker is connected) so the service reacts to created contacts.
+			gmservice.AfterStart(func() error {
+				_, err := svc.Options().Broker.Subscribe("contacts.created", func(ev broker.Event) error {
+					slog.Info("broker event received", "topic", ev.Topic(), "body", string(ev.Message().Body))
+					return ev.Ack()
+				})
+				return err
+			}),
+		)...,
 	)
-	service.Init()
+	svc.Init()
 
-	if err := service.Handle(NewContacts()); err != nil {
+	if err := svc.Handle(NewContacts(svc.Options().Broker)); err != nil {
 		log.Fatal(err)
 	}
 
-	slog.Info("started", "service", "contacts", "addr", ":9010", "mcp", "http://localhost:3001/mcp/tools")
+	slog.Info("started", "service", "contacts", "mcp", mcpAddr)
 
-	if err := service.Run(); err != nil {
+	if err := svc.Run(); err != nil {
 		log.Fatal(err)
 	}
 }

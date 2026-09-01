@@ -4,20 +4,20 @@
   "metadata": {
     "name": "go-micro-overview",
     "namespace": "default",
-    "uid": "499ce1d1-8980-49ca-aafc-c824d4a570cd",
-    "resourceVersion": "1787671266079996",
+    "uid": "4ec860f9-66ac-408f-a357-1a114efc887a",
+    "resourceVersion": "1788267008491990",
     "generation": 1,
-    "creationTimestamp": "2026-08-25T15:21:06Z",
+    "creationTimestamp": "2026-09-01T12:50:08Z",
     "labels": {
-      "grafana.app/deprecatedInternalID": "2600825343975424"
+      "grafana.app/deprecatedInternalID": "595950505533440"
     },
     "annotations": {
       "grafana.app/createdBy": "access-policy:service",
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerId": "default",
-      "grafana.app/sourceChecksum": "5966ad13c2fb7c3afe2bdc8c18ec12ad",
+      "grafana.app/sourceChecksum": "a16781ecce32627095d5ded1c2aa637b",
       "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/json/overview.json",
-      "grafana.app/sourceTimestamp": "1787649449000",
+      "grafana.app/sourceTimestamp": "1787729645000",
       "grafana.app/folder": ""
     }
   },
@@ -161,7 +161,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -294,7 +296,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -410,7 +414,10 @@
                   "multiLane": false
                 },
                 "legend": {
-                  "calcs": ["mean", "max"],
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
                   "displayMode": "table",
                   "enableFacetedFilter": false,
                   "overflow": "ellipsis",
@@ -502,7 +509,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -589,7 +598,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -676,7 +687,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -763,7 +776,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -848,7 +863,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -933,7 +950,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -1028,7 +1047,9 @@
                 "namePlacement": "auto",
                 "orientation": "horizontal",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -1060,7 +1081,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "gnatsd_connz_total{}",
+                        "expr": "sum(gnatsd_connz_total{})",
                         "legendFormat": "connections",
                         "range": true
                       },
@@ -1097,7 +1118,7 @@
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
-                    "gradientMode": "none",
+                    "gradientMode": "hue",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
@@ -1110,7 +1131,7 @@
                     "scaleDistribution": {
                       "type": "linear"
                     },
-                    "showPoints": "never",
+                    "showPoints": "auto",
                     "showValues": false,
                     "spanNulls": false,
                     "stacking": {
@@ -1121,6 +1142,7 @@
                       "mode": "off"
                     }
                   },
+                  "fieldMinMax": false,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1144,7 +1166,10 @@
                   "multiLane": false
                 },
                 "legend": {
-                  "calcs": ["mean", "max"],
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
                   "displayMode": "table",
                   "enableFacetedFilter": false,
                   "overflow": "ellipsis",
@@ -1152,7 +1177,7 @@
                   "showLegend": true
                 },
                 "tooltip": {
-                  "hideZeros": false,
+                  "hideZeros": true,
                   "mode": "multi",
                   "sort": "desc"
                 }
@@ -1202,7 +1227,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(rate(gnatsd_varz_out_msgs[1m]))",
+                        "expr": "-sum(rate(gnatsd_varz_out_msgs[1m]))",
                         "legendFormat": "out",
                         "range": true
                       },
@@ -1231,9 +1256,9 @@
                   },
                   "custom": {
                     "axisBorderShow": false,
-                    "axisCenteredZero": false,
+                    "axisCenteredZero": true,
                     "axisColorMode": "text",
-                    "axisLabel": "",
+                    "axisLabel": "- Out / +In",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
@@ -1286,7 +1311,10 @@
                   "multiLane": false
                 },
                 "legend": {
-                  "calcs": ["mean", "max"],
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
                   "displayMode": "table",
                   "enableFacetedFilter": false,
                   "overflow": "ellipsis",
@@ -1344,7 +1372,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum(rate(gnatsd_varz_out_bytes[1m]))",
+                        "expr": "-sum(rate(gnatsd_varz_out_bytes[1m]))",
                         "legendFormat": "bytes out",
                         "range": true
                       },
@@ -1375,13 +1403,13 @@
                     "axisBorderShow": false,
                     "axisCenteredZero": false,
                     "axisColorMode": "text",
-                    "axisLabel": "",
+                    "axisLabel": "- Out / +In",
                     "axisPlacement": "auto",
                     "barAlignment": 0,
                     "barWidthFactor": 0.6,
                     "drawStyle": "line",
                     "fillOpacity": 20,
-                    "gradientMode": "none",
+                    "gradientMode": "opacity",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
@@ -1428,7 +1456,10 @@
                   "multiLane": false
                 },
                 "legend": {
-                  "calcs": ["mean", "max"],
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
                   "displayMode": "table",
                   "enableFacetedFilter": false,
                   "overflow": "ellipsis",
@@ -1549,7 +1580,10 @@
                   "multiLane": false
                 },
                 "legend": {
-                  "calcs": ["mean", "max"],
+                  "calcs": [
+                    "mean",
+                    "max"
+                  ],
                   "displayMode": "table",
                   "enableFacetedFilter": false,
                   "overflow": "ellipsis",
@@ -1689,7 +1723,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -1816,7 +1852,9 @@
                 "orientation": "auto",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -1920,7 +1958,9 @@
                 "orientation": "horizontal",
                 "percentChangeColorMode": "standard",
                 "reduceOptions": {
-                  "calcs": ["lastNotNull"],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "fields": "",
                   "values": false
                 },
@@ -2209,7 +2249,11 @@
     "links": [],
     "liveNow": false,
     "preload": false,
-    "tags": ["go-micro", "overview", "observability"],
+    "tags": [
+      "go-micro",
+      "overview",
+      "observability"
+    ],
     "timeSettings": {
       "autoRefresh": "30s",
       "autoRefreshIntervals": [
@@ -2238,8 +2282,12 @@
           "allValue": ".*",
           "allowCustomValue": true,
           "current": {
-            "text": ["All"],
-            "value": ["$__all"]
+            "text": [
+              "All"
+            ],
+            "value": [
+              "$__all"
+            ]
           },
           "definition": "label_values(traces_spanmetrics_calls_total, service)",
           "hide": "dontHide",
@@ -2298,8 +2346,14 @@
         "spec": {
           "allowCustomValue": true,
           "current": {
-            "text": ["error", "warn"],
-            "value": ["error", "warn"]
+            "text": [
+              "error",
+              "warn"
+            ],
+            "value": [
+              "error",
+              "warn"
+            ]
           },
           "hide": "dontHide",
           "includeAll": false,

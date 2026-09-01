@@ -12,7 +12,7 @@ The simplest possible MCP-enabled go-micro service.
 ## Run It
 
 ```bash
-cd examples/mcp/hello
+cd src/hello
 go run main.go
 ```
 

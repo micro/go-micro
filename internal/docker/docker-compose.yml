@@ -8,13 +8,33 @@ x-micro: &micro-build
     additional_contexts:
       repo: ../..
 
-# Shared registry/broker for all containers: NATS (see the nats service
-# below). MICRO_REGISTRY/MICRO_BROKER point every service at it.
+# Shared registry/broker/transport for all containers: NATS (see the nats
+# services below). MICRO_REGISTRY/MICRO_BROKER/MICRO_TRANSPORT + node addresses
+# + OTLP are defined once per nats node so every service merges a single source
+# of truth — no per-service NATS address duplication.
 x-nats: &nats-env
   MICRO_REGISTRY: "nats"
-  MICRO_REGISTRY_ADDRESS: "nats://nats-0:4222"
   MICRO_BROKER: "nats"
+  MICRO_TRANSPORT: "nats"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+
+x-nats-0: &nats-0-env
+  <<: *nats-env
+  MICRO_REGISTRY_ADDRESS: "nats://nats-0:4222"
   MICRO_BROKER_ADDRESS: "nats://nats-0:4222"
+  MICRO_TRANSPORT_ADDRESS: "nats://nats-0:4222"
+
+x-nats-1: &nats-1-env
+  <<: *nats-env
+  MICRO_REGISTRY_ADDRESS: "nats://nats-1:4222"
+  MICRO_BROKER_ADDRESS: "nats://nats-1:4222"
+  MICRO_TRANSPORT_ADDRESS: "nats://nats-1:4222"
+
+x-nats-2: &nats-2-env
+  <<: *nats-env
+  MICRO_REGISTRY_ADDRESS: "nats://nats-2:4222"
+  MICRO_BROKER_ADDRESS: "nats://nats-2:4222"
+  MICRO_TRANSPORT_ADDRESS: "nats://nats-2:4222"
 
 x-logging: &default-logging
   logging:
@@ -110,7 +130,7 @@ services:
   # Runs the services from /repo/micro.mu plus the HTTP/MCP gateways.
   # Builds the micro CLI from the repo root (same as the x-micro anchor;
   # spelled out because YAML forbids two merge keys in one mapping).
-  micro-run:
+  micro-gw:
     build:
       context: .
       dockerfile: Dockerfile
@@ -119,7 +139,7 @@ services:
     working_dir: /repo
     restart: unless-stopped
     environment:
-      <<: *nats-env
+      <<: *nats-0-env
       MICRO_AI_PROVIDER: "openai"
       MICRO_AI_BASE_URL: "http://llama:8000"
       MICRO_AI_MODEL: "any"
@@ -127,12 +147,11 @@ services:
       MICRO_ADMIN_USER: "admin"
       MICRO_ADMIN_PASSWORD: "micro"
       MICRO_LOG_LEVEL: "debug"
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
-      OTEL_SERVICE_NAME: "go-micro-run"
+      OTEL_SERVICE_NAME: "go-micro-gw"
     volumes:
       - ./src:/repo
       # Repo source for the `replace go-micro.dev/v6 => /src` directives in
-      # src/*/go.mod — services built by `micro run` compile against the same
+      # src/*/go.mod — services built by `micro gateway` compile against the same
       # (patched) library as the micro CLI image.
       - ../..:/src:ro
       - micro-run-state:/root/micro/run
@@ -142,7 +161,97 @@ services:
       - "3000:3000"
     depends_on:
       - nats-0
-    command: run --detach --address :8080 --mcp-address :3000
+    command: gateway -address :8080 --mcp-address :3000
+    <<: *default-logging
+
+  # --- Example services (from micro.mu) ---
+
+  contacts:
+    build:
+      context: ./src/crud
+      additional_contexts:
+        repo: ../..
+    restart: unless-stopped
+    environment:
+      <<: *nats-0-env
+      # Static NATS subject = stable service address (server listens on this
+      # subject, registry advertises it, clients dial it). No container IP:
+      # with the nats transport the address is purely a subject string.
+      MICRO_SERVER_ADDRESS: "contacts:8081"
+      MICRO_MCP_ADDRESS: "0.0.0.0:9081"
+      OTEL_SERVICE_NAME: "docker-contacts"
+    ports:
+      - "9081:9081"
+    depends_on:
+      - nats-0
+    <<: *default-logging
+
+  greeter:
+    build:
+      context: ./src/hello
+      additional_contexts:
+        repo: ../..
+    restart: unless-stopped
+    environment:
+      <<: *nats-1-env
+      MICRO_SERVER_ADDRESS: "greeter:8082"
+      MICRO_MCP_ADDRESS: "0.0.0.0:9082"
+      OTEL_SERVICE_NAME: "docker-greeter"
+    ports:
+      - "9082:9082"
+    depends_on:
+      - nats-1
+    <<: *default-logging
+
+  users:
+    build:
+      context: ./src/documented
+      additional_contexts:
+        repo: ../..
+    restart: unless-stopped
+    environment:
+      <<: *nats-2-env
+      MICRO_SERVER_ADDRESS: "users:8083"
+      MICRO_MCP_ADDRESS: "0.0.0.0:9083"
+      OTEL_SERVICE_NAME: "docker-users"
+    ports:
+      - "9083:9083"
+    depends_on:
+      - nats-2
+    <<: *default-logging
+
+  platform:
+    build:
+      context: ./src/platform
+      additional_contexts:
+        repo: ../..
+    restart: unless-stopped
+    environment:
+      <<: *nats-0-env
+      MICRO_SERVER_ADDRESS: "platform:8084"
+      MICRO_MCP_ADDRESS: "0.0.0.0:9084"
+      OTEL_SERVICE_NAME: "docker-platform"
+    ports:
+      - "9084:9084"
+    depends_on:
+      - nats-0
+    <<: *default-logging
+
+  shop:
+    build:
+      context: ./src/workflow
+      additional_contexts:
+        repo: ../..
+    restart: unless-stopped
+    environment:
+      <<: *nats-1-env
+      MICRO_SERVER_ADDRESS: "shop:8085"
+      MICRO_MCP_ADDRESS: "0.0.0.0:9085"
+      OTEL_SERVICE_NAME: "docker-shop"
+    ports:
+      - "9085:9085"
+    depends_on:
+      - nats-1
     <<: *default-logging
 
   # --- Observability stack ---
@@ -251,7 +360,7 @@ services:
       - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
     <<: *default-logging
 
-  # REST API load test against the micro-run gateway (k6/loadtest.js).
+  # REST API load test against the micro-gw gateway (k6/loadtest.js).
   # One-shot run: docker compose --profile test up k6
   # Scaled:       VUS=10 ITERATIONS=50 docker compose --profile test up k6
   # Ramp stress:  docker compose --profile test run --rm k6 run /scripts/stress.js
@@ -261,7 +370,7 @@ services:
     profiles:
       - test
     environment:
-      - BASE_URL=http://micro-run:8080
+      - BASE_URL=http://micro-gw:8080
       - MICRO_ADMIN_USER=${MICRO_ADMIN_USER:-admin}
       - MICRO_ADMIN_PASSWORD=${MICRO_ADMIN_PASSWORD:-micro}
       - VUS=${VUS:-10}
@@ -269,13 +378,18 @@ services:
     volumes:
       - ./k6:/scripts:ro
     depends_on:
-      - micro-run
+      - micro-gw
+      - contacts
+      - greeter
+      - users
+      - platform
+      - shop
     command:
       - run
       - /scripts/loadtest.js
     <<: *default-logging
 
-  # Ramp stress test against the micro-run gateway (k6/stress.js).
+  # Ramp stress test against the micro-gw gateway (k6/stress.js).
   # Run: docker compose --profile test up k6-stress
   k6-stress:
     image: grafana/k6:latest
@@ -283,13 +397,18 @@ services:
     profiles:
       - test
     environment:
-      - BASE_URL=http://micro-run:8080
+      - BASE_URL=http://micro-gw:8080
       - MICRO_ADMIN_USER=${MICRO_ADMIN_USER:-admin}
       - MICRO_ADMIN_PASSWORD=${MICRO_ADMIN_PASSWORD:-micro}
     volumes:
       - ./k6:/scripts:ro
     depends_on:
-      - micro-run
+      - micro-gw
+      - contacts
+      - greeter
+      - users
+      - platform
+      - shop
     command:
       - run
       - /scripts/stress.js
