@@ -573,6 +573,77 @@ func TestAgentRunTimelineRecordsModelAndToolWithoutTraceProvider(t *testing.T) {
 	}
 }
 
+// A caller can watch the run as it happens, which is what billing needs: the
+// tokens a model used are known when it returns, and a ledger cannot read back
+// a timeline it does not have the run id of.
+func TestOnRunEventObservesModelTokensAsTheyHappen(t *testing.T) {
+	var events []RunEvent
+	st := store.NewMemoryStore()
+	a := New(Name("observed"), Provider("oteltest"), WithStore(st),
+		OnRunEvent(func(e RunEvent) { events = append(events, e) }),
+		WithTool("probe", "probe", nil, func(context.Context, map[string]any) (string, error) { return "ok", nil }))
+	if _, err := a.Ask(context.Background(), "hello"); err != nil {
+		t.Fatal(err)
+	}
+
+	var model *RunEvent
+	seen := map[string]bool{}
+	for i, e := range events {
+		seen[e.Kind] = true
+		if e.Kind == "model" {
+			model = &events[i]
+		}
+	}
+	for _, kind := range []string{"run", "model", "tool", "done"} {
+		if !seen[kind] {
+			t.Fatalf("no %s event reached the observer: %#v", kind, events)
+		}
+	}
+	if model == nil {
+		t.Fatal("no model event")
+	}
+	// The tokens are the point. An observer that gets called with an empty
+	// Usage is the same as not being called.
+	if model.Tokens.InputTokens != 2 || model.Tokens.OutputTokens != 3 {
+		t.Errorf("model event carries no usage: %#v", model.Tokens)
+	}
+	if model.Model == "" && model.Provider == "" {
+		t.Errorf("model event names neither provider nor model, so nothing can price it: %#v", model)
+	}
+
+	// And the store still has the timeline: the observer is in addition to the
+	// record, not instead of it.
+	summaries, err := ListRunSummaries(st, "observed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 1 {
+		t.Fatalf("got %d summaries, want 1", len(summaries))
+	}
+}
+
+// The traced path funnels through the same place, so a caller does not get a
+// different set of events for having configured tracing.
+func TestOnRunEventFiresWithATraceProvider(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	var kinds []string
+	a := New(Name("observed-traced"), Provider("oteltest"), WithStore(store.NewMemoryStore()),
+		TraceProvider(trace.NewTracerProvider(trace.WithSyncer(exp))),
+		OnRunEvent(func(e RunEvent) { kinds = append(kinds, e.Kind) }))
+	if _, err := a.Ask(context.Background(), "hello"); err != nil {
+		t.Fatal(err)
+	}
+	var haveModel bool
+	for _, k := range kinds {
+		if k == "model" {
+			haveModel = true
+		}
+	}
+	if !haveModel {
+		t.Fatalf("no model event with a TraceProvider set: %v", kinds)
+	}
+}
+
 func TestAgentCheckpointAndResumeTimelineEvents(t *testing.T) {
 	exp := tracetest.NewInMemoryExporter()
 	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
