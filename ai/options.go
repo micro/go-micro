@@ -24,7 +24,7 @@ type Options struct {
 	Thinking ThinkingMode
 	// Effort controls reasoning depth for providers that support it.
 	Effort string
-// Transport is the HTTP round tripper used by providers that make live
+	// Transport is the HTTP round tripper used by providers that make live
 	// API calls. Nil uses the standard library default transport. Inject a
 	// fake for tests.
 	Transport http.RoundTripper

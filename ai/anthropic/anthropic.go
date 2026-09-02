@@ -94,8 +94,8 @@ func cacheableSystem(system string, tools []map[string]any, noCache bool) any {
 
 // cacheableTools returns the tools with a cache breakpoint on the last one,
 // but only when the system prompt cannot carry it: a request with an empty
-// system prompt and a large, stable tool catalogue is still worth caching,
-// and without this the whole catalogue would be re-sent and re-billed on
+// system prompt and a large, stable tool catalog is still worth caching,
+// and without this the whole catalog would be re-sent and re-billed on
 // every call. When a system prompt is present, cacheableSystem's single
 // breakpoint already covers the tools, and marking them again would spend a
 // second of the four breakpoints a request gets for nothing.
@@ -117,7 +117,7 @@ func cacheableTools(tools []map[string]any, system string, noCache bool) []map[s
 }
 
 // cachePrefixSize estimates the byte size of the cacheable prefix. The tools
-// are marshalled once as a slice — the real request marshals them again in
+// are marshaled once as a slice — the real request marshals them again in
 // callAPI, so this stays an estimate, not a second serialization per tool.
 func cachePrefixSize(system string, tools []map[string]any) int {
 	size := len(system)
@@ -130,7 +130,7 @@ func cachePrefixSize(system string, tools []map[string]any) int {
 }
 
 // minCacheBytes is the smallest prefix worth asking the API to cache, in
-// bytes (len of the UTF-8 text and marshalled tools, not characters): the
+// bytes (len of the UTF-8 text and marshaled tools, not characters): the
 // API's minimum cacheable prefix is 1024 tokens, at roughly four bytes each.
 const minCacheBytes = 4096
 

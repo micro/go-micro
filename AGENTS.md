@@ -7,7 +7,7 @@ Repo-wide instructions.
 For PR-focused Codex tasks:
 
 1. Focus changes on issue/prompt.
-2. Run verification (`go build ./...`, `go test ./...`, `golangci-lint run ./...`).
+2. Run verification (`go fmt ./...`, `go build ./...`, `go test ./...`, `golangci-lint run ./...`).
 3. Check `git status --short` and diff.
 4. Branch under `codex/` (not `master` or `work`):
 
