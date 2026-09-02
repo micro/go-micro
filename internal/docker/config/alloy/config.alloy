@@ -87,12 +87,12 @@ pyroscope.write "pyroscope" {
   }
 }
 
-// micro run serves pprof on an internal listener (:6060, unpublished in
-// compose). The gateway :8080 mux has no pprof routes — its dashboard
-// catch-all answers text/html, which pyroscope.scrape rejects.
+// Gateway serves pprof on its :8080 mux (debug/profile/http).
+// Other services are standalone binaries without pprof — add targets
+// when they register debug handlers.
 pyroscope.scrape "go_services" {
   targets = [
-    { "__address__" = "micro-gw:6060", "service_name" = "micro-gw" },
+    { "__address__" = "micro-gw:8080", "__profile_path__" = "/debug/pprof/allocs", "__scheme__" = "http", "service_name" = "micro-gw" },
   ]
   forward_to = [pyroscope.write.pyroscope.receiver]
 }
