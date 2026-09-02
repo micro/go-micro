@@ -460,6 +460,19 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 				ToolCalls []atlasToolCall `json:"tool_calls"`
 			} `json:"message"`
 		} `json:"choices"`
+		// Token counts, which the API returns on every completion and this
+		// struct did not ask for.
+		//
+		// ai.Response has carried a Usage field from the start and the
+		// streaming path fills it in (see the final chunk after
+		// include_usage), so a caller metering spend got real numbers from a
+		// stream and zeroes from a plain Generate — indistinguishable from a
+		// call that cost nothing. An agent runs on Generate.
+		Usage struct {
+			PromptTokens     int `json:"prompt_tokens"`
+			CompletionTokens int `json:"completion_tokens"`
+			TotalTokens      int `json:"total_tokens"`
+		} `json:"usage"`
 	}
 
 	if err := json.Unmarshal(respBody, &chatResp); err != nil {
@@ -473,6 +486,11 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 	choice := chatResp.Choices[0]
 	response := &ai.Response{
 		Reply: choice.Message.Content,
+		Usage: ai.Usage{
+			InputTokens:  chatResp.Usage.PromptTokens,
+			OutputTokens: chatResp.Usage.CompletionTokens,
+			TotalTokens:  chatResp.Usage.TotalTokens,
+		},
 	}
 
 	for _, tc := range choice.Message.ToolCalls {
