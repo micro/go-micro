@@ -4,20 +4,20 @@
   "metadata": {
     "name": "go-micro-overview",
     "namespace": "default",
-    "uid": "4ec860f9-66ac-408f-a357-1a114efc887a",
-    "resourceVersion": "1788267008491990",
+    "uid": "1ddb4af1-aae2-44e8-bebb-9ff61daf2c58",
+    "resourceVersion": "1788350371618017",
     "generation": 1,
-    "creationTimestamp": "2026-09-01T12:50:08Z",
+    "creationTimestamp": "2026-09-02T11:59:31Z",
     "labels": {
-      "grafana.app/deprecatedInternalID": "595950505533440"
+      "grafana.app/deprecatedInternalID": "945600797069312"
     },
     "annotations": {
       "grafana.app/createdBy": "access-policy:service",
       "grafana.app/managedBy": "classic-file-provisioning",
       "grafana.app/managerId": "default",
-      "grafana.app/sourceChecksum": "a16781ecce32627095d5ded1c2aa637b",
+      "grafana.app/sourceChecksum": "9b16692d8a32c0bf58f265201e86854d",
       "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/json/overview.json",
-      "grafana.app/sourceTimestamp": "1787729645000",
+      "grafana.app/sourceTimestamp": "1788347482000",
       "grafana.app/folder": ""
     }
   },
@@ -65,7 +65,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum_over_time((sum(increase(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__interval])))[${__range}:${__interval}])",
+                        "expr": "sum_over_time((sum(increase(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__rate_interval])))[${__range}:${__rate_interval}])",
                         "instant": false,
                         "legendFormat": "requests"
                       },
@@ -85,7 +85,7 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "100 * (sum(increase(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[${__range}])) - sum(increase(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[${__range}] offset ${__range_s}s))) / clamp_min(sum(increase(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[${__range}] offset ${__range_s}s)), 0.001)",
+                        "expr": "100 * (sum(increase(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[${__range}])) - sum(increase(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[${__range}] offset ${__range_s}s))) / clamp_min(sum(increase(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[${__range}] offset ${__range_s}s)), 10)",
                         "instant": true,
                         "legendFormat": "Δ prev"
                       },
@@ -194,7 +194,8 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "sum_over_time((100 * (sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__interval])) - sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",status_code!=\"STATUS_CODE_ERROR\",service=~\"$service\"}[$__interval]))) / clamp_min(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__interval])), 0.000001))[${__range}:${__interval}]) / clamp_min(count_over_time((100 * (sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__interval])) - sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",status_code!=\"STATUS_CODE_ERROR\",service=~\"$service\"}[$__interval]))) / clamp_min(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__interval])), 0.000001))[${__range}:${__interval}]), 1)",
+                        "editorMode": "code",
+                        "expr": "sum_over_time((100 * (sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__rate_interval])) - sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",status_code!=\"STATUS_CODE_ERROR\",service=~\"$service\"}[$__rate_interval]))) / clamp_min(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__rate_interval])), 0.000001))[${__range}:${__rate_interval}]) / clamp_min(count_over_time((100 * (sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__rate_interval])) - sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",status_code!=\"STATUS_CODE_ERROR\",service=~\"$service\"}[$__rate_interval]))) / clamp_min(sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__rate_interval])), 0.000001))[${__range}:${__rate_interval}]), 1)",
                         "instant": false,
                         "legendFormat": "error rate"
                       },
@@ -277,10 +278,6 @@
                             {
                               "color": "green",
                               "value": 0
-                            },
-                            {
-                              "color": "red",
-                              "value": 0.5
                             }
                           ]
                         }
@@ -330,7 +327,7 @@
                       "kind": "DataQuery",
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (service) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__interval]))",
+                        "expr": "sum by (service) (rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__rate_interval]))",
                         "legendFormat": "{{service}}",
                         "range": true
                       },
@@ -487,14 +484,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 10
-                      },
-                      {
-                        "color": "red",
-                        "value": 50
                       }
                     ]
                   },
@@ -576,14 +565,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 1000
-                      },
-                      {
-                        "color": "red",
-                        "value": 10000
                       }
                     ]
                   },
@@ -665,14 +646,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 100
-                      },
-                      {
-                        "color": "red",
-                        "value": 1000
                       }
                     ]
                   },
@@ -746,6 +719,7 @@
               "fieldConfig": {
                 "defaults": {
                   "color": {
+                    "fixedColor": "#ad46ff",
                     "mode": "thresholds"
                   },
                   "thresholds": {
@@ -809,8 +783,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
+                        "editorMode": "code",
                         "expr": "nats_server_slow_consumers",
-                        "legendFormat": ""
+                        "legendFormat": "",
+                        "range": true
                       },
                       "version": "v0"
                     },
@@ -841,14 +817,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 10
-                      },
-                      {
-                        "color": "red",
-                        "value": 50
                       }
                     ]
                   },
@@ -896,8 +864,10 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
+                        "editorMode": "code",
                         "expr": "nats_server_bytes_in_total",
-                        "legendFormat": ""
+                        "legendFormat": "",
+                        "range": true
                       },
                       "version": "v0"
                     },
@@ -928,14 +898,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 104857600
-                      },
-                      {
-                        "color": "red",
-                        "value": 1073741824
                       }
                     ]
                   },
@@ -1020,11 +982,11 @@
                       },
                       {
                         "color": "orange",
-                        "value": 60
+                        "value": 1
                       },
                       {
                         "color": "red",
-                        "value": 80
+                        "value": 5
                       }
                     ]
                   },
@@ -1149,10 +1111,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
                       }
                     ]
                   },
@@ -1294,10 +1252,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
                       }
                     ]
                   },
@@ -1439,10 +1393,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
                       }
                     ]
                   },
@@ -1563,10 +1513,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "red",
-                        "value": 80
                       }
                     ]
                   },
@@ -1619,7 +1565,8 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "avg_over_time(((histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_latency_bucket{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[3m]))) * 1000) > 0)[${__range}:${__interval}])",
+                        "editorMode": "code",
+                        "expr": "avg_over_time(((histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_latency_bucket{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[3m]))) * 1000) > 0)[${__range}:${__rate_interval}])",
                         "instant": false,
                         "legendFormat": "p95"
                       },
@@ -1672,14 +1619,6 @@
                       {
                         "color": "green",
                         "value": 0
-                      },
-                      {
-                        "color": "yellow",
-                        "value": 500
-                      },
-                      {
-                        "color": "red",
-                        "value": 1000
                       }
                     ]
                   },
@@ -1704,10 +1643,6 @@
                             {
                               "color": "green",
                               "value": 0
-                            },
-                            {
-                              "color": "red",
-                              "value": 10
                             }
                           ]
                         }
@@ -1756,7 +1691,8 @@
                       "group": "prometheus",
                       "kind": "DataQuery",
                       "spec": {
-                        "expr": "avg_over_time((sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__interval])))[${__range}:${__interval}])",
+                        "editorMode": "code",
+                        "expr": "avg_over_time((sum(rate(traces_spanmetrics_calls_total{span_kind=\"SPAN_KIND_SERVER\",service=~\"$service\"}[$__rate_interval])))[${__range}:${__rate_interval}])",
                         "instant": false,
                         "legendFormat": "throughput"
                       },
@@ -1938,12 +1874,12 @@
                     "mode": "absolute",
                     "steps": [
                       {
-                        "color": "green",
+                        "color": "red",
                         "value": 0
                       },
                       {
-                        "color": "red",
-                        "value": 80
+                        "color": "green",
+                        "value": 1
                       }
                     ]
                   },

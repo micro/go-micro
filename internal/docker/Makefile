@@ -5,7 +5,10 @@ ADMIN_PASS ?= micro
 VUS       ?= 10
 ITERATIONS ?= 50
 
-.PHONY: test stress
+.PHONY: run test stress
+
+run:
+	docker-compose up -d --force-recreate --remove-orphans --build
 
 test:
 	docker run --rm \
