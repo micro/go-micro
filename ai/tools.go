@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -81,11 +82,22 @@ func (t *Tools) Discover() ([]Tool, error) {
 	}
 
 	var out []Tool
+	seen := map[string]bool{}
 	for _, svc := range services {
+		// ListServices returns one entry per registered version of a service;
+		// resolving each would duplicate every tool once per version.
+		if seen[svc.Name] {
+			continue
+		}
+		seen[svc.Name] = true
 		full, err := t.registry.GetService(svc.Name)
 		if err != nil || len(full) == 0 {
 			continue
 		}
+		// GetService returns the versions in map order. Pick the highest
+		// version so the same one — and therefore the same endpoint schemas
+		// and descriptions — is chosen on every discovery.
+		sort.Slice(full, func(i, j int) bool { return full[i].Version > full[j].Version })
 		for _, ep := range full[0].Endpoints {
 			original := fmt.Sprintf("%s.%s", svc.Name, ep.Name)
 			safe := strings.ReplaceAll(original, ".", "_")
@@ -116,6 +128,18 @@ func (t *Tools) Discover() ([]Tool, error) {
 			})
 		}
 	}
+
+	// Deterministic order. The registry iterates a map, so without this the
+	// tool list is shuffled on every discovery — which silently defeats
+	// provider prompt caching (Anthropic cache_control, Gemini implicit
+	// caching): both key on a byte-identical prefix, and the tool catalogue
+	// is the bulk of that prefix.
+	sort.SliceStable(out, func(i, j int) bool {
+		if out[i].Name != out[j].Name {
+			return out[i].Name < out[j].Name
+		}
+		return out[i].OriginalName < out[j].OriginalName
+	})
 
 	return out, nil
 }

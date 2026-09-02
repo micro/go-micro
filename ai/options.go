@@ -24,10 +24,18 @@ type Options struct {
 	Thinking ThinkingMode
 	// Effort controls reasoning depth for providers that support it.
 	Effort string
-	// Transport is the HTTP round tripper used by providers that make live
+// Transport is the HTTP round tripper used by providers that make live
 	// API calls. Nil uses the standard library default transport. Inject a
 	// fake for tests.
 	Transport http.RoundTripper
+
+	// NoCache disables prompt-prefix caching for providers that support it
+	// (e.g. Anthropic cache_control). Caching is on by default because the
+	// dominant caller — the agent tool loop — re-sends an identical prefix on
+	// every round, repaying the cache write within a single Generate. A
+	// one-off caller whose prompt or tools change every request can opt out,
+	// since cache writes bill at a premium over plain input.
+	NoCache bool
 }
 
 // ThinkingMode controls whether a reasoning-capable model uses extended thinking.
@@ -129,6 +137,13 @@ func WithThinking(mode ThinkingMode) Option {
 
 // WithEffort sets the reasoning effort for providers that support it. An empty
 // value leaves the provider default in place.
+// WithoutCache disables prompt-prefix caching for providers that support it.
+func WithoutCache() Option {
+	return func(o *Options) {
+		o.NoCache = true
+	}
+}
+
 func WithEffort(effort string) Option {
 	return func(o *Options) {
 		o.Effort = effort

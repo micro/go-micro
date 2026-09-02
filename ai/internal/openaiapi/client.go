@@ -78,31 +78,60 @@ func (c *Client) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gener
 	if len(resp.ToolCalls) == 0 {
 		return resp, nil
 	}
+
+	// Tool execution loop: execute tools, send results back, and keep the
+	// tools on offer so the model can take the next step. A follow-up without
+	// "tools" asks the model to continue with its hands tied — the call it
+	// wanted comes back written out as prose — and without a loop a second
+	// step is impossible whatever the model wants. Bounded so a model that
+	// never stops asking cannot run forever.
 	if c.opts.ToolHandler != nil {
 		messages := apiReq["messages"].([]map[string]any)
-		followUpMessages := make([]map[string]any, 0, len(messages)+len(resp.ToolCalls)+1)
-		followUpMessages = append(followUpMessages, messages...)
-		followUpMessages = append(followUpMessages, map[string]any{
-			"role":       "assistant",
-			"content":    rawMessage["content"],
-			"tool_calls": rawMessage["tool_calls"],
-		})
-		for i, tc := range resp.ToolCalls {
-			tr := c.opts.ToolHandler(ctx, tc)
-			resp.ToolCalls[i].Result = tr.Content
+		// Copied rather than aliased: append on a slice that shares an array
+		// with messages would overwrite it on a later round.
+		followUpMessages := append([]map[string]any(nil), messages...)
+		pending := resp.ToolCalls
+		raw := rawMessage
+		for round := 0; len(pending) > 0 && round < MaxToolRounds; round++ {
 			followUpMessages = append(followUpMessages, map[string]any{
-				"role":         "tool",
-				"tool_call_id": tc.ID,
-				"content":      tr.Content,
+				"role":       "assistant",
+				"content":    raw["content"],
+				"tool_calls": raw["tool_calls"],
 			})
-		}
-		followUpResp, _, err := c.callAPI(ctx, c.followUpRequest(followUpMessages))
-		if err == nil && followUpResp.Reply != "" {
-			resp.Answer = followUpResp.Reply
+			for i, tc := range pending {
+				tr := c.opts.ToolHandler(ctx, tc)
+				pending[i].Result = tr.Content
+				followUpMessages = append(followUpMessages, map[string]any{
+					"role":         "tool",
+					"tool_call_id": tc.ID,
+					"content":      tr.Content,
+				})
+			}
+
+			followUpReq := c.followUpRequest(followUpMessages)
+			if len(req.Tools) > 0 {
+				followUpReq["tools"] = buildTools(req.Tools)
+			}
+
+			followUpResp, followUpRaw, err := c.callAPI(ctx, followUpReq)
+			if err != nil {
+				break
+			}
+			if followUpResp.Reply != "" {
+				resp.Answer = followUpResp.Reply
+			}
+			pending, raw = followUpResp.ToolCalls, followUpRaw
+			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
 		}
 	}
 	return resp, nil
 }
+
+// MaxToolRounds bounds the tool-execution loop in a single Generate. Each
+// round is a model call plus the tools it asks for, so this is the ceiling on
+// one question's cost as well as its length; it is high enough that no honest
+// piece of multi-step work reaches it.
+const MaxToolRounds = 12
 
 // Stream opens an SSE stream over the chat endpoint.
 func (c *Client) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {

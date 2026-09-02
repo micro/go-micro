@@ -98,42 +98,70 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 		return resp, nil
 	}
 
+	// Tool execution loop: execute tools, send results back, and keep the
+	// function declarations on offer so the model can take the next step. A
+	// follow-up without tools asks the model to continue with its hands tied —
+	// the call it wanted comes back written out as prose — and without a loop
+	// a second step is impossible whatever the model wants. Bounded so a model
+	// that never stops asking cannot run forever.
 	if p.opts.ToolHandler != nil {
-		var resultParts []map[string]any
-		for i, tc := range resp.ToolCalls {
-			tr := p.opts.ToolHandler(ctx, tc)
-			resp.ToolCalls[i].Result = tr.Content
-			resultParts = append(resultParts, map[string]any{
-				"functionResponse": map[string]any{
-					"name":     tc.Name,
-					"id":       tc.ID,
-					"response": tr.Value,
-				},
-			})
-		}
-
-		followUpContents := append(contents,
-			map[string]any{"role": "model", "parts": rawParts},
-			map[string]any{"role": "user", "parts": resultParts},
-		)
-
-		followUpReq := map[string]any{
-			"contents": followUpContents,
-		}
-		if req.SystemPrompt != "" {
-			followUpReq["system_instruction"] = map[string]any{
-				"parts": []map[string]any{{"text": req.SystemPrompt}},
+		// Copied rather than aliased: append on a slice that shares an array
+		// with contents would overwrite it on a later round.
+		followUpContents := append([]map[string]any(nil), contents...)
+		pending := resp.ToolCalls
+		raw := rawParts
+		for round := 0; len(pending) > 0 && round < maxToolRounds; round++ {
+			var resultParts []map[string]any
+			for _, tc := range pending {
+				result := p.opts.ToolHandler(ctx, tc).Value
+				resultParts = append(resultParts, map[string]any{
+					"functionResponse": map[string]any{
+						"name":     tc.Name,
+						"id":       tc.ID,
+						"response": result,
+					},
+				})
 			}
-		}
 
-		followUpResp, _, err := p.callAPI(ctx, followUpReq)
-		if err == nil && followUpResp.Reply != "" {
-			resp.Answer = followUpResp.Reply
+			followUpContents = append(followUpContents,
+				map[string]any{"role": "model", "parts": raw},
+				map[string]any{"role": "user", "parts": resultParts},
+			)
+
+			followUpReq := map[string]any{
+				"contents": followUpContents,
+			}
+			if req.SystemPrompt != "" {
+				followUpReq["system_instruction"] = map[string]any{
+					"parts": []map[string]any{{"text": req.SystemPrompt}},
+				}
+			}
+			if len(tools) > 0 {
+				followUpReq["tools"] = []map[string]any{
+					{"functionDeclarations": tools},
+				}
+			}
+
+			followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
+			if err != nil {
+				break
+			}
+			if followUpResp.Reply != "" {
+				resp.Answer = followUpResp.Reply
+			}
+			pending, raw = followUpResp.ToolCalls, followUpRaw
+			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
 		}
 	}
 
 	return resp, nil
 }
+
+// maxToolRounds bounds the tool-execution loop in a single Generate. Each
+// round is a model call plus the tools it asks for, so this is the ceiling on
+// one question's cost as well as its length; it is high enough that no honest
+// piece of multi-step work reaches it.
+const maxToolRounds = 12
 
 func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
 	apiReq := map[string]any{

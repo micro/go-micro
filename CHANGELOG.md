@@ -19,6 +19,11 @@ below is kept current between tags and rolled into the next version when it ship
 
 ### Added
 - **Handler before/after hooks** — `server.BeforeHandler` and `server.AfterHandler` turn a `func(context.Context, server.Request) error` into a `HandlerWrapper`, giving RPC handlers declarative before/after request hooks to complement the existing start/stop hooks (`service.BeforeStart`/`AfterStart`/`BeforeStop`/`AfterStop`). The maintenance idea from issue #15 ("before/after functions for start, stop and handler requests") is now fully covered. (`server/`)
+- **Anthropic prompt caching** — the request prefix that never changes (tools + system prompt) is marked with a single `cache_control` breakpoint, so it stops being re-billed at full input rate on every turn and every tool-loop round; with no system prompt the breakpoint moves to the last tool. On by default (the agent tool loop repays the cache write within one Generate); `ai.WithoutCache()` opts out for one-off callers. (`ai/anthropic/`, `ai/`)
+
+### Fixed
+- **Providers keep offering tools on follow-ups, and keep going** — six of nine providers (openai, gemini, groq, mistral, together, minimax) ran one round of tool calls and then asked the model to finish without them: the follow-up carried the tool results but no tools, and there was no loop, so a second step was impossible and the model's intended call came back as prose. All providers now use a bounded tool-execution loop (anthropic and ollama already had it), carrying the tools on every round. (`ai/`)
+- **Deterministic tool discovery** — the tool catalogue inherited registry map-iteration order and was shuffled on every discovery, silently defeating prompt caching (Anthropic `cache_control`, Gemini implicit caching key on a byte-identical prefix). Discovered tools are now sorted, service names deduped across versions, and the highest version chosen consistently. (`ai/`)
 
 ---
 
