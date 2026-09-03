@@ -124,6 +124,10 @@ type Options struct {
 	// timelines carry correlation and shape without leaking prompts.
 	TraceInputs bool
 
+	// OnRunEvent, if set, is called as each run event is recorded
+	// (see OnRunEvent).
+	OnRunEvent RunEventFunc
+
 	// tools are developer-registered custom tools (see WithTool).
 	tools []customTool
 	// wrappers are developer-registered tool-execution wrappers
@@ -427,4 +431,25 @@ func TraceProvider(tp trace.TracerProvider) Option {
 // prompt content.
 func TraceInputs(enabled bool) Option {
 	return func(o *Options) { o.TraceInputs = enabled }
+}
+
+// RunEventFunc is called with each event recorded on a run.
+type RunEventFunc func(RunEvent)
+
+// OnRunEvent registers f to be called as each run event is recorded: the model
+// calls with the tokens they used, the tool calls with what they spent, and the
+// errors and completion of the run itself.
+//
+// The timeline is written to the store either way, and LoadRunEvents reads it
+// back — this is for the caller that has to act on an event rather than look at
+// it afterwards. Billing is the case that needs it: token usage is known the
+// moment the model returns, and a caller holding the ledger cannot read a
+// timeline it does not have the run id of. A caller that only wants to look
+// should read the store.
+//
+// f is called on the run's own goroutine, before the event is written, so it
+// must not block and must not call back into the agent. A panic in it is the
+// caller's to prevent.
+func OnRunEvent(f RunEventFunc) Option {
+	return func(o *Options) { o.OnRunEvent = f }
 }

@@ -555,9 +555,15 @@ func appendRunInfoAttributes(attrs []attribute.KeyValue, info ai.RunInfo) []attr
 	return attrs
 }
 
+// recordRunEvent is where every run event ends up — the traced paths and the
+// untraced ones both funnel through here — which is why the observer hangs off
+// it rather than off each caller.
 func (a *agentImpl) recordRunEvent(e RunEvent) {
 	if e.RunID == "" {
 		return
+	}
+	if f := a.opts.OnRunEvent; f != nil {
+		f(e)
 	}
 	b, _ := json.Marshal(e)
 	key := fmt.Sprintf("runs/%s/%020d-%s", e.RunID, e.Time.UnixNano(), e.Kind)
