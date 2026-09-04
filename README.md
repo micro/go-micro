@@ -1,4 +1,4 @@
-# Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v6?tab=doc) [![Micro](https://shields.io)](https://micro.mu/)
+# Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v6?tab=doc) [Try Micro](https://micro.mu/)
 
 
 Go Micro is an **agent harness** and service framework for Go.
