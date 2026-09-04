@@ -10,12 +10,6 @@ disableAliases: true
 uglyURLs: true
 menus:
   main:
-    - name: Discord
-      params:
-        rel: external
-      pre: <i class="fa-brands fa-discord"></i>
-      url: https://discord.gg/G8Gk5j3uXr
-      weight: 40
     - name: GitHub
       params:
         rel: external
