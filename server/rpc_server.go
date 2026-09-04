@@ -15,6 +15,7 @@ import (
 
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/codec"
+	"go-micro.dev/v6/internal/mucp"
 	"go-micro.dev/v6/internal/util/addr"
 	"go-micro.dev/v6/internal/util/backoff"
 	mnet "go-micro.dev/v6/internal/util/net"
@@ -273,32 +274,27 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			contentType = DefaultContentType
 		}
 
-		// Setup old protocol
-		cf := setupProtocol(&msg)
-
-		// No legacy codec needed
-		if cf == nil {
-			var err error
-			// Try get a new codec
-			if cf, err = s.newCodec(contentType); err != nil {
-				// No codec found so send back an error
-				if err = sock.Send(&transport.Message{
-					Header: map[string]string{
-						"Content-Type": "text/plain",
-					},
-					Body: []byte(err.Error()),
-				}); err != nil {
-					gerr = err
-				}
-
-				pool.Release(psock)
-
-				continue
+		// Create a new rpc codec based on the pseudo socket and codec
+		rcodec, err := mucp.NewServer(psock, mucp.Options{
+			Request: &msg,
+			Codecs:  s.opts.Codecs,
+		})
+		if err != nil {
+			// No codec found so send back an error
+			if err = sock.Send(&transport.Message{
+				Header: map[string]string{
+					"Content-Type": "text/plain",
+				},
+				Body: []byte(err.Error()),
+			}); err != nil {
+				gerr = err
 			}
+
+			pool.Release(psock)
+
+			continue
 		}
 
-		// Create a new rpc codec based on the pseudo socket and codec
-		rcodec := newRPCCodec(&msg, psock, cf)
 		// Check the protocol as well
 		protocol := rcodec.String()
 

@@ -1,121 +1,92 @@
 # Codex Maintainer Playbook
 
-Go Micro has six months of Codex access through OpenAI's Codex for Open Source
-program. Use it to increase maintainer throughput without changing the project's
-bar for review, tests, or design taste.
+Go Micro has 6 months OpenAI Codex access. Use it to boost maintainer throughput without lowering bar for review, tests, or design.
 
 ## Operating principles
 
-1. **Humans set direction; Codex accelerates execution.** Maintainers choose the
-   issue, constraints, and acceptance criteria. Codex drafts, investigates, and
-   verifies.
-2. **Small, reviewable changes win.** Prefer focused PRs that can be understood
-   in one sitting over large speculative rewrites.
-3. **Keep the contract green.** Every Codex-assisted change should preserve the
-   CLI-first getting-started flow, the harnesses, `make test`, and `make lint`.
-4. **Document while coding.** If behavior changes, ask Codex to update examples,
-   guides, and release notes in the same branch.
-5. **No blind merges.** Codex output is treated like any contributor output:
-   reviewed by a maintainer, backed by tests, and checked for public API impact.
+1. **Humans set direction; Codex accelerates execution.** Maintainers choose issue/constraints/criteria. Codex drafts/investigates/verifies.
+2. **Small, reviewable changes win.** Prefer focused PRs over large speculative rewrites.
+3. **Keep the contract green.** Preserve CLI getting-started, harnesses, `make test`, and `make lint`.
+4. **Document while coding.** Update examples, guides, release notes in the same branch if behavior changes.
+5. **No blind merges.** Review Codex output like any contributor; back by tests, check API impact.
 
 ## Coordination with Claude Code
 
-Go Micro is maintained by two AI tools — **Codex** (you) and **Claude Code** (its guide is [CLAUDE.md](CLAUDE.md)) — plus the human maintainer, who routes work and owns every merge.
+Go Micro is maintained by Codex and Claude Code (see [CLAUDE.md](CLAUDE.md)) plus human maintainer.
 
-- **Lanes / branches.** You work on `codex/*` branches; Claude Code on `claude/*`. Never push to a branch the other owns, and never have both agents on one branch at once.
-- **Base PRs on `master`.** Don't stack a PR on another agent's in-flight branch — if that base squash-merges, your changes can be orphaned. If the code you need isn't merged yet, wait, then branch off `master`. To improve a PR that hasn't merged, push to that PR's branch rather than opening a separate stacked PR — keep the change one mergeable unit.
-- **One concern per PR.** Keep each PR single-purpose so a reviewer can read it in one sitting; don't bundle unrelated changes (e.g. a feature plus a docs rebrand).
-- **Cross-review before merge.** Claude Code reviews your PRs; you review its with `@codex review`. A fresh pass from the other model catches what the author misses.
-- **Dispatch.** Maintainers (or Claude Code) start your tasks with `@codex <instruction>` on the relevant issue/PR — that's your context. `@codex review` is review; any other instruction is a *task*. You run one task at a time: take the current one to a clean, green PR before the next is dispatched.
-- **CI is the gate.** `go build`, `go test`, `golangci-lint` (blocking), and `make harness` must pass; never merge red. `internal/harness/` and `examples/` are excluded from errcheck; everything else gets the full set.
-- **Backlog = GitHub issues**, each a scoped brief with acceptance criteria.
+- **Lanes / branches.** Codex on `codex/*`, Claude on `claude/*`. Never share branches.
+- **Base PRs on `master`.** Don't stack PRs on other agent branches. Wait or branch off `master`. Push to existing PR branch rather than opening stacked PRs.
+- **One concern per PR.** Single-purpose PRs only.
+- **Cross-review before merge.** Claude reviews your PRs; you review its with `@codex review`.
+- **Dispatch.** Triggered via `@codex <instruction>` on issue/PR (`@codex review` is review). One task at a time to a clean, green PR.
+- **CI is the gate.** `go build`, `go test`, `golangci-lint`, `make harness` must pass. `internal/harness/` and `examples/` excluded from errcheck.
+- **Backlog = GitHub issues** with acceptance criteria.
 
 ## Best uses
 
 ### 1. PR review and triage
 
-- Summarize a PR: changed surface area, public API impact, tests added or missing.
-- Ask for targeted review passes: concurrency, cancellation, security, backwards
-  compatibility, docs drift, and examples.
-- Convert review findings into small patch suggestions or issue comments.
+- Summarize PR surface area, API impact, test status.
+- Ask for targeted reviews (concurrency, cancellation, security, compat, docs).
+- Convert findings into patches or comments.
 
 ### 2. Issue reproduction
 
-- Turn bug reports into failing tests or runnable reproduction scripts.
-- Minimize flakes by isolating registry, broker, store, transport, and AI-provider
-  dependencies behind deterministic fakes where possible.
-- Attach the exact command that reproduces the failure to the issue.
+- Turn bugs into failing tests or repro scripts.
+- Isolate fakes for dependencies.
+- Attach exact repro command.
 
 ### 3. Release support
 
-- Draft changelog entries from merged commits, grouped by feature, fix, docs, and
-  compatibility notes.
-- Check that `README.md`, `ROADMAP.md`, website docs, examples, and `CHANGELOG.md`
-  agree before tagging.
-- Run dry-run release commands and summarize blockers.
+- Draft changelogs from commits.
+- Verify `README.md`, `ROADMAP.md`, docs, examples, `CHANGELOG.md` agree.
+- Run dry-release commands.
 
 ### 4. Docs and examples
 
-- Keep the 0→1 path current: scaffold, run, call, chat, inspect.
-- Keep the 0→hero example current: a realistic multi-agent system that exercises
-  agents, services, flows, MCP, A2A, and observability.
-- Add runnable examples for new primitives before adding broad prose.
+- Keep 0→1 path current.
+- Keep 0→hero example current (multi-agent, services, flows, MCP, A2A, observability).
+- Add runnable examples before prose.
 
 ### 5. Hardening backlog
 
-Use Codex to break roadmap items into small PRs, especially:
-
-- cross-provider conformance scenarios for all supported AI providers;
-- timeout, cancellation, retry, and rate-limit behavior;
-- durable agent loops on top of the existing checkpoint model;
-- streaming across `ai.Stream` and A2A;
-- agent run metadata mapped to OpenTelemetry spans.
+Break roadmap items into small PRs:
+- cross-provider conformance
+- timeout, cancellation, retry, rate-limit
+- durable loops
+- streaming across `ai.Stream`
+- OpenTelemetry spans
 
 ## Suggested weekly loop
 
-1. Pick one maintenance lane: reviews, bugs, release prep, docs, or hardening.
-2. Ask Codex for a branch-sized plan with acceptance criteria and test commands.
-3. Have Codex implement the smallest valuable slice.
-4. Run the relevant checks locally and in CI.
-5. Review the diff as maintainer-owned code, then merge or send it back.
-6. Record any recurring prompt, check, or failure mode in this playbook.
-
+1. Pick maintenance lane.
+2. Get branch plan with criteria/commands.
+3. Implement smallest slice.
+4. Run checks locally/CI.
+5. Review and merge/send back.
+6. Log recurring patterns.
 
 ## First two weeks
 
-Do not start with a giant feature. Start by making Codex pay rent on maintenance
-work that is already on the roadmap and easy to review.
+Start with roadmap maintenance.
 
 ### Day 1: set up the review loop
 
-1. Pick three recent PRs or commits: one feature, one bug fix, and one docs-only
-   change.
-2. Ask Codex to review each using the PR review template below.
-3. Compare Codex findings with maintainer judgment. Keep the checks that found
-   real issues; delete the noisy ones.
-4. Turn the final review prompt into a saved project note or issue comment
-   template.
-
-Success means Codex can produce a useful first-pass review in under ten minutes
-without blocking a maintainer on false positives.
+1. Pick 3 recent PRs (feature, bug, docs).
+2. Review using template.
+3. Compare with maintainer judgment.
+4. Save review prompt.
 
 ### Days 2-3: make bugs reproducible
 
-1. Pick one open bug or flaky area.
-2. Ask Codex for a failing test only. Do not allow a fix in the first pass.
-3. Review the test for whether it captures the real contract.
-4. In a second branch, ask Codex to fix the failure with the smallest patch.
-
-Success means every accepted bug fix starts with a regression test or deterministic
-harness case.
+1. Pick open bug/flake.
+2. Get failing test only (no fix).
+3. Verify contract.
+4. Fix in second branch with smallest patch.
 
 ### Days 4-5: audit the getting-started contract
 
-Run through the 0→1 path from a clean checkout and ask Codex to patch only the
-first broken or confusing step. The target is not new prose; it is a runnable
-path that works exactly as documented.
-
-Candidate checks:
+Run 0→1 path; patch first break.
 
 ```sh
 make test
@@ -125,43 +96,32 @@ go run ./examples/hello-world
 go run ./internal/harness/universe
 ```
 
-### Week 2: choose one roadmap slice
+## Week 2: choose one roadmap slice
 
-Pick one hardening item and break it into PRs that each land independently. The
-best first slice is usually test infrastructure, not product code.
-
-Recommended order:
-
-1. **Provider conformance skeleton**: define one deterministic agent scenario and
-   gate real-provider runs on credentials.
-2. **Cancellation audit**: trace `context.Context` propagation through one package
-   at a time.
-3. **Docs drift audit**: compare `README.md`, `ROADMAP.md`, website docs, and
-   examples for one shipped feature.
-4. **Release checklist dry run**: have Codex build a release-blocker list from the
-   diff since the previous tag.
+Pick hardening item. Recommended order:
+1. Provider conformance skeleton.
+2. Cancellation audit: trace `context.Context` propagation.
+3. Docs drift audit: compare `README.md`, `ROADMAP.md`, website docs, and examples.
+4. Release checklist dry run.
 
 ## Standing task queue
 
-Keep Codex busy on tasks with clear acceptance criteria:
-
 | Priority | Task | Acceptance criteria |
 | --- | --- | --- |
-| P0 | PR first-pass review | Summary, risks, required changes, and exact verification commands. |
-| P0 | Bug reproduction | A failing test or harness case committed before the fix. |
-| P0 | 0→1 docs check | Fresh-checkout commands work as written or a patch fixes the first break. |
-| P1 | Cross-provider conformance | One scenario runs against fakes by default and real providers when keys exist. |
-| P1 | Cancellation hardening | Tests prove timeout/cancel behavior for the touched package. |
-| P1 | Release audit | Changelog, docs, examples, and migration notes agree before tagging. |
-| P2 | Example polish | Example is runnable, linked from docs, and covered by a lightweight check. |
+| P0 | PR first-pass review | Summary, risks, required changes, verification commands. |
+| P0 | Bug reproduction | Failing test committed before fix. |
+| P0 | 0→1 docs check | Fresh-checkout commands work or patch fixes break. |
+| P1 | Cross-provider conformance | Runs against fakes by default, real when keys exist. |
+| P1 | Cancellation hardening | Tests prove timeout/cancel behavior. |
+| P1 | Release audit | Changelog, docs, examples agree before tagging. |
+| P2 | Example polish | Runnable, linked, checked. |
 
 ## What not to use Codex for yet
 
-- Broad rewrites without a failing test, benchmark, or public design note.
-- Public API changes before a maintainer writes the compatibility story.
-- Large generated docs that nobody has run.
-- Provider-specific behavior that is not checked against the shared `ai.Model`
-  contract.
+- Broad rewrites without test/benchmark.
+- Unvetted public API changes.
+- Large unrun docs.
+- Provider-specific behavior not checked against `ai.Model`.
 
 ## Prompt templates
 

@@ -35,9 +35,10 @@ import (
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	codecbytes "go-micro.dev/v6/codec/bytes"
+	internalotel "go-micro.dev/v6/internal/otel"
 	"go-micro.dev/v6/logger"
 	"go-micro.dev/v6/registry"
-
+	"go.opentelemetry.io/otel"
 	// Register default providers.
 	_ "go-micro.dev/v6/ai/anthropic"
 	_ "go-micro.dev/v6/ai/atlascloud"
@@ -83,10 +84,14 @@ type Result struct {
 
 // New creates a Flow with the given name and options.
 func New(name string, opts ...Option) *Flow {
+	internalotel.Init()
 	o := Options{
 		Provider:     "openai",
 		SystemPrompt: "You are a service orchestrator. Use the available tools to fulfill the request. Explain what you do.",
 		HistoryLimit: 20,
+		// Global provider (noop unless a tracer is configured) so stepped
+		// flows emit spans whenever the process has one.
+		TraceProvider: otel.GetTracerProvider(),
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -238,6 +243,27 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		prompt = buf.String()
 	}
 
+	// A plain run is one implicit step — an agent dispatch or a single
+	// augmented-LLM turn. Emit the same flow.run/flow.step spans as the
+	// stepped path so every execution shows up in traces.
+	run := Run{
+		ID:       runID,
+		ParentID: info.ParentID,
+		Flow:     f.name,
+		State:    State{Data: []byte(prompt)},
+		Status:   "running",
+		Started:  start,
+	}
+	ctx, finishSpan := f.startRunSpan(ctx, run)
+	var spanErr error
+	defer func() {
+		run.Status = "done"
+		if spanErr != nil {
+			run.Status = "failed"
+		}
+		finishSpan(run, spanErr)
+	}()
+
 	result := Result{
 		FlowName:  f.name,
 		Trigger:   f.opts.TriggerTopic,
@@ -245,59 +271,62 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		Timestamp: start,
 	}
 
-	// Flow triggers, Agent reasons: hand the event to the named agent.
-	if f.opts.Agent != "" {
-		reply, err := f.callAgent(ctx, f.opts.Agent, prompt)
-		result.Duration = time.Since(start).Seconds()
-		if err != nil {
-			result.Error = err.Error()
-			result.ErrorKind = string(ai.ClassifyError(err))
-			f.record(result)
-			return err
+	step := Step{Name: "respond", Run: func(ctx context.Context, in State) (State, error) {
+		// Flow triggers, Agent reasons: hand the event to the named agent.
+		if f.opts.Agent != "" {
+			reply, err := f.callAgent(ctx, f.opts.Agent, in.String())
+			if err != nil {
+				return in, err
+			}
+			result.Reply = reply
+			in.Data = []byte(reply)
+			return in, nil
 		}
-		result.Reply = reply
-		f.record(result)
-		f.log.Logf(logger.InfoLevel, "Flow %s dispatched to agent %s in %.1fs",
-			f.name, f.opts.Agent, result.Duration)
-		return nil
-	}
+		// Otherwise run a single augmented-LLM step with the services as tools.
+		discovered, err := f.toolSet.Discover()
+		if err != nil {
+			return in, fmt.Errorf("discover tools: %w", err)
+		}
+		resp, err := f.model.Generate(ctx, &ai.Request{
+			Prompt:       in.String(),
+			SystemPrompt: f.opts.SystemPrompt,
+			Tools:        discovered,
+		})
+		if err != nil {
+			return in, err
+		}
+		result.Reply = resp.Reply
+		result.Answer = resp.Answer
+		for _, tc := range resp.ToolCalls {
+			args, _ := json.Marshal(tc.Input)
+			result.ToolCalls = append(result.ToolCalls, fmt.Sprintf("%s(%s)", tc.Name, args))
+		}
+		reply := resp.Answer
+		if reply == "" {
+			reply = resp.Reply
+		}
+		in.Data = []byte(reply)
+		return in, nil
+	}}
 
-	// Otherwise run a single augmented-LLM step with the services as tools.
-	discovered, err := f.toolSet.Discover()
-	if err != nil {
-		result.Duration = time.Since(start).Seconds()
-		result.Error = err.Error()
-		result.ErrorKind = string(ai.ClassifyError(err))
-		f.record(result)
-		return fmt.Errorf("discover tools: %w", err)
-	}
-
-	resp, err := f.model.Generate(ctx, &ai.Request{
-		Prompt:       prompt,
-		SystemPrompt: f.opts.SystemPrompt,
-		Tools:        discovered,
-	})
+	_, _, _, err := f.runStepSpan(ctx, step, State{Data: []byte(prompt)})
 	result.Duration = time.Since(start).Seconds()
-
 	if err != nil {
+		spanErr = err
 		result.Error = err.Error()
 		result.ErrorKind = string(ai.ClassifyError(err))
 		f.record(result)
 		return err
 	}
 
-	result.Reply = resp.Reply
-	result.Answer = resp.Answer
-	for _, tc := range resp.ToolCalls {
-		args, _ := json.Marshal(tc.Input)
-		result.ToolCalls = append(result.ToolCalls, fmt.Sprintf("%s(%s)", tc.Name, args))
-	}
-
 	f.record(result)
-
-	f.log.Logf(logger.InfoLevel, "Flow %s completed in %.1fs: %d tool calls",
-		f.name, result.Duration, len(result.ToolCalls))
-
+	if f.opts.Agent != "" {
+		f.log.Logf(logger.InfoLevel, "Flow %s dispatched to agent %s in %.1fs",
+			f.name, f.opts.Agent, result.Duration)
+	} else {
+		f.log.Logf(logger.InfoLevel, "Flow %s completed in %.1fs: %d tool calls",
+			f.name, result.Duration, len(result.ToolCalls))
+	}
 	return nil
 }
 

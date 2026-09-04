@@ -253,7 +253,6 @@ var (
 
 	DefaultRegistries = map[string]func(...registry.Option) registry.Registry{
 		"memory": registry.NewMemoryRegistry,
-		"mdns":   registry.NewMDNSRegistry,
 	}
 
 	DefaultSelectors = map[string]func(...selector.Option) selector.Selector{}
@@ -681,6 +680,19 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			*c.opts.Config = rc
 		}
 	}
+
+	// Sync the configured registry back to the package global so helpers like
+	// registry.ListServices (used by the CLI registry command, the gateway and
+	// MCP discovery) see the registry selected via flags/env, not the default.
+	registry.DefaultRegistry = *c.opts.Registry
+
+	// Same for the client: cmd/pkg init snapshots client.DefaultClient into
+	// DefaultCmd before cmd/defaults replaces the global with a fresh instance
+	// (see defaults.go). Without this sync the transport selected via flags/env
+	// lands only on the snapshot, while the HTTP API gateway and MCP dispatch
+	// keep using the global client's default (http) transport and dial backend
+	// services directly instead of routing over the configured transport.
+	client.DefaultClient = *c.opts.Client
 	return nil
 }
 

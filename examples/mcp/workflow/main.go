@@ -14,7 +14,7 @@
 //
 //	go run .
 //
-// MCP tools: http://localhost:3001/mcp/tools
+// MCP tools: http://localhost:3004/mcp/tools
 package main
 
 import (
@@ -348,8 +348,8 @@ func (s *NotificationService) List(ctx context.Context, req *ListNotificationsRe
 
 func main() {
 	service := micro.NewService("shop",
-		micro.Address(":9090"),
-		mcp.WithMCP(":3001"),
+		micro.Address(":9093"),
+		mcp.WithMCP(":3004"),
 	)
 	service.Init()
 
@@ -376,7 +376,7 @@ func main() {
 	fmt.Println()
 	fmt.Println("  Shop Workflow Demo")
 	fmt.Println()
-	fmt.Println("  MCP Tools:  http://localhost:3001/mcp/tools")
+	fmt.Println("  MCP Tools:  http://localhost:3004/mcp/tools")
 	fmt.Println()
 	fmt.Println("  Try asking an agent:")
 	fmt.Println()

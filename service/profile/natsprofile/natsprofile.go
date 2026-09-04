@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	natslib "github.com/nats-io/nats.go"
+
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/broker/nats"
 	nevents "go-micro.dev/v6/events/natsjs"

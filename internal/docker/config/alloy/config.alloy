@@ -1,0 +1,98 @@
+// Alloy config — go-micro dev stack
+// Metrics → Prometheus, Logs → Loki, Traces → Tempo, Profiles → Pyroscope
+
+// --- Metrics: scrape + remote_write ---
+
+prometheus.remote_write "prometheus" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}
+
+prometheus.scrape "go_services" {
+  targets = [
+    { "__address__" = "micro-gw:8080" },
+  ]
+  forward_to      = [prometheus.remote_write.prometheus.receiver]
+  scrape_interval = "15s"
+}
+
+prometheus.scrape "nats" {
+  targets = [
+    { "__address__" = "nats-exporter:7777" },
+  ]
+  forward_to      = [prometheus.remote_write.prometheus.receiver]
+  scrape_interval = "15s"
+}
+
+// --- Logs: Docker container logs → Loki ---
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+// Map each container's logs to its compose service name
+// (/docker-micro-gw-1 → micro-gw) so Grafana service pages work.
+discovery.relabel "containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = ".*/docker-(.+)-[0-9]+$"
+    target_label  = "service_name"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.containers.output
+  labels     = { "stack" = "docker-compose" }
+  forward_to = [loki.write.loki.receiver]
+}
+
+loki.write "loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// --- Traces: OTLP receiver → Tempo ---
+
+otelcol.receiver.otlp "default" {
+  http {}
+  grpc {}
+
+  output {
+    traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// --- Profiles: pprof scrape → Pyroscope ---
+// ponytail: eBPF does NOT work on macOS Docker Desktop.
+// Use pyroscope.scrape (pprof-based) for local dev.
+// Switch to pyroscope.ebpf on Linux CI/staging.
+
+pyroscope.write "pyroscope" {
+  endpoint {
+    url = "http://pyroscope:4040"
+  }
+}
+
+// Gateway serves pprof on its :8080 mux (debug/profile/http).
+// Other services are standalone binaries without pprof — add targets
+// when they register debug handlers.
+pyroscope.scrape "go_services" {
+  targets = [
+    { "__address__" = "micro-gw:8080", "__profile_path__" = "/debug/pprof/allocs", "__scheme__" = "http", "service_name" = "micro-gw" },
+  ]
+  forward_to = [pyroscope.write.pyroscope.receiver]
+}

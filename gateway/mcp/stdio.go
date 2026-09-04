@@ -7,16 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
-	"strings"
 	"sync"
-	"time"
-
-	"go-micro.dev/v6/auth"
-	"go-micro.dev/v6/metadata"
-
-	"github.com/google/uuid"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 // StdioTransport implements MCP JSON-RPC 2.0 over stdio
@@ -138,6 +131,7 @@ func (t *StdioTransport) handleInitialize(req *JSONRPCRequest) {
 			"name":    "go-micro-mcp",
 			"version": "1.0.0",
 		},
+		"instructions": mcpInstructions,
 	}
 
 	t.sendResponse(req.ID, result)
@@ -163,158 +157,45 @@ func (t *StdioTransport) handleToolsList(req *JSONRPCRequest) {
 	t.sendResponse(req.ID, result)
 }
 
-// handleToolsCall handles the tools/call request
+// handleToolsCall handles the tools/call request.
 func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
-	// Parse params
 	var params struct {
 		Name      string                 `json:"name"`
 		Arguments map[string]interface{} `json:"arguments"`
-		// Token allows callers to pass a bearer token for auth via the
-		// JSON-RPC params (since stdio has no HTTP headers).
-		Token string `json:"_token,omitempty"`
+		Token     string                 `json:"_token,omitempty"`
 	}
 	if err := json.Unmarshal(req.Params, &params); err != nil {
 		t.sendError(req.ID, InvalidParams, "Invalid params", err.Error())
 		return
 	}
 
-	// Get tool info
-	t.server.toolsMu.RLock()
-	tool, exists := t.server.tools[params.Name]
-	t.server.toolsMu.RUnlock()
-
-	if !exists {
-		t.sendError(req.ID, InvalidParams, "Tool not found", params.Name)
-		return
-	}
-
-	// Generate trace ID
-	traceID := uuid.New().String()
-
-	// Start OTel span (noop if TraceProvider is nil)
-	ctx, span := t.server.startToolSpan(t.ctx, params.Name, "stdio", traceID)
-	defer span.End()
-
-	// Authenticate and authorize (if Auth is configured)
-	var account *auth.Account
-	if t.server.opts.Auth != nil {
-		token := params.Token
-		if token == "" {
-			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
-			setSpanError(span, fmt.Errorf("missing token"))
-			t.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "missing token"})
-			t.sendError(req.ID, InvalidParams, "Unauthorized", "missing _token in params")
-			return
-		}
-		token = strings.TrimPrefix(token, "Bearer ")
-		acc, err := t.server.opts.Auth.Inspect(token)
-		if err != nil {
-			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))
-			setSpanError(span, fmt.Errorf("invalid token"))
-			t.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "invalid token"})
-			t.sendError(req.ID, InvalidParams, "Unauthorized", "invalid token")
-			return
-		}
-		account = acc
-		span.SetAttributes(attribute.String(AttrAccountID, account.ID))
-
-		// Check per-tool scopes
-		if len(tool.Scopes) > 0 {
-			span.SetAttributes(attribute.StringSlice(AttrScopesRequired, tool.Scopes))
-			if !hasScope(account.Scopes, tool.Scopes) {
-				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "insufficient scopes"))
-				setSpanError(span, fmt.Errorf("insufficient scopes"))
-				t.server.audit(AuditRecord{
-					TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
-					AccountID: account.ID, ScopesRequired: tool.Scopes,
-					Allowed: false, DeniedReason: "insufficient scopes",
-				})
-				t.sendError(req.ID, InvalidParams, "Forbidden", "insufficient scopes")
+	payload, traceID, _, err := t.server.invokeToolCore(toolCallRequest{
+		ToolName:  params.Name,
+		Input:     params.Arguments,
+		Token:     params.Token,
+		BaseCtx:   t.ctx,
+		Transport: "stdio",
+	})
+	if err != nil {
+		if te, ok := err.(*toolError); ok {
+			if te.status == http.StatusInternalServerError {
+				t.sendResponse(req.ID, mcpToolError(traceID, te.message))
 				return
 			}
+			// Map HTTP status to JSON-RPC code, preserving original behavior:
+			// auth/scope failures → InvalidParams, rate-limit → InternalError.
+			code := InternalError
+			if te.status == http.StatusUnauthorized || te.status == http.StatusForbidden || te.status == http.StatusNotFound {
+				code = InvalidParams
+			}
+			t.sendError(req.ID, code, te.message, nil)
+			return
 		}
-	}
-
-	// Rate limit check
-	if err := t.server.allowRate(params.Name); err != nil {
-		span.SetAttributes(attribute.Bool(AttrRateLimited, true))
-		setSpanError(span, err)
-		accountID := ""
-		if account != nil {
-			accountID = account.ID
-		}
-		t.server.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
-			AccountID: accountID, Allowed: false, DeniedReason: "rate limited",
-		})
-		t.sendError(req.ID, InternalError, "Rate limit exceeded", params.Name)
+		t.sendError(req.ID, InternalError, "Tool call failed", err.Error())
 		return
 	}
 
-	span.SetAttributes(attribute.Bool(AttrAuthAllowed, true))
-
-	// Convert arguments to JSON bytes for RPC call
-	inputBytes, err := json.Marshal(params.Arguments)
-	if err != nil {
-		t.sendError(req.ID, InternalError, "Failed to marshal arguments", err.Error())
-		return
-	}
-
-	// Build context with tracing metadata
-	// OTel trace context was already injected by startToolSpan; add MCP metadata.
-	md, _ := metadata.FromContext(ctx)
-	if md == nil {
-		md = make(metadata.Metadata)
-	}
-	md.Set(TraceIDKey, traceID)
-	md.Set(ToolNameKey, params.Name)
-	if account != nil {
-		md.Set(AccountIDKey, account.ID)
-	}
-	ctx = metadata.NewContext(ctx, md)
-
-	// Make RPC call
-	start := time.Now()
-	rpcReq := t.server.opts.Client.NewRequest(tool.Service, tool.Endpoint, &struct {
-		Data []byte
-	}{Data: inputBytes})
-
-	var rsp struct {
-		Data []byte
-	}
-
-	if err := t.server.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
-		setSpanError(span, err)
-		accountID := ""
-		if account != nil {
-			accountID = account.ID
-		}
-		t.server.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
-			AccountID: accountID, ScopesRequired: tool.Scopes,
-			Allowed: true, Duration: time.Since(start), Error: err.Error(),
-		})
-		// A tool-execution failure is reported as an isError result, not a
-		// JSON-RPC protocol error (per the MCP spec), so the agent can read it.
-		t.sendResponse(req.ID, mcpToolError(traceID, "tool call failed: "+err.Error()))
-		return
-	}
-
-	setSpanOK(span)
-
-	// Audit successful call
-	accountID := ""
-	if account != nil {
-		accountID = account.ID
-	}
-	t.server.audit(AuditRecord{
-		TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
-		AccountID: accountID, ScopesRequired: tool.Scopes,
-		Allowed: true, Duration: time.Since(start),
-	})
-
-	// The downstream response is JSON — return it as JSON text, not %v.
-	t.sendResponse(req.ID, mcpToolResult(traceID, rsp.Data))
+	t.sendResponse(req.ID, mcpToolResult(traceID, payload))
 }
 
 // sendResponse sends a JSON-RPC response

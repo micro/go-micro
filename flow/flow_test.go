@@ -106,8 +106,8 @@ func TestSingleStepFlowRunInfoIdentifiesFlow(t *testing.T) {
 	if model.got.Agent != "" {
 		t.Fatalf("RunInfo.Agent = %q, want empty for flow-owned LLM run", model.got.Agent)
 	}
-	if model.got.Step != "" {
-		t.Fatalf("RunInfo.Step = %q, want empty for single-step flow", model.got.Step)
+	if model.got.Step != "respond" {
+		t.Fatalf("RunInfo.Step = %q, want %q for single-step flow", model.got.Step, "respond")
 	}
 }
 

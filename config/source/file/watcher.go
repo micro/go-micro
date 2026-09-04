@@ -22,7 +22,10 @@ func newWatcher(f *file) (source.Watcher, error) {
 		return nil, err
 	}
 
-	fw.Add(f.path)
+	if err := fw.Add(f.path); err != nil {
+		fw.Close()
+		return nil, err
+	}
 
 	return &watcher{
 		f:  f,
@@ -43,7 +46,7 @@ func (w *watcher) Next() (*source.ChangeSet, error) {
 			// check existence of file, and add watch again
 			_, err := os.Stat(event.Name)
 			if err == nil || os.IsExist(err) {
-				w.fw.Add(event.Name)
+				_ = w.fw.Add(event.Name)
 			}
 		}
 

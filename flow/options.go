@@ -48,6 +48,7 @@ type Options struct {
 	// steps present means a store-backed default; set it to swap backends.
 	Checkpoint Checkpoint
 	// TraceProvider emits OpenTelemetry spans for stepped flow runs.
+	// Defaults to the global provider (noop when none is configured).
 	TraceProvider trace.TracerProvider
 	// DeleteOnSuccess removes a run's checkpoint when it completes
 	// successfully. Failed runs are always retained. Default: retain all.

@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+storage:
+  tsdb:
+    retention:
+      time: 7d
+scrape_configs:
+  # Prometheus self-monitoring. Alloy handles all other scraping.
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - prometheus:9090

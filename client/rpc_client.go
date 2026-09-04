@@ -14,6 +14,7 @@ import (
 	"go-micro.dev/v6/codec"
 	raw "go-micro.dev/v6/codec/bytes"
 	merrors "go-micro.dev/v6/errors"
+	"go-micro.dev/v6/internal/mucp"
 	"go-micro.dev/v6/internal/util/buf"
 	"go-micro.dev/v6/internal/util/net"
 	"go-micro.dev/v6/internal/util/pool"
@@ -62,18 +63,6 @@ func newRPCClient(opt ...Option) Client {
 	}
 
 	return c
-}
-
-func (r *rpcClient) newCodec(contentType string) (codec.NewCodec, error) {
-	if c, ok := r.opts.Codecs[contentType]; ok {
-		return c, nil
-	}
-
-	if cf, ok := DefaultCodecs[contentType]; ok {
-		return cf, nil
-	}
-
-	return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 }
 
 func (r *rpcClient) call(
@@ -126,19 +115,6 @@ func (r *rpcClient) call(
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
 
-	// setup old protocol
-	reqCodec := setupProtocol(msg, node)
-
-	// no codec specified
-	if reqCodec == nil {
-		var err error
-		reqCodec, err = r.newCodec(req.ContentType())
-
-		if err != nil {
-			return merrors.InternalServerError("go.micro.client", err.Error())
-		}
-	}
-
 	dOpts := []transport.DialOption{
 		transport.WithStream(),
 	}
@@ -160,7 +136,15 @@ func (r *rpcClient) call(
 	}
 
 	seq := atomic.AddUint64(&r.seq, 1) - 1
-	codec := newRPCCodec(msg, c, reqCodec, "")
+	codec, err := mucp.NewClient(c, mucp.Options{
+		Request:  msg,
+		Protocol: node.Metadata["protocol"],
+		Codecs:   r.opts.Codecs,
+		Domain:   packageID,
+	})
+	if err != nil {
+		return merrors.InternalServerError(packageID, err.Error())
+	}
 
 	rsp := &rpcResponse{
 		socket: c,
@@ -263,19 +247,6 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 	// set the accept header
 	msg.Header["Accept"] = req.ContentType()
 
-	// set old codecs
-	nCodec := setupProtocol(msg, node)
-
-	// no codec specified
-	if nCodec == nil {
-		var err error
-
-		nCodec, err = r.newCodec(req.ContentType())
-		if err != nil {
-			return nil, merrors.InternalServerError("go.micro.client", err.Error())
-		}
-	}
-
 	dOpts := []transport.DialOption{
 		transport.WithStream(),
 	}
@@ -294,7 +265,16 @@ func (r *rpcClient) stream(ctx context.Context, node *registry.Node, req Request
 	id := fmt.Sprintf("%v", seq)
 
 	// create codec with stream id
-	codec := newRPCCodec(msg, c, nCodec, id)
+	codec, err := mucp.NewClient(c, mucp.Options{
+		Request:  msg,
+		Protocol: node.Metadata["protocol"],
+		Stream:   id,
+		Codecs:   r.opts.Codecs,
+		Domain:   packageID,
+	})
+	if err != nil {
+		return nil, merrors.InternalServerError(packageID, err.Error())
+	}
 
 	rsp := &rpcResponse{
 		socket: c,
@@ -685,7 +665,7 @@ func (r *rpcClient) Publish(ctx context.Context, msg Message, opts ...PublishOpt
 	}
 
 	// encode message body
-	cf, err := r.newCodec(msg.ContentType())
+	cf, err := mucp.Lookup(msg.ContentType(), r.opts.Codecs)
 	if err != nil {
 		return merrors.InternalServerError(packageID, err.Error())
 	}

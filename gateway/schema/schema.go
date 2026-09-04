@@ -86,7 +86,7 @@ const refreshInterval = 15 * time.Second
 // returns so no events are missed. Safe to call once.
 func (r *Resolver) Start(ctx context.Context) {
 	r.startOnce.Do(func() {
-		if err := r.Refresh(); err != nil {
+		if _, err := r.Refresh(); err != nil {
 			r.logger.Printf("[schema] initial registry refresh failed: %v", err)
 		}
 		watcher, err := r.reg.Watch()
@@ -109,7 +109,7 @@ func (r *Resolver) watch(ctx context.Context, watcher registry.Watcher) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if err := r.Refresh(); err != nil {
+			if _, err := r.Refresh(); err != nil {
 				r.logger.Printf("[schema] registry refresh failed: %v", err)
 			}
 			continue
@@ -123,8 +123,12 @@ func (r *Resolver) watch(ctx context.Context, watcher registry.Watcher) {
 			}
 			continue
 		}
-		if err := r.Refresh(); err != nil {
+		changed, err := r.Refresh()
+		if err != nil {
 			r.logger.Printf("[schema] registry refresh failed: %v", err)
+			continue
+		}
+		if !changed {
 			continue
 		}
 		select {
@@ -134,13 +138,14 @@ func (r *Resolver) watch(ctx context.Context, watcher registry.Watcher) {
 	}
 }
 
-// Refresh re-reads the registry and rebuilds the catalog. It does not signal
-// Changes(); only the internal watch loop does, so callers that refresh from
-// their own handlers (e.g. the MCP gateway rediscovering tools) do not loop.
-func (r *Resolver) Refresh() error {
+// Refresh re-reads the registry and rebuilds the catalog. It returns true if
+// the catalog actually changed. It does not signal Changes(); only the internal
+// watch loop does, so callers that refresh from their own handlers (e.g. the
+// MCP gateway rediscovering tools) do not loop.
+func (r *Resolver) Refresh() (bool, error) {
 	services, err := r.reg.ListServices()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	snapshot := make(map[string]*registry.Service, len(services))
@@ -158,10 +163,41 @@ func (r *Resolver) Refresh() error {
 	}
 
 	r.mu.Lock()
+	changed := !equalEndpoints(r.endpoints, endpoints)
 	r.services = snapshot
 	r.endpoints = endpoints
 	r.mu.Unlock()
-	return nil
+	return changed, nil
+}
+
+// equalEndpoints reports whether two endpoint maps have the same keys and
+// identical endpoint metadata (service, method, scopes).
+func equalEndpoints(a, b map[string]*Endpoint) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for name, ea := range a {
+		eb, ok := b[name]
+		if !ok {
+			return false
+		}
+		if ea.Service != eb.Service || ea.Method != eb.Method || !equalScopes(ea.Scopes, eb.Scopes) {
+			return false
+		}
+	}
+	return true
+}
+
+func equalScopes(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func resolveEndpoint(service string, ep *registry.Endpoint) *Endpoint {
@@ -282,7 +318,9 @@ func JSONType(goType string) string {
 		return "number"
 	case "bool":
 		return "boolean"
-	default:
-		return "object"
 	}
+	if strings.HasPrefix(goType, "[]") {
+		return "array"
+	}
+	return "object"
 }

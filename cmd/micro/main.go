@@ -2,7 +2,13 @@ package main
 
 import (
 	"embed"
+
 	"go-micro.dev/v6/cmd"
+	builtin "go-micro.dev/v6/internal/otel"
+
+	// Link the OTLP trace exporter so CLI-hosted services/agents/flows emit
+	// spans when OTEL_EXPORTER_OTLP_ENDPOINT is set. Library users omit it.
+	_ "go-micro.dev/v6/otel"
 
 	// Link every plugin so CLI flag selection (--registry etcd, --broker nats,
 	// --profile nats, ...) keeps working; library users omit this import.
@@ -34,6 +40,7 @@ func init() {
 }
 
 func main() {
+	builtin.Init()
 	_ = cmd.Init(
 		cmd.Name("micro"),
 		cmd.Version(version),

@@ -9,8 +9,10 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/auth"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
@@ -302,6 +304,44 @@ func TestOTel_StartToolSpan_NilProvider(t *testing.T) {
 	}
 	if span == nil {
 		t.Error("expected non-nil span (even if noop)")
+	}
+}
+
+// A server with no TraceProvider still traces when a global provider is set,
+// and an inbound traceparent header continues the caller's trace.
+func TestOTel_GlobalProvider_ContinuesInboundTrace(t *testing.T) {
+	exp, tp := newTestTP()
+	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	defer otel.SetTracerProvider(trace.NewNoopTracerProvider())
+	defer otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator())
+
+	parentCtx, parentSpan := tp.Tracer("test").Start(context.Background(), "parent")
+	carrier := propagation.MapCarrier{}
+	otel.GetTextMapPropagator().Inject(parentCtx, carrier)
+
+	s := newTestServer(Options{})
+	s.tools["svc.Echo"] = &Tool{Name: "svc.Echo", Service: "svc", Endpoint: "Echo"}
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"tool":  "svc.Echo",
+		"input": map[string]interface{}{"msg": "hi"},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/mcp/call", bytes.NewReader(body))
+	req.Header.Set("traceparent", carrier.Get("traceparent"))
+	rec := httptest.NewRecorder()
+	s.handleCallTool(rec, req)
+
+	spans := exp.GetSpans().Snapshots()
+	if len(spans) == 0 {
+		t.Fatal("expected a span from the global provider even without Options.TraceProvider")
+	}
+	span := spans[len(spans)-1]
+	if span.Name() != spanNameToolCall {
+		t.Fatalf("span name = %q, want %q", span.Name(), spanNameToolCall)
+	}
+	if got := span.Parent().TraceID(); got != parentSpan.SpanContext().TraceID() {
+		t.Errorf("parent trace id = %s, want inbound %s", got, parentSpan.SpanContext().TraceID())
 	}
 }
 

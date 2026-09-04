@@ -38,9 +38,9 @@ type HelloResponse struct {
 func main() {
 	// Create service
 	service := micro.NewService("greeter",
-		micro.Address(":9090"),
+		micro.Address(":9091"),
 		// Start MCP gateway alongside the service
-		mcp.WithMCP(":3000"),
+		mcp.WithMCP(":3002"),
 	)
 
 	service.Init()
@@ -51,9 +51,9 @@ func main() {
 	}
 
 	log.Println("Greeter service starting...")
-	log.Println("Service:     http://localhost:9090")
-	log.Println("MCP Gateway: http://localhost:3000")
-	log.Println("MCP Tools:   http://localhost:3000/mcp/tools")
+	log.Println("Service:     http://localhost:9091")
+	log.Println("MCP Gateway: http://localhost:3002")
+	log.Println("MCP Tools:   http://localhost:3002/mcp/tools")
 	log.Println()
 	log.Println("Use with Claude Code:")
 	log.Println("  micro mcp serve")

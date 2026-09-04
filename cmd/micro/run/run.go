@@ -36,7 +36,16 @@ import (
 	_ "go-micro.dev/v6/ai/mistral"
 	_ "go-micro.dev/v6/ai/openai"
 	_ "go-micro.dev/v6/ai/together"
+
+	// Registers pprof handlers on http.DefaultServeMux for the profiling
+	// listener below.
+	_ "net/http/pprof"
 )
+
+// pprofAddress serves runtime profiles for continuous profiling. Internal
+// only — the dev compose file does not publish this port, so it stays inside
+// the Docker network where Alloy/Pyroscope scrapes it.
+const pprofAddress = ":6060"
 
 // Color codes for log output
 var colors = []string{
@@ -49,6 +58,16 @@ var colors = []string{
 }
 
 const colorReset = "\033[0m"
+
+// hasEnv reports whether the KEY=VALUE environment list sets key.
+func hasEnv(env []string, key string) bool {
+	for _, kv := range env {
+		if strings.HasPrefix(kv, key+"=") {
+			return true
+		}
+	}
+	return false
+}
 
 func colorFor(idx int) string {
 	return colors[idx%len(colors)]
@@ -101,7 +120,15 @@ func (s *serviceProcess) launch(logDir string) error {
 	// Start process
 	s.cmd = exec.Command(s.binPath)
 	s.cmd.Dir = s.dir
-	s.cmd.Env = append(os.Environ(), s.env...)
+	env := append(os.Environ(), s.env...)
+	// Label each service's spans with its own name. An OTEL_SERVICE_NAME
+	// inherited from the parent shell or container would otherwise report
+	// every spawned service under one shared name. Only an explicit
+	// `micro run --env OTEL_SERVICE_NAME=...` overrides it.
+	if !hasEnv(s.env, "OTEL_SERVICE_NAME") {
+		env = append(env, "OTEL_SERVICE_NAME="+s.name)
+	}
+	s.cmd.Env = env
 
 	pr, pw := io.Pipe()
 	s.pipeWriter = pw
@@ -139,6 +166,7 @@ func (s *serviceProcess) launch(logDir string) error {
 
 // start builds the service and launches it (initial start).
 func (s *serviceProcess) start(logDir string) error {
+	fmt.Printf("%s[%s]%s building...\n", s.color, s.name, colorReset)
 	if err := s.build(s.binPath); err != nil {
 		return err
 	}
@@ -412,6 +440,14 @@ func Run(c *cli.Context) error {
 		}()
 	}
 
+	// Profiling listener (net/http/pprof on DefaultServeMux). Started before
+	// service builds, which can take minutes on a cold cache.
+	go func() {
+		if err := http.ListenAndServe(pprofAddress, nil); err != nil {
+			fmt.Fprintf(os.Stderr, "[pprof] %v\n", err)
+		}
+	}()
+
 	// Start services
 	for _, svc := range services {
 		if err := svc.start(logsDir); err != nil {
@@ -586,23 +622,35 @@ func discoverNewServices(baseDir string, known map[string]*serviceProcess, binDi
 	return newSvcs
 }
 
+// displayAddr makes an address clickable: a bare port like ":8080" prints as
+// "localhost:8080" so the banner URLs open in a browser.
+func displayAddr(addr string) string {
+	if strings.HasPrefix(addr, ":") {
+		return "localhost" + addr
+	}
+	return addr
+}
+
 func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool, mcpAddr string, authEnabled bool, authToken string) {
 	fmt.Println()
 	fmt.Println("  \033[1mMicro\033[0m")
 	fmt.Println()
 
 	if gw != nil {
-		fmt.Printf("  Dashboard   \033[36mhttp://%s\033[0m\n", gw.Addr())
-		fmt.Printf("  API         \033[36mhttp://%s/api/{service}/{method}\033[0m\n", gw.Addr())
-		fmt.Printf("  Agent       \033[36mhttp://%s/agent\033[0m\n", gw.Addr())
+		addr := displayAddr(gw.Addr())
+		fmt.Printf("  Dashboard   \033[36mhttp://%s\033[0m\n", addr)
+		fmt.Printf("  API         \033[36mhttp://%s/api/{service}/{method}\033[0m\n", addr)
+		fmt.Printf("  Agent       \033[36mhttp://%s/agent\033[0m\n", addr)
 		// MCP tools are served on the gateway by default — every endpoint is an
 		// AI-callable tool, so surface it rather than hiding it behind a flag.
-		fmt.Printf("  MCP Tools   \033[36mhttp://%s/mcp/tools\033[0m\n", gw.Addr())
-		fmt.Printf("  Health      \033[36mhttp://%s/health\033[0m\n", gw.Addr())
+		fmt.Printf("  MCP Tools   \033[36mhttp://%s/mcp/tools\033[0m\n", addr)
+		fmt.Printf("  Health      \033[36mhttp://%s/health\033[0m\n", addr)
+		fmt.Printf("  Profiles    \033[36mhttp://localhost%s/debug/pprof\033[0m\n", pprofAddress)
 		if mcpAddr != "" {
 			// Optional standalone MCP protocol server (e.g. for MCP clients).
-			fmt.Printf("  MCP Server  \033[36mhttp://%s\033[0m (full MCP protocol)\n", mcpAddr)
-			fmt.Printf("  WebSocket   \033[36mws://%s/mcp/ws\033[0m\n", mcpAddr)
+			mcp := displayAddr(mcpAddr)
+			fmt.Printf("  MCP Server  \033[36mhttp://%s\033[0m (full MCP protocol)\n", mcp)
+			fmt.Printf("  WebSocket   \033[36mws://%s/mcp/ws\033[0m\n", mcp)
 		}
 	}
 
