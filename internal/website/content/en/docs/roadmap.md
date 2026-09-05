@@ -14,6 +14,10 @@ The foundation is in place:
 - **Interop** — the MCP gateway (services as tools) and the A2A gateway (agents as agents, both directions, including A2A streaming, push notifications, and multi-turn continuation), both generated from the registry; x402 for paid tools.
 - **Secure by default** — TLS verification on, state scoped per component.
 
+See [Durability and Recovery](guides/durability.md) for the exact shipped
+boundaries: opt-in agent checkpoints, explicit recovery, and no exactly-once
+external side-effect or multi-replica lease guarantee.
+
 ## Principles
 
 These constrain everything below:

@@ -23,8 +23,10 @@ called a second time during resume.
 Use a durable flow when the path is known ahead of time: ordered service calls,
 retries, timers, compensation, and a precise resume stage such as `reserve` or
 `charge`. Use a checkpointed agent run when the path is open-ended and the model
-may choose tools dynamically, but completed tool side effects still must not be
-replayed after a crash or provider failure.
+may choose tools dynamically, and reuse tool results whose completion has already been saved. A side effect
+that succeeds before its checkpoint is saved can still repeat. See the
+[durability contract](../../internal/website/content/en/docs/guides/durability.md)
+for tool identity, storage failure, and recovery limitations.
 
 They compose: keep deterministic business process in `flow-durable`, then hand
 off the judgment-heavy step to a checkpointed agent when the workflow needs
