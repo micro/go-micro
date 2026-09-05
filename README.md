@@ -260,7 +260,14 @@ agent := micro.NewAgent("assistant",
 )
 ```
 
-**Memory** is durable and store-backed by default (Postgres, NATS KV, or file), so an agent picks up where it left off after a restart — or supply your own with `AgentMemory`. Long-running agents can opt into `AgentCompactMemory(maxMessages, keepRecent)`: older turns are collapsed into a deterministic summary, recent turns stay verbatim, and relevant archived turns are recalled on future asks without replaying the whole conversation. **Tools** are your services automatically, plus any function you register with `AgentTool`.
+**Memory** is durable and store-backed by default (Postgres, NATS KV, or file), so an agent restores its conversation history after a restart — or supply your own with `AgentMemory`. Long-running agents can opt into `AgentCompactMemory(maxMessages, keepRecent)`: older turns are collapsed into a deterministic summary, recent turns stay verbatim, and relevant archived turns are recalled on future asks without replaying the whole conversation. **Tools** are your services automatically, plus any function you register with `AgentTool`.
+
+Conversation recovery is separate from execution recovery: interrupted agent runs
+need an explicit `AgentWithCheckpoint` and resume call. Flow steps resume from
+successfully saved boundaries; an interrupted step may execute again. See
+[Durability and Recovery](internal/website/content/en/docs/guides/durability.md)
+for storage requirements, retry semantics, tool replay, and the exactly-once and
+multi-replica limitations.
 
 ### Paid tools (x402)
 
@@ -307,7 +314,7 @@ MCP exposes your services as tools; A2A exposes your agents as agents. See the [
 | Guardrails | `MaxSteps` (stop on count), `LoopLimit` (stop repeated no-progress calls), `ApproveTool` (human-in-the-loop) |
 | Tool middleware | `AgentWrapTool` — wrap tool execution for logging, metrics, or retries (like client/server wrappers) |
 | Workflows | `micro.NewFlow()` — event-driven; one step, ordered durable steps, or triggers an agent |
-| Durable execution | Checkpointed flow steps survive a crash and resume where they stopped; store-backed by default, pluggable backend |
+| Durable execution | Flow steps resume from saved boundaries with a persistent store; interrupted steps can repeat, pluggable backend |
 | MCP gateway | Every endpoint is an AI tool automatically |
 | A2A gateway | Every agent is reachable over the Agent2Agent protocol; cards generated from the registry (`micro a2a`) |
 | Payments (x402) | Opt-in per-call payments for tools via the x402 standard; pluggable facilitator (Base, Solana, …) |
