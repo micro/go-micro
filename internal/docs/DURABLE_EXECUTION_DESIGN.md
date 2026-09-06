@@ -1,6 +1,15 @@
 # Durable Execution: Flow Steps & Checkpoint
 
-**Status:** Design proposal — not yet implemented.
+**Status:** Historical design proposal, partly implemented. The shipped contract is
+[Durability and Recovery](../website/content/en/docs/guides/durability.md).
+
+Ordered flow steps, store-backed checkpoints, flow waiting/resume-with-input,
+opt-in agent checkpoints, and run tracing now exist. The proposal below is kept
+for design history: its pseudocode, API sketches, rollout sequence, and suggested
+idempotency behavior are not a description of current guarantees. In particular,
+`Step.Retry == 0` inherits the flow default; checkpoints do not provide
+exactly-once side effects or multi-replica leases. Consult the current guide and
+linked implementation before using a proposed API or planning follow-up work.
 
 This note sketches two related changes:
 

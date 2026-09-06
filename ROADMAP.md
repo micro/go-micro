@@ -20,6 +20,11 @@ gateways (both directions, including A2A streaming,
 push notifications, and multi-turn continuation), x402 paid tools, secure by
 default.
 
+The shipped durability contract is documented in
+[Durability and Recovery](internal/website/content/en/docs/guides/durability.md):
+agent run checkpoints are opt-in, recovery is explicit, and external side effects
+are not exactly-once. The older internal design note is historical.
+
 ## Principles
 
 1. Build into what people run, never a separate product (no hosted platform, no

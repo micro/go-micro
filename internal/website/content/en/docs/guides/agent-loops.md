@@ -87,9 +87,10 @@ micro.FlowOnIteration(func(iter int, s micro.FlowState) {
 ## Durability
 
 A loop runs as a **single flow step**. The flow checkpoints the loop's outcome
-(before and after the step) through its [Checkpoint](../deployment.md), and a
+(before and after the step) through its [Checkpoint](durability.md), and a
 resume re-enters the step — so keep loop bodies safe to repeat. For long loops,
-use `FlowOnIteration` to persist per-pass progress.
+use `FlowOnIteration` for application-owned progress recording; the callback does
+not change the engine's resume boundary or automatically skip completed iterations.
 
 ## Run it
 

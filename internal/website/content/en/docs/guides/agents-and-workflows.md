@@ -49,7 +49,7 @@ This is the clean seam between the two halves of the taxonomy: the *workflow* (d
 
 ### Ordered, durable steps
 
-A flow can be a **task made of ordered steps** rather than a single turn — the predefined path made explicit. Each step is checkpointed before and after, so if the process dies mid-run the run **resumes at the step it stopped on**, without re-running the steps that already completed (and already had their side effects). This is durable execution, store-backed by default, with no separate workflow engine.
+A flow can be a **task made of ordered steps** rather than a single turn — the predefined path made explicit. Each step is checkpointed before and after, so if the process dies mid-run the run **resumes at the step it stopped on**, without re-running steps whose completion was successfully checkpointed. An interrupted step can repeat its side effects. This is durable execution, store-backed by default, with no separate workflow engine.
 
 ```go
 f := micro.NewFlow("checkout",
@@ -60,14 +60,14 @@ f := micro.NewFlow("checkout",
         micro.FlowStep{Name: "charge",  Run: micro.FlowCall("payment", "Payment.Charge")},
         micro.FlowStep{Name: "welcome", Run: micro.FlowDispatch("comms")}, // hand a step to an agent
     ),
-    // Durable by default; point the default store at Postgres/NATS KV to
-    // survive a real restart, or plug in Temporal/Restate via Checkpoint.
+    // The default file store must live on persistent storage across restarts.
+    // WithCheckpoint can supply another backend; no external-engine adapter is implied.
 )
 ```
 
 A step's action is an RPC (`FlowCall`), an agent hand-off (`FlowDispatch`), one model turn (`FlowLLM`), or any function. `State` carries a typed payload (`Set`/`Scan`) plus a `Stage` marker — the resume point. Runs are retained for success and failure (audit) unless you set `FlowDeleteOnSuccess`. On restart, `f.Pending(ctx)` lists incomplete runs and `f.Resume(ctx, runID)` continues one. See [examples/flow-durable](https://github.com/micro/go-micro/tree/master/examples/flow-durable).
 
-The pluggability is the usual go-micro shape: the built-in `Checkpoint` is store-backed (swap the store backend freely); implement the `Checkpoint` interface to delegate durability to an external engine. Most teams need neither — the default is durable.
+The pluggability is the usual go-micro shape: the built-in `Checkpoint` is store-backed (swap the store backend freely); implement the `Checkpoint` interface to delegate durability to an external engine. The default file store survives a process restart only while its files are retained. See [Durability and Recovery](durability.md) for waiting/input, retries, agent checkpoints, and replay limitations.
 
 ## Agent ↔ `agent`
 
