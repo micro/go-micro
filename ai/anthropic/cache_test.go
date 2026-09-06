@@ -89,8 +89,8 @@ func TestToolsCountTowardsTheThreshold(t *testing.T) {
 	}
 }
 
-// With no system prompt to carry the breakpoint, a large tool catalogue gets
-// it on the last tool instead — otherwise the whole catalogue is re-sent and
+// With no system prompt to carry the breakpoint, a large tool catalog gets
+// it on the last tool instead — otherwise the whole catalog is re-sent and
 // re-billed on every call of a system-prompt-less caller. The original slice
 // and its maps are left untouched.
 func TestAToolOnlyPrefixIsCachedOnTheLastTool(t *testing.T) {

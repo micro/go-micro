@@ -120,7 +120,7 @@ func TestWithTools(t *testing.T) {
 // an explicit sort the tool list is shuffled on every call — which silently
 // defeats provider prompt caching: Anthropic cache_control and Gemini
 // implicit caching both key on a byte-identical prefix, and the tool
-// catalogue is the bulk of that prefix.
+// catalog is the bulk of that prefix.
 func TestDiscoverOrderIsDeterministic(t *testing.T) {
 	reg := registry.NewMemoryRegistry()
 	for _, name := range []string{"zulu", "alpha", "mike", "bravo", "yankee"} {
@@ -138,7 +138,7 @@ func TestDiscoverOrderIsDeterministic(t *testing.T) {
 
 	// Two versions of one service, with different endpoint sets: discovery
 	// must not duplicate its tools, and must pick the same version — the
-	// highest — every time, or the serialized catalogue still churns.
+	// highest — every time, or the serialized catalog still churns.
 	for _, v := range []struct{ version, endpoint string }{
 		{"1.0.0", "Svc.Old"},
 		{"2.0.0", "Svc.New"},
