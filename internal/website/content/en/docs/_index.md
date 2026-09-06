@@ -59,6 +59,7 @@ Otherwise continue to read the docs for more information about the framework.
 - [No-secret first-agent transcript](guides/no-secret-first-agent.md) - Run the first useful agent path without a provider key
 - [Your First Agent](guides/your-first-agent.md) - Build a service-backed agent and talk to it with `micro chat`
 - [Agent run records](guides/agent-run-records.md) - Inspect and safely export the versioned execution record for one run
+- [Flow run records](guides/flow-run-records.md) - Inspect a workflow's service targets and child agent runs
 - [Building AI-Native Services](guides/ai-native-services.md) - End-to-end tutorial for MCP-enabled services
 - [MCP Security Guide](guides/mcp-security.md) - Auth, scopes, rate limiting, and audit logging
 - [Tool Description Best Practices](guides/tool-descriptions.md) - Writing docs that make agents effective

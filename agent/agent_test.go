@@ -6,6 +6,8 @@ import (
 
 	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/store"
 )
 
 func TestNew(t *testing.T) {
@@ -90,6 +92,59 @@ func TestChatRequestParentIDPropagatesToResponse(t *testing.T) {
 	}
 	if rsp.ParentId != "flow-run-123" {
 		t.Errorf("ParentId = %q, want flow-run-123", rsp.ParentId)
+	}
+}
+
+func TestChatPreservesTransportedFlowLineageThroughToolExecution(t *testing.T) {
+	origin := ai.RunInfo{
+		RunID:    "flow-run-123",
+		Flow:     "daily-ops",
+		Step:     "summarize",
+		Dispatch: "schedule",
+		Trigger:  "daily-review",
+	}
+	transportCtx := ai.WithRunInfo(context.Background(), origin)
+	md, ok := metadata.FromContext(transportCtx)
+	if !ok {
+		t.Fatal("flow lineage was not attached to metadata")
+	}
+	serverCtx := metadata.NewContext(context.Background(), md)
+
+	var modelInfo, toolInfo ai.RunInfo
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		modelInfo, _ = ai.RunInfoFrom(ctx)
+		result := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "lookup"})
+		return &ai.Response{Reply: result.Content}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	st := store.NewMemoryStore()
+	a := newTestAgent(Name("ops-agent"), WithStore(st), WithTool("lookup", "look up service state", nil,
+		func(ctx context.Context, _ map[string]any) (string, error) {
+			toolInfo, _ = ai.RunInfoFrom(ctx)
+			return "ready", nil
+		}))
+	var rsp pb.ChatResponse
+	if err := a.Chat(serverCtx, &pb.ChatRequest{Message: "review", ParentId: origin.RunID}, &rsp); err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+	if rsp.RunId == "" || rsp.RunId == origin.RunID {
+		t.Fatalf("child run id = %q, want a distinct agent run", rsp.RunId)
+	}
+	for label, got := range map[string]ai.RunInfo{"model": modelInfo, "tool": toolInfo} {
+		if got.RunID != rsp.RunId || got.ParentID != origin.RunID || got.Agent != "ops-agent" ||
+			got.Flow != origin.Flow || got.Step != origin.Step || got.Dispatch != origin.Dispatch || got.Trigger != origin.Trigger {
+			t.Fatalf("%s RunInfo = %#v, want transported flow lineage and child agent identity", label, got)
+		}
+	}
+	record, err := LoadRunRecord(st, "ops-agent", rsp.RunId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	summary := record.Summary
+	if summary.ParentID != origin.RunID || summary.Flow != origin.Flow || summary.Step != origin.Step ||
+		summary.Dispatch != origin.Dispatch || summary.Trigger != origin.Trigger {
+		t.Fatalf("persisted summary = %#v, want flow origin", summary)
 	}
 }
 

@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+
+	"go-micro.dev/v6/metadata"
 )
 
 // Model provides an interface for interacting with AI model providers
@@ -143,14 +145,63 @@ type RunInfo struct {
 
 type runInfoKey struct{}
 
-// WithRunInfo attaches run info to ctx.
+const (
+	runHeaderID       = "Micro-Run-Id"
+	runHeaderParentID = "Micro-Run-Parent-Id"
+	runHeaderAgent    = "Micro-Run-Agent"
+	runHeaderFlow     = "Micro-Run-Flow"
+	runHeaderStep     = "Micro-Run-Step"
+	runHeaderDispatch = "Micro-Run-Dispatch"
+	runHeaderTrigger  = "Micro-Run-Trigger"
+)
+
+// WithRunInfo attaches run info to ctx and mirrors execution identity into RPC
+// metadata so services and agents across a transport boundary can recover the
+// same lineage with RunInfoFrom.
 func WithRunInfo(ctx context.Context, r RunInfo) context.Context {
-	return context.WithValue(ctx, runInfoKey{}, r)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx = context.WithValue(ctx, runInfoKey{}, r)
+	return metadata.MergeContext(ctx, metadata.Metadata{
+		runHeaderID:       r.RunID,
+		runHeaderParentID: r.ParentID,
+		runHeaderAgent:    r.Agent,
+		runHeaderFlow:     r.Flow,
+		runHeaderStep:     r.Step,
+		runHeaderDispatch: r.Dispatch,
+		runHeaderTrigger:  r.Trigger,
+	}, true)
 }
 
-// RunInfoFrom returns the run info attached to ctx, and whether it was set.
+// RunInfoFrom returns run info attached locally or propagated through Go Micro
+// RPC metadata, and whether either representation was present.
 func RunInfoFrom(ctx context.Context) (RunInfo, bool) {
+	if ctx == nil {
+		return RunInfo{}, false
+	}
 	r, ok := ctx.Value(runInfoKey{}).(RunInfo)
+	if ok {
+		return r, true
+	}
+	fields := []struct {
+		key string
+		set func(string)
+	}{
+		{runHeaderID, func(v string) { r.RunID = v }},
+		{runHeaderParentID, func(v string) { r.ParentID = v }},
+		{runHeaderAgent, func(v string) { r.Agent = v }},
+		{runHeaderFlow, func(v string) { r.Flow = v }},
+		{runHeaderStep, func(v string) { r.Step = v }},
+		{runHeaderDispatch, func(v string) { r.Dispatch = v }},
+		{runHeaderTrigger, func(v string) { r.Trigger = v }},
+	}
+	for _, field := range fields {
+		if value, found := metadata.Get(ctx, field.key); found {
+			field.set(value)
+			ok = true
+		}
+	}
 	return r, ok
 }
 

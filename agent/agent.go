@@ -272,11 +272,15 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 		return nil, fmt.Errorf("discover tools: %w", err)
 	}
 	runID := uuid.New().String()
-	ctx = ai.WithRunInfo(ctx, ai.RunInfo{
-		RunID:    runID,
-		ParentID: a.parentRunID,
-		Agent:    a.opts.Name,
-	})
+	info, _ := ai.RunInfoFrom(ctx)
+	parentRunID := a.parentRunID
+	if parentRunID == "" {
+		parentRunID = info.RunID
+	}
+	info.RunID = runID
+	info.ParentID = parentRunID
+	info.Agent = a.opts.Name
+	ctx = ai.WithRunInfo(ctx, info)
 	// Messages carries the history; Prompt carries the turn being answered.
 	// Providers build their payload as Messages followed by Prompt, so
 	// appending the current message here would send it to the model twice.
@@ -391,13 +395,18 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	a.calls = map[string]int{}
 	a.pause = nil
 
-	// Correlate this run's tool calls and surface lineage to wrappers.
+	// Correlate this run's tool calls and surface lineage to wrappers. Keep
+	// the flow origin recovered from RPC metadata while assigning this agent
+	// execution its own child run identity.
 	a.runID = runID
-	ctx = ai.WithRunInfo(ctx, ai.RunInfo{
-		RunID:    a.runID,
-		ParentID: parentRunID,
-		Agent:    a.opts.Name,
-	})
+	info, _ := ai.RunInfoFrom(ctx)
+	if parentRunID == "" {
+		parentRunID = info.RunID
+	}
+	info.RunID = a.runID
+	info.ParentID = parentRunID
+	info.Agent = a.opts.Name
+	ctx = ai.WithRunInfo(ctx, info)
 	run := a.newCheckpointRun(runID, message, parentRunID, existing)
 	a.currentRun = &run
 	defer func() { a.currentRun = nil }()

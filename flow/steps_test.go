@@ -210,11 +210,14 @@ func TestFlowStepContextIncludesRunInfo(t *testing.T) {
 	if got.Step != "inspect" {
 		t.Fatalf("RunInfo.Step = %q, want inspect", got.Step)
 	}
+	if got.Dispatch != "direct" {
+		t.Fatalf("RunInfo.Dispatch = %q, want direct", got.Dispatch)
+	}
 	runs, err := StoreCheckpoint(mem, "correlated").List(context.Background())
 	if err != nil {
 		t.Fatalf("List: %v", err)
 	}
-	if len(runs) != 1 || runs[0].ParentID != "agent-run-1" {
+	if len(runs) != 1 || runs[0].ParentID != "agent-run-1" || runs[0].Dispatch != "direct" {
 		t.Fatalf("persisted parent id = %+v, want agent-run-1", runs)
 	}
 }

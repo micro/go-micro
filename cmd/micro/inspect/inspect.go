@@ -54,6 +54,7 @@ func inspectAgentFlags() []cli.Flag {
 func inspectFlowFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "json", Usage: "Print durable run history as JSON for automation"},
+		&cli.StringFlag{Name: "run", Usage: "Show the complete versioned record for this run id"},
 		&cli.BoolFlag{Name: "pending", Usage: "Only show runs that have not completed"},
 		&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, failed)"},
 		&cli.IntFlag{Name: "limit", Usage: "Show the most recently updated N runs"},
@@ -120,6 +121,22 @@ func writeAgentRunRecord(w io.Writer, record goagent.RunRecord, asJSON bool) err
 		fmt.Fprintf(w, "  error=%q", summary.LastError)
 	}
 	fmt.Fprintln(w)
+	if summary.Flow != "" {
+		fmt.Fprintf(w, "  Origin  flow=%s", summary.Flow)
+		if summary.Step != "" {
+			fmt.Fprintf(w, "  step=%s", summary.Step)
+		}
+		if summary.Dispatch != "" {
+			fmt.Fprintf(w, "  dispatch=%s", summary.Dispatch)
+		}
+		if summary.Trigger != "" {
+			fmt.Fprintf(w, "  trigger=%q", summary.Trigger)
+		}
+		fmt.Fprintln(w)
+		if summary.ParentID != "" {
+			fmt.Fprintf(w, "    parent: micro inspect flow %s --run %s\n", summary.Flow, summary.ParentID)
+		}
+	}
 	fmt.Fprintln(w, "  Timeline")
 	for _, event := range record.Events {
 		fmt.Fprintf(w, "  %s  kind=%s", event.Time.Format(time.RFC3339Nano), event.Kind)
@@ -192,7 +209,16 @@ func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, a
 		if run.TraceID != "" {
 			fmt.Fprintf(w, "  trace=%s", shortID(run.TraceID))
 		}
+		if run.Flow != "" {
+			fmt.Fprintf(w, "  flow=%s", run.Flow)
+		}
+		if run.Step != "" {
+			fmt.Fprintf(w, "  step=%s", run.Step)
+		}
 		fmt.Fprintln(w)
+		if run.Flow != "" && run.ParentID != "" {
+			fmt.Fprintf(w, "    parent:  micro inspect flow %s --run %s\n", run.Flow, run.ParentID)
+		}
 		writeAgentRunBreadcrumbs(w, name, run)
 	}
 	return nil
@@ -226,12 +252,75 @@ func inspectFlow(c *cli.Context) error {
 	if name == "" {
 		return fmt.Errorf("flow name required: micro inspect flow <name>")
 	}
-	runs, err := aiflow.StoreCheckpoint(nil, name).List(context.Background())
+	checkpoint := aiflow.StoreCheckpoint(nil, name)
+	if runID := c.String("run"); runID != "" {
+		record, err := aiflow.LoadRunRecord(context.Background(), checkpoint, name, runID)
+		if err != nil {
+			return err
+		}
+		return writeFlowRunRecord(os.Stdout, record, c.Bool("json"))
+	}
+	runs, err := checkpoint.List(context.Background())
 	if err != nil {
 		return err
 	}
 	runs = filterFlowInspection(runs, c.Bool("pending"), c.String("status"), c.String("stage"), c.Int("limit"))
 	return writeFlowInspection(os.Stdout, name, runs, c.Bool("json"), c.Bool("pending"))
+}
+
+func writeFlowRunRecord(w io.Writer, record aiflow.RunRecord, asJSON bool) error {
+	if asJSON {
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(record)
+	}
+	run := record.Run
+	if run.Status == "" {
+		fmt.Fprintf(w, "  No recorded flow %q run %q.\n", run.Flow, run.ID)
+		return nil
+	}
+	fmt.Fprintf(w, "  Flow %q run %q  schema=%d\n", run.Flow, run.ID, record.SchemaVersion)
+	fmt.Fprintf(w, "  status=%s  started=%s  updated=%s", run.Status, run.Started.Format(time.RFC3339Nano), run.Updated.Format(time.RFC3339Nano))
+	if run.ParentID != "" {
+		fmt.Fprintf(w, "  parent=%s", run.ParentID)
+	}
+	if run.Dispatch != "" {
+		fmt.Fprintf(w, "  dispatch=%s", run.Dispatch)
+	}
+	if run.Trigger != "" {
+		fmt.Fprintf(w, "  trigger=%q", run.Trigger)
+	}
+	if run.State.Stage != "" {
+		fmt.Fprintf(w, "  stage=%s", run.State.Stage)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  Steps")
+	for _, step := range run.Steps {
+		fmt.Fprintf(w, "  %s  status=%s  attempts=%d", step.Name, step.Status, step.Attempts)
+		if step.Service != "" {
+			fmt.Fprintf(w, "  service=%s  endpoint=%s", step.Service, step.Endpoint)
+		}
+		if step.Agent != "" {
+			fmt.Fprintf(w, "  agent=%s", step.Agent)
+		}
+		if step.ChildRunID != "" {
+			fmt.Fprintf(w, "  child_run=%s", step.ChildRunID)
+		}
+		if step.VerificationStatus != "" {
+			fmt.Fprintf(w, "  verification=%s", step.VerificationStatus)
+		}
+		if step.ErrorKind != "" {
+			fmt.Fprintf(w, "  error_kind=%s", step.ErrorKind)
+		}
+		if step.Error != "" {
+			fmt.Fprintf(w, "  error=%q", step.Error)
+		}
+		fmt.Fprintln(w)
+		if step.Agent != "" && step.ChildRunID != "" {
+			fmt.Fprintf(w, "    inspect: micro inspect agent %s --run %s\n", step.Agent, step.ChildRunID)
+		}
+	}
+	return nil
 }
 
 func filterFlowInspection(runs []aiflow.Run, pending bool, status, stage string, limit int) []aiflow.Run {
@@ -282,6 +371,11 @@ func writeFlowInspection(w io.Writer, name string, runs []aiflow.Run, asJSON, pe
 			}
 		}
 		fmt.Fprintln(w)
+		for _, step := range run.Steps {
+			if step.Agent != "" && step.ChildRunID != "" {
+				fmt.Fprintf(w, "    child: micro inspect agent %s --run %s\n", step.Agent, step.ChildRunID)
+			}
+		}
 	}
 	return nil
 }
