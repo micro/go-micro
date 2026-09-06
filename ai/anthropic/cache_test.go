@@ -10,7 +10,7 @@ import (
 //
 // An agent's request is mostly the same request every time: the tools and the
 // system prompt do not change between turns, or between the rounds of one tool
-// loop. Uncached that is the whole catalogue re-sent and re-billed on every
+// loop. Uncached that is the whole catalog re-sent and re-billed on every
 // call — for a caller with a hundred tools, tens of thousands of tokens a turn.
 func TestABigPrefixIsMarkedForCaching(t *testing.T) {
 	tools := []map[string]any{}
@@ -56,7 +56,7 @@ func TestTheToolsAreNotMarkedSeparately(t *testing.T) {
 }
 
 // Below the smallest cacheable prefix it stays a plain string. Asking the API
-// to cache less than it will cache is an error, and the thing being optimised
+// to cache less than it will cache is an error, and the thing being optimized
 // is not present anyway.
 func TestASmallRequestIsLeftAlone(t *testing.T) {
 	for _, tc := range []struct {
@@ -89,8 +89,8 @@ func TestToolsCountTowardsTheThreshold(t *testing.T) {
 	}
 }
 
-// With no system prompt to carry the breakpoint, a large tool catalogue gets
-// it on the last tool instead — otherwise the whole catalogue is re-sent and
+// With no system prompt to carry the breakpoint, a large tool catalog gets
+// it on the last tool instead — otherwise the whole catalog is re-sent and
 // re-billed on every call of a system-prompt-less caller. The original slice
 // and its maps are left untouched.
 func TestAToolOnlyPrefixIsCachedOnTheLastTool(t *testing.T) {

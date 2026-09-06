@@ -132,7 +132,7 @@ func (t *Tools) Discover() ([]Tool, error) {
 	// Deterministic order. The registry iterates a map, so without this the
 	// tool list is shuffled on every discovery — which silently defeats
 	// provider prompt caching (Anthropic cache_control, Gemini implicit
-	// caching): both key on a byte-identical prefix, and the tool catalogue
+	// caching): both key on a byte-identical prefix, and the tool catalog
 	// is the bulk of that prefix.
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].Name != out[j].Name {

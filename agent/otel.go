@@ -55,6 +55,9 @@ const (
 	AttrToolSpend        = "agent.tool.spend"
 )
 
+// RunEvent is one ordered, persisted observation from an agent run. Events
+// intentionally contain operational metadata rather than model or tool payloads;
+// Name contains the prompt only when TraceInputs is explicitly enabled.
 type RunEvent struct {
 	Time        time.Time `json:"time"`
 	RunID       string    `json:"run_id"`
@@ -98,7 +101,8 @@ type RunListOptions struct {
 	Limit int
 }
 
-// RunSummary is a compact index entry for a recorded agent run.
+// RunSummary is the derived, compact index entry for a recorded agent run. It
+// can be rebuilt from the run's events and is not a separate source of truth.
 type RunSummary struct {
 	RunID         string    `json:"run_id"`
 	Agent         string    `json:"agent"`
@@ -116,6 +120,18 @@ type RunSummary struct {
 	LastError     string    `json:"last_error,omitempty"`
 	LastErrorKind string    `json:"last_error_kind,omitempty"`
 	Spent         int64     `json:"spent,omitempty"`
+}
+
+// RunRecordSchemaVersion is the current JSON schema version for RunRecord.
+const RunRecordSchemaVersion = 1
+
+// RunRecord is the durable, inspectable representation of one agent execution.
+// Events are ordered oldest first and Summary is derived from those events.
+// Consumers should use SchemaVersion when decoding records across releases.
+type RunRecord struct {
+	SchemaVersion int        `json:"schema_version"`
+	Summary       RunSummary `json:"summary"`
+	Events        []RunEvent `json:"events"`
 }
 
 func (a *agentImpl) tracer() trace.Tracer {
@@ -605,49 +621,7 @@ func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOp
 		if len(events) == 0 {
 			continue
 		}
-		first := events[0]
-		last := events[len(events)-1]
-		summary := RunSummary{
-			RunID:      id,
-			Agent:      first.Agent,
-			ParentID:   first.ParentID,
-			TraceID:    first.TraceID,
-			SpanID:     first.SpanID,
-			StartedAt:  first.Time,
-			UpdatedAt:  last.Time,
-			DurationMS: last.Time.Sub(first.Time).Milliseconds(),
-			Events:     len(events),
-			Status:     runStatus(events),
-			LastKind:   last.Kind,
-			LastError:  last.Error,
-		}
-		for _, e := range events {
-			if e.Agent != "" {
-				summary.Agent = e.Agent
-			}
-			if e.ParentID != "" {
-				summary.ParentID = e.ParentID
-			}
-			if e.TraceID != "" {
-				summary.TraceID = e.TraceID
-			}
-			if e.SpanID != "" {
-				summary.SpanID = e.SpanID
-			}
-			if e.Kind == "checkpoint" {
-				summary.Checkpoint = e.Status
-				summary.Stage = e.Name
-			}
-			if e.Error != "" {
-				summary.LastError = e.Error
-			}
-			if e.ErrorKind != "" {
-				summary.LastErrorKind = e.ErrorKind
-			}
-			if e.Spent > summary.Spent {
-				summary.Spent = e.Spent
-			}
-		}
+		summary := summarizeRunEvents(id, events)
 		if opts.Status != "" && summary.Status != opts.Status {
 			continue
 		}
@@ -665,6 +639,53 @@ func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOp
 		}
 	}
 	return summaries, nil
+}
+
+func summarizeRunEvents(runID string, events []RunEvent) RunSummary {
+	summary := RunSummary{RunID: runID, Events: len(events)}
+	if len(events) == 0 {
+		return summary
+	}
+	first := events[0]
+	last := events[len(events)-1]
+	summary.Agent = first.Agent
+	summary.ParentID = first.ParentID
+	summary.TraceID = first.TraceID
+	summary.SpanID = first.SpanID
+	summary.StartedAt = first.Time
+	summary.UpdatedAt = last.Time
+	summary.DurationMS = last.Time.Sub(first.Time).Milliseconds()
+	summary.Status = runStatus(events)
+	summary.LastKind = last.Kind
+	summary.LastError = last.Error
+	for _, e := range events {
+		if e.Agent != "" {
+			summary.Agent = e.Agent
+		}
+		if e.ParentID != "" {
+			summary.ParentID = e.ParentID
+		}
+		if e.TraceID != "" {
+			summary.TraceID = e.TraceID
+		}
+		if e.SpanID != "" {
+			summary.SpanID = e.SpanID
+		}
+		if e.Kind == "checkpoint" {
+			summary.Checkpoint = e.Status
+			summary.Stage = e.Name
+		}
+		if e.Error != "" {
+			summary.LastError = e.Error
+		}
+		if e.ErrorKind != "" {
+			summary.LastErrorKind = e.ErrorKind
+		}
+		if e.Spent > summary.Spent {
+			summary.Spent = e.Spent
+		}
+	}
+	return summary
 }
 
 func runStatus(events []RunEvent) string {
@@ -708,6 +729,10 @@ func runErrorStatus(kind string) string {
 }
 
 func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
+	return loadRunEvents(s, agentName, runID, false)
+}
+
+func loadRunEvents(s store.Store, agentName, runID string, strict bool) ([]RunEvent, error) {
 	st := store.Scope(s, "agent", agentName)
 	keys, err := st.List(store.ListPrefix("runs/" + runID + "/"))
 	if err != nil {
@@ -717,13 +742,44 @@ func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
 	events := make([]RunEvent, 0, len(keys))
 	for _, k := range keys {
 		recs, err := st.Read(k)
-		if err != nil || len(recs) == 0 {
+		if err != nil {
+			if strict {
+				return nil, fmt.Errorf("read agent run event %q: %w", k, err)
+			}
+			continue
+		}
+		if len(recs) == 0 {
+			if strict {
+				return nil, fmt.Errorf("read agent run event %q: no record returned", k)
+			}
 			continue
 		}
 		var e RunEvent
-		if json.Unmarshal(recs[0].Value, &e) == nil {
-			events = append(events, e)
+		if err := json.Unmarshal(recs[0].Value, &e); err != nil {
+			if strict {
+				return nil, fmt.Errorf("decode agent run event %q: %w", k, err)
+			}
+			continue
 		}
+		events = append(events, e)
 	}
 	return events, nil
+}
+
+// LoadRunRecord loads the versioned record for one agent run. A run with no
+// recorded events returns an empty record carrying the requested identity.
+func LoadRunRecord(s store.Store, agentName, runID string) (RunRecord, error) {
+	events, err := loadRunEvents(s, agentName, runID, true)
+	if err != nil {
+		return RunRecord{}, err
+	}
+	summary := summarizeRunEvents(runID, events)
+	if summary.Agent == "" {
+		summary.Agent = agentName
+	}
+	return RunRecord{
+		SchemaVersion: RunRecordSchemaVersion,
+		Summary:       summary,
+		Events:        events,
+	}, nil
 }

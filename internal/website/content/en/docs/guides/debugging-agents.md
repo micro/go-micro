@@ -116,7 +116,9 @@ micro inspect agent support --limit 1
 Run timelines are stored in the agent's state store under that agent's scoped
 state (`agent/<name>/runs/...`). The persisted timeline is recorded even without
 an OpenTelemetry exporter, so `micro inspect agent` remains useful in local
-no-secret development.
+no-secret development. Use `micro inspect agent support --run <run-id>` for the
+complete timeline, or read [Agent run records](agent-run-records.md) for the
+versioned JSON contract, lifecycle, and privacy guidance.
 
 Provider-free quickcheck: if you want to verify the documented inspect path
 before involving a live model, run the same smoke check CI uses:
