@@ -782,6 +782,66 @@ func TestListRunSummaries(t *testing.T) {
 	}
 }
 
+func TestLoadRunRecordReturnsVersionedTimelineAndDerivedSummary(t *testing.T) {
+	st := store.NewMemoryStore()
+	scoped := store.Scope(st, "agent", "runner")
+	start := time.Unix(100, 0).UTC()
+	events := []RunEvent{
+		{Time: start, RunID: "run-record", Agent: "runner", TraceID: "trace-1", Kind: "run", InputChars: 12},
+		{Time: start.Add(time.Second), RunID: "run-record", Agent: "runner", Kind: "checkpoint", Name: "approval", Status: "paused"},
+		{Time: start.Add(2 * time.Second), RunID: "run-record", Agent: "runner", Kind: "error", Error: "deadline exceeded", ErrorKind: string(ai.ErrorKindTimeout), Spent: 9},
+	}
+	for _, event := range events {
+		value, err := json.Marshal(event)
+		if err != nil {
+			t.Fatal(err)
+		}
+		key := "runs/" + event.RunID + "/" + event.Time.Format("20060102150405.000000000") + "-" + event.Kind
+		if err := scoped.Write(&store.Record{Key: key, Value: value}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	record, err := LoadRunRecord(st, "runner", "run-record")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.SchemaVersion != RunRecordSchemaVersion {
+		t.Fatalf("schema version = %d, want %d", record.SchemaVersion, RunRecordSchemaVersion)
+	}
+	if len(record.Events) != 3 || record.Events[0].Kind != "run" || record.Events[2].Kind != "error" {
+		t.Fatalf("unexpected ordered events: %#v", record.Events)
+	}
+	summary := record.Summary
+	if summary.RunID != "run-record" || summary.Agent != "runner" || summary.Status != "timeout" || summary.Events != 3 || summary.DurationMS != 2000 || summary.Checkpoint != "paused" || summary.Stage != "approval" || summary.LastErrorKind != string(ai.ErrorKindTimeout) || summary.Spent != 9 {
+		t.Fatalf("unexpected derived summary: %#v", summary)
+	}
+
+	encoded, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var shape map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &shape); err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"schema_version", "summary", "events"} {
+		if _, ok := shape[field]; !ok {
+			t.Fatalf("serialized record missing %q: %s", field, encoded)
+		}
+	}
+}
+
+func TestLoadRunRecordMissingRunPreservesRequestedIdentity(t *testing.T) {
+	record, err := LoadRunRecord(store.NewMemoryStore(), "runner", "missing-run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.SchemaVersion != RunRecordSchemaVersion || record.Summary.Agent != "runner" || record.Summary.RunID != "missing-run" || len(record.Events) != 0 {
+		t.Fatalf("unexpected empty record: %#v", record)
+	}
+}
+
 func TestRunStatusClassifiesOperationalErrorKinds(t *testing.T) {
 	tests := []struct {
 		name string

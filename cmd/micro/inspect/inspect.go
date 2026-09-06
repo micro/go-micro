@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v2"
 	goagent "go-micro.dev/v6/agent"
@@ -42,7 +43,8 @@ It reads durable local run history, so it works after the agent or flow has stop
 
 func inspectAgentFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.BoolFlag{Name: "json", Usage: "Print run summaries as JSON for automation"},
+		&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
+		&cli.StringFlag{Name: "run", Usage: "Show the complete versioned record for this run id"},
 		&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, canceled, timeout, rate_limited, auth, configuration, unavailable, provider_error, error, refused)"},
 		&cli.StringFlag{Name: "trace", Usage: "Only show runs whose trace id matches this full id or prefix"},
 		&cli.IntFlag{Name: "limit", Usage: "Show the most recently updated N runs"},
@@ -64,12 +66,99 @@ func inspectAgent(c *cli.Context) error {
 	if name == "" {
 		return fmt.Errorf("agent name required: micro inspect agent <name>")
 	}
+	if runID := c.String("run"); runID != "" {
+		record, err := goagent.LoadRunRecord(store.DefaultStore, name, runID)
+		if err != nil {
+			return err
+		}
+		return writeAgentRunRecord(os.Stdout, record, c.Bool("json"))
+	}
 	opts := goagent.RunListOptions{Status: c.String("status"), TraceID: c.String("trace"), Limit: c.Int("limit")}
 	runs, err := goagent.ListRunSummariesWithOptions(store.DefaultStore, name, opts)
 	if err != nil {
 		return err
 	}
 	return writeAgentInspection(os.Stdout, name, runs, c.Bool("json"))
+}
+
+func writeAgentRunRecord(w io.Writer, record goagent.RunRecord, asJSON bool) error {
+	if asJSON {
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(record)
+	}
+	if len(record.Events) == 0 {
+		fmt.Fprintf(w, "  No recorded events for agent %q run %q.\n", record.Summary.Agent, record.Summary.RunID)
+		return nil
+	}
+	summary := record.Summary
+	fmt.Fprintf(w, "  Agent %q run %q  schema=%d\n", summary.Agent, summary.RunID, record.SchemaVersion)
+	fmt.Fprintf(w, "  status=%s  events=%d  started=%s  updated=%s  duration_ms=%d",
+		summary.Status, summary.Events, summary.StartedAt.Format(time.RFC3339Nano), summary.UpdatedAt.Format(time.RFC3339Nano), summary.DurationMS)
+	if summary.ParentID != "" {
+		fmt.Fprintf(w, "  parent=%s", summary.ParentID)
+	}
+	if summary.TraceID != "" {
+		fmt.Fprintf(w, "  trace=%s", summary.TraceID)
+	}
+	if summary.SpanID != "" {
+		fmt.Fprintf(w, "  span=%s", summary.SpanID)
+	}
+	if summary.Checkpoint != "" {
+		fmt.Fprintf(w, "  checkpoint=%s", summary.Checkpoint)
+	}
+	if summary.Stage != "" {
+		fmt.Fprintf(w, "  stage=%s", summary.Stage)
+	}
+	if summary.LastErrorKind != "" {
+		fmt.Fprintf(w, "  error_kind=%s", summary.LastErrorKind)
+	}
+	if summary.Spent > 0 {
+		fmt.Fprintf(w, "  spent=%d", summary.Spent)
+	}
+	if summary.LastError != "" {
+		fmt.Fprintf(w, "  error=%q", summary.LastError)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "  Timeline")
+	for _, event := range record.Events {
+		fmt.Fprintf(w, "  %s  kind=%s", event.Time.Format(time.RFC3339Nano), event.Kind)
+		if event.Name != "" {
+			fmt.Fprintf(w, "  name=%q", event.Name)
+		}
+		if event.Provider != "" || event.Model != "" {
+			fmt.Fprintf(w, "  provider=%s  model=%s", event.Provider, event.Model)
+		}
+		if event.Attempt > 0 || event.MaxAttempts > 0 {
+			fmt.Fprintf(w, "  attempt=%d/%d", event.Attempt, event.MaxAttempts)
+		}
+		if event.LatencyMS > 0 {
+			fmt.Fprintf(w, "  latency_ms=%d", event.LatencyMS)
+		}
+		if event.Tokens.TotalTokens > 0 {
+			fmt.Fprintf(w, "  tokens=%d/%d/%d", event.Tokens.InputTokens, event.Tokens.OutputTokens, event.Tokens.TotalTokens)
+		}
+		if event.Refused != "" {
+			fmt.Fprintf(w, "  refused=%q", event.Refused)
+		}
+		if event.Status != "" {
+			fmt.Fprintf(w, "  status=%s", event.Status)
+		}
+		if event.ErrorKind != "" {
+			fmt.Fprintf(w, "  error_kind=%s", event.ErrorKind)
+		}
+		if event.Error != "" {
+			fmt.Fprintf(w, "  error=%q", event.Error)
+		}
+		if event.InputChars > 0 {
+			fmt.Fprintf(w, "  input_chars=%d", event.InputChars)
+		}
+		if event.Spent > 0 || event.ToolSpend > 0 {
+			fmt.Fprintf(w, "  spent=%d  tool_spend=%d", event.Spent, event.ToolSpend)
+		}
+		fmt.Fprintln(w)
+	}
+	return nil
 }
 
 func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, asJSON bool) error {
