@@ -6,6 +6,9 @@ import (
 
 	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/store"
 )
 
 func TestNew(t *testing.T) {
@@ -90,6 +93,92 @@ func TestChatRequestParentIDPropagatesToResponse(t *testing.T) {
 	}
 	if rsp.ParentId != "flow-run-123" {
 		t.Errorf("ParentId = %q, want flow-run-123", rsp.ParentId)
+	}
+}
+
+func TestChatPreservesTransportedFlowLineageThroughToolExecution(t *testing.T) {
+	origin := ai.RunInfo{
+		RunID:    "flow-run-123",
+		Flow:     "daily-ops",
+		Step:     "summarize",
+		Dispatch: "schedule",
+		Trigger:  "daily-review",
+	}
+	transportCtx := ai.WithRunInfo(context.Background(), origin)
+	md, ok := metadata.FromContext(transportCtx)
+	if !ok {
+		t.Fatal("flow lineage was not attached to metadata")
+	}
+	serverCtx := metadata.NewContext(context.Background(), md)
+
+	var modelInfo, toolInfo ai.RunInfo
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		modelInfo, _ = ai.RunInfoFrom(ctx)
+		result := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "lookup"})
+		return &ai.Response{Reply: result.Content}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	st := store.NewMemoryStore()
+	a := newTestAgent(Name("ops-agent"), WithStore(st), WithTool("lookup", "look up service state", nil,
+		func(ctx context.Context, _ map[string]any) (string, error) {
+			toolInfo, _ = ai.RunInfoFrom(ctx)
+			return "ready", nil
+		}))
+	var rsp pb.ChatResponse
+	if err := a.Chat(serverCtx, &pb.ChatRequest{Message: "review", ParentId: origin.RunID}, &rsp); err != nil {
+		t.Fatalf("Chat: %v", err)
+	}
+	if rsp.RunId == "" || rsp.RunId == origin.RunID {
+		t.Fatalf("child run id = %q, want a distinct agent run", rsp.RunId)
+	}
+	for label, got := range map[string]ai.RunInfo{"model": modelInfo, "tool": toolInfo} {
+		if got.RunID != rsp.RunId || got.ParentID != origin.RunID || got.Agent != "ops-agent" ||
+			got.Flow != origin.Flow || got.Step != origin.Step || got.Dispatch != origin.Dispatch || got.Trigger != origin.Trigger {
+			t.Fatalf("%s RunInfo = %#v, want transported flow lineage and child agent identity", label, got)
+		}
+	}
+	record, err := LoadRunRecord(st, "ops-agent", rsp.RunId)
+	if err != nil {
+		t.Fatal(err)
+	}
+	summary := record.Summary
+	if summary.ParentID != origin.RunID || summary.Flow != origin.Flow || summary.Step != origin.Step ||
+		summary.Dispatch != origin.Dispatch || summary.Trigger != origin.Trigger {
+		t.Fatalf("persisted summary = %#v, want flow origin", summary)
+	}
+	for _, event := range record.Events {
+		if event.Flow != origin.Flow || event.Step != origin.Step || event.Dispatch != origin.Dispatch || event.Trigger != origin.Trigger {
+			t.Fatalf("event %q lineage = %#v, want flow origin on every event", event.Kind, event)
+		}
+	}
+}
+
+func TestResumeRestoresPersistedFlowLineage(t *testing.T) {
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "ops-agent")
+	run := flow.Run{
+		ID: "agent-run-resume", ParentID: "flow-run-resume", Flow: "ops-agent",
+		OriginFlow: "daily-ops", OriginStep: "summarize", Dispatch: "schedule", Trigger: "daily-review",
+		State: flow.State{Stage: "ask", Data: []byte("resume review")},
+		Steps: []flow.StepRecord{{Name: "ask", Status: "failed"}}, Status: "failed",
+	}
+	if err := cp.Save(context.Background(), run); err != nil {
+		t.Fatal(err)
+	}
+	var got ai.RunInfo
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		got, _ = ai.RunInfoFrom(ctx)
+		return &ai.Response{Reply: "resumed"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("ops-agent"), WithCheckpoint(cp))
+	if _, err := Resume(context.Background(), a, run.ID); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if got.RunID != run.ID || got.ParentID != run.ParentID || got.Flow != run.OriginFlow || got.Step != run.OriginStep ||
+		got.Dispatch != run.Dispatch || got.Trigger != run.Trigger {
+		t.Fatalf("resumed RunInfo = %#v, want persisted flow lineage", got)
 	}
 }
 

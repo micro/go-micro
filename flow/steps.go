@@ -95,6 +95,10 @@ type StepRecord struct {
 	Name               string `json:"name"`
 	Status             string `json:"status"` // pending | in_progress | done | failed
 	Attempts           int    `json:"attempts"`
+	Service            string `json:"service,omitempty"`
+	Endpoint           string `json:"endpoint,omitempty"`
+	Agent              string `json:"agent,omitempty"`
+	ChildRunID         string `json:"child_run_id,omitempty"`
 	Result             string `json:"result,omitempty"`
 	Error              string `json:"error,omitempty"`
 	ErrorKind          string `json:"error_kind,omitempty"`
@@ -106,15 +110,19 @@ type StepRecord struct {
 // saves and loads. It is retained for success and failure unless the flow
 // opts into cleanup with DeleteOnSuccess.
 type Run struct {
-	ID       string       `json:"id"`
-	ParentID string       `json:"parent_id,omitempty"`
-	Flow     string       `json:"flow"`
-	State    State        `json:"state"`
-	Steps    []StepRecord `json:"steps"`
-	Status   string       `json:"status"` // running | waiting | done | failed
-	Await    *AwaitState  `json:"await,omitempty"`
-	Started  time.Time    `json:"started"`
-	Updated  time.Time    `json:"updated"`
+	ID         string       `json:"id"`
+	ParentID   string       `json:"parent_id,omitempty"`
+	Flow       string       `json:"flow"`
+	OriginFlow string       `json:"origin_flow,omitempty"`
+	OriginStep string       `json:"origin_step,omitempty"`
+	Dispatch   string       `json:"dispatch,omitempty"`
+	Trigger    string       `json:"trigger,omitempty"`
+	State      State        `json:"state"`
+	Steps      []StepRecord `json:"steps"`
+	Status     string       `json:"status"` // running | waiting | done | failed
+	Await      *AwaitState  `json:"await,omitempty"`
+	Started    time.Time    `json:"started"`
+	Updated    time.Time    `json:"updated"`
 }
 
 // Checkpoint persists and restores flow runs so a run survives a crash
@@ -229,6 +237,7 @@ type runDeps struct {
 	client client.Client
 	model  ai.Model
 	tools  *ai.Tools
+	step   *StepRecord
 }
 
 type runCtxKey struct{}
@@ -248,8 +257,14 @@ func depsFrom(ctx context.Context) *runDeps {
 func Call(service, endpoint string) StepFunc {
 	return func(ctx context.Context, in State) (State, error) {
 		cl := client.DefaultClient
-		if d := depsFrom(ctx); d != nil && d.client != nil {
-			cl = d.client
+		if d := depsFrom(ctx); d != nil {
+			if d.client != nil {
+				cl = d.client
+			}
+			if d.step != nil {
+				d.step.Service = service
+				d.step.Endpoint = endpoint
+			}
 		}
 		body := in.Data
 		if len(body) == 0 {
@@ -271,8 +286,14 @@ func Call(service, endpoint string) StepFunc {
 func Dispatch(name string) StepFunc {
 	return func(ctx context.Context, in State) (State, error) {
 		cl := client.DefaultClient
-		if d := depsFrom(ctx); d != nil && d.client != nil {
-			cl = d.client
+		d := depsFrom(ctx)
+		if d != nil {
+			if d.client != nil {
+				cl = d.client
+			}
+			if d.step != nil {
+				d.step.Agent = name
+			}
 		}
 		info, _ := ai.RunInfoFrom(ctx)
 		body, _ := json.Marshal(map[string]string{"message": in.String(), "parent_id": info.RunID})
@@ -283,8 +304,12 @@ func Dispatch(name string) StepFunc {
 		}
 		var out struct {
 			Reply string `json:"reply"`
+			RunID string `json:"run_id"`
 		}
 		_ = json.Unmarshal(rsp.Data, &out)
+		if d != nil && d.step != nil {
+			d.step.ChildRunID = out.RunID
+		}
 		in.Data = []byte(out.Reply)
 		return in, nil
 	}
@@ -391,14 +416,17 @@ func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
 	if err := validateSteps(f.opts.Steps); err != nil {
 		return Run{}, err
 	}
-	parentID := ""
-	if info, ok := ai.RunInfoFrom(ctx); ok {
-		parentID = info.RunID
+	info, _ := ai.RunInfoFrom(ctx)
+	dispatch := info.Dispatch
+	if dispatch == "" {
+		dispatch = "direct"
 	}
 	run := Run{
 		ID:       uuid.New().String(),
-		ParentID: parentID,
+		ParentID: info.RunID,
 		Flow:     f.name,
+		Dispatch: dispatch,
+		Trigger:  info.Trigger,
 		State:    State{Stage: f.opts.Steps[0].Name, Data: []byte(data)},
 		Status:   "running",
 		Started:  time.Now(),
@@ -548,12 +576,15 @@ func (f *Flow) ResumeWith(ctx context.Context, runID, input string) error {
 // checkpointing before and after each step.
 func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	steps := f.opts.Steps
-	ctx = withDeps(ctx, &runDeps{client: f.client, model: f.model, tools: f.toolSet})
+	deps := &runDeps{client: f.client, model: f.model, tools: f.toolSet}
+	ctx = withDeps(ctx, deps)
 	info, _ := ai.RunInfoFrom(ctx)
 	info.RunID = run.ID
 	info.ParentID = run.ParentID
 	info.Agent = f.name
 	info.Flow = f.name
+	info.Dispatch = run.Dispatch
+	info.Trigger = run.Trigger
 	ctx = ai.WithRunInfo(ctx, info)
 	ctx, finishSpan := f.startRunSpan(ctx, run)
 	var spanErr error
@@ -570,6 +601,7 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 
 	for i := start; i < len(steps); i++ {
 		step := steps[i]
+		deps.step = &run.Steps[i]
 		run.State.Stage = step.Name
 		run.Steps[i].Status = "in_progress"
 		if err := f.save(ctx, run); err != nil {

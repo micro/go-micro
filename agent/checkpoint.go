@@ -18,17 +18,21 @@ const (
 	agentInputStep    = "input-required"
 )
 
-func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, existing *flow.Run) flow.Run {
+func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info ai.RunInfo, existing *flow.Run) flow.Run {
 	now := time.Now()
 	run := flow.Run{
-		ID:       runID,
-		ParentID: parentRunID,
-		Flow:     a.opts.Name,
-		State:    flow.State{Stage: agentAskStep, Data: []byte(message)},
-		Steps:    []flow.StepRecord{{Name: agentAskStep, Status: "in_progress"}},
-		Status:   "running",
-		Started:  now,
-		Updated:  now,
+		ID:         runID,
+		ParentID:   parentRunID,
+		Flow:       a.opts.Name,
+		OriginFlow: info.Flow,
+		OriginStep: info.Step,
+		Dispatch:   info.Dispatch,
+		Trigger:    info.Trigger,
+		State:      flow.State{Stage: agentAskStep, Data: []byte(message)},
+		Steps:      []flow.StepRecord{{Name: agentAskStep, Status: "in_progress"}},
+		Status:     "running",
+		Started:    now,
+		Updated:    now,
 	}
 	if existing != nil {
 		run = *existing

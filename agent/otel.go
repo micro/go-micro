@@ -62,6 +62,10 @@ type RunEvent struct {
 	Time        time.Time `json:"time"`
 	RunID       string    `json:"run_id"`
 	ParentID    string    `json:"parent_id,omitempty"`
+	Flow        string    `json:"flow,omitempty"`
+	Step        string    `json:"step,omitempty"`
+	Dispatch    string    `json:"dispatch,omitempty"`
+	Trigger     string    `json:"trigger,omitempty"`
 	TraceID     string    `json:"trace_id,omitempty"`
 	SpanID      string    `json:"span_id,omitempty"`
 	Agent       string    `json:"agent"`
@@ -107,6 +111,10 @@ type RunSummary struct {
 	RunID         string    `json:"run_id"`
 	Agent         string    `json:"agent"`
 	ParentID      string    `json:"parent_id,omitempty"`
+	Flow          string    `json:"flow,omitempty"`
+	Step          string    `json:"step,omitempty"`
+	Dispatch      string    `json:"dispatch,omitempty"`
+	Trigger       string    `json:"trigger,omitempty"`
 	TraceID       string    `json:"trace_id,omitempty"`
 	SpanID        string    `json:"span_id,omitempty"`
 	StartedAt     time.Time `json:"started_at"`
@@ -142,6 +150,7 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 	info, _ := ai.RunInfoFrom(ctx)
 	start := time.Now()
 	runEvent := RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", InputChars: len(message)}
+	applyRunInfoToEvent(&runEvent, info)
 	if a.opts.TraceInputs {
 		runEvent.Name = message
 	}
@@ -151,10 +160,14 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 		return ctx, func(err error) {
 			latency := time.Since(start).Milliseconds()
 			if err != nil {
-				a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))})
+				e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+				applyRunInfoToEvent(&e, info)
+				a.recordRunEvent(e)
 				return
 			}
-			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency})
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency}
+			applyRunInfoToEvent(&e, info)
+			a.recordRunEvent(e)
 		}
 	}
 
@@ -172,10 +185,14 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 			span.SetAttributes(attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))})
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+			applyRunInfoToEvent(&e, info)
+			a.recordSpanEvent(span, e)
 		} else {
 			span.SetStatus(codes.Ok, "")
-			a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency})
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency}
+			applyRunInfoToEvent(&e, info)
+			a.recordSpanEvent(span, e)
 		}
 		span.End()
 	}
@@ -201,6 +218,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 			usage = resp.Usage
 		}
 		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
+		applyRunInfoToEvent(&e, info)
 		if err != nil {
 			e.Error = err.Error()
 			e.ErrorKind = string(ai.ClassifyError(err))
@@ -240,6 +258,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 		span.SetStatus(codes.Ok, "")
 	}
 	e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
+	applyRunInfoToEvent(&e, info)
 	if err != nil {
 		e.Error = err.Error()
 		e.ErrorKind = string(ai.ClassifyError(err))
@@ -258,7 +277,9 @@ func (m *tracedModel) Stream(ctx context.Context, req *ai.Request, opts ...ai.Ge
 	if m.a.opts.TraceProvider == nil {
 		stream, err := m.Model.Stream(ctx, req, opts...)
 		if err != nil {
-			m.a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: time.Since(start).Milliseconds(), Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))})
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: time.Since(start).Milliseconds(), Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+			applyRunInfoToEvent(&e, info)
+			m.a.recordRunEvent(e)
 			return nil, err
 		}
 		return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: model, start: start}, nil
@@ -279,6 +300,7 @@ func (m *tracedModel) Stream(ctx context.Context, req *ai.Request, opts ...ai.Ge
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+		applyRunInfoToEvent(&e, info)
 		m.a.recordSpanEvent(span, e)
 		span.End()
 		return nil, err
@@ -326,6 +348,7 @@ func (s *tracedStream) finish(err error) {
 	s.closed = true
 	dur := time.Since(s.start).Milliseconds()
 	e := RunEvent{Time: time.Now(), RunID: s.info.RunID, ParentID: s.info.ParentID, Agent: s.info.Agent, Kind: "stream", Provider: s.provider, Model: s.model, Attempt: s.info.Attempt, MaxAttempts: s.info.MaxAttempts, LatencyMS: dur, Tokens: s.usage}
+	applyRunInfoToEvent(&e, s.info)
 	if err != nil {
 		e.Error = err.Error()
 		e.ErrorKind = string(ai.ClassifyError(err))
@@ -393,7 +416,9 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 			if toolAttempts <= 0 {
 				toolAttempts = 1
 			}
-			a.recordRunEvent(RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr), Spent: a.spend, ToolSpend: a.spend - spentBefore})
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr), Spent: a.spend, ToolSpend: a.spend - spentBefore}
+			applyRunInfoToEvent(&e, info)
+			a.recordRunEvent(e)
 			return res
 		}
 
@@ -435,7 +460,9 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 		} else {
 			span.SetStatus(codes.Ok, "")
 		}
-		a.recordSpanEvent(span, RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr), Spent: a.spend, ToolSpend: toolSpend})
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr), Spent: a.spend, ToolSpend: toolSpend}
+		applyRunInfoToEvent(&e, info)
+		a.recordSpanEvent(span, e)
 		span.End()
 		return res
 	}
@@ -467,12 +494,31 @@ func classifyToolError(err string) string {
 }
 
 func (a *agentImpl) recordTimelineEvent(ctx context.Context, e RunEvent) {
+	if info, ok := ai.RunInfoFrom(ctx); ok {
+		applyRunInfoToEvent(&e, info)
+	}
 	span := trace.SpanFromContext(ctx)
 	if span.SpanContext().IsValid() {
 		a.recordSpanEvent(span, e)
 		return
 	}
 	a.recordRunEvent(e)
+}
+
+func applyRunInfoToEvent(e *RunEvent, info ai.RunInfo) {
+	if e.RunID == "" {
+		e.RunID = info.RunID
+	}
+	if e.ParentID == "" {
+		e.ParentID = info.ParentID
+	}
+	if e.Agent == "" {
+		e.Agent = info.Agent
+	}
+	e.Flow = info.Flow
+	e.Step = info.Step
+	e.Dispatch = info.Dispatch
+	e.Trigger = info.Trigger
 }
 
 func (a *agentImpl) recordSpanEvent(span trace.Span, e RunEvent) {
@@ -492,6 +538,18 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 	}
 	if e.ParentID != "" {
 		attrs = append(attrs, attribute.String(AttrParentRunID, e.ParentID))
+	}
+	if e.Flow != "" {
+		attrs = append(attrs, attribute.String(AttrFlowName, e.Flow))
+	}
+	if e.Step != "" {
+		attrs = append(attrs, attribute.String(AttrFlowStep, e.Step))
+	}
+	if e.Dispatch != "" {
+		attrs = append(attrs, attribute.String(AttrDispatch, e.Dispatch))
+	}
+	if e.Trigger != "" {
+		attrs = append(attrs, attribute.String(AttrTrigger, e.Trigger))
 	}
 	if e.Name != "" {
 		attrs = append(attrs, attribute.String("agent.event.name", e.Name))
@@ -650,6 +708,10 @@ func summarizeRunEvents(runID string, events []RunEvent) RunSummary {
 	last := events[len(events)-1]
 	summary.Agent = first.Agent
 	summary.ParentID = first.ParentID
+	summary.Flow = first.Flow
+	summary.Step = first.Step
+	summary.Dispatch = first.Dispatch
+	summary.Trigger = first.Trigger
 	summary.TraceID = first.TraceID
 	summary.SpanID = first.SpanID
 	summary.StartedAt = first.Time
@@ -664,6 +726,18 @@ func summarizeRunEvents(runID string, events []RunEvent) RunSummary {
 		}
 		if e.ParentID != "" {
 			summary.ParentID = e.ParentID
+		}
+		if e.Flow != "" {
+			summary.Flow = e.Flow
+		}
+		if e.Step != "" {
+			summary.Step = e.Step
+		}
+		if e.Dispatch != "" {
+			summary.Dispatch = e.Dispatch
+		}
+		if e.Trigger != "" {
+			summary.Trigger = e.Trigger
 		}
 		if e.TraceID != "" {
 			summary.TraceID = e.TraceID

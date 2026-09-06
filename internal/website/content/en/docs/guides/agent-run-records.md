@@ -25,6 +25,11 @@ The JSON view emits the public `agent.RunRecord` contract:
   "summary": {
     "run_id": "01J...",
     "agent": "support",
+    "parent_id": "flow-01J...",
+    "flow": "daily-ops",
+    "step": "summarize",
+    "dispatch": "schedule",
+    "trigger": "daily-review",
     "status": "done",
     "events": 4
   },
@@ -57,9 +62,15 @@ process uses the same agent name and state store.
 
 ## Fields
 
-The summary contains run and parent ids, agent identity, trace/span correlation,
-start and update times, duration, event count, derived status, latest checkpoint
-and stage, latest event and error, and cumulative spend.
+The summary contains run and parent ids, agent identity, originating flow and
+step, dispatch and trigger, trace/span correlation, start and update times,
+duration, event count, derived status, latest checkpoint and stage, latest event
+and error, and cumulative spend. When a flow dispatched the agent, the human
+view prints the exact parent command:
+
+```sh
+micro inspect flow <flow> --run <parent-run-id>
+```
 
 Each event contains its timestamp, run lineage, trace/span correlation, agent,
 kind, and the metadata relevant to that kind. Model events can include provider,
@@ -72,6 +83,9 @@ Go callers can load the same contract directly:
 ```go
 record, err := agent.LoadRunRecord(stateStore, "support", runID)
 ```
+
+See [Flow run records](flow-run-records.md) for the parent side of the same
+execution graph, including service targets and child agent run ids.
 
 ## Privacy and redaction
 
