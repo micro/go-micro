@@ -1,0 +1,55 @@
+services:
+  greeter:
+    image: greeter:latest
+    environment:
+      - MICRO_REGISTRY=mdns
+
+  users:
+    image: users:latest
+    environment:
+      - MICRO_REGISTRY=mdns
+
+  platform:
+    image: platform:latest
+    environment:
+      - MICRO_REGISTRY=mdns
+
+  shop:
+    image: shop:latest
+    environment:
+      - MICRO_REGISTRY=mdns
+
+  contacts:
+    image: contacts:latest
+    environment:
+      - MICRO_REGISTRY=mdns
+
+  gw:
+    # image: ghcr.io/micro/go-micro:latest # prebuilt alternative
+    build:
+      context: .
+      dockerfile: internal/docker/Dockerfile
+      additional_contexts:
+        repo: ../..
+    ports:
+      - "8080:8080"
+    depends_on:
+      - greeter
+      - users
+      - platform
+      - shop
+      - contacts
+    environment:
+      - MICRO_REGISTRY=mdns
+      - MICRO_ADMIN_USER=admin
+      - MICRO_ADMIN_PASSWORD=micro
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_SERVICE_NAME=go-micro-docker-mcp
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    ports:
+      - "16686:16686" # UI
+      - "4318:4318" # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"

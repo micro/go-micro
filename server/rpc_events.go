@@ -6,6 +6,7 @@ import (
 
 	"go-micro.dev/v6/broker"
 	raw "go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/internal/mucp"
 	log "go-micro.dev/v6/logger"
 	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/transport/headers"
@@ -29,7 +30,7 @@ func (s *rpcServer) HandleEvent(subscriber string) func(e broker.Event) error {
 			contentType = DefaultContentType
 		}
 
-		cf, err := s.newCodec(contentType)
+		cf, err := mucp.Lookup(contentType, s.opts.Codecs)
 		if err != nil {
 			return err
 		}

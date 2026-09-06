@@ -231,6 +231,10 @@ func TestConfiguredProviderStreamsSkipWithoutCredentials(t *testing.T) {
 			}
 			stream, err := ai.New(tc.provider, opts...).Stream(context.Background(), &ai.Request{Prompt: "Reply with exactly: ok"})
 			if err != nil {
+				var httpErr *ai.HTTPError
+				if errors.As(err, &httpErr) && (httpErr.StatusCode() == http.StatusUnauthorized || httpErr.StatusCode() == http.StatusNotFound) {
+					t.Skipf("credential/model error for %s; skipping", tc.provider)
+				}
 				t.Fatalf("Stream returned error: %v", err)
 			}
 			defer stream.Close()

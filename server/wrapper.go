@@ -25,3 +25,32 @@ type SubscriberWrapper func(SubscriberFunc) SubscriberFunc
 // is a convenient way to wrap a Stream as its in use for trace, monitoring,
 // metrics, etc.
 type StreamWrapper func(Stream) Stream
+
+// BeforeHandler returns a HandlerWrapper that runs fn before the handler.
+// If fn returns an error the handler is not invoked and the error is
+// returned to the caller.
+func BeforeHandler(fn func(context.Context, Request) error) HandlerWrapper {
+	return func(h HandlerFunc) HandlerFunc {
+		return func(ctx context.Context, req Request, rsp interface{}) error {
+			if err := fn(ctx, req); err != nil {
+				return err
+			}
+			return h(ctx, req, rsp)
+		}
+	}
+}
+
+// AfterHandler returns a HandlerWrapper that runs fn after the handler,
+// regardless of whether the handler returned an error. A handler error takes
+// precedence over fn's error.
+func AfterHandler(fn func(context.Context, Request) error) HandlerWrapper {
+	return func(h HandlerFunc) HandlerFunc {
+		return func(ctx context.Context, req Request, rsp interface{}) error {
+			herr := h(ctx, req, rsp)
+			if aerr := fn(ctx, req); herr == nil {
+				return aerr
+			}
+			return herr
+		}
+	}
+}

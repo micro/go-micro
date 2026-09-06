@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"go-micro.dev/v6/internal/mucp"
 	"go-micro.dev/v6/internal/network"
 	"go-micro.dev/v6/transport"
 	"go-micro.dev/v6/transport/headers"
@@ -63,16 +64,14 @@ func (s *rpcServer) localDispatch(ctx context.Context, req *transport.Message) (
 		req.Header["Content-Type"] = contentType
 	}
 
-	cf := setupProtocol(req)
-	if cf == nil {
-		var err error
-		if cf, err = s.newCodec(contentType); err != nil {
-			return nil, err
-		}
-	}
-
 	sock := &localSocket{req: req}
-	rcodec := newRPCCodec(req, sock, cf)
+	rcodec, err := mucp.NewServer(sock, mucp.Options{
+		Request: req,
+		Codecs:  s.opts.Codecs,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	request := rpcRequest{
 		service:     getHeader(headers.Request, req.Header),

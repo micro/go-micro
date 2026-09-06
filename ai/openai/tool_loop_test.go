@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/ai/internal/openaiapi"
 )
 
 // A multi-step task needs the provider to (a) loop while the model keeps
@@ -38,8 +39,7 @@ func TestGenerateToolLoopKeepsOfferingTools(t *testing.T) {
 	defer srv.Close()
 
 	toolRuns := 0
-	p := &Provider{}
-	if err := p.Init(
+	p := NewProvider(
 		ai.WithAPIKey("test"),
 		ai.WithBaseURL(srv.URL),
 		ai.WithModel("test-model"),
@@ -47,9 +47,7 @@ func TestGenerateToolLoopKeepsOfferingTools(t *testing.T) {
 			toolRuns++
 			return ai.ToolResult{ID: tc.ID, Content: "done"}
 		}),
-	); err != nil {
-		t.Fatalf("Init: %v", err)
-	}
+	)
 
 	resp, err := p.Generate(context.Background(), &ai.Request{
 		Prompt: "do a two-step task",
@@ -91,17 +89,14 @@ func TestGenerateToolLoopIsBounded(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := &Provider{}
-	if err := p.Init(
+	p := NewProvider(
 		ai.WithAPIKey("test"),
 		ai.WithBaseURL(srv.URL),
 		ai.WithModel("test-model"),
 		ai.WithToolHandler(func(ctx context.Context, tc ai.ToolCall) ai.ToolResult {
 			return ai.ToolResult{ID: tc.ID, Content: "done"}
 		}),
-	); err != nil {
-		t.Fatalf("Init: %v", err)
-	}
+	)
 
 	if _, err := p.Generate(context.Background(), &ai.Request{
 		Prompt: "never finish",
@@ -110,11 +105,11 @@ func TestGenerateToolLoopIsBounded(t *testing.T) {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	// Initial call + at most maxToolRounds follow-ups.
-	if calls > maxToolRounds+1 {
-		t.Fatalf("model calls = %d, want at most %d — the loop must be bounded", calls, maxToolRounds+1)
+	// Initial call + at most openaiapi.MaxToolRounds follow-ups.
+	if calls > openaiapi.MaxToolRounds+1 {
+		t.Fatalf("model calls = %d, want at most %d — the loop must be bounded", calls, openaiapi.MaxToolRounds+1)
 	}
-	if calls < maxToolRounds {
+	if calls < openaiapi.MaxToolRounds {
 		t.Fatalf("model calls = %d — expected the loop to keep going while tool calls keep coming", calls)
 	}
 }

@@ -64,14 +64,17 @@ func Load(name string) (Profile, error) {
 	return fn()
 }
 
-// LocalProfile returns a profile with local mDNS as the registry, HTTP as the broker, file as the store, and HTTP as the transport
-// It is used for local development and testing
+// LocalProfile returns a profile for local development: HTTP broker and
+// transport, with the currently installed registry and store defaults (mdns +
+// file when go-micro.dev/v6/cmd/defaults is linked, memory otherwise). It
+// used to hard-code mdns discovery and the file store, which pulled miekg/dns
+// and bbolt into every binary that imported this package.
 func LocalProfile() (Profile, error) {
 	stream, err := events.NewStream()
 	return Profile{
-		Registry:  registry.NewMDNSRegistry(),
+		Registry:  registry.DefaultRegistry,
 		Broker:    broker.NewHttpBroker(),
-		Store:     store.NewFileStore(),
+		Store:     store.DefaultStore,
 		Transport: transport.NewHTTPTransport(),
 		Stream:    stream,
 	}, err

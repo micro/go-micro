@@ -12,7 +12,7 @@
 //
 //	go run .
 //
-// MCP tools: http://localhost:3001/mcp/tools
+// MCP tools: http://localhost:3003/mcp/tools
 //
 // Agent scenarios:
 //
@@ -688,8 +688,8 @@ func (s *Mail) Read(ctx context.Context, req *ReadMailRequest, rsp *ReadMailResp
 
 func main() {
 	service := micro.NewService("platform",
-		micro.Address(":9090"),
-		mcp.WithMCP(":3001"),
+		micro.Address(":9092"),
+		mcp.WithMCP(":3003"),
 	)
 	service.Init()
 
@@ -749,8 +749,8 @@ func printBanner() {
 	fmt.Println("  Platform Demo — AI-Native Microservices")
 	fmt.Println()
 	fmt.Println("  Services:   Users, Posts, Comments, Mail")
-	fmt.Println("  MCP Tools:  http://localhost:3001/mcp/tools")
-	fmt.Println("  RPC:        localhost:9090")
+	fmt.Println("  MCP Tools:  http://localhost:3003/mcp/tools")
+	fmt.Println("  RPC:        localhost:9092")
 	fmt.Println()
 	fmt.Println("  Seeded:     alice (user-1), bob (user-2)")
 	fmt.Println("              1 post with tags [welcome, go-micro]")

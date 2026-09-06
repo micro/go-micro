@@ -8,7 +8,7 @@ import (
 
 	"go-micro.dev/v6"
 	"go-micro.dev/v6/auth/jwt"
-	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/registry/mdns"
 )
 
 // Example_withMCP shows the simplest way to add MCP to a service using WithMCP
@@ -44,7 +44,7 @@ func Example_standaloneGateway() {
 	// Standalone MCP gateway
 	// Discovers all services via registry
 	if err := ListenAndServe(":3000", Options{
-		Registry: registry.NewMDNSRegistry(),
+		Registry: mdns.NewRegistry(),
 	}); err != nil {
 		log.Fatal(err)
 	}

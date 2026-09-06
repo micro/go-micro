@@ -9,8 +9,8 @@ import (
 	"go-micro.dev/v6/errors"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
+	pb "go-micro.dev/v6/test/helloworld"
 	pgrpc "google.golang.org/grpc"
-	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 )
 
 // server is used to implement helloworld.GreeterServer.

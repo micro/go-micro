@@ -13,6 +13,7 @@ import (
 
 	goagent "go-micro.dev/v6/agent"
 	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/store/file"
 )
 
 func TestZeroToHeroReferenceDocs(t *testing.T) {
@@ -999,7 +1000,7 @@ func TestNoSecretFirstAgentDebuggingSmoke(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	home := t.TempDir()
 	storeDir := filepath.Join(home, "micro", "store")
-	st := store.NewFileStore(store.DirOption(storeDir))
+	st := file.NewStore(file.DirOption(storeDir))
 
 	seedNoSecretAgentDebuggingState(t, st)
 	if err := st.Close(); err != nil {
@@ -1183,8 +1184,9 @@ import (
 
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/ai"
+	_ "go-micro.dev/v6/cmd/defaults"
 	"go-micro.dev/v6/service"
-	"go-micro.dev/v6/store"
+	"go-micro.dev/v6/store/file"
 )
 
 type NotesService struct{}
@@ -1210,7 +1212,7 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 func main() {
 	ai.Register("first-agent-cli-fixture", newMock)
 	home, _ := os.UserHomeDir()
-	st := store.NewFileStore(store.DirOption(filepath.Join(home, "micro", "store")))
+	st := file.NewStore(file.DirOption(filepath.Join(home, "micro", "store")))
 	defer st.Close()
 
 	svc := service.New(service.Name("notes"), service.Address("127.0.0.1:0"))

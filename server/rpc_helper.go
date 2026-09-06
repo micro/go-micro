@@ -1,10 +1,8 @@
 package server
 
 import (
-	"fmt"
 	"sync"
 
-	"go-micro.dev/v6/codec"
 	"go-micro.dev/v6/registry"
 )
 
@@ -70,16 +68,4 @@ func (s *rpcServer) swapAddr(config Options, addr string) string {
 	a := config.Address
 	s.opts.Address = addr
 	return a
-}
-
-func (s *rpcServer) newCodec(contentType string) (codec.NewCodec, error) {
-	if cf, ok := s.opts.Codecs[contentType]; ok {
-		return cf, nil
-	}
-
-	if cf, ok := DefaultCodecs[contentType]; ok {
-		return cf, nil
-	}
-
-	return nil, fmt.Errorf("unsupported Content-Type: %s", contentType)
 }

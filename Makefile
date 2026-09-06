@@ -1,7 +1,7 @@
 NAME = micro
 GIT_COMMIT = $(shell git rev-parse --short HEAD)
 GIT_TAG = $(shell git describe --abbrev=0 --tags --always --match "v*")
-GIT_IMPORT = go-micro.dev/v5/cmd/micro
+GIT_IMPORT = go-micro.dev/v6/cmd/micro
 BUILD_DATE = $(shell date +%s)
 LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT) -X $(GIT_IMPORT).GitTag=$(GIT_TAG)
 
@@ -33,7 +33,7 @@ help:
 	@echo "  make clean         - Clean build artifacts"
 
 $(NAME):
-	CGO_ENABLED=0 go build -ldflags "-s -w ${LDFLAGS}" -o $(NAME) cmd/micro/main.go
+	CGO_ENABLED=0 go build -trimpath -ldflags "-s -w ${LDFLAGS}" -o $(NAME) cmd/micro/main.go
 
 # Run tests
 test:
@@ -128,7 +128,7 @@ install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/kyoh86/richgo@latest
-	go install go-micro.dev/v5/cmd/protoc-gen-micro@latest
+	go install go-micro.dev/v6/cmd/protoc-gen-micro@latest
 	@echo "Tools installed successfully"
 
 # Generate protobuf code

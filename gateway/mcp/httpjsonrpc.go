@@ -62,6 +62,7 @@ func NewHandler(r Resolver, opts ...HandlerOption) http.Handler {
 				"protocolVersion": o.protocolVersion,
 				"capabilities":    map[string]interface{}{"tools": map[string]interface{}{}},
 				"serverInfo":      map[string]interface{}{"name": o.serverName, "version": o.serverVersion},
+				"instructions":    mcpInstructions,
 			})
 		case "ping":
 			writeRPCResult(w, rpc.ID, map[string]interface{}{})

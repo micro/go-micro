@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -99,4 +100,44 @@ func TestScheduledFlowOpenTelemetryDispatchAttributes(t *testing.T) {
 		return
 	}
 	t.Fatal("flow run span not emitted")
+}
+
+// A plain (step-less) flow — the `micro flow exec` path — emits the same
+// flow.run and flow.step spans as a stepped flow.
+func TestPlainFlowOpenTelemetrySpans(t *testing.T) {
+	exp := tracetest.NewInMemoryExporter()
+	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
+
+	model := &runInfoModel{}
+	f := New("plain-observed", TraceProvider(tp))
+	f.model = model
+	f.toolSet = ai.NewTools(registry.NewMemoryRegistry())
+
+	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{ParentID: "parent-run-otel"})
+	if err := f.Execute(ctx, "hello"); err != nil {
+		t.Fatal(err)
+	}
+
+	spans := exp.GetSpans().Snapshots()
+	seen := map[string]bool{spanNameFlowRun: false, spanNameFlowStep: false}
+	for _, span := range spans {
+		attrs := flowSpanAttributes(span.Attributes())
+		switch span.Name() {
+		case spanNameFlowRun:
+			seen[spanNameFlowRun] = true
+			if attrs[AttrFlowName] != "plain-observed" || attrs[AttrFlowStatus] != "done" || attrs[AttrFlowParentID] != "parent-run-otel" {
+				t.Fatalf("run span attributes = %#v", attrs)
+			}
+		case spanNameFlowStep:
+			seen[spanNameFlowStep] = true
+			if attrs[AttrFlowName] != "plain-observed" || attrs[AttrFlowStepName] != "respond" {
+				t.Fatalf("step span attributes = %#v", attrs)
+			}
+		}
+	}
+	for name, ok := range seen {
+		if !ok {
+			t.Fatalf("span %s not emitted; got %d spans", name, len(spans))
+		}
+	}
 }

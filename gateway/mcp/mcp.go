@@ -37,7 +37,9 @@ import (
 	"go-micro.dev/v6/wrapper/x402"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -50,6 +52,24 @@ const (
 	// AccountIDKey is the metadata key for the authenticated account ID.
 	AccountIDKey = "Mcp-Account-Id"
 )
+
+// mcpInstructions is the system prompt delivered to clients in the initialize
+// result. It teaches agents how to discover services, endpoints, and their
+// schemas through the micro_ framework tools.
+const mcpInstructions = `You are an AI agent operating a Go Micro service mesh.
+
+Tools are named Service.Endpoint (e.g. helloworld.Helloworld.Call). Read each
+tool's description and inputSchema (its fields) before calling it.
+
+To discover what is available:
+1. Call micro_registry_list to list all registered service names.
+2. Call micro_registry_get with a service name to inspect its endpoints,
+   including each endpoint's description, example, and request fields.
+3. Then call the matching Service.Endpoint tool.
+
+The micro_ prefixed tools (micro_registry_*, micro_store_*, micro_broker_publish)
+are framework utilities for service discovery and infrastructure, not service
+endpoints.`
 
 // AuditRecord represents an immutable log entry for an MCP tool call.
 type AuditRecord struct {
@@ -317,7 +337,7 @@ func (s *Server) discoverServices() error {
 	if s.resolver == nil {
 		s.resolver = schema.New(s.opts.Registry)
 	}
-	if err := s.resolver.Refresh(); err != nil {
+	if _, err := s.resolver.Refresh(); err != nil {
 		return err
 	}
 
@@ -742,69 +762,72 @@ type toolError struct {
 
 func (e *toolError) Error() string { return e.message }
 
-// invokeTool runs the shared tool-call pipeline (lookup, x402 payment gate,
-// auth/scope inspection, rate limiting, circuit breaker, tracing, audit, and
-// the RPC or framework-handler dispatch) used by both the legacy REST
-// /mcp/call endpoint and the streamable-HTTP MCP transport. On success it
-// returns the tool's JSON payload and trace id; raw is true for framework
-// tools whose payload is the response itself. On failure it returns a
-// *toolError, or errResponseWritten if the x402 gate already wrote the 402
-// challenge.
-func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName string, input map[string]interface{}) (json.RawMessage, string, bool, error) {
-	// Get tool info
+// toolCallRequest carries the transport-agnostic inputs for invokeToolCore.
+// Each transport (HTTP, stdio, websocket) populates this from its own
+// protocol-specific sources.
+type toolCallRequest struct {
+	ToolName  string
+	Input     map[string]interface{}
+	Token     string        // bearer token; "" skips auth when Auth is nil
+	Account   *auth.Account // pre-authenticated account (skips token inspection)
+	BaseCtx   context.Context
+	Transport string // "http", "stdio", "websocket", etc.
+}
+
+// invokeToolCore runs the shared tool-call pipeline: lookup, auth/scope
+// inspection, rate limiting, circuit breaker, tracing, audit, and dispatch
+// (RPC or framework handler). It is transport-agnostic — x402 payment
+// gating is handled by the HTTP-specific caller (invokeTool) before this.
+// raw is true when the tool has a direct Handler (framework tool).
+func (s *Server) invokeToolCore(req toolCallRequest) (json.RawMessage, string, bool, error) {
+	// Tool lookup
 	s.toolsMu.RLock()
-	tool, exists := s.tools[toolName]
+	tool, exists := s.tools[req.ToolName]
 	s.toolsMu.RUnlock()
 
 	if !exists {
 		return nil, "", false, &toolError{status: http.StatusNotFound, message: "Tool not found"}
 	}
 
-	// x402 payment gate: require the tool's amount before doing work.
-	// Free tools (amount "" or "0") pass through; Require writes the 402
-	// challenge itself when payment is missing or invalid.
-	if s.opts.Payment != nil {
-		if !s.opts.Payment.Require(w, r, s.opts.Payment.AmountFor(toolName), toolName) {
-			return nil, "", false, errResponseWritten
-		}
-	}
-
-	// Generate trace ID for this call
+	// Trace ID + OTel span
 	traceID := uuid.New().String()
-
-	// Start OTel span (noop if TraceProvider is nil)
-	ctx, span := s.startToolSpan(r.Context(), toolName, "http", traceID)
+	ctx, span := s.startToolSpan(req.BaseCtx, req.ToolName, req.Transport, traceID)
 	defer span.End()
 
 	// Authenticate and authorize
 	var account *auth.Account
-	if s.opts.Auth != nil {
-		token := r.Header.Get("Authorization")
-		token = strings.TrimPrefix(token, "Bearer ")
+	if req.Account != nil {
+		// Pre-authenticated account (e.g. websocket connection-level auth).
+		account = req.Account
+	} else if s.opts.Auth != nil {
+		token := strings.TrimPrefix(req.Token, "Bearer ")
 		if token == "" {
 			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
 			setSpanError(span, fmt.Errorf("missing token"))
-			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: toolName, Allowed: false, DeniedReason: "missing token"})
+			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: req.ToolName, Allowed: false, DeniedReason: "missing token"})
 			return nil, traceID, false, &toolError{status: http.StatusUnauthorized, message: "Unauthorized"}
 		}
 		acc, err := s.opts.Auth.Inspect(token)
 		if err != nil {
 			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))
 			setSpanError(span, fmt.Errorf("invalid token"))
-			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: toolName, Allowed: false, DeniedReason: "invalid token"})
+			s.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: req.ToolName, Allowed: false, DeniedReason: "invalid token"})
 			return nil, traceID, false, &toolError{status: http.StatusUnauthorized, message: "Unauthorized"}
 		}
 		account = acc
+	}
+
+	if account != nil {
 		span.SetAttributes(attribute.String(AttrAccountID, account.ID))
 
-		// Check per-tool scopes
+		// Per-tool scopes
 		if len(tool.Scopes) > 0 {
 			span.SetAttributes(attribute.StringSlice(AttrScopesRequired, tool.Scopes))
 			if !hasScope(account.Scopes, tool.Scopes) {
 				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "insufficient scopes"))
 				setSpanError(span, fmt.Errorf("insufficient scopes"))
 				s.audit(AuditRecord{
-					TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
+					TraceID: traceID, Timestamp: time.Now(), Tool: req.ToolName,
 					AccountID: account.ID, ScopesRequired: tool.Scopes,
 					Allowed: false, DeniedReason: "insufficient scopes",
 				})
@@ -813,8 +836,8 @@ func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName str
 		}
 	}
 
-	// Rate limit check
-	if err := s.allowRate(toolName); err != nil {
+	// Rate limit
+	if err := s.allowRate(req.ToolName); err != nil {
 		span.SetAttributes(attribute.Bool(AttrRateLimited, true))
 		setSpanError(span, err)
 		accountID := ""
@@ -822,7 +845,7 @@ func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName str
 			accountID = account.ID
 		}
 		s.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
+			TraceID: traceID, Timestamp: time.Now(), Tool: req.ToolName,
 			AccountID: accountID, Allowed: false, DeniedReason: "rate limited",
 		})
 		return nil, traceID, false, &toolError{status: http.StatusTooManyRequests, message: "Rate limit exceeded"}
@@ -830,8 +853,8 @@ func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName str
 
 	span.SetAttributes(attribute.Bool(AttrAuthAllowed, true))
 
-	// Circuit breaker check
-	if err := s.allowCircuit(toolName); err != nil {
+	// Circuit breaker
+	if err := s.allowCircuit(req.ToolName); err != nil {
 		span.SetAttributes(attribute.String("mcp.circuit_breaker", "open"))
 		setSpanError(span, err)
 		accountID := ""
@@ -839,20 +862,19 @@ func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName str
 			accountID = account.ID
 		}
 		s.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
+			TraceID: traceID, Timestamp: time.Now(), Tool: req.ToolName,
 			AccountID: accountID, Allowed: false, DeniedReason: "circuit breaker open",
 		})
 		return nil, traceID, false, &toolError{status: http.StatusServiceUnavailable, message: "Service unavailable: circuit breaker open"}
 	}
 
 	// Build context with tracing metadata
-	// OTel trace context was already injected by startToolSpan; add MCP metadata.
 	md, _ := metadata.FromContext(ctx)
 	if md == nil {
 		md = make(metadata.Metadata)
 	}
 	md.Set(TraceIDKey, traceID)
-	md.Set(ToolNameKey, toolName)
+	md.Set(ToolNameKey, req.ToolName)
 	if account != nil {
 		md.Set(AccountIDKey, account.ID)
 	}
@@ -862,7 +884,7 @@ func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName str
 
 	// Framework tools have a direct handler; service tools go through RPC.
 	if tool.Handler != nil {
-		result, err := tool.Handler(input)
+		result, err := tool.Handler(req.Input)
 		if err != nil {
 			setSpanError(span, err)
 			return nil, traceID, false, &toolError{status: http.StatusInternalServerError, message: err.Error()}
@@ -876,18 +898,17 @@ func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName str
 		return payload, traceID, true, nil
 	}
 
-	// Convert input to JSON bytes for RPC call
-	inputBytes, err := json.Marshal(input)
+	// RPC dispatch
+	inputBytes, err := json.Marshal(req.Input)
 	if err != nil {
 		return nil, traceID, false, &toolError{status: http.StatusInternalServerError, message: err.Error()}
 	}
 
-	// Make RPC call
 	rpcReq := s.opts.Client.NewRequest(tool.Service, tool.Endpoint, &bytes.Frame{Data: inputBytes})
 	var rsp bytes.Frame
 
 	if err := s.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
-		s.recordCircuit(toolName, false)
+		s.recordCircuit(req.ToolName, false)
 		setSpanError(span, err)
 		s.opts.Logger.Printf("[mcp] RPC call failed: %v", err)
 		accountID := ""
@@ -895,28 +916,61 @@ func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName str
 			accountID = account.ID
 		}
 		s.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
+			TraceID: traceID, Timestamp: time.Now(), Tool: req.ToolName,
 			AccountID: accountID, ScopesRequired: tool.Scopes,
 			Allowed: true, Duration: time.Since(start), Error: err.Error(),
 		})
 		return nil, traceID, false, &toolError{status: http.StatusInternalServerError, message: fmt.Sprintf("RPC call failed: %v", err)}
 	}
 
-	s.recordCircuit(toolName, true)
+	s.recordCircuit(req.ToolName, true)
 	setSpanOK(span)
 
-	// Audit successful call
 	accountID := ""
 	if account != nil {
 		accountID = account.ID
 	}
 	s.audit(AuditRecord{
-		TraceID: traceID, Timestamp: time.Now(), Tool: toolName,
+		TraceID: traceID, Timestamp: time.Now(), Tool: req.ToolName,
 		AccountID: accountID, ScopesRequired: tool.Scopes,
 		Allowed: true, Duration: time.Since(start),
 	})
 
 	return json.RawMessage(rsp.Data), traceID, false, nil
+}
+
+// invokeTool runs the HTTP-specific tool-call pipeline: x402 payment gate,
+// then delegates to invokeToolCore for the shared auth/rate-limit/circuit-
+// breaker/dispatch steps. raw is true for framework tools whose payload is
+// the response itself (used by the REST handler to skip the envelope).
+func (s *Server) invokeTool(w http.ResponseWriter, r *http.Request, toolName string, input map[string]interface{}) (json.RawMessage, string, bool, error) {
+	// x402 payment gate: require the tool's amount before doing work.
+	// Free tools (amount "" or "0") pass through; Require writes the 402
+	// challenge itself when payment is missing or invalid.
+	if s.opts.Payment != nil {
+		if !s.opts.Payment.Require(w, r, s.opts.Payment.AmountFor(toolName), toolName) {
+			return nil, "", false, errResponseWritten
+		}
+	}
+
+	// Extract bearer token from HTTP header.
+	token := r.Header.Get("Authorization")
+
+	// OTel: continue the caller's trace from HTTP headers.
+	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+
+	payload, traceID, raw, err := s.invokeToolCore(toolCallRequest{
+		ToolName:  toolName,
+		Input:     input,
+		Token:     token,
+		BaseCtx:   ctx,
+		Transport: "http",
+	})
+	if err != nil {
+		return nil, traceID, false, err
+	}
+
+	return payload, traceID, raw, nil
 }
 
 // handleHealth returns gateway health status

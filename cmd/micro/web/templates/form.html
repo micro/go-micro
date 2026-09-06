@@ -1,6 +1,6 @@
 {{define "content"}}
 <h2>{{.ServiceName}}</h2>
-<form action="/{{.Action}}" method="POST" data-reactive>
+<form action="{{.Action}}" method="POST" data-reactive>
     <h3 class="text-lg font-bold mb-2">{{.EndpointName}}</h3>
     {{range .Inputs}}
         <label class="block font-semibold">{{.Label}}</label>

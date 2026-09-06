@@ -13,6 +13,7 @@ type memoryModel struct {
 	schemas map[string]*Schema
 	types   map[reflect.Type]*Schema
 	tables  map[string]map[string]map[string]any // table -> key -> fields
+	opts    Options
 }
 
 func newMemoryModel(opts ...Option) Model {
@@ -20,10 +21,16 @@ func newMemoryModel(opts ...Option) Model {
 		schemas: make(map[string]*Schema),
 		types:   make(map[reflect.Type]*Schema),
 		tables:  make(map[string]map[string]map[string]any),
+		opts:    NewOptions(opts...),
 	}
 }
 
 func (m *memoryModel) Init(opts ...Option) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, o := range opts {
+		o(&m.opts)
+	}
 	return nil
 }
 

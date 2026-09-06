@@ -1,0 +1,14 @@
+target: all
+
+server:
+  http_listen_port: 4040
+  grpc_listen_port: 9095
+  log_level: info
+
+storage:
+  backend: filesystem
+  filesystem:
+    dir: /var/lib/pyroscope
+
+pyroscopedb:
+  data_path: /var/lib/pyroscope/data

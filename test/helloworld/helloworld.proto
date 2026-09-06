@@ -1,0 +1,23 @@
+// Package helloworld is the canonical Greeter service descriptor used by
+// grpc client and gateway tests. It exists only so the module does not need
+// to depend on google.golang.org/grpc/examples (a test-only proto) — the
+// generated code below mirrors grpc/examples/helloworld 1:1.
+syntax = "proto3";
+
+package helloworld;
+
+option go_package = "go-micro.dev/v6/test/helloworld";
+
+// The greeting service definition.
+service Greeter {
+  // Sends a greeting
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+}
+
+message HelloRequest {
+  string name = 1;
+}
+
+message HelloReply {
+  string message = 1;
+}

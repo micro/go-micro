@@ -8,9 +8,11 @@ import (
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	internalotel "go-micro.dev/v6/internal/otel"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -115,8 +117,9 @@ type Options struct {
 	// on that address directly (no separate gateway), e.g. ":4000".
 	A2AAddress string
 
-	// TraceProvider enables OpenTelemetry spans for agent runs, model calls,
-	// and tool calls. Nil disables instrumentation.
+	// TraceProvider emits OpenTelemetry spans for agent runs, model calls,
+	// and tool calls. Defaults to the global provider (noop when none is
+	// configured); pass an explicit provider to override.
 	TraceProvider trace.TracerProvider
 
 	// TraceInputs controls whether agent observability records include raw
@@ -136,6 +139,7 @@ type Options struct {
 }
 
 func newOptions(opts ...Option) Options {
+	internalotel.Init()
 	o := Options{
 		Registry:          registry.DefaultRegistry,
 		Client:            client.DefaultClient,
@@ -150,6 +154,10 @@ func newOptions(opts ...Option) Options {
 		// On by default and lenient: identical repeated calls are a
 		// no-progress loop, never useful. Set LoopLimit(0) to disable.
 		LoopLimit: 3,
+		// Global provider (noop unless a tracer is configured, e.g. via
+		// OTEL_EXPORTER_OTLP_ENDPOINT) so agent code emits spans whenever
+		// the process has one.
+		TraceProvider: otel.GetTracerProvider(),
 	}
 	for _, opt := range opts {
 		opt(&o)

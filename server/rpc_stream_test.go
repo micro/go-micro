@@ -61,9 +61,20 @@ func (b *safeBuffer) Close() error {
 	return nil
 }
 
+// rwc is a minimal io.ReadWriteCloser for the json codec stream test; it
+// replaced the readWriteCloser that lived in rpc_codec.go (now in mucp).
+type rwc struct {
+	rbuf *bytes.Buffer
+	wbuf *bytes.Buffer
+}
+
+func (r *rwc) Read(p []byte) (int, error)  { return r.rbuf.Read(p) }
+func (r *rwc) Write(p []byte) (int, error) { return r.wbuf.Write(p) }
+func (r *rwc) Close() error                { return nil }
+
 func TestRPCStream_Sequence(t *testing.T) {
 	buffer := new(bytes.Buffer)
-	rwc := readWriteCloser{
+	rwc := rwc{
 		rbuf: buffer,
 		wbuf: buffer,
 	}

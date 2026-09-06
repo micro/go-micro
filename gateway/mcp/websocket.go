@@ -2,18 +2,13 @@ package mcp
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"go-micro.dev/v6/auth"
-	"go-micro.dev/v6/metadata"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 var upgrader = websocket.Upgrader{
@@ -125,6 +120,7 @@ func (wc *wsConn) handleInitialize(req *JSONRPCRequest) {
 			"name":    "go-micro-mcp",
 			"version": "1.0.0",
 		},
+		"instructions": mcpInstructions,
 	}
 	wc.sendResponse(req.ID, result)
 }
@@ -159,141 +155,37 @@ func (wc *wsConn) handleToolsCall(req *JSONRPCRequest) {
 		return
 	}
 
-	// Get tool info
-	wc.server.toolsMu.RLock()
-	tool, exists := wc.server.tools[params.Name]
-	wc.server.toolsMu.RUnlock()
-
-	if !exists {
-		wc.sendError(req.ID, InvalidParams, "Tool not found", params.Name)
-		return
-	}
-
-	traceID := uuid.New().String()
-
-	// Start OTel span
-	ctx, span := wc.server.startToolSpan(wc.server.opts.Context, params.Name, "websocket", traceID)
-	defer span.End()
-
-	// Resolve account: prefer connection-level auth, fall back to per-message _token.
+	// Resolve auth: prefer connection-level account, fall back to per-message _token.
 	account := wc.account
-	if wc.server.opts.Auth != nil {
-		if account == nil {
-			token := params.Token
-			if token == "" {
-				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
-				setSpanError(span, fmt.Errorf("missing token"))
-				wc.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "missing token"})
-				wc.sendError(req.ID, InvalidParams, "Unauthorized", "missing token")
-				return
-			}
-			token = strings.TrimPrefix(token, "Bearer ")
-			acc, err := wc.server.opts.Auth.Inspect(token)
-			if err != nil {
-				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))
-				setSpanError(span, fmt.Errorf("invalid token"))
-				wc.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "invalid token"})
-				wc.sendError(req.ID, InvalidParams, "Unauthorized", "invalid token")
-				return
-			}
-			account = acc
-		}
-		span.SetAttributes(attribute.String(AttrAccountID, account.ID))
 
-		// Check per-tool scopes
-		if len(tool.Scopes) > 0 {
-			span.SetAttributes(attribute.StringSlice(AttrScopesRequired, tool.Scopes))
-			if !hasScope(account.Scopes, tool.Scopes) {
-				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "insufficient scopes"))
-				setSpanError(span, fmt.Errorf("insufficient scopes"))
-				wc.server.audit(AuditRecord{
-					TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
-					AccountID: account.ID, ScopesRequired: tool.Scopes,
-					Allowed: false, DeniedReason: "insufficient scopes",
-				})
-				wc.sendError(req.ID, InvalidParams, "Forbidden", "insufficient scopes")
-				return
-			}
-		}
-	}
-
-	// Rate limit check
-	if err := wc.server.allowRate(params.Name); err != nil {
-		span.SetAttributes(attribute.Bool(AttrRateLimited, true))
-		setSpanError(span, err)
-		accountID := ""
-		if account != nil {
-			accountID = account.ID
-		}
-		wc.server.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
-			AccountID: accountID, Allowed: false, DeniedReason: "rate limited",
-		})
-		wc.sendError(req.ID, InternalError, "Rate limit exceeded", params.Name)
-		return
-	}
-
-	span.SetAttributes(attribute.Bool(AttrAuthAllowed, true))
-
-	// Convert arguments to JSON bytes
-	inputBytes, err := json.Marshal(params.Arguments)
-	if err != nil {
-		wc.sendError(req.ID, InternalError, "Failed to marshal arguments", err.Error())
-		return
-	}
-
-	// Build context with tracing metadata
-	md, _ := metadata.FromContext(ctx)
-	if md == nil {
-		md = make(metadata.Metadata)
-	}
-	md.Set(TraceIDKey, traceID)
-	md.Set(ToolNameKey, params.Name)
-	if account != nil {
-		md.Set(AccountIDKey, account.ID)
-	}
-	ctx = metadata.NewContext(ctx, md)
-
-	// Make RPC call
-	start := time.Now()
-	rpcReq := wc.server.opts.Client.NewRequest(tool.Service, tool.Endpoint, &struct {
-		Data []byte
-	}{Data: inputBytes})
-
-	var rsp struct {
-		Data []byte
-	}
-
-	if err := wc.server.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
-		setSpanError(span, err)
-		accountID := ""
-		if account != nil {
-			accountID = account.ID
-		}
-		wc.server.audit(AuditRecord{
-			TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
-			AccountID: accountID, ScopesRequired: tool.Scopes,
-			Allowed: true, Duration: time.Since(start), Error: err.Error(),
-		})
-		// Tool-execution failure → isError result (MCP spec), not a protocol error.
-		wc.sendResponse(req.ID, mcpToolError(traceID, "tool call failed: "+err.Error()))
-		return
-	}
-
-	setSpanOK(span)
-
-	accountID := ""
-	if account != nil {
-		accountID = account.ID
-	}
-	wc.server.audit(AuditRecord{
-		TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
-		AccountID: accountID, ScopesRequired: tool.Scopes,
-		Allowed: true, Duration: time.Since(start),
+	payload, traceID, _, err := wc.server.invokeToolCore(toolCallRequest{
+		ToolName:  params.Name,
+		Input:     params.Arguments,
+		Token:     params.Token,
+		Account:   account,
+		BaseCtx:   wc.server.opts.Context,
+		Transport: "websocket",
 	})
+	if err != nil {
+		if te, ok := err.(*toolError); ok {
+			if te.status == http.StatusInternalServerError {
+				wc.sendResponse(req.ID, mcpToolError(traceID, te.message))
+				return
+			}
+			// Map HTTP status to JSON-RPC code, preserving original behavior:
+			// auth/scope failures → InvalidParams, rate-limit → InternalError.
+			code := InternalError
+			if te.status == http.StatusUnauthorized || te.status == http.StatusForbidden || te.status == http.StatusNotFound {
+				code = InvalidParams
+			}
+			wc.sendError(req.ID, code, te.message, nil)
+			return
+		}
+		wc.sendError(req.ID, InternalError, "Tool call failed", err.Error())
+		return
+	}
 
-	// The downstream response is JSON — return it as JSON text, not %v.
-	wc.sendResponse(req.ID, mcpToolResult(traceID, rsp.Data))
+	wc.sendResponse(req.ID, mcpToolResult(traceID, payload))
 }
 
 // sendResponse sends a JSON-RPC success response.

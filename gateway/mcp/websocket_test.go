@@ -219,7 +219,7 @@ func TestWebSocket_ToolsCall_InsufficientScopes(t *testing.T) {
 		"arguments": map[string]interface{}{},
 		"_token":    "readonly",
 	})
-	if resp.Error == nil || resp.Error.Message != "Forbidden" {
+	if resp.Error == nil || !strings.Contains(resp.Error.Message, "Forbidden") {
 		t.Errorf("expected Forbidden, got %+v", resp.Error)
 	}
 }
