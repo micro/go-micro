@@ -400,6 +400,20 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	// execution its own child run identity.
 	a.runID = runID
 	info, _ := ai.RunInfoFrom(ctx)
+	if existing != nil {
+		if info.Flow == "" {
+			info.Flow = existing.OriginFlow
+		}
+		if info.Step == "" {
+			info.Step = existing.OriginStep
+		}
+		if info.Dispatch == "" {
+			info.Dispatch = existing.Dispatch
+		}
+		if info.Trigger == "" {
+			info.Trigger = existing.Trigger
+		}
+	}
 	if parentRunID == "" {
 		parentRunID = info.RunID
 	}
@@ -407,7 +421,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	info.ParentID = parentRunID
 	info.Agent = a.opts.Name
 	ctx = ai.WithRunInfo(ctx, info)
-	run := a.newCheckpointRun(runID, message, parentRunID, existing)
+	run := a.newCheckpointRun(runID, message, parentRunID, info, existing)
 	a.currentRun = &run
 	defer func() { a.currentRun = nil }()
 	if err := a.saveRun(ctx, run); err != nil {

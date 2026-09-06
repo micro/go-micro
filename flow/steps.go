@@ -110,17 +110,19 @@ type StepRecord struct {
 // saves and loads. It is retained for success and failure unless the flow
 // opts into cleanup with DeleteOnSuccess.
 type Run struct {
-	ID       string       `json:"id"`
-	ParentID string       `json:"parent_id,omitempty"`
-	Flow     string       `json:"flow"`
-	Dispatch string       `json:"dispatch,omitempty"`
-	Trigger  string       `json:"trigger,omitempty"`
-	State    State        `json:"state"`
-	Steps    []StepRecord `json:"steps"`
-	Status   string       `json:"status"` // running | waiting | done | failed
-	Await    *AwaitState  `json:"await,omitempty"`
-	Started  time.Time    `json:"started"`
-	Updated  time.Time    `json:"updated"`
+	ID         string       `json:"id"`
+	ParentID   string       `json:"parent_id,omitempty"`
+	Flow       string       `json:"flow"`
+	OriginFlow string       `json:"origin_flow,omitempty"`
+	OriginStep string       `json:"origin_step,omitempty"`
+	Dispatch   string       `json:"dispatch,omitempty"`
+	Trigger    string       `json:"trigger,omitempty"`
+	State      State        `json:"state"`
+	Steps      []StepRecord `json:"steps"`
+	Status     string       `json:"status"` // running | waiting | done | failed
+	Await      *AwaitState  `json:"await,omitempty"`
+	Started    time.Time    `json:"started"`
+	Updated    time.Time    `json:"updated"`
 }
 
 // Checkpoint persists and restores flow runs so a run survives a crash

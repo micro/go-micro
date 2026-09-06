@@ -6,6 +6,7 @@ import (
 
 	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/store"
 )
@@ -145,6 +146,39 @@ func TestChatPreservesTransportedFlowLineageThroughToolExecution(t *testing.T) {
 	if summary.ParentID != origin.RunID || summary.Flow != origin.Flow || summary.Step != origin.Step ||
 		summary.Dispatch != origin.Dispatch || summary.Trigger != origin.Trigger {
 		t.Fatalf("persisted summary = %#v, want flow origin", summary)
+	}
+	for _, event := range record.Events {
+		if event.Flow != origin.Flow || event.Step != origin.Step || event.Dispatch != origin.Dispatch || event.Trigger != origin.Trigger {
+			t.Fatalf("event %q lineage = %#v, want flow origin on every event", event.Kind, event)
+		}
+	}
+}
+
+func TestResumeRestoresPersistedFlowLineage(t *testing.T) {
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "ops-agent")
+	run := flow.Run{
+		ID: "agent-run-resume", ParentID: "flow-run-resume", Flow: "ops-agent",
+		OriginFlow: "daily-ops", OriginStep: "summarize", Dispatch: "schedule", Trigger: "daily-review",
+		State: flow.State{Stage: "ask", Data: []byte("resume review")},
+		Steps: []flow.StepRecord{{Name: "ask", Status: "failed"}}, Status: "failed",
+	}
+	if err := cp.Save(context.Background(), run); err != nil {
+		t.Fatal(err)
+	}
+	var got ai.RunInfo
+	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		got, _ = ai.RunInfoFrom(ctx)
+		return &ai.Response{Reply: "resumed"}, nil
+	}
+	defer func() { fakeGen = nil }()
+
+	a := newTestAgent(Name("ops-agent"), WithCheckpoint(cp))
+	if _, err := Resume(context.Background(), a, run.ID); err != nil {
+		t.Fatalf("Resume: %v", err)
+	}
+	if got.RunID != run.ID || got.ParentID != run.ParentID || got.Flow != run.OriginFlow || got.Step != run.OriginStep ||
+		got.Dispatch != run.Dispatch || got.Trigger != run.Trigger {
+		t.Fatalf("resumed RunInfo = %#v, want persisted flow lineage", got)
 	}
 }
 

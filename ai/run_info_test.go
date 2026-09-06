@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"go-micro.dev/v6/metadata"
@@ -21,6 +22,11 @@ func TestRunInfoCrossesMetadataBoundary(t *testing.T) {
 	md, ok := metadata.FromContext(origin)
 	if !ok {
 		t.Fatal("WithRunInfo did not attach RPC metadata")
+	}
+	for key := range md {
+		if key != strings.ToLower(key) {
+			t.Fatalf("metadata key %q is not gRPC-normalized", key)
+		}
 	}
 
 	// Rebuild the server-side context from metadata only, as an RPC

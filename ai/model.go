@@ -146,13 +146,13 @@ type RunInfo struct {
 type runInfoKey struct{}
 
 const (
-	runHeaderID       = "Micro-Run-Id"
-	runHeaderParentID = "Micro-Run-Parent-Id"
-	runHeaderAgent    = "Micro-Run-Agent"
-	runHeaderFlow     = "Micro-Run-Flow"
-	runHeaderStep     = "Micro-Run-Step"
-	runHeaderDispatch = "Micro-Run-Dispatch"
-	runHeaderTrigger  = "Micro-Run-Trigger"
+	runHeaderID       = "micro-run-id"
+	runHeaderParentID = "micro-run-parent-id"
+	runHeaderAgent    = "micro-run-agent"
+	runHeaderFlow     = "micro-run-flow"
+	runHeaderStep     = "micro-run-step"
+	runHeaderDispatch = "micro-run-dispatch"
+	runHeaderTrigger  = "micro-run-trigger"
 )
 
 // WithRunInfo attaches run info to ctx and mirrors execution identity into RPC
