@@ -37,7 +37,9 @@ The JSON view emits the public `agent.RunRecord` contract:
 
 Use `schema_version` before decoding records across Go Micro releases. The
 summary is derived from the events and can be rebuilt; the ordered event list is
-the source of truth.
+the source of truth. Loading a complete record fails if a listed event cannot be
+read or decoded, so callers never receive a silently truncated record. The older
+`agent.LoadRunEvents` API retains its tolerant best-effort behavior.
 
 ## Lifecycle
 

@@ -729,6 +729,10 @@ func runErrorStatus(kind string) string {
 }
 
 func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
+	return loadRunEvents(s, agentName, runID, false)
+}
+
+func loadRunEvents(s store.Store, agentName, runID string, strict bool) ([]RunEvent, error) {
 	st := store.Scope(s, "agent", agentName)
 	keys, err := st.List(store.ListPrefix("runs/" + runID + "/"))
 	if err != nil {
@@ -738,13 +742,26 @@ func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
 	events := make([]RunEvent, 0, len(keys))
 	for _, k := range keys {
 		recs, err := st.Read(k)
-		if err != nil || len(recs) == 0 {
+		if err != nil {
+			if strict {
+				return nil, fmt.Errorf("read agent run event %q: %w", k, err)
+			}
+			continue
+		}
+		if len(recs) == 0 {
+			if strict {
+				return nil, fmt.Errorf("read agent run event %q: no record returned", k)
+			}
 			continue
 		}
 		var e RunEvent
-		if json.Unmarshal(recs[0].Value, &e) == nil {
-			events = append(events, e)
+		if err := json.Unmarshal(recs[0].Value, &e); err != nil {
+			if strict {
+				return nil, fmt.Errorf("decode agent run event %q: %w", k, err)
+			}
+			continue
 		}
+		events = append(events, e)
 	}
 	return events, nil
 }
@@ -752,7 +769,7 @@ func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
 // LoadRunRecord loads the versioned record for one agent run. A run with no
 // recorded events returns an empty record carrying the requested identity.
 func LoadRunRecord(s store.Store, agentName, runID string) (RunRecord, error) {
-	events, err := LoadRunEvents(s, agentName, runID)
+	events, err := loadRunEvents(s, agentName, runID, true)
 	if err != nil {
 		return RunRecord{}, err
 	}

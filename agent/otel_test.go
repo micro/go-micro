@@ -842,6 +842,44 @@ func TestLoadRunRecordMissingRunPreservesRequestedIdentity(t *testing.T) {
 	}
 }
 
+func TestLoadRunRecordRejectsCorruptTimeline(t *testing.T) {
+	st := store.NewMemoryStore()
+	scoped := store.Scope(st, "agent", "runner")
+	if err := scoped.Write(&store.Record{Key: "runs/run-corrupt/00000000000000000001-run", Value: []byte("not-json")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadRunRecord(st, "runner", "run-corrupt"); err == nil || !strings.Contains(err.Error(), "decode agent run event") {
+		t.Fatalf("LoadRunRecord() error = %v, want corrupt-event error", err)
+	}
+}
+
+type runReadErrorStore struct {
+	store.Store
+}
+
+func (s runReadErrorStore) Read(key string, opts ...store.ReadOption) ([]*store.Record, error) {
+	if strings.Contains(key, "run-unreadable") {
+		return nil, errors.New("read failed")
+	}
+	return s.Store.Read(key, opts...)
+}
+
+func TestLoadRunRecordPropagatesEventReadFailure(t *testing.T) {
+	base := store.NewMemoryStore()
+	scoped := store.Scope(base, "agent", "runner")
+	event := RunEvent{Time: time.Unix(0, 1), RunID: "run-unreadable", Agent: "runner", Kind: "run"}
+	value, err := json.Marshal(event)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := scoped.Write(&store.Record{Key: "runs/run-unreadable/00000000000000000001-run", Value: value}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadRunRecord(runReadErrorStore{Store: base}, "runner", "run-unreadable"); err == nil || !strings.Contains(err.Error(), "read agent run event") {
+		t.Fatalf("LoadRunRecord() error = %v, want read failure", err)
+	}
+}
+
 func TestRunStatusClassifiesOperationalErrorKinds(t *testing.T) {
 	tests := []struct {
 		name string
