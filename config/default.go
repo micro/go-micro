@@ -198,7 +198,7 @@ func (c *config) Close() error {
 
 	close(c.exit)
 	c.closed = true
-	return nil
+	return c.opts.Loader.Close()
 }
 
 func (c *config) Get(path ...string) (reader.Value, error) {
