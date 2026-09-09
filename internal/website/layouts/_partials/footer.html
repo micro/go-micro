@@ -1,0 +1,17 @@
+<footer class="td-footer d-print-none">
+  <div class="container">
+    <div class="row">
+        <div class="td-footer__left col-6 col-sm-4 order-sm-1">
+          {{ partial "footer/left.html"  . }}
+        </div>
+        {{- /* Trim WS */ -}}
+        <div class="td-footer__right col-6 col-sm-4 order-sm-3">
+          {{ partial "footer/right.html"  . }}
+        </div>
+        {{- /* Trim WS */ -}}
+        <div class="td-footer__center col-12 col-sm-4 py-2 order-sm-2">
+          {{ partial "footer/center.html"  . }}
+        </div>
+    </div>
+  </div>
+</footer>

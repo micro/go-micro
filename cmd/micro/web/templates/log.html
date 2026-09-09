@@ -1,0 +1,5 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">Logs for {{.Service}}</h2>
+<pre class="bg-gray-100 rounded p-2 mt-2" style="max-height: 60vh; overflow-y: auto;">{{.Log}}</pre>
+<a href="/logs" class="micro-link">Back to logs</a>
+{{end}}

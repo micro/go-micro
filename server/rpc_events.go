@@ -4,69 +4,76 @@ import (
 	"context"
 	"fmt"
 
-	"go-micro.dev/v4/broker"
-	raw "go-micro.dev/v4/codec/bytes"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/metadata"
-	"go-micro.dev/v4/transport/headers"
+	"go-micro.dev/v6/broker"
+	raw "go-micro.dev/v6/codec/bytes"
+	log "go-micro.dev/v6/logger"
+	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/transport/headers"
 )
 
 // HandleEvent handles inbound messages to the service directly.
 // These events are a result of registering to the topic with the service name.
 // TODO: handle requests from an event. We won't send a response.
-func (s *rpcServer) HandleEvent(e broker.Event) error {
-	// formatting horrible cruft
-	msg := e.Message()
+func (s *rpcServer) HandleEvent(subscriber string) func(e broker.Event) error {
+	return func(e broker.Event) error {
+		// formatting horrible cruft
+		msg := e.Message()
 
-	if msg.Header == nil {
-		msg.Header = make(map[string]string)
-	}
-
-	contentType, ok := msg.Header["Content-Type"]
-	if !ok || len(contentType) == 0 {
-		msg.Header["Content-Type"] = DefaultContentType
-		contentType = DefaultContentType
-	}
-
-	cf, err := s.newCodec(contentType)
-	if err != nil {
-		return err
-	}
-
-	header := make(map[string]string, len(msg.Header))
-	for k, v := range msg.Header {
-		header[k] = v
-	}
-
-	// create context
-	ctx := metadata.NewContext(context.Background(), header)
-
-	// TODO: inspect message header for Micro-Service & Micro-Topic
-	rpcMsg := &rpcMessage{
-		topic:       msg.Header[headers.Message],
-		contentType: contentType,
-		payload:     &raw.Frame{Data: msg.Body},
-		codec:       cf,
-		header:      msg.Header,
-		body:        msg.Body,
-	}
-
-	// if the router is present then execute it
-	r := Router(s.router)
-	if s.opts.Router != nil {
-		// create a wrapped function
-		handler := s.opts.Router.ProcessMessage
-
-		// execute the wrapper for it
-		for i := len(s.opts.SubWrappers); i > 0; i-- {
-			handler = s.opts.SubWrappers[i-1](handler)
+		if msg.Header == nil {
+			msg.Header = make(map[string]string)
 		}
 
-		// set the router
-		r = rpcRouter{m: handler}
-	}
+		contentType, ok := msg.Header["Content-Type"]
+		if !ok || len(contentType) == 0 {
+			msg.Header["Content-Type"] = DefaultContentType
+			contentType = DefaultContentType
+		}
 
-	return r.ProcessMessage(ctx, rpcMsg)
+		cf, err := s.newCodec(contentType)
+		if err != nil {
+			return err
+		}
+
+		header := make(map[string]string, len(msg.Header))
+		for k, v := range msg.Header {
+			header[k] = v
+		}
+
+		// create context
+		ctx := metadata.NewContext(context.Background(), header)
+
+		// TODO: inspect message header for Micro-Service & Micro-Topic
+		rpcMsg := &rpcMessage{
+			topic:       msg.Header[headers.Message],
+			contentType: contentType,
+			payload:     &raw.Frame{Data: msg.Body},
+			codec:       cf,
+			header:      msg.Header,
+			body:        msg.Body,
+		}
+
+		// if the router is present then execute it
+		r := Router(s.router)
+		if s.opts.Router != nil {
+			// create a wrapped function
+			// create a wrapped function
+			handler := func(ctx context.Context, msg Message) error {
+				return s.opts.Router.ProcessMessage(ctx, subscriber, msg)
+			}
+
+			// execute the wrapper for it
+			for i := len(s.opts.SubWrappers); i > 0; i-- {
+				handler = s.opts.SubWrappers[i-1](handler)
+			}
+
+			// set the router
+			r = rpcRouter{m: func(ctx context.Context, _ string, msg Message) error {
+				return handler(ctx, msg)
+			}}
+		}
+
+		return r.ProcessMessage(ctx, subscriber, rpcMsg)
+	}
 }
 
 func (s *rpcServer) NewSubscriber(topic string, sb interface{}, opts ...SubscriberOption) Subscriber {
@@ -101,8 +108,8 @@ func (s *rpcServer) Subscribe(sb Subscriber) error {
 
 // subscribeServer will subscribe the server to the topic with its own name.
 func (s *rpcServer) subscribeServer(config Options) error {
-	if s.opts.Router != nil {
-		sub, err := s.opts.Broker.Subscribe(config.Name, s.HandleEvent)
+	if s.opts.Router != nil && s.subscriber == nil {
+		sub, err := s.opts.Broker.Subscribe(config.Name, s.HandleEvent(config.Name))
 		if err != nil {
 			return err
 		}
@@ -115,8 +122,32 @@ func (s *rpcServer) subscribeServer(config Options) error {
 }
 
 // reSubscribe itterates over subscribers and re-subscribes then.
-func (s *rpcServer) reSubscribe(config Options) error {
+func (s *rpcServer) reSubscribe(config Options) {
 	for sb := range s.subscribers {
+		if s.subscribers[sb] != nil {
+			continue
+		}
+		// If we've already created a broker subscription for this topic
+		// (from a different Subscriber entry) then don't create another
+		// broker.Subscribe. We still need to register the subscriber with
+		// the router so it receives dispatched messages.
+		var already bool
+		for other, subs := range s.subscribers {
+			if other.Topic() == sb.Topic() && subs != nil {
+				already = true
+				break
+			}
+		}
+		if already {
+			// register with router only
+			if err := s.router.Subscribe(sb); err != nil {
+				config.Logger.Logf(log.WarnLevel, "Unable to subscribing to topic: %s, error: %s", sb.Topic(), err)
+				continue
+			}
+			// mark this subscriber as having no broker subscription
+			s.subscribers[sb] = nil
+			continue
+		}
 		var opts []broker.SubscribeOption
 		if queue := sb.Options().Queue; len(queue) > 0 {
 			opts = append(opts, broker.Queue(queue))
@@ -131,14 +162,17 @@ func (s *rpcServer) reSubscribe(config Options) error {
 		}
 
 		config.Logger.Logf(log.InfoLevel, "Subscribing to topic: %s", sb.Topic())
-		sub, err := config.Broker.Subscribe(sb.Topic(), s.HandleEvent, opts...)
+		sub, err := config.Broker.Subscribe(sb.Topic(), s.HandleEvent(sb.Topic()), opts...)
 		if err != nil {
-			return err
+			config.Logger.Logf(log.WarnLevel, "Unable to subscribing to topic: %s, error: %s", sb.Topic(), err)
+			continue
 		}
-
+		err = s.router.Subscribe(sb)
+		if err != nil {
+			config.Logger.Logf(log.WarnLevel, "Unable to subscribing to topic: %s, error: %s", sb.Topic(), err)
+			_ = sub.Unsubscribe()
+			continue
+		}
 		s.subscribers[sb] = []broker.Subscriber{sub}
-		s.router.Subscribe(sb)
 	}
-
-	return nil
 }

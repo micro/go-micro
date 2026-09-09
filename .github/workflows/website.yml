@@ -1,0 +1,80 @@
+name: Deploy Hugo site to GitHub Pages
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    paths:
+      - "internal/website/**"
+      - ".github/workflows/website.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  HUGO_VERSION: "0.164.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: internal/website
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: ${{ env.HUGO_VERSION }}
+          extended: true
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: internal/website/.nvmrc
+          cache: npm
+          cache-dependency-path: internal/website/package-lock.json
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: internal/website/go.sum
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Build site
+        # go-micro.dev is served by an nginx proxy that maps `/` to
+        # micro.github.io/go-micro/ (see the deploy nginx.conf). The site must
+        # therefore be built at its canonical ROOT baseURL — not the Pages
+        # project subpath from configure-pages (https://micro.github.io/go-micro/).
+        # Building at the subpath prefixes every asset/link with /go-micro/, which
+        # becomes /go-micro/go-micro/ through the proxy and 404s, leaving the site
+        # unstyled. hugo.yaml already declares baseURL: https://go-micro.dev/.
+        run: hugo --gc --minify --baseURL "https://go-micro.dev/"
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: internal/website/public
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

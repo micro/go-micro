@@ -1,0 +1,12 @@
+# Compiled binaries
+server/server
+client/client
+
+# Test binaries
+*.test
+
+# Output files
+*.out
+
+# Temporary files
+*.tmp

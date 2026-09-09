@@ -1,0 +1,3 @@
+{{- /* .Inner is consumed by the blocks/block.html partial via $ctx */ -}}
+{{- $_ := .Inner -}}
+{{ partial "blocks/block.html" (dict "ctx" . "type" (.Get "type" | default "container") "padding" (.Get "padding")) -}}

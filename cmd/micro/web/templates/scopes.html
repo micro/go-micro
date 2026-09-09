@@ -1,0 +1,87 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">Scopes</h2>
+<p style="color:#666; margin-bottom:1.5em;">
+  Set which scopes are required to call each endpoint. Tokens must carry a matching scope.
+  Endpoints with no scopes are open to any authenticated token.
+</p>
+
+{{if .Success}}
+<div style="background:#e6ffe6; border:1px solid #5a5; padding:0.8em 1.2em; border-radius:6px; margin-bottom:1.5em; color:#050;">
+  &#10003; Scopes updated successfully.
+</div>
+{{end}}
+
+<table style="margin-bottom:2em;">
+  <thead>
+    <tr><th>Service</th><th>Endpoint</th><th>Required Scopes</th><th></th></tr>
+  </thead>
+  <tbody>
+    {{range .Endpoints}}
+    <tr>
+      <td>{{.Service}}</td>
+      <td><code>{{.Endpoint}}</code></td>
+      <td>
+        {{if .Scopes}}
+          {{range .Scopes}}<code>{{.}}</code> {{end}}
+        {{else}}
+          <span style="color:#999;">none</span>
+        {{end}}
+      </td>
+      <td>
+        <form method="POST" action="/auth/scopes" style="display:inline; padding:0; border:0; box-shadow:none; background:none;">
+          <input type="hidden" name="endpoint" value="{{.Name}}">
+          <input name="scopes" value="{{.ScopesStr}}" placeholder="scope names" style="width:180px; margin-right:0.5em;">
+          <button type="submit">Save</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+    {{if not .Endpoints}}
+    <tr>
+      <td colspan="4" style="color:#888; text-align:center; padding:2em;">No services discovered. Start some services and they will appear here.</td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+
+<h3 style="margin-bottom:1em;">Bulk Set</h3>
+<p style="color:#666; margin-bottom:1em;">Apply scopes to all endpoints matching a pattern. Use <code>*</code> as a suffix wildcard. Leave scopes empty to clear.</p>
+<form method="POST" action="/auth/scopes/bulk" style="margin-bottom:2em;">
+  <input name="pattern" placeholder="Pattern (e.g. greeter.*)" required style="margin-right:0.5em; width:220px;">
+  <input name="scopes" placeholder="Scopes (comma separated)" style="margin-right:0.5em; width:220px;">
+  <button type="submit">Apply</button>
+</form>
+
+<h3 style="margin-bottom:1em;">Examples</h3>
+<div style="background:#f9f9f9; border:1px solid #eee; padding:1.2em 1.5em; border-radius:6px; font-size:0.97em; line-height:1.6;">
+
+  <p style="margin-top:0;">Scopes are strings that you define. A call is allowed when at least one of the token's scopes matches one of the endpoint's required scopes.</p>
+
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Restrict a whole service</h4>
+  <p>Use Bulk Set with pattern <code>greeter.*</code> and scope <code>greeter</code>.<br>
+  Then create a <a href="/auth/tokens">token</a> with scope <code>greeter</code> — it can call any endpoint on that service.</p>
+
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Restrict a specific endpoint</h4>
+  <p>Set scope <code>billing</code> on <code>payments.Payments.Charge</code> using the table above.<br>
+  Only tokens with the <code>billing</code> scope can call that endpoint. Other payment endpoints remain unaffected.</p>
+
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Role-based access</h4>
+  <p>Set scope <code>admin</code> on sensitive endpoints (e.g. <code>users.Users.Delete</code>).<br>
+  Create tokens with <code>admin</code> scope for operators and <code>user</code> scope for regular access.<br>
+  An endpoint can require multiple scopes — the token only needs to match <b>one</b> of them.</p>
+
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Full access</h4>
+  <p>The default <code>admin</code> user has scope <code>*</code> which bypasses all checks.<br>
+  Create a token with <code>*</code> scope for services that need unrestricted access.</p>
+
+  <h4 style="margin-top:1em; margin-bottom:0.5em;">Where scopes are checked</h4>
+  <table style="font-size:0.95em; margin:0.5em 0;">
+    <thead><tr><th>Access method</th><th>How auth works</th></tr></thead>
+    <tbody>
+      <tr><td>API (<code>/api/service/endpoint</code>)</td><td><code>Authorization: Bearer &lt;token&gt;</code> header</td></tr>
+      <tr><td>MCP tools (<code>/mcp/call</code>)</td><td><code>Authorization: Bearer &lt;token&gt;</code> header</td></tr>
+      <tr><td>Agent playground</td><td>Uses your logged-in session and its scopes</td></tr>
+    </tbody>
+  </table>
+</div>
+{{end}}

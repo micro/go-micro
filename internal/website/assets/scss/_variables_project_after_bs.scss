@@ -1,0 +1,303 @@
+$custom-colors: (
+  'dark-blue': #111827,
+  'deep-blue': #03045e,
+  'teal-blue': #0077b6,
+  'turquoise': #00b4d8,
+  'frosted-blue': #90e0ef,
+  'light-cyan': #caf0f8,
+);
+
+$theme-colors: map-merge($theme-colors, $custom-colors);
+
+.logo-container {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hexagon {
+    filter: drop-shadow(0 0 20px rgba(0, 173, 216, 0.3));
+    transition: all 0.3s ease;
+}
+
+.hexagon:hover {
+    filter: drop-shadow(0 0 30px rgba(0, 173, 216, 0.5));
+    transform: scale(1.02);
+}
+
+.network-line {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: drawLine 2s ease-out forwards;
+}
+
+.network-node {
+    opacity: 0;
+    animation: fadeInNode 0.5s ease-out forwards;
+}
+
+.node-1 { animation-delay: 0.5s; }
+.node-2 { animation-delay: 0.7s; }
+.node-3 { animation-delay: 0.9s; }
+.node-4 { animation-delay: 1.1s; }
+.node-5 { animation-delay: 1.3s; }
+.node-6 { animation-delay: 1.5s; }
+
+@keyframes drawLine {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes fadeInNode {
+    to {
+        opacity: 1;
+    }
+}
+
+.pulse {
+    animation: pulse 3s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #00ADD8 0%, #5DC9E2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.bg-pattern {
+    background-image: radial-gradient(circle at 1px 1px, rgba(0, 173, 216, 0.15) 1px, transparent 0);
+    background-size: 20px 20px;
+}
+
+.variant-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 1rem;
+    padding: 2rem;
+}
+
+.variant-card--light {
+    color: $dark;
+    background: white;
+    backdrop-filter: blur(12px);
+    border-color: #374151;
+}
+
+.variant-card--dark {
+    background: rgba(31, 41, 55, 0.5);
+    backdrop-filter: blur(12px);
+    border-color: #374151;
+}
+
+.variant-card--gradient {
+    background: linear-gradient(135deg, rgba(0,173,216,.2), #0D1117);
+    border-color: rgba(0,173,216,.3);
+}
+
+.variant-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Sponsor logos: forced white via filter (section bg is dark-blue).
+   <img> keeps intrinsic size so it can't collapse to 0 width in a flex row. */
+.sponsor-logo {
+    height: 28px;
+    width: auto;
+    opacity: 0.75;
+    /* ponytail: brightness(0) invert(1) = pure white regardless of SVG fill.
+       If a section ever goes light, drop invert(1) (brightness(0) = black). */
+    filter: brightness(0) invert(1);
+}
+
+.size-demo {
+    transition: all 0.3s ease;
+}
+
+.bg-dark-custom {
+    background-color: #111827;
+}
+
+.bg-dark-card {
+    background-color: rgba(31, 41, 55, 0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bg-light-card {
+    background-color: #fff;
+    border: 1px solid #e5e7eb;
+}
+
+.bg-gradient-card {
+    background: linear-gradient(135deg, rgba(0, 173, 216, 0.2) 0%, rgba(13, 17, 23, 1) 100%);
+    border: 1px solid rgba(0, 173, 216, 0.3);
+}
+
+.text-dark-custom {
+    color: #111827;
+}
+
+.text-gray-custom {
+    color: #9ca3af;
+}
+
+.text-light-gray {
+    color: #6b7280;
+}
+
+// Support page: tier cards ("Choose your level")
+.tier-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: rgba(31, 41, 55, 0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tier-card.featured {
+    border-color: #00ADD8;
+    box-shadow: 0 4px 24px rgba(0, 173, 216, 0.2);
+}
+
+.tier-card:hover {
+    transform: translateY(-4px);
+}
+
+.tier-name {
+    font-size: 1.15rem;
+    color: #f3f4f6;
+    margin-bottom: 0.25rem;
+}
+
+.tier-who {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-bottom: 1rem;
+    min-height: 2.4em;
+}
+
+.price {
+    font-weight: 700;
+    color: #00ADD8;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.tier-list {
+    list-style: none;
+    padding-left: 0;
+    font-size: 0.88rem;
+    color: #d1d5db;
+    flex: 1;
+}
+
+.tier-list li {
+    position: relative;
+    padding: 0.3rem 0 0.3rem 1.4rem;
+}
+
+.tier-list li::before {
+    content: "✓";
+    color: #00ADD8;
+    position: absolute;
+    left: 0;
+}
+
+// Support page: community link cards
+.link-card {
+    display: block;
+    height: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: rgba(31, 41, 55, 0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.link-card:hover {
+    text-decoration: none;
+    border-color: #00ADD8;
+    transform: translateY(-4px);
+    box-shadow: 0 4px 24px rgba(0, 173, 216, 0.2);
+}
+
+.link-card strong {
+    display: block;
+    color: #00ADD8;
+}
+
+.link-card span {
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+.border-light-custom {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo-glow {
+  background-color: #00ADD8;
+  opacity: .2;
+  filter: blur(3rem);
+  transition: opacity .5s;
+}
+
+/* replaces group-hover */
+.logo-container:hover .logo-glow {
+  opacity: .3;
+}
+
+.btn-go {
+    background: linear-gradient(135deg, #00ADD8 0%, #0095B6 100%);
+    transition: all 0.3s ease;
+    border: none;
+    color: #fff;
+}
+
+.btn-go:hover {
+    border-color: #0090b3;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 173, 216, 0.3);
+}
+
+.btn-outline-go {
+    transition: all 0.3s ease;
+    color: #00ADD8;
+    border-color: #00ADD8;
+}
+
+.btn-outline-go:hover {
+    background: rgba(0,173,216,.1);
+    color: #00ADD8;
+    border-color: #00ADD8;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 173, 216, 0.3);
+}
+
+figure {
+  width: 100%;
+  margin: 0;
+}
+
+figure a,
+.image-wrapper {
+  display: block;
+  width: 100%;
+}
+
+.image-wrapper img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+

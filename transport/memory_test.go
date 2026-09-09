@@ -33,7 +33,7 @@ func TestMemoryTransport(t *testing.T) {
 				}
 			}
 		}); err != nil {
-			t.Fatalf("Unexpected error accepting %v", err)
+			t.Errorf("Unexpected error accepting %v", err)
 		}
 	}()
 

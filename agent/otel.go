@@ -1,0 +1,859 @@
+package agent
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"sort"
+	"strings"
+	"time"
+
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/store"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+)
+
+const agentInstrumentationName = "go-micro.dev/v6/agent"
+
+const (
+	spanNameRun         = "agent.run"
+	spanNameModelCall   = "agent.model.call"
+	spanNameModelStream = "agent.model.stream"
+	spanNameToolCall    = "agent.tool.call"
+
+	AttrRunID            = "agent.run.id"
+	AttrParentRunID      = "agent.run.parent_id"
+	AttrAgentName        = "agent.name"
+	AttrProvider         = "agent.model.provider"
+	AttrModel            = "agent.model.name"
+	AttrLatencyMS        = "agent.latency_ms"
+	AttrInputTokens      = "agent.tokens.input"
+	AttrOutputTokens     = "agent.tokens.output"
+	AttrTotalTokens      = "agent.tokens.total"
+	AttrAttempt          = "agent.model.attempt"
+	AttrMaxAttempts      = "agent.model.max_attempts"
+	AttrToolAttempt      = "agent.tool.attempt"
+	AttrToolMaxAttempts  = "agent.tool.max_attempts"
+	AttrToolName         = "agent.tool.name"
+	AttrDelegate         = "agent.delegate"
+	AttrGuardrailBlock   = "agent.guardrail.block"
+	AttrRefusal          = "agent.refusal"
+	AttrInputChars       = "agent.input.chars"
+	AttrErrorKind        = "agent.error.kind"
+	AttrCheckpointStatus = "agent.checkpoint.status"
+	AttrCheckpointStage  = "agent.checkpoint.stage"
+	AttrFlowName         = "agent.flow.name"
+	AttrFlowStep         = "agent.flow.step"
+	AttrDispatch         = "agent.dispatch"
+	AttrTrigger          = "agent.trigger"
+	AttrRunEventKind     = "agent.event.kind"
+	AttrSpend            = "agent.spend"
+	AttrToolSpend        = "agent.tool.spend"
+)
+
+// RunEvent is one ordered, persisted observation from an agent run. Events
+// intentionally contain operational metadata rather than model or tool payloads;
+// Name contains the prompt only when TraceInputs is explicitly enabled.
+type RunEvent struct {
+	Time        time.Time `json:"time"`
+	RunID       string    `json:"run_id"`
+	ParentID    string    `json:"parent_id,omitempty"`
+	Flow        string    `json:"flow,omitempty"`
+	Step        string    `json:"step,omitempty"`
+	Dispatch    string    `json:"dispatch,omitempty"`
+	Trigger     string    `json:"trigger,omitempty"`
+	TraceID     string    `json:"trace_id,omitempty"`
+	SpanID      string    `json:"span_id,omitempty"`
+	Agent       string    `json:"agent"`
+	Kind        string    `json:"kind"`
+	Name        string    `json:"name,omitempty"`
+	Provider    string    `json:"provider,omitempty"`
+	Model       string    `json:"model,omitempty"`
+	Attempt     int       `json:"attempt,omitempty"`
+	MaxAttempts int       `json:"max_attempts,omitempty"`
+	LatencyMS   int64     `json:"latency_ms,omitempty"`
+	Tokens      Usage     `json:"tokens,omitempty"`
+	Refused     string    `json:"refused,omitempty"`
+	Status      string    `json:"status,omitempty"`
+	Error       string    `json:"error,omitempty"`
+	ErrorKind   string    `json:"error_kind,omitempty"`
+	InputChars  int       `json:"input_chars,omitempty"`
+	Spent       int64     `json:"spent,omitempty"`
+	ToolSpend   int64     `json:"tool_spend,omitempty"`
+}
+
+type Usage = ai.Usage
+
+// RunListOptions controls how recorded agent run summaries are returned.
+// Zero values preserve the full deterministic run list.
+type RunListOptions struct {
+	// Status, when set, keeps only runs with the matching status
+	// (for example "running", "done", "canceled", "timeout",
+	// "rate_limited", "auth", "configuration", "unavailable",
+	// "provider_error", "error", or "refused").
+	Status string
+	// TraceID, when set, keeps only runs correlated with this trace id.
+	// A prefix is accepted so operators can paste the shortened trace id
+	// printed by `micro runs`.
+	TraceID string
+	// Limit, when positive, returns the most recently updated runs up to
+	// the limit. Limited results are ordered newest first.
+	Limit int
+}
+
+// RunSummary is the derived, compact index entry for a recorded agent run. It
+// can be rebuilt from the run's events and is not a separate source of truth.
+type RunSummary struct {
+	RunID         string    `json:"run_id"`
+	Agent         string    `json:"agent"`
+	ParentID      string    `json:"parent_id,omitempty"`
+	Flow          string    `json:"flow,omitempty"`
+	Step          string    `json:"step,omitempty"`
+	Dispatch      string    `json:"dispatch,omitempty"`
+	Trigger       string    `json:"trigger,omitempty"`
+	TraceID       string    `json:"trace_id,omitempty"`
+	SpanID        string    `json:"span_id,omitempty"`
+	StartedAt     time.Time `json:"started_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	DurationMS    int64     `json:"duration_ms,omitempty"`
+	Events        int       `json:"events"`
+	Status        string    `json:"status,omitempty"`
+	Checkpoint    string    `json:"checkpoint,omitempty"`
+	Stage         string    `json:"stage,omitempty"`
+	LastKind      string    `json:"last_kind,omitempty"`
+	LastError     string    `json:"last_error,omitempty"`
+	LastErrorKind string    `json:"last_error_kind,omitempty"`
+	Spent         int64     `json:"spent,omitempty"`
+}
+
+// RunRecordSchemaVersion is the current JSON schema version for RunRecord.
+const RunRecordSchemaVersion = 1
+
+// RunRecord is the durable, inspectable representation of one agent execution.
+// Events are ordered oldest first and Summary is derived from those events.
+// Consumers should use SchemaVersion when decoding records across releases.
+type RunRecord struct {
+	SchemaVersion int        `json:"schema_version"`
+	Summary       RunSummary `json:"summary"`
+	Events        []RunEvent `json:"events"`
+}
+
+func (a *agentImpl) tracer() trace.Tracer {
+	return a.opts.TraceProvider.Tracer(agentInstrumentationName)
+}
+
+func (a *agentImpl) startRun(ctx context.Context, message string) (context.Context, func(error)) {
+	info, _ := ai.RunInfoFrom(ctx)
+	start := time.Now()
+	runEvent := RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", InputChars: len(message)}
+	applyRunInfoToEvent(&runEvent, info)
+	if a.opts.TraceInputs {
+		runEvent.Name = message
+	}
+
+	if a.opts.TraceProvider == nil {
+		a.recordRunEvent(runEvent)
+		return ctx, func(err error) {
+			latency := time.Since(start).Milliseconds()
+			if err != nil {
+				e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+				applyRunInfoToEvent(&e, info)
+				a.recordRunEvent(e)
+				return
+			}
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency}
+			applyRunInfoToEvent(&e, info)
+			a.recordRunEvent(e)
+		}
+	}
+
+	attrs := appendRunInfoAttributes([]attribute.KeyValue{
+		attribute.String(AttrRunID, info.RunID),
+		attribute.String(AttrParentRunID, info.ParentID),
+		attribute.String(AttrAgentName, info.Agent),
+	}, info)
+	ctx, span := a.tracer().Start(ctx, spanNameRun, trace.WithSpanKind(trace.SpanKindInternal), trace.WithAttributes(attrs...))
+	a.recordSpanEvent(span, runEvent)
+	return ctx, func(err error) {
+		latency := time.Since(start).Milliseconds()
+		span.SetAttributes(attribute.Int64(AttrLatencyMS, latency))
+		if err != nil {
+			span.SetAttributes(attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+			applyRunInfoToEvent(&e, info)
+			a.recordSpanEvent(span, e)
+		} else {
+			span.SetStatus(codes.Ok, "")
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "done", LatencyMS: latency}
+			applyRunInfoToEvent(&e, info)
+			a.recordSpanEvent(span, e)
+		}
+		span.End()
+	}
+}
+
+type tracedModel struct {
+	ai.Model
+	a *agentImpl
+}
+
+func (a *agentImpl) tracedModel(m ai.Model) ai.Model { return &tracedModel{Model: m, a: a} }
+func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
+	info, _ := ai.RunInfoFrom(ctx)
+	provider := m.String()
+	model := m.Options().Model
+	start := time.Now()
+
+	if m.a.opts.TraceProvider == nil {
+		resp, err := m.Model.Generate(ctx, req, opts...)
+		dur := time.Since(start).Milliseconds()
+		usage := ai.Usage{}
+		if resp != nil {
+			usage = resp.Usage
+		}
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
+		applyRunInfoToEvent(&e, info)
+		if err != nil {
+			e.Error = err.Error()
+			e.ErrorKind = string(ai.ClassifyError(err))
+		}
+		m.a.recordRunEvent(e)
+		return resp, err
+	}
+
+	attrs := appendRunInfoAttributes([]attribute.KeyValue{
+		attribute.String(AttrRunID, info.RunID),
+		attribute.String(AttrParentRunID, info.ParentID),
+		attribute.String(AttrAgentName, info.Agent),
+		attribute.String(AttrProvider, provider),
+		attribute.String(AttrModel, model),
+	}, info)
+	ctx, span := m.a.tracer().Start(ctx, spanNameModelCall, trace.WithAttributes(attrs...))
+	resp, err := m.Model.Generate(ctx, req, opts...)
+	dur := time.Since(start).Milliseconds()
+	attrs = []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}
+	if info.Attempt > 0 {
+		attrs = append(attrs, attribute.Int(AttrAttempt, info.Attempt))
+	}
+	if info.MaxAttempts > 0 {
+		attrs = append(attrs, attribute.Int(AttrMaxAttempts, info.MaxAttempts))
+	}
+	usage := ai.Usage{}
+	if resp != nil {
+		usage = resp.Usage
+		attrs = appendUsage(attrs, usage)
+	}
+	span.SetAttributes(attrs...)
+	if err != nil {
+		span.SetAttributes(attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	} else {
+		span.SetStatus(codes.Ok, "")
+	}
+	e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
+	applyRunInfoToEvent(&e, info)
+	if err != nil {
+		e.Error = err.Error()
+		e.ErrorKind = string(ai.ClassifyError(err))
+	}
+	m.a.recordSpanEvent(span, e)
+	span.End()
+	return resp, err
+}
+
+func (m *tracedModel) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
+	info, _ := ai.RunInfoFrom(ctx)
+	provider := m.String()
+	model := m.Options().Model
+	start := time.Now()
+
+	if m.a.opts.TraceProvider == nil {
+		stream, err := m.Model.Stream(ctx, req, opts...)
+		if err != nil {
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: time.Since(start).Milliseconds(), Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+			applyRunInfoToEvent(&e, info)
+			m.a.recordRunEvent(e)
+			return nil, err
+		}
+		return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: model, start: start}, nil
+	}
+
+	attrs := appendRunInfoAttributes([]attribute.KeyValue{
+		attribute.String(AttrRunID, info.RunID),
+		attribute.String(AttrParentRunID, info.ParentID),
+		attribute.String(AttrAgentName, info.Agent),
+		attribute.String(AttrProvider, provider),
+		attribute.String(AttrModel, model),
+	}, info)
+	ctx, span := m.a.tracer().Start(ctx, spanNameModelStream, trace.WithAttributes(attrs...))
+	stream, err := m.Model.Stream(ctx, req, opts...)
+	if err != nil {
+		dur := time.Since(start).Milliseconds()
+		span.SetAttributes(attribute.Int64(AttrLatencyMS, dur), attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+		applyRunInfoToEvent(&e, info)
+		m.a.recordSpanEvent(span, e)
+		span.End()
+		return nil, err
+	}
+	return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: model, start: start, span: span}, nil
+}
+
+type tracedStream struct {
+	ai.Stream
+	a        *agentImpl
+	info     ai.RunInfo
+	provider string
+	model    string
+	start    time.Time
+	span     trace.Span
+	usage    ai.Usage
+	closed   bool
+}
+
+func (s *tracedStream) Recv() (*ai.Response, error) {
+	resp, err := s.Stream.Recv()
+	if resp != nil {
+		s.usage = mergeUsage(s.usage, resp.Usage)
+	}
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			s.finish(nil)
+		} else {
+			s.finish(err)
+		}
+	}
+	return resp, err
+}
+
+func (s *tracedStream) Close() error {
+	err := s.Stream.Close()
+	s.finish(err)
+	return err
+}
+
+func (s *tracedStream) finish(err error) {
+	if s.closed {
+		return
+	}
+	s.closed = true
+	dur := time.Since(s.start).Milliseconds()
+	e := RunEvent{Time: time.Now(), RunID: s.info.RunID, ParentID: s.info.ParentID, Agent: s.info.Agent, Kind: "stream", Provider: s.provider, Model: s.model, Attempt: s.info.Attempt, MaxAttempts: s.info.MaxAttempts, LatencyMS: dur, Tokens: s.usage}
+	applyRunInfoToEvent(&e, s.info)
+	if err != nil {
+		e.Error = err.Error()
+		e.ErrorKind = string(ai.ClassifyError(err))
+	}
+	if s.span == nil {
+		s.a.recordRunEvent(e)
+		return
+	}
+	attrs := appendUsage([]attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}, s.usage)
+	if s.info.Attempt > 0 {
+		attrs = append(attrs, attribute.Int(AttrAttempt, s.info.Attempt))
+	}
+	if s.info.MaxAttempts > 0 {
+		attrs = append(attrs, attribute.Int(AttrMaxAttempts, s.info.MaxAttempts))
+	}
+	if err != nil {
+		attrs = append(attrs, attribute.String(AttrErrorKind, e.ErrorKind))
+		s.span.RecordError(err)
+		s.span.SetStatus(codes.Error, err.Error())
+	} else {
+		s.span.SetStatus(codes.Ok, "")
+	}
+	s.span.SetAttributes(attrs...)
+	s.a.recordSpanEvent(s.span, e)
+	s.span.End()
+}
+
+func mergeUsage(current, next ai.Usage) ai.Usage {
+	if next.InputTokens > current.InputTokens {
+		current.InputTokens = next.InputTokens
+	}
+	if next.OutputTokens > current.OutputTokens {
+		current.OutputTokens = next.OutputTokens
+	}
+	if next.TotalTokens > current.TotalTokens {
+		current.TotalTokens = next.TotalTokens
+	}
+	return current
+}
+
+func appendUsage(attrs []attribute.KeyValue, u ai.Usage) []attribute.KeyValue {
+	if u.InputTokens > 0 {
+		attrs = append(attrs, attribute.Int(AttrInputTokens, u.InputTokens))
+	}
+	if u.OutputTokens > 0 {
+		attrs = append(attrs, attribute.Int(AttrOutputTokens, u.OutputTokens))
+	}
+	if u.TotalTokens > 0 {
+		attrs = append(attrs, attribute.Int(AttrTotalTokens, u.TotalTokens))
+	}
+	return attrs
+}
+
+func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		info, _ := ai.RunInfoFrom(ctx)
+		start := time.Now()
+		spentBefore := a.spend
+
+		if a.opts.TraceProvider == nil {
+			res := next(ctx, call)
+			dur := time.Since(start).Milliseconds()
+			resErr := resultError(res)
+			toolAttempts := res.Attempts
+			if toolAttempts <= 0 {
+				toolAttempts = 1
+			}
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr), Spent: a.spend, ToolSpend: a.spend - spentBefore}
+			applyRunInfoToEvent(&e, info)
+			a.recordRunEvent(e)
+			return res
+		}
+
+		spanAttrs := appendRunInfoAttributes([]attribute.KeyValue{
+			attribute.String(AttrRunID, info.RunID),
+			attribute.String(AttrParentRunID, info.ParentID),
+			attribute.String(AttrAgentName, info.Agent),
+			attribute.String(AttrToolName, call.Name),
+			attribute.Bool(AttrDelegate, call.Name == toolDelegate),
+		}, info)
+		ctx, span := a.tracer().Start(ctx, spanNameToolCall, trace.WithAttributes(spanAttrs...))
+		res := next(ctx, call)
+		dur := time.Since(start).Milliseconds()
+		toolSpend := a.spend - spentBefore
+		attrs := []attribute.KeyValue{attribute.Int64(AttrLatencyMS, dur)}
+		toolAttempts := res.Attempts
+		if toolAttempts <= 0 {
+			toolAttempts = 1
+		}
+		attrs = append(attrs, attribute.Int(AttrToolAttempt, toolAttempts))
+		if a.opts.ToolMaxAttempts > 0 {
+			attrs = append(attrs, attribute.Int(AttrToolMaxAttempts, a.opts.ToolMaxAttempts))
+		}
+		if toolSpend > 0 {
+			attrs = append(attrs, attribute.Int64(AttrSpend, a.spend), attribute.Int64(AttrToolSpend, toolSpend))
+		}
+		if res.Refused != "" {
+			attrs = append(attrs, attribute.Bool(AttrGuardrailBlock, true), attribute.String(AttrRefusal, res.Refused))
+		}
+		resErr := resultError(res)
+		if kind := classifyToolError(resErr); kind != "" {
+			attrs = append(attrs, attribute.String(AttrErrorKind, kind))
+		}
+		span.SetAttributes(attrs...)
+		if res.Refused != "" {
+			span.SetStatus(codes.Error, res.Refused)
+		} else if resErr != "" {
+			span.SetStatus(codes.Error, resErr)
+		} else {
+			span.SetStatus(codes.Ok, "")
+		}
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "tool", Name: call.Name, Attempt: toolAttempts, MaxAttempts: a.opts.ToolMaxAttempts, LatencyMS: dur, Refused: res.Refused, Error: resErr, ErrorKind: classifyToolError(resErr), Spent: a.spend, ToolSpend: toolSpend}
+		applyRunInfoToEvent(&e, info)
+		a.recordSpanEvent(span, e)
+		span.End()
+		return res
+	}
+}
+
+func resultError(res ai.ToolResult) string {
+	if m, ok := res.Value.(map[string]string); ok {
+		return m["error"]
+	}
+	if m, ok := res.Value.(map[string]any); ok {
+		if err, _ := m["error"].(string); err != "" {
+			return err
+		}
+	}
+	return ""
+}
+
+func classifyToolError(err string) string {
+	switch {
+	case err == "":
+		return ""
+	case strings.Contains(strings.ToLower(err), "context canceled"):
+		return string(ai.ErrorKindCanceled)
+	case strings.Contains(strings.ToLower(err), "deadline exceeded"):
+		return string(ai.ErrorKindTimeout)
+	default:
+		return string(ai.ErrorKindProvider)
+	}
+}
+
+func (a *agentImpl) recordTimelineEvent(ctx context.Context, e RunEvent) {
+	if info, ok := ai.RunInfoFrom(ctx); ok {
+		applyRunInfoToEvent(&e, info)
+	}
+	span := trace.SpanFromContext(ctx)
+	if span.SpanContext().IsValid() {
+		a.recordSpanEvent(span, e)
+		return
+	}
+	a.recordRunEvent(e)
+}
+
+func applyRunInfoToEvent(e *RunEvent, info ai.RunInfo) {
+	if e.RunID == "" {
+		e.RunID = info.RunID
+	}
+	if e.ParentID == "" {
+		e.ParentID = info.ParentID
+	}
+	if e.Agent == "" {
+		e.Agent = info.Agent
+	}
+	e.Flow = info.Flow
+	e.Step = info.Step
+	e.Dispatch = info.Dispatch
+	e.Trigger = info.Trigger
+}
+
+func (a *agentImpl) recordSpanEvent(span trace.Span, e RunEvent) {
+	if sc := span.SpanContext(); sc.IsValid() {
+		e.TraceID = sc.TraceID().String()
+		e.SpanID = sc.SpanID().String()
+	}
+	span.AddEvent("agent."+e.Kind, trace.WithTimestamp(e.Time), trace.WithAttributes(runEventAttributes(e)...))
+	a.recordRunEvent(e)
+}
+
+func runEventAttributes(e RunEvent) []attribute.KeyValue {
+	attrs := []attribute.KeyValue{
+		attribute.String(AttrRunID, e.RunID),
+		attribute.String(AttrAgentName, e.Agent),
+		attribute.String(AttrRunEventKind, e.Kind),
+	}
+	if e.ParentID != "" {
+		attrs = append(attrs, attribute.String(AttrParentRunID, e.ParentID))
+	}
+	if e.Flow != "" {
+		attrs = append(attrs, attribute.String(AttrFlowName, e.Flow))
+	}
+	if e.Step != "" {
+		attrs = append(attrs, attribute.String(AttrFlowStep, e.Step))
+	}
+	if e.Dispatch != "" {
+		attrs = append(attrs, attribute.String(AttrDispatch, e.Dispatch))
+	}
+	if e.Trigger != "" {
+		attrs = append(attrs, attribute.String(AttrTrigger, e.Trigger))
+	}
+	if e.Name != "" {
+		attrs = append(attrs, attribute.String("agent.event.name", e.Name))
+	}
+	if e.Provider != "" {
+		attrs = append(attrs, attribute.String(AttrProvider, e.Provider))
+	}
+	if e.Model != "" {
+		attrs = append(attrs, attribute.String(AttrModel, e.Model))
+	}
+	if e.Attempt > 0 {
+		if e.Kind == "tool" {
+			attrs = append(attrs, attribute.Int(AttrToolAttempt, e.Attempt))
+		} else {
+			attrs = append(attrs, attribute.Int(AttrAttempt, e.Attempt))
+		}
+	}
+	if e.MaxAttempts > 0 {
+		if e.Kind == "tool" {
+			attrs = append(attrs, attribute.Int(AttrToolMaxAttempts, e.MaxAttempts))
+		} else {
+			attrs = append(attrs, attribute.Int(AttrMaxAttempts, e.MaxAttempts))
+		}
+	}
+	if e.LatencyMS > 0 {
+		attrs = append(attrs, attribute.Int64(AttrLatencyMS, e.LatencyMS))
+	}
+	if e.InputChars > 0 {
+		attrs = append(attrs, attribute.Int(AttrInputChars, e.InputChars))
+	}
+	if e.Spent > 0 {
+		attrs = append(attrs, attribute.Int64(AttrSpend, e.Spent))
+	}
+	if e.ToolSpend > 0 {
+		attrs = append(attrs, attribute.Int64(AttrToolSpend, e.ToolSpend))
+	}
+	attrs = appendUsage(attrs, e.Tokens)
+	if e.Refused != "" {
+		attrs = append(attrs, attribute.Bool(AttrGuardrailBlock, true), attribute.String(AttrRefusal, e.Refused))
+	}
+	if e.Error != "" {
+		attrs = append(attrs, attribute.String("agent.error", e.Error))
+	}
+	if e.ErrorKind != "" {
+		attrs = append(attrs, attribute.String(AttrErrorKind, e.ErrorKind))
+	}
+	if e.Kind == "checkpoint" {
+		if e.Status != "" {
+			attrs = append(attrs, attribute.String(AttrCheckpointStatus, e.Status))
+		}
+		if e.Name != "" {
+			attrs = append(attrs, attribute.String(AttrCheckpointStage, e.Name))
+		}
+	}
+	return attrs
+}
+
+func appendRunInfoAttributes(attrs []attribute.KeyValue, info ai.RunInfo) []attribute.KeyValue {
+	if info.Flow != "" {
+		attrs = append(attrs, attribute.String(AttrFlowName, info.Flow))
+	}
+	if info.Step != "" {
+		attrs = append(attrs, attribute.String(AttrFlowStep, info.Step))
+	}
+	if info.Dispatch != "" {
+		attrs = append(attrs, attribute.String(AttrDispatch, info.Dispatch))
+	}
+	if info.Trigger != "" {
+		attrs = append(attrs, attribute.String(AttrTrigger, info.Trigger))
+	}
+	if info.Spent > 0 {
+		attrs = append(attrs, attribute.Int64(AttrSpend, info.Spent))
+	}
+	if info.ToolSpend > 0 {
+		attrs = append(attrs, attribute.Int64(AttrToolSpend, info.ToolSpend))
+	}
+	return attrs
+}
+
+// recordRunEvent is where every run event ends up — the traced paths and the
+// untraced ones both funnel through here — which is why the observer hangs off
+// it rather than off each caller.
+func (a *agentImpl) recordRunEvent(e RunEvent) {
+	if e.RunID == "" {
+		return
+	}
+	if f := a.opts.OnRunEvent; f != nil {
+		f(e)
+	}
+	b, _ := json.Marshal(e)
+	key := fmt.Sprintf("runs/%s/%020d-%s", e.RunID, e.Time.UnixNano(), e.Kind)
+	_ = a.stateStore().Write(&store.Record{Key: key, Value: b})
+}
+
+// ListRunSummaries returns a deterministic summary of recorded runs for agentName.
+func ListRunSummaries(s store.Store, agentName string) ([]RunSummary, error) {
+	return ListRunSummariesWithOptions(s, agentName, RunListOptions{})
+}
+
+// ListRunSummariesWithOptions returns summaries of recorded runs for agentName,
+// optionally filtered by status and limited to the most recently updated runs.
+func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOptions) ([]RunSummary, error) {
+	st := store.Scope(s, "agent", agentName)
+	keys, err := st.List(store.ListPrefix("runs/"))
+	if err != nil {
+		return nil, err
+	}
+	runs := map[string]bool{}
+	for _, k := range keys {
+		parts := strings.Split(k, "/")
+		if len(parts) >= 2 && parts[1] != "" {
+			runs[parts[1]] = true
+		}
+	}
+	ids := make([]string, 0, len(runs))
+	for id := range runs {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	summaries := make([]RunSummary, 0, len(ids))
+	for _, id := range ids {
+		events, err := LoadRunEvents(s, agentName, id)
+		if err != nil {
+			return nil, err
+		}
+		if len(events) == 0 {
+			continue
+		}
+		summary := summarizeRunEvents(id, events)
+		if opts.Status != "" && summary.Status != opts.Status {
+			continue
+		}
+		if opts.TraceID != "" && !strings.HasPrefix(summary.TraceID, opts.TraceID) {
+			continue
+		}
+		summaries = append(summaries, summary)
+	}
+	if opts.Limit > 0 {
+		sort.SliceStable(summaries, func(i, j int) bool {
+			return summaries[i].UpdatedAt.After(summaries[j].UpdatedAt)
+		})
+		if len(summaries) > opts.Limit {
+			summaries = summaries[:opts.Limit]
+		}
+	}
+	return summaries, nil
+}
+
+func summarizeRunEvents(runID string, events []RunEvent) RunSummary {
+	summary := RunSummary{RunID: runID, Events: len(events)}
+	if len(events) == 0 {
+		return summary
+	}
+	first := events[0]
+	last := events[len(events)-1]
+	summary.Agent = first.Agent
+	summary.ParentID = first.ParentID
+	summary.Flow = first.Flow
+	summary.Step = first.Step
+	summary.Dispatch = first.Dispatch
+	summary.Trigger = first.Trigger
+	summary.TraceID = first.TraceID
+	summary.SpanID = first.SpanID
+	summary.StartedAt = first.Time
+	summary.UpdatedAt = last.Time
+	summary.DurationMS = last.Time.Sub(first.Time).Milliseconds()
+	summary.Status = runStatus(events)
+	summary.LastKind = last.Kind
+	summary.LastError = last.Error
+	for _, e := range events {
+		if e.Agent != "" {
+			summary.Agent = e.Agent
+		}
+		if e.ParentID != "" {
+			summary.ParentID = e.ParentID
+		}
+		if e.Flow != "" {
+			summary.Flow = e.Flow
+		}
+		if e.Step != "" {
+			summary.Step = e.Step
+		}
+		if e.Dispatch != "" {
+			summary.Dispatch = e.Dispatch
+		}
+		if e.Trigger != "" {
+			summary.Trigger = e.Trigger
+		}
+		if e.TraceID != "" {
+			summary.TraceID = e.TraceID
+		}
+		if e.SpanID != "" {
+			summary.SpanID = e.SpanID
+		}
+		if e.Kind == "checkpoint" {
+			summary.Checkpoint = e.Status
+			summary.Stage = e.Name
+		}
+		if e.Error != "" {
+			summary.LastError = e.Error
+		}
+		if e.ErrorKind != "" {
+			summary.LastErrorKind = e.ErrorKind
+		}
+		if e.Spent > summary.Spent {
+			summary.Spent = e.Spent
+		}
+	}
+	return summary
+}
+
+func runStatus(events []RunEvent) string {
+	if len(events) == 0 {
+		return ""
+	}
+	status := "running"
+	for _, e := range events {
+		if e.Refused != "" && status == "running" {
+			status = "refused"
+		}
+		if e.Error != "" || e.Kind == "error" {
+			status = runErrorStatus(e.ErrorKind)
+		}
+		if e.Kind == "done" {
+			status = "done"
+		}
+	}
+	return status
+}
+
+func runErrorStatus(kind string) string {
+	switch ai.ErrorKind(kind) {
+	case ai.ErrorKindCanceled:
+		return "canceled"
+	case ai.ErrorKindTimeout:
+		return "timeout"
+	case ai.ErrorKindRateLimited:
+		return "rate_limited"
+	case ai.ErrorKindAuth:
+		return "auth"
+	case ai.ErrorKindConfiguration:
+		return "configuration"
+	case ai.ErrorKindUnavailable:
+		return "unavailable"
+	case ai.ErrorKindProvider:
+		return "provider_error"
+	default:
+		return "error"
+	}
+}
+
+func LoadRunEvents(s store.Store, agentName, runID string) ([]RunEvent, error) {
+	return loadRunEvents(s, agentName, runID, false)
+}
+
+func loadRunEvents(s store.Store, agentName, runID string, strict bool) ([]RunEvent, error) {
+	st := store.Scope(s, "agent", agentName)
+	keys, err := st.List(store.ListPrefix("runs/" + runID + "/"))
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(keys)
+	events := make([]RunEvent, 0, len(keys))
+	for _, k := range keys {
+		recs, err := st.Read(k)
+		if err != nil {
+			if strict {
+				return nil, fmt.Errorf("read agent run event %q: %w", k, err)
+			}
+			continue
+		}
+		if len(recs) == 0 {
+			if strict {
+				return nil, fmt.Errorf("read agent run event %q: no record returned", k)
+			}
+			continue
+		}
+		var e RunEvent
+		if err := json.Unmarshal(recs[0].Value, &e); err != nil {
+			if strict {
+				return nil, fmt.Errorf("decode agent run event %q: %w", k, err)
+			}
+			continue
+		}
+		events = append(events, e)
+	}
+	return events, nil
+}
+
+// LoadRunRecord loads the versioned record for one agent run. A run with no
+// recorded events returns an empty record carrying the requested identity.
+func LoadRunRecord(s store.Store, agentName, runID string) (RunRecord, error) {
+	events, err := loadRunEvents(s, agentName, runID, true)
+	if err != nil {
+		return RunRecord{}, err
+	}
+	summary := summarizeRunEvents(runID, events)
+	if summary.Agent == "" {
+		summary.Agent = agentName
+	}
+	return RunRecord{
+		SchemaVersion: RunRecordSchemaVersion,
+		Summary:       summary,
+		Events:        events,
+	}, nil
+}

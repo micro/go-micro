@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v6/registry"
 )
 
 func extractValue(v reflect.Type, d int) *registry.Value {
@@ -16,7 +16,7 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 		return nil
 	}
 
-	if v.Kind() == reflect.Ptr {
+	if v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 
@@ -44,6 +44,8 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 					continue
 				}
 				val.Name = parts[0]
+			} else {
+				val.Name = f.Name
 			}
 
 			// if there's no name default it
@@ -60,7 +62,7 @@ func extractValue(v reflect.Type, d int) *registry.Value {
 		}
 	case reflect.Slice:
 		p := v.Elem()
-		if p.Kind() == reflect.Ptr {
+		if p.Kind() == reflect.Pointer {
 			p = p.Elem()
 		}
 		arg.Type = "[]" + p.Name()

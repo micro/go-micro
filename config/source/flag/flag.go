@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/imdario/mergo"
-	"go-micro.dev/v4/config/source"
+	"dario.cat/mergo"
+	"go-micro.dev/v6/config/source"
 )
 
 type flagsrc struct {
@@ -36,8 +36,7 @@ func (fs *flagsrc) Read() (*source.ChangeSet, error) {
 			tmp = map[string]interface{}{k: tmp}
 		}
 
-		mergo.Map(&changes, tmp) // need to sort error handling
-		return
+		_ = mergo.Map(&changes, tmp) // need to sort error handling
 	}
 
 	unset, ok := fs.opts.Context.Value(includeUnsetKey{}).(bool)

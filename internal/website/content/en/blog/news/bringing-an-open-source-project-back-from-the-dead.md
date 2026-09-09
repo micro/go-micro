@@ -1,0 +1,54 @@
+---
+title: "Bringing an Open Source Project Back from the Dead"
+linkTitle: "Back from the Dead"
+date: 2026-06-18
+description: "Go Micro started in January 2015, went through a VC-funded company and a platform pivot, and then went quiet. This is how it came back — and how agents, services, and flows brought it to v6."
+category:
+- opinion
+tags:
+- open-source
+- community
+aliases:
+  - /blog/27
+---
+I open sourced Go Micro in January 2015. Eleven years later we just tagged v6. What a crazy and surreal experience that is. the project was basically dead or sitting stale for quite some time after VC funding dried up, I shutdown the business and tried to hand off to the community. So much has happened in that time and I've learned a lot of lessons. Like how to be grateful for what you had when you had it.
+
+## The stages
+
+The first version of Go Micro was a simple library to make microservices: registry, transport, RPC, and pub/sub behind a small set of pluggable interfaces. It found some traction on HackerNews which gave me a bit of confidence. Up to v1 it was mostly bootstrapped and a corporate sponsorship that then became a feedback loop as they used it in production.
+
+In V2 everything changed. I raised venture funding and tried to build a team and product around. I was painfully unprepared and inexperienced for that challenge. The open source framework and company were like oil and water. Like any founder who's raised money around open source will tell you. Its hard. Really hard.
+
+V3 was an iteration as a platform-as-a-service built on top of the framework. There was real effort behind it, but it wasn't what people had come for, and it didn't get traction. I thought from an open source perspective it was great because it coupled the framework with a runtime. But it was too opinionated for most people. We quickly switched gears into offering APIs on top instead which seemed like it would have tbe most traction and did get a lot of signups but ultimately fatigue and a declining runway got the better of me.
+
+Then the difficult part. I had to shut down the company. For a long while Go Micro just sat there — a decaying open source project with no activity to show for it. Like a lot of long running projects. They die a slow quiet death. Go Micro was no different. I was really sad about that but there was nothing I could do to change it. No team, no funding, I tried different ways but it was a no go.
+
+## Rebuilding
+
+V4 and V5 were a bit of a come back story. I was trying to remember what Go Micro was actually originally built for. The answer: a Go framework for developers. Not a company, not a platform. Just a way to build distributed systems in Go with infrastructure abstractions and an opinionated development model. So I started bringing it back to that.
+
+Then everything changed. AI came on the scene. And Anthropic launched an open-source grant for Claude Code. So heck, why not, I applied and got access to 6 months of Claude Code for free. Boom. Go Micro is reborn. Let me be clear about one thing: working on a large, aging codebase alone is slow and painful. That slowness kills any momentum and motivation. Building with Claude Code changed everything. I was able to tackle issues I had no motivation to deal with before. To plot out a roadmap and then to rebuild a vision for the future. One in which services become the tools for agents and agents themselves become a core aspect of the framework.
+
+## What I actually wanted
+
+Coming back to that. The vision became clear again. Rather than reset, this was about evolution. The original goal was to make building distributed systems simple. What became clear more now is that agents are distributed systems too. An agent is a model, a prompt, and a set of tools — and when it has to do more than one of thing e.g discover services, call them, hold state, and recover from failure, thats when it becomed a distributed system. That is the exact problem Go Micro already solved for services.
+
+So services and agents aren't two separate things. They're complementary systems. An agent lives along side services; a service is a tool an agent calls. Building an agent looks like building a service, because underneath it can be the same thing, just with a different style of OODA loop thats dynamic.
+
+## What now 
+
+So the idea from v4 through v6 turned into:
+
+- **Services** — the core framework: discovery, RPC, pubsub, storage.
+- **Agents** — a model with memory and tools that use services, with planning, delegation, and guardrails built in.
+- **Flows** — durable, event-driven workflows for the deterministic parts and agents too.
+
+And the interop that makes it matter beyond a single codebase: **MCP**, so every service is automatically a tool any AI agent can call, and **A2A**, so every agent can be discovered and called by agents on other frameworks. Both are generated from the registry which is already used for service discovery.
+
+## v6
+
+V6 is the beginning of something real. It's secure by default, leads with agents, and it moves the everything to a new model of development. One thats firmly rooted in the AI era of technology. Its not a rewrite: the decade of services work is the foundation, and v6 is that foundation leveraged for agents.
+
+Projects dont come back from the dead like this. AI brought it back from the dead. Agents made services more relevant. And Claude Code made it possible for me to ship code again.
+
+Thanks to Anthropic for the grant and the sponsorship. Join me in the [Discord](https://discord.gg/G8Gk5j3uXr) to discuss further.

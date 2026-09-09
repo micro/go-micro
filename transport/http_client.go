@@ -12,8 +12,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/util/buf"
+	"go-micro.dev/v6/internal/util/buf"
+	log "go-micro.dev/v6/logger"
 )
 
 type httpTransportClient struct {
@@ -111,9 +111,17 @@ func (h *httpTransportClient) Recv(msg *Message) (err error) {
 	var req *http.Request
 
 	if !h.dialOpts.Stream {
-		rc, ok := <-h.req
+
+		var rc *http.Request
+		var ok bool
+
+		h.Lock()
+		select {
+		case rc, ok = <-h.req:
+		default:
+		}
+
 		if !ok {
-			h.Lock()
 			if len(h.reqList) == 0 {
 				h.Unlock()
 				return io.EOF
@@ -121,8 +129,8 @@ func (h *httpTransportClient) Recv(msg *Message) (err error) {
 
 			rc = h.reqList[0]
 			h.reqList = h.reqList[1:]
-			h.Unlock()
 		}
+		h.Unlock()
 
 		req = rc
 	}
@@ -147,8 +155,8 @@ func (h *httpTransportClient) Recv(msg *Message) (err error) {
 	}
 
 	defer func() {
-		if err = rsp.Body.Close(); err != nil {
-			err = errors.Wrap(err, "failed to close body")
+		if err2 := rsp.Body.Close(); err2 != nil {
+			err = errors.Wrap(err2, "failed to close body")
 		}
 	}()
 
@@ -180,25 +188,29 @@ func (h *httpTransportClient) Recv(msg *Message) (err error) {
 
 func (h *httpTransportClient) Close() error {
 	if !h.dialOpts.Stream {
-		h.once.Do(func() {
-			h.Lock()
-			h.buff.Reset(nil)
-			h.closed = true
-			h.Unlock()
-			close(h.req)
-		})
+		h.once.Do(
+			func() {
+				h.Lock()
+				h.buff.Reset(nil)
+				h.closed = true
+				h.Unlock()
+				close(h.req)
+			},
+		)
 
 		return h.conn.Close()
 	}
 
 	err := h.conn.Close()
-	h.once.Do(func() {
-		h.Lock()
-		h.buff.Reset(nil)
-		h.closed = true
-		h.Unlock()
-		close(h.req)
-	})
+	h.once.Do(
+		func() {
+			h.Lock()
+			h.buff.Reset(nil)
+			h.closed = true
+			h.Unlock()
+			close(h.req)
+		},
+	)
 
 	return err
 }

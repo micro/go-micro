@@ -1,0 +1,130 @@
+# Go Micro — Thesis & North Star
+
+This is the North Star for the project and for the autonomous improvement loop
+(see `CONTINUOUS_IMPROVEMENT.md`). Every change should move toward it; work that
+doesn't isn't an improvement, however clean.
+
+## Mission — the problem we solve
+
+Go Micro started in 2015 because building distributed systems in Go was too hard:
+too much boilerplate, too many decisions before a single endpoint runs. The
+mission was to **make building distributed systems simple** — sane defaults,
+pluggable, out of the developer's way.
+
+Agents are distributed systems too. The moment an agent discovers services, calls
+them, holds state, and recovers from failure, it *is* a distributed system — the
+exact problem Go Micro already solved for services. So the mission hasn't
+changed, only extended:
+
+> **Make building agentic, distributed software in Go simple — make building an
+> agent as easy as building a service, on one runtime, because an agent is a
+> distributed system.**
+
+That is the problem we solve, and it is the question every priority is judged
+against: *does this make the services → agents → workflows lifecycle simpler, more
+cohesive, and more operable — or is it scope that doesn't serve that?* It is
+evolution, not a pivot: the decade of services work is the foundation, and the
+agent layer is that foundation leveraged for the AI era.
+
+## The canon
+
+The vision isn't only in this file. The years of focus and context live in the
+**corpus** — the [blog](../website/blog/) (the actual thinking, e.g. `/blog/14`
+"Going All In on AI" and `/blog/27` "Back from the Dead"), the
+[`README`](../../README.md), and the [website](../website/). Those are the canon;
+this North Star is their **distillation** and must stay faithful to them. When the
+two diverge, that's a signal — either the work has drifted from the mission, or the
+North Star has drifted from the lived story and needs re-grounding in the corpus.
+The architect re-derives alignment from the canon, not from this file alone.
+
+## Thesis
+
+Go Micro is an **agent harness and service framework** — one runtime that, holistically,
+encapsulates the **lifecycle of services, agents, and workflows**. Not three
+products stitched together: one set of primitives, because an agent is a
+distributed system and building one is building a service.
+
+## The progression: services → agents → workflows
+
+Value is unlocked in order, and each layer needs the one beneath it:
+
+1. **Services** — typed, discoverable, callable capabilities. The substrate; every
+   endpoint is automatically an AI-callable tool.
+2. **Agents** — a model with memory and tools that *uses* those services, plans,
+   delegates, and is bounded by guardrails. Intelligence on top of capability.
+3. **Workflows** — the part that **pieces it all together**: composing agents and
+   services over time, deterministically where the path is known and dynamically
+   where it isn't, on schedules and in loops. The workloads come *after* the
+   agents, because the value is in stitching it into systems that do real work.
+
+A harness that stops at "a model in a loop" is incomplete. The point is the whole
+lifecycle — capability, intelligence, and orchestration as one runtime.
+
+## Where we fit — complementary, not competing
+
+"Agent = Model + Harness" ([LangChain](https://www.langchain.com/blog/the-anatomy-of-an-agent-harness))
+is the right frame, but *harness* has two layers, and we own the second:
+
+- **The intra-agent harness** — the runtime around a *single model*: system prompt,
+  tools, context compaction, sandbox, self-verification, and the continuation
+  ("Ralph") loop. LangChain / LangGraph, deepagents, and Claude Code do this well.
+  **We do not compete here.**
+- **The operational harness** — the distributed substrate agents *operate inside*:
+  services as typed tools, discovery and RPC, durable and resumable runs,
+  observability, scheduling, and the protocols agents use to reach each other. The
+  place a single agent becomes part of a system, and many agents, services, and
+  workflows compose. **This is Go Micro's focus.**
+
+They stack. An intra-agent harness produces an agent; Go Micro is where that agent
+runs as a first-class service and gets composed into workflows with other services
+and agents. They plug together through open protocols — a LangGraph or deepagents
+agent is reachable over A2A and consumes Go Micro tools over MCP, and the reverse.
+We make those agents better neighbours, not obsolete.
+
+So the focus is deliberately narrow: **the operational harness for Go, and the
+services → agents → workflows lifecycle** — not a model-orchestration framework, not
+a graph DSL, not a prompt layer. Lead with interop and the distributed substrate;
+treat LangChain-class tools as complements to build alongside, never as targets to
+replace.
+
+## Why now
+
+The frontier is moving from chat to **scheduled, looping, work-performing agents**:
+Anthropic itself is building toward agents that do work on a cadence (Claude for
+Work, schedulers), and running coding agents *continuously in loops* is becoming
+standard practice among the people who build them. That shift is exactly the
+"workflows after agents" layer — and the harness is what makes it safe, durable,
+observable, and composable instead of a fragile script.
+
+The bet: whoever gives Go a holistic harness for the **whole lifecycle** — not just
+an agent SDK, not just a service framework — owns where agentic software gets built.
+
+## What every improvement should serve
+
+Judge each loop increment against the North Star:
+
+1. **Make the harness real** — operate the loop in production: durability,
+   observability, resilience, streaming, human-in-the-loop.
+2. **Tighten the lifecycle** — services ↔ agents ↔ workflows as one runtime, not
+   three silos.
+3. **Advance orchestration** — durable, resumable, scheduled, looping workflows
+   that compose agents and services over time.
+4. **Sharpen DX** — the 0→1 and 0→hero paths stay effortless.
+5. **Strengthen interop** — MCP (tools), A2A (agents), x402 (paid tools).
+6. **Harden trust** — cross-provider conformance, failure semantics, tests.
+
+Prefer changes that advance these; avoid scope that doesn't. Brand/positioning
+copy and breaking public-API changes stay with the human.
+
+## The loop is the proof
+
+Go Micro is built by an autonomous agentic loop — Claude Code and Codex
+continuously improving the repo against this North Star. That isn't a gimmick; it's
+the thesis applied to itself: an agent harness, built by agents running in a loop.
+If the harness is good enough to build itself, it's good enough to build your
+agentic software.
+
+## What this is not
+
+The framework is the product — no hosted platform, no enterprise tier, no VC, no
+graph DSL. Sustained by sponsorship from those who run it. See `ROADMAP.md`.

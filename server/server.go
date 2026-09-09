@@ -9,10 +9,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"go-micro.dev/v4/codec"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/registry"
-	signalutil "go-micro.dev/v4/util/signal"
+	"go-micro.dev/v6/codec"
+	signalutil "go-micro.dev/v6/internal/util/signal"
+	log "go-micro.dev/v6/logger"
+	"go-micro.dev/v6/registry"
 )
 
 // Server is a simple micro server abstraction.
@@ -40,7 +40,7 @@ type Server interface {
 // Router handle serving messages.
 type Router interface {
 	// ProcessMessage processes a message
-	ProcessMessage(context.Context, Message) error
+	ProcessMessage(context.Context, string, Message) error
 	// ServeRequest processes a request to completion
 	ServeRequest(context.Context, Request, Response) error
 }
@@ -160,7 +160,7 @@ func Init(opt ...Option) {
 	if DefaultServer == nil {
 		DefaultServer = NewRPCServer(opt...)
 	}
-	DefaultServer.Init(opt...)
+	_ = DefaultServer.Init(opt...)
 }
 
 // NewRouter returns a new router.

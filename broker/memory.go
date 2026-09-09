@@ -5,12 +5,11 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
-	log "go-micro.dev/v4/logger"
-	maddr "go-micro.dev/v4/util/addr"
-	mnet "go-micro.dev/v4/util/net"
+	maddr "go-micro.dev/v6/internal/util/addr"
+	mnet "go-micro.dev/v6/internal/util/net"
+	log "go-micro.dev/v6/logger"
 )
 
 type memoryBroker struct {
@@ -123,7 +122,7 @@ func (m *memoryBroker) Publish(topic string, msg *Message, opts ...PublishOption
 		if err := sub.handler(p); err != nil {
 			p.err = err
 			if eh := m.opts.ErrorHandler; eh != nil {
-				eh(p)
+				_ = eh(p)
 				continue
 			}
 			return err
@@ -222,8 +221,6 @@ func (m *memorySubscriber) Unsubscribe() error {
 
 func NewMemoryBroker(opts ...Option) Broker {
 	options := NewOptions(opts...)
-
-	rand.Seed(time.Now().UnixNano())
 
 	return &memoryBroker{
 		opts:        options,

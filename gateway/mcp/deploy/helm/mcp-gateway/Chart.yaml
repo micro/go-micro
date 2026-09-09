@@ -1,0 +1,18 @@
+apiVersion: v2
+name: mcp-gateway
+description: Go Micro MCP Gateway - Expose microservices as AI-accessible tools via the Model Context Protocol
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - go-micro
+  - mcp
+  - ai
+  - microservices
+  - gateway
+home: https://go-micro.dev
+sources:
+  - https://github.com/micro/go-micro
+maintainers:
+  - name: go-micro
+    url: https://github.com/micro/go-micro

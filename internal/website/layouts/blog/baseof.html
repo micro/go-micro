@@ -1,0 +1,43 @@
+<!doctype html>
+<html itemscope itemtype="http://schema.org/WebPage"
+    {{- with .Site.Language.LanguageDirection }} dir="{{ . }}" {{- end -}}
+    {{ with .Site.Language.Lang }} lang="{{ . }}" {{- end }} {{/**/ -}}
+    class="no-js"
+    {{- $darkMode := partialCached "dark-mode-config.html" "dark-mode-global" -}}
+    {{- if $darkMode.enable }} data-theme-init{{ end }}>
+  <head>
+    {{ partial "head.html" . }}
+  </head>
+  <body class="td-{{ .Kind }} td-blog {{- with .Page.Params.body_class }} {{ . }}{{ end }}">
+    <header>
+      {{ partial "navbar.html" . }}
+    </header>
+    <main class="container td-outer">
+      <div class="td-main" {{- partialCached "td/scrollspy-attr.txt" . .Section | safeHTMLAttr }}>
+        <div class="row flex-xl-nowrap">
+          <aside class="col-12 col-md-3 col-xl-2 col-xxl-3 td-sidebar d-print-none">
+            {{ partial "sidebar.html" . }}
+          </aside>
+          <aside class="td-sidebar-toc">
+            {{ partial "page-meta-links.html" . }}
+            {{ partial "toc.html" . }}
+            {{ partial "taxonomy_terms_clouds.html" . }}
+          </aside>
+          <main class="col-12 col-md-9 col-xl-8 col-xxl-7 ps-md-5 pe-md-4" role="main">
+            {{ with .CurrentSection.OutputFormats.Get "rss" -}}
+            <a class="td-rss-button" title="RSS" href="{{ .RelPermalink | safeURL }}" target="_blank" rel="noopener">
+              <i class="fa-solid fa-rss" aria-hidden="true"></i>
+            </a>
+            {{ end -}}
+            {{ if not (.Param "ui.breadcrumb_disable") -}}
+              {{ partial "breadcrumb.html" . -}}
+            {{ end -}}
+            {{ block "main" . }}{{ end }}
+          </main>
+        </div>
+      </div>
+    </main>
+    {{ partial "footer.html" . }}
+    {{ partial "scripts.html" . }}
+  </body>
+</html>

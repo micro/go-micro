@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>{{ .Params.pkg | default .Title }}</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+{{ $module := .Params.go_module | default .Site.Params.go_module_name }}
+{{ $repo := .Params.repo | default .Site.Params.github_project_repo }}
+{{ $pkg := .Params.pkg | default $module }}
+<meta name="go-import" content="{{ $module }} git {{ $repo }}.git">
+<meta name="go-source" content="{{ $module }} {{ $repo }} {{ $repo }}/tree/master{/dir} {{ $repo }}/blob/master{/dir}/{file}#L{line}">
+<script>
+  setTimeout(function() {
+    window.location.href = "https://pkg.go.dev/{{ $pkg }}";
+  }, 3000);
+</script>
+</head>
+<body>
+<a href="https://pkg.go.dev/{{ $pkg }}">Redirecting to documentation...</a>
+<ul>
+  <li><a href="https://pkg.go.dev/{{ $pkg }}">{{ $pkg }}</a></li>
+  {{ $prefix := printf "%s/" $pkg }}
+  {{ with hugo.Data.vanity }}
+    {{ range .modules }}
+      {{ if eq .module $module }}
+        {{ range .packages }}
+          {{ if hasPrefix . $prefix }}
+  <li><a href="https://pkg.go.dev/{{ . }}">{{ . }}</a></li>
+          {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+  {{ end }}
+</ul>
+</body>
+</html>

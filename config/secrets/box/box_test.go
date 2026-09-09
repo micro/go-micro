@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"go-micro.dev/v4/config/secrets"
+	"go-micro.dev/v6/config/secrets"
 	naclbox "golang.org/x/crypto/nacl/box"
 )
 
@@ -52,11 +52,11 @@ func TestBox(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	dec, err := alice.Decrypt(enc, secrets.SenderPublicKey(bob.Options().PrivateKey))
+	_, err = alice.Decrypt(enc, secrets.SenderPublicKey(bob.Options().PrivateKey))
 	if err == nil {
 		t.Error(err)
 	}
-	dec, err = alice.Decrypt(enc, secrets.SenderPublicKey(bob.Options().PublicKey))
+	dec, err := alice.Decrypt(enc, secrets.SenderPublicKey(bob.Options().PublicKey))
 	if err != nil {
 		t.Error(err)
 	}

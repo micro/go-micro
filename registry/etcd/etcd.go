@@ -1,0 +1,532 @@
+// Package etcd provides an etcd service registry
+package etcd
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net"
+	"os"
+	"path"
+	"sort"
+	"strings"
+	"sync"
+	"time"
+
+	hash "github.com/mitchellh/hashstructure"
+	mtls "go-micro.dev/v6/internal/util/tls"
+	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/registry"
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/zap"
+)
+
+var (
+	prefix = "/micro/registry/"
+)
+
+type etcdRegistry struct {
+	client  *clientv3.Client
+	options registry.Options
+
+	sync.RWMutex
+	register      map[string]uint64
+	leases        map[string]clientv3.LeaseID
+	keepaliveChs  map[string]<-chan *clientv3.LeaseKeepAliveResponse
+	keepaliveStop map[string]chan bool
+}
+
+func NewEtcdRegistry(opts ...registry.Option) registry.Registry {
+	e := &etcdRegistry{
+		options:       registry.Options{},
+		register:      make(map[string]uint64),
+		leases:        make(map[string]clientv3.LeaseID),
+		keepaliveChs:  make(map[string]<-chan *clientv3.LeaseKeepAliveResponse),
+		keepaliveStop: make(map[string]chan bool),
+	}
+	username, password := os.Getenv("ETCD_USERNAME"), os.Getenv("ETCD_PASSWORD")
+	if len(username) > 0 && len(password) > 0 {
+		opts = append(opts, Auth(username, password))
+	}
+	address := os.Getenv("MICRO_REGISTRY_ADDRESS")
+	if len(address) > 0 {
+		opts = append(opts, registry.Addrs(address))
+	}
+	_ = configure(e, opts...)
+	return e
+}
+
+func configure(e *etcdRegistry, opts ...registry.Option) error {
+	config := clientv3.Config{
+		Endpoints: []string{"127.0.0.1:2379"},
+	}
+
+	for _, o := range opts {
+		o(&e.options)
+	}
+
+	if e.options.Timeout == 0 {
+		e.options.Timeout = 5 * time.Second
+	}
+
+	if e.options.Logger == nil {
+		e.options.Logger = logger.DefaultLogger
+	}
+
+	config.DialTimeout = e.options.Timeout
+
+	if e.options.Secure || e.options.TLSConfig != nil {
+		tlsConfig := e.options.TLSConfig
+		if tlsConfig == nil {
+			// Use environment-based config - secure by default
+			tlsConfig = mtls.Config()
+		}
+
+		config.TLS = tlsConfig
+	}
+
+	if e.options.Context != nil {
+		u, ok := e.options.Context.Value(authKey{}).(*authCreds)
+		if ok {
+			config.Username = u.Username
+			config.Password = u.Password
+		}
+		cfg, ok := e.options.Context.Value(logConfigKey{}).(*zap.Config)
+		if ok && cfg != nil {
+			config.LogConfig = cfg
+		}
+	}
+
+	var cAddrs []string
+
+	for _, address := range e.options.Addrs {
+		if len(address) == 0 {
+			continue
+		}
+		addr, port, err := net.SplitHostPort(address)
+		if ae, ok := err.(*net.AddrError); ok && ae.Err == "missing port in address" {
+			port = "2379"
+			addr = address
+			cAddrs = append(cAddrs, net.JoinHostPort(addr, port))
+		} else if err == nil {
+			cAddrs = append(cAddrs, net.JoinHostPort(addr, port))
+		}
+	}
+
+	// if we got addrs then we'll update
+	if len(cAddrs) > 0 {
+		config.Endpoints = cAddrs
+	}
+
+	cli, err := clientv3.New(config)
+	if err != nil {
+		return err
+	}
+	e.client = cli
+	return nil
+}
+
+func encode(s *registry.Service) string {
+	b, _ := json.Marshal(s)
+	return string(b)
+}
+
+func decode(ds []byte) *registry.Service {
+	var s *registry.Service
+	_ = json.Unmarshal(ds, &s)
+	return s
+}
+
+func nodePath(s, id string) string {
+	service := strings.ReplaceAll(s, "/", "-")
+	node := strings.ReplaceAll(id, "/", "-")
+	return path.Join(prefix, service, node)
+}
+
+func servicePath(s string) string {
+	return path.Join(prefix, strings.ReplaceAll(s, "/", "-"))
+}
+
+func (e *etcdRegistry) Init(opts ...registry.Option) error {
+	return configure(e, opts...)
+}
+
+func (e *etcdRegistry) Options() registry.Options {
+	return e.options
+}
+
+func (e *etcdRegistry) registerNode(s *registry.Service, node *registry.Node, opts ...registry.RegisterOption) error {
+	if len(s.Nodes) == 0 {
+		return errors.New("require at least one node")
+	}
+
+	// check existing lease cache
+	e.RLock()
+	leaseID, ok := e.leases[s.Name+node.Id]
+	e.RUnlock()
+
+	log := e.options.Logger
+
+	if !ok {
+		// missing lease, check if the key exists
+		ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
+		defer cancel()
+
+		// look for the existing key
+		rsp, err := e.client.Get(ctx, nodePath(s.Name, node.Id), clientv3.WithSerializable())
+		if err != nil {
+			return err
+		}
+
+		// get the existing lease
+		for _, kv := range rsp.Kvs {
+			if kv.Lease > 0 {
+				leaseID = clientv3.LeaseID(kv.Lease)
+
+				// decode the existing node
+				srv := decode(kv.Value)
+				if srv == nil || len(srv.Nodes) == 0 {
+					continue
+				}
+
+				// create hash of service; uint64
+				h, err := hash.Hash(srv.Nodes[0], nil)
+				if err != nil {
+					continue
+				}
+
+				// save the info
+				e.Lock()
+				e.leases[s.Name+node.Id] = leaseID
+				e.register[s.Name+node.Id] = h
+				e.Unlock()
+
+				break
+			}
+		}
+	}
+
+	var leaseNotFound bool
+
+	// renew the lease if it exists
+	if leaseID > 0 {
+		log.Logf(logger.TraceLevel, "Renewing existing lease for %s %d", s.Name, leaseID)
+
+		// Start long-lived keepalive channel to reduce auth requests
+		// startKeepAlive checks if already running and is atomic
+		if err := e.startKeepAlive(s.Name+node.Id, leaseID); err != nil {
+			if err != rpctypes.ErrLeaseNotFound {
+				return err
+			}
+
+			log.Logf(logger.TraceLevel, "Lease not found for %s %d", s.Name, leaseID)
+			// lease not found do register
+			leaseNotFound = true
+		}
+	}
+
+	// create hash of service; uint64
+	h, err := hash.Hash(node, nil)
+	if err != nil {
+		return err
+	}
+
+	// get existing hash for the service node
+	e.Lock()
+	v, ok := e.register[s.Name+node.Id]
+	e.Unlock()
+
+	// the service is unchanged, skip registering
+	if ok && v == h && !leaseNotFound {
+		log.Logf(logger.TraceLevel, "Service %s node %s unchanged skipping registration", s.Name, node.Id)
+		return nil
+	}
+
+	service := &registry.Service{
+		Name:      s.Name,
+		Version:   s.Version,
+		Metadata:  s.Metadata,
+		Endpoints: s.Endpoints,
+		Nodes:     []*registry.Node{node},
+	}
+
+	var options registry.RegisterOptions
+	for _, o := range opts {
+		o(&options)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
+	defer cancel()
+
+	var lgr *clientv3.LeaseGrantResponse
+	if options.TTL.Seconds() > 0 {
+		// get a lease used to expire keys since we have a ttl
+		lgr, err = e.client.Grant(ctx, int64(options.TTL.Seconds()))
+		if err != nil {
+			return err
+		}
+	}
+
+	// create an entry for the node
+	if lgr != nil {
+		log.Logf(logger.TraceLevel, "Registering %s id %s with lease %v and leaseID %v and ttl %v", service.Name, node.Id, lgr, lgr.ID, options.TTL)
+		_, err = e.client.Put(ctx, nodePath(service.Name, node.Id), encode(service), clientv3.WithLease(lgr.ID))
+	} else {
+		log.Logf(logger.TraceLevel, "Registering %s id %s ttl %v", service.Name, node.Id, options.TTL)
+		_, err = e.client.Put(ctx, nodePath(service.Name, node.Id), encode(service))
+	}
+	if err != nil {
+		return err
+	}
+
+	e.Lock()
+	// save our hash of the service
+	e.register[s.Name+node.Id] = h
+	// save our leaseID of the service
+	if lgr != nil {
+		e.leases[s.Name+node.Id] = lgr.ID
+	}
+	e.Unlock()
+
+	// start keepalive for the new lease
+	if lgr != nil {
+		if err := e.startKeepAlive(s.Name+node.Id, lgr.ID); err != nil {
+			log.Logf(logger.WarnLevel, "Failed to start keepalive for %s %s: %v", s.Name, node.Id, err)
+		}
+	}
+
+	return nil
+}
+
+func (e *etcdRegistry) Deregister(s *registry.Service, opts ...registry.DeregisterOption) error {
+	if len(s.Nodes) == 0 {
+		return errors.New("require at least one node")
+	}
+
+	for _, node := range s.Nodes {
+		key := s.Name + node.Id
+
+		e.Lock()
+		// delete our hash of the service
+		delete(e.register, key)
+		// delete our lease of the service
+		delete(e.leases, key)
+		e.Unlock()
+
+		// stop keepalive goroutine
+		e.stopKeepAlive(key)
+
+		ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
+		defer cancel()
+
+		e.options.Logger.Logf(logger.TraceLevel, "Deregistering %s id %s", s.Name, node.Id)
+		_, err := e.client.Delete(ctx, nodePath(s.Name, node.Id))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (e *etcdRegistry) Register(s *registry.Service, opts ...registry.RegisterOption) error {
+	if len(s.Nodes) == 0 {
+		return errors.New("require at least one node")
+	}
+
+	var gerr error
+
+	// register each node individually
+	for _, node := range s.Nodes {
+		err := e.registerNode(s, node, opts...)
+		if err != nil {
+			gerr = err
+		}
+	}
+
+	return gerr
+}
+
+func (e *etcdRegistry) GetService(name string, opts ...registry.GetOption) ([]*registry.Service, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
+	defer cancel()
+
+	rsp, err := e.client.Get(ctx, servicePath(name)+"/", clientv3.WithPrefix(), clientv3.WithSerializable())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rsp.Kvs) == 0 {
+		return nil, registry.ErrNotFound
+	}
+
+	serviceMap := map[string]*registry.Service{}
+
+	for _, n := range rsp.Kvs {
+		if sn := decode(n.Value); sn != nil {
+			s, ok := serviceMap[sn.Version]
+			if !ok {
+				s = &registry.Service{
+					Name:      sn.Name,
+					Version:   sn.Version,
+					Metadata:  sn.Metadata,
+					Endpoints: sn.Endpoints,
+				}
+				serviceMap[s.Version] = s
+			}
+
+			s.Nodes = append(s.Nodes, sn.Nodes...)
+		}
+	}
+
+	services := make([]*registry.Service, 0, len(serviceMap))
+	for _, service := range serviceMap {
+		services = append(services, service)
+	}
+
+	return services, nil
+}
+
+func (e *etcdRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Service, error) {
+	versions := make(map[string]*registry.Service)
+
+	ctx, cancel := context.WithTimeout(context.Background(), e.options.Timeout)
+	defer cancel()
+
+	rsp, err := e.client.Get(ctx, prefix, clientv3.WithPrefix(), clientv3.WithSerializable())
+	if err != nil {
+		return nil, err
+	}
+
+	if len(rsp.Kvs) == 0 {
+		return []*registry.Service{}, nil
+	}
+
+	for _, n := range rsp.Kvs {
+		sn := decode(n.Value)
+		if sn == nil {
+			continue
+		}
+		v, ok := versions[sn.Name+sn.Version]
+		if !ok {
+			versions[sn.Name+sn.Version] = sn
+			continue
+		}
+		// append to service:version nodes
+		v.Nodes = append(v.Nodes, sn.Nodes...)
+	}
+
+	services := make([]*registry.Service, 0, len(versions))
+	for _, service := range versions {
+		services = append(services, service)
+	}
+
+	// sort the services
+	sort.Slice(services, func(i, j int) bool { return services[i].Name < services[j].Name })
+
+	return services, nil
+}
+
+func (e *etcdRegistry) Watch(opts ...registry.WatchOption) (registry.Watcher, error) {
+	return newEtcdWatcher(e, e.options.Timeout, opts...)
+}
+
+func (e *etcdRegistry) String() string {
+	return "etcd"
+}
+
+// startKeepAlive starts a keepalive goroutine for the given lease
+// It uses a long-lived KeepAlive channel instead of KeepAliveOnce to reduce authentication requests
+func (e *etcdRegistry) startKeepAlive(key string, leaseID clientv3.LeaseID) error {
+	e.Lock()
+	defer e.Unlock()
+
+	// check if keepalive is already running
+	if _, ok := e.keepaliveChs[key]; ok {
+		return nil
+	}
+
+	// create keepalive channel
+	ch, err := e.client.KeepAlive(context.Background(), leaseID)
+	if err != nil {
+		return err
+	}
+
+	e.keepaliveChs[key] = ch
+	stopCh := make(chan bool, 1)
+	e.keepaliveStop[key] = stopCh
+
+	// start goroutine to consume keepalive responses
+	go e.keepAliveLoop(key, ch, stopCh)
+
+	return nil
+}
+
+// keepAliveLoop consumes keepalive responses for a lease. It exits and
+// drops the cached lease/registration (via handleKeepAliveClosed) when
+// the keepalive channel closes OR a response reports a non-positive TTL.
+// Both mean the lease is gone — for example a network partition that
+// outlasted the TTL — so the next Register must re-create it rather than
+// be short-circuited by the "unchanged" check in registerNode. Without
+// the TTL guard a silently-expired lease (where the channel does not
+// promptly close) would leave the service de-registered from etcd while
+// the cache still believed it was registered, and nothing would repair it.
+func (e *etcdRegistry) keepAliveLoop(key string, ch <-chan *clientv3.LeaseKeepAliveResponse, stopCh chan bool) {
+	log := e.options.Logger
+	for {
+		select {
+		case <-stopCh:
+			log.Logf(logger.TraceLevel, "Stopping keepalive for %s", key)
+			return
+		case ka, ok := <-ch:
+			if !ok {
+				log.Logf(logger.DebugLevel, "Keepalive channel closed for %s", key)
+				e.handleKeepAliveClosed(key)
+				return
+			}
+			if ka == nil {
+				log.Logf(logger.WarnLevel, "Keepalive response is nil for %s", key)
+				continue
+			}
+			if ka.TTL <= 0 {
+				log.Logf(logger.WarnLevel, "Keepalive TTL expired for %s lease %d; dropping lease to force re-register", key, ka.ID)
+				e.handleKeepAliveClosed(key)
+				return
+			}
+			log.Logf(logger.TraceLevel, "Keepalive response for %s lease %d, TTL %d", key, ka.ID, ka.TTL)
+		}
+	}
+}
+
+// handleKeepAliveClosed is invoked by the keepalive goroutine when the
+// etcd client closes the KeepAlive channel (for example because the lease
+// expired on the server side during a network partition). In addition to
+// removing the channel bookkeeping, it drops the cached lease and
+// registration hash so the next registerNode() performs a full
+// Grant+Put re-registration instead of being short-circuited by the
+// "unchanged" check at the top of registerNode.
+func (e *etcdRegistry) handleKeepAliveClosed(key string) {
+	e.Lock()
+	defer e.Unlock()
+
+	// Only delete if still present to avoid racing with stopKeepAlive.
+	if _, exists := e.keepaliveChs[key]; exists {
+		delete(e.keepaliveChs, key)
+		delete(e.keepaliveStop, key)
+	}
+	delete(e.leases, key)
+	delete(e.register, key)
+}
+
+// stopKeepAlive stops the keepalive goroutine for the given key
+func (e *etcdRegistry) stopKeepAlive(key string) {
+	e.Lock()
+	defer e.Unlock()
+
+	if stopCh, ok := e.keepaliveStop[key]; ok {
+		close(stopCh)
+		delete(e.keepaliveChs, key)
+		delete(e.keepaliveStop, key)
+	}
+}

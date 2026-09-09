@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	maddr "go-micro.dev/v4/util/addr"
-	mnet "go-micro.dev/v4/util/net"
+	maddr "go-micro.dev/v6/internal/util/addr"
+	mnet "go-micro.dev/v6/internal/util/net"
 )
 
 type memorySocket struct {
@@ -285,8 +285,6 @@ func (m *memoryTransport) String() string {
 
 func NewMemoryTransport(opts ...Option) Transport {
 	var options Options
-
-	rand.Seed(time.Now().UnixNano())
 
 	for _, o := range opts {
 		o(&options)

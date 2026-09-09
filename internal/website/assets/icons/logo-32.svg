@@ -1,0 +1,12 @@
+<svg width="32" height="32" viewBox="0 0 200 200" class="mb-2">
+<polygon points="100,10 185,55 185,145 100,190 15,145 15,55" 
+fill="none" stroke="#00ADD8" stroke-width="15"/>
+<circle cx="100" cy="100" r="20" fill="#00ADD8"/>
+<circle cx="100" cy="55" r="10" fill="#00ADD8"/>
+<circle cx="142.5" cy="77.5" r="10" fill="#00ADD8"/>
+<circle cx="142.5" cy="122.5" r="10" fill="#00ADD8"/>
+<circle cx="100" cy="145" r="10" fill="#00ADD8"/>
+<circle cx="57.5" cy="122.5" r="10" fill="#00ADD8"/>
+<circle cx="57.5" cy="77.5" r="10" fill="#00ADD8"/>
+</svg>
+

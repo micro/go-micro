@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"go-micro.dev/v4/codec"
+	"go-micro.dev/v6/codec"
 )
 
 // Implements the Streamer interface.
@@ -56,7 +56,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 	defer r.Unlock()
 	if err != nil {
 		// discard body
-		r.codec.ReadBody(nil)
+		_ = r.codec.ReadBody(nil)
 		r.err = err
 		return err
 	}
@@ -68,7 +68,7 @@ func (r *rpcStream) Recv(msg interface{}) error {
 		case errLastStreamResponse.Error():
 			// discard body
 			r.Unlock()
-			r.codec.ReadBody(nil)
+			_ = r.codec.ReadBody(nil)
 			r.Lock()
 			r.err = io.EOF
 			return io.EOF

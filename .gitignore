@@ -1,7 +1,10 @@
 # Develop tools
-/.vscode/
 /.idea/
 /.trunk
+
+# VS Code workspace files (keep settings for consistency)
+/.vscode/*
+!/.vscode/settings.json
 
 # Binaries for programs and plugins
 *.exe
@@ -30,6 +33,7 @@ _cgo_export.*
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage.html
 
 # vim temp files
 *~
@@ -39,3 +43,28 @@ _cgo_export.*
 # go work files
 go.work
 go.work.sum
+
+# Build artifacts
+dist/
+bin/
+
+# Example binaries (go build in examples/)
+examples/**/server/server
+examples/**/client/client
+examples/mcp/documented/documented
+examples/mcp/hello/hello
+
+# IDE-specific files
+.DS_Store
+/micro
+
+# Built example/harness binaries (go build ./path/... drops these at repo root)
+/plan-delegate
+/agent-plan-delegate
+/micro-mcp-gateway
+/agent-ollama
+
+# Local Jekyll / Bundler artifacts
+internal/website/.bundle/
+internal/website/_site/
+internal/website/.jekyll-cache/

@@ -1,0 +1,376 @@
+package mcp
+
+import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/metadata"
+
+	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/attribute"
+)
+
+// StdioTransport implements MCP JSON-RPC 2.0 over stdio
+// This is used by Claude Code and other local AI tools
+type StdioTransport struct {
+	server   *Server
+	reader   *bufio.Reader
+	writer   *bufio.Writer
+	writerMu sync.Mutex
+	ctx      context.Context
+	cancel   context.CancelFunc
+}
+
+// JSONRPCRequest represents a JSON-RPC 2.0 request
+type JSONRPCRequest struct {
+	JSONRPC string          `json:"jsonrpc"`
+	ID      interface{}     `json:"id,omitempty"`
+	Method  string          `json:"method"`
+	Params  json.RawMessage `json:"params,omitempty"`
+}
+
+// JSONRPCResponse represents a JSON-RPC 2.0 response
+type JSONRPCResponse struct {
+	JSONRPC string      `json:"jsonrpc"`
+	ID      interface{} `json:"id,omitempty"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   *RPCError   `json:"error,omitempty"`
+}
+
+// RPCError represents a JSON-RPC error
+type RPCError struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+// Standard JSON-RPC error codes
+const (
+	ParseError     = -32700
+	InvalidRequest = -32600
+	MethodNotFound = -32601
+	InvalidParams  = -32602
+	InternalError  = -32603
+)
+
+// NewStdioTransport creates a new stdio transport for the MCP server
+func NewStdioTransport(server *Server) *StdioTransport {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &StdioTransport{
+		server: server,
+		reader: bufio.NewReader(os.Stdin),
+		writer: bufio.NewWriter(os.Stdout),
+		ctx:    ctx,
+		cancel: cancel,
+	}
+}
+
+// Serve starts the stdio transport and processes JSON-RPC requests
+func (t *StdioTransport) Serve() error {
+	t.server.opts.Logger.Printf("[mcp] MCP server started (stdio transport)")
+
+	// Read and process requests from stdin
+	for {
+		select {
+		case <-t.ctx.Done():
+			return nil
+		default:
+		}
+
+		// Read one line (JSON-RPC request)
+		line, err := t.reader.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return fmt.Errorf("failed to read request: %w", err)
+		}
+
+		// Parse JSON-RPC request
+		var req JSONRPCRequest
+		if err := json.Unmarshal(line, &req); err != nil {
+			t.sendError(nil, ParseError, "Parse error", err.Error())
+			continue
+		}
+
+		// Validate JSON-RPC version
+		if req.JSONRPC != "2.0" {
+			t.sendError(req.ID, InvalidRequest, "Invalid request", "jsonrpc must be '2.0'")
+			continue
+		}
+
+		// Handle request
+		go t.handleRequest(&req)
+	}
+}
+
+// handleRequest processes a single JSON-RPC request
+func (t *StdioTransport) handleRequest(req *JSONRPCRequest) {
+	switch req.Method {
+	case "initialize":
+		t.handleInitialize(req)
+	case "tools/list":
+		t.handleToolsList(req)
+	case "tools/call":
+		t.handleToolsCall(req)
+	default:
+		t.sendError(req.ID, MethodNotFound, "Method not found", req.Method)
+	}
+}
+
+// handleInitialize handles the initialize request
+func (t *StdioTransport) handleInitialize(req *JSONRPCRequest) {
+	result := map[string]interface{}{
+		"protocolVersion": "2024-11-05",
+		"capabilities": map[string]interface{}{
+			"tools": map[string]interface{}{},
+		},
+		"serverInfo": map[string]interface{}{
+			"name":    "go-micro-mcp",
+			"version": "1.0.0",
+		},
+	}
+
+	t.sendResponse(req.ID, result)
+}
+
+// handleToolsList handles the tools/list request
+func (t *StdioTransport) handleToolsList(req *JSONRPCRequest) {
+	t.server.toolsMu.RLock()
+	tools := make([]interface{}, 0, len(t.server.tools))
+	for _, tool := range t.server.tools {
+		tools = append(tools, map[string]interface{}{
+			"name":        tool.Name,
+			"description": tool.Description,
+			"inputSchema": tool.InputSchema,
+		})
+	}
+	t.server.toolsMu.RUnlock()
+
+	result := map[string]interface{}{
+		"tools": tools,
+	}
+
+	t.sendResponse(req.ID, result)
+}
+
+// handleToolsCall handles the tools/call request
+func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
+	// Parse params
+	var params struct {
+		Name      string                 `json:"name"`
+		Arguments map[string]interface{} `json:"arguments"`
+		// Token allows callers to pass a bearer token for auth via the
+		// JSON-RPC params (since stdio has no HTTP headers).
+		Token string `json:"_token,omitempty"`
+	}
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		t.sendError(req.ID, InvalidParams, "Invalid params", err.Error())
+		return
+	}
+
+	// Get tool info
+	t.server.toolsMu.RLock()
+	tool, exists := t.server.tools[params.Name]
+	t.server.toolsMu.RUnlock()
+
+	if !exists {
+		t.sendError(req.ID, InvalidParams, "Tool not found", params.Name)
+		return
+	}
+
+	// Generate trace ID
+	traceID := uuid.New().String()
+
+	// Start OTel span (noop if TraceProvider is nil)
+	ctx, span := t.server.startToolSpan(t.ctx, params.Name, "stdio", traceID)
+	defer span.End()
+
+	// Authenticate and authorize (if Auth is configured)
+	var account *auth.Account
+	if t.server.opts.Auth != nil {
+		token := params.Token
+		if token == "" {
+			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
+			setSpanError(span, fmt.Errorf("missing token"))
+			t.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "missing token"})
+			t.sendError(req.ID, InvalidParams, "Unauthorized", "missing _token in params")
+			return
+		}
+		token = strings.TrimPrefix(token, "Bearer ")
+		acc, err := t.server.opts.Auth.Inspect(token)
+		if err != nil {
+			span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))
+			setSpanError(span, fmt.Errorf("invalid token"))
+			t.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "invalid token"})
+			t.sendError(req.ID, InvalidParams, "Unauthorized", "invalid token")
+			return
+		}
+		account = acc
+		span.SetAttributes(attribute.String(AttrAccountID, account.ID))
+
+		// Check per-tool scopes
+		if len(tool.Scopes) > 0 {
+			span.SetAttributes(attribute.StringSlice(AttrScopesRequired, tool.Scopes))
+			if !hasScope(account.Scopes, tool.Scopes) {
+				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "insufficient scopes"))
+				setSpanError(span, fmt.Errorf("insufficient scopes"))
+				t.server.audit(AuditRecord{
+					TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
+					AccountID: account.ID, ScopesRequired: tool.Scopes,
+					Allowed: false, DeniedReason: "insufficient scopes",
+				})
+				t.sendError(req.ID, InvalidParams, "Forbidden", "insufficient scopes")
+				return
+			}
+		}
+	}
+
+	// Rate limit check
+	if err := t.server.allowRate(params.Name); err != nil {
+		span.SetAttributes(attribute.Bool(AttrRateLimited, true))
+		setSpanError(span, err)
+		accountID := ""
+		if account != nil {
+			accountID = account.ID
+		}
+		t.server.audit(AuditRecord{
+			TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
+			AccountID: accountID, Allowed: false, DeniedReason: "rate limited",
+		})
+		t.sendError(req.ID, InternalError, "Rate limit exceeded", params.Name)
+		return
+	}
+
+	span.SetAttributes(attribute.Bool(AttrAuthAllowed, true))
+
+	// Convert arguments to JSON bytes for RPC call
+	inputBytes, err := json.Marshal(params.Arguments)
+	if err != nil {
+		t.sendError(req.ID, InternalError, "Failed to marshal arguments", err.Error())
+		return
+	}
+
+	// Build context with tracing metadata
+	// OTel trace context was already injected by startToolSpan; add MCP metadata.
+	md, _ := metadata.FromContext(ctx)
+	if md == nil {
+		md = make(metadata.Metadata)
+	}
+	md.Set(TraceIDKey, traceID)
+	md.Set(ToolNameKey, params.Name)
+	if account != nil {
+		md.Set(AccountIDKey, account.ID)
+	}
+	ctx = metadata.NewContext(ctx, md)
+
+	// Make RPC call
+	start := time.Now()
+	rpcReq := t.server.opts.Client.NewRequest(tool.Service, tool.Endpoint, &struct {
+		Data []byte
+	}{Data: inputBytes})
+
+	var rsp struct {
+		Data []byte
+	}
+
+	if err := t.server.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
+		setSpanError(span, err)
+		accountID := ""
+		if account != nil {
+			accountID = account.ID
+		}
+		t.server.audit(AuditRecord{
+			TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
+			AccountID: accountID, ScopesRequired: tool.Scopes,
+			Allowed: true, Duration: time.Since(start), Error: err.Error(),
+		})
+		// A tool-execution failure is reported as an isError result, not a
+		// JSON-RPC protocol error (per the MCP spec), so the agent can read it.
+		t.sendResponse(req.ID, mcpToolError(traceID, "tool call failed: "+err.Error()))
+		return
+	}
+
+	setSpanOK(span)
+
+	// Audit successful call
+	accountID := ""
+	if account != nil {
+		accountID = account.ID
+	}
+	t.server.audit(AuditRecord{
+		TraceID: traceID, Timestamp: time.Now(), Tool: params.Name,
+		AccountID: accountID, ScopesRequired: tool.Scopes,
+		Allowed: true, Duration: time.Since(start),
+	})
+
+	// The downstream response is JSON — return it as JSON text, not %v.
+	t.sendResponse(req.ID, mcpToolResult(traceID, rsp.Data))
+}
+
+// sendResponse sends a JSON-RPC response
+func (t *StdioTransport) sendResponse(id interface{}, result interface{}) {
+	resp := JSONRPCResponse{
+		JSONRPC: "2.0",
+		ID:      id,
+		Result:  result,
+	}
+
+	t.writeJSON(resp)
+}
+
+// sendError sends a JSON-RPC error response
+func (t *StdioTransport) sendError(id interface{}, code int, message string, data interface{}) {
+	resp := JSONRPCResponse{
+		JSONRPC: "2.0",
+		ID:      id,
+		Error: &RPCError{
+			Code:    code,
+			Message: message,
+			Data:    data,
+		},
+	}
+
+	t.writeJSON(resp)
+}
+
+// writeJSON writes a JSON-RPC message to stdout
+func (t *StdioTransport) writeJSON(v interface{}) {
+	t.writerMu.Lock()
+	defer t.writerMu.Unlock()
+
+	data, err := json.Marshal(v)
+	if err != nil {
+		log.Printf("[mcp] Failed to marshal response: %v", err)
+		return
+	}
+
+	if _, err := t.writer.Write(data); err != nil {
+		log.Printf("[mcp] Failed to write response: %v", err)
+		return
+	}
+
+	if _, err := t.writer.Write([]byte("\n")); err != nil {
+		log.Printf("[mcp] Failed to write newline: %v", err)
+		return
+	}
+
+	if err := t.writer.Flush(); err != nil {
+		log.Printf("[mcp] Failed to flush writer: %v", err)
+	}
+}
+
+// Stop gracefully stops the stdio transport
+func (t *StdioTransport) Stop() error {
+	t.cancel()
+	return nil
+}

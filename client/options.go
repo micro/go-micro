@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/codec"
-	"go-micro.dev/v4/logger"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/selector"
-	"go-micro.dev/v4/transport"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/codec"
+	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/selector"
+	"go-micro.dev/v6/transport"
 )
 
 var (
@@ -27,6 +27,8 @@ var (
 	DefaultPoolSize = 100
 	// DefaultPoolTTL sets the connection pool ttl.
 	DefaultPoolTTL = time.Minute
+	// DefaultPoolCloseTimeout sets the connection pool colse timeout.
+	DefaultPoolCloseTimeout = time.Second
 )
 
 // Options are the Client options.
@@ -63,8 +65,14 @@ type Options struct {
 	Wrappers []Wrapper
 
 	// Connection Pool
-	PoolSize int
-	PoolTTL  time.Duration
+	PoolSize         int
+	PoolTTL          time.Duration
+	PoolCloseTimeout time.Duration
+
+	// Local, when true, lets a unary Call to a service running in this
+	// same process skip the network transport and dispatch directly to that
+	// server's handlers (raw byte bodies only). Off by default.
+	Local bool
 }
 
 // CallOptions are options used to make calls to a server.
@@ -86,7 +94,7 @@ type CallOptions struct {
 	CallWrappers []CallWrapper
 
 	// ConnectionTimeout of one request to the server.
-	// Set this lower than the RequestTimeout to enbale retries on connection timeout.
+	// Set this lower than the RequestTimeout to enable retries on connection timeout.
 	ConnectionTimeout time.Duration
 	// Request/Response timeout of entire srv.Call, for single request timeout set ConnectionTimeout.
 	RequestTimeout time.Duration
@@ -140,13 +148,14 @@ func NewOptions(options ...Option) Options {
 			ConnectionTimeout: DefaultConnectionTimeout,
 			DialTimeout:       transport.DefaultDialTimeout,
 		},
-		PoolSize:  DefaultPoolSize,
-		PoolTTL:   DefaultPoolTTL,
-		Broker:    broker.DefaultBroker,
-		Selector:  selector.DefaultSelector,
-		Registry:  registry.DefaultRegistry,
-		Transport: transport.DefaultTransport,
-		Logger:    logger.DefaultLogger,
+		PoolSize:         DefaultPoolSize,
+		PoolTTL:          DefaultPoolTTL,
+		PoolCloseTimeout: DefaultPoolCloseTimeout,
+		Broker:           broker.DefaultBroker,
+		Selector:         selector.DefaultSelector,
+		Registry:         registry.DefaultRegistry,
+		Transport:        transport.DefaultTransport,
+		Logger:           logger.DefaultLogger,
 	}
 
 	for _, o := range options {
@@ -177,6 +186,17 @@ func ContentType(ct string) Option {
 	}
 }
 
+// Local enables the in-process fast-path: a unary Call to a service
+// running in the same process dispatches straight to that server's handlers
+// (skipping dial, codec-over-socket, and the transport pump) when both request
+// and response bodies are raw frames (codec/bytes.Frame) — the shape agent,
+// MCP, and flow tool calls use. Falls back to the network path otherwise.
+func Local() Option {
+	return func(o *Options) {
+		o.Local = true
+	}
+}
+
 // PoolSize sets the connection pool size.
 func PoolSize(d int) Option {
 	return func(o *Options) {
@@ -191,12 +211,19 @@ func PoolTTL(d time.Duration) Option {
 	}
 }
 
+// PoolCloseTimeout sets the connection pool close timeout.
+func PoolCloseTimeout(d time.Duration) Option {
+	return func(o *Options) {
+		o.PoolCloseTimeout = d
+	}
+}
+
 // Registry to find nodes for a given service.
 func Registry(r registry.Registry) Option {
 	return func(o *Options) {
 		o.Registry = r
 		// set in the selector
-		o.Selector.Init(selector.Registry(r))
+		_ = o.Selector.Init(selector.Registry(r))
 	}
 }
 
@@ -247,6 +274,13 @@ func Retries(i int) Option {
 func Retry(fn RetryFunc) Option {
 	return func(o *Options) {
 		o.CallOptions.Retry = fn
+	}
+}
+
+// ConnectionTimeout sets the connection timeout
+func ConnectionTimeout(t time.Duration) Option {
+	return func(o *Options) {
+		o.CallOptions.ConnectionTimeout = t
 	}
 }
 
@@ -380,6 +414,12 @@ func WithCache(c time.Duration) CallOption {
 func WithMessageContentType(ct string) MessageOption {
 	return func(o *MessageOptions) {
 		o.ContentType = ct
+	}
+}
+
+func WithConnectionTimeout(d time.Duration) CallOption {
+	return func(o *CallOptions) {
+		o.ConnectionTimeout = d
 	}
 }
 

@@ -13,15 +13,15 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/registry"
-	maddr "go-micro.dev/v4/util/addr"
-	"go-micro.dev/v4/util/backoff"
-	mhttp "go-micro.dev/v4/util/http"
-	mnet "go-micro.dev/v4/util/net"
-	signalutil "go-micro.dev/v4/util/signal"
-	mls "go-micro.dev/v4/util/tls"
+	"go-micro.dev/v6"
+	maddr "go-micro.dev/v6/internal/util/addr"
+	"go-micro.dev/v6/internal/util/backoff"
+	mhttp "go-micro.dev/v6/internal/util/http"
+	mnet "go-micro.dev/v6/internal/util/net"
+	signalutil "go-micro.dev/v6/internal/util/signal"
+	mls "go-micro.dev/v6/internal/util/tls"
+	log "go-micro.dev/v6/logger"
+	"go-micro.dev/v6/registry"
 )
 
 type service struct {
@@ -110,7 +110,7 @@ func (s *service) run() {
 	for {
 		select {
 		case <-t.C:
-			s.register()
+			_ = s.register()
 		case <-s.ex:
 			t.Stop()
 			return
@@ -248,7 +248,7 @@ func (s *service) start() error {
 
 	httpSrv.Handler = handler
 
-	go httpSrv.Serve(listener)
+	go func() { _ = httpSrv.Serve(listener) }()
 
 	for _, fn := range s.opts.AfterStart {
 		if err := fn(); err != nil {

@@ -3,14 +3,9 @@ package selector
 import (
 	"math/rand"
 	"sync"
-	"time"
 
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v6/registry"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 // Random is a random strategy algorithm for node selection.
 func Random(services []*registry.Service) Next {

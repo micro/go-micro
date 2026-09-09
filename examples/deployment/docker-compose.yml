@@ -1,0 +1,65 @@
+# Go Micro + MCP Gateway deployment with Docker Compose
+#
+# This runs:
+#   1. Consul     — service registry (discovery)
+#   2. App        — your go-micro service(s)
+#   3. MCP Gateway — standalone MCP gateway connected to Consul
+#   4. Jaeger     — distributed tracing UI
+#
+# Usage:
+#   docker-compose up
+#
+# Endpoints:
+#   MCP Tools:  http://localhost:3001/mcp/tools
+#   Consul UI:  http://localhost:8500
+#   Jaeger UI:  http://localhost:16686
+#   Service:    http://localhost:9090 (RPC)
+
+services:
+  # --- Service Registry ---
+  consul:
+    image: consul:1.15
+    ports:
+      - "8500:8500"
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+
+  # --- Your Go Micro Service ---
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9090:9090"
+    environment:
+      MICRO_REGISTRY: consul
+      MICRO_REGISTRY_ADDRESS: consul:8500
+      MICRO_SERVER_ADDRESS: :9090
+    depends_on:
+      - consul
+    restart: unless-stopped
+
+  # --- MCP Gateway (standalone) ---
+  mcp-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports:
+      - "3001:3001"
+    environment:
+      MICRO_REGISTRY: consul
+      MICRO_REGISTRY_ADDRESS: consul:8500
+      MCP_ADDRESS: :3001
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+    depends_on:
+      - consul
+      - app
+    restart: unless-stopped
+
+  # --- Tracing ---
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    ports:
+      - "16686:16686"   # UI
+      - "4318:4318"     # OTLP HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"

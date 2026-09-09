@@ -1,0 +1,361 @@
+package agent
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/flow"
+)
+
+const (
+	agentAskStep      = "ask"
+	agentApprovalStep = "approval"
+	agentInputStep    = "input-required"
+)
+
+func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info ai.RunInfo, existing *flow.Run) flow.Run {
+	now := time.Now()
+	run := flow.Run{
+		ID:         runID,
+		ParentID:   parentRunID,
+		Flow:       a.opts.Name,
+		OriginFlow: info.Flow,
+		OriginStep: info.Step,
+		Dispatch:   info.Dispatch,
+		Trigger:    info.Trigger,
+		State:      flow.State{Stage: agentAskStep, Data: []byte(message)},
+		Steps:      []flow.StepRecord{{Name: agentAskStep, Status: "in_progress"}},
+		Status:     "running",
+		Started:    now,
+		Updated:    now,
+	}
+	if existing != nil {
+		run = *existing
+		run.Status = "running"
+		run.State.Stage = agentAskStep
+		if len(run.Steps) == 0 {
+			run.Steps = []flow.StepRecord{{Name: agentAskStep}}
+		}
+		run.Steps[0].Status = "in_progress"
+		run.Steps[0].Error = ""
+		run.Steps[0].Result = ""
+	}
+	return run
+}
+
+func (a *agentImpl) saveRun(ctx context.Context, run flow.Run) error {
+	if a.opts.Checkpoint == nil {
+		return nil
+	}
+	if err := a.opts.Checkpoint.Save(ctx, run); err != nil {
+		return fmt.Errorf("agent %s checkpoint save: %w", a.opts.Name, err)
+	}
+	if info, ok := ai.RunInfoFrom(ctx); ok {
+		stage := run.State.Stage
+		if stage == "" && len(run.Steps) > 0 {
+			stage = run.Steps[0].Name
+		}
+		a.recordTimelineEvent(ctx, RunEvent{
+			Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent,
+			Kind: "checkpoint", Name: stage, Status: run.Status,
+		})
+	}
+	return nil
+}
+
+// Resume returns the response for a checkpointed agent run. Completed runs are
+// returned from the checkpoint without calling the model or replaying tool
+// calls; failed or in-progress runs continue from the saved input message.
+func Resume(ctx context.Context, ag Agent, runID string) (*Response, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return nil, fmt.Errorf("agent resume: unsupported agent implementation %T", ag)
+	}
+	return a.resume(ctx, runID)
+}
+
+func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error) {
+	if a.opts.Checkpoint == nil {
+		return nil, fmt.Errorf("agent %s has no checkpoint configured", a.opts.Name)
+	}
+	run, ok, err := a.opts.Checkpoint.Load(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("agent run %s not found", runID)
+	}
+	if run.Status == "paused" {
+		if run.State.Stage == agentInputStep {
+			return nil, fmt.Errorf("agent run %s is input-required; resume with ResumeInput", runID)
+		}
+		run.Status = "running"
+		run.State.Stage = agentAskStep
+	}
+	if run.Status == "done" {
+		var resp Response
+		if err := json.Unmarshal(run.State.Data, &resp); err != nil {
+			return nil, fmt.Errorf("agent run %s response decode: %w", runID, err)
+		}
+		return &resp, nil
+	}
+	if terminalAgentRunStatus(run.Status) {
+		return nil, fmt.Errorf("agent run %s is terminal with status %q", runID, run.Status)
+	}
+	message := string(run.State.Data)
+	parentID := run.ParentID
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.model == nil {
+		a.setup()
+	}
+	return a.askLocked(ctx, run.ID, message, parentID, &run, false)
+}
+
+// ResumeInput resumes a checkpointed agent run that paused via the built-in
+// request_input tool. The supplied input is appended to the original request so
+// the same run can continue with durable checkpoint and completed tool history.
+func ResumeInput(ctx context.Context, ag Agent, runID, input string) (*Response, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return nil, fmt.Errorf("agent resume input: unsupported agent implementation %T", ag)
+	}
+	return a.resumeInput(ctx, runID, input)
+}
+
+func (a *agentImpl) resumeInput(ctx context.Context, runID, input string) (*Response, error) {
+	if a.opts.Checkpoint == nil {
+		return nil, fmt.Errorf("agent %s has no checkpoint configured", a.opts.Name)
+	}
+	run, ok, err := a.opts.Checkpoint.Load(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("agent run %s not found", runID)
+	}
+	if run.Status != "paused" || run.State.Stage != agentInputStep {
+		return nil, fmt.Errorf("agent run %s is not waiting for human input", runID)
+	}
+	var p inputPause
+	if err := run.State.Scan(&p); err != nil {
+		return nil, fmt.Errorf("agent run %s input state decode: %w", runID, err)
+	}
+	message := p.OriginalMessage
+	if message == "" {
+		message = string(run.State.Data)
+	}
+	message += "\n\nHuman input: " + input
+	run.Status = "running"
+	run.State.Stage = agentAskStep
+	run.State.Data = []byte(message)
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.model == nil {
+		a.setup()
+	}
+	return a.askLocked(ctx, run.ID, message, run.ParentID, &run, true)
+}
+
+func (a *agentImpl) pending(ctx context.Context) ([]flow.Run, error) {
+	if a.opts.Checkpoint == nil {
+		return nil, nil
+	}
+	runs, err := a.opts.Checkpoint.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := runs[:0]
+	for _, run := range runs {
+		if run.Flow == a.opts.Name && !terminalAgentRunStatus(run.Status) {
+			out = append(out, run)
+		}
+	}
+	return out, nil
+}
+
+func terminalAgentRunStatus(status string) bool {
+	switch status {
+	case "done", "canceled", "timeout", "rate_limited", "expired":
+		return true
+	default:
+		return false
+	}
+}
+
+func agentRunFailureStatus(err error) string {
+	switch ai.ClassifyError(err) {
+	case ai.ErrorKindCanceled:
+		return "canceled"
+	case ai.ErrorKindTimeout:
+		return "timeout"
+	case ai.ErrorKindRateLimited:
+		return "rate_limited"
+	default:
+		return "failed"
+	}
+}
+
+type operationalError struct {
+	err  error
+	hint string
+}
+
+func (e *operationalError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return e.err.Error() + "; " + e.hint
+}
+
+func (e *operationalError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.err
+}
+
+func agentRunFailureAttempts(err error) int {
+	var retryErr *ai.RetryError
+	if err != nil && errors.As(err, &retryErr) && retryErr.Attempts > 0 {
+		return retryErr.Attempts
+	}
+	return 1
+}
+
+func agentOperationalError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch ai.ClassifyError(err) {
+	case ai.ErrorKindCanceled:
+		return &operationalError{err: err, hint: "agent run canceled; inspect run history with `micro inspect agent <name> --status canceled` or see docs/guides/debugging-agents.md"}
+	case ai.ErrorKindTimeout:
+		return &operationalError{err: err, hint: "agent provider call timed out; inspect run history with `micro inspect agent <name> --status timeout`, then adjust AgentModelCallTimeout/AgentModelRetry or see docs/guides/debugging-agents.md"}
+	case ai.ErrorKindRateLimited:
+		return &operationalError{err: err, hint: "agent provider was rate limited; inspect run history with `micro inspect agent <name> --status rate_limited`, check provider keys with `micro agent preflight`, or see docs/guides/debugging-agents.md"}
+	case ai.ErrorKindUnavailable:
+		return &operationalError{err: err, hint: "agent provider appears temporarily unavailable; retry with bounded AgentModelRetry and verify provider setup with `micro agent preflight` or docs/guides/debugging-agents.md"}
+	default:
+		return err
+	}
+}
+
+func (a *agentImpl) checkpointToolWrap(next ai.ToolHandler) ai.ToolHandler {
+	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		run := a.currentRun
+		if a.opts.Checkpoint == nil || run == nil {
+			return next(ctx, call)
+		}
+		name := toolCheckpointName(call)
+		if rec, ok := findStep(run.Steps, name); ok && rec.Status == "done" {
+			return ai.ToolResult{ID: call.ID, Value: rec.Result, Content: rec.Result}
+		}
+
+		idx := upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
+		_ = a.saveRun(ctx, *run)
+		res := next(ctx, call)
+		if idx < 0 || idx >= len(run.Steps) || run.Steps[idx].Name != name {
+			idx = upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
+		}
+		run.Steps[idx].Attempts++
+		if res.Refused != "" {
+			run.Steps[idx].Status = "failed"
+			run.Steps[idx].Error = res.Content
+			_ = a.saveRun(ctx, *run)
+			return res
+		}
+		run.Steps[idx].Status = "done"
+		run.Steps[idx].Result = res.Content
+		run.Steps[idx].Error = ""
+		_ = a.saveRun(ctx, *run)
+		return res
+	}
+}
+
+func toolCheckpointName(call ai.ToolCall) string {
+	b, _ := json.Marshal(call.Input)
+	return "tool:" + call.Name + ":" + string(b)
+}
+
+func findStep(steps []flow.StepRecord, name string) (flow.StepRecord, bool) {
+	for _, step := range steps {
+		if step.Name == name {
+			return step, true
+		}
+	}
+	return flow.StepRecord{}, false
+}
+
+func upsertStep(steps *[]flow.StepRecord, rec flow.StepRecord) int {
+	for i := range *steps {
+		if (*steps)[i].Name == rec.Name {
+			(*steps)[i].Status = rec.Status
+			(*steps)[i].Error = rec.Error
+			return i
+		}
+	}
+	if len(*steps) == 0 || (*steps)[0].Name != agentAskStep {
+		*steps = append([]flow.StepRecord{{Name: agentAskStep, Status: "in_progress"}}, (*steps)...)
+	}
+	*steps = append(*steps, rec)
+	return len(*steps) - 1
+}
+
+func checkpointToolCalls(steps []flow.StepRecord) []ai.ToolCall {
+	calls := make([]ai.ToolCall, 0, len(steps))
+	for _, step := range steps {
+		call, ok := checkpointToolCall(step)
+		if !ok {
+			continue
+		}
+		calls = append(calls, call)
+	}
+	return calls
+}
+
+func checkpointToolCall(step flow.StepRecord) (ai.ToolCall, bool) {
+	if step.Status != "done" || !strings.HasPrefix(step.Name, "tool:") {
+		return ai.ToolCall{}, false
+	}
+	parts := strings.SplitN(strings.TrimPrefix(step.Name, "tool:"), ":", 2)
+	if len(parts) != 2 || parts[0] == "" {
+		return ai.ToolCall{}, false
+	}
+	input := map[string]any{}
+	if parts[1] != "null" && parts[1] != "" {
+		if err := json.Unmarshal([]byte(parts[1]), &input); err != nil {
+			return ai.ToolCall{}, false
+		}
+	}
+	return ai.ToolCall{Name: parts[0], Input: input, Result: step.Result}, true
+}
+
+func mergeCheckpointToolCalls(checkpointed, current []ai.ToolCall) []ai.ToolCall {
+	if len(checkpointed) == 0 {
+		return current
+	}
+	seen := make(map[string]struct{}, len(current))
+	for _, call := range current {
+		seen[toolCallKey(call.Name, call.Input)] = struct{}{}
+	}
+	merged := make([]ai.ToolCall, 0, len(checkpointed)+len(current))
+	for _, call := range checkpointed {
+		if _, ok := seen[toolCallKey(call.Name, call.Input)]; ok {
+			continue
+		}
+		merged = append(merged, call)
+	}
+	merged = append(merged, current...)
+	return merged
+}
+
+func toolCallKey(name string, input map[string]any) string {
+	b, _ := json.Marshal(input)
+	return name + ":" + string(b)
+}

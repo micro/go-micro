@@ -1,9 +1,9 @@
 package memory
 
 import (
-	"go-micro.dev/v4/config/loader"
-	"go-micro.dev/v4/config/reader"
-	"go-micro.dev/v4/config/source"
+	"go-micro.dev/v6/config/loader"
+	"go-micro.dev/v6/config/reader"
+	"go-micro.dev/v6/config/source"
 )
 
 // WithSource appends a source to list of sources.

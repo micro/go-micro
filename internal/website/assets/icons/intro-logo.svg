@@ -1,0 +1,60 @@
+<svg width="300" height="300" viewBox="0 0 200 200" class="hexagon position-relative z-1">
+<!-- Defs for gradients -->
+<defs>
+<linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" style="stop-color:#00ADD8;stop-opacity:1" />
+<stop offset="100%" style="stop-color:#5DC9E2;stop-opacity:1" />
+</linearGradient>
+<linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" style="stop-color:#00ADD8;stop-opacity:0.8" />
+<stop offset="100%" style="stop-color:#00ADD8;stop-opacity:0.3" />
+</linearGradient>
+</defs>
+
+<!-- Outer Hexagon -->
+<polygon points="100,10 185,55 185,145 100,190 15,145 15,55" 
+fill="none" 
+stroke="url(#hexGradient)" 
+stroke-width="4"
+stroke-linecap="round"
+stroke-linejoin="round"/>
+
+<!-- Inner Network Lines -->
+<line x1="100" y1="100" x2="100" y2="55" stroke="url(#lineGradient)" stroke-width="2" class="network-line"/>
+<line x1="100" y1="100" x2="142.5" y2="77.5" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 0.2s"/>
+<line x1="100" y1="100" x2="142.5" y2="122.5" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 0.4s"/>
+<line x1="100" y1="100" x2="100" y2="145" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 0.6s"/>
+<line x1="100" y1="100" x2="57.5" y2="122.5" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 0.8s"/>
+<line x1="100" y1="100" x2="57.5" y2="77.5" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 1s"/>
+
+<!-- Cross connections for distributed system look -->
+<line x1="100" y1="55" x2="142.5" y2="77.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.2s"/>
+<line x1="142.5" y1="77.5" x2="142.5" y2="122.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.3s"/>
+<line x1="142.5" y1="122.5" x2="100" y2="145" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.4s"/>
+<line x1="100" y1="145" x2="57.5" y2="122.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.5s"/>
+<line x1="57.5" y1="122.5" x2="57.5" y2="77.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.6s"/>
+<line x1="57.5" y1="77.5" x2="100" y2="55" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.7s"/>
+
+<!-- Central Node (Core) -->
+<circle cx="100" cy="100" r="12" fill="#0D1117" stroke="#00ADD8" stroke-width="3" class="network-node"/>
+<circle cx="100" cy="100" r="6" fill="#00ADD8" class="network-node pulse"/>
+
+<!-- Outer Nodes (Microservices) -->
+<circle cx="100" cy="55" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-1"/>
+<circle cx="142.5" cy="77.5" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-2"/>
+<circle cx="142.5" cy="122.5" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-3"/>
+<circle cx="100" cy="145" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-4"/>
+<circle cx="57.5" cy="122.5" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-5"/>
+<circle cx="57.5" cy="77.5" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-6"/>
+
+<!-- Data packets animation -->
+<circle cx="100" cy="77.5" r="2" fill="#5DC9E2" opacity="0">
+<animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="0s"/>
+<animate attributeName="cy" values="100;55" dur="2s" repeatCount="indefinite" begin="0s"/>
+</circle>
+<circle cx="121.25" cy="88.75" r="2" fill="#5DC9E2" opacity="0">
+<animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="0.3s"/>
+<animate attributeName="cx" values="100;142.5" dur="2s" repeatCount="indefinite" begin="0.3s"/>
+<animate attributeName="cy" values="100;77.5" dur="2s" repeatCount="indefinite" begin="0.3s"/>
+</circle>
+</svg>

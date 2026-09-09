@@ -10,19 +10,19 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/codec"
-	raw "go-micro.dev/v4/codec/bytes"
-	merrors "go-micro.dev/v4/errors"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/metadata"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/selector"
-	"go-micro.dev/v4/transport"
-	"go-micro.dev/v4/transport/headers"
-	"go-micro.dev/v4/util/buf"
-	"go-micro.dev/v4/util/net"
-	"go-micro.dev/v4/util/pool"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/codec"
+	raw "go-micro.dev/v6/codec/bytes"
+	merrors "go-micro.dev/v6/errors"
+	"go-micro.dev/v6/internal/util/buf"
+	"go-micro.dev/v6/internal/util/net"
+	"go-micro.dev/v6/internal/util/pool"
+	log "go-micro.dev/v6/logger"
+	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/selector"
+	"go-micro.dev/v6/transport"
+	"go-micro.dev/v6/transport/headers"
 )
 
 const (
@@ -30,13 +30,11 @@ const (
 )
 
 type rpcClient struct {
+	seq  uint64
 	opts Options
 	once atomic.Value
 	pool pool.Pool
-
-	seq uint64
-
-	mu sync.RWMutex
+	mu   sync.RWMutex
 }
 
 func newRPCClient(opt ...Option) Client {
@@ -46,6 +44,7 @@ func newRPCClient(opt ...Option) Client {
 		pool.Size(opts.PoolSize),
 		pool.TTL(opts.PoolTTL),
 		pool.Transport(opts.Transport),
+		pool.CloseTimeout(opts.PoolCloseTimeout),
 	)
 
 	rc := &rpcClient{
@@ -84,6 +83,12 @@ func (r *rpcClient) call(
 	resp interface{},
 	opts CallOptions,
 ) error {
+	// In-process fast-path: if the callee runs in this process and both bodies
+	// are raw frames, dispatch directly and skip the network entirely.
+	if handled, err := r.localCall(ctx, req, resp); handled {
+		return err
+	}
+
 	address := node.Address
 	logger := r.Options().Logger
 
@@ -148,7 +153,10 @@ func (r *rpcClient) call(
 
 	c, err := r.pool.Get(address, dOpts...)
 	if err != nil {
-		return merrors.InternalServerError("go.micro.client", "connection error: %v", err)
+		if c == nil {
+			return merrors.InternalServerError("go.micro.client", "connection error: %v", err)
+		}
+		logger.Log(log.ErrorLevel, "failed to close pool", err)
 	}
 
 	seq := atomic.AddUint64(&r.seq, 1) - 1
@@ -369,6 +377,7 @@ func (r *rpcClient) Init(opts ...Option) error {
 			pool.Size(r.opts.PoolSize),
 			pool.TTL(r.opts.PoolTTL),
 			pool.Transport(r.opts.Transport),
+			pool.CloseTimeout(r.opts.PoolCloseTimeout),
 		)
 	}
 

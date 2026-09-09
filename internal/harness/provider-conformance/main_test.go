@@ -1,0 +1,209 @@
+package main
+
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"go-micro.dev/v6/ai"
+)
+
+func TestValidateSelectionAcceptsKnownProviderAndHarness(t *testing.T) {
+	if err := validateSelection([]string{"mock"}, []string{"provider-conformance"}); err != nil {
+		t.Fatalf("validateSelection returned error for known selection: %v", err)
+	}
+}
+
+func TestValidateSelectionRejectsUnknownProvider(t *testing.T) {
+	err := validateSelection([]string{"not-a-provider"}, []string{"provider-conformance"})
+	if err == nil {
+		t.Fatal("validateSelection returned nil for unknown provider")
+	}
+	if !strings.Contains(err.Error(), `unknown provider "not-a-provider"`) {
+		t.Fatalf("validateSelection error = %q, want unknown provider message", err)
+	}
+}
+
+func TestValidateSelectionRejectsUnsafeHarnessName(t *testing.T) {
+	err := validateSelection([]string{"mock"}, []string{"../agent-flow"})
+	if err == nil {
+		t.Fatal("validateSelection returned nil for unsafe harness name")
+	}
+	if !strings.Contains(err.Error(), `invalid harness name "../agent-flow"`) {
+		t.Fatalf("validateSelection error = %q, want invalid harness message", err)
+	}
+}
+
+func TestDefaultProvidersTracksLiveProviderSet(t *testing.T) {
+	got := defaultProviders()
+	for _, want := range []string{"anthropic", "openai", "gemini", "groq", "minimax", "mistral", "together", "atlascloud"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("defaultProviders() = %q, want %q", got, want)
+		}
+	}
+	if strings.Contains(got, "mock") {
+		t.Fatalf("defaultProviders() = %q, should not include mock in live scheduled defaults", got)
+	}
+}
+
+func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
+	rows := ai.CapabilityRows()
+	if len(rows) == 0 {
+		t.Fatal("CapabilityRows returned no providers")
+	}
+
+	var foundOpenAI, foundMiniMax bool
+	for _, row := range rows {
+		if row.Provider == "openai" {
+			foundOpenAI = true
+			if !row.Model || !row.Image || row.Video {
+				t.Fatalf("openai capabilities = %#v, want model+image only", row.Capabilities)
+			}
+		}
+		if row.Provider == "minimax" {
+			foundMiniMax = true
+			if !row.Model || !row.Stream || row.Image || row.Video {
+				t.Fatalf("minimax capabilities = %#v, want model+stream only", row.Capabilities)
+			}
+		}
+	}
+	if !foundOpenAI {
+		t.Fatalf("CapabilityRows = %#v, want openai row", rows)
+	}
+	if !foundMiniMax {
+		t.Fatalf("CapabilityRows = %#v, want minimax row", rows)
+	}
+}
+
+func TestMissingKeyResultsReportsEachHarness(t *testing.T) {
+	results := missingKeyResults("openai", []string{"agent", "plan-delegate"}, statusSkipped, "set OPENAI_API_KEY")
+	if len(results) != 2 {
+		t.Fatalf("missingKeyResults returned %d results, want 2", len(results))
+	}
+
+	wants := []conformanceResult{
+		{Provider: "openai", Harness: "agent", Phase: harnessPhase("agent"), Status: statusSkipped, Error: "set OPENAI_API_KEY"},
+		{Provider: "openai", Harness: "plan-delegate", Phase: harnessPhase("plan-delegate"), Status: statusSkipped, Error: "set OPENAI_API_KEY"},
+	}
+	for i, want := range wants {
+		if results[i] != want {
+			t.Fatalf("result[%d] = %#v, want %#v", i, results[i], want)
+		}
+	}
+}
+
+func TestWriteCapabilityMarkdown(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "capabilities.md")
+	rows := []ai.CapabilityRow{
+		{Provider: "mock", Capabilities: ai.Capabilities{Model: true}},
+		{Provider: "vision", Capabilities: ai.Capabilities{Image: true, Video: true}},
+	}
+	if err := writeCapabilityMarkdown(path, rows); err != nil {
+		t.Fatalf("writeCapabilityMarkdown returned error: %v", err)
+	}
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read capabilities markdown: %v", err)
+	}
+	got := string(b)
+	for _, want := range []string{
+		"| Provider | Model | Image | Video | Streaming | Tool streaming |",
+		"| mock | ✅ | — | — | — |",
+		"| vision | — | ✅ | ✅ | — |",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("capabilities markdown = %q, want row %q", got, want)
+		}
+	}
+}
+
+func TestWriteSummaryMarkdown(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "summary.md")
+	summary := conformanceSummary{
+		Capabilities: []ai.CapabilityRow{{Provider: "mock", Capabilities: ai.Capabilities{Model: true}}},
+		Results: []conformanceResult{
+			{Provider: "mock", Harness: "agent-flow", Phase: harnessPhase("agent-flow"), Status: statusPassed},
+			{Provider: "live", Status: statusSkipped, Error: "missing | key"},
+		},
+		Passed:  1,
+		Skipped: 1,
+	}
+	if err := writeSummaryMarkdown(path, summary); err != nil {
+		t.Fatalf("writeSummaryMarkdown returned error: %v", err)
+	}
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read summary markdown: %v", err)
+	}
+	got := string(b)
+	for _, want := range []string{
+		"# Provider conformance summary",
+		"Passed: 1. Skipped providers: 1. Failed: 0.",
+		"Providers: —.",
+		"Harnesses: —.",
+		"| mock | ✅ | — | — | — |",
+		"| mock | agent-flow | workflow event + tool call | passed | — |",
+		"| live | — | — | skipped | missing \\| key |",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("summary markdown = %q, want %q", got, want)
+		}
+	}
+}
+
+func TestHarnessPhaseLabelsKnownHarnesses(t *testing.T) {
+	if got := harnessPhase("a2a-streaming"); got != "A2A streaming + tool call" {
+		t.Fatalf("harnessPhase(a2a-streaming) = %q, want A2A streaming phase", got)
+	}
+	if got := harnessPhase("a2a-stream-fallback"); got != "streaming fallback + tool call" {
+		t.Fatalf("harnessPhase(a2a-stream-fallback) = %q, want streaming fallback phase", got)
+	}
+	if got := harnessPhase("custom"); got != "harness" {
+		t.Fatalf("harnessPhase(custom) = %q, want fallback phase", got)
+	}
+}
+
+func TestMarkdownListEscapesBackticks(t *testing.T) {
+	got := markdownList([]string{"agent", "bad`name"})
+	want := "`agent`, `bad\\`name`"
+	if got != want {
+		t.Fatalf("markdownList() = %q, want %q", got, want)
+	}
+}
+
+func TestWriteSummaryJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "summary.json")
+	summary := conformanceSummary{
+		Providers: []string{"mock"},
+		Harnesses: []string{"provider-conformance"},
+		Results: []conformanceResult{{
+			Provider: "mock",
+			Harness:  "provider-conformance",
+			Status:   statusPassed,
+		}},
+		Passed: 1,
+	}
+	if err := writeSummaryJSON(path, summary); err != nil {
+		t.Fatalf("writeSummaryJSON returned error: %v", err)
+	}
+
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read summary: %v", err)
+	}
+	if !strings.HasSuffix(string(b), "\n") {
+		t.Fatalf("summary JSON should end with newline: %q", b)
+	}
+
+	var got conformanceSummary
+	if err := json.Unmarshal(b, &got); err != nil {
+		t.Fatalf("summary JSON did not decode: %v", err)
+	}
+	if got.Passed != 1 || len(got.Results) != 1 || got.Results[0].Status != statusPassed {
+		t.Fatalf("summary JSON decoded as %#v, want one passed result", got)
+	}
+}

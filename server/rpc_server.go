@@ -13,17 +13,17 @@ import (
 
 	"github.com/pkg/errors"
 
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/codec"
-	log "go-micro.dev/v4/logger"
-	"go-micro.dev/v4/metadata"
-	"go-micro.dev/v4/registry"
-	"go-micro.dev/v4/transport"
-	"go-micro.dev/v4/transport/headers"
-	"go-micro.dev/v4/util/addr"
-	"go-micro.dev/v4/util/backoff"
-	mnet "go-micro.dev/v4/util/net"
-	"go-micro.dev/v4/util/socket"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/codec"
+	"go-micro.dev/v6/internal/util/addr"
+	"go-micro.dev/v6/internal/util/backoff"
+	mnet "go-micro.dev/v6/internal/util/net"
+	"go-micro.dev/v6/internal/util/socket"
+	log "go-micro.dev/v6/logger"
+	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/transport"
+	"go-micro.dev/v6/transport/headers"
 )
 
 type rpcServer struct {
@@ -167,7 +167,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 			// Process the event
 			ev := newEvent(msg)
 
-			if err := s.HandleEvent(ev); err != nil {
+			if err := s.HandleEvent(ev.Topic())(ev); err != nil {
 				msg.Header[headers.Error] = err.Error()
 				logger.Logf(log.ErrorLevel, "failed to handle event: %v", err)
 			}
@@ -205,7 +205,9 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// If we don't have a socket and its a stream
 		// Check if its a last stream EOS error
 		if !ok && stream && msg.Header[headers.Error] == errLastStreamResponse.Error() {
+			closeConn = true
 			pool.Release(psock)
+
 			continue
 		}
 
@@ -327,6 +329,10 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// Process the outbound messages from the socket
 		go func(psock *socket.Socket) {
 			defer func() {
+				if r := recover(); r != nil {
+					logger.Log(log.ErrorLevel, "panic recovered in outbound goroutine: ", r)
+					logger.Log(log.ErrorLevel, string(debug.Stack()))
+				}
 				// TODO: don't hack this but if its grpc just break out of the stream
 				// We do this because the underlying connection is h2 and its a stream
 				if protocol == "grpc" {
@@ -354,7 +360,13 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 
 		// Serve the request in a go routine as this may be a stream
 		go func(psock *socket.Socket) {
-			defer s.deferer(pool, psock, wg)
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Log(log.ErrorLevel, "panic recovered in serveReq goroutine: ", r)
+					logger.Log(log.ErrorLevel, string(debug.Stack()))
+				}
+				s.deferer(pool, psock, wg)
+			}()
 
 			s.serveReq(ctx, msg, &request, &response, rcodec)
 		}(psock)
@@ -444,17 +456,6 @@ func (s *rpcServer) Register() error {
 	// Set what we're advertising
 	s.opts.Advertise = addr
 
-	// Router can exchange messages on broker
-	// Subscribe to the topic with its own name
-	if err := s.subscribeServer(config); err != nil {
-		return errors.Wrap(err, "failed to subscribe to service name topic")
-	}
-
-	// Subscribe for all of the subscribers
-	if err := s.reSubscribe(config); err != nil {
-		return errors.Wrap(err, "failed to resubscribe")
-	}
-
 	return nil
 }
 
@@ -512,7 +513,11 @@ func (s *rpcServer) Deregister() error {
 			logger.Logf(log.InfoLevel, "Unsubscribing %s from topic: %s", node.Id, sub.Topic())
 
 			if err := sub.Unsubscribe(); err != nil {
-				logger.Logf(log.ErrorLevel, "Failed to unsubscribe subscriber nr. %d from topic %s: %v", i+1, sub.Topic(), err)
+				logger.Logf(log.ErrorLevel,
+					"Failed to unsubscribe subscriber nr. %d from topic %s: %v",
+					i+1,
+					sub.Topic(),
+					err)
 			}
 		}
 
@@ -566,6 +571,9 @@ func (s *rpcServer) Start() error {
 	// Keep the service registered to registry
 	go s.registrar(listener, addr, config, exit)
 
+	// Make this server reachable in-process for the client fast-path.
+	s.registerLocal()
+
 	s.setStarted(true)
 
 	return nil
@@ -575,6 +583,8 @@ func (s *rpcServer) Stop() error {
 	if !s.isStarted() {
 		return nil
 	}
+
+	s.deregisterLocal()
 
 	ch := make(chan error)
 	s.exit <- ch
@@ -600,18 +610,28 @@ func (s *rpcServer) newRegFuc(config Options) func(service *registry.Service) er
 		// Attempt to register. If registration fails, back off and try again.
 		// TODO: see if we can improve the retry mechanism. Maybe retry lib, maybe config values
 		for i := 0; i < 3; i++ {
-			if err := config.Registry.Register(service, rOpts...); err != nil {
-				regErr = err
-
+			if regErr = config.Registry.Register(service, rOpts...); regErr != nil {
 				time.Sleep(backoff.Do(i + 1))
-
 				continue
 			}
-
-			return nil
+			break
 		}
 
-		return regErr
+		if regErr != nil {
+			return regErr
+		}
+
+		s.Lock()
+		defer s.Unlock()
+		// Router can exchange messages on broker
+		// Subscribe to the topic with its own name
+		if err := s.subscribeServer(config); err != nil {
+			return errors.Wrap(err, "failed to subscribe to service name topic")
+		}
+		// Subscribe for all of the subscribers
+		s.reSubscribe(config)
+
+		return nil
 	}
 }
 
@@ -759,7 +779,11 @@ Loop:
 
 			rerr := s.opts.RegisterCheck(s.opts.Context)
 			if rerr != nil && registered {
-				logger.Logf(log.ErrorLevel, "Server %s-%s register check error: %s, deregister it", config.Name, config.Id, rerr)
+				logger.Logf(log.ErrorLevel,
+					"Server %s-%s register check error: %s, deregister it",
+					config.Name,
+					config.Id,
+					rerr)
 				// deregister self in case of error
 				if err := s.Deregister(); err != nil {
 					logger.Logf(log.ErrorLevel, "Server %s-%s deregister error: %s", config.Name, config.Id, err)
@@ -809,7 +833,11 @@ Loop:
 	s.setOptsAddr(addr)
 }
 
-func (s *rpcServer) serveReq(ctx context.Context, msg transport.Message, req *rpcRequest, resp *rpcResponse, rcodec codec.Codec) {
+func (s *rpcServer) serveReq(ctx context.Context,
+	msg transport.Message,
+	req *rpcRequest,
+	resp *rpcResponse,
+	rcodec codec.Codec) {
 	logger := s.opts.Logger
 	router := s.getRouter()
 

@@ -1,0 +1,8 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">Logs</h2>
+<ul class="no-bullets">
+    {{range .Services}}
+        <li><a href="/logs/{{.}}" class="micro-link">{{.}}</a></li>
+    {{end}}
+</ul>
+{{end}}

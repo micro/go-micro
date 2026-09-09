@@ -1,0 +1,23 @@
+{{define "content"}}
+<h2>{{.ServiceName}}</h2>
+<form action="/{{.Action}}" method="POST" data-reactive>
+    <h3 class="text-lg font-bold mb-2">{{.EndpointName}}</h3>
+    {{range .Inputs}}
+        <label class="block font-semibold">{{.Label}}</label>
+        <input name="{{.Name}}" placeholder="{{.Placeholder}}" class="border rounded px-2 py-1 mb-2 w-full" value="{{.Value}}">
+    {{end}}
+    <button class="micro-link mt-2" type="submit">Submit</button>
+    <div class="js-response"></div>
+</form>
+{{if .Error}}
+    <div class="mt-4 text-red-600 font-bold">Error: {{.Error}}</div>
+{{end}}
+{{if .Response}}
+    <div class="mt-4">
+        <h4 class="font-bold mb-2">Response</h4>
+        {{.ResponseTable}}
+        <pre class="bg-gray-100 rounded p-2 mt-2">{{.ResponseJSON}}</pre>
+    </div>
+{{end}}
+<script src="/main.js"></script>
+{{end}}

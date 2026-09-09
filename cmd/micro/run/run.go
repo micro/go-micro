@@ -1,0 +1,940 @@
+package run
+
+import (
+	"bufio"
+	"context"
+	"crypto/md5"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/urfave/cli/v2"
+	"go-micro.dev/v6/ai"
+	clt "go-micro.dev/v6/client"
+	"go-micro.dev/v6/cmd"
+	"go-micro.dev/v6/cmd/micro/cli/generate"
+	"go-micro.dev/v6/cmd/micro/gateway"
+	"go-micro.dev/v6/cmd/micro/run/config"
+	"go-micro.dev/v6/cmd/micro/run/watcher"
+	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/registry"
+
+	_ "go-micro.dev/v6/ai/anthropic"
+	_ "go-micro.dev/v6/ai/atlascloud"
+	_ "go-micro.dev/v6/ai/gemini"
+	_ "go-micro.dev/v6/ai/groq"
+	_ "go-micro.dev/v6/ai/mistral"
+	_ "go-micro.dev/v6/ai/openai"
+	_ "go-micro.dev/v6/ai/together"
+)
+
+// Color codes for log output
+var colors = []string{
+	"\033[31m", // red
+	"\033[32m", // green
+	"\033[33m", // yellow
+	"\033[34m", // blue
+	"\033[35m", // magenta
+	"\033[36m", // cyan
+}
+
+const colorReset = "\033[0m"
+
+func colorFor(idx int) string {
+	return colors[idx%len(colors)]
+}
+
+// serviceProcess tracks a running service
+type serviceProcess struct {
+	name       string
+	dir        string
+	binPath    string
+	pidFile    string
+	logFile    string
+	cmd        *exec.Cmd
+	pipeWriter *io.PipeWriter
+	color      string
+	port       int
+	env        []string
+
+	mu      sync.Mutex
+	running bool
+}
+
+// build compiles the service to the given output path. It is slow (invokes the
+// Go toolchain) and must be called WITHOUT holding s.mu, so the running process
+// keeps serving while a rebuild is in flight.
+func (s *serviceProcess) build(out string) error {
+	buildCmd := exec.Command("go", "build", "-o", out, ".")
+	buildCmd.Dir = s.dir
+	if buildOut, err := buildCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("build failed: %s\n%s", err, string(buildOut))
+	}
+	return nil
+}
+
+// launch starts the already-built binary at s.binPath and streams its output.
+func (s *serviceProcess) launch(logDir string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.running {
+		return nil
+	}
+
+	// Open log file
+	logFile, err := os.OpenFile(s.logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open log file: %w", err)
+	}
+
+	// Start process
+	s.cmd = exec.Command(s.binPath)
+	s.cmd.Dir = s.dir
+	s.cmd.Env = append(os.Environ(), s.env...)
+
+	pr, pw := io.Pipe()
+	s.pipeWriter = pw
+	s.cmd.Stdout = pw
+	s.cmd.Stderr = pw
+
+	// Stream output. The larger buffer keeps long lines (JSON logs, stack
+	// traces) from overflowing the scanner and silently dropping a service's
+	// logs from that point on.
+	go func(name string, color string, pr *io.PipeReader, logFile *os.File) {
+		defer logFile.Close()
+		scanner := bufio.NewScanner(pr)
+		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+		for scanner.Scan() {
+			line := scanner.Text()
+			fmt.Printf("%s[%s]%s %s\n", color, name, colorReset, line)
+			_, _ = logFile.WriteString("[" + name + "] " + line + "\n")
+		}
+	}(s.name, s.color, pr, logFile)
+
+	if err := s.cmd.Start(); err != nil {
+		pw.Close()
+		return fmt.Errorf("failed to start: %w", err)
+	}
+
+	// Write PID file
+	_ = os.WriteFile(s.pidFile, []byte(fmt.Sprintf("%d\n%s\n%s\n%s\n",
+		s.cmd.Process.Pid, s.dir, s.name, time.Now().Format(time.RFC3339))), 0644)
+
+	s.running = true
+	fmt.Printf("%s[%s]%s started (pid %d)\n", s.color, s.name, colorReset, s.cmd.Process.Pid)
+
+	return nil
+}
+
+// start builds the service and launches it (initial start).
+func (s *serviceProcess) start(logDir string) error {
+	if err := s.build(s.binPath); err != nil {
+		return err
+	}
+	return s.launch(logDir)
+}
+
+func (s *serviceProcess) stop() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if !s.running || s.cmd == nil || s.cmd.Process == nil {
+		return
+	}
+
+	fmt.Printf("%s[%s]%s stopping...\n", s.color, s.name, colorReset)
+
+	// Graceful shutdown
+	_ = s.cmd.Process.Signal(syscall.SIGTERM)
+
+	// Wait with timeout
+	done := make(chan error, 1)
+	go func() {
+		done <- s.cmd.Wait()
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		_ = s.cmd.Process.Kill()
+		<-done
+	}
+
+	if s.pipeWriter != nil {
+		s.pipeWriter.Close()
+	}
+
+	os.Remove(s.pidFile)
+	s.running = false
+}
+
+// reload rebuilds the service and swaps in the new binary ONLY if the build
+// succeeds. A failing build (a typo, a broken import) leaves the running
+// process untouched, so a compile error never takes the service offline — the
+// caller reports the error and the previous version keeps serving.
+func (s *serviceProcess) reload(logDir string) error {
+	newBin := s.binPath + ".new"
+	if err := s.build(newBin); err != nil {
+		_ = os.Remove(newBin)
+		return err
+	}
+	s.stop()
+	if err := os.Rename(newBin, s.binPath); err != nil {
+		return fmt.Errorf("swap binary: %w", err)
+	}
+	return s.launch(logDir)
+}
+
+// waitForHealth waits for a service's health endpoint to respond
+func waitForHealth(port int, timeout time.Duration) bool {
+	if port == 0 {
+		return true // No port configured, assume ready
+	}
+
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		resp, err := http.Get(fmt.Sprintf("http://localhost:%d/health", port))
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				return true
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return false
+}
+
+func Run(c *cli.Context) error {
+	// Handle --prompt: generate services first, then run them
+	if prompt := c.String("prompt"); prompt != "" {
+		return runWithPrompt(c, prompt)
+	}
+
+	dir := c.Args().Get(0)
+	if dir == "" {
+		dir = "."
+	}
+
+	// Handle git URLs
+	if strings.HasPrefix(dir, "github.com/") || strings.HasPrefix(dir, "https://github.com/") {
+		repo := strings.TrimPrefix(dir, "https://")
+		tmp, err := os.MkdirTemp("", "micro-run-")
+		if err != nil {
+			return fmt.Errorf("failed to create temp dir: %w", err)
+		}
+		defer os.RemoveAll(tmp)
+
+		cloneURL := "https://" + repo
+		cloneCmd := exec.Command("git", "clone", "--depth", "1", cloneURL, tmp)
+		cloneCmd.Stdout = os.Stdout
+		cloneCmd.Stderr = os.Stderr
+		if err := cloneCmd.Run(); err != nil {
+			return fmt.Errorf("failed to clone %s: %w", cloneURL, err)
+		}
+		dir = tmp
+	}
+
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	// Setup directories
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home dir: %w", err)
+	}
+	logsDir := filepath.Join(homeDir, "micro", "logs")
+	runDir := filepath.Join(homeDir, "micro", "run")
+	binDir := filepath.Join(homeDir, "micro", "bin")
+
+	for _, d := range []string{logsDir, runDir, binDir} {
+		if err := os.MkdirAll(d, 0755); err != nil {
+			return fmt.Errorf("failed to create %s: %w", d, err)
+		}
+	}
+
+	// Load configuration
+	cfg, err := config.Load(absDir)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Get environment
+	envName := c.String("env")
+	if envName == "" {
+		envName = os.Getenv("MICRO_ENV")
+	}
+	if envName == "" {
+		envName = "development"
+	}
+
+	var envVars []string
+	if cfg != nil {
+		if envMap := cfg.GetEnv(envName); envMap != nil {
+			for k, v := range envMap {
+				envVars = append(envVars, k+"="+v)
+			}
+		}
+	}
+
+	// Discover services
+	var services []*serviceProcess
+	servicesByDir := make(map[string]*serviceProcess)
+
+	if cfg != nil && len(cfg.Services) > 0 {
+		// Use configured services in dependency order
+		sorted, err := cfg.TopologicalSort()
+		if err != nil {
+			return fmt.Errorf("dependency error: %w", err)
+		}
+
+		for i, svc := range sorted {
+			svcDir := filepath.Join(absDir, svc.Path)
+			absSvcDir, _ := filepath.Abs(svcDir)
+			hash := fmt.Sprintf("%x", md5.Sum([]byte(absSvcDir)))[:8]
+
+			sp := &serviceProcess{
+				name:    svc.Name,
+				dir:     absSvcDir,
+				binPath: filepath.Join(binDir, svc.Name+"-"+hash),
+				pidFile: filepath.Join(runDir, svc.Name+"-"+hash+".pid"),
+				logFile: filepath.Join(logsDir, svc.Name+"-"+hash+".log"),
+				color:   colorFor(i),
+				port:    svc.Port,
+				env:     envVars,
+			}
+			services = append(services, sp)
+			servicesByDir[absSvcDir] = sp
+		}
+	} else {
+		// Auto-discover from main.go files
+		var mainFiles []string
+		_ = filepath.Walk(absDir, func(path string, info os.FileInfo, err error) error {
+			if err != nil || info.IsDir() {
+				return nil
+			}
+			if info.Name() == "main.go" {
+				mainFiles = append(mainFiles, path)
+			}
+			return nil
+		})
+
+		if len(mainFiles) == 0 {
+			return fmt.Errorf("no main.go files found in %s", absDir)
+		}
+
+		for i, mainFile := range mainFiles {
+			svcDir := filepath.Dir(mainFile)
+			absSvcDir, _ := filepath.Abs(svcDir)
+
+			var name string
+			if absSvcDir == absDir {
+				name = filepath.Base(absDir)
+			} else {
+				name = filepath.Base(svcDir)
+			}
+
+			hash := fmt.Sprintf("%x", md5.Sum([]byte(absSvcDir)))[:8]
+
+			sp := &serviceProcess{
+				name:    name,
+				dir:     absSvcDir,
+				binPath: filepath.Join(binDir, name+"-"+hash),
+				pidFile: filepath.Join(runDir, name+"-"+hash+".pid"),
+				logFile: filepath.Join(logsDir, name+"-"+hash+".log"),
+				color:   colorFor(i),
+				env:     envVars,
+			}
+			services = append(services, sp)
+			servicesByDir[absSvcDir] = sp
+		}
+	}
+
+	if len(services) == 0 {
+		return fmt.Errorf("no services found")
+	}
+
+	// Start gateway unless disabled
+	var gw *gateway.Gateway
+	var mcpServer *mcp.Server
+	gatewayAddr := c.String("address")
+	if gatewayAddr == "" {
+		gatewayAddr = "127.0.0.1:8080"
+	}
+
+	// Auth follows the socket. micro run binds loopback by default, so auth is
+	// off for the local dev loop — no login to call your own tools — while
+	// scoped/paid tools still require the machine token.
+	authEnabled, authToken := gateway.ResolveAuth(c, gatewayAddr)
+
+	if !c.Bool("no-gateway") {
+		var err error
+		gw, err = gateway.StartGateway(gateway.GatewayOptions{
+			Address:     gatewayAddr,
+			AuthEnabled: authEnabled,
+			Context:     context.Background(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to start gateway: %w", err)
+		}
+	}
+
+	// The MCP gateway runs independently of the HTTP API gateway. When
+	// --mcp-address is set, start it explicitly with the production controls
+	// (rate limiting, scopes, auth, x402 payments) instead of letting the API
+	// gateway spawn a bare listener.
+	if mcpAddr := c.String("mcp-address"); mcpAddr != "" {
+		mcpOpts, err := buildRunMCPOptions(c, mcpAddr)
+		if err != nil {
+			return fmt.Errorf("failed to configure MCP gateway: %w", err)
+		}
+		mcpServer, err = mcp.NewServer(mcpOpts)
+		if err != nil {
+			return fmt.Errorf("failed to start MCP gateway: %w", err)
+		}
+		go func() {
+			if err := mcpServer.Serve(); err != nil {
+				fmt.Fprintf(os.Stderr, "[mcp] gateway error: %v\n", err)
+			}
+		}()
+	}
+
+	// Start services
+	for _, svc := range services {
+		if err := svc.start(logsDir); err != nil {
+			fmt.Fprintf(os.Stderr, "[%s] %v\n", svc.name, err)
+			continue
+		}
+
+		// Wait for health if port configured
+		if svc.port > 0 {
+			if !waitForHealth(svc.port, 10*time.Second) {
+				fmt.Fprintf(os.Stderr, "[%s] health check timeout\n", svc.name)
+			}
+		}
+	}
+
+	// Print startup banner
+	printBanner(services, gw, !c.Bool("no-watch"), c.String("mcp-address"), authEnabled, authToken)
+
+	// Setup signal handling
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	// shutdown is closed once when teardown begins. Background goroutines watch
+	// it instead of sigCh — a signal is delivered to only one channel receiver,
+	// so sharing sigCh would let a goroutine steal the interrupt and hang the
+	// main wait below.
+	shutdown := make(chan struct{})
+
+	// svcMu guards services/servicesByDir, which the new-service scanner mutates
+	// concurrently with the shutdown loop.
+	var svcMu sync.Mutex
+
+	// Watch mode
+	watchEnabled := !c.Bool("no-watch")
+	var watch *watcher.Watcher
+
+	if watchEnabled {
+		var dirs []string
+		for _, svc := range services {
+			dirs = append(dirs, svc.dir)
+		}
+
+		watch = watcher.New(dirs)
+		watch.Start()
+
+		go func() {
+			for event := range watch.Events() {
+				svcMu.Lock()
+				svc, ok := servicesByDir[event.Dir]
+				svcMu.Unlock()
+				if !ok {
+					continue
+				}
+				fmt.Printf("%s[%s]%s rebuilding...\n", svc.color, svc.name, colorReset)
+				if err := svc.reload(logsDir); err != nil {
+					// Build failed — the previous version is still serving.
+					fmt.Fprintf(os.Stderr, "%s[%s]%s build failed, keeping previous version running:\n%v\n",
+						svc.color, svc.name, colorReset, err)
+				}
+			}
+		}()
+
+		// Scan for new services added by micro chat or micro new
+		go func() {
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-shutdown:
+					return
+				case <-ticker.C:
+					svcMu.Lock()
+					newSvcs := discoverNewServices(absDir, servicesByDir, binDir, runDir, logsDir, envVars, len(services))
+					for _, sp := range newSvcs {
+						services = append(services, sp)
+						servicesByDir[sp.dir] = sp
+					}
+					svcMu.Unlock()
+					for _, sp := range newSvcs {
+						watch.AddDir(sp.dir)
+						if err := sp.start(logsDir); err != nil {
+							fmt.Fprintf(os.Stderr, "[%s] %v\n", sp.name, err)
+							continue
+						}
+						fmt.Printf("\n  \033[32m●\033[0m %s \033[2m(new)\033[0m\n", sp.name)
+					}
+				}
+			}
+		}()
+	}
+
+	// Interactive console or wait for signal
+	if c.Bool("detach") {
+		<-sigCh
+	} else {
+		runConsole(sigCh)
+	}
+	fmt.Println("\nShutting down...")
+
+	close(shutdown)
+
+	if watch != nil {
+		watch.Stop()
+	}
+
+	if gw != nil {
+		_ = gw.Stop()
+	}
+
+	if mcpServer != nil {
+		_ = mcpServer.Stop()
+	}
+
+	// Stop services in reverse order. Snapshot under the lock — the scanner
+	// goroutine may still be appending as teardown begins.
+	svcMu.Lock()
+	all := make([]*serviceProcess, len(services))
+	copy(all, services)
+	svcMu.Unlock()
+	for i := len(all) - 1; i >= 0; i-- {
+		all[i].stop()
+	}
+
+	return nil
+}
+
+// buildRunMCPOptions assembles MCP gateway options for `micro run`. The dev
+// command keeps a minimal setup (registry, context, logger) — the same bare
+// listener the API gateway used to spawn — while production controls (rate
+// limiting, scopes, x402) stay on the standalone `micro gateway` command.
+func buildRunMCPOptions(c *cli.Context, addr string) (mcp.Options, error) {
+	return mcp.Options{
+		Registry: registry.DefaultRegistry,
+		Address:  addr,
+		Context:  context.Background(),
+		Logger:   log.Default(),
+	}, nil
+}
+
+func discoverNewServices(baseDir string, known map[string]*serviceProcess, binDir, runDir, logsDir string, envVars []string, colorOffset int) []*serviceProcess {
+	var newSvcs []*serviceProcess
+	entries, err := os.ReadDir(baseDir)
+	if err != nil {
+		return nil
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		svcDir := filepath.Join(baseDir, e.Name())
+		absSvcDir, _ := filepath.Abs(svcDir)
+		if _, exists := known[absSvcDir]; exists {
+			continue
+		}
+		mainFile := filepath.Join(svcDir, "main.go")
+		if _, err := os.Stat(mainFile); err != nil {
+			continue
+		}
+		name := e.Name()
+		hash := fmt.Sprintf("%x", md5.Sum([]byte(absSvcDir)))[:8]
+		sp := &serviceProcess{
+			name:    name,
+			dir:     absSvcDir,
+			binPath: filepath.Join(binDir, name+"-"+hash),
+			pidFile: filepath.Join(runDir, name+"-"+hash+".pid"),
+			logFile: filepath.Join(logsDir, name+"-"+hash+".log"),
+			color:   colorFor(colorOffset + len(newSvcs)),
+			env:     envVars,
+		}
+		newSvcs = append(newSvcs, sp)
+	}
+	return newSvcs
+}
+
+func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool, mcpAddr string, authEnabled bool, authToken string) {
+	fmt.Println()
+	fmt.Println("  \033[1mMicro\033[0m")
+	fmt.Println()
+
+	if gw != nil {
+		fmt.Printf("  Dashboard   \033[36mhttp://%s\033[0m\n", gw.Addr())
+		fmt.Printf("  API         \033[36mhttp://%s/api/{service}/{method}\033[0m\n", gw.Addr())
+		fmt.Printf("  Agent       \033[36mhttp://%s/agent\033[0m\n", gw.Addr())
+		// MCP tools are served on the gateway by default — every endpoint is an
+		// AI-callable tool, so surface it rather than hiding it behind a flag.
+		fmt.Printf("  MCP Tools   \033[36mhttp://%s/mcp/tools\033[0m\n", gw.Addr())
+		fmt.Printf("  Health      \033[36mhttp://%s/health\033[0m\n", gw.Addr())
+		if mcpAddr != "" {
+			// Optional standalone MCP protocol server (e.g. for MCP clients).
+			fmt.Printf("  MCP Server  \033[36mhttp://%s\033[0m (full MCP protocol)\n", mcpAddr)
+			fmt.Printf("  WebSocket   \033[36mws://%s/mcp/ws\033[0m\n", mcpAddr)
+		}
+	}
+
+	var agents, svcs []*serviceProcess
+	for _, s := range services {
+		if s.name == "agent" {
+			agents = append(agents, s)
+		} else {
+			svcs = append(svcs, s)
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("  Services:")
+	for _, svc := range svcs {
+		status := "\033[32m●\033[0m"
+		if !svc.running {
+			status = "\033[31m●\033[0m"
+		}
+		fmt.Printf("    %s %s\n", status, svc.name)
+	}
+
+	if len(agents) > 0 {
+		fmt.Println()
+		fmt.Println("  Agents:")
+		for _, a := range agents {
+			status := "\033[35m◆\033[0m"
+			if !a.running {
+				status = "\033[31m◆\033[0m"
+			}
+			fmt.Printf("    %s %s\n", status, a.name)
+		}
+	}
+
+	fmt.Println()
+	if authEnabled {
+		fmt.Println("  Auth: \033[32mon\033[0m (address is exposed)")
+		if authToken != "" {
+			fmt.Printf("  Token: \033[36m%s\033[0m \033[2m(shown once — use as Authorization: Bearer)\033[0m\n", authToken)
+		} else {
+			fmt.Println("  Token: \033[2mset via MICRO_AUTH_TOKEN\033[0m")
+		}
+	} else {
+		fmt.Println("  Auth: \033[2moff (loopback — no login needed)\033[0m")
+		if authToken != "" {
+			fmt.Printf("  \033[2mScoped/paid tools need a token: %s\033[0m\n", authToken)
+		}
+	}
+
+	if watching {
+		fmt.Println("  \033[33mWatching for changes...\033[0m")
+	}
+
+	fmt.Println()
+}
+
+func runConsole(sigCh chan os.Signal) {
+	// Detect provider and API key from environment
+	provider := os.Getenv("MICRO_AI_PROVIDER")
+	apiKey := os.Getenv("MICRO_AI_API_KEY")
+	if apiKey == "" {
+		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY"} {
+			if v := os.Getenv(env); v != "" {
+				apiKey = v
+				break
+			}
+		}
+	}
+	if provider == "" {
+		provider = ai.AutoDetectProvider("")
+	}
+
+	if apiKey == "" {
+		fmt.Println("  \033[2mSet MICRO_AI_API_KEY to enable the interactive console.\033[0m")
+		fmt.Println("  \033[2mCtrl-C to stop.\033[0m")
+		fmt.Println()
+		<-sigCh
+		return
+	}
+
+	// Wait a moment for services to register
+	time.Sleep(2 * time.Second)
+
+	// Set up tools and model
+	reg := registry.DefaultRegistry
+	cl := clt.DefaultClient
+	tools := ai.NewTools(reg, ai.ToolClient(cl))
+
+	var modelOpts []ai.Option
+	modelOpts = append(modelOpts, ai.WithAPIKey(apiKey))
+	modelOpts = append(modelOpts, ai.WithToolHandler(tools.Handler()))
+	m := ai.New(provider, modelOpts...)
+
+	hist := ai.NewHistory(50)
+
+	// Build system prompt with service list
+	discovered, _ := tools.Discover()
+	serviceNames := make(map[string]bool)
+	for _, t := range discovered {
+		parts := strings.SplitN(t.OriginalName, ".", 2)
+		if len(parts) == 2 {
+			serviceNames[parts[0]] = true
+		}
+	}
+	var svcList []string
+	for name := range serviceNames {
+		svcList = append(svcList, name)
+	}
+
+	sysPrompt := fmt.Sprintf("You are an agent that orchestrates microservices. Available services: %s. "+
+		"Use the available tools to fulfill requests. When you call a tool, explain what you are doing. "+
+		"If a capability doesn't exist, say so.",
+		strings.Join(svcList, ", "))
+
+	fmt.Printf("  \033[2m%d tools from %d services. Type a message or Ctrl-C to stop.\033[0m\n\n",
+		len(discovered), len(serviceNames))
+
+	// Interactive REPL
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Buffer(make([]byte, 0, 4096), 1024*1024)
+
+	done := make(chan struct{})
+	go func() {
+		for {
+			fmt.Print("\033[1;36m>\033[0m ")
+			if !scanner.Scan() {
+				close(done)
+				return
+			}
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" {
+				continue
+			}
+
+			hist.Add("user", line)
+			resp, err := m.Generate(context.Background(), &ai.Request{
+				Prompt:       line,
+				SystemPrompt: sysPrompt,
+				Tools:        discovered,
+				Messages:     hist.Messages(),
+			})
+			if err != nil {
+				fmt.Printf("\033[31merror:\033[0m %v\n\n", err)
+				continue
+			}
+
+			if resp.Reply != "" {
+				hist.Add("assistant", resp.Reply)
+				fmt.Println(resp.Reply)
+			}
+			for _, tc := range resp.ToolCalls {
+				args, _ := json.Marshal(tc.Input)
+				fmt.Printf("  \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
+				if tc.Result != "" {
+					result := tc.Result
+					if len(result) > 200 {
+						result = result[:200] + "..."
+					}
+					fmt.Printf("  \033[32m←\033[0m \033[2m%s\033[0m\n", result)
+				}
+			}
+			if resp.Answer != "" {
+				hist.Add("assistant", resp.Answer)
+				fmt.Println()
+				fmt.Println(resp.Answer)
+			}
+			fmt.Println()
+		}
+	}()
+
+	select {
+	case <-sigCh:
+	case <-done:
+	}
+}
+
+func init() {
+	cmd.Register(&cli.Command{
+		Name:  "run",
+		Usage: "Development mode: run services with hot reload and API gateway",
+		Description: `Run discovers and runs services in a directory (development mode).
+
+Starts an HTTP gateway on :8080 providing:
+  - Web dashboard at /
+  - Agent playground at /agent (AI chat with MCP tools)
+  - API explorer at /api
+  - API proxy at /api/{service}/{endpoint}
+  - MCP tools at /mcp/tools
+  - Health checks at /health
+
+With a micro.mu or micro.json config file, services start in dependency order.
+Without config, all main.go files are discovered and run.
+
+micro run is a local development tool — it builds and supervises service
+processes with hot reload. It is not a production runtime: there is no daemon,
+and processes stop when micro run exits. For production, build each service
+(go build) and run it under a process manager or scheduler — systemd,
+Docker/Compose, or Kubernetes (see deploy/kubernetes).
+
+Examples:
+  micro run                    # Run with gateway on :8080
+  micro run --address :3000    # Gateway on custom port
+  micro run --no-gateway       # Services only, no HTTP gateway
+  micro run --no-watch         # Disable hot reload
+  micro run --env production   # Use production environment
+  micro run --mcp-address :3000  # Enable MCP protocol gateway
+  micro run --prompt "an order system for dropshipping"  # Generate and run`,
+		Action: Run,
+		Flags: append([]cli.Flag{
+			&cli.StringFlag{
+				Name:    "address",
+				Aliases: []string{"a"},
+				Usage:   "Gateway address (default 127.0.0.1:8080, loopback). A non-loopback address turns auth on.",
+				Value:   "127.0.0.1:8080",
+			},
+			&cli.BoolFlag{
+				Name:  "no-gateway",
+				Usage: "Disable HTTP gateway",
+			},
+			&cli.BoolFlag{
+				Name:  "no-watch",
+				Usage: "Disable hot reload (file watching)",
+			},
+			&cli.BoolFlag{
+				Name:    "detach",
+				Aliases: []string{"d"},
+				Usage:   "Run without interactive console (background mode)",
+			},
+			&cli.StringFlag{
+				Name:    "env",
+				Aliases: []string{"e"},
+				Usage:   "Environment to use (default: development)",
+				EnvVars: []string{"MICRO_ENV"},
+			},
+			&cli.StringFlag{
+				Name:    "mcp-address",
+				Usage:   "MCP gateway address (e.g., :3000). Enables MCP protocol for AI tools.",
+				EnvVars: []string{"MICRO_MCP_ADDRESS"},
+			},
+			&cli.StringFlag{
+				Name:    "prompt",
+				Usage:   "Describe a system to generate and run (AI designs, builds, and starts services)",
+				EnvVars: []string{"MICRO_RUN_PROMPT"},
+			},
+			&cli.StringFlag{
+				Name:    "provider",
+				Usage:   "AI provider for --prompt (anthropic, openai, gemini, atlascloud, groq, mistral, together)",
+				EnvVars: []string{"MICRO_AI_PROVIDER"},
+			},
+			&cli.StringFlag{
+				Name:    "api_key",
+				Usage:   "API key for --prompt (or set ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)",
+				EnvVars: []string{"MICRO_AI_API_KEY"},
+			},
+		}, gateway.AuthFlags()...),
+	})
+}
+
+func runWithPrompt(c *cli.Context, prompt string) error {
+	provider := c.String("provider")
+	apiKey := c.String("api_key")
+	if apiKey == "" {
+		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY", "MICRO_AI_API_KEY"} {
+			if v := os.Getenv(env); v != "" {
+				apiKey = v
+				break
+			}
+		}
+	}
+	if apiKey == "" {
+		return fmt.Errorf("--api_key or a provider API key env var is required for --prompt")
+	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	fmt.Println()
+	fmt.Println("  \033[1mmicro run --prompt\033[0m")
+	fmt.Println()
+	fmt.Printf("  \033[2mDesigning services for:\033[0m %s\n\n", prompt)
+
+	design, err := generate.Design(ctx, provider, apiKey, "", ".", prompt)
+	if err != nil {
+		return fmt.Errorf("design failed: %w", err)
+	}
+
+	fmt.Println("  Services:")
+	for _, svc := range design.Services {
+		fmt.Printf("    \033[32m●\033[0m \033[36m%s\033[0m — %s\n", svc.Name, svc.Description)
+		for _, ep := range svc.Endpoints {
+			fmt.Printf("      %s: %s\n", ep.Name, ep.Description)
+		}
+	}
+	fmt.Println()
+
+	if !confirmGenerate() {
+		fmt.Println("  Canceled.")
+		return nil
+	}
+
+	fmt.Println("  Generating code...")
+	if err := generate.Generate(ctx, ".", design, provider, apiKey, ""); err != nil {
+		return fmt.Errorf("generate failed: %w", err)
+	}
+	for _, svc := range design.Services {
+		fmt.Printf("    \033[32m✓\033[0m %s/\n", svc.Name)
+	}
+	fmt.Println()
+
+	// Set env vars so the agent process can pick them up
+	if provider != "" {
+		os.Setenv("MICRO_AI_PROVIDER", provider)
+	}
+	os.Setenv("MICRO_AI_API_KEY", apiKey)
+
+	// Now run normally — micro run discovers the generated services + agent
+	fmt.Println("  Starting services...")
+	fmt.Println()
+
+	cancel()
+	_ = c.Set("prompt", "")
+	return Run(c)
+}
+
+func confirmGenerate() bool {
+	fmt.Print("  Generate? [Y/n] ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return false
+	}
+	answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	return answer == "" || answer == "y" || answer == "yes"
+}

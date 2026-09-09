@@ -21,8 +21,6 @@ type testCase struct {
 func TestStream(t *testing.T) {
 	tcs := []testCase{}
 
-	t.Parallel()
-
 	stream, err := NewStream()
 	assert.Nilf(t, err, "NewStream should not return an error")
 	assert.NotNilf(t, stream, "NewStream should return a stream object")
@@ -30,18 +28,15 @@ func TestStream(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			runTestStream(t, tc.str)
 		})
 	}
+
 }
 
 func runTestStream(t *testing.T, stream Stream) {
-	t.Parallel()
-
 	// TestMissingTopic will test the topic validation on publish
 	t.Run("TestMissingTopic", func(t *testing.T) {
-		t.Parallel()
 		err := stream.Publish("", nil)
 		assert.Equalf(t, err, ErrMissingTopic, "Publishing to a blank topic should return an error")
 	})
@@ -49,7 +44,6 @@ func runTestStream(t *testing.T, stream Stream) {
 	// TestConsumeTopic will publish a message to the test topic. The subscriber will subscribe to the
 	// same test topic.
 	t.Run("TestConsumeTopic", func(t *testing.T) {
-		t.Parallel()
 		payload := &testPayload{Message: "HelloWorld"}
 		metadata := map[string]string{"foo": "bar"}
 
@@ -59,29 +53,30 @@ func runTestStream(t *testing.T, stream Stream) {
 
 		// setup the subscriber async
 		var wg sync.WaitGroup
+		wg.Add(1)
 
 		go func() {
 			timeout := time.NewTimer(time.Millisecond * 250)
 
 			select {
-			case event, _ := <-evChan:
+			case event := <-evChan:
 				assert.NotNilf(t, event, "The message was nil")
 				assert.Equal(t, event.Metadata, metadata, "Metadata didn't match")
 
 				var result testPayload
-				err = event.Unmarshal(&result)
+				err := event.Unmarshal(&result)
 				assert.Nil(t, err, "Error decoding result")
 				assert.Equal(t, result, *payload, "Payload didn't match")
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not received")
+				t.Errorf("Event was not received")
+				wg.Done()
 			}
 		}()
 
 		err = stream.Publish("test", payload, WithMetadata(metadata))
 		assert.Nil(t, err, "Publishing a valid message should not return an error")
-		wg.Add(1)
 
 		// wait for the subscriber to receive the message or timeout
 		wg.Wait()
@@ -91,8 +86,6 @@ func runTestStream(t *testing.T, stream Stream) {
 	// the message from the firehose topic with different queues. The second subscriber will be registered
 	// after the message is published to test durability.
 	t.Run("TestConsumeGroup", func(t *testing.T) {
-		t.Parallel()
-
 		topic := uuid.New().String()
 		payload := &testPayload{Message: "HelloWorld"}
 		metadata := map[string]string{"foo": "bar"}
@@ -103,29 +96,30 @@ func runTestStream(t *testing.T, stream Stream) {
 
 		// setup the subscriber async
 		var wg sync.WaitGroup
+		wg.Add(2)
 
 		go func() {
 			timeout := time.NewTimer(time.Millisecond * 250)
 
 			select {
-			case event, _ := <-evChan1:
+			case event := <-evChan1:
 				assert.NotNilf(t, event, "The message was nil")
 				assert.Equal(t, event.Metadata, metadata, "Metadata didn't match")
 
 				var result testPayload
-				err = event.Unmarshal(&result)
+				err := event.Unmarshal(&result)
 				assert.Nil(t, err, "Error decoding result")
 				assert.Equal(t, result, *payload, "Payload didn't match")
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not received")
+				t.Errorf("Event was not received")
+				wg.Done()
 			}
 		}()
 
 		err = stream.Publish(topic, payload, WithMetadata(metadata))
 		assert.Nil(t, err, "Publishing a valid message should not return an error")
-		wg.Add(2)
 
 		// create the second subscriber
 		evChan2, err := stream.Consume(topic,
@@ -138,18 +132,19 @@ func runTestStream(t *testing.T, stream Stream) {
 			timeout := time.NewTimer(time.Second * 1)
 
 			select {
-			case event, _ := <-evChan2:
+			case event := <-evChan2:
 				assert.NotNilf(t, event, "The message was nil")
 				assert.Equal(t, event.Metadata, metadata, "Metadata didn't match")
 
 				var result testPayload
-				err = event.Unmarshal(&result)
+				err := event.Unmarshal(&result)
 				assert.Nil(t, err, "Error decoding result")
 				assert.Equal(t, result, *payload, "Payload didn't match")
 
 				wg.Done()
 			case <-timeout.C:
-				t.Fatalf("Event was not received")
+				t.Errorf("Event was not received")
+				wg.Done()
 			}
 		}()
 
@@ -158,12 +153,11 @@ func runTestStream(t *testing.T, stream Stream) {
 	})
 
 	t.Run("AckingNacking", func(t *testing.T) {
-		t.Parallel()
-
 		ch, err := stream.Consume("foobarAck", WithAutoAck(false, 5*time.Second))
 		assert.NoError(t, err, "Unexpected error subscribing")
 		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 1"}))
 		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 2"}))
+		assert.NoError(t, stream.Publish("foobarAck", map[string]string{"foo": "message 3"}))
 
 		ev := <-ch
 		ev.Ack()
@@ -177,11 +171,17 @@ func runTestStream(t *testing.T, stream Stream) {
 		case <-time.After(7 * time.Second):
 			t.Fatalf("Timed out waiting for message to be put back on queue")
 		}
+		select {
+		case ev = <-ch:
+			assert.NotEqual(t, ev.ID, nacked, "Queued message should only be received after the nacked message is redelivered")
+			assert.NoError(t, ev.Ack())
+		case <-time.After(7 * time.Second):
+			t.Fatalf("Timed out waiting for queued message")
+		}
+
 	})
 
 	t.Run("Retries", func(t *testing.T) {
-		t.Parallel()
-
 		ch, err := stream.Consume("foobarRetries", WithAutoAck(false, 5*time.Second), WithRetryLimit(1))
 		assert.NoError(t, err, "Unexpected error subscribing")
 		assert.NoError(t, stream.Publish("foobarRetries", map[string]string{"foo": "message 1"}))
@@ -197,11 +197,10 @@ func runTestStream(t *testing.T, stream Stream) {
 			t.Fatalf("Unexpected event received")
 		case <-time.After(7 * time.Second):
 		}
+
 	})
 
 	t.Run("InfiniteRetries", func(t *testing.T) {
-		t.Parallel()
-
 		ch, err := stream.Consume("foobarRetriesInf", WithAutoAck(false, 2*time.Second))
 		assert.NoError(t, err, "Unexpected error subscribing")
 		assert.NoError(t, stream.Publish("foobarRetriesInf", map[string]string{"foo": "message 1"}))
@@ -224,11 +223,10 @@ func runTestStream(t *testing.T, stream Stream) {
 				break
 			}
 		}
+
 	})
 
 	t.Run("twoSubs", func(t *testing.T) {
-		t.Parallel()
-
 		ch1, err := stream.Consume("foobarTwoSubs1", WithAutoAck(false, 5*time.Second))
 		assert.NoError(t, err, "Unexpected error subscribing to topic 1")
 		ch2, err := stream.Consume("foobarTwoSubs2", WithAutoAck(false, 5*time.Second))

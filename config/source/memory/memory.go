@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v4/config/source"
+	"go-micro.dev/v6/config/source"
 )
 
 type memory struct {
@@ -41,8 +41,8 @@ func (s *memory) Watch() (source.Watcher, error) {
 	return w, nil
 }
 
-func (m *memory) Write(cs *source.ChangeSet) error {
-	m.Update(cs)
+func (s *memory) Write(cs *source.ChangeSet) error {
+	s.Update(cs)
 	return nil
 }
 

@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/fsnotify/fsnotify"
-	"go-micro.dev/v4/config/source"
+	"go-micro.dev/v6/config/source"
 )
 
 type watcher struct {

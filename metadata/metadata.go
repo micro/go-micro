@@ -92,7 +92,7 @@ func FromContext(ctx context.Context) (Metadata, bool) {
 	// capitalise all values
 	newMD := make(Metadata, len(md))
 	for k, v := range md {
-		newMD[strings.Title(k)] = v
+		newMD[k] = v
 	}
 
 	return newMD, ok

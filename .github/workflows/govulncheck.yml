@@ -1,0 +1,65 @@
+name: govulncheck
+
+# Deterministic vulnerability gate: runs govulncheck (reachability-aware CVE
+# scanner) on every push/PR. Fails on any reachable vulnerability EXCEPT the
+# explicit ALLOWLIST of known-unfixable ones, so a new vuln breaks the build
+# while tracked, no-upstream-fix ones don't. This is the gate the loop's
+# `security` role sits on top of — the role audits; this blocks known CVEs.
+#
+# Make this a required status check on the default branch to enforce it.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          check-latest: true
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Scan
+        env:
+          # Reachable vulnerabilities with NO upstream fix, accepted for now and
+          # tracked for remediation. Remove an ID the moment its fix lands.
+          #   GO-2026-5004  github.com/jackc/pgx/v4        -> pgx v5 migration (#4556)
+          #   GO-2026-4518  github.com/jackc/pgproto3/v2   -> pgx v5 migration (#4556)
+          ALLOWLIST: "GO-2026-5004 GO-2026-4518"
+        run: |
+          out=$(mktemp)
+          govulncheck ./... >"$out" 2>&1 && code=0 || code=$?
+          cat "$out"
+          if [ "$code" -eq 0 ]; then
+            echo "govulncheck: no reachable vulnerabilities."
+            exit 0
+          fi
+          if [ "$code" -ne 3 ]; then
+            echo "::error::govulncheck failed to run (exit $code)."
+            exit 1
+          fi
+          found=$(grep -oE 'Vulnerability #[0-9]+: GO-[0-9]{4}-[0-9]+' "$out" | grep -oE 'GO-[0-9]{4}-[0-9]+' | sort -u)
+          unexpected=""
+          for id in $found; do
+            case " $ALLOWLIST " in
+              *" $id "*) ;;
+              *) unexpected="$unexpected $id" ;;
+            esac
+          done
+          if [ -n "$unexpected" ]; then
+            echo "::error::Unexpected reachable vulnerabilities:$unexpected"
+            echo "If a fix exists, bump the dependency/toolchain. If genuinely unfixable, add the ID to ALLOWLIST with a tracking issue."
+            exit 1
+          fi
+          echo "govulncheck: only allow-listed (known-unfixable) vulnerabilities present:$found"
+          echo "OK."

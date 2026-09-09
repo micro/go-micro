@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4"
-	"go-micro.dev/v4/logger"
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v6"
+	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/registry"
 )
 
 // Options for web.
@@ -69,7 +69,7 @@ func newOptions(opts ...Option) Options {
 		RegisterTTL:      DefaultRegisterTTL,
 		RegisterInterval: DefaultRegisterInterval,
 		StaticDir:        DefaultStaticDir,
-		Service:          micro.NewService(),
+		Service:          micro.NewService(DefaultName),
 		Context:          context.TODO(),
 		Signal:           true,
 		Logger:           logger.DefaultLogger,

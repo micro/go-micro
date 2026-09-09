@@ -12,9 +12,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"go-micro.dev/v4/codec"
-	merrors "go-micro.dev/v4/errors"
-	log "go-micro.dev/v4/logger"
+	"go-micro.dev/v6/codec"
+	merrors "go-micro.dev/v6/errors"
+	log "go-micro.dev/v6/logger"
 )
 
 var (
@@ -62,7 +62,6 @@ type router struct {
 	freeResp *response
 
 	subscribers map[string][]*subscriber
-	name        string
 
 	// handler wrappers
 	hdlrWrappers []HandlerWrapper
@@ -81,11 +80,11 @@ type router struct {
 // rpcRouter encapsulates functions that become a Router.
 type rpcRouter struct {
 	h func(context.Context, Request, interface{}) error
-	m func(context.Context, Message) error
+	m func(context.Context, string, Message) error
 }
 
-func (r rpcRouter) ProcessMessage(ctx context.Context, msg Message) error {
-	return r.m(ctx, msg)
+func (r rpcRouter) ProcessMessage(ctx context.Context, subscriber string, msg Message) error {
+	return r.m(ctx, subscriber, msg)
 }
 
 func (r rpcRouter) ServeRequest(ctx context.Context, req Request, rsp Response) error {
@@ -108,7 +107,7 @@ func isExported(name string) bool {
 
 // Is this type exported or a builtin?
 func isExportedOrBuiltinType(t reflect.Type) bool {
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	// PkgPath will be non-empty even for an exported type,
@@ -161,7 +160,7 @@ func prepareMethod(method reflect.Method, logger log.Logger) *methodType {
 			return nil
 		}
 
-		if replyType.Kind() != reflect.Ptr {
+		if replyType.Kind() != reflect.Pointer {
 			logger.Logf(log.ErrorLevel, "method %v reply type not a pointer: %v", mname, replyType)
 			return nil
 		}
@@ -188,7 +187,11 @@ func prepareMethod(method reflect.Method, logger log.Logger) *methodType {
 	return &methodType{method: method, ArgType: argType, ReplyType: replyType, ContextType: contextType, stream: stream}
 }
 
-func (router *router) sendResponse(sending sync.Locker, req *request, reply interface{}, cc codec.Writer, last bool) error {
+func (router *router) sendResponse(sending sync.Locker,
+	req *request,
+	reply interface{},
+	cc codec.Writer,
+	last bool) error {
 	msg := new(codec.Message)
 	msg.Type = codec.Response
 	resp := router.getResponse()
@@ -205,7 +208,13 @@ func (router *router) sendResponse(sending sync.Locker, req *request, reply inte
 	return err
 }
 
-func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex, mtype *methodType, req *request, argv, replyv reflect.Value, cc codec.Writer) error {
+func (s *service) call(ctx context.Context,
+	router *router,
+	sending *sync.Mutex,
+	mtype *methodType,
+	req *request,
+	argv, replyv reflect.Value,
+	cc codec.Writer) error {
 	defer router.freeRequest(req)
 
 	function := mtype.method.Func
@@ -227,7 +236,8 @@ func (s *service) call(ctx context.Context, router *router, sending *sync.Mutex,
 
 	if !mtype.stream {
 		fn := func(ctx context.Context, req Request, rsp interface{}) error {
-			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx), reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
+			returnValues = function.Call([]reflect.Value{s.rcvr, mtype.prepareContext(ctx),
+				reflect.ValueOf(argv.Interface()), reflect.ValueOf(rsp)})
 
 			// The return value for the method is an error.
 			if err := returnValues[0].Interface(); err != nil {
@@ -351,7 +361,7 @@ func (router *router) readRequest(r Request) (service *service, mtype *methodTyp
 			return
 		}
 		// discard body
-		cc.ReadBody(nil)
+		_ = cc.ReadBody(nil)
 
 		return
 	}
@@ -359,14 +369,14 @@ func (router *router) readRequest(r Request) (service *service, mtype *methodTyp
 	// is it a streaming request? then we don't read the body
 	if mtype.stream {
 		if cc.(codec.Codec).String() != "grpc" {
-			cc.ReadBody(nil)
+			_ = cc.ReadBody(nil)
 		}
 		return
 	}
 
 	// Decode the argument value.
 	argIsValue := false // if true, need to indirect before calling.
-	if mtype.ArgType.Kind() == reflect.Ptr {
+	if mtype.ArgType.Kind() == reflect.Pointer {
 		argv = reflect.New(mtype.ArgType.Elem())
 	} else {
 		argv = reflect.New(mtype.ArgType)
@@ -534,7 +544,7 @@ func (router *router) Subscribe(s Subscriber) error {
 	return nil
 }
 
-func (router *router) ProcessMessage(ctx context.Context, msg Message) (err error) {
+func (router *router) ProcessMessage(ctx context.Context, subscriber string, msg Message) (err error) {
 	defer func() {
 		// recover any panics
 		if r := recover(); r != nil {
@@ -546,7 +556,7 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 
 	// get the subscribers by topic
 	router.su.RLock()
-	subs, ok := router.subscribers[msg.Topic()]
+	subs, ok := router.subscribers[subscriber]
 	router.su.RUnlock()
 	if !ok {
 		log.Warnf("Subscriber not found for topic %s", msg.Topic())
@@ -566,7 +576,7 @@ func (router *router) ProcessMessage(ctx context.Context, msg Message) (err erro
 			var req reflect.Value
 
 			// check whether the handler is a pointer
-			if handler.reqType.Kind() == reflect.Ptr {
+			if handler.reqType.Kind() == reflect.Pointer {
 				req = reflect.New(handler.reqType.Elem())
 			} else {
 				req = reflect.New(handler.reqType)

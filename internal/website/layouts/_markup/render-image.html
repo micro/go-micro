@@ -1,0 +1,68 @@
+{{- $image_sizes := slice "420" "789" "1019" "1430" "2048" -}}
+{{- $background_colour := "#020221" -}}
+{{- $image_quality := "q80 CatmullRom"}}
+{{- $alt := .Text -}}
+{{- $label := .Text -}}
+{{- $caption := "" -}}
+{{- if ne .Title "" -}}
+  {{- $caption = .Title | $.Page.RenderString -}}
+  {{- $label = $caption -}}
+{{- end -}}
+{{- $image := .Page.Resources.GetMatch .Destination -}}
+{{- if and (not $image) .Page.File -}}
+  {{- $image = resources.Get (path.Join .Page.File.Dir .Destination) -}}
+{{- else if not $image -}}
+  {{- $image = resources.Get .Destination -}}
+{{- end -}}
+{{- with $image -}}
+  {{- $image_width := $image.Width -}}
+  {{- $image_height := $image.Height -}}
+  {{- if strings.Contains $image "_2x" -}}
+    {{- $image_width = math.Floor (math.Div $image_width 2) -}}
+    {{- $image_height = math.Floor (math.Div $image_height 2) -}}
+  {{- end -}}
+  {{- $fallback_image := ($image.Resize (print "789x jpg " $background_colour " " $image_quality)) -}}
+  {{- $GIP_colors := $image.Colors -}}
+  {{- if (lt ($GIP_colors | len) 2) -}}
+    {{- $GIP_colors = $GIP_colors | append $background_colour -}}
+  {{- end -}}
+  {{- $GIP_gradient := delimit ($GIP_colors) ", " -}}
+  {{- $GIP_style := print "background: linear-gradient(" $GIP_gradient ");" -}}
+<figure role="figure" aria-label="{{- $label | plainify -}}">
+  <a href="{{- $image.RelPermalink -}}">
+    <div class="image-wrapper" {{ printf "style=%q" $GIP_style | safeHTMLAttr }}>
+      <img
+        alt="{{- $alt -}}"
+        title="{{- $label | plainify -}}"
+        width="{{- $image_width -}}"
+        height="{{- $image_height -}}"
+  {{- if (or (strings.HasSuffix $image ".gif") (strings.HasSuffix $image ".svg")) -}}
+        src="{{- $image.RelPermalink -}}"
+  {{- else -}}
+        srcset="
+    {{- if le $image.Width (index $image_sizes 0) }}
+      {{- with $image.Resize (print $image.Width "x webp " $background_colour " " $image_quality) -}}
+        {{- print .RelPermalink " " .Width "w, " -}}
+      {{- end -}}
+    {{- end -}}
+    {{- with $image_sizes -}}
+      {{- range $index, $size := . -}}
+        {{- if ge $image.Width $size -}}
+          {{- with $image.Resize (print $size "x webp " $background_colour " " $image_quality) -}}
+            {{- print .RelPermalink " " $size "w, " -}}
+          {{- end -}}
+        {{- end -}}
+      {{- end -}}
+    {{- end -}}"
+        sizes="(min-width: 1000px) 789px, (min-width: 500px) 80.42vw, 87.78vw"
+        src="{{- $fallback_image.RelPermalink -}}"
+        decoding="async"
+  {{- end -}}
+        loading="lazy"
+      />
+    </div>
+  </a>
+  <figcaption>{{- $caption -}}</figcaption>
+</figure>
+{{- end -}}
+

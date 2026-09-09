@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/registry"
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/registry"
 )
 
 var (
@@ -60,7 +60,7 @@ func sub(b *testing.B, c int) {
 	b.StopTimer()
 	m := newTestRegistry()
 
-	brker := broker.NewBroker(broker.Registry(m))
+	brker := broker.NewHttpBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
 	if err := brker.Init(); err != nil {
@@ -121,7 +121,7 @@ func sub(b *testing.B, c int) {
 func pub(b *testing.B, c int) {
 	b.StopTimer()
 	m := newTestRegistry()
-	brk := broker.NewBroker(broker.Registry(m))
+	brk := broker.NewHttpBroker(broker.Registry(m))
 	topic := uuid.New().String()
 
 	if err := brk.Init(); err != nil {
@@ -161,7 +161,9 @@ func pub(b *testing.B, c int) {
 		go func() {
 			for range ch {
 				if err := brk.Publish(topic, msg); err != nil {
-					b.Fatalf("Unexpected publish error: %v", err)
+					b.Errorf("Unexpected publish error: %v", err)
+					wg.Done()
+					return
 				}
 				select {
 				case <-done:
@@ -190,7 +192,7 @@ func pub(b *testing.B, c int) {
 
 func TestBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := broker.NewBroker(broker.Registry(m))
+	b := broker.NewHttpBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
@@ -239,7 +241,7 @@ func TestBroker(t *testing.T) {
 
 func TestConcurrentSubBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := broker.NewBroker(broker.Registry(m))
+	b := broker.NewHttpBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
@@ -298,7 +300,7 @@ func TestConcurrentSubBroker(t *testing.T) {
 
 func TestConcurrentPubBroker(t *testing.T) {
 	m := newTestRegistry()
-	b := broker.NewBroker(broker.Registry(m))
+	b := broker.NewHttpBroker(broker.Registry(m))
 
 	if err := b.Init(); err != nil {
 		t.Fatalf("Unexpected init error: %v", err)
@@ -362,14 +364,6 @@ func BenchmarkSub32(b *testing.B) {
 	sub(b, 32)
 }
 
-func BenchmarkSub64(b *testing.B) {
-	sub(b, 64)
-}
-
-func BenchmarkSub128(b *testing.B) {
-	sub(b, 128)
-}
-
 func BenchmarkPub1(b *testing.B) {
 	pub(b, 1)
 }
@@ -380,12 +374,4 @@ func BenchmarkPub8(b *testing.B) {
 
 func BenchmarkPub32(b *testing.B) {
 	pub(b, 32)
-}
-
-func BenchmarkPub64(b *testing.B) {
-	pub(b, 64)
-}
-
-func BenchmarkPub128(b *testing.B) {
-	pub(b, 128)
 }

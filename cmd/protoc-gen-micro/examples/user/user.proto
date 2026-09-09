@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option go_package = "../user";
+
+// UserService manages user accounts.
+service UserService {
+	rpc Create(CreateUserRequest) returns (CreateUserResponse) {}
+	rpc Get(GetUserRequest) returns (GetUserResponse) {}
+	rpc Delete(DeleteUserRequest) returns (DeleteUserResponse) {}
+}
+
+// @model
+message User {
+	string id = 1;
+	string name = 2;
+	string email = 3;
+	int32 age = 4;
+	string status = 5;
+}
+
+message CreateUserRequest {
+	User user = 1;
+}
+
+message CreateUserResponse {
+	User user = 1;
+}
+
+message GetUserRequest {
+	string id = 1;
+}
+
+message GetUserResponse {
+	User user = 1;
+}
+
+message DeleteUserRequest {
+	string id = 1;
+}
+
+message DeleteUserResponse {}

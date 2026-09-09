@@ -1,0 +1,40 @@
+{{define "content"}}
+<h2 class="text-2xl font-bold mb-4">User Accounts</h2>
+<table style="margin-bottom:2em;">
+  <thead>
+    <tr><th>ID</th><th>Type</th><th>Scopes</th><th>Metadata</th><th>Delete</th></tr>
+  </thead>
+  <tbody>
+    {{range .Users}}
+    <tr>
+      <td>{{.ID}}</td>
+      <td>{{.Type}}</td>
+      <td>{{range .Scopes}}<code>{{.}}</code> {{end}}</td>
+      <td>
+        {{range $k, $v := .Metadata}}
+          {{if ne $k "password_hash"}}
+            <b>{{$k}}</b>: {{$v}} 
+          {{end}}
+        {{end}}
+      </td>
+      <td>
+        <form method="POST" action="/auth/users" style="display:inline; padding: 0; border: 0">
+          <input type="hidden" name="delete" value="{{.ID}}">
+          <button type="submit" onclick="return confirm('Delete user {{.ID}}?')">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+<h3 style="margin-bottom:1em;">Create New User</h3>
+<form method="POST" action="/auth/users">
+  <input name="id" placeholder="Username" required style="margin-right:1em;">
+  <input name="password" type="password" placeholder="Password" required style="margin-right:1em;">
+  <select name="type" style="margin-right:1em;">
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+  </select>
+  <button type="submit">Create</button>
+</form>
+{{end}}

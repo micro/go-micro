@@ -1,0 +1,108 @@
+package template
+
+var (
+	HandlerSRV = `package handler
+
+import (
+	"context"
+
+	log "go-micro.dev/v6/logger"
+
+	pb "{{.Dir}}/proto"
+)
+
+type {{title .Alias}} struct{}
+
+// Return a new handler.
+func New() *{{title .Alias}} {
+	return &{{title .Alias}}{}
+}
+
+// Call greets a person by name and returns a welcome message.
+//
+// @example {"name": "Alice"}
+func (e *{{title .Alias}}) Call(ctx context.Context, req *pb.Request, rsp *pb.Response) error {
+	log.Info("Received {{title .Alias}}.Call request")
+	rsp.Msg = "Hello " + req.Name
+	return nil
+}
+
+// Stream sends a sequence of numbered responses back to the caller.
+// Use this for streaming large result sets or real-time updates.
+//
+// @example {"count": 5}
+func (e *{{title .Alias}}) Stream(ctx context.Context, req *pb.StreamingRequest, stream pb.{{title .Alias}}_StreamStream) error {
+	log.Infof("Received {{title .Alias}}.Stream request with count: %d", req.Count)
+
+	for i := 0; i < int(req.Count); i++ {
+		log.Infof("Responding: %d", i)
+		if err := stream.Send(&pb.StreamingResponse{
+			Count: int64(i),
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+`
+
+	// HandlerNoProto is the default handler: plain Go request/response types
+	// registered by reflection. No generated protobuf code, so no protoc.
+	HandlerNoProto = `package handler
+
+import (
+	"context"
+
+	log "go-micro.dev/v6/logger"
+)
+
+// Request is the input to {{title .Alias}}.Call.
+type Request struct {
+	Name string ` + "`json:\"name\" description:\"Name to greet (required)\"`" + `
+}
+
+// Response is the output of {{title .Alias}}.Call.
+type Response struct {
+	Msg string ` + "`json:\"msg\"`" + `
+}
+
+type {{title .Alias}} struct{}
+
+// Return a new handler.
+func New() *{{title .Alias}} {
+	return &{{title .Alias}}{}
+}
+
+// Call greets a person by name and returns a welcome message.
+//
+// @example {"name": "Alice"}
+func (e *{{title .Alias}}) Call(ctx context.Context, req *Request, rsp *Response) error {
+	log.Info("Received {{title .Alias}}.Call request")
+	rsp.Msg = "Hello " + req.Name
+	return nil
+}
+`
+
+	SubscriberSRV = `package subscriber
+
+import (
+	"context"
+	log "go-micro.dev/v6/logger"
+
+	pb "{{.Dir}}/proto"
+)
+
+type {{title .Alias}} struct{}
+
+func (e *{{title .Alias}}) Handle(ctx context.Context, msg *pb.Message) error {
+	log.Info("Handler Received message: ", msg.Say)
+	return nil
+}
+
+func Handler(ctx context.Context, msg *pb.Message) error {
+	log.Info("Function Received message: ", msg.Say)
+	return nil
+}
+`
+)

@@ -1,0 +1,711 @@
+package micro
+
+import (
+	"fmt"
+	"path"
+	"strconv"
+	"strings"
+
+	"go-micro.dev/v6/cmd/protoc-gen-micro/generator"
+	pb "google.golang.org/protobuf/types/descriptorpb"
+)
+
+// Paths for packages used by code generated in this file,
+// relative to the import_prefix of the generator.Generator.
+const (
+	contextPkgPath = "context"
+	clientPkgPath  = "go-micro.dev/v6/client"
+	serverPkgPath  = "go-micro.dev/v6/server"
+	modelPkgPath   = "go-micro.dev/v6/model"
+)
+
+func init() {
+	generator.RegisterPlugin(new(micro))
+}
+
+// micro is an implementation of the Go protocol buffer compiler's
+// plugin architecture.  It generates bindings for go-micro support.
+type micro struct {
+	gen *generator.Generator
+}
+
+// Name returns the name of this plugin, "micro".
+func (g *micro) Name() string {
+	return "micro"
+}
+
+// The names for packages imported in the generated code.
+// They may vary from the final path component of the import path
+// if the name is used by other packages.
+var (
+	contextPkg string
+	clientPkg  string
+	serverPkg  string
+	modelPkg   string
+	pkgImports map[generator.GoPackageName]bool
+)
+
+// Init initializes the plugin.
+func (g *micro) Init(gen *generator.Generator) {
+	g.gen = gen
+	contextPkg = generator.RegisterUniquePackageName("context", nil)
+	clientPkg = generator.RegisterUniquePackageName("client", nil)
+	serverPkg = generator.RegisterUniquePackageName("server", nil)
+	modelPkg = generator.RegisterUniquePackageName("model", nil)
+}
+
+// Given a type name defined in a .proto, return its object.
+// Also record that we're using it, to guarantee the associated import.
+func (g *micro) objectNamed(name string) generator.Object {
+	g.gen.RecordTypeUse(name)
+	return g.gen.ObjectNamed(name)
+}
+
+// Given a type name defined in a .proto, return its name as we will print it.
+func (g *micro) typeName(str string) string {
+	return g.gen.TypeName(g.objectNamed(str))
+}
+
+// P forwards to g.gen.P.
+func (g *micro) P(args ...interface{}) { g.gen.P(args...) }
+
+// Generate generates code for the services in the given file.
+func (g *micro) Generate(file *generator.FileDescriptor) {
+	// Check if any messages have @model annotation
+	hasModels := false
+	for i := range file.MessageType {
+		if g.isModelMessage(i) {
+			hasModels = true
+			break
+		}
+	}
+
+	if len(file.Service) == 0 && !hasModels {
+		return
+	}
+
+	g.P("// Reference imports to suppress errors if they are not otherwise used.")
+	g.P("var _ ", contextPkg, ".Context")
+	if len(file.Service) > 0 {
+		g.P("var _ ", clientPkg, ".Option")
+		g.P("var _ ", serverPkg, ".Option")
+	}
+	if hasModels {
+		g.P("var _ ", modelPkg, ".Database")
+	}
+	g.P()
+
+	for i, service := range file.Service {
+		g.generateService(file, service, i)
+	}
+
+	// Generate model structs for @model annotated messages
+	for i, msg := range file.MessageType {
+		if g.isModelMessage(i) {
+			g.generateModel(msg, i)
+		}
+	}
+}
+
+// GenerateImports generates the import declaration for this file.
+func (g *micro) GenerateImports(file *generator.FileDescriptor, imports map[generator.GoImportPath]generator.GoPackageName) {
+	hasServices := len(file.Service) > 0
+	hasModels := false
+	for i := range file.MessageType {
+		if g.isModelMessage(i) {
+			hasModels = true
+			break
+		}
+	}
+
+	if !hasServices && !hasModels {
+		return
+	}
+
+	g.P("import (")
+	g.P(contextPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, contextPkgPath)))
+	if hasServices {
+		g.P(clientPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, clientPkgPath)))
+		g.P(serverPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, serverPkgPath)))
+	}
+	if hasModels {
+		g.P(modelPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, modelPkgPath)))
+	}
+	g.P(")")
+	g.P()
+
+	// We need to keep track of imported packages to make sure we don't produce
+	// a name collision when generating types.
+	pkgImports = make(map[generator.GoPackageName]bool)
+	for _, name := range imports {
+		pkgImports[name] = true
+	}
+}
+
+// reservedClientName records whether a client name is reserved on the client side.
+var reservedClientName = map[string]bool{
+	// TODO: do we need any in go-micro?
+}
+
+func unexport(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	name := strings.ToLower(s[:1]) + s[1:]
+	if pkgImports[generator.GoPackageName(name)] {
+		return name + "_"
+	}
+	return name
+}
+
+// generateService generates all the code for the named service.
+func (g *micro) generateService(file *generator.FileDescriptor, service *pb.ServiceDescriptorProto, index int) {
+	path := fmt.Sprintf("6,%d", index) // 6 means service.
+
+	origServName := service.GetName()
+	serviceName := strings.ToLower(service.GetName())
+	pkg := file.GetPackage()
+	if pkg != "" {
+		serviceName = pkg
+	}
+	servName := generator.CamelCase(origServName)
+	servAlias := servName + "Service"
+
+	// strip suffix
+	if strings.HasSuffix(servAlias, "ServiceService") {
+		servAlias = strings.TrimSuffix(servAlias, "Service")
+	}
+
+	g.P()
+	g.P("// Client API for ", servName, " service")
+	g.P()
+
+	// Client interface.
+	g.P("type ", servAlias, " interface {")
+	for i, method := range service.Method {
+		g.gen.PrintComments(fmt.Sprintf("%s,2,%d", path, i)) // 2 means method in a service.
+		g.P(g.generateClientSignature(servName, method))
+	}
+	g.P("}")
+	g.P()
+
+	// Client structure.
+	g.P("type ", unexport(servAlias), " struct {")
+	g.P("c ", clientPkg, ".Client")
+	g.P("name string")
+	g.P("}")
+	g.P()
+
+	// NewClient factory.
+	g.P("func New", servAlias, " (name string, c ", clientPkg, ".Client) ", servAlias, " {")
+	/*
+		g.P("if c == nil {")
+		g.P("c = ", clientPkg, ".NewClient()")
+		g.P("}")
+		g.P("if len(name) == 0 {")
+		g.P(`name = "`, serviceName, `"`)
+		g.P("}")
+	*/
+	g.P("return &", unexport(servAlias), "{")
+	g.P("c: c,")
+	g.P("name: name,")
+	g.P("}")
+	g.P("}")
+	g.P()
+	var methodIndex, streamIndex int
+	serviceDescVar := "_" + servName + "_serviceDesc"
+	// Client method implementations.
+	for _, method := range service.Method {
+		var descExpr string
+		if !method.GetServerStreaming() {
+			// Unary RPC method
+			descExpr = fmt.Sprintf("&%s.Methods[%d]", serviceDescVar, methodIndex)
+			methodIndex++
+		} else {
+			// Streaming RPC method
+			descExpr = fmt.Sprintf("&%s.Streams[%d]", serviceDescVar, streamIndex)
+			streamIndex++
+		}
+		g.generateClientMethod(pkg, serviceName, servName, serviceDescVar, method, descExpr)
+	}
+
+	g.P("// Server API for ", servName, " service")
+	g.P()
+
+	// Server interface.
+	serverType := servName + "Handler"
+	g.P("type ", serverType, " interface {")
+	for i, method := range service.Method {
+		g.gen.PrintComments(fmt.Sprintf("%s,2,%d", path, i)) // 2 means method in a service.
+		g.P(g.generateServerSignature(servName, method))
+	}
+	g.P("}")
+	g.P()
+
+	// Server registration.
+	g.P("func Register", servName, "Handler(s ", serverPkg, ".Server, hdlr ", serverType, ", opts ...", serverPkg, ".HandlerOption) error {")
+	g.P("type ", unexport(servName), " interface {")
+
+	// generate interface methods
+	for _, method := range service.Method {
+		methName := generator.CamelCase(method.GetName())
+		inType := g.typeName(method.GetInputType())
+		outType := g.typeName(method.GetOutputType())
+
+		if !method.GetServerStreaming() && !method.GetClientStreaming() {
+			g.P(methName, "(ctx ", contextPkg, ".Context, in *", inType, ", out *", outType, ") error")
+			continue
+		}
+		g.P(methName, "(ctx ", contextPkg, ".Context, stream server.Stream) error")
+	}
+	g.P("}")
+	g.P("type ", servName, " struct {")
+	g.P(unexport(servName))
+	g.P("}")
+	g.P("h := &", unexport(servName), "Handler{hdlr}")
+	g.P("return s.Handle(s.NewHandler(&", servName, "{h}, opts...))")
+	g.P("}")
+	g.P()
+
+	g.P("type ", unexport(servName), "Handler struct {")
+	g.P(serverType)
+	g.P("}")
+
+	// Server handler implementations.
+	for _, method := range service.Method {
+		g.generateServerMethod(servName, method)
+	}
+}
+
+// generateClientSignature returns the client-side signature for a method.
+func (g *micro) generateClientSignature(servName string, method *pb.MethodDescriptorProto) string {
+	origMethName := method.GetName()
+	methName := generator.CamelCase(origMethName)
+	if reservedClientName[methName] {
+		methName += "_"
+	}
+	reqArg := ", in *" + g.typeName(method.GetInputType())
+	if method.GetClientStreaming() {
+		reqArg = ""
+	}
+	respName := "*" + g.typeName(method.GetOutputType())
+	if method.GetServerStreaming() || method.GetClientStreaming() {
+		respName = servName + "_" + generator.CamelCase(origMethName) + "Service"
+	}
+
+	return fmt.Sprintf("%s(ctx %s.Context%s, opts ...%s.CallOption) (%s, error)", methName, contextPkg, reqArg, clientPkg, respName)
+}
+
+func (g *micro) generateClientMethod(pkg, reqServ, servName, serviceDescVar string, method *pb.MethodDescriptorProto, descExpr string) {
+	reqMethod := fmt.Sprintf("%s.%s", servName, method.GetName())
+	useGrpc := g.gen.Param["use_grpc"]
+	if useGrpc != "" {
+		reqMethod = fmt.Sprintf("/%s.%s/%s", pkg, servName, method.GetName())
+	}
+	methName := generator.CamelCase(method.GetName())
+	inType := g.typeName(method.GetInputType())
+	outType := g.typeName(method.GetOutputType())
+
+	servAlias := servName + "Service"
+
+	// strip suffix
+	if strings.HasSuffix(servAlias, "ServiceService") {
+		servAlias = strings.TrimSuffix(servAlias, "Service")
+	}
+
+	g.P("func (c *", unexport(servAlias), ") ", g.generateClientSignature(servName, method), "{")
+	if !method.GetServerStreaming() && !method.GetClientStreaming() {
+		g.P(`req := c.c.NewRequest(c.name, "`, reqMethod, `", in)`)
+		g.P("out := new(", outType, ")")
+		// TODO: Pass descExpr to Invoke.
+		g.P("err := ", `c.c.Call(ctx, req, out, opts...)`)
+		g.P("if err != nil { return nil, err }")
+		g.P("return out, nil")
+		g.P("}")
+		g.P()
+		return
+	}
+	streamType := unexport(servAlias) + methName
+	g.P(`req := c.c.NewRequest(c.name, "`, reqMethod, `", &`, inType, `{})`)
+	g.P("stream, err := c.c.Stream(ctx, req, opts...)")
+	g.P("if err != nil { return nil, err }")
+
+	if !method.GetClientStreaming() {
+		g.P("if err := stream.Send(in); err != nil { return nil, err }")
+		// TODO: currently only grpc support CloseSend
+		// g.P("if err := stream.CloseSend(); err != nil { return nil, err }")
+	}
+
+	g.P("return &", streamType, "{stream}, nil")
+	g.P("}")
+	g.P()
+
+	genSend := method.GetClientStreaming()
+	genRecv := method.GetServerStreaming()
+
+	// Stream auxiliary types and methods.
+	g.P("type ", servName, "_", methName, "Service interface {")
+	g.P("Context() context.Context")
+	g.P("SendMsg(interface{}) error")
+	g.P("RecvMsg(interface{}) error")
+	g.P("CloseSend() error")
+	g.P("Close() error")
+
+	if genSend {
+		g.P("Send(*", inType, ") error")
+	}
+	if genRecv {
+		g.P("Recv() (*", outType, ", error)")
+	}
+	g.P("}")
+	g.P()
+
+	g.P("type ", streamType, " struct {")
+	g.P("stream ", clientPkg, ".Stream")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") CloseSend() error {")
+	g.P("return x.stream.CloseSend()")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") Close() error {")
+	g.P("return x.stream.Close()")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") Context() context.Context {")
+	g.P("return x.stream.Context()")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") SendMsg(m interface{}) error {")
+	g.P("return x.stream.Send(m)")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") RecvMsg(m interface{}) error {")
+	g.P("return x.stream.Recv(m)")
+	g.P("}")
+	g.P()
+
+	if genSend {
+		g.P("func (x *", streamType, ") Send(m *", inType, ") error {")
+		g.P("return x.stream.Send(m)")
+		g.P("}")
+		g.P()
+
+	}
+
+	if genRecv {
+		g.P("func (x *", streamType, ") Recv() (*", outType, ", error) {")
+		g.P("m := new(", outType, ")")
+		g.P("err := x.stream.Recv(m)")
+		g.P("if err != nil {")
+		g.P("return nil, err")
+		g.P("}")
+		g.P("return m, nil")
+		g.P("}")
+		g.P()
+	}
+}
+
+// generateServerSignature returns the server-side signature for a method.
+func (g *micro) generateServerSignature(servName string, method *pb.MethodDescriptorProto) string {
+	origMethName := method.GetName()
+	methName := generator.CamelCase(origMethName)
+	if reservedClientName[methName] {
+		methName += "_"
+	}
+
+	var reqArgs []string
+	ret := "error"
+	reqArgs = append(reqArgs, contextPkg+".Context")
+
+	if !method.GetClientStreaming() {
+		reqArgs = append(reqArgs, "*"+g.typeName(method.GetInputType()))
+	}
+	if method.GetServerStreaming() || method.GetClientStreaming() {
+		reqArgs = append(reqArgs, servName+"_"+generator.CamelCase(origMethName)+"Stream")
+	}
+	if !method.GetClientStreaming() && !method.GetServerStreaming() {
+		reqArgs = append(reqArgs, "*"+g.typeName(method.GetOutputType()))
+	}
+	return methName + "(" + strings.Join(reqArgs, ", ") + ") " + ret
+}
+
+func (g *micro) generateServerMethod(servName string, method *pb.MethodDescriptorProto) string {
+	methName := generator.CamelCase(method.GetName())
+	hname := fmt.Sprintf("_%s_%s_Handler", servName, methName)
+	serveType := servName + "Handler"
+	inType := g.typeName(method.GetInputType())
+	outType := g.typeName(method.GetOutputType())
+
+	if !method.GetServerStreaming() && !method.GetClientStreaming() {
+		g.P("func (h *", unexport(servName), "Handler) ", methName, "(ctx ", contextPkg, ".Context, in *", inType, ", out *", outType, ") error {")
+		g.P("return h.", serveType, ".", methName, "(ctx, in, out)")
+		g.P("}")
+		g.P()
+		return hname
+	}
+	streamType := unexport(servName) + methName + "Stream"
+	g.P("func (h *", unexport(servName), "Handler) ", methName, "(ctx ", contextPkg, ".Context, stream server.Stream) error {")
+	if !method.GetClientStreaming() {
+		g.P("m := new(", inType, ")")
+		g.P("if err := stream.Recv(m); err != nil { return err }")
+		g.P("return h.", serveType, ".", methName, "(ctx, m, &", streamType, "{stream})")
+	} else {
+		g.P("return h.", serveType, ".", methName, "(ctx, &", streamType, "{stream})")
+	}
+	g.P("}")
+	g.P()
+
+	genSend := method.GetServerStreaming()
+	genRecv := method.GetClientStreaming()
+
+	// Stream auxiliary types and methods.
+	g.P("type ", servName, "_", methName, "Stream interface {")
+	g.P("Context() context.Context")
+	g.P("SendMsg(interface{}) error")
+	g.P("RecvMsg(interface{}) error")
+	g.P("Close() error")
+
+	if genSend {
+		g.P("Send(*", outType, ") error")
+	}
+
+	if genRecv {
+		g.P("Recv() (*", inType, ", error)")
+	}
+
+	g.P("}")
+	g.P()
+
+	g.P("type ", streamType, " struct {")
+	g.P("stream ", serverPkg, ".Stream")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") Close() error {")
+	g.P("return x.stream.Close()")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") Context() context.Context {")
+	g.P("return x.stream.Context()")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") SendMsg(m interface{}) error {")
+	g.P("return x.stream.Send(m)")
+	g.P("}")
+	g.P()
+
+	g.P("func (x *", streamType, ") RecvMsg(m interface{}) error {")
+	g.P("return x.stream.Recv(m)")
+	g.P("}")
+	g.P()
+
+	if genSend {
+		g.P("func (x *", streamType, ") Send(m *", outType, ") error {")
+		g.P("return x.stream.Send(m)")
+		g.P("}")
+		g.P()
+	}
+
+	if genRecv {
+		g.P("func (x *", streamType, ") Recv() (*", inType, ", error) {")
+		g.P("m := new(", inType, ")")
+		g.P("if err := x.stream.Recv(m); err != nil { return nil, err }")
+		g.P("return m, nil")
+		g.P("}")
+		g.P()
+	}
+
+	return hname
+}
+
+// isModelMessage checks if the message at the given index has a // @model annotation.
+// Path "4,<index>" refers to message_type[index] in FileDescriptorProto.
+func (g *micro) isModelMessage(msgIndex int) bool {
+	commentPath := fmt.Sprintf("4,%d", msgIndex)
+	comment, ok := g.gen.GetComments(commentPath)
+	if !ok {
+		return false
+	}
+	return strings.Contains(comment, "@model")
+}
+
+// parseModelOptions extracts options from the @model annotation comment.
+// Supports: @model, @model(table=my_table), @model(key=custom_id)
+func parseModelOptions(comment string) (table string, key string) {
+	idx := strings.Index(comment, "@model")
+	if idx < 0 {
+		return "", ""
+	}
+	rest := comment[idx+len("@model"):]
+	rest = strings.TrimSpace(rest)
+	if !strings.HasPrefix(rest, "(") {
+		return "", ""
+	}
+	end := strings.Index(rest, ")")
+	if end < 0 {
+		return "", ""
+	}
+	opts := rest[1:end]
+	for _, part := range strings.Split(opts, ",") {
+		kv := strings.SplitN(strings.TrimSpace(part), "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		switch strings.TrimSpace(kv[0]) {
+		case "table":
+			table = strings.TrimSpace(kv[1])
+		case "key":
+			key = strings.TrimSpace(kv[1])
+		}
+	}
+	return table, key
+}
+
+// protoFieldGoType returns the Go type string for a proto field for use in model structs.
+// Only supports scalar types (no nested messages or enums in model structs).
+func protoFieldGoType(field *pb.FieldDescriptorProto) string {
+	switch field.GetType() {
+	case pb.FieldDescriptorProto_TYPE_DOUBLE:
+		return "float64"
+	case pb.FieldDescriptorProto_TYPE_FLOAT:
+		return "float32"
+	case pb.FieldDescriptorProto_TYPE_INT64, pb.FieldDescriptorProto_TYPE_SINT64, pb.FieldDescriptorProto_TYPE_SFIXED64:
+		return "int64"
+	case pb.FieldDescriptorProto_TYPE_UINT64, pb.FieldDescriptorProto_TYPE_FIXED64:
+		return "uint64"
+	case pb.FieldDescriptorProto_TYPE_INT32, pb.FieldDescriptorProto_TYPE_SINT32, pb.FieldDescriptorProto_TYPE_SFIXED32:
+		return "int32"
+	case pb.FieldDescriptorProto_TYPE_UINT32, pb.FieldDescriptorProto_TYPE_FIXED32:
+		return "uint32"
+	case pb.FieldDescriptorProto_TYPE_BOOL:
+		return "bool"
+	case pb.FieldDescriptorProto_TYPE_STRING:
+		return "string"
+	case pb.FieldDescriptorProto_TYPE_BYTES:
+		return "[]byte"
+	default:
+		return "string"
+	}
+}
+
+// generateModel generates the model struct, factory, and proto conversion for a message.
+func (g *micro) generateModel(msg *pb.DescriptorProto, msgIndex int) {
+	msgName := generator.CamelCase(msg.GetName())
+	modelName := msgName + "Model"
+
+	// Parse options from comment
+	commentPath := fmt.Sprintf("4,%d", msgIndex)
+	comment, _ := g.gen.GetComments(commentPath)
+	tableName, keyField := parseModelOptions(comment)
+
+	// Default table: lowercase message name + "s"
+	if tableName == "" {
+		tableName = strings.ToLower(msg.GetName()) + "s"
+	}
+
+	// Default key: first field, or "id" if a field named "id" exists
+	if keyField == "" {
+		for _, field := range msg.Field {
+			if field.GetName() == "id" {
+				keyField = "id"
+				break
+			}
+		}
+		if keyField == "" && len(msg.Field) > 0 {
+			keyField = msg.Field[0].GetName()
+		}
+	}
+
+	// Filter to scalar fields only (skip nested messages, maps, oneofs)
+	type modelField struct {
+		goName   string
+		jsonName string
+		goType   string
+		isKey    bool
+		proto    *pb.FieldDescriptorProto
+	}
+	var fields []modelField
+	for _, field := range msg.Field {
+		ft := field.GetType()
+		// Skip message and enum types (not directly storable as scalars)
+		if ft == pb.FieldDescriptorProto_TYPE_MESSAGE || ft == pb.FieldDescriptorProto_TYPE_GROUP {
+			continue
+		}
+		// Skip repeated fields (slices aren't directly storable)
+		if field.GetLabel() == pb.FieldDescriptorProto_LABEL_REPEATED {
+			continue
+		}
+		goName := generator.CamelCase(field.GetName())
+		jsonName := field.GetJsonName()
+		if jsonName == "" {
+			jsonName = field.GetName()
+		}
+		fields = append(fields, modelField{
+			goName:   goName,
+			jsonName: jsonName,
+			goType:   protoFieldGoType(field),
+			isKey:    field.GetName() == keyField,
+			proto:    field,
+		})
+	}
+
+	if len(fields) == 0 {
+		return
+	}
+
+	// Generate model struct
+	g.P()
+	g.P("// ", modelName, " is a model struct generated from ", msgName, ".")
+	g.P("// Use New", modelName, " to create a typed table backed by any model.Model.")
+	g.P("type ", modelName, " struct {")
+	for _, f := range fields {
+		tags := fmt.Sprintf("`json:%q", f.jsonName)
+		if f.isKey {
+			tags += ` model:"key"`
+		}
+		tags += "`"
+		g.P(f.goName, " ", f.goType, " ", tags)
+	}
+	g.P("}")
+	g.P()
+
+	// Generate Register helper: RegisterXModel(db) registers the model with the given backend.
+	g.P("// Register", modelName, " registers the ", modelName, " table with the given model backend.")
+	g.P("func Register", modelName, "(db ", modelPkg, ".Model) error {")
+	g.P("return db.Register(&", modelName, "{}, ", modelPkg, `.WithTable("`, tableName, `"))`)
+	g.P("}")
+	g.P()
+
+	// Generate FromProto: XModelFromProto(*X) *XModel
+	g.P("// ", modelName, "FromProto converts a ", msgName, " proto message to a ", modelName, ".")
+	g.P("func ", modelName, "FromProto(p *", msgName, ") *", modelName, " {")
+	g.P("if p == nil { return nil }")
+	g.P("return &", modelName, "{")
+	for _, f := range fields {
+		getter := "Get" + f.goName
+		g.P(f.goName, ": p.", getter, "(),")
+	}
+	g.P("}")
+	g.P("}")
+	g.P()
+
+	// Generate ToProto: (*XModel).ToProto() *X
+	g.P("// ToProto converts a ", modelName, " to a ", msgName, " proto message.")
+	g.P("func (m *", modelName, ") ToProto() *", msgName, " {")
+	g.P("if m == nil { return nil }")
+	g.P("return &", msgName, "{")
+	for _, f := range fields {
+		g.P(f.goName, ": m.", f.goName, ",")
+	}
+	g.P("}")
+	g.P("}")
+	g.P()
+}

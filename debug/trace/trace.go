@@ -5,8 +5,8 @@ import (
 	"context"
 	"time"
 
-	"go-micro.dev/v4/metadata"
-	"go-micro.dev/v4/transport/headers"
+	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/transport/headers"
 )
 
 var (

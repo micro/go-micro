@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v4/util/ring"
+	"go-micro.dev/v6/internal/util/ring"
 )
 
 // Should stream from OS.
@@ -14,7 +14,6 @@ type osLog struct {
 	subs   map[string]*osStream
 
 	sync.RWMutex
-	once sync.Once
 }
 
 type osStream struct {

@@ -1,0 +1,117 @@
+name: Harness (E2E)
+
+# Runs the end-to-end harnesses for agents, services, flows, and provider
+# conformance. The default job uses deterministic mock LLMs and needs no
+# secrets. A second job runs the same harnesses against the live provider set and
+# skips providers whose secrets are absent, so scheduled conformance
+# remains safe in no-key forks while still failing configured providers that drift.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  schedule:
+    - cron: "17 * * * *" # hourly, so real-model conformance keeps pace with the dev/loop velocity
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: "Comma-separated providers for live conformance (default: all supported)"
+        required: false
+        default: "anthropic,openai,gemini,groq,minimax,mistral,together,atlascloud"
+      harnesses:
+        description: "Comma-separated harnesses for live conformance"
+        required: false
+        default: "agent,universe,agent-flow,plan-delegate,a2a-stream-fallback"
+      require_configured:
+        description: "Fail selected live providers that do not have repository secrets"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  harness:
+    name: Harnesses (mock LLM)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'schedule' || github.repository == 'micro/go-micro'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - name: Build
+        run: go build ./...
+      - name: 0→1 and 0→hero developer-flow harness
+        run: make harness
+
+  harness-live:
+    name: Provider harnesses (live LLM conformance)
+    runs-on: ubuntu-latest
+    # Only on the hourly schedule or a manual run — never automatically on
+    # every push/PR, so changes don't quietly burn API credits. Trigger it
+    # by hand (Actions → Harness → Run workflow) when changing the agent,
+    # flow, or AI internals and you want a real-model check.
+    if: (github.event_name == 'schedule' && github.repository == 'micro/go-micro') || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: true
+      - name: Provider conformance against live models
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
+          ATLASCLOUD_API_KEY: ${{ secrets.ATLASCLOUD_API_KEY }}
+          # Atlas Cloud's default chat model was failing the agent/tool-use
+          # conformance harnesses; run it against a stronger tool-use model.
+          # Override with an Actions variable ATLASCLOUD_MODEL if the exact
+          # catalog id differs (Atlas uses org/model ids).
+          ATLASCLOUD_MODEL: ${{ vars.ATLASCLOUD_MODEL || 'minimaxai/minimax-m3' }}
+        run: |
+          PROVIDERS="${{ github.event.inputs.providers || 'anthropic,openai,gemini,groq,minimax,mistral,together,atlascloud' }}"
+          HARNESSES="${{ github.event.inputs.harnesses || 'agent,universe,agent-flow,plan-delegate,a2a-stream-fallback' }}"
+          REQUIRE_CONFIGURED="${{ github.event.inputs.require_configured || 'false' }}"
+
+          args=(
+            -providers "$PROVIDERS"
+            -harnesses "$HARNESSES"
+            -summary-json provider-conformance-summary.json
+            -summary-markdown provider-conformance-summary.md
+            -capabilities-markdown provider-capabilities.md
+          )
+          if [ "$REQUIRE_CONFIGURED" = "true" ]; then
+            args+=( -require-configured )
+          fi
+
+          go run ./internal/harness/provider-conformance "${args[@]}"
+      - name: Publish provider conformance summary
+        if: always()
+        run: |
+          if [ -f provider-conformance-summary.md ]; then
+            cat provider-conformance-summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f provider-capabilities.md ]; then
+            {
+              echo
+              echo "## Registered provider capabilities"
+              echo
+              cat provider-capabilities.md
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload provider conformance summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-conformance
+          path: |
+            provider-conformance-summary.json
+            provider-conformance-summary.md
+            provider-capabilities.md
+          if-no-files-found: ignore

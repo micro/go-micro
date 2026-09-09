@@ -7,11 +7,11 @@ import (
 	"io"
 	"time"
 
-	"go-micro.dev/v4/client"
-	"go-micro.dev/v4/debug/log"
-	proto "go-micro.dev/v4/debug/proto"
-	"go-micro.dev/v4/debug/stats"
-	"go-micro.dev/v4/debug/trace"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/debug/log"
+	proto "go-micro.dev/v6/debug/proto"
+	"go-micro.dev/v6/debug/stats"
+	"go-micro.dev/v6/debug/trace"
 )
 
 // NewHandler returns an instance of the Debug Handler.
@@ -138,7 +138,7 @@ func (d *Debug) Log(ctx context.Context, req *proto.LogRequest, stream proto.Deb
 		if err != nil {
 			return err
 		}
-		defer lgStream.Stop()
+		defer func() { _ = lgStream.Stop() }()
 
 		for record := range lgStream.Chan() {
 			// copy metadata

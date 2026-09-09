@@ -1,0 +1,387 @@
+// Package gemini implements the Google Gemini model provider.
+//
+// Usage:
+//
+//	import _ "go-micro.dev/v6/ai/gemini"
+//
+//	m := ai.New("gemini",
+//	    ai.WithAPIKey("your-api-key"),
+//	)
+package gemini
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+
+	"go-micro.dev/v6/ai"
+)
+
+func init() {
+	ai.Register("gemini", func(opts ...ai.Option) ai.Model {
+		return NewProvider(opts...)
+	})
+	ai.RegisterStream("gemini")
+}
+
+// Provider implements the ai.Model interface for Google Gemini.
+type Provider struct {
+	opts ai.Options
+}
+
+// NewProvider creates a new Gemini provider.
+func NewProvider(opts ...ai.Option) *Provider {
+	options := ai.NewOptions(opts...)
+
+	if options.Model == "" {
+		options.Model = "gemini-2.5-flash"
+	}
+	if options.BaseURL == "" {
+		options.BaseURL = "https://generativelanguage.googleapis.com"
+	}
+
+	return &Provider{opts: options}
+}
+
+func (p *Provider) Init(opts ...ai.Option) error {
+	for _, o := range opts {
+		o(&p.opts)
+	}
+	return nil
+}
+
+func (p *Provider) Options() ai.Options { return p.opts }
+func (p *Provider) String() string      { return "gemini" }
+
+func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
+	var tools []map[string]any
+	for _, t := range req.Tools {
+		tools = append(tools, map[string]any{
+			"name":        t.Name,
+			"description": t.Description,
+			"parameters": map[string]any{
+				"type":       "object",
+				"properties": t.Properties,
+			},
+		})
+	}
+
+	contents := geminiContents(req)
+
+	apiReq := map[string]any{
+		"contents": contents,
+	}
+
+	if req.SystemPrompt != "" {
+		apiReq["system_instruction"] = map[string]any{
+			"parts": []map[string]any{{"text": req.SystemPrompt}},
+		}
+	}
+
+	if len(tools) > 0 {
+		apiReq["tools"] = []map[string]any{
+			{"functionDeclarations": tools},
+		}
+	}
+
+	resp, rawParts, err := p.callAPI(ctx, apiReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.ToolCalls) == 0 {
+		return resp, nil
+	}
+
+	// Tool execution loop: execute tools, send results back, and keep the
+	// function declarations on offer so the model can take the next step. A
+	// follow-up without tools asks the model to continue with its hands tied —
+	// the call it wanted comes back written out as prose — and without a loop
+	// a second step is impossible whatever the model wants. Bounded so a model
+	// that never stops asking cannot run forever.
+	if p.opts.ToolHandler != nil {
+		// Copied rather than aliased: append on a slice that shares an array
+		// with contents would overwrite it on a later round.
+		followUpContents := append([]map[string]any(nil), contents...)
+		pending := resp.ToolCalls
+		raw := rawParts
+		for round := 0; len(pending) > 0 && round < maxToolRounds; round++ {
+			var resultParts []map[string]any
+			for _, tc := range pending {
+				result := p.opts.ToolHandler(ctx, tc).Value
+				resultParts = append(resultParts, map[string]any{
+					"functionResponse": map[string]any{
+						"name":     tc.Name,
+						"id":       tc.ID,
+						"response": result,
+					},
+				})
+			}
+
+			followUpContents = append(followUpContents,
+				map[string]any{"role": "model", "parts": raw},
+				map[string]any{"role": "user", "parts": resultParts},
+			)
+
+			followUpReq := map[string]any{
+				"contents": followUpContents,
+			}
+			if req.SystemPrompt != "" {
+				followUpReq["system_instruction"] = map[string]any{
+					"parts": []map[string]any{{"text": req.SystemPrompt}},
+				}
+			}
+			if len(tools) > 0 {
+				followUpReq["tools"] = []map[string]any{
+					{"functionDeclarations": tools},
+				}
+			}
+
+			followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
+			if err != nil {
+				break
+			}
+			if followUpResp.Reply != "" {
+				resp.Answer = followUpResp.Reply
+			}
+			pending, raw = followUpResp.ToolCalls, followUpRaw
+			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
+		}
+	}
+
+	return resp, nil
+}
+
+// maxToolRounds bounds the tool-execution loop in a single Generate. Each
+// round is a model call plus the tools it asks for, so this is the ceiling on
+// one question's cost as well as its length; it is high enough that no honest
+// piece of multi-step work reaches it.
+const maxToolRounds = 12
+
+func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
+	apiReq := map[string]any{
+		"contents": geminiContents(req),
+	}
+	if req.SystemPrompt != "" {
+		apiReq["system_instruction"] = map[string]any{
+			"parts": []map[string]any{{"text": req.SystemPrompt}},
+		}
+	}
+	if p.opts.MaxTokens > 0 {
+		apiReq["generationConfig"] = map[string]any{"maxOutputTokens": p.opts.MaxTokens}
+	}
+
+	reqBody, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal stream request: %w", err)
+	}
+
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") +
+		"/v1beta/models/" + p.opts.Model + ":streamGenerateContent?alt=sse"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stream request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("x-goog-api-key", p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("stream API request failed: %w", err)
+	}
+	if httpResp.StatusCode != http.StatusOK {
+		defer httpResp.Body.Close()
+		respBody, _ := io.ReadAll(httpResp.Body)
+		return nil, ai.NewHTTPError(httpResp, respBody)
+	}
+	return &streamReader{body: httpResp.Body, scanner: bufio.NewScanner(httpResp.Body)}, nil
+}
+
+type streamReader struct {
+	body    io.ReadCloser
+	scanner *bufio.Scanner
+	closed  bool
+}
+
+func (s *streamReader) Recv() (*ai.Response, error) {
+	for s.scanner.Scan() {
+		line := strings.TrimSpace(s.scanner.Text())
+		if line == "" || strings.HasPrefix(line, ":") || strings.HasPrefix(line, "event:") {
+			continue
+		}
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			return nil, io.EOF
+		}
+
+		var chunk struct {
+			Error *struct {
+				Code    int    `json:"code"`
+				Message string `json:"message"`
+				Status  string `json:"status"`
+			} `json:"error"`
+			Candidates []struct {
+				Content struct {
+					Parts []struct {
+						Text string `json:"text"`
+					} `json:"parts"`
+				} `json:"content"`
+			} `json:"candidates"`
+			UsageMetadata *struct {
+				PromptTokenCount     int `json:"promptTokenCount"`
+				CandidatesTokenCount int `json:"candidatesTokenCount"`
+				TotalTokenCount      int `json:"totalTokenCount"`
+			} `json:"usageMetadata"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
+		}
+		if chunk.Error != nil {
+			return nil, fmt.Errorf("gemini stream error (%s): %s", chunk.Error.Status, chunk.Error.Message)
+		}
+		for _, candidate := range chunk.Candidates {
+			var parts []string
+			for _, part := range candidate.Content.Parts {
+				if part.Text != "" {
+					parts = append(parts, part.Text)
+				}
+			}
+			if len(parts) > 0 {
+				return &ai.Response{Reply: strings.Join(parts, "")}, nil
+			}
+		}
+		if chunk.UsageMetadata != nil {
+			return &ai.Response{Usage: ai.Usage{
+				InputTokens:  chunk.UsageMetadata.PromptTokenCount,
+				OutputTokens: chunk.UsageMetadata.CandidatesTokenCount,
+				TotalTokens:  chunk.UsageMetadata.TotalTokenCount,
+			}}, nil
+		}
+	}
+	if err := s.scanner.Err(); err != nil {
+		return nil, err
+	}
+	return nil, io.EOF
+}
+
+func (s *streamReader) Close() error {
+	if s.closed {
+		return nil
+	}
+	s.closed = true
+	return s.body.Close()
+}
+
+func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Response, []map[string]any, error) {
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") +
+		"/v1beta/models/" + p.opts.Model + ":generateContent"
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("x-goog-api-key", p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	respBody, _ := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode != http.StatusOK {
+		return nil, nil, ai.NewHTTPError(httpResp, respBody)
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text         string          `json:"text"`
+					FunctionCall *functionCallPB `json:"functionCall"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) == 0 {
+		return nil, nil, fmt.Errorf("no response from API")
+	}
+
+	parts := geminiResp.Candidates[0].Content.Parts
+	response := &ai.Response{}
+
+	var replyParts []string
+	var rawParts []map[string]any
+
+	for _, part := range parts {
+		if part.Text != "" {
+			replyParts = append(replyParts, part.Text)
+			rawParts = append(rawParts, map[string]any{"text": part.Text})
+		}
+		if part.FunctionCall != nil {
+			response.ToolCalls = append(response.ToolCalls, ai.ToolCall{
+				ID:    part.FunctionCall.ID,
+				Name:  part.FunctionCall.Name,
+				Input: part.FunctionCall.Args,
+			})
+			rawParts = append(rawParts, map[string]any{
+				"functionCall": map[string]any{
+					"id":   part.FunctionCall.ID,
+					"name": part.FunctionCall.Name,
+					"args": part.FunctionCall.Args,
+				},
+			})
+		}
+	}
+
+	if len(replyParts) > 0 {
+		response.Reply = strings.Join(replyParts, "\n")
+	}
+
+	return response, rawParts, nil
+}
+
+type functionCallPB struct {
+	ID   string         `json:"id"`
+	Name string         `json:"name"`
+	Args map[string]any `json:"args"`
+}
+
+func geminiContents(req *ai.Request) []map[string]any {
+	contents := make([]map[string]any, 0, len(req.Messages)+1)
+	for _, m := range req.Messages {
+		role := m.Role
+		if role == "assistant" {
+			role = "model"
+		}
+		if role == "system" || role == "" {
+			continue
+		}
+		contents = append(contents, map[string]any{"role": role, "parts": []map[string]any{{"text": fmt.Sprint(m.Content)}}})
+	}
+	if req.Prompt != "" {
+		contents = append(contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": req.Prompt}}})
+	}
+	return contents
+}

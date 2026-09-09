@@ -37,84 +37,56 @@ func Parse(err string) *Error {
 	return e
 }
 
-// BadRequest generates a 400 error.
-func BadRequest(id, format string, a ...interface{}) error {
+func newError(id string, code int32, detail string, a ...interface{}) error {
+	if len(a) > 0 {
+		detail = fmt.Sprintf(detail, a...)
+	}
 	return &Error{
 		Id:     id,
-		Code:   400,
-		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(400),
+		Code:   code,
+		Detail: detail,
+		Status: http.StatusText(int(code)),
 	}
+}
+
+// BadRequest generates a 400 error.
+func BadRequest(id, format string, a ...interface{}) error {
+	return newError(id, 400, format, a...)
 }
 
 // Unauthorized generates a 401 error.
 func Unauthorized(id, format string, a ...interface{}) error {
-	return &Error{
-		Id:     id,
-		Code:   401,
-		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(401),
-	}
+	return newError(id, 401, format, a...)
 }
 
 // Forbidden generates a 403 error.
 func Forbidden(id, format string, a ...interface{}) error {
-	return &Error{
-		Id:     id,
-		Code:   403,
-		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(403),
-	}
+	return newError(id, 403, format, a...)
 }
 
 // NotFound generates a 404 error.
 func NotFound(id, format string, a ...interface{}) error {
-	return &Error{
-		Id:     id,
-		Code:   404,
-		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(404),
-	}
+	return newError(id, 404, format, a...)
 }
 
 // MethodNotAllowed generates a 405 error.
 func MethodNotAllowed(id, format string, a ...interface{}) error {
-	return &Error{
-		Id:     id,
-		Code:   405,
-		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(405),
-	}
+	return newError(id, 405, format, a...)
 }
 
 // Timeout generates a 408 error.
 func Timeout(id, format string, a ...interface{}) error {
-	return &Error{
-		Id:     id,
-		Code:   408,
-		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(408),
-	}
+	return newError(id, 408, format, a...)
 }
 
 // Conflict generates a 409 error.
 func Conflict(id, format string, a ...interface{}) error {
-	return &Error{
-		Id:     id,
-		Code:   409,
-		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(409),
-	}
+	return newError(id, 409, format, a...)
 }
 
 // InternalServerError generates a 500 error.
 func InternalServerError(id, format string, a ...interface{}) error {
-	return &Error{
-		Id:     id,
-		Code:   500,
-		Detail: fmt.Sprintf(format, a...),
-		Status: http.StatusText(500),
-	}
+	return newError(id, 500, format, a...)
 }
 
 // Equal tries to compare errors.

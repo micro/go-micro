@@ -1,0 +1,73 @@
+# Durable Flow
+
+A workflow that survives a crash and resumes where it stopped.
+
+A `flow` can be an ordered list of **steps** — a task with stages —
+instead of a single LLM turn. Each step is checkpointed before and after
+through a pluggable `Checkpoint` (store-backed by default), so if the
+process dies mid-run, the run resumes at the step it stopped on, without
+re-running steps whose completion was successfully checkpointed. A step
+interrupted before that save can repeat its side effects; see the
+[durability contract](../../internal/website/content/en/docs/guides/durability.md).
+
+## What this shows
+
+A three-step checkout (`reserve → charge → confirm`) whose `charge` step
+fails the first time, simulating a transient outage / crash:
+
+```
+first run:
+  reserve  → inventory reserved
+  charge   → payment dependency unavailable (crash)
+  run failed: payment gateway timeout
+
+checkpoint: run 70643f61 is at step "charge" (status failed)
+
+resume:
+  charge   → payment captured
+  confirm  → order confirmed
+
+reserve ran 1 time(s) total — completed steps are not repeated on resume
+no pending runs — the workflow completed durably
+```
+
+The key line is the last pair: on `Resume`, `reserve` does **not** run
+again — its result was checkpointed — and the run finishes.
+
+## The pieces
+
+```go
+f := micro.NewFlow("checkout",
+    micro.FlowSteps(
+        micro.FlowStep{Name: "reserve", Run: reserve},
+        micro.FlowStep{Name: "charge",  Run: charge},
+        micro.FlowStep{Name: "confirm", Run: confirm},
+    ),
+    micro.FlowWithCheckpoint(micro.StoreCheckpoint(nil, "checkout")), // nil store = default; "checkout" = key scope
+)
+
+f.Execute(ctx, `{}`)        // runs; crashes at charge
+pending, _ := f.Pending(ctx) // the run, checkpointed at "charge"
+f.Resume(ctx, pending[0].ID) // continues from charge to the end
+```
+
+- **`State`** carries a typed payload (`Set`/`Scan`) plus a `Stage`
+  marker — the resume point.
+- **`Checkpoint`** persists each `Run`. The built-in is store-backed and
+  keeps each flow's runs in their own store table (database `flow`, table
+  `checkout`) via `store.Scope`, so one flow's runs don't share a table
+  with another's — or with agent or service state. The default file store survives a process restart when its files are
+  retained. Other stores can be selected explicitly; `Checkpoint` alone does
+  not supply an external-engine adapter or exactly-once execution.
+- A real step would be `flow.Call(service, endpoint)` (an RPC),
+  `flow.Dispatch(agent)` (hand off to an agent), or `flow.LLM(prompt)`
+  (one model turn). Here they're plain funcs so durability is the only
+  thing on display.
+
+## Run
+
+```bash
+go run main.go
+```
+
+No LLM key required.

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v4/config/source"
-	"go-micro.dev/v4/util/cmd"
+	"go-micro.dev/v6/cmd"
+	"go-micro.dev/v6/config/source"
 )
 
 type cliSource struct {
@@ -118,15 +118,15 @@ func NewSource(opts ...source.Option) source.Source {
 
 		// apply flags to set
 		for _, f := range flags {
-			f.Apply(set)
+			_ = f.Apply(set)
 		}
 
 		// parse flags
 		set.SetOutput(io.Discard)
-		set.Parse(os.Args[1:])
+		_ = set.Parse(os.Args[1:])
 
 		// normalise flags
-		normalizeFlags(app.Flags, set)
+		_ = normalizeFlags(app.Flags, set)
 
 		// create context
 		ctx = cli.NewContext(app, set, nil)

@@ -15,8 +15,10 @@ import (
 
 type config struct {
 	// the current values
-	vals reader.Values
-	exit chan bool
+	vals    reader.Values
+	exit    chan bool
+	closeMu sync.Mutex
+	closed  bool
 	// the current snapshot
 	snap *loader.Snapshot
 	opts Options
@@ -49,6 +51,9 @@ func (c *config) Init(opts ...Option) error {
 		Reader: json.NewReader(),
 	}
 	c.exit = make(chan bool)
+	c.closeMu.Lock()
+	c.closed = false
+	c.closeMu.Unlock()
 	for _, o := range opts {
 		o(&c.opts)
 	}
@@ -187,16 +192,18 @@ func (c *config) Sync() error {
 }
 
 func (c *config) Close() error {
-	select {
-	case <-c.exit:
+	c.closeMu.Lock()
+	defer c.closeMu.Unlock()
+
+	if c.closed {
 		return nil
-	default:
-		close(c.exit)
 	}
+  close(c.exit)
+  c.closed = true
 	return c.opts.Loader.Close()
 }
 
-func (c *config) Get(path ...string) reader.Value {
+func (c *config) Get(path ...string) (reader.Value, error) {
 	c.RLock()
 	defer c.RUnlock()
 
@@ -206,7 +213,7 @@ func (c *config) Get(path ...string) reader.Value {
 	}
 
 	// no value
-	return newValue()
+	return newValue(), nil
 }
 
 func (c *config) Set(val interface{}, path ...string) {
@@ -216,8 +223,6 @@ func (c *config) Set(val interface{}, path ...string) {
 	if c.vals != nil {
 		c.vals.Set(val, path...)
 	}
-
-	return
 }
 
 func (c *config) Del(path ...string) {
@@ -227,8 +232,6 @@ func (c *config) Del(path ...string) {
 	if c.vals != nil {
 		c.vals.Del(path...)
 	}
-
-	return
 }
 
 func (c *config) Bytes() []byte {
@@ -266,7 +269,10 @@ func (c *config) Load(sources ...source.Source) error {
 }
 
 func (c *config) Watch(path ...string) (Watcher, error) {
-	value := c.Get(path...)
+	value, err := c.Get(path...)
+	if err != nil {
+		return nil, err
+	}
 
 	w, err := c.opts.Loader.Watch(path...)
 	if err != nil {
@@ -302,8 +308,7 @@ func (w *watcher) Next() (reader.Value, error) {
 			return nil, err
 		}
 
-		w.value = v.Get()
-		return w.value, nil
+		return v.Get()
 	}
 }
 

@@ -1,0 +1,296 @@
+---
+title: "micro run - Local Development"
+---
+
+`micro run` provides a complete development environment for Go microservices.
+
+> **Note**: This guide focuses on `micro run` features. For a comparison with `micro server` and gateway architecture details, see the [CLI & Gateway Guide](cli-gateway.md).
+
+> **`micro run` is a development tool.** It builds and supervises your service processes locally with hot reload. There is no daemon — everything stops when `micro run` exits. For running services in production, see [Going to production](#going-to-production).
+
+## Quick Start
+
+```bash
+micro new helloworld
+cd helloworld
+micro run
+```
+
+Open http://localhost:8080 to see your service.
+
+## What You Get
+
+When you run `micro run`, you get:
+
+| URL | Description |
+|-----|-------------|
+| http://localhost:8080 | Web dashboard - browse and call services |
+| http://localhost:8080/agent | Agent playground - AI chat with MCP tools |
+| http://localhost:8080/api | API explorer - browse endpoints and schemas |
+| http://localhost:8080/api/{service}/{method} | API gateway - HTTP to RPC proxy |
+| http://localhost:8080/mcp/tools | MCP tools - list all services as AI tools |
+| http://localhost:8080/auth/tokens | Token management - create and manage API tokens |
+| http://localhost:8080/auth/scopes | Scope management - restrict endpoint access |
+| http://localhost:8080/auth/users | User management - create and manage users |
+| http://localhost:8080/health | Health checks - aggregated service health |
+| http://localhost:8080/services | Service list - JSON |
+
+Plus:
+- **Authentication** - off on loopback (the dev default), automatically on when the gateway is bound to a non-loopback address — using a token printed once at startup, never a default credential
+- **Hot Reload** - File changes trigger automatic rebuild
+- **Dependency Ordering** - Services start in the right order
+- **Environment Management** - Dev/staging/production configs
+- **MCP Gateway** - Optional standalone MCP protocol listener via `--mcp-address`, run independently of the HTTP gateway (streamable-HTTP at `/mcp`, WebSocket at `/mcp/ws`)
+
+## Features
+
+### API Gateway
+
+The gateway converts HTTP requests to RPC calls. On loopback (the `micro run` default) no auth is needed — just call it:
+
+```bash
+curl -X POST http://localhost:8080/api/helloworld/Say.Hello \
+  -d '{"name": "World"}'
+
+# Response
+{"message": "Hello World"}
+```
+
+See [Authentication](#authentication) for when a token is required.
+
+### Authentication
+
+**Auth follows the socket, not the command.** The bind address decides the default:
+
+- **Loopback** (`127.0.0.1`/`localhost`, the `micro run` default) → **auth off**. You're already behind the OS boundary, so there's no login to call your own tools.
+- **Non-loopback** (`0.0.0.0` or a routable IP) → **auth on automatically**. The instant it's reachable by others it's protected.
+
+When auth is on there is **no default credential**. A machine token is printed once at startup (or supply your own with `--auth-token` / `MICRO_AUTH_TOKEN`), and every `/api` and `/mcp` call carries it:
+
+```bash
+curl -H "Authorization: Bearer <token>" http://HOST:8080/api/helloworld/Say.Hello -d '{"name":"World"}'
+# SSE / browser links can use ?token=<token> instead
+```
+
+Override the default either way with `--auth` / `--no-auth` (or `MICRO_AUTH=on|off`).
+
+**Capability-aware, even locally:** a tool that declares a required **scope** — actions, paid tools — always needs a token bearing that scope, even on a loopback gateway with auth off. Read-only tools stay open; dangerous ones don't. Manage per-endpoint scopes at `/auth/scopes`.
+
+### Agent Playground
+
+The agent playground at `/agent` lets you interact with your services using AI. Your services are automatically exposed as MCP (Model Context Protocol) tools — no configuration needed.
+
+1. Open http://localhost:8080/agent
+2. Configure your API key in Agent Settings (supports OpenAI and Anthropic)
+3. Chat with the AI agent — it can discover and call your services as tools
+
+The MCP tools API is available at:
+- `/mcp/tools` — list all services as AI-callable tools
+- `/mcp/call` — invoke a tool (service endpoint) by name
+
+For a dedicated MCP protocol listener (for external AI clients), use:
+
+```bash
+micro run --mcp-address :3000
+```
+
+### Hot Reload
+
+By default, `micro run` watches for `.go` file changes and automatically rebuilds and restarts affected services.
+
+```bash
+micro run              # Hot reload enabled (default)
+micro run --no-watch   # Disable hot reload
+```
+
+Changes are debounced (300ms) to handle rapid saves from editors.
+
+### Configuration File
+
+For multi-service projects, create a `micro.mu` file to define services, dependencies, and environments.
+
+#### micro.mu (Recommended)
+
+```
+# Service definitions
+service users
+    path ./users
+    port 8081
+
+service posts
+    path ./posts
+    port 8082
+    depends users
+
+service web
+    path ./web
+    port 8089
+    depends users posts
+
+# Environment configurations
+env development
+    STORE_ADDRESS file://./data
+    DEBUG true
+
+env production
+    STORE_ADDRESS postgres://localhost/db
+    DEBUG false
+```
+
+#### micro.json (Alternative)
+
+```json
+{
+  "services": {
+    "users": {
+      "path": "./users",
+      "port": 8081
+    },
+    "posts": {
+      "path": "./posts",
+      "port": 8082,
+      "depends": ["users"]
+    }
+  },
+  "env": {
+    "development": {
+      "STORE_ADDRESS": "file://./data"
+    }
+  }
+}
+```
+
+### Service Properties
+
+| Property | Required | Description |
+|----------|----------|-------------|
+| `path` | Yes | Directory containing the service (with main.go) |
+| `port` | No | Port the service listens on (enables health check waiting) |
+| `depends` | No | Services that must start first (space-separated in .mu, array in .json) |
+
+### Dependency Ordering
+
+When `depends` is specified, services start in topological order:
+
+1. Services with no dependencies start first
+2. Each service waits for its dependencies to be ready
+3. If a service has a `port`, we wait for `/health` to return 200
+4. Circular dependencies are detected and reported as errors
+
+### Environment Management
+
+```bash
+micro run                    # Uses 'development' (default)
+micro run --env production   # Uses 'production'
+micro run --env staging      # Uses 'staging'
+MICRO_ENV=test micro run     # Environment variable override
+```
+
+Environment variables from the config are injected into each service's environment.
+
+### Graceful Shutdown
+
+On SIGINT (Ctrl+C) or SIGTERM:
+
+1. Services stop in reverse dependency order
+2. SIGTERM is sent first (graceful)
+3. After 5 seconds, SIGKILL if still running
+4. PID files are cleaned up
+
+## Without Configuration
+
+If no `micro.mu` or `micro.json` exists:
+
+1. All `main.go` files are discovered recursively
+2. Each is built and run
+3. No dependency ordering
+4. Hot reload still works
+
+## Logs
+
+Every service streams to the terminal running `micro run`, colorized and
+prefixed with the service name. The same output is also written to a file:
+
+```bash
+tail -f ~/micro/logs/users-*.log   # one file per service: {service}-{hash}.log
+```
+
+## Lifecycle
+
+`micro run` is itself the process manager for as long as it runs — there is no
+daemon and no `micro status`/`micro stop` command. Stop everything with
+`Ctrl-C`; services are shut down in reverse dependency order.
+
+On a `.go` change a service is rebuilt in place. If the rebuild fails to
+compile, the **previous version keeps running** and the build error is printed —
+a typo never takes your service offline. New service directories added while
+`micro run` is up (e.g. by `micro new` or `micro chat`) are picked up and started
+automatically.
+
+## Example: a multi-service app
+
+A multi-service app is described with a `micro.mu` file:
+
+```
+# micro.mu
+service users
+    path ./users
+    port 8081
+
+service posts
+    path ./posts
+    port 8082
+    depends users
+
+service comments
+    path ./comments
+    port 8083
+    depends users posts
+
+service web
+    path ./web
+    port 8089
+    depends users posts comments
+```
+
+Run it — from the local directory, or straight from a repo:
+```bash
+micro run .                       # current directory
+micro run github.com/myorg/blog   # remote repo
+```
+
+## Options
+
+```bash
+micro run                        # Gateway on :8080, hot reload
+micro run --address :3000        # Custom gateway port
+micro run --no-gateway           # Services only, no HTTP gateway
+micro run --no-watch             # Disable hot reload
+micro run --env production       # Use production environment
+micro run --mcp-address :3000    # Enable the MCP gateway for AI clients (runs alongside the HTTP gateway)
+```
+
+## Going to production
+
+`micro run` has no production mode by design — it's the dev inner loop. In
+development it also hands you a gateway for free (`--no-gateway` to skip); in
+production you don't run `micro run` at all. To ship:
+
+1. **Build each service**: `go build` produces a static binary.
+2. **Run it under a process manager or scheduler** — systemd, Docker/Compose, or
+   Kubernetes (see the Kubernetes deploy assets). That is your daemon: restarts,
+   log capture, and boot persistence come from there, not from Go Micro.
+3. **Point them at a shared registry** (Consul, etcd, or NATS) so they discover
+   each other.
+4. **Front them with the gateway** — the API/MCP gateway that turns your services
+   into an HTTP API and AI-callable MCP tools, with a dashboard and auth (see the
+   MCP gateway deploy assets).
+
+## Tips
+
+1. **Browse First**: Open http://localhost:8080 to explore your services
+2. **Try the Agent**: Open http://localhost:8080/agent to chat with your services via AI
+3. **Port Configuration**: Set `port` for services to enable health check waiting
+4. **Health Endpoint**: Implement `/health` returning 200 for reliable startup sequencing
+5. **Environment Separation**: Keep secrets in production env, use file:// paths for development
+6. **Hot Reload Scope**: Only `.go` files trigger rebuilds; static assets don't

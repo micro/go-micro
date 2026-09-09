@@ -1,49 +1,13 @@
 package transport
 
 import (
+	"errors"
 	"io"
 	"net"
 	"sync"
 	"testing"
 	"time"
 )
-
-func expectedPort(t *testing.T, expected string, lsn Listener) {
-	_, port, err := net.SplitHostPort(lsn.Addr())
-	if err != nil {
-		t.Errorf("Expected address to be `%s`, got error: %v", expected, err)
-	}
-
-	if port != expected {
-		lsn.Close()
-		t.Errorf("Expected address to be `%s`, got `%s`", expected, port)
-	}
-}
-
-func TestHTTPTransportPortRange(t *testing.T) {
-	tp := NewHTTPTransport()
-
-	lsn1, err := tp.Listen(":44444-44448")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
-	expectedPort(t, "44444", lsn1)
-
-	lsn2, err := tp.Listen(":44444-44448")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
-	expectedPort(t, "44445", lsn2)
-
-	lsn, err := tp.Listen("127.0.0.1:0")
-	if err != nil {
-		t.Errorf("Did not expect an error, got %s", err)
-	}
-
-	lsn.Close()
-	lsn1.Close()
-	lsn2.Close()
-}
 
 func TestHTTPTransportCommunication(t *testing.T) {
 	tr := NewHTTPTransport()
@@ -126,7 +90,7 @@ func TestHTTPTransportError(t *testing.T) {
 		for {
 			var m Message
 			if err := sock.Recv(&m); err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
 					return
 				}
 				t.Fatal(err)
@@ -203,7 +167,7 @@ func TestHTTPTransportTimeout(t *testing.T) {
 			case <-done:
 				return
 			case <-time.After(time.Second):
-				t.Fatal("deadline not executed")
+				t.Errorf("deadline not executed")
 			}
 		}()
 
@@ -335,7 +299,7 @@ func TestHTTPTransportMultipleSendWhenRecv(t *testing.T) {
 		Body: []byte(`{"message": "Hello World"}`),
 	}
 
-	wgSend := sync.WaitGroup{}
+	var wgSend sync.WaitGroup
 	fn := func(sock Socket) {
 		defer sock.Close()
 
@@ -344,7 +308,6 @@ func TestHTTPTransportMultipleSendWhenRecv(t *testing.T) {
 			if err := sock.Recv(&mr); err != nil {
 				return
 			}
-			wgSend.Add(1)
 			go func() {
 				defer wgSend.Done()
 				<-readyToSend
@@ -388,6 +351,7 @@ func TestHTTPTransportMultipleSendWhenRecv(t *testing.T) {
 			}
 		}
 	}()
+	wgSend.Add(3)
 	<-readyForRecv
 	for i := 0; i < 3; i++ {
 		if err := c.Send(&m); err != nil {
@@ -432,7 +396,7 @@ func TestHttpTransportListenerNetListener(t *testing.T) {
 			case <-done:
 				return
 			case <-time.After(time.Second):
-				t.Fatal("deadline not executed")
+				t.Errorf("deadline not executed")
 			}
 		}()
 

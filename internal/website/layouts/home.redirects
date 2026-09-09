@@ -1,0 +1,6 @@
+{{- range .Site.RegularPages }}
+  {{- $dest := .RelPermalink }}
+  {{- range .Aliases }}
+    {{- printf "%s %s 301\n" . $dest }}
+  {{- end }}
+{{- end }}

@@ -8,7 +8,7 @@ import (
 	"runtime/pprof"
 	"sync"
 
-	"go-micro.dev/v4/debug/profile"
+	"go-micro.dev/v6/debug/profile"
 )
 
 type profiler struct {
@@ -75,7 +75,7 @@ func (p *profiler) Stop() error {
 	pprof.StopCPUProfile()
 	p.cpuFile.Close()
 	runtime.GC()
-	pprof.WriteHeapProfile(p.memFile)
+	_ = pprof.WriteHeapProfile(p.memFile)
 	p.memFile.Close()
 	p.running = false
 	p.cpuFile = nil
