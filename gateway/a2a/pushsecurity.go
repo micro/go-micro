@@ -65,14 +65,67 @@ func resolvePushHost(host string) ([]net.IP, error) {
 // reach: loopback, private (RFC1918 / ULA), link-local (incl. 169.254.169.254
 // cloud metadata), multicast, or the unspecified address.
 func blockedPushIP(ip net.IP) bool {
-	return ip == nil ||
+	if ip == nil ||
 		ip.IsLoopback() ||
 		ip.IsPrivate() ||
 		ip.IsLinkLocalUnicast() ||
 		ip.IsLinkLocalMulticast() ||
 		ip.IsInterfaceLocalMulticast() ||
 		ip.IsMulticast() ||
-		ip.IsUnspecified()
+		ip.IsUnspecified() {
+		return true
+	}
+	// IPv6 transition addresses (6to4, NAT64, Teredo, IPv4-compatible) embed an
+	// IPv4 address none of the checks above look at. Unwrap and re-check it so
+	// [2002:a9fe:a9fe::1] is treated as 169.254.169.254.
+	for _, inner := range embeddedIPv4(ip) {
+		if blockedPushIP(inner) {
+			return true
+		}
+	}
+	return false
+}
+
+// embeddedIPv4 returns the IPv4 addresses carried inside an IPv6 transition
+// address, or nil when it carries none. Teredo yields two: the relay server and
+// the (obfuscated) client.
+func embeddedIPv4(ip net.IP) []net.IP {
+	v6 := ip.To16()
+	if v6 == nil || ip.To4() != nil {
+		return nil
+	}
+	switch {
+	// 6to4 — RFC 3056, 2002::/16, IPv4 in bytes 2-6.
+	case v6[0] == 0x20 && v6[1] == 0x02:
+		return []net.IP{net.IPv4(v6[2], v6[3], v6[4], v6[5])}
+	// NAT64 well-known prefix — RFC 6052, 64:ff9b::/96, IPv4 in the low 32 bits.
+	case v6[0] == 0x00 && v6[1] == 0x64 && v6[2] == 0xff && v6[3] == 0x9b && allZeros(v6[4:12]):
+		return []net.IP{net.IPv4(v6[12], v6[13], v6[14], v6[15])}
+	// NAT64 local-use prefix — RFC 8215, 64:ff9b:1::/48. Embedded IPv4 position
+	// depends on the operator's prefix length, so block the whole range.
+	case v6[0] == 0x00 && v6[1] == 0x64 && v6[2] == 0xff && v6[3] == 0x9b && v6[4] == 0x00 && v6[5] == 0x01:
+		return []net.IP{net.IPv4zero}
+	// Teredo — RFC 4380, 2001::/32. Server IPv4 in bytes 4-8, client IPv4 in
+	// bytes 12-16 obfuscated by XOR with 0xff.
+	case v6[0] == 0x20 && v6[1] == 0x01 && v6[2] == 0x00 && v6[3] == 0x00:
+		return []net.IP{
+			net.IPv4(v6[4], v6[5], v6[6], v6[7]),
+			net.IPv4(v6[12]^0xff, v6[13]^0xff, v6[14]^0xff, v6[15]^0xff),
+		}
+	// IPv4-compatible — deprecated ::a.b.c.d, not unwrapped by net.IP.To4.
+	case allZeros(v6[0:12]):
+		return []net.IP{net.IPv4(v6[12], v6[13], v6[14], v6[15])}
+	}
+	return nil
+}
+
+func allZeros(b []byte) bool {
+	for _, x := range b {
+		if x != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // pushDialControl runs after DNS resolution, immediately before connect, on the
