@@ -9,17 +9,17 @@ import (
 	"sync/atomic"
 
 	micro "go-micro.dev/v6"
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
 func main() {
 	ctx := context.Background()
 	checkpoint := micro.StoreCheckpoint(store.NewMemoryStore(), "durable-agent-demo")
-	model := &demoModel{failFirst: true}
-	ai.Register("durable-demo", func(opts ...ai.Option) ai.Model {
-		_ = model.Init(opts...)
-		return model
+	m := &demoModel{failFirst: true}
+	model.Register("durable-demo", func(opts ...model.Option) model.Model {
+		_ = m.Init(opts...)
+		return m
 	})
 	var reservations atomic.Int32
 
@@ -55,19 +55,19 @@ func main() {
 
 type demoModel struct {
 	failFirst bool
-	opts      ai.Options
+	opts      model.Options
 }
 
-func (m *demoModel) Init(opts ...ai.Option) error {
-	m.opts = ai.NewOptions(opts...)
+func (m *demoModel) Init(opts ...model.Option) error {
+	m.opts = model.NewOptions(opts...)
 	return nil
 }
-func (m *demoModel) Options() ai.Options { return m.opts }
-func (m *demoModel) String() string      { return "durable-demo" }
+func (m *demoModel) Options() model.Options { return m.opts }
+func (m *demoModel) String() string         { return "durable-demo" }
 
-func (m *demoModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
+func (m *demoModel) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
 	if m.opts.ToolHandler != nil {
-		res := m.opts.ToolHandler(ctx, ai.ToolCall{
+		res := m.opts.ToolHandler(ctx, model.ToolCall{
 			ID:    "reserve-1",
 			Name:  "inventory.reserve",
 			Input: map[string]any{"sku": "sku-123"},
@@ -80,9 +80,9 @@ func (m *demoModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.Ge
 		m.failFirst = false
 		return nil, errors.New("simulated process interruption after checkpointed tool call")
 	}
-	return &ai.Response{Reply: "sku-123 is reserved; no duplicate reservation was made"}, nil
+	return &model.Response{Reply: "sku-123 is reserved; no duplicate reservation was made"}, nil
 }
 
-func (m *demoModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, ai.ErrStreamingUnsupported
+func (m *demoModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
+	return nil, model.ErrStreamingUnsupported
 }

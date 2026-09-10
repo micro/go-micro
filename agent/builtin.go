@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"go-micro.dev/v6/ai"
 	codecBytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
 )
@@ -32,13 +32,13 @@ const (
 
 type delegateCall struct {
 	done chan struct{}
-	res  ai.ToolResult
+	res  model.ToolResult
 }
 
 // builtinTools returns the tool definitions exposed to the model in
 // addition to the agent's scoped service tools.
-func builtinTools() []ai.Tool {
-	return []ai.Tool{
+func builtinTools() []model.Tool {
+	return []model.Tool{
 		{
 			Name:         toolPlan,
 			OriginalName: toolPlan,
@@ -94,18 +94,18 @@ func builtinTools() []ai.Tool {
 // Configure it with the same options as an Agent (Name, Provider,
 // WithStore, WithRegistry, WithClient, ...); these back plan's memory
 // and delegate's RPC/sub-agent behavior.
-func Builtins(opts ...Option) (tools []ai.Tool, handle func(name string, input map[string]any) (result any, content string, ok bool)) {
+func Builtins(opts ...Option) (tools []model.Tool, handle func(name string, input map[string]any) (result any, content string, ok bool)) {
 	a := &agentImpl{opts: newOptions(opts...)}
 	handle = func(name string, input map[string]any) (any, string, bool) {
 		switch name {
 		case toolPlan:
-			r := a.handlePlan(ai.ToolCall{Name: name, Input: input})
+			r := a.handlePlan(model.ToolCall{Name: name, Input: input})
 			return r.Value, r.Content, true
 		case toolHumanInput:
-			r := a.handleHumanInput(ai.ToolCall{Name: name, Input: input})
+			r := a.handleHumanInput(model.ToolCall{Name: name, Input: input})
 			return r.Value, r.Content, true
 		case toolDelegate:
-			r := a.handleDelegate(context.Background(), ai.ToolCall{Name: name, Input: input})
+			r := a.handleDelegate(context.Background(), model.ToolCall{Name: name, Input: input})
 			return r.Value, r.Content, true
 		}
 		return nil, "", false
@@ -121,7 +121,7 @@ func Builtins(opts ...Option) (tools []ai.Tool, handle func(name string, input m
 // result including guardrail refusals. Ephemeral sub-agents get the bare
 // service handler so they can neither plan nor re-delegate (which
 // prevents runaway recursion).
-func (a *agentImpl) toolHandler() ai.ToolHandler {
+func (a *agentImpl) toolHandler() model.ToolHandler {
 	if a.ephemeral {
 		return a.toolTimeoutWrap(a.tools.Handler())
 	}
@@ -151,8 +151,8 @@ func (a *agentImpl) toolHandler() ai.ToolHandler {
 // already been canceled or its deadline has expired. This keeps guardrail
 // bookkeeping and side-effecting tools from running after the caller has
 // abandoned the agent run.
-func contextWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func contextWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		select {
 		case <-ctx.Done():
 			return errResult(call.ID, ctx.Err().Error())
@@ -166,8 +166,8 @@ func contextWrap(next ai.ToolHandler) ai.ToolHandler {
 // caller cancellation. Handlers still execute synchronously; tools that honor
 // context (custom tools, delegate RPC/A2A, and go-micro RPC clients) return
 // promptly with a bounded error result when the deadline expires.
-func (a *agentImpl) toolTimeoutWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) toolTimeoutWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		if a.opts.ToolTimeout <= 0 {
 			return next(ctx, call)
 		}
@@ -181,8 +181,8 @@ func (a *agentImpl) toolTimeoutWrap(next ai.ToolHandler) ai.ToolHandler {
 // underlying HTTP tool once. Tools that proxy HTTP paid resources can return the
 // raw x402 402 challenge body and include a "url" input; the agent then uses
 // wrapper/x402.Client so payer and budget semantics stay in one place.
-func (a *agentImpl) x402PayWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) x402PayWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		res := next(ctx, call)
 		if res.Refused != "" || !isX402Challenge(res.Content) {
 			return res
@@ -195,7 +195,7 @@ func (a *agentImpl) x402PayWrap(next ai.ToolHandler) ai.ToolHandler {
 		if budget > 0 {
 			remaining := budget - a.spend
 			if remaining <= 0 {
-				return refused(call.ID, ai.RefusedSpendBudget, fmt.Sprintf(
+				return refused(call.ID, model.RefusedSpendBudget, fmt.Sprintf(
 					"x402 spend budget exceeded: no budget remaining for %s (spent %d of %d)",
 					call.Name, a.spend, budget))
 			}
@@ -209,7 +209,7 @@ func (a *agentImpl) x402PayWrap(next ai.ToolHandler) ai.ToolHandler {
 		resp, err := client.Do(req)
 		if err != nil {
 			if strings.Contains(err.Error(), "would exceed budget") {
-				return refused(call.ID, ai.RefusedSpendBudget, err.Error())
+				return refused(call.ID, model.RefusedSpendBudget, err.Error())
 			}
 			return errResult(call.ID, err.Error())
 		}
@@ -223,7 +223,7 @@ func (a *agentImpl) x402PayWrap(next ai.ToolHandler) ai.ToolHandler {
 		if err := json.Unmarshal(body, &value); err != nil {
 			value = string(body)
 		}
-		return ai.ToolResult{ID: call.ID, Value: value, Content: string(body), Attempts: 2}
+		return model.ToolResult{ID: call.ID, Value: value, Content: string(body), Attempts: 2}
 	}
 }
 
@@ -238,14 +238,14 @@ func isX402Challenge(content string) bool {
 // toolRetryWrap retries transient tool failures with bounded backoff. It is
 // opt-in because tools can have side effects; guardrail refusals and caller
 // cancellation are never retried.
-func (a *agentImpl) toolRetryWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) toolRetryWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		maxAttempts := a.opts.ToolMaxAttempts
 		if maxAttempts <= 0 {
 			maxAttempts = 1
 		}
 
-		var res ai.ToolResult
+		var res model.ToolResult
 		for attempt := 1; attempt <= maxAttempts; attempt++ {
 			if err := ctx.Err(); err != nil {
 				return errResult(call.ID, err.Error())
@@ -269,7 +269,7 @@ func (a *agentImpl) toolRetryWrap(next ai.ToolHandler) ai.ToolHandler {
 	}
 }
 
-func retryableToolResult(res ai.ToolResult) bool {
+func retryableToolResult(res model.ToolResult) bool {
 	if res.Refused != "" {
 		return false
 	}
@@ -277,10 +277,10 @@ func retryableToolResult(res ai.ToolResult) bool {
 	if msg == "" {
 		return false
 	}
-	return ai.IsTransientError(fmt.Errorf("%s", msg))
+	return model.IsTransientError(fmt.Errorf("%s", msg))
 }
 
-func toolErrorMessage(res ai.ToolResult) string {
+func toolErrorMessage(res model.ToolResult) string {
 	if m, ok := res.Value.(map[string]string); ok {
 		return m["error"]
 	}
@@ -296,7 +296,7 @@ func toolErrorMessage(res ai.ToolResult) string {
 	return ""
 }
 
-func annotateToolAttempts(res ai.ToolResult, attempts int) ai.ToolResult {
+func annotateToolAttempts(res model.ToolResult, attempts int) model.ToolResult {
 	if attempts <= 1 {
 		return res
 	}
@@ -330,16 +330,16 @@ func toolRetryBackoff(attempt int, base time.Duration) time.Duration {
 
 // baseHandler executes a tool call: a developer custom tool, the built-in
 // delegate, or an RPC to the service. It is the innermost handler.
-func (a *agentImpl) baseHandler() ai.ToolHandler {
+func (a *agentImpl) baseHandler() model.ToolHandler {
 	rpc := a.tools.Handler()
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		for i := range a.opts.tools {
 			if a.opts.tools[i].def.Name == call.Name {
 				out, err := a.opts.tools[i].handler(ctx, call.Input)
 				if err != nil {
 					return errResult(call.ID, err.Error())
 				}
-				return ai.ToolResult{ID: call.ID, Value: out, Content: out}
+				return model.ToolResult{ID: call.ID, Value: out, Content: out}
 			}
 		}
 		if call.Name == toolHumanInput {
@@ -354,17 +354,17 @@ func (a *agentImpl) baseHandler() ai.ToolHandler {
 
 // planWrap handles the plan tool inline. plan is internal bookkeeping,
 // not an action — it is never counted, loop-checked, or gated.
-func (a *agentImpl) planWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) planWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		if call.Name == toolPlan {
 			return a.handlePlan(call)
 		}
 		if containsNestedTextToolCall(call.Input) {
-			return refused(call.ID, ai.RefusedApproval, "malformed tool call: nested text tool-call markup found inside arguments; call the intended tool directly with clean JSON arguments")
+			return refused(call.ID, model.RefusedApproval, "malformed tool call: nested text tool-call markup found inside arguments; call the intended tool directly with clean JSON arguments")
 		}
 		if call.Name == toolDelegate {
 			if blocked := a.unfinishedPlanStepsBeforeDelegation(); len(blocked) > 0 {
-				return refused(call.ID, ai.RefusedApproval, "complete these plan steps before delegating: "+strings.Join(blocked, ", "))
+				return refused(call.ID, model.RefusedApproval, "complete these plan steps before delegating: "+strings.Join(blocked, ", "))
 			}
 		}
 		res := next(ctx, call)
@@ -376,12 +376,12 @@ func (a *agentImpl) planWrap(next ai.ToolHandler) ai.ToolHandler {
 }
 
 // stepWrap bounds the number of actions per Ask (MaxSteps).
-func (a *agentImpl) stepWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) stepWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		if a.opts.MaxSteps > 0 {
 			a.steps++
 			if a.steps > a.opts.MaxSteps {
-				return refused(call.ID, ai.RefusedMaxSteps, fmt.Sprintf(
+				return refused(call.ID, model.RefusedMaxSteps, fmt.Sprintf(
 					"step limit reached (%d). Do not call any more tools; stop and summarize what you have so far.",
 					a.opts.MaxSteps))
 			}
@@ -392,8 +392,8 @@ func (a *agentImpl) stepWrap(next ai.ToolHandler) ai.ToolHandler {
 
 // loopWrap stops the agent repeating an identical action that makes no
 // progress (which the step count alone won't catch).
-func (a *agentImpl) loopWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) loopWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		if a.opts.LoopLimit > 0 {
 			if a.calls == nil {
 				a.calls = map[string]int{}
@@ -402,7 +402,7 @@ func (a *agentImpl) loopWrap(next ai.ToolHandler) ai.ToolHandler {
 			fp := call.Name + ":" + string(args)
 			a.calls[fp]++
 			if a.calls[fp] > a.opts.LoopLimit {
-				return refused(call.ID, ai.RefusedLoop, fmt.Sprintf(
+				return refused(call.ID, model.RefusedLoop, fmt.Sprintf(
 					"loop detected: you have already called %q with the same arguments %d times and the result will not change. Stop repeating it — try a different approach, or finish with what you have.",
 					call.Name, a.opts.LoopLimit))
 			}
@@ -422,8 +422,8 @@ type inputPause struct {
 	Prompt          string `json:"prompt"`
 }
 
-func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) approveWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		if a.opts.Approve != nil {
 			if ok, reason := a.opts.Approve(call.Name, call.Input); !ok {
 				msg := "tool call was not approved"
@@ -431,7 +431,7 @@ func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
 					msg += ": " + reason
 				}
 				a.pause = &approvalPause{Tool: call.Name, Message: msg}
-				return refused(call.ID, ai.RefusedApproval, msg)
+				return refused(call.ID, model.RefusedApproval, msg)
 			}
 		}
 		return next(ctx, call)
@@ -439,22 +439,22 @@ func (a *agentImpl) approveWrap(next ai.ToolHandler) ai.ToolHandler {
 }
 
 // spendWrap reserves a per-run x402 spend budget before paid tool execution.
-func (a *agentImpl) spendWrap(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) spendWrap(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		amount := a.opts.ToolSpend[call.Name]
 		if amount <= 0 || a.opts.MaxSpend <= 0 {
 			return next(ctx, call)
 		}
 		if a.spend+amount > a.opts.MaxSpend {
-			return refused(call.ID, ai.RefusedSpendBudget, fmt.Sprintf(
+			return refused(call.ID, model.RefusedSpendBudget, fmt.Sprintf(
 				"x402 spend budget exceeded: paying %d for %s would exceed per-run budget (spent %d of %d)",
 				amount, call.Name, a.spend, a.opts.MaxSpend))
 		}
 		a.spend += amount
-		if info, ok := ai.RunInfoFrom(ctx); ok {
+		if info, ok := model.RunInfoFrom(ctx); ok {
 			info.Spent = a.spend
 			info.ToolSpend = amount
-			ctx = ai.WithRunInfo(ctx, info)
+			ctx = model.WithRunInfo(ctx, info)
 		}
 		res := next(ctx, call)
 		if res.Refused != "" || toolErrorMessage(res) != "" {
@@ -466,14 +466,14 @@ func (a *agentImpl) spendWrap(next ai.ToolHandler) ai.ToolHandler {
 
 // handlePlan persists the supplied plan to the agent's memory and
 // echoes it back so the model can see the stored state.
-func (a *agentImpl) handlePlan(call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) handlePlan(call model.ToolCall) model.ToolResult {
 	input := preserveCompletedPlanSteps(a.loadPlan(), call.Input)
 	data, err := json.Marshal(input)
 	if err != nil {
 		return errResult(call.ID, "invalid plan: "+err.Error())
 	}
 	_ = a.stateStore().Write(&store.Record{Key: planKey, Value: data})
-	return ai.ToolResult{ID: call.ID, Value: input, Content: string(data)}
+	return model.ToolResult{ID: call.ID, Value: input, Content: string(data)}
 }
 
 func preserveCompletedPlanSteps(stored string, input map[string]any) map[string]any {
@@ -668,21 +668,21 @@ func (a *agentImpl) unfinishedPlanSteps() []string {
 }
 
 // handleHumanInput records that the model needs operator input before it can continue.
-func (a *agentImpl) handleHumanInput(call ai.ToolCall) ai.ToolResult {
+func (a *agentImpl) handleHumanInput(call model.ToolCall) model.ToolResult {
 	prompt, _ := call.Input["prompt"].(string)
 	prompt = strings.TrimSpace(prompt)
 	if prompt == "" {
 		prompt = "human input required"
 	}
 	a.pause = &approvalPause{Tool: toolHumanInput, Message: prompt}
-	return refused(call.ID, ai.RefusedApproval, "input-required: "+prompt)
+	return refused(call.ID, model.RefusedApproval, "input-required: "+prompt)
 }
 
 // handleDelegate hands a subtask to another agent. Delegate-first:
 // if 'to' names a registered agent, it is called via RPC. Otherwise an
 // ephemeral sub-agent is created with a fresh, isolated context, asked
 // the subtask, and its reply returned.
-func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) (res ai.ToolResult) {
+func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (res model.ToolResult) {
 	input := call.Input
 	task, _ := input["task"].(string)
 	if task == "" {
@@ -750,7 +750,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call ai.ToolCall) (res a
 	return a.storeDelegateResult(call.ID, to, task, map[string]any{"reply": resp.Reply})
 }
 
-func (a *agentImpl) joinDelegateCall(ctx context.Context, id, key string) (ai.ToolResult, bool) {
+func (a *agentImpl) joinDelegateCall(ctx context.Context, id, key string) (model.ToolResult, bool) {
 	a.delegateMu.Lock()
 	if a.delegateCalls == nil {
 		a.delegateCalls = map[string]*delegateCall{}
@@ -766,10 +766,10 @@ func (a *agentImpl) joinDelegateCall(ctx context.Context, id, key string) (ai.To
 	}
 	a.delegateCalls[key] = &delegateCall{done: make(chan struct{})}
 	a.delegateMu.Unlock()
-	return ai.ToolResult{}, false
+	return model.ToolResult{}, false
 }
 
-func (a *agentImpl) finishDelegateCall(key string, res ai.ToolResult) {
+func (a *agentImpl) finishDelegateCall(key string, res model.ToolResult) {
 	a.delegateMu.Lock()
 	inFlight := a.delegateCalls[key]
 	if inFlight == nil {
@@ -782,26 +782,26 @@ func (a *agentImpl) finishDelegateCall(key string, res ai.ToolResult) {
 	a.delegateMu.Unlock()
 }
 
-func (a *agentImpl) cachedDelegateResult(id, to, task string) (ai.ToolResult, bool) {
+func (a *agentImpl) cachedDelegateResult(id, to, task string) (model.ToolResult, bool) {
 	recs, err := a.stateStore().Read(delegateResultKey(to, task))
 	if err != nil || len(recs) == 0 {
-		return ai.ToolResult{}, false
+		return model.ToolResult{}, false
 	}
 	var out map[string]any
 	if err := json.Unmarshal(recs[0].Value, &out); err != nil {
-		return ai.ToolResult{}, false
+		return model.ToolResult{}, false
 	}
 	b, _ := json.Marshal(out)
-	return ai.ToolResult{ID: id, Value: out, Content: string(b)}, true
+	return model.ToolResult{ID: id, Value: out, Content: string(b)}, true
 }
 
-func (a *agentImpl) storeDelegateResult(id, to, task string, out map[string]any) ai.ToolResult {
+func (a *agentImpl) storeDelegateResult(id, to, task string, out map[string]any) model.ToolResult {
 	b, _ := json.Marshal(out)
 	_ = a.stateStore().Write(&store.Record{Key: delegateResultKey(to, task), Value: b})
-	return ai.ToolResult{ID: id, Value: out, Content: string(b)}
+	return model.ToolResult{ID: id, Value: out, Content: string(b)}
 }
 
-func withToolResultID(res ai.ToolResult, id string) ai.ToolResult {
+func withToolResultID(res model.ToolResult, id string) model.ToolResult {
 	res.ID = id
 	return res
 }
@@ -902,16 +902,16 @@ func (a *agentImpl) loadPlan() string {
 	return string(recs[0].Value)
 }
 
-func errResult(id, msg string) ai.ToolResult {
+func errResult(id, msg string) model.ToolResult {
 	m := map[string]string{"error": msg}
 	b, _ := json.Marshal(m)
-	return ai.ToolResult{ID: id, Value: m, Content: string(b)}
+	return model.ToolResult{ID: id, Value: m, Content: string(b)}
 }
 
 // refused is an error result a guardrail returns, tagged with a structured
-// reason (ai.Refused*) so a tool wrapper can react to it without parsing
+// reason (model.Refused*) so a tool wrapper can react to it without parsing
 // the message.
-func refused(id, reason, msg string) ai.ToolResult {
+func refused(id, reason, msg string) model.ToolResult {
 	r := errResult(id, msg)
 	r.Refused = reason
 	return r

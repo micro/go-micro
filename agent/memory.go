@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
@@ -19,7 +19,7 @@ type Memory interface {
 	// Add appends a message to the conversation.
 	Add(role, content string)
 	// Messages returns the retained conversation, oldest first.
-	Messages() []ai.Message
+	Messages() []model.Message
 	// Clear resets the conversation.
 	Clear()
 }
@@ -28,7 +28,7 @@ type Memory interface {
 // replacement message for active context. It is called while the default
 // memory is locked, so implementations should be deterministic and avoid
 // calling back into the same memory instance.
-type MemorySummaryFunc func([]ai.Message) ai.Message
+type MemorySummaryFunc func([]model.Message) model.Message
 
 // MemoryCompaction configures deterministic, store-backed context compaction
 // for the default memory implementation. When the retained conversation grows
@@ -43,7 +43,7 @@ type MemoryCompaction struct {
 // MemoryRecall is implemented by memory backends that can retrieve durable
 // prior context relevant to a new turn without replaying every stored message.
 type MemoryRecall interface {
-	Recall(query string, limit int) []ai.Message
+	Recall(query string, limit int) []model.Message
 }
 
 // MemorySummary is implemented by memory backends that expose their current
@@ -72,7 +72,7 @@ func Summary(m Memory) string {
 // under key, so an agent picks up where it left off after a restart.
 // A nil store or empty key yields non-persistent memory.
 func NewMemory(s store.Store, key string, limit int) Memory {
-	m := &storeMemory{store: s, key: key, hist: ai.NewHistory(limit)}
+	m := &storeMemory{store: s, key: key, hist: model.NewHistory(limit)}
 	m.load()
 	return m
 }
@@ -82,7 +82,7 @@ func NewMemory(s store.Store, key string, limit int) Memory {
 // want relevant durable recall without summary compaction in the active context.
 // A nil store or empty key keeps only the active in-process buffer.
 func NewRetrievalMemory(s store.Store, key string, activeLimit int) Memory {
-	m := &storeMemory{store: s, key: key, hist: ai.NewHistory(activeLimit), retrieveAll: true}
+	m := &storeMemory{store: s, key: key, hist: model.NewHistory(activeLimit), retrieveAll: true}
 	m.load()
 	return m
 }
@@ -111,7 +111,7 @@ func NewCompactingMemoryWithOptions(s store.Store, key string, compaction Memory
 		key:   key,
 		// Use an unlimited buffer here; compaction, not truncation, decides
 		// what remains in active context so a summary can preserve older turns.
-		hist: ai.NewHistory(0),
+		hist: model.NewHistory(0),
 		compaction: MemoryCompaction{
 			MaxMessages: maxMessages,
 			KeepRecent:  keepRecent,
@@ -125,18 +125,18 @@ func NewCompactingMemoryWithOptions(s store.Store, key string, compaction Memory
 
 // NewInMemory returns conversation memory that is not persisted.
 func NewInMemory(limit int) Memory {
-	return &storeMemory{hist: ai.NewHistory(limit)}
+	return &storeMemory{hist: model.NewHistory(limit)}
 }
 
-// storeMemory is the default Memory: an ai.History buffer optionally
+// storeMemory is the default Memory: an model.History buffer optionally
 // persisted to a store.
 type storeMemory struct {
 	mu          sync.Mutex
 	store       store.Store
 	key         string
-	hist        *ai.History
+	hist        *model.History
 	compaction  MemoryCompaction
-	archive     []ai.Message
+	archive     []model.Message
 	summary     string
 	retrieveAll bool
 }
@@ -144,7 +144,7 @@ type storeMemory struct {
 func (m *storeMemory) Add(role, content string) {
 	m.mu.Lock()
 	if m.retrieveAll {
-		m.archive = append(m.archive, ai.Message{Role: role, Content: content})
+		m.archive = append(m.archive, model.Message{Role: role, Content: content})
 	}
 	m.hist.Add(role, content)
 	m.mu.Unlock()
@@ -152,7 +152,7 @@ func (m *storeMemory) Add(role, content string) {
 	m.save()
 }
 
-func (m *storeMemory) Messages() []ai.Message {
+func (m *storeMemory) Messages() []model.Message {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return m.hist.Messages()
@@ -181,7 +181,7 @@ func (m *storeMemory) Summary() string {
 // required, but semantic/vector stores can replace Memory for richer retrieval.
 // When created with NewRetrievalMemory the archive contains every persisted
 // turn; when created with NewCompactingMemory it contains compacted older turns.
-func (m *storeMemory) Recall(query string, limit int) []ai.Message {
+func (m *storeMemory) Recall(query string, limit int) []model.Message {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if limit <= 0 {
@@ -189,7 +189,7 @@ func (m *storeMemory) Recall(query string, limit int) []ai.Message {
 	}
 	terms := recallTerms(query)
 	type match struct {
-		msg   ai.Message
+		msg   model.Message
 		score int
 		index int
 	}
@@ -209,7 +209,7 @@ func (m *storeMemory) Recall(query string, limit int) []ai.Message {
 	if len(matches) > limit {
 		matches = matches[:limit]
 	}
-	out := make([]ai.Message, 0, len(matches))
+	out := make([]model.Message, 0, len(matches))
 	for _, match := range matches {
 		out = append(out, match.msg)
 	}
@@ -226,7 +226,7 @@ func (m *storeMemory) load() {
 	}
 	var state memoryState
 	if err := json.Unmarshal(recs[0].Value, &state); err != nil {
-		var msgs []ai.Message
+		var msgs []model.Message
 		if err := json.Unmarshal(recs[0].Value, &msgs); err != nil {
 			return
 		}
@@ -301,7 +301,7 @@ func (m *storeMemory) compact() {
 	}
 }
 
-func currentMemorySummary(msgs []ai.Message) string {
+func currentMemorySummary(msgs []model.Message) string {
 	for _, msg := range msgs {
 		if msg.Role != "system" {
 			continue
@@ -314,14 +314,14 @@ func currentMemorySummary(msgs []ai.Message) string {
 	return ""
 }
 
-func defaultMemorySummary(msgs []ai.Message) ai.Message {
-	return ai.Message{
+func defaultMemorySummary(msgs []model.Message) model.Message {
+	return model.Message{
 		Role:    "system",
 		Content: fmt.Sprintf("Conversation memory summary: %s", summarizeMessages(msgs)),
 	}
 }
 
-func summarizeMessages(msgs []ai.Message) string {
+func summarizeMessages(msgs []model.Message) string {
 	var b strings.Builder
 	for i, msg := range msgs {
 		if i > 0 {
@@ -340,7 +340,7 @@ func compactText(s string, max int) string {
 	return s
 }
 
-func recallScore(msg ai.Message, terms []string) int {
+func recallScore(msg model.Message, terms []string) int {
 	text := strings.ToLower(fmt.Sprint(msg.Content))
 	score := 0
 	for _, term := range terms {
@@ -366,7 +366,7 @@ func recallTerms(query string) []string {
 }
 
 type memoryState struct {
-	Messages []ai.Message `json:"messages"`
-	Archive  []ai.Message `json:"archive,omitempty"`
-	Summary  string       `json:"summary,omitempty"`
+	Messages []model.Message `json:"messages"`
+	Archive  []model.Message `json:"archive,omitempty"`
+	Summary  string          `json:"summary,omitempty"`
 }

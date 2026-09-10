@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 // AnalyzeOptions configures Analyze.
@@ -145,11 +145,11 @@ type stepStats struct {
 
 // PromptOptimizer proposes prompt improvements for a candidate without mutating
 // the source flow. Applying the returned prompt stays explicitly gated by the caller.
-type PromptOptimizer struct{ model ai.Model }
+type PromptOptimizer struct{ model model.Model }
 
 // LLMOptimizer returns an optimizer that asks model to revise prompts for
 // Analyze candidates. The model is injected so tests and callers can use mocks.
-func LLMOptimizer(model ai.Model) *PromptOptimizer { return &PromptOptimizer{model: model} }
+func LLMOptimizer(model model.Model) *PromptOptimizer { return &PromptOptimizer{model: model} }
 
 // OptimizePrompt asks the model for a revised prompt for candidate using the
 // current prompt and trace feedback. It returns only the proposal; it never
@@ -159,7 +159,7 @@ func (o *PromptOptimizer) OptimizePrompt(ctx context.Context, candidate Candidat
 		return "", fmt.Errorf("flow: LLMOptimizer requires a model")
 	}
 	prompt := fmt.Sprintf("Revise this workflow step prompt to improve the failing step.\nStep: %s\nMetric: %s\nScore: %.2f\nFeedback:\n- %s\n\nCurrent prompt:\n%s\n\nReturn only the revised prompt.", candidate.Step, candidate.Metric, candidate.Score, strings.Join(candidate.SampleFeedback, "\n- "), currentPrompt)
-	resp, err := o.model.Generate(ctx, &ai.Request{Prompt: prompt})
+	resp, err := o.model.Generate(ctx, &model.Request{Prompt: prompt})
 	if err != nil {
 		return "", err
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 // Schedule binds a flow to a recurring work item without introducing a
@@ -30,7 +30,7 @@ func (s Schedule) Tick(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	info.Dispatch = "schedule"
 	if info.Trigger == "" {
 		info.Trigger = s.flow.opts.TriggerTopic
@@ -38,7 +38,7 @@ func (s Schedule) Tick(ctx context.Context) error {
 	if info.Trigger == "" {
 		info.Trigger = "schedule"
 	}
-	return s.flow.Execute(ai.WithRunInfo(ctx, info), s.data)
+	return s.flow.Execute(model.WithRunInfo(ctx, info), s.data)
 }
 
 // RunEvery drives scheduled runs from a ticker until ctx is canceled. It does

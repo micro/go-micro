@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -38,7 +38,7 @@ func (f *Flow) startRunSpan(ctx context.Context, run Run) (context.Context, func
 	if f.opts.TraceProvider == nil {
 		return ctx, func(Run, error) {}
 	}
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	attrs := []attribute.KeyValue{
 		attribute.String(AttrFlowRunID, run.ID),
 		attribute.String(AttrFlowParentID, run.ParentID),
@@ -55,7 +55,7 @@ func (f *Flow) startRunSpan(ctx context.Context, run Run) (context.Context, func
 		)
 		if err != nil {
 			span.RecordError(err)
-			span.SetAttributes(attribute.String(AttrFlowErrorKind, string(ai.ClassifyError(err))))
+			span.SetAttributes(attribute.String(AttrFlowErrorKind, string(model.ClassifyError(err))))
 			span.SetStatus(codes.Error, err.Error())
 		} else {
 			span.SetStatus(codes.Ok, "")
@@ -68,7 +68,7 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 	if f.opts.TraceProvider == nil {
 		return f.runStep(ctx, step, in)
 	}
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	attrs := []attribute.KeyValue{
 		attribute.String(AttrFlowRunID, info.RunID),
 		attribute.String(AttrFlowParentID, info.ParentID),
@@ -97,7 +97,7 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 		span.SetStatus(codes.Ok, "waiting: "+a.Key)
 	} else if err != nil {
 		span.RecordError(err)
-		span.SetAttributes(attribute.String(AttrFlowErrorKind, string(ai.ClassifyError(err))))
+		span.SetAttributes(attribute.String(AttrFlowErrorKind, string(model.ClassifyError(err))))
 		span.SetStatus(codes.Error, err.Error())
 	} else {
 		span.SetStatus(codes.Ok, "")
@@ -106,7 +106,7 @@ func (f *Flow) runStepSpan(ctx context.Context, step Step, in State) (State, int
 	return out, attempts, verification, err
 }
 
-func appendRunInfoDispatch(attrs []attribute.KeyValue, info ai.RunInfo) []attribute.KeyValue {
+func appendRunInfoDispatch(attrs []attribute.KeyValue, info model.RunInfo) []attribute.KeyValue {
 	if info.Dispatch != "" {
 		attrs = append(attrs, attribute.String(AttrFlowDispatch, info.Dispatch))
 	}

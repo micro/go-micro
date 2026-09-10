@@ -25,20 +25,20 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v6/ai"
-	_ "go-micro.dev/v6/ai/anthropic"
-	_ "go-micro.dev/v6/ai/atlascloud"
-	_ "go-micro.dev/v6/ai/gemini"
-	_ "go-micro.dev/v6/ai/groq"
-	_ "go-micro.dev/v6/ai/mistral"
-	_ "go-micro.dev/v6/ai/openai"
-	_ "go-micro.dev/v6/ai/together"
 	"go-micro.dev/v6/auth"
 	"go-micro.dev/v6/auth/jwt"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
 	codecBytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/model"
+	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/atlascloud"
+	_ "go-micro.dev/v6/model/gemini"
+	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/together"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
@@ -607,12 +607,12 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 
 		// Auto-detect provider if not explicitly set
 		if provider == "" {
-			provider = ai.AutoDetectProvider(baseURL)
+			provider = model.AutoDetectProvider(baseURL)
 		}
 
 		// Discover tools from registry
 		services, _ := registry.ListServices()
-		var discoveredTools []ai.Tool
+		var discoveredTools []model.Tool
 		// safeNameMap maps LLM-safe names back to original dotted names
 		safeNameMap := map[string]string{}
 		for _, svc := range services {
@@ -639,7 +639,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						}
 					}
 				}
-				discoveredTools = append(discoveredTools, ai.Tool{
+				discoveredTools = append(discoveredTools, model.Tool{
 					Name:         safeName,
 					OriginalName: tName,
 					Description:  desc,
@@ -652,7 +652,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		// toolName can be either the original dotted name or the LLM-safe
 		// underscored name; the safe name is resolved first.
 		// Checks endpoint scopes against the caller's token before executing.
-		executeToolCall := func(_ context.Context, call ai.ToolCall) ai.ToolResult {
+		executeToolCall := func(_ context.Context, call model.ToolCall) model.ToolResult {
 			toolName := call.Name
 			input := call.Input
 			if orig, ok := safeNameMap[toolName]; ok {
@@ -704,7 +704,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						}
 						if !allowed {
 							errMsg := fmt.Sprintf(`{"error":"insufficient scopes","required_scopes":"%s"}`, strings.Join(requiredScopes, ","))
-							return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": "insufficient scopes", "required_scopes": strings.Join(requiredScopes, ",")}, Content: errMsg}
+							return model.ToolResult{ID: call.ID, Value: map[string]string{"error": "insufficient scopes", "required_scopes": strings.Join(requiredScopes, ",")}, Content: errMsg}
 						}
 					}
 				}
@@ -712,41 +712,41 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 			parts := strings.SplitN(toolName, ".", 2)
 			if len(parts) != 2 {
 				errMsg := `{"error":"invalid tool name"}`
-				return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": "invalid tool name"}, Content: errMsg}
+				return model.ToolResult{ID: call.ID, Value: map[string]string{"error": "invalid tool name"}, Content: errMsg}
 			}
 			inputBytes, _ := json.Marshal(input)
 			rpcReq := client.DefaultClient.NewRequest(parts[0], parts[1], &codecBytes.Frame{Data: inputBytes})
 			var rsp codecBytes.Frame
 			if err := client.DefaultClient.Call(r.Context(), rpcReq, &rsp); err != nil {
 				errMsg := fmt.Sprintf(`{"error":"%s"}`, err.Error())
-				return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": err.Error()}, Content: errMsg}
+				return model.ToolResult{ID: call.ID, Value: map[string]string{"error": err.Error()}, Content: errMsg}
 			}
 			var rpcResult any
 			if err := json.Unmarshal(rsp.Data, &rpcResult); err != nil {
 				rpcResult = string(rsp.Data)
 			}
-			return ai.ToolResult{ID: call.ID, Value: rpcResult, Content: string(rsp.Data)}
+			return model.ToolResult{ID: call.ID, Value: rpcResult, Content: string(rsp.Data)}
 		}
 
 		// Create model with options
-		var modelOpts []ai.Option
-		modelOpts = append(modelOpts, ai.WithAPIKey(apiKey))
+		var modelOpts []model.Option
+		modelOpts = append(modelOpts, model.WithAPIKey(apiKey))
 		if modelName != "" {
-			modelOpts = append(modelOpts, ai.WithModel(modelName))
+			modelOpts = append(modelOpts, model.WithModel(modelName))
 		}
 		if baseURL != "" {
-			modelOpts = append(modelOpts, ai.WithBaseURL(baseURL))
+			modelOpts = append(modelOpts, model.WithBaseURL(baseURL))
 		}
-		modelOpts = append(modelOpts, ai.WithToolHandler(executeToolCall))
+		modelOpts = append(modelOpts, model.WithToolHandler(executeToolCall))
 
-		m := ai.New(provider, modelOpts...)
+		m := model.New(provider, modelOpts...)
 		if m == nil {
 			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create model provider"})
 			return
 		}
 
 		// Build request
-		modelReq := &ai.Request{
+		modelReq := &model.Request{
 			Prompt:       req.Prompt,
 			SystemPrompt: agentSystemPrompt,
 			Tools:        discoveredTools,

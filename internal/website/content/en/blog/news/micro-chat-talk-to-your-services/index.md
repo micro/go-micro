@@ -38,26 +38,26 @@ No glue code. No API wrappers. No tool definitions. You write normal Go services
 
 Three building blocks, stacked:
 
-**1. `ai.Tools`** discovers services from the registry and creates typed tool definitions:
+**1. `model.Tools`** discovers services from the registry and creates typed tool definitions:
 
 ```go
-tools := ai.NewTools(service.Registry())
+tools := model.NewTools(service.Registry())
 discovered, _ := tools.Discover()
-// discovered = []ai.Tool with name, description, parameters for each endpoint
+// discovered = []model.Tool with name, description, parameters for each endpoint
 ```
 
-**2. `ai.History`** tracks the conversation across turns so the LLM has context:
+**2. `model.History`** tracks the conversation across turns so the LLM has context:
 
 ```go
-hist := ai.NewHistory(50)
-resp, _ := m.Generate(ctx, &ai.Request{Prompt: "list all users", Tools: discovered, Messages: hist.Messages()})
+hist := model.NewHistory(50)
+resp, _ := m.Generate(ctx, &model.Request{Prompt: "list all users", Tools: discovered, Messages: hist.Messages()})
 // Next prompt remembers this exchange
 ```
 
-**3. `ai.Model`** calls the LLM. Seven providers, same interface:
+**3. `model.Model`** calls the LLM. Seven providers, same interface:
 
 ```go
-m := ai.New("anthropic", ai.WithAPIKey(key))
+m := model.New("anthropic", model.WithAPIKey(key))
 // or: "openai", "gemini", "atlascloud", "groq", "mistral", "together"
 ```
 
@@ -141,7 +141,7 @@ func (h *Users) CreateUser(ctx context.Context, req *pb.CreateRequest, rsp *pb.C
 }
 ```
 
-The `ai.Tools` package reads all of this from the registry and translates it into the tool format that LLMs understand. The better your doc comments, the better the LLM uses your services.
+The `model.Tools` package reads all of this from the registry and translates it into the tool format that LLMs understand. The better your doc comments, the better the LLM uses your services.
 
 ## Using It Programmatically
 
@@ -154,16 +154,16 @@ import (
     _ "go-micro.dev/v5/ai/anthropic"
 )
 
-tools := ai.NewTools(service.Registry())
+tools := model.NewTools(service.Registry())
 discovered, _ := tools.Discover()
 
-m := ai.New("anthropic",
-    ai.WithAPIKey(key),
-    ai.WithTools(tools),
+m := model.New("anthropic",
+    model.WithAPIKey(key),
+    model.WithTools(tools),
 )
 
-hist := ai.NewHistory(50)
-resp, _ := m.Generate(ctx, &ai.Request{Prompt: userInput, Tools: discovered, Messages: hist.Messages()})
+hist := model.NewHistory(50)
+resp, _ := m.Generate(ctx, &model.Request{Prompt: userInput, Tools: discovered, Messages: hist.Messages()})
 fmt.Println(resp.Answer)
 ```
 

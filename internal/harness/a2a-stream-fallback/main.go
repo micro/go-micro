@@ -2,7 +2,7 @@
 //
 // It exercises the gateway boundary that fronts an agent over A2A. The agent is
 // configured with tools and memory, but its model streaming path deliberately
-// reports ai.ErrStreamingUnsupported; the A2A gateway must fall back to the
+// reports model.ErrStreamingUnsupported; the A2A gateway must fall back to the
 // normal Ask path and still complete the same tool-calling run.
 package main
 
@@ -22,33 +22,33 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/internal/harness/harnessutil"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
 
-type mockModel struct{ opts ai.Options }
+type mockModel struct{ opts model.Options }
 
-func newMock(opts ...ai.Option) ai.Model {
+func newMock(opts ...model.Option) model.Model {
 	m := &mockModel{}
 	_ = m.Init(opts...)
 	return m
 }
 
-func (m *mockModel) Init(opts ...ai.Option) error {
+func (m *mockModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "mock" }
-func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, ai.ErrStreamingUnsupported
+func (m *mockModel) Options() model.Options { return m.opts }
+func (m *mockModel) String() string         { return "mock" }
+func (m *mockModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
+	return nil, model.ErrStreamingUnsupported
 }
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	if req.Prompt == "" {
 		return nil, errors.New("missing prompt")
 	}
@@ -60,11 +60,11 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 	if len(req.Tools) == 0 || m.opts.ToolHandler == nil {
 		return nil, errors.New("missing tools or tool handler")
 	}
-	res := m.opts.ToolHandler(ctx, ai.ToolCall{ID: "a2a-fallback-call", Name: "fallback_echo", Input: map[string]any{"value": "a2a-fallback"}})
+	res := m.opts.ToolHandler(ctx, model.ToolCall{ID: "a2a-fallback-call", Name: "fallback_echo", Input: map[string]any{"value": "a2a-fallback"}})
 	if res.Content == "" {
 		return nil, errors.New("empty tool result")
 	}
-	return &ai.Response{Reply: "fallback completed", Answer: res.Content, ToolCalls: []ai.ToolCall{{ID: "a2a-fallback-call", Name: "fallback_echo", Input: map[string]any{"value": "a2a-fallback"}, Result: res.Content}}}, nil
+	return &model.Response{Reply: "fallback completed", Answer: res.Content, ToolCalls: []model.ToolCall{{ID: "a2a-fallback-call", Name: "fallback_echo", Input: map[string]any{"value": "a2a-fallback"}, Result: res.Content}}}, nil
 }
 
 func providerKey(provider string) string {
@@ -85,7 +85,7 @@ func main() {
 
 	apiKey := ""
 	if *provider == "mock" {
-		ai.Register("mock", newMock)
+		model.Register("mock", newMock)
 	} else {
 		apiKey = providerKey(*provider)
 		if apiKey == "" {
@@ -111,7 +111,7 @@ func main() {
 			"value": map[string]any{"type": "string", "description": "value to echo"},
 		}, func(ctx context.Context, input map[string]any) (string, error) {
 			sawTool = true
-			info, ok := ai.RunInfoFrom(ctx)
+			info, ok := model.RunInfoFrom(ctx)
 			if !ok || info.RunID == "" || info.Agent != "a2a-fallback" {
 				return "", fmt.Errorf("unexpected run info: %+v", info)
 			}

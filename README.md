@@ -381,27 +381,6 @@ service orders
     depends users
 ```
 
-## Data Model
-
-Typed persistence with CRUD and queries:
-
-```go
-type User struct {
-    ID    string `json:"id" model:"key"`
-    Name  string `json:"name"`
-    Email string `json:"email" model:"index"`
-}
-
-db := service.Model()
-db.Register(&User{})
-db.Create(ctx, &User{ID: "1", Name: "Alice", Email: "alice@example.com"})
-
-var results []*User
-db.List(ctx, &results, model.Where("email", "alice@example.com"))
-```
-
-Backends: memory (default), SQLite, Postgres.
-
 ## AI Providers
 
 Swap providers with a single import — same interface everywhere:
@@ -419,8 +398,8 @@ Swap providers with a single import — same interface everywhere:
 | Ollama | `llama3.2` (local) |
 
 ```go
-m := ai.New("anthropic", ai.WithAPIKey(key))
-resp, _ := m.Generate(ctx, &ai.Request{Prompt: "hello"})
+m := model.New("anthropic", model.WithAPIKey(key))
+resp, _ := m.Generate(ctx, &model.Request{Prompt: "hello"})
 ```
 
 ## Examples

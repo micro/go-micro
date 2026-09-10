@@ -22,7 +22,7 @@ Codex for Open Source backs maintainers directly: the constant, unglamorous work
 
 There's a neat symmetry here. Go Micro is a framework for **agentic development** — agents that use tools, services that are automatically AI-callable, workflows that [loop until the job is done](/docs/guides/agent-loops.html). Building and maintaining it with an agentic coding tool is that same idea pointed back at itself: tools calling tools.
 
-It also lines up with what's already in the box. `openai` has been a first-class model provider in Go Micro since the AI-native rewrite — one of [several](/docs/guides/ai-provider-guide.html) behind the same `ai.Model` interface. So you can build *on* OpenAI models with Go Micro, and now we build Go Micro itself with OpenAI's tooling.
+It also lines up with what's already in the box. `openai` has been a first-class model provider in Go Micro since the AI-native rewrite — one of [several](/docs/guides/ai-provider-guide.html) behind the same `model.Model` interface. So you can build *on* OpenAI models with Go Micro, and now we build Go Micro itself with OpenAI's tooling.
 
 ## What we'll use it for
 

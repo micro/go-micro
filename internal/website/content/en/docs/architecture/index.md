@@ -84,12 +84,12 @@ truth for which tools and agents exist.
 
 Agents compose the service substrate with the AI-specific packages:
 
-- **`model` / `ai.Model`** — a pluggable model interface normalizes provider calls
+- **`model` / `model.Model`** — a pluggable model interface normalizes provider calls
   while letting applications pick Anthropic, OpenAI, Gemini, Atlas Cloud, Groq,
   Mistral, Together AI, or a mock model for no-secret tests.
 - **`store` / memory** — agent history, plans, run state, and compacted memory live
   in durable storage rather than in an in-process chat loop.
-- **`ai.Tools`** — discovers registered service endpoints and executes them through
+- **`model.Tools`** — discovers registered service endpoints and executes them through
   the Go Micro client, so tools are generated from running services instead of a
   parallel tool registry.
 - **`agent`** — runs the tool-calling loop with guardrails, planning, delegation,

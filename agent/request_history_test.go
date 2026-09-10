@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 // countPromptOccurrences counts how many times message reaches the provider in
 // one request, across both channels providers replay: the Messages history and
 // the Prompt field. Providers build their payload as Messages followed by
 // Prompt, so the correct count for the turn being answered is exactly one.
-func countPromptOccurrences(req *ai.Request, message string) int {
+func countPromptOccurrences(req *model.Request, message string) int {
 	seen := 0
 	if req.Prompt == message {
 		seen++
@@ -29,10 +29,10 @@ func countPromptOccurrences(req *ai.Request, message string) int {
 // where memory recorded the turn before the request was built and the request
 // then carried it both as the trailing history entry and as Prompt.
 func TestCurrentMessageReachesProviderOnce(t *testing.T) {
-	var last *ai.Request
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	var last *model.Request
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		last = req
-		return &ai.Response{Reply: "ok"}, nil
+		return &model.Response{Reply: "ok"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -59,8 +59,8 @@ func TestCurrentMessageReachesProviderOnce(t *testing.T) {
 
 // Same contract on the streaming path.
 func TestCurrentMessageReachesProviderOnceStreaming(t *testing.T) {
-	var last *ai.Request
-	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+	var last *model.Request
+	fakeStream = func(ctx context.Context, opts model.Options, req *model.Request) (model.Stream, error) {
 		last = req
 		return &sliceStream{chunks: []string{"ok"}}, nil
 	}
@@ -91,8 +91,8 @@ func TestCurrentMessageReachesProviderOnceStreaming(t *testing.T) {
 // recorded the user turn but no reply) is real prior context that must NOT be
 // trimmed away.
 func TestStreamPreservesIdenticalTrailingHistoryTurn(t *testing.T) {
-	var last *ai.Request
-	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+	var last *model.Request
+	fakeStream = func(ctx context.Context, opts model.Options, req *model.Request) (model.Stream, error) {
 		last = req
 		return &sliceStream{chunks: []string{"ok"}}, nil
 	}
@@ -119,11 +119,11 @@ func TestStreamPreservesIdenticalTrailingHistoryTurn(t *testing.T) {
 }
 
 func TestRequestHistoryTrimsOnlyTrailingCurrentTurn(t *testing.T) {
-	history := []ai.Message{
+	history := []model.Message{
 		{Role: "user", Content: "a"},
 		{Role: "assistant", Content: "b"},
 	}
-	withCurrent := append(append([]ai.Message(nil), history...), ai.Message{Role: "user", Content: "c"})
+	withCurrent := append(append([]model.Message(nil), history...), model.Message{Role: "user", Content: "c"})
 
 	if got := requestHistory(withCurrent, "c"); len(got) != 2 {
 		t.Errorf("trailing current turn not trimmed: %+v", got)

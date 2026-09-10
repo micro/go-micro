@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
@@ -17,7 +17,7 @@ func TestFlowStepVerificationRetriesWithFeedback(t *testing.T) {
 		Retry: 1,
 		Run: func(ctx context.Context, in State) (State, error) {
 			attempts++
-			info, ok := ai.RunInfoFrom(ctx)
+			info, ok := model.RunInfoFrom(ctx)
 			if !ok {
 				t.Fatal("RunInfo missing from verified step")
 			}

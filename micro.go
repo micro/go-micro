@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
@@ -215,7 +215,7 @@ func AgentA2A(addr string) AgentOption { return agent.WithA2A(addr) }
 // "before", after it for "after". Use it for logging, metrics, retries,
 // or policy. Wrappers run outside the built-in guardrails, so they see
 // every call and result, including refusals.
-func AgentWrapTool(w ...ai.ToolWrapper) AgentOption {
+func AgentWrapTool(w ...model.ToolWrapper) AgentOption {
 	return agent.WrapTool(w...)
 }
 

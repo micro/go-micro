@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 )
 
@@ -99,12 +99,12 @@ func (m *ManualResolver) Call(ctx context.Context, name string, args map[string]
 // executes them over RPC. It exposes only services — never the internal
 // store/broker tools.
 type RegistryResolver struct {
-	tools *ai.Tools
+	tools *model.Tools
 }
 
 // NewRegistryResolver discovers services from reg and calls them with cl.
 func NewRegistryResolver(reg registry.Registry, cl client.Client) *RegistryResolver {
-	return &RegistryResolver{tools: ai.NewTools(reg, ai.ToolClient(cl))}
+	return &RegistryResolver{tools: model.NewTools(reg, model.ToolClient(cl))}
 }
 
 // List discovers the current service tools.
@@ -126,6 +126,6 @@ func (r *RegistryResolver) List(_ context.Context) ([]Tool, error) {
 
 // Call executes a discovered service tool.
 func (r *RegistryResolver) Call(ctx context.Context, name string, args map[string]any) (*CallResult, error) {
-	res := r.tools.Handler()(ctx, ai.ToolCall{ID: "1", Name: name, Input: args})
+	res := r.tools.Handler()(ctx, model.ToolCall{ID: "1", Name: name, Input: args})
 	return &CallResult{Text: res.Content}, nil
 }

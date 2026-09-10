@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	goai "go-micro.dev/v6/ai"
+	gomodel "go-micro.dev/v6/model"
 )
 
 func TestWriteProviderMatrix(t *testing.T) {
-	rows := []goai.CapabilityRow{
-		{Provider: "atlascloud", Capabilities: goai.Capabilities{Model: true, Image: true, Video: true}},
-		{Provider: "openai", Capabilities: goai.Capabilities{Model: true, Image: true}},
+	rows := []gomodel.CapabilityRow{
+		{Provider: "atlascloud", Capabilities: gomodel.Capabilities{Model: true, Image: true, Video: true}},
+		{Provider: "openai", Capabilities: gomodel.Capabilities{Model: true, Image: true}},
 	}
 
 	var out bytes.Buffer
@@ -31,8 +31,8 @@ func TestWriteProviderMatrix(t *testing.T) {
 }
 
 func TestWriteProviderJSON(t *testing.T) {
-	rows := []goai.CapabilityRow{
-		{Provider: "openai", Capabilities: goai.Capabilities{Model: true, Image: true}},
+	rows := []gomodel.CapabilityRow{
+		{Provider: "openai", Capabilities: gomodel.Capabilities{Model: true, Image: true}},
 	}
 
 	var out bytes.Buffer
@@ -40,7 +40,7 @@ func TestWriteProviderJSON(t *testing.T) {
 		t.Fatalf("writeProviderJSON returned error: %v", err)
 	}
 
-	var got []goai.CapabilityRow
+	var got []gomodel.CapabilityRow
 	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
 		t.Fatalf("JSON output did not decode: %v\n%s", err, out.String())
 	}

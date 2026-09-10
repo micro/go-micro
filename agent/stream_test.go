@@ -7,23 +7,23 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
 func TestStreamAskEmitsToolEventsAndFinalTokens(t *testing.T) {
 	calls := 0
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler == nil {
 			t.Fatal("StreamAsk must configure a tool handler")
 		}
 		calls++
-		result := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "echo", Input: map[string]any{"text": "hello"}})
-		return &ai.Response{
+		result := opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "echo", Input: map[string]any{"text": "hello"}})
+		return &model.Response{
 			Reply:     "planning",
 			Answer:    "final answer",
-			ToolCalls: []ai.ToolCall{{ID: "call-1", Name: "echo", Input: map[string]any{"text": "hello"}, Result: result.Content}},
+			ToolCalls: []model.ToolCall{{ID: "call-1", Name: "echo", Input: map[string]any{"text": "hello"}, Result: result.Content}},
 		}, nil
 	}
 	defer func() { fakeGen = nil }()
@@ -78,7 +78,7 @@ func TestStreamAskEmitsToolEventsAndFinalTokens(t *testing.T) {
 
 func TestStreamAskCloseCancelsInFlightModelCall(t *testing.T) {
 	started := make(chan struct{})
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		close(started)
 		<-ctx.Done()
 		return nil, ctx.Err()
@@ -119,9 +119,9 @@ func TestStreamAskHelperRejectsUnsupportedAgent(t *testing.T) {
 func TestAgentStreamUsesProviderStreamingAndRecordsAssistantMemory(t *testing.T) {
 	var sawRequest bool
 	var sawRunInfo bool
-	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+	fakeStream = func(ctx context.Context, opts model.Options, req *model.Request) (model.Stream, error) {
 		sawRequest = true
-		info, ok := ai.RunInfoFrom(ctx)
+		info, ok := model.RunInfoFrom(ctx)
 		if !ok || info.RunID == "" || info.Agent != "provider-stream" {
 			t.Fatalf("RunInfo = %#v, %v; want provider stream run metadata", info, ok)
 		}
@@ -175,7 +175,7 @@ func TestAgentStreamUsesProviderStreamingAndRecordsAssistantMemory(t *testing.T)
 
 func TestAgentStreamCanceledContextSkipsProviderCallAndMemory(t *testing.T) {
 	calls := 0
-	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+	fakeStream = func(ctx context.Context, opts model.Options, req *model.Request) (model.Stream, error) {
 		calls++
 		return &sliceStream{chunks: []string{"late"}}, nil
 	}
@@ -201,9 +201,9 @@ func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
 	cp := flow.StoreCheckpoint(store.NewStore(), "stream-resume-agent")
 	toolRuns := 0
 	first := true
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler != nil {
-			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "charge", Input: map[string]any{"order": "42"}})
+			res := opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "charge", Input: map[string]any{"order": "42"}})
 			if res.Content != "charged" {
 				t.Fatalf("tool result = %q, want charged", res.Content)
 			}
@@ -212,7 +212,7 @@ func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
 			first = false
 			return nil, errors.New("stream disconnected after tool")
 		}
-		return &ai.Response{Reply: "finished from streamed checkpoint"}, nil
+		return &model.Response{Reply: "finished from streamed checkpoint"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -278,14 +278,14 @@ func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
 }
 
 func TestAgentStreamDoesNotRecordUserWhenProviderStreamingUnsupported(t *testing.T) {
-	fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+	fakeStream = func(ctx context.Context, opts model.Options, req *model.Request) (model.Stream, error) {
 		if req.Prompt != "stream fallback" {
 			t.Fatalf("stream request prompt = %q, want pending user message in Prompt", req.Prompt)
 		}
 		if n := len(req.Messages); n > 0 && req.Messages[n-1].Role == "user" && req.Messages[n-1].Content == req.Prompt {
 			t.Fatalf("stream request messages = %+v, current prompt duplicated in history", req.Messages)
 		}
-		return nil, ai.ErrStreamingUnsupported
+		return nil, model.ErrStreamingUnsupported
 	}
 	defer func() { fakeStream = nil }()
 
@@ -295,7 +295,7 @@ func TestAgentStreamDoesNotRecordUserWhenProviderStreamingUnsupported(t *testing
 	}))
 
 	_, err := a.Stream(context.Background(), "stream fallback")
-	if !errors.Is(err, ai.ErrStreamingUnsupported) {
+	if !errors.Is(err, model.ErrStreamingUnsupported) {
 		t.Fatalf("Stream error = %v, want ErrStreamingUnsupported", err)
 	}
 	if got := mem.Messages(); len(got) != 0 {
@@ -305,11 +305,11 @@ func TestAgentStreamDoesNotRecordUserWhenProviderStreamingUnsupported(t *testing
 
 type unsupportedAgent struct{}
 
-func (unsupportedAgent) Name() string                                      { return "unsupported" }
-func (unsupportedAgent) Init(...Option)                                    {}
-func (unsupportedAgent) Options() Options                                  { return Options{} }
-func (unsupportedAgent) Ask(context.Context, string) (*Response, error)    { return nil, nil }
-func (unsupportedAgent) Stream(context.Context, string) (ai.Stream, error) { return nil, nil }
-func (unsupportedAgent) Run() error                                        { return nil }
-func (unsupportedAgent) Stop() error                                       { return nil }
-func (unsupportedAgent) String() string                                    { return "unsupported" }
+func (unsupportedAgent) Name() string                                         { return "unsupported" }
+func (unsupportedAgent) Init(...Option)                                       {}
+func (unsupportedAgent) Options() Options                                     { return Options{} }
+func (unsupportedAgent) Ask(context.Context, string) (*Response, error)       { return nil, nil }
+func (unsupportedAgent) Stream(context.Context, string) (model.Stream, error) { return nil, nil }
+func (unsupportedAgent) Run() error                                           { return nil }
+func (unsupportedAgent) Stop() error                                          { return nil }
+func (unsupportedAgent) String() string                                       { return "unsupported" }

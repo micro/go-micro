@@ -6,15 +6,15 @@ import (
 	"io"
 
 	"github.com/urfave/cli/v2"
-	goai "go-micro.dev/v6/ai"
-	_ "go-micro.dev/v6/ai/anthropic"
-	_ "go-micro.dev/v6/ai/atlascloud"
-	_ "go-micro.dev/v6/ai/gemini"
-	_ "go-micro.dev/v6/ai/groq"
-	_ "go-micro.dev/v6/ai/mistral"
-	_ "go-micro.dev/v6/ai/openai"
-	_ "go-micro.dev/v6/ai/together"
 	"go-micro.dev/v6/cmd"
+	gomodel "go-micro.dev/v6/model"
+	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/atlascloud"
+	_ "go-micro.dev/v6/model/gemini"
+	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/together"
 )
 
 func init() {
@@ -36,7 +36,7 @@ func init() {
 }
 
 func providersAction(c *cli.Context) error {
-	rows := goai.CapabilityRows()
+	rows := gomodel.CapabilityRows()
 	if c.Bool("json") {
 		return writeProviderJSON(c.App.Writer, rows)
 	}
@@ -44,13 +44,13 @@ func providersAction(c *cli.Context) error {
 	return nil
 }
 
-func writeProviderJSON(w io.Writer, rows []goai.CapabilityRow) error {
+func writeProviderJSON(w io.Writer, rows []gomodel.CapabilityRow) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(rows)
 }
 
-func writeProviderMatrix(w io.Writer, rows []goai.CapabilityRow) {
+func writeProviderMatrix(w io.Writer, rows []gomodel.CapabilityRow) {
 	const check = "✓"
 	fmt.Fprintln(w, "Provider    Model  Image  Video")
 	fmt.Fprintln(w, "--------    -----  -----  -----")

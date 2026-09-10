@@ -21,16 +21,16 @@ import (
     "fmt"
     "log"
 
-    "go-micro.dev/v6/ai"
-    _ "go-micro.dev/v6/ai/atlascloud"
+    "go-micro.dev/v6/model"
+    _ "go-micro.dev/v6/model/atlascloud"
 )
 
 func main() {
-    m := ai.New("atlascloud",
-        ai.WithAPIKey("your-atlas-cloud-key"),
+    m := model.New("atlascloud",
+        model.WithAPIKey("your-atlas-cloud-key"),
     )
 
-    resp, err := m.Generate(context.Background(), &ai.Request{
+    resp, err := m.Generate(context.Background(), &model.Request{
         Prompt:       "What is Go Micro?",
         SystemPrompt: "You are a helpful assistant.",
     })
@@ -48,9 +48,9 @@ func main() {
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `ai.WithAPIKey(key)` | *required* | Your Atlas Cloud API key |
-| `ai.WithModel(name)` | `llama-3.3-70b` | Model to use (see [Model Selection](#model-selection)) |
-| `ai.WithBaseURL(url)` | `https://api.atlascloud.ai` | API base URL |
+| `model.WithAPIKey(key)` | *required* | Your Atlas Cloud API key |
+| `model.WithModel(name)` | `llama-3.3-70b` | Model to use (see [Model Selection](#model-selection)) |
+| `model.WithBaseURL(url)` | `https://api.atlascloud.ai` | API base URL |
 
 ### Environment Variables
 
@@ -93,31 +93,31 @@ Atlas Cloud offers 300+ models. Some popular choices for the chat completions AP
 Check [atlascloud.ai](https://www.atlascloud.ai/) for the full model catalog. New SOTA models are available on day zero of release.
 
 ```go
-m := ai.New("atlascloud",
-    ai.WithAPIKey(key),
-    ai.WithModel("deepseek-v4"),
+m := model.New("atlascloud",
+    model.WithAPIKey(key),
+    model.WithModel("deepseek-v4"),
 )
 ```
 
 ## Image Generation
 
-Atlas Cloud supports text-to-image generation through the `ai.ImageModel` interface. This uses the same OpenAI-compatible `/v1/images/generations` endpoint.
+Atlas Cloud supports text-to-image generation through the `model.ImageModel` interface. This uses the same OpenAI-compatible `/v1/images/generations` endpoint.
 
 ```go
 import (
     "context"
     "fmt"
 
-    "go-micro.dev/v6/ai"
-    _ "go-micro.dev/v6/ai/atlascloud"
+    "go-micro.dev/v6/model"
+    _ "go-micro.dev/v6/model/atlascloud"
 )
 
 func main() {
-    ig := ai.NewImage("atlascloud",
-        ai.WithAPIKey("your-key"),
+    ig := model.NewImage("atlascloud",
+        model.WithAPIKey("your-key"),
     )
 
-    resp, err := ig.GenerateImage(context.Background(), &ai.ImageRequest{
+    resp, err := ig.GenerateImage(context.Background(), &model.ImageRequest{
         Prompt: "A Go gopher building microservices, digital art",
         Size:   "1024x1024",
     })
@@ -144,7 +144,7 @@ func main() {
 Atlas Cloud offers image models including `gpt-image-1`, `flux-2`, `nano-banana-pro`, and more. Check [atlascloud.ai](https://www.atlascloud.ai/) for the full catalog.
 
 ```go
-ig.GenerateImage(ctx, &ai.ImageRequest{
+ig.GenerateImage(ctx, &model.ImageRequest{
     Prompt: "A mountain landscape",
     Model:  "flux-2",
     Size:   "1024x1024",
@@ -152,11 +152,11 @@ ig.GenerateImage(ctx, &ai.ImageRequest{
 })
 ```
 
-The `ai.ImageModel` interface is also implemented by the OpenAI provider, so switching between providers is a one-line change.
+The `model.ImageModel` interface is also implemented by the OpenAI provider, so switching between providers is a one-line change.
 
 ## Using with Services (Tool Calling)
 
-Atlas Cloud supports OpenAI-compatible function calling. Combined with Go Micro's `ai.Tools`, your services become tools that the model can call:
+Atlas Cloud supports OpenAI-compatible function calling. Combined with Go Micro's `model.Tools`, your services become tools that the model can call:
 
 ```go
 package main
@@ -167,9 +167,9 @@ import (
     "log"
 
     "go-micro.dev/v6"
-    "go-micro.dev/v6/ai"
+    "go-micro.dev/v6/model"
     
-    _ "go-micro.dev/v6/ai/atlascloud"
+    _ "go-micro.dev/v6/model/atlascloud"
 )
 
 func main() {
@@ -177,20 +177,20 @@ func main() {
     service.Init()
 
     // Discover all services as tools
-    tools := ai.NewTools(service.Registry())
+    tools := model.NewTools(service.Registry())
     discovered, err := tools.Discover()
     if err != nil {
         log.Fatal(err)
     }
 
     // Create a model with tool execution
-    m := ai.New("atlascloud",
-        ai.WithAPIKey("your-key"),
-        ai.WithTools(tools),
+    m := model.New("atlascloud",
+        model.WithAPIKey("your-key"),
+        model.WithTools(tools),
     )
 
     // The model can now call your services
-    resp, err := m.Generate(context.Background(), &ai.Request{
+    resp, err := m.Generate(context.Background(), &model.Request{
         Prompt:       "List all users and send each a welcome email",
         SystemPrompt: "You are a service orchestrator.",
         Tools:        discovered,
@@ -205,9 +205,9 @@ func main() {
 
 ### How it works
 
-1. `ai.NewTools(registry)` creates a tool set bound to the service registry
-2. `tools.Discover()` walks the registry and returns every endpoint as an `ai.Tool`
-3. `ai.WithTools(tools)` wires execution into the model — tool calls are routed via RPC
+1. `model.NewTools(registry)` creates a tool set bound to the service registry
+2. `tools.Discover()` walks the registry and returns every endpoint as an `model.Tool`
+3. `model.WithTools(tools)` wires execution into the model — tool calls are routed via RPC
 4. When the model decides to call a tool, it routes to the correct service
 
 This works identically across all providers. Swap `"atlascloud"` for `"anthropic"` or `"openai"` and the same services, tools, and handlers work without changes.
@@ -251,20 +251,20 @@ The MCP gateway (`micro mcp serve`) exposes services as tools for external AI ag
 
 ## Swapping Providers
 
-All Go Micro AI providers implement the same `ai.Model` interface. To switch from Atlas Cloud to another provider, change the import and the provider name:
+All Go Micro AI providers implement the same `model.Model` interface. To switch from Atlas Cloud to another provider, change the import and the provider name:
 
 ```go
 // Atlas Cloud
-import _ "go-micro.dev/v6/ai/atlascloud"
-m := ai.New("atlascloud", ai.WithAPIKey(key))
+import _ "go-micro.dev/v6/model/atlascloud"
+m := model.New("atlascloud", model.WithAPIKey(key))
 
 // Anthropic
-import _ "go-micro.dev/v6/ai/anthropic"
-m := ai.New("anthropic", ai.WithAPIKey(key))
+import _ "go-micro.dev/v6/model/anthropic"
+m := model.New("anthropic", model.WithAPIKey(key))
 
 // OpenAI
-import _ "go-micro.dev/v6/ai/openai"
-m := ai.New("openai", ai.WithAPIKey(key))
+import _ "go-micro.dev/v6/model/openai"
+m := model.New("openai", model.WithAPIKey(key))
 ```
 
 The rest of your code — tool discovery, handler wiring, request/response handling — stays the same.
@@ -280,12 +280,12 @@ Atlas Cloud exposes an OpenAI-compatible `/v1/chat/completions` endpoint. This m
 If you're already using the `openai` provider, you can point it at Atlas Cloud directly:
 
 ```go
-import _ "go-micro.dev/v6/ai/openai"
+import _ "go-micro.dev/v6/model/openai"
 
-m := ai.New("openai",
-    ai.WithAPIKey("your-atlas-cloud-key"),
-    ai.WithBaseURL("https://api.atlascloud.ai"),
-    ai.WithModel("llama-3.3-70b"),
+m := model.New("openai",
+    model.WithAPIKey("your-atlas-cloud-key"),
+    model.WithBaseURL("https://api.atlascloud.ai"),
+    model.WithModel("llama-3.3-70b"),
 )
 ```
 
@@ -295,5 +295,5 @@ The dedicated `atlascloud` provider simply sets these defaults for you.
 
 - [Atlas Cloud](https://www.atlascloud.ai/) — Sign up and get an API key
 - [AI Provider Integration Guide](/docs/guides/ai-provider-guide.html) — How providers are built
-- [ai.Tools](https://pkg.go.dev/go-micro.dev/v6/ai.Tools) — Service-to-tool discovery
+- [model.Tools](https://pkg.go.dev/go-micro.dev/v6/model.Tools) — Service-to-tool discovery
 - [Blog: Atlas Cloud Sponsors Go Micro](/blog/2026/05/28/atlas-cloud-sponsors-go-micro-300-ai-models-one-integration.html) — Announcement post

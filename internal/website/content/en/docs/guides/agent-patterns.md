@@ -87,20 +87,20 @@ User → API → Your Service → AI Model (Claude/GPT)
 
 ```go
 import (
-    "go-micro.dev/v6/ai"
-    _ "go-micro.dev/v6/ai/anthropic"
+    "go-micro.dev/v6/model"
+    _ "go-micro.dev/v6/model/anthropic"
 )
 
 type SummaryService struct {
-    ai    ai.Model
+    ai    model.Model
     tasks *TaskClient
 }
 
 func NewSummaryService() *SummaryService {
     return &SummaryService{
-        ai: ai.New("anthropic",
-            ai.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
-            ai.WithModel("claude-sonnet-4-20250514"),
+        ai: model.New("anthropic",
+            model.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
+            model.WithModel("claude-sonnet-4-20250514"),
         ),
     }
 }
@@ -117,7 +117,7 @@ func (s *SummaryService) Summarize(ctx context.Context, req *SummarizeRequest, r
     }
 
     // Use AI to summarize
-    resp, err := s.ai.Generate(ctx, &ai.Request{
+    resp, err := s.model.Generate(ctx, &model.Request{
         Prompt:       fmt.Sprintf("Summarize these tasks:\n%s", formatTasks(tasks)),
         SystemPrompt: "You are a concise project manager. Summarize task status in 2-3 sentences.",
     })
@@ -148,12 +148,12 @@ User → Your App → AI Model ←→ MCP Tools (your services)
 
 ```go
 import (
-    "go-micro.dev/v6/ai"
-    _ "go-micro.dev/v6/ai/anthropic"
+    "go-micro.dev/v6/model"
+    _ "go-micro.dev/v6/model/anthropic"
 )
 
 // Define tools from your service endpoints
-tools := []ai.Tool{
+tools := []model.Tool{
     {
         Name:        "create_task",
         Description: "Create a new task with title and assignee",
@@ -173,35 +173,35 @@ tools := []ai.Tool{
 
 // Handle tool calls by routing to your services. The handler mirrors a
 // go-micro RPC handler: context first, the call in, a result out.
-toolHandler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+toolHandler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
     switch call.Name {
     case "create_task":
         var rsp CreateResponse
         err := client.Call(ctx, "tasks", "TaskService.Create", call.Input, &rsp)
         if err != nil {
-            return ai.ToolResult{ID: call.ID, Content: fmt.Sprintf(`{"error": "%s"}`, err)}
+            return model.ToolResult{ID: call.ID, Content: fmt.Sprintf(`{"error": "%s"}`, err)}
         }
         b, _ := json.Marshal(rsp)
-        return ai.ToolResult{ID: call.ID, Value: rsp, Content: string(b)}
+        return model.ToolResult{ID: call.ID, Value: rsp, Content: string(b)}
     case "list_tasks":
         var rsp ListResponse
         err := client.Call(ctx, "tasks", "TaskService.List", call.Input, &rsp)
         if err != nil {
-            return ai.ToolResult{ID: call.ID, Content: fmt.Sprintf(`{"error": "%s"}`, err)}
+            return model.ToolResult{ID: call.ID, Content: fmt.Sprintf(`{"error": "%s"}`, err)}
         }
         b, _ := json.Marshal(rsp)
-        return ai.ToolResult{ID: call.ID, Value: rsp, Content: string(b)}
+        return model.ToolResult{ID: call.ID, Value: rsp, Content: string(b)}
     }
-    return ai.ToolResult{ID: call.ID, Content: `{"error": "unknown tool"}`}
+    return model.ToolResult{ID: call.ID, Content: `{"error": "unknown tool"}`}
 }
 
-m := ai.New("anthropic",
-    ai.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
-    ai.WithToolHandler(toolHandler),
+m := model.New("anthropic",
+    model.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
+    model.WithToolHandler(toolHandler),
 )
 
 // The model will automatically call tools and return the final answer
-resp, err := m.Generate(ctx, &ai.Request{
+resp, err := m.Generate(ctx, &model.Request{
     Prompt:       "Create a task for Alice to review the PR and tell me what tasks she has",
     SystemPrompt: "You are a helpful project management assistant",
     Tools:        tools,
@@ -239,7 +239,7 @@ broker.Subscribe("tasks.created", func(p broker.Event) error {
     json.Unmarshal(p.Message().Body, &task)
 
     // Use AI to auto-assign based on task content
-    resp, err := aiModel.Generate(ctx, &ai.Request{
+    resp, err := aiModel.Generate(ctx, &model.Request{
         Prompt: fmt.Sprintf("Who should handle this task? Title: %s, Description: %s. Team: alice (frontend), bob (backend), charlie (devops)", task.Title, task.Description),
         SystemPrompt: "Reply with just the username of the best person to handle this task.",
     })
@@ -472,4 +472,4 @@ Keep services as pure business logic. Let the agent harness handle orchestration
 - [Building AI-Native Services](ai-native-services.md) - End-to-end tutorial
 - [MCP Security Guide](mcp-security.md) - Auth and scopes
 - [Tool Description Best Practices](tool-descriptions.md) - Better docs for agents
-- [AI Package](https://pkg.go.dev/go-micro.dev/v6/ai) - AI provider interface
+- [AI Package](https://pkg.go.dev/go-micro.dev/v6/model) - AI provider interface

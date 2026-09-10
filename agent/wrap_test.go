@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -15,8 +15,8 @@ import (
 // modify the result.
 func TestWrapToolWraps(t *testing.T) {
 	var saw string
-	wrap := func(next ai.ToolHandler) ai.ToolHandler {
-		return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	wrap := func(next model.ToolHandler) model.ToolHandler {
+		return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 			saw = call.Name
 			res := next(ctx, call)
 			res.Content = "wrapped:" + res.Content
@@ -40,9 +40,9 @@ func TestWrapToolWraps(t *testing.T) {
 // out.
 func TestWrapToolOrder(t *testing.T) {
 	var order []string
-	mk := func(tag string) ai.ToolWrapper {
-		return func(next ai.ToolHandler) ai.ToolHandler {
-			return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	mk := func(tag string) model.ToolWrapper {
+		return func(next model.ToolHandler) model.ToolHandler {
+			return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 				order = append(order, "in:"+tag)
 				res := next(ctx, call)
 				order = append(order, "out:"+tag)
@@ -64,8 +64,8 @@ func TestWrapToolOrder(t *testing.T) {
 // call and its refusal result rather than being short-circuited.
 func TestWrapToolSeesGuardrailRefusal(t *testing.T) {
 	var sawResult string
-	wrap := func(next ai.ToolHandler) ai.ToolHandler {
-		return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	wrap := func(next model.ToolHandler) model.ToolHandler {
+		return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 			res := next(ctx, call)
 			sawResult = res.Content
 			return res
@@ -91,56 +91,56 @@ func TestWrapToolSeesRefusedReason(t *testing.T) {
 	a := newTestAgent(Name("looper"), LoopLimit(2))
 	h := a.toolHandler()
 
-	var last ai.ToolResult
+	var last model.ToolResult
 	for i := 0; i < 3; i++ {
-		last = h(context.Background(), ai.ToolCall{ID: "x", Name: "demo_Svc_Do", Input: map[string]any{"q": "same"}})
+		last = h(context.Background(), model.ToolCall{ID: "x", Name: "demo_Svc_Do", Input: map[string]any{"q": "same"}})
 	}
-	if last.Refused != ai.RefusedLoop {
-		t.Errorf("Refused = %q, want %q", last.Refused, ai.RefusedLoop)
+	if last.Refused != model.RefusedLoop {
+		t.Errorf("Refused = %q, want %q", last.Refused, model.RefusedLoop)
 	}
 }
 
 // ctxMock is a model that forwards the Generate context to the tool
-// handler (as real providers do), so a wrapper can read ai.RunInfo.
-type ctxMock struct{ opts ai.Options }
+// handler (as real providers do), so a wrapper can read model.RunInfo.
+type ctxMock struct{ opts model.Options }
 
-func (m *ctxMock) Init(opts ...ai.Option) error {
+func (m *ctxMock) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *ctxMock) Options() ai.Options { return m.opts }
-func (m *ctxMock) String() string      { return "ctxmock" }
-func (m *ctxMock) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+func (m *ctxMock) Options() model.Options { return m.opts }
+func (m *ctxMock) String() string         { return "ctxmock" }
+func (m *ctxMock) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
 	return nil, fmt.Errorf("no stream")
 }
-func (m *ctxMock) Generate(ctx context.Context, _ *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *ctxMock) Generate(ctx context.Context, _ *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	if m.opts.ToolHandler != nil {
-		m.opts.ToolHandler(ctx, ai.ToolCall{ID: "c1", Name: "demo_Svc_Do", Input: map[string]any{}})
+		m.opts.ToolHandler(ctx, model.ToolCall{ID: "c1", Name: "demo_Svc_Do", Input: map[string]any{}})
 	}
-	return &ai.Response{Answer: "done"}, nil
+	return &model.Response{Answer: "done"}, nil
 }
 
 // During an Ask, a wrapper sees RunInfo on the context: a correlation id
 // for the run and the agent's name.
 func TestWrapToolSeesRunInfo(t *testing.T) {
-	ai.Register("ctxmock", func(opts ...ai.Option) ai.Model {
+	model.Register("ctxmock", func(opts ...model.Option) model.Model {
 		m := &ctxMock{}
 		_ = m.Init(opts...)
 		return m
 	})
 
-	var got ai.RunInfo
+	var got model.RunInfo
 	var ok bool
 	a := New(
 		Name("runner"),
 		Provider("ctxmock"),
 		WithRegistry(registry.NewMemoryRegistry()),
 		WithStore(store.NewMemoryStore()),
-		WrapTool(func(next ai.ToolHandler) ai.ToolHandler {
-			return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
-				got, ok = ai.RunInfoFrom(ctx)
+		WrapTool(func(next model.ToolHandler) model.ToolHandler {
+			return func(ctx context.Context, call model.ToolCall) model.ToolResult {
+				got, ok = model.RunInfoFrom(ctx)
 				return next(ctx, call)
 			}
 		}),
@@ -169,7 +169,7 @@ func TestWrapToolSeesRunInfo(t *testing.T) {
 
 // call.Scan decodes a tool call's input into a typed struct.
 func TestToolCallScan(t *testing.T) {
-	call := ai.ToolCall{Input: map[string]any{"query": "hello", "limit": 5}}
+	call := model.ToolCall{Input: map[string]any{"query": "hello", "limit": 5}}
 	var args struct {
 		Query string `json:"query"`
 		Limit int    `json:"limit"`

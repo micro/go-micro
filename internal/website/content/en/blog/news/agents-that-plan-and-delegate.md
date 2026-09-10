@@ -146,7 +146,7 @@ The full runnable code is in [examples/agent-plan-delegate](https://github.com/m
 
 ## Why it's only two tools
 
-It would have been easy to ship a planning engine, a sub-agent scheduler, a delegation graph. We didn't, on purpose. Every one of those is a new abstraction to learn and maintain, and Go Micro's bet has been consistent since we [went all in on AI](/blog/2026/06/04/going-all-in-on-ai.html): services are the only abstraction, the LLM calls them as tools, and an agent's own capabilities are no exception.
+It would have been easy to ship a planning engine, a sub-agent scheduler, a delegation graph. We didn't, on purpose. Every one of those is a new abstraction to learn and maintain, and Go Micro's bet has been consistent since we [went all in on AI](/blog/2026/06/04/going-all-in-on-model.html): services are the only abstraction, the LLM calls them as tools, and an agent's own capabilities are no exception.
 
 `plan` and `delegate` are two small tools added to mechanisms that already existed — the store, and agent-to-agent RPC. That's the entire feature. It's also why there's nothing to configure: if you've written a `micro.NewAgent`, you already have them.
 

@@ -40,9 +40,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
 	codecbytes "go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 )
 
@@ -125,7 +125,7 @@ func New(opts Options) *Gateway {
 type Invoke func(ctx context.Context, text string) (string, error)
 
 // StreamInvoke runs an agent for one message and returns streaming output chunks.
-type StreamInvoke func(ctx context.Context, text string) (ai.Stream, error)
+type StreamInvoke func(ctx context.Context, text string) (model.Stream, error)
 
 // AgentHandlerOption configures an embedded A2A agent handler.
 type AgentHandlerOption func(*dispatcher)
@@ -679,7 +679,7 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 	}
 	stream, err := invoke(ctx, text)
 	if err != nil {
-		if errors.Is(err, ai.ErrStreamingUnsupported) && fallback != nil {
+		if errors.Is(err, model.ErrStreamingUnsupported) && fallback != nil {
 			d.stream(ctx, w, req, fallback)
 			return
 		}

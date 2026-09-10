@@ -162,9 +162,9 @@ For custom audit logging, wrap the tool execution boundary. Wrappers observe eve
 call and result, including guardrail refusals:
 
 ```go
-wrapped := micro.AgentWrapTool(func(next ai.ToolHandler) ai.ToolHandler {
-    return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
-        if run, ok := ai.RunInfoFrom(ctx); ok {
+wrapped := micro.AgentWrapTool(func(next model.ToolHandler) model.ToolHandler {
+    return func(ctx context.Context, call model.ToolCall) model.ToolResult {
+        if run, ok := model.RunInfoFrom(ctx); ok {
             log.Printf("run=%s agent=%s tool=%s", run.RunID, run.Agent, call.Name)
         }
         res := next(ctx, call)

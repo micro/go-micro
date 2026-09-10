@@ -1,6 +1,6 @@
 // Agent Tool Wrappers — middleware around tool execution
 //
-// Every tool call an agent makes runs through ai.ToolHandler. WrapTool
+// Every tool call an agent makes runs through model.ToolHandler. WrapTool
 // wraps that handler the same way client.CallWrapper and
 // server.HandlerWrapper wrap RPCs: a wrapper takes the next handler and
 // returns a new one, so code before the next(...) call runs before the
@@ -33,7 +33,7 @@ import (
 	"time"
 
 	"go-micro.dev/v6"
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 // ---------------------------------------------------------------------------
@@ -92,8 +92,8 @@ func newMetrics() *metrics {
 // observe times each tool call and records a per-tool count. It mirrors a
 // service-side metrics wrapper: measure around next(...), record, return
 // the result untouched.
-func (m *metrics) observe(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func (m *metrics) observe(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		start := time.Now()
 		res := next(ctx, call)
 		took := time.Since(start)
@@ -117,10 +117,10 @@ func (m *metrics) observe(next ai.ToolHandler) ai.ToolHandler {
 // Keep LoopLimit at or above your retry count (the default 3 covers the
 // 2 attempts this example makes), or disable it with AgentLoopLimit(0)
 // when a wrapper is responsible for repetition.
-func retry(attempts int) ai.ToolWrapper {
-	return func(next ai.ToolHandler) ai.ToolHandler {
-		return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
-			var res ai.ToolResult
+func retry(attempts int) model.ToolWrapper {
+	return func(next model.ToolHandler) model.ToolHandler {
+		return func(ctx context.Context, call model.ToolCall) model.ToolResult {
+			var res model.ToolResult
 			for i := 1; i <= attempts; i++ {
 				res = next(ctx, call)
 				if !isError(res) {
@@ -137,7 +137,7 @@ func retry(attempts int) ai.ToolWrapper {
 
 // isError reports whether a tool result is an error. The RPC handler
 // encodes failures as a JSON object with an "error" field in Content.
-func isError(res ai.ToolResult) bool {
+func isError(res model.ToolResult) bool {
 	return strings.Contains(res.Content, `"error"`)
 }
 

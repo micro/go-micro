@@ -25,21 +25,21 @@ import (
 
 	"github.com/google/uuid"
 	pb "go-micro.dev/v6/agent/proto"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/store"
 
-	_ "go-micro.dev/v6/ai/anthropic"
-	_ "go-micro.dev/v6/ai/atlascloud"
-	_ "go-micro.dev/v6/ai/gemini"
-	_ "go-micro.dev/v6/ai/groq"
-	_ "go-micro.dev/v6/ai/minimax"
-	_ "go-micro.dev/v6/ai/mistral"
-	_ "go-micro.dev/v6/ai/ollama"
-	_ "go-micro.dev/v6/ai/openai"
-	_ "go-micro.dev/v6/ai/together"
+	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/atlascloud"
+	_ "go-micro.dev/v6/model/gemini"
+	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/minimax"
+	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/ollama"
+	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/together"
 )
 
 // Agent is the interface for an AI agent that manages services.
@@ -48,7 +48,7 @@ type Agent interface {
 	Init(...Option)
 	Options() Options
 	Ask(ctx context.Context, message string) (*Response, error)
-	Stream(ctx context.Context, message string) (ai.Stream, error)
+	Stream(ctx context.Context, message string) (model.Stream, error)
 	Run() error
 	Stop() error
 	String() string
@@ -57,7 +57,7 @@ type Agent interface {
 // Response is what an agent returns from Chat.
 type Response struct {
 	Reply     string
-	ToolCalls []ai.ToolCall
+	ToolCalls []model.ToolCall
 	Agent     string
 
 	// RunID correlates this Ask with tool calls, trace spans, and the
@@ -69,8 +69,8 @@ type Response struct {
 
 type agentImpl struct {
 	opts   Options
-	model  ai.Model
-	tools  *ai.Tools
+	model  model.Model
+	tools  *model.Tools
 	mem    Memory
 	server server.Server
 	mu     sync.Mutex
@@ -91,7 +91,7 @@ type agentImpl struct {
 
 	// runID correlates the tool calls of the current Ask; parentRunID is
 	// the run that delegated to this one (set on ephemeral sub-agents).
-	// Both are surfaced to tool wrappers via ai.RunInfo on the context.
+	// Both are surfaced to tool wrappers via model.RunInfo on the context.
 	runID       string
 	parentRunID string
 
@@ -160,27 +160,27 @@ func (a *agentImpl) setup() {
 	a.setupWithToolHandler(nil)
 }
 
-func (a *agentImpl) setupWithToolHandler(handler ai.ToolHandler) {
-	var modelOpts []ai.Option
-	modelOpts = append(modelOpts, ai.WithAPIKey(a.opts.APIKey))
+func (a *agentImpl) setupWithToolHandler(handler model.ToolHandler) {
+	var modelOpts []model.Option
+	modelOpts = append(modelOpts, model.WithAPIKey(a.opts.APIKey))
 	if a.opts.Model != "" {
-		modelOpts = append(modelOpts, ai.WithModel(a.opts.Model))
+		modelOpts = append(modelOpts, model.WithModel(a.opts.Model))
 	}
 	if a.opts.BaseURL != "" {
-		modelOpts = append(modelOpts, ai.WithBaseURL(a.opts.BaseURL))
+		modelOpts = append(modelOpts, model.WithBaseURL(a.opts.BaseURL))
 	}
 
 	// Reuse the existing tools instance: its name map is populated by
 	// discoverTools, and rebuilding it here would orphan a base handler that
 	// already captured the old instance (breaking StreamAsk tool resolution).
 	if a.tools == nil {
-		a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
+		a.tools = model.NewTools(a.opts.Registry, model.ToolClient(a.opts.Client))
 	}
 	if handler == nil {
 		handler = a.toolHandler()
 	}
-	modelOpts = append(modelOpts, ai.WithToolHandler(handler))
-	a.model = ai.New(a.opts.Provider, modelOpts...)
+	modelOpts = append(modelOpts, model.WithToolHandler(handler))
+	a.model = model.New(a.opts.Provider, modelOpts...)
 	if a.model != nil {
 		a.model = a.tracedModel(a.model)
 	}
@@ -234,7 +234,7 @@ func (a *agentImpl) stateStore() store.Store {
 // it records the turn only after the stream starts, so its history cannot
 // contain the current turn, and a trailing identical user message there is
 // legitimate prior context (e.g. a retry after an interrupted stream).
-func requestHistory(msgs []ai.Message, message string) []ai.Message {
+func requestHistory(msgs []model.Message, message string) []model.Message {
 	n := len(msgs)
 	if n == 0 || message == "" {
 		return msgs
@@ -258,7 +258,7 @@ func (a *agentImpl) Ask(ctx context.Context, message string) (*Response, error) 
 // Stream sends a message and returns a streaming model response. Tool-calling
 // agent runs still use Ask; Stream is for chat turns where immediate token
 // delivery is more important than tool orchestration.
-func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, error) {
+func (a *agentImpl) Stream(ctx context.Context, message string) (model.Stream, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if err := ctx.Err(); err != nil {
@@ -272,7 +272,7 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 		return nil, fmt.Errorf("discover tools: %w", err)
 	}
 	runID := uuid.New().String()
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	parentRunID := a.parentRunID
 	if parentRunID == "" {
 		parentRunID = info.RunID
@@ -280,15 +280,15 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (ai.Stream, erro
 	info.RunID = runID
 	info.ParentID = parentRunID
 	info.Agent = a.opts.Name
-	ctx = ai.WithRunInfo(ctx, info)
+	ctx = model.WithRunInfo(ctx, info)
 	// Messages carries the history; Prompt carries the turn being answered.
 	// Providers build their payload as Messages followed by Prompt, so
 	// appending the current message here would send it to the model twice.
 	// Memory has not recorded this turn yet (that happens after the stream
 	// starts), so the copy is passed through untrimmed: a trailing user
 	// message equal to this one is real prior context, not a duplicate.
-	messages := append([]ai.Message(nil), a.mem.Messages()...)
-	stream, err := a.model.Stream(ctx, &ai.Request{
+	messages := append([]model.Message(nil), a.mem.Messages()...)
+	stream, err := a.model.Stream(ctx, &model.Request{
 		Prompt:       message,
 		SystemPrompt: a.buildPrompt(),
 		Tools:        toolList,
@@ -399,7 +399,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	// the flow origin recovered from RPC metadata while assigning this agent
 	// execution its own child run identity.
 	a.runID = runID
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	if existing != nil {
 		if info.Flow == "" {
 			info.Flow = existing.OriginFlow
@@ -420,7 +420,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	info.RunID = a.runID
 	info.ParentID = parentRunID
 	info.Agent = a.opts.Name
-	ctx = ai.WithRunInfo(ctx, info)
+	ctx = model.WithRunInfo(ctx, info)
 	run := a.newCheckpointRun(runID, message, parentRunID, info, existing)
 	a.currentRun = &run
 	defer func() { a.currentRun = nil }()
@@ -436,7 +436,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	messages := a.mem.Messages()
 	if recall, ok := a.mem.(MemoryRecall); ok && a.opts.MemoryRecallLimit > 0 {
 		if recalled := recall.Recall(message, a.opts.MemoryRecallLimit); len(recalled) > 0 {
-			messages = append([]ai.Message{{
+			messages = append([]model.Message{{
 				Role:    "system",
 				Content: "Relevant recalled memory follows; use it as durable prior context without assuming the whole conversation was replayed.",
 			}}, append(recalled, messages...)...)
@@ -448,14 +448,14 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	// continuations for the services → agents → workflows harness to complete
 	// every planned side effect without weakening the final unfinished-plan guard.
 	const maxPlanCompletionTurns = 6
-	var resp *ai.Response
+	var resp *model.Response
 	for planCompletionTurn := 0; ; planCompletionTurn++ {
-		resp, err = ai.GenerateWithRetry(ctx, a.model, &ai.Request{
+		resp, err = model.GenerateWithRetry(ctx, a.model, &model.Request{
 			Prompt:       message,
 			SystemPrompt: a.buildPrompt(),
 			Tools:        toolList,
 			Messages:     requestHistory(messages, message),
-		}, ai.GeneratePolicy{
+		}, model.GeneratePolicy{
 			Timeout:     a.opts.ModelTimeout,
 			MaxAttempts: a.opts.ModelMaxAttempts,
 			Backoff:     a.opts.ModelRetryBackoff,
@@ -463,7 +463,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		})
 		if err != nil {
 			run.Status = agentRunFailureStatus(err)
-			failureKind := ai.ClassifyError(err)
+			failureKind := model.ClassifyError(err)
 			attempts := agentRunFailureAttempts(err)
 			err = agentOperationalError(err)
 			if a.currentRun != nil {
@@ -700,13 +700,13 @@ func (a *agentImpl) Stop() error {
 	return nil
 }
 
-func (a *agentImpl) discoverTools() ([]ai.Tool, error) {
+func (a *agentImpl) discoverTools() ([]model.Tool, error) {
 	all, err := a.tools.Discover()
 	if err != nil {
 		return nil, err
 	}
 
-	var scoped []ai.Tool
+	var scoped []model.Tool
 	for _, t := range all {
 		if strings.HasPrefix(t.OriginalName, a.opts.Name+".") {
 			continue

@@ -13,9 +13,9 @@ Registry                →  automatic service discovery (mDNS, Consul, etcd)
     ↓
 Gateways                →  micro api (HTTP→RPC) / micro mcp (MCP tools)
     ↓
-ai.Tools                →  discovers services + executes RPCs programmatically
+model.Tools                →  discovers services + executes RPCs programmatically
     ↓
-ai.Model                →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Cloud, ...)
+model.Model                →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Cloud, ...)
     ↓
 agent / flow / micro chat  →  agent-managed, event-driven, or interactive orchestration
 ```
@@ -68,34 +68,34 @@ micro mcp serve --address :3000  # HTTP for web agents
 
 Any MCP-compatible agent (Claude Code, ChatGPT, custom agents) can discover and call your services.
 
-### 4. ai.Tools (discover + execute)
+### 4. model.Tools (discover + execute)
 
-`ai.Tools` turns registered services into LLM-callable tools — discovery plus RPC execution in one type:
+`model.Tools` turns registered services into LLM-callable tools — discovery plus RPC execution in one type:
 
 ```go
-tools := ai.NewTools(service.Registry())
-discovered, _ := tools.Discover()  // []ai.Tool from all registered services
+tools := model.NewTools(service.Registry())
+discovered, _ := tools.Discover()  // []model.Tool from all registered services
 
 // Wire execution into a model with one option:
-m := ai.New("anthropic", ai.WithAPIKey(key), ai.WithTools(tools))
+m := model.New("anthropic", model.WithAPIKey(key), model.WithTools(tools))
 ```
 
 This is what powers `micro chat` and the agent playground. You can use it directly in your own services to build agentic workflows.
 
-### 5. ai.Model (LLM providers)
+### 5. model.Model (LLM providers)
 
 The `ai` package provides a pluggable interface for calling LLMs:
 
 ```go
 import (
-    "go-micro.dev/v6/ai"
-    _ "go-micro.dev/v6/ai/anthropic"
+    "go-micro.dev/v6/model"
+    _ "go-micro.dev/v6/model/anthropic"
 )
 
-m := ai.New("anthropic", ai.WithAPIKey(key))
-resp, _ := m.Generate(ctx, &ai.Request{
+m := model.New("anthropic", model.WithAPIKey(key))
+resp, _ := m.Generate(ctx, &model.Request{
     Prompt: "What users are in the system?",
-    Tools:  discovered,  // from ai.Tools
+    Tools:  discovered,  // from model.Tools
 })
 ```
 
@@ -122,7 +122,7 @@ ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
 > create an order for product-42
 ```
 
-Multi-turn conversation with `ai.History` — the model remembers context across turns. Type `reset` to clear history.
+Multi-turn conversation with `model.History` — the model remembers context across turns. Type `reset` to clear history.
 
 ### 7. micro flow (event-driven orchestration)
 

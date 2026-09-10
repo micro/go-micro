@@ -35,31 +35,31 @@ That's the whole problem. Let's solve each part.
 The LLM needs to know what's available. In go-micro, every service registers its endpoints with the registry, including request types and field metadata. We turn that into a tool list:
 
 ```go
-tools := ai.NewTools(reg, ai.ToolClient(client))
+tools := model.NewTools(reg, model.ToolClient(client))
 discovered, err := tools.Discover()
 ```
 
-`discovered` is a `[]ai.Tool` — one per service endpoint. Each has a name (`users_Users_Create`), a description (from the handler's doc comment), and a parameter schema (from the request struct's fields).
+`discovered` is a `[]model.Tool` — one per service endpoint. Each has a name (`users_Users_Create`), a description (from the handler's doc comment), and a parameter schema (from the request struct's fields).
 
 If you're not using go-micro, this is the part you'd write yourself: enumerate your functions/endpoints and build a list of `{name, description, parameters}`. The registry just makes it automatic.
 
 ## Part 2: Create the Model
 
 ```go
-m := ai.New("anthropic",
-    ai.WithAPIKey(apiKey),
-    ai.WithTools(tools),
+m := model.New("anthropic",
+    model.WithAPIKey(apiKey),
+    model.WithTools(tools),
 )
 ```
 
-Two things happen here. `ai.New` picks the provider (Anthropic, OpenAI, Gemini, etc. — all the same interface). `ai.WithTools(tools)` wires up the **execution** side: when the model says "call `users_Users_Create` with these args," the handler routes it to the right RPC and returns the result.
+Two things happen here. `model.New` picks the provider (Anthropic, OpenAI, Gemini, etc. — all the same interface). `model.WithTools(tools)` wires up the **execution** side: when the model says "call `users_Users_Create` with these args," the handler routes it to the right RPC and returns the result.
 
 That's the second piece — the way to execute. The `Tools` object does double duty: `Discover()` builds the list, and its handler executes the calls.
 
 ## Part 3: Track the Conversation
 
 ```go
-hist := ai.NewHistory(50)
+hist := model.NewHistory(50)
 ```
 
 `History` is a plain message accumulator with a size limit. It's not magic — it's a `[]Message` with `Add`, `Messages`, and `Reset`. You add the user's prompt and the model's reply after each turn, and pass the accumulated messages back on the next call. That's how follow-up questions work.
@@ -69,10 +69,10 @@ hist := ai.NewHistory(50)
 Now wire it together. The core of `ask` is just this:
 
 ```go
-func ask(ctx context.Context, m ai.Model, hist *ai.History, tools []ai.Tool, prompt string) error {
+func ask(ctx context.Context, m model.Model, hist *model.History, tools []model.Tool, prompt string) error {
     hist.Add("user", prompt)
 
-    resp, err := m.Generate(ctx, &ai.Request{
+    resp, err := m.Generate(ctx, &model.Request{
         Prompt:       prompt,
         SystemPrompt: systemPrompt,
         Tools:        tools,
@@ -152,9 +152,9 @@ func (h *Users) CreateUser(ctx context.Context, req *pb.CreateRequest, rsp *pb.C
 }
 ```
 
-- **Providers are uniform.** Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud — all behind one `ai.Model` interface. Switching is one string.
+- **Providers are uniform.** Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud — all behind one `model.Model` interface. Switching is one string.
 
-- **Execution is wired automatically.** `ai.WithTools(tools)` connects tool calls to RPC dispatch. No glue.
+- **Execution is wired automatically.** `model.WithTools(tools)` connects tool calls to RPC dispatch. No glue.
 
 If you stripped go-micro out and built this against raw HTTP services, you'd add maybe 50 lines: a function to enumerate your endpoints and a function to call one by name. Everything else stays the same.
 

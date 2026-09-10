@@ -25,8 +25,8 @@ This post explores that idea. We're not shipping anything yet — we're thinking
 Go Micro already has the building blocks:
 
 - **Services as tools**: every endpoint is discoverable via MCP with typed schemas
-- **`ai.Tools`**: programmatic discovery and execution — `ai.DiscoverTools(reg)` gives you the tool list, `ai.NewTools(reg).Handler()` executes RPCs
-- **`ai.History`**: multi-turn conversation state so the LLM has context across steps
+- **`model.Tools`**: programmatic discovery and execution — `model.DiscoverTools(reg)` gives you the tool list, `model.NewTools(reg).Handler()` executes RPCs
+- **`model.History`**: multi-turn conversation state so the LLM has context across steps
 - **`micro chat`**: the interactive agent loop that ties it together
 - **Broker/events**: pub/sub for async communication between services
 
@@ -78,13 +78,13 @@ For a payment processing pipeline, you want Step Functions. For "onboard this us
 The simplest version is just `micro chat` with a saved prompt and a trigger:
 
 ```go
-flow := ai.NewFlow("onboard-user",
-    ai.WithTrigger("events.user.created"),
-    ai.WithPrompt(`A new user was created: {{.Data}}.
+flow := model.NewFlow("onboard-user",
+    model.WithTrigger("events.user.created"),
+    model.WithPrompt(`A new user was created: {{.Data}}.
         Send welcome email, create workspace, 
         assign to enterprise queue if enterprise plan.`),
-    ai.WithProvider("atlascloud"),
-    ai.WithAPIKey(key),
+    model.WithProvider("atlascloud"),
+    model.WithAPIKey(key),
 )
 
 // Register with the service
@@ -95,11 +95,11 @@ service.Run()
 
 Under the hood, `Flow` would:
 1. Subscribe to the broker topic
-2. On each event, create an `ai.History` with the prompt + event data
+2. On each event, create an `model.History` with the prompt + event data
 3. Call `m.Generate()` with history messages until the LLM stops requesting tool calls
 4. Log the full conversation for audit
 
-The building blocks already exist. `ai.History` manages the conversation. `ai.Tools` discovers and executes services. The broker delivers events. A `Flow` just connects them.
+The building blocks already exist. `model.History` manages the conversation. `model.Tools` discovers and executes services. The broker delivers events. A `Flow` just connects them.
 
 ## Why We Haven't Built It Yet
 
@@ -125,23 +125,23 @@ Despite those caveats, there are use cases where this is genuinely better than t
 
 ## What You Can Do Today
 
-You don't need a flow engine to get most of this value. The `ai.Tools` package already gives you programmatic access:
+You don't need a flow engine to get most of this value. The `model.Tools` package already gives you programmatic access:
 
 ```go
-tools := ai.NewTools(service.Registry())
+tools := model.NewTools(service.Registry())
 discovered, _ := tools.Discover()
 
-m := ai.New("atlascloud",
-    ai.WithAPIKey(key),
-    ai.WithTools(tools),
+m := model.New("atlascloud",
+    model.WithAPIKey(key),
+    model.WithTools(tools),
 )
 
-hist := ai.NewHistory(50)
+hist := model.NewHistory(50)
 
 // React to an event
 broker.Subscribe("user.created", func(e broker.Event) error {
     prompt := fmt.Sprintf("New user created: %s. Send welcome email and create workspace.", string(e.Message().Body))
-    resp, _ := m.Generate(ctx, &ai.Request{Prompt: prompt, SystemPrompt: "You are a service orchestrator.", Tools: discovered, Messages: hist.Messages()})
+    resp, _ := m.Generate(ctx, &model.Request{Prompt: prompt, SystemPrompt: "You are a service orchestrator.", Tools: discovered, Messages: hist.Messages()})
     log.Infof("Flow result: %s", resp.Answer)
     hist.Reset() // fresh history for next event
     return nil
@@ -168,7 +168,7 @@ f.Register(service.Registry(), service.Options().Broker, service.Client())
 service.Run() // flow listens and reacts to events
 ```
 
-Under the hood, each event triggers a fresh `ai.History` + `tools.Discover` + `model.Generate` cycle. The flow records every execution with timing, tool calls, and errors.
+Under the hood, each event triggers a fresh `model.History` + `tools.Discover` + `model.Generate` cycle. The flow records every execution with timing, tool calls, and errors.
 
 There's also a CLI:
 
@@ -191,9 +191,9 @@ The questions from the original post still stand. We'd love feedback on what gua
 
 ## The Bigger Picture
 
-The thesis behind Go Micro's AI-native direction is that **services should be composable by agents, not just by code.** MCP made services discoverable. `ai.Tools` made them callable. `micro chat` made them interactive. Flows would make them orchestratable.
+The thesis behind Go Micro's AI-native direction is that **services should be composable by agents, not just by code.** MCP made services discoverable. `model.Tools` made them callable. `micro chat` made them interactive. Flows would make them orchestratable.
 
-Each layer builds on the previous one. And at each layer, the question is the same: does this belong in the framework, or is it better left to the user? So far, we've been conservative — `ai.Tools` is 150 lines, `History` is 80, `micro chat` is 170. Small, composable building blocks rather than a big orchestration framework.
+Each layer builds on the previous one. And at each layer, the question is the same: does this belong in the framework, or is it better left to the user? So far, we've been conservative — `model.Tools` is 150 lines, `History` is 80, `micro chat` is 170. Small, composable building blocks rather than a big orchestration framework.
 
 We think that's the right approach. But we're watching to see if the community says otherwise.
 

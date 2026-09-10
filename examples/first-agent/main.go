@@ -19,9 +19,9 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/service"
@@ -44,34 +44,34 @@ func (s *NotesService) List(ctx context.Context, req *ListNotesRequest, rsp *Lis
 	return nil
 }
 
-type mockModel struct{ opts ai.Options }
+type mockModel struct{ opts model.Options }
 
-func newMock(opts ...ai.Option) ai.Model {
+func newMock(opts ...model.Option) model.Model {
 	m := &mockModel{}
 	_ = m.Init(opts...)
 	return m
 }
 
-func (m *mockModel) Init(opts ...ai.Option) error {
+func (m *mockModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "first-agent-mock" }
-func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+func (m *mockModel) Options() model.Options { return m.opts }
+func (m *mockModel) String() string         { return "first-agent-mock" }
+func (m *mockModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
 	return nil, fmt.Errorf("stream not supported by first-agent mock")
 }
 
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	for _, tool := range req.Tools {
 		if strings.Contains(tool.Name, "List") && m.opts.ToolHandler != nil {
-			m.opts.ToolHandler(ctx, ai.ToolCall{ID: "list-notes", Name: tool.Name, Input: map[string]any{}})
+			m.opts.ToolHandler(ctx, model.ToolCall{ID: "list-notes", Name: tool.Name, Input: map[string]any{}})
 			break
 		}
 	}
-	return &ai.Response{Answer: "Your first agent read the notes service and found three steps: install the CLI, run a service, then chat with an agent."}, nil
+	return &model.Response{Answer: "Your first agent read the notes service and found three steps: install the CLI, run a service, then chat with an agent."}, nil
 }
 
 func waitFor(reg registry.Registry, names ...string) error {
@@ -95,7 +95,7 @@ func runFirstAgent() error {
 }
 
 func runFirstAgentWithWriter(w io.Writer) error {
-	ai.Register("first-agent-mock", newMock)
+	model.Register("first-agent-mock", newMock)
 
 	reg := registry.NewMemoryRegistry()
 	br := broker.NewMemoryBroker()

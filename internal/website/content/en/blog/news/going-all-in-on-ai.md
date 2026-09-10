@@ -84,7 +84,7 @@ What we are doing is making AI the primary way people interact with Go Micro. Th
 
 **Production hardening.** Auth on generated services, rate limiting on the MCP gateway, observability built in. The generation gets you to 80%. The framework gets you to production.
 
-**More providers, more models.** Seven providers today. The `ai.Model` interface makes adding more trivial. As open models get better at tool calling, the barrier to entry drops further.
+**More providers, more models.** Seven providers today. The `model.Model` interface makes adding more trivial. As open models get better at tool calling, the barrier to entry drops further.
 
 ## The Opportunity
 

@@ -68,7 +68,7 @@ Use Codex to break roadmap items into small PRs, especially:
 - cross-provider conformance scenarios for all supported AI providers;
 - timeout, cancellation, retry, and rate-limit behavior;
 - durable agent loops on top of the existing checkpoint model;
-- streaming across `ai.Stream` and A2A;
+- streaming across `model.Stream` and A2A;
 - agent run metadata mapped to OpenTelemetry spans.
 
 ## Suggested weekly loop
@@ -160,7 +160,7 @@ Keep Codex busy on tasks with clear acceptance criteria:
 - Broad rewrites without a failing test, benchmark, or public design note.
 - Public API changes before a maintainer writes the compatibility story.
 - Large generated docs that nobody has run.
-- Provider-specific behavior that is not checked against the shared `ai.Model`
+- Provider-specific behavior that is not checked against the shared `model.Model`
   contract.
 
 ## Prompt templates

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -113,7 +113,7 @@ func runAgentStreamConformanceScenario(t *testing.T, provider conformanceProvide
 		if os.Getenv("GO_MICRO_AGENT_CONFORMANCE_LIVE") == "" {
 			t.Skipf("GO_MICRO_AGENT_CONFORMANCE_LIVE not set; skipping live %s stream conformance", provider.name)
 		}
-		caps := ai.ProviderCapabilities(provider.name)
+		caps := model.ProviderCapabilities(provider.name)
 		if !caps.Stream {
 			t.Fatalf("ProviderCapabilities(%q).Stream = false, want true for stream conformance", provider.name)
 		}
@@ -122,7 +122,7 @@ func runAgentStreamConformanceScenario(t *testing.T, provider conformanceProvide
 		}
 	} else {
 		var sawToolSchema bool
-		fakeStream = func(ctx context.Context, opts ai.Options, req *ai.Request) (ai.Stream, error) {
+		fakeStream = func(ctx context.Context, opts model.Options, req *model.Request) (model.Stream, error) {
 			if req.Prompt != "Stream exactly: agent-stream-conformance-ok" {
 				return nil, fmt.Errorf("prompt = %q", req.Prompt)
 			}
@@ -217,12 +217,12 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 			t.Skipf("GO_MICRO_AGENT_CONFORMANCE_LIVE not set; skipping live %s conformance", provider.name)
 		}
 	} else {
-		fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+		fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 			if err := validateConformanceRequest(req, opts); err != nil {
 				return nil, err
 			}
 
-			plan := opts.ToolHandler(ctx, ai.ToolCall{
+			plan := opts.ToolHandler(ctx, model.ToolCall{
 				ID:   "fake-plan-1",
 				Name: "plan",
 				Input: map[string]any{"steps": []map[string]any{
@@ -230,12 +230,12 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 					{"description": "attempt guarded delegate", "status": "pending"},
 				}},
 			})
-			echo := opts.ToolHandler(ctx, ai.ToolCall{
+			echo := opts.ToolHandler(ctx, model.ToolCall{
 				ID:    "fake-call-1",
 				Name:  "conformance_echo",
 				Input: map[string]any{"value": "agent-conformance"},
 			})
-			delegate := opts.ToolHandler(ctx, ai.ToolCall{
+			delegate := opts.ToolHandler(ctx, model.ToolCall{
 				ID:    "fake-delegate-1",
 				Name:  "delegate",
 				Input: map[string]any{"task": "summarize the conformance marker", "to": "blocked-reviewer"},
@@ -246,13 +246,13 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 			if echo.Content == "" {
 				return nil, errors.New("empty tool result")
 			}
-			if delegate.Refused != ai.RefusedApproval {
-				return nil, fmt.Errorf("delegate refusal = %q, want %q", delegate.Refused, ai.RefusedApproval)
+			if delegate.Refused != model.RefusedApproval {
+				return nil, fmt.Errorf("delegate refusal = %q, want %q", delegate.Refused, model.RefusedApproval)
 			}
-			return &ai.Response{
+			return &model.Response{
 				Reply:  "planned, called conformance_echo, and handled guarded delegate refusal",
 				Answer: echo.Content + " " + delegate.Content,
-				ToolCalls: []ai.ToolCall{
+				ToolCalls: []model.ToolCall{
 					{ID: "fake-plan-1", Name: "plan", Input: map[string]any{}},
 					{ID: "fake-call-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
 					{ID: "fake-delegate-1", Name: "delegate", Input: map[string]any{"task": "summarize the conformance marker", "to": "blocked-reviewer"}, Error: delegate.Content},
@@ -285,7 +285,7 @@ func runAgentConformanceScenario(t *testing.T, provider conformanceProvider) {
 			"value": map[string]any{"type": "string", "description": "value to echo"},
 		}, func(ctx context.Context, input map[string]any) (string, error) {
 			sawTool = true
-			info, ok := ai.RunInfoFrom(ctx)
+			info, ok := model.RunInfoFrom(ctx)
 			if !ok {
 				return "", errors.New("missing run info")
 			}
@@ -475,7 +475,7 @@ func responseHasConformanceMarker(resp *Response) bool {
 	return strings.Contains(resp.Reply, "agent-conformance-ok") || strings.Contains(resp.Reply, "agent-conformance")
 }
 
-func validateConformanceRequest(req *ai.Request, opts ai.Options) error {
+func validateConformanceRequest(req *model.Request, opts model.Options) error {
 	if req.Prompt == "" {
 		return errors.New("missing prompt")
 	}
@@ -498,7 +498,7 @@ func validateConformanceRequest(req *ai.Request, opts ai.Options) error {
 }
 
 func TestAgentProviderConformanceFakeError(t *testing.T) {
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		return nil, errors.New("conformance provider failure")
 	}
 	defer func() { fakeGen = nil }()
@@ -518,23 +518,23 @@ func TestAgentProviderConformanceFakeError(t *testing.T) {
 
 func TestAgentProviderConformanceRetriesMissingTool(t *testing.T) {
 	var attempts int
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		attempts++
 		if err := validateConformanceRequest(req, opts); err != nil {
 			return nil, err
 		}
 		if attempts == 1 {
-			return &ai.Response{Reply: "I can confirm agent-conformance in prose only."}, nil
+			return &model.Response{Reply: "I can confirm agent-conformance in prose only."}, nil
 		}
-		echo := opts.ToolHandler(ctx, ai.ToolCall{
+		echo := opts.ToolHandler(ctx, model.ToolCall{
 			ID:    "fake-call-1",
 			Name:  "conformance_echo",
 			Input: map[string]any{"value": "agent-conformance"},
 		})
-		return &ai.Response{
+		return &model.Response{
 			Reply:  "called conformance_echo",
 			Answer: echo.Content,
-			ToolCalls: []ai.ToolCall{
+			ToolCalls: []model.ToolCall{
 				{ID: "fake-call-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
 			},
 		}, nil
@@ -573,15 +573,15 @@ func TestAgentProviderConformanceRetriesMissingTool(t *testing.T) {
 
 func TestAgentProviderConformanceRetriesMissingMarker(t *testing.T) {
 	var attempts int
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		attempts++
 		if err := validateConformanceRequest(req, opts); err != nil {
 			return nil, err
 		}
 		if attempts == 1 {
-			return &ai.Response{Reply: "called conformance_echo and handled guarded delegate refusal without the required marker"}, nil
+			return &model.Response{Reply: "called conformance_echo and handled guarded delegate refusal without the required marker"}, nil
 		}
-		return &ai.Response{Reply: "agent-conformance-ok after guarded delegate refusal"}, nil
+		return &model.Response{Reply: "agent-conformance-ok after guarded delegate refusal"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -614,34 +614,34 @@ func TestAgentProviderConformanceRetriesMissingMarker(t *testing.T) {
 
 func TestAgentProviderConformanceRetriesMissingDelegate(t *testing.T) {
 	var attempts int
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		attempts++
 		if err := validateConformanceRequest(req, opts); err != nil {
 			return nil, err
 		}
-		echo := opts.ToolHandler(ctx, ai.ToolCall{
+		echo := opts.ToolHandler(ctx, model.ToolCall{
 			ID:    "fake-call-1",
 			Name:  "conformance_echo",
 			Input: map[string]any{"value": "agent-conformance"},
 		})
 		if attempts == 1 {
-			return &ai.Response{
+			return &model.Response{
 				Reply:  "called conformance_echo but skipped delegate",
 				Answer: echo.Content,
-				ToolCalls: []ai.ToolCall{
+				ToolCalls: []model.ToolCall{
 					{ID: "fake-call-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
 				},
 			}, nil
 		}
-		delegate := opts.ToolHandler(ctx, ai.ToolCall{
+		delegate := opts.ToolHandler(ctx, model.ToolCall{
 			ID:    "fake-delegate-1",
 			Name:  "delegate",
 			Input: map[string]any{"task": "summarize the conformance marker", "to": "blocked-reviewer"},
 		})
-		return &ai.Response{
+		return &model.Response{
 			Reply:  "called conformance_echo and handled guarded delegate refusal",
 			Answer: echo.Content + " " + delegate.Content,
-			ToolCalls: []ai.ToolCall{
+			ToolCalls: []model.ToolCall{
 				{ID: "fake-call-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
 				{ID: "fake-delegate-1", Name: "delegate", Input: map[string]any{"task": "summarize the conformance marker", "to": "blocked-reviewer"}, Error: delegate.Content},
 			},
@@ -689,20 +689,20 @@ func TestAgentProviderConformanceRetriesMissingDelegate(t *testing.T) {
 
 func TestAgentProviderConformanceFailsWhenDelegateStillMissing(t *testing.T) {
 	var attempts int
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		attempts++
 		if err := validateConformanceRequest(req, opts); err != nil {
 			return nil, err
 		}
-		echo := opts.ToolHandler(ctx, ai.ToolCall{
+		echo := opts.ToolHandler(ctx, model.ToolCall{
 			ID:    fmt.Sprintf("fake-call-%d", attempts),
 			Name:  "conformance_echo",
 			Input: map[string]any{"value": "agent-conformance"},
 		})
-		return &ai.Response{
+		return &model.Response{
 			Reply:  "called conformance_echo with agent-conformance-ok but skipped delegate",
 			Answer: echo.Content,
-			ToolCalls: []ai.ToolCall{
+			ToolCalls: []model.ToolCall{
 				{ID: fmt.Sprintf("fake-call-%d", attempts), Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
 			},
 		}, nil
@@ -742,11 +742,11 @@ func TestAgentProviderConformanceFailsWhenDelegateStillMissing(t *testing.T) {
 }
 
 func TestAgentExecutesProviderTextToolCallFallback(t *testing.T) {
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler == nil {
 			return nil, errors.New("missing tool handler")
 		}
-		return &ai.Response{
+		return &model.Response{
 			Reply: `{"name":"conformance_echo","input":{"value":"agent-conformance"}}`,
 		}, nil
 	}
@@ -790,18 +790,18 @@ func TestAgentExecutesProviderTextToolCallFallback(t *testing.T) {
 
 func TestAgentRepairsPartialTextToolCallFallback(t *testing.T) {
 	attempts := 0
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler == nil {
 			return nil, errors.New("missing tool handler")
 		}
 		attempts++
 		if attempts == 1 {
-			return &ai.Response{Reply: `<tool_call name="conformance_echo">`}, nil
+			return &model.Response{Reply: `<tool_call name="conformance_echo">`}, nil
 		}
 		if !strings.Contains(req.Prompt, "did not finish valid tool-call markup") {
 			return nil, fmt.Errorf("repair prompt = %q, want partial tool-call repair guidance", req.Prompt)
 		}
-		return &ai.Response{
+		return &model.Response{
 			Reply: `<tool_call name="conformance_echo">{"value":"agent-conformance"}</tool_call>`,
 		}, nil
 	}
@@ -844,19 +844,19 @@ func TestAgentRepairsPartialTextToolCallFallback(t *testing.T) {
 }
 
 func TestAgentExecutesTextToolCallFallbackAfterStructuredToolCall(t *testing.T) {
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler == nil {
 			return nil, errors.New("missing tool handler")
 		}
-		echo := opts.ToolHandler(ctx, ai.ToolCall{
+		echo := opts.ToolHandler(ctx, model.ToolCall{
 			ID:    "structured-echo-1",
 			Name:  "conformance_echo",
 			Input: map[string]any{"value": "agent-conformance"},
 		})
-		return &ai.Response{
+		return &model.Response{
 			Reply:  "<tool_call name=\"delegate\">{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}</tool_call>",
 			Answer: echo.Content,
-			ToolCalls: []ai.ToolCall{
+			ToolCalls: []model.ToolCall{
 				{ID: "structured-echo-1", Name: "conformance_echo", Input: map[string]any{"value": "agent-conformance"}, Result: echo.Content},
 			},
 		}, nil
@@ -899,7 +899,7 @@ func TestAgentExecutesTextToolCallFallbackAfterStructuredToolCall(t *testing.T) 
 	if len(resp.ToolCalls) != 2 {
 		t.Fatalf("ToolCalls = %+v, want structured echo and text delegate", resp.ToolCalls)
 	}
-	if resp.ToolCalls[1].Name != "delegate" || resp.ToolCalls[1].Error != ai.RefusedApproval {
+	if resp.ToolCalls[1].Name != "delegate" || resp.ToolCalls[1].Error != model.RefusedApproval {
 		t.Fatalf("delegate ToolCall = %+v, want refused delegate", resp.ToolCalls[1])
 	}
 	if !strings.Contains(resp.Reply, "agent-conformance-ok") {

@@ -2,7 +2,7 @@
 
 `go test ./...` includes `TestAgentProviderConformanceMatrix`, a shared agent
 scenario that runs against every registered chat provider. The scenario asks an
-agent to call a deterministic local tool, verifies the tool receives `ai.RunInfo`,
+agent to call a deterministic local tool, verifies the tool receives `model.RunInfo`,
 and checks the final response carries the conformance marker. The live matrix
 includes MiniMax in the tool/guardrail path in addition to providers with
 streaming coverage, so every supported chat provider has at least one key-gated

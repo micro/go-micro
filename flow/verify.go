@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 // Grader checks a step output against a rubric. It returns pass=true when the
@@ -121,7 +121,7 @@ func LLMGrader(rubric string) Grader {
 			return false, "", fmt.Errorf("flow: LLMGrader requires a flow model (set Provider/APIKey)")
 		}
 		prompt := fmt.Sprintf("Grade the latest result against this rubric:\n%s\n\nLatest result:\n%s\n\nAnswer with PASS or FAIL on the first line, followed by one short feedback sentence.", rubric, out.String())
-		resp, err := d.model.Generate(ctx, &ai.Request{Prompt: prompt})
+		resp, err := d.model.Generate(ctx, &model.Request{Prompt: prompt})
 		if err != nil {
 			return false, "", err
 		}

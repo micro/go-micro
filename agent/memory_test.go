@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -158,8 +158,8 @@ func TestCompactingMemoryUsesCustomSummarizerAndReloadsRecall(t *testing.T) {
 	m := NewCompactingMemoryWithOptions(st, "agent/custom/history", MemoryCompaction{
 		MaxMessages: 3,
 		KeepRecent:  1,
-		Summarize: func(msgs []ai.Message) ai.Message {
-			return ai.Message{Role: "system", Content: "custom summary count=" + strconv.Itoa(len(msgs))}
+		Summarize: func(msgs []model.Message) model.Message {
+			return model.Message{Role: "system", Content: "custom summary count=" + strconv.Itoa(len(msgs))}
 		},
 	})
 	m.Add("user", "alpha budget is 42")

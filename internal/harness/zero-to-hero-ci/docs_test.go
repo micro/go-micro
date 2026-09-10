@@ -281,9 +281,9 @@ func TestArchitectureDocsAlignWithAgentHarnessLifecycle(t *testing.T) {
 		"## Agent harness",
 		"## Workflows",
 		"## Interop gateways",
-		"`model` / `ai.Model`",
+		"`model` / `model.Model`",
 		"`store` / memory",
-		"`ai.Tools`",
+		"`model.Tools`",
 		"`agent`",
 		"`flow`",
 		"`micro mcp`",
@@ -1182,7 +1182,7 @@ import (
 	"syscall"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
 )
@@ -1196,19 +1196,19 @@ func (s *NotesService) List(ctx context.Context, req *ListNotesRequest, rsp *Lis
 	return nil
 }
 
-type mockModel struct{ opts ai.Options }
-func newMock(opts ...ai.Option) ai.Model { m := &mockModel{}; _ = m.Init(opts...); return m }
-func (m *mockModel) Init(opts ...ai.Option) error { for _, o := range opts { o(&m.opts) }; return nil }
-func (m *mockModel) Options() ai.Options { return m.opts }
+type mockModel struct{ opts model.Options }
+func newMock(opts ...model.Option) model.Model { m := &mockModel{}; _ = m.Init(opts...); return m }
+func (m *mockModel) Init(opts ...model.Option) error { for _, o := range opts { o(&m.opts) }; return nil }
+func (m *mockModel) Options() model.Options { return m.opts }
 func (m *mockModel) String() string { return "first-agent-cli-fixture" }
-func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) { return nil, fmt.Errorf("stream unsupported") }
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
-	for _, tool := range req.Tools { if strings.Contains(tool.Name, "List") && m.opts.ToolHandler != nil { m.opts.ToolHandler(ctx, ai.ToolCall{ID:"list-notes", Name: tool.Name, Input: map[string]any{}}); break } }
-	return &ai.Response{Answer: "assistant: your first agent should install the CLI, run a service, then chat with an agent."}, nil
+func (m *mockModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) { return nil, fmt.Errorf("stream unsupported") }
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
+	for _, tool := range req.Tools { if strings.Contains(tool.Name, "List") && m.opts.ToolHandler != nil { m.opts.ToolHandler(ctx, model.ToolCall{ID:"list-notes", Name: tool.Name, Input: map[string]any{}}); break } }
+	return &model.Response{Answer: "assistant: your first agent should install the CLI, run a service, then chat with an agent."}, nil
 }
 
 func main() {
-	ai.Register("first-agent-cli-fixture", newMock)
+	model.Register("first-agent-cli-fixture", newMock)
 	home, _ := os.UserHomeDir()
 	st := store.NewFileStore(store.DirOption(filepath.Join(home, "micro", "store")))
 	defer st.Close()

@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 var fencedJSONBlock = regexp.MustCompile("(?s)```(?:json)?\\s*(.*?)\\s*```")
@@ -30,7 +30,7 @@ type textToolCall struct {
 // tool call as text JSON instead of a structured tool_calls field. It only runs
 // calls whose names match the tools offered to the model, so ordinary JSON
 // answers are left untouched.
-func (a *agentImpl) executeTextToolCalls(ctx context.Context, reply string, tools []ai.Tool) ([]ai.ToolCall, string, bool) {
+func (a *agentImpl) executeTextToolCalls(ctx context.Context, reply string, tools []model.Tool) ([]model.ToolCall, string, bool) {
 	calls := parseTextToolCalls(reply, tools)
 	if len(calls) == 0 {
 		return nil, "", false
@@ -57,7 +57,7 @@ func (a *agentImpl) executeTextToolCalls(ctx context.Context, reply string, tool
 // conformance_echo call while rendering a follow-up guarded delegate call as
 // <tool_call name="delegate">...</tool_call> text. Keep this fallback additive
 // and de-duplicate calls already represented in the structured tool_calls list.
-func (a *agentImpl) executeAdditionalTextToolCalls(ctx context.Context, reply string, tools []ai.Tool, existing []ai.ToolCall) ([]ai.ToolCall, string, bool) {
+func (a *agentImpl) executeAdditionalTextToolCalls(ctx context.Context, reply string, tools []model.Tool, existing []model.ToolCall) ([]model.ToolCall, string, bool) {
 	calls := parseTextToolCalls(reply, tools)
 	if len(calls) == 0 {
 		return nil, "", false
@@ -69,7 +69,7 @@ func (a *agentImpl) executeAdditionalTextToolCalls(ctx context.Context, reply st
 	}
 
 	handler := a.toolHandler()
-	out := make([]ai.ToolCall, 0, len(calls))
+	out := make([]model.ToolCall, 0, len(calls))
 	results := make([]string, 0, len(calls))
 	for i := range calls {
 		if seen[textToolCallKey(calls[i])] {
@@ -88,12 +88,12 @@ func (a *agentImpl) executeAdditionalTextToolCalls(ctx context.Context, reply st
 	return out, strings.Join(results, "\n"), len(out) > 0
 }
 
-func textToolCallKey(call ai.ToolCall) string {
+func textToolCallKey(call model.ToolCall) string {
 	b, _ := json.Marshal(call.Input)
 	return call.Name + "\x00" + string(b)
 }
 
-func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
+func parseTextToolCalls(text string, tools []model.Tool) []model.ToolCall {
 	text = html.UnescapeString(text)
 	allowed := textToolNames(tools)
 	if len(allowed) == 0 {
@@ -114,7 +114,7 @@ func parseTextToolCalls(text string, tools []ai.Tool) []ai.ToolCall {
 	return nil
 }
 
-func partialTextToolCallName(text string, tools []ai.Tool) string {
+func partialTextToolCallName(text string, tools []model.Tool) string {
 	text = html.UnescapeString(text)
 	allowed := textToolNames(tools)
 	if len(allowed) == 0 {
@@ -145,7 +145,7 @@ func partialTextToolCallName(text string, tools []ai.Tool) string {
 	return ""
 }
 
-func textToolNames(tools []ai.Tool) map[string]string {
+func textToolNames(tools []model.Tool) map[string]string {
 	allowed := map[string]string{}
 	for _, tool := range tools {
 		addTextToolName(allowed, tool.Name, tool.Name)
@@ -194,7 +194,7 @@ func jsonCandidates(text string) []string {
 	return out
 }
 
-func decodeTextToolCalls(candidate string, allowed map[string]string) []ai.ToolCall {
+func decodeTextToolCalls(candidate string, allowed map[string]string) []model.ToolCall {
 	var root any
 	if err := json.Unmarshal([]byte(candidate), &root); err != nil {
 		return nil
@@ -202,10 +202,10 @@ func decodeTextToolCalls(candidate string, allowed map[string]string) []ai.ToolC
 	return collectTextToolCalls(root, allowed)
 }
 
-func collectTextToolCalls(v any, allowed map[string]string) []ai.ToolCall {
+func collectTextToolCalls(v any, allowed map[string]string) []model.ToolCall {
 	switch x := v.(type) {
 	case []any:
-		var out []ai.ToolCall
+		var out []model.ToolCall
 		for _, item := range x {
 			out = append(out, collectTextToolCalls(item, allowed)...)
 		}
@@ -223,7 +223,7 @@ func collectTextToolCalls(v any, allowed map[string]string) []ai.ToolCall {
 		if id == "" {
 			id = fmt.Sprintf("text-call-%s", strings.ReplaceAll(name, ".", "_"))
 		}
-		return []ai.ToolCall{{ID: id, Name: allowed[name], Input: input}}
+		return []model.ToolCall{{ID: id, Name: allowed[name], Input: input}}
 	default:
 		return nil
 	}
@@ -284,8 +284,8 @@ func containsNestedTextToolCall(v any) bool {
 	return false
 }
 
-func decodeTaggedTextToolCalls(text string, allowed map[string]string) []ai.ToolCall {
-	var out []ai.ToolCall
+func decodeTaggedTextToolCalls(text string, allowed map[string]string) []model.ToolCall {
+	var out []model.ToolCall
 	for _, match := range singleTaggedToolCall.FindAllStringSubmatch(text, -1) {
 		if len(match) < 3 {
 			continue
@@ -307,7 +307,7 @@ func decodeTaggedTextToolCalls(text string, allowed map[string]string) []ai.Tool
 		if err := json.Unmarshal([]byte(body), &input); err != nil || input == nil {
 			continue
 		}
-		out = append(out, ai.ToolCall{
+		out = append(out, model.ToolCall{
 			ID:    fmt.Sprintf("text-call-%s", strings.ReplaceAll(name, ".", "_")),
 			Name:  allowed[name],
 			Input: input,
@@ -324,15 +324,15 @@ func taggedToolName(tag string) string {
 	return strings.Trim(match[1], `"'`)
 }
 
-func decodeFunctionTextToolCalls(text string, allowed map[string]string) []ai.ToolCall {
-	var out []ai.ToolCall
+func decodeFunctionTextToolCalls(text string, allowed map[string]string) []model.ToolCall {
+	var out []model.ToolCall
 	for alias, canonical := range allowed {
 		for _, body := range functionCallBodies(text, alias) {
 			var input map[string]any
 			if err := json.Unmarshal([]byte(body), &input); err != nil || input == nil {
 				continue
 			}
-			out = append(out, ai.ToolCall{
+			out = append(out, model.ToolCall{
 				ID:    fmt.Sprintf("text-call-%s", strings.ReplaceAll(alias, ".", "_")),
 				Name:  canonical,
 				Input: input,

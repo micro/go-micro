@@ -3,11 +3,11 @@ package agent
 import (
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 func TestParseTextToolCallsMiniMaxTaggedMarkup(t *testing.T) {
-	tools := []ai.Tool{{Name: "task_TaskService_Add"}}
+	tools := []model.Tool{{Name: "task_TaskService_Add"}}
 	reply := `<tool_calls>
 <tool_call>{"name":"task_TaskService_Add","arguments":{"title":"Design"}}</tool_call>
 <tool_call>{"name":"task_TaskService_Add","arguments":{"title":"Build"}}</tool_call>
@@ -29,7 +29,7 @@ func TestParseTextToolCallsMiniMaxTaggedMarkup(t *testing.T) {
 }
 
 func TestParseTextToolCallsFunctionTaggedMarkup(t *testing.T) {
-	tools := []ai.Tool{{Name: "task_TaskService_Add"}}
+	tools := []model.Tool{{Name: "task_TaskService_Add"}}
 	reply := `<function=task_TaskService_Add>{"title":"Design"}</function>`
 
 	calls := parseTextToolCalls(reply, tools)
@@ -42,7 +42,7 @@ func TestParseTextToolCallsFunctionTaggedMarkup(t *testing.T) {
 }
 
 func TestParseTextToolCallsCreateAliasForAddTool(t *testing.T) {
-	tools := []ai.Tool{{Name: "task_TaskService_Add", OriginalName: "task.TaskService.Add"}}
+	tools := []model.Tool{{Name: "task_TaskService_Add", OriginalName: "task.TaskService.Add"}}
 	reply := `<tool_call>{"name":"task_TaskService_Create","arguments":{"title":"Design"}}</tool_call>`
 
 	calls := parseTextToolCalls(reply, tools)
@@ -58,7 +58,7 @@ func TestParseTextToolCallsCreateAliasForAddTool(t *testing.T) {
 }
 
 func TestParseTextToolCallsOpenAICompatibleFunctionArgumentsString(t *testing.T) {
-	tools := []ai.Tool{{Name: "delegate"}}
+	tools := []model.Tool{{Name: "delegate"}}
 	reply := `<tool_call>{"id":"call-2","type":"function","function":{"name":"delegate","arguments":"{\"task\":\"summarize the conformance marker\",\"to\":\"blocked-reviewer\"}"}}</tool_call>`
 
 	calls := parseTextToolCalls(reply, tools)
@@ -77,7 +77,7 @@ func TestParseTextToolCallsOpenAICompatibleFunctionArgumentsString(t *testing.T)
 }
 
 func TestParseTextToolCallsTaggedMarkupWithSpacedNameAttribute(t *testing.T) {
-	tools := []ai.Tool{{Name: "delegate"}}
+	tools := []model.Tool{{Name: "delegate"}}
 	reply := `<tool_call name = "delegate">{"task":"summarize the conformance marker","to":"blocked-reviewer"}</tool_call>`
 
 	calls := parseTextToolCalls(reply, tools)
@@ -93,7 +93,7 @@ func TestParseTextToolCallsTaggedMarkupWithSpacedNameAttribute(t *testing.T) {
 }
 
 func TestParseTextToolCallsHTMLEscapedTaggedMarkup(t *testing.T) {
-	tools := []ai.Tool{{Name: "delegate"}}
+	tools := []model.Tool{{Name: "delegate"}}
 	reply := `&lt;tool_call name=&quot;delegate&quot;&gt;{"task":"summarize the conformance marker","to":"blocked-reviewer"}&lt;/tool_call&gt;`
 
 	calls := parseTextToolCalls(reply, tools)
@@ -109,7 +109,7 @@ func TestParseTextToolCallsHTMLEscapedTaggedMarkup(t *testing.T) {
 }
 
 func TestParseTextToolCallsFunctionCallSyntax(t *testing.T) {
-	tools := []ai.Tool{{Name: "delegate"}}
+	tools := []model.Tool{{Name: "delegate"}}
 	reply := `I will now call delegate({"task":"summarize the conformance marker","to":"blocked-reviewer"}) before answering.`
 
 	calls := parseTextToolCalls(reply, tools)
@@ -128,7 +128,7 @@ func TestParseTextToolCallsFunctionCallSyntax(t *testing.T) {
 }
 
 func TestParseTextToolCallsFunctionCallSyntaxHandlesNestedJSON(t *testing.T) {
-	tools := []ai.Tool{{Name: "delegate"}}
+	tools := []model.Tool{{Name: "delegate"}}
 	reply := `delegate({
 		"task":"summarize the {escaped} marker",
 		"meta":{"note":"paren ) and brace } in string"},

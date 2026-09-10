@@ -9,17 +9,17 @@ import (
 	"strings"
 	"testing"
 
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/model"
 )
 
 func TestA2AStreamUsesAgentChatPathWithTools(t *testing.T) {
 	var sawTool bool
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler == nil {
 			t.Fatal("model was not wired with agent tool handler")
 		}
-		result := opts.ToolHandler(ctx, ai.ToolCall{
+		result := opts.ToolHandler(ctx, model.ToolCall{
 			ID:    "call-1",
 			Name:  "echo",
 			Input: map[string]any{"value": "a2a-stream"},
@@ -27,13 +27,13 @@ func TestA2AStreamUsesAgentChatPathWithTools(t *testing.T) {
 		if !strings.Contains(result.Content, "a2a-stream-ok") {
 			t.Fatalf("tool result = %q, want marker", result.Content)
 		}
-		return &ai.Response{Answer: "streamed " + result.Content}, nil
+		return &model.Response{Answer: "streamed " + result.Content}, nil
 	}
 	defer func() { fakeGen = nil }()
 
 	a := newTestAgent(Name("stream-agent"), WithTool("echo", "echo text", nil, func(ctx context.Context, input map[string]any) (string, error) {
 		sawTool = true
-		if info, ok := ai.RunInfoFrom(ctx); !ok || info.RunID == "" || info.Agent != "stream-agent" {
+		if info, ok := model.RunInfoFrom(ctx); !ok || info.RunID == "" || info.Agent != "stream-agent" {
 			t.Fatalf("RunInfo = %+v ok=%v, want stream-agent run", info, ok)
 		}
 		if input["value"] != "a2a-stream" {

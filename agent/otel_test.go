@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -21,32 +21,32 @@ import (
 
 const codesError = codes.Error
 
-type otelTestModel struct{ opts ai.Options }
+type otelTestModel struct{ opts model.Options }
 
-func (m *otelTestModel) Init(opts ...ai.Option) error {
+func (m *otelTestModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *otelTestModel) Options() ai.Options { return m.opts }
-func (m *otelTestModel) String() string      { return "oteltest" }
-func (m *otelTestModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+func (m *otelTestModel) Options() model.Options { return m.opts }
+func (m *otelTestModel) String() string         { return "oteltest" }
+func (m *otelTestModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
 	return nil, nil
 }
-func (m *otelTestModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
+func (m *otelTestModel) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
 	if m.opts.ToolHandler != nil {
 		if strings.Contains(req.Prompt, "delegate") {
-			_ = m.opts.ToolHandler(ctx, ai.ToolCall{ID: "call-delegate", Name: toolDelegate, Input: map[string]any{"task": "subtask"}})
+			_ = m.opts.ToolHandler(ctx, model.ToolCall{ID: "call-delegate", Name: toolDelegate, Input: map[string]any{"task": "subtask"}})
 		} else if !strings.Contains(req.Prompt, "subtask") {
-			_ = m.opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "probe", Input: map[string]any{"ok": true}})
+			_ = m.opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "probe", Input: map[string]any{"ok": true}})
 		}
 	}
-	return &ai.Response{Reply: "done", Usage: ai.Usage{InputTokens: 2, OutputTokens: 3, TotalTokens: 5}}, nil
+	return &model.Response{Reply: "done", Usage: model.Usage{InputTokens: 2, OutputTokens: 3, TotalTokens: 5}}, nil
 }
 
 func init() {
-	ai.Register("oteltest", func(opts ...ai.Option) ai.Model { return &otelTestModel{opts: ai.NewOptions(opts...)} })
+	model.Register("oteltest", func(opts ...model.Option) model.Model { return &otelTestModel{opts: model.NewOptions(opts...)} })
 }
 
 func TestAgentOpenTelemetrySpans(t *testing.T) {
@@ -149,10 +149,10 @@ func TestAgentOpenTelemetryToolSpanIncludesWorkflowRunInfo(t *testing.T) {
 	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
 	st := store.NewMemoryStore()
 	a := New(Name("workflow-tool"), Provider("oteltest"), WithStore(st), TraceProvider(tp)).(*agentImpl)
-	handler := a.traceTool(func(context.Context, ai.ToolCall) ai.ToolResult {
-		return ai.ToolResult{Value: "ok"}
+	handler := a.traceTool(func(context.Context, model.ToolCall) model.ToolResult {
+		return model.ToolResult{Value: "ok"}
 	})
-	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{
+	ctx := model.WithRunInfo(context.Background(), model.RunInfo{
 		RunID:    "run-workflow-tool",
 		ParentID: "parent-run",
 		Agent:    "workflow-tool",
@@ -162,7 +162,7 @@ func TestAgentOpenTelemetryToolSpanIncludesWorkflowRunInfo(t *testing.T) {
 		Trigger:  "manual",
 	})
 
-	res := handler(ctx, ai.ToolCall{ID: "call-1", Name: "notify", Input: map[string]any{"ok": true}})
+	res := handler(ctx, model.ToolCall{ID: "call-1", Name: "notify", Input: map[string]any{"ok": true}})
 	if resultError(res) != "" {
 		t.Fatalf("tool returned error: %#v", res)
 	}
@@ -328,25 +328,25 @@ func TestAgentTraceInputsOptInRecordsInput(t *testing.T) {
 	t.Fatalf("opt-in run event did not record message: %#v", events)
 }
 
-type failingOtelModel struct{ opts ai.Options }
+type failingOtelModel struct{ opts model.Options }
 
-func (m *failingOtelModel) Init(opts ...ai.Option) error {
+func (m *failingOtelModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *failingOtelModel) Options() ai.Options { return m.opts }
-func (m *failingOtelModel) String() string      { return "otelfail" }
-func (m *failingOtelModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+func (m *failingOtelModel) Options() model.Options { return m.opts }
+func (m *failingOtelModel) String() string         { return "otelfail" }
+func (m *failingOtelModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
 	return nil, nil
 }
-func (m *failingOtelModel) Generate(context.Context, *ai.Request, ...ai.GenerateOption) (*ai.Response, error) {
+func (m *failingOtelModel) Generate(context.Context, *model.Request, ...model.GenerateOption) (*model.Response, error) {
 	return nil, errors.New("provider exploded")
 }
 
 func init() {
-	ai.Register("otelfail", func(opts ...ai.Option) ai.Model { return &failingOtelModel{opts: ai.NewOptions(opts...)} })
+	model.Register("otelfail", func(opts ...model.Option) model.Model { return &failingOtelModel{opts: model.NewOptions(opts...)} })
 }
 
 func TestAgentOpenTelemetrySpansModelFailure(t *testing.T) {
@@ -368,7 +368,7 @@ func TestAgentOpenTelemetrySpansModelFailure(t *testing.T) {
 				sawRunError = true
 			}
 		case spanNameModelCall:
-			if attrs[AttrAgentName] == "failing-runner" && attrs[AttrAttempt] == "1" && attrs[AttrErrorKind] == string(ai.ErrorKindUnknown) && s.Status().Code == codesError {
+			if attrs[AttrAgentName] == "failing-runner" && attrs[AttrAttempt] == "1" && attrs[AttrErrorKind] == string(model.ErrorKindUnknown) && s.Status().Code == codesError {
 				sawModelError = true
 			}
 		}
@@ -390,7 +390,7 @@ func TestAgentOpenTelemetrySpansModelFailure(t *testing.T) {
 	}
 	var sawModelEvent bool
 	for _, event := range events {
-		if event.Kind == "model" && event.Attempt == 1 && event.MaxAttempts == 1 && event.Error != "" && event.ErrorKind == string(ai.ErrorKindUnknown) {
+		if event.Kind == "model" && event.Attempt == 1 && event.MaxAttempts == 1 && event.Error != "" && event.ErrorKind == string(model.ErrorKindUnknown) {
 			sawModelEvent = true
 		}
 	}
@@ -426,7 +426,7 @@ func TestAgentOpenTelemetryToolSpanIncludesSpend(t *testing.T) {
 	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
 	st := store.NewMemoryStore()
 	a := New(Name("spender"), Provider("oteltest"), Model("unit-model"), WithStore(st), TraceProvider(tp), MaxSpend(10), ToolSpend("probe", 7), WithTool("probe", "probe", nil, func(ctx context.Context, input map[string]any) (string, error) {
-		info, ok := ai.RunInfoFrom(ctx)
+		info, ok := model.RunInfoFrom(ctx)
 		if !ok {
 			t.Fatal("RunInfo missing from paid tool context")
 		}
@@ -650,12 +650,12 @@ func TestAgentCheckpointAndResumeTimelineEvents(t *testing.T) {
 	st := store.NewMemoryStore()
 	cp := flow.StoreCheckpoint(st, "resume-otel-agent")
 	first := true
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if first {
 			first = false
 			return nil, errors.New("temporary provider failure")
 		}
-		return &ai.Response{Reply: "resumed"}, nil
+		return &model.Response{Reply: "resumed"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -754,7 +754,7 @@ func TestListRunSummaries(t *testing.T) {
 		{Time: time.Unix(0, 2), RunID: "run-a", Agent: "runner", Kind: "tool", Name: "probe"},
 		{Time: time.Unix(0, 3), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "run", Name: "second"},
 		{Time: time.Unix(0, 4), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "checkpoint", Name: "ask", Status: "failed"},
-		{Time: time.Unix(0, 5), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "error", Error: "context deadline exceeded", ErrorKind: string(ai.ErrorKindTimeout)},
+		{Time: time.Unix(0, 5), RunID: "run-b", Agent: "runner", ParentID: "parent", Kind: "error", Error: "context deadline exceeded", ErrorKind: string(model.ErrorKindTimeout)},
 	}
 	for _, e := range events {
 		b, err := json.Marshal(e)
@@ -777,7 +777,7 @@ func TestListRunSummaries(t *testing.T) {
 	if got[0].RunID != "run-a" || got[0].TraceID != "trace-a" || got[0].SpanID != "span-a" || got[0].Events != 2 || got[0].Status != "running" || got[0].DurationMS != 0 || got[0].LastKind != "tool" || !got[0].UpdatedAt.Equal(time.Unix(0, 2)) {
 		t.Fatalf("unexpected run-a summary: %#v", got[0])
 	}
-	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 3 || got[1].Status != "timeout" || got[1].DurationMS != 0 || got[1].LastKind != "error" || got[1].Checkpoint != "failed" || got[1].Stage != "ask" || got[1].LastError != "context deadline exceeded" || got[1].LastErrorKind != string(ai.ErrorKindTimeout) {
+	if got[1].RunID != "run-b" || got[1].ParentID != "parent" || got[1].Events != 3 || got[1].Status != "timeout" || got[1].DurationMS != 0 || got[1].LastKind != "error" || got[1].Checkpoint != "failed" || got[1].Stage != "ask" || got[1].LastError != "context deadline exceeded" || got[1].LastErrorKind != string(model.ErrorKindTimeout) {
 		t.Fatalf("unexpected run-b summary: %#v", got[1])
 	}
 }
@@ -789,7 +789,7 @@ func TestLoadRunRecordReturnsVersionedTimelineAndDerivedSummary(t *testing.T) {
 	events := []RunEvent{
 		{Time: start, RunID: "run-record", Agent: "runner", TraceID: "trace-1", Kind: "run", InputChars: 12},
 		{Time: start.Add(time.Second), RunID: "run-record", Agent: "runner", Kind: "checkpoint", Name: "approval", Status: "paused"},
-		{Time: start.Add(2 * time.Second), RunID: "run-record", Agent: "runner", Kind: "error", Error: "deadline exceeded", ErrorKind: string(ai.ErrorKindTimeout), Spent: 9},
+		{Time: start.Add(2 * time.Second), RunID: "run-record", Agent: "runner", Kind: "error", Error: "deadline exceeded", ErrorKind: string(model.ErrorKindTimeout), Spent: 9},
 	}
 	for _, event := range events {
 		value, err := json.Marshal(event)
@@ -813,7 +813,7 @@ func TestLoadRunRecordReturnsVersionedTimelineAndDerivedSummary(t *testing.T) {
 		t.Fatalf("unexpected ordered events: %#v", record.Events)
 	}
 	summary := record.Summary
-	if summary.RunID != "run-record" || summary.Agent != "runner" || summary.Status != "timeout" || summary.Events != 3 || summary.DurationMS != 2000 || summary.Checkpoint != "paused" || summary.Stage != "approval" || summary.LastErrorKind != string(ai.ErrorKindTimeout) || summary.Spent != 9 {
+	if summary.RunID != "run-record" || summary.Agent != "runner" || summary.Status != "timeout" || summary.Events != 3 || summary.DurationMS != 2000 || summary.Checkpoint != "paused" || summary.Stage != "approval" || summary.LastErrorKind != string(model.ErrorKindTimeout) || summary.Spent != 9 {
 		t.Fatalf("unexpected derived summary: %#v", summary)
 	}
 
@@ -883,16 +883,16 @@ func TestLoadRunRecordPropagatesEventReadFailure(t *testing.T) {
 func TestRunStatusClassifiesOperationalErrorKinds(t *testing.T) {
 	tests := []struct {
 		name string
-		kind ai.ErrorKind
+		kind model.ErrorKind
 		want string
 	}{
-		{name: "canceled", kind: ai.ErrorKindCanceled, want: "canceled"},
-		{name: "timeout", kind: ai.ErrorKindTimeout, want: "timeout"},
-		{name: "rate limited", kind: ai.ErrorKindRateLimited, want: "rate_limited"},
-		{name: "auth", kind: ai.ErrorKindAuth, want: "auth"},
-		{name: "configuration", kind: ai.ErrorKindConfiguration, want: "configuration"},
-		{name: "unavailable", kind: ai.ErrorKindUnavailable, want: "unavailable"},
-		{name: "provider", kind: ai.ErrorKindProvider, want: "provider_error"},
+		{name: "canceled", kind: model.ErrorKindCanceled, want: "canceled"},
+		{name: "timeout", kind: model.ErrorKindTimeout, want: "timeout"},
+		{name: "rate limited", kind: model.ErrorKindRateLimited, want: "rate_limited"},
+		{name: "auth", kind: model.ErrorKindAuth, want: "auth"},
+		{name: "configuration", kind: model.ErrorKindConfiguration, want: "configuration"},
+		{name: "unavailable", kind: model.ErrorKindUnavailable, want: "unavailable"},
+		{name: "provider", kind: model.ErrorKindProvider, want: "provider_error"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -914,7 +914,7 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 		{Time: time.Unix(0, 1), RunID: "run-old", Agent: "runner", Kind: "run"},
 		{Time: time.Unix(0, 2), RunID: "run-old", Agent: "runner", Kind: "done"},
 		{Time: time.Unix(0, 3), RunID: "run-new", Agent: "runner", TraceID: "abcdef1234567890", Kind: "run"},
-		{Time: time.Unix(0, 4), RunID: "run-new", Agent: "runner", Kind: "error", Error: "rate limit exceeded", ErrorKind: string(ai.ErrorKindRateLimited)},
+		{Time: time.Unix(0, 4), RunID: "run-new", Agent: "runner", Kind: "error", Error: "rate limit exceeded", ErrorKind: string(model.ErrorKindRateLimited)},
 	}
 	for _, e := range events {
 		b, err := json.Marshal(e)
@@ -935,29 +935,29 @@ func TestListRunSummariesWithOptionsFiltersAndLimits(t *testing.T) {
 	}
 }
 
-type otelStreamModel struct{ opts ai.Options }
+type otelStreamModel struct{ opts model.Options }
 
-func (m *otelStreamModel) Init(opts ...ai.Option) error {
+func (m *otelStreamModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *otelStreamModel) Options() ai.Options { return m.opts }
-func (m *otelStreamModel) String() string      { return "otelstream" }
-func (m *otelStreamModel) Generate(context.Context, *ai.Request, ...ai.GenerateOption) (*ai.Response, error) {
-	return &ai.Response{Reply: "unused"}, nil
+func (m *otelStreamModel) Options() model.Options { return m.opts }
+func (m *otelStreamModel) String() string         { return "otelstream" }
+func (m *otelStreamModel) Generate(context.Context, *model.Request, ...model.GenerateOption) (*model.Response, error) {
+	return &model.Response{Reply: "unused"}, nil
 }
-func (m *otelStreamModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
-	return &otelTestStream{chunks: []*ai.Response{{Reply: "one", Usage: ai.Usage{InputTokens: 1, OutputTokens: 2, TotalTokens: 3}}, {Reply: "two", Usage: ai.Usage{InputTokens: 1, OutputTokens: 4, TotalTokens: 5}}}}, nil
+func (m *otelStreamModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
+	return &otelTestStream{chunks: []*model.Response{{Reply: "one", Usage: model.Usage{InputTokens: 1, OutputTokens: 2, TotalTokens: 3}}, {Reply: "two", Usage: model.Usage{InputTokens: 1, OutputTokens: 4, TotalTokens: 5}}}}, nil
 }
 
 type otelTestStream struct {
-	chunks []*ai.Response
+	chunks []*model.Response
 	idx    int
 }
 
-func (s *otelTestStream) Recv() (*ai.Response, error) {
+func (s *otelTestStream) Recv() (*model.Response, error) {
 	if s.idx >= len(s.chunks) {
 		return nil, io.EOF
 	}
@@ -973,10 +973,10 @@ func TestAgentOpenTelemetrySpansModelStream(t *testing.T) {
 	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
 	st := store.NewMemoryStore()
 	a := New(Name("stream-runner"), Provider("oteltest"), Model("stream-model"), WithStore(st), TraceProvider(tp))
-	m := a.(*agentImpl).tracedModel(&otelStreamModel{opts: ai.Options{Model: "stream-model"}})
-	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{RunID: "stream-run-1", ParentID: "parent-run", Agent: "stream-runner", Attempt: 2, MaxAttempts: 3, Flow: "deploy", Step: "plan"})
+	m := a.(*agentImpl).tracedModel(&otelStreamModel{opts: model.Options{Model: "stream-model"}})
+	ctx := model.WithRunInfo(context.Background(), model.RunInfo{RunID: "stream-run-1", ParentID: "parent-run", Agent: "stream-runner", Attempt: 2, MaxAttempts: 3, Flow: "deploy", Step: "plan"})
 
-	stream, err := m.Stream(ctx, &ai.Request{Prompt: "stream"})
+	stream, err := m.Stream(ctx, &model.Request{Prompt: "stream"})
 	if err != nil {
 		t.Fatal(err)
 	}

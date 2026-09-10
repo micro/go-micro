@@ -41,11 +41,11 @@ import (
     _ "go-micro.dev/v5/ai/atlascloud"
 )
 
-m := ai.New("atlascloud",
-    ai.WithAPIKey("your-atlas-cloud-key"),
+m := model.New("atlascloud",
+    model.WithAPIKey("your-atlas-cloud-key"),
 )
 
-resp, err := m.Generate(ctx, &ai.Request{
+resp, err := m.Generate(ctx, &model.Request{
     Prompt:       "Explain microservices in one paragraph",
     SystemPrompt: "You are a helpful assistant",
 })
@@ -55,10 +55,10 @@ fmt.Println(resp.Reply)
 The default model is `llama-3.3-70b` and the default base URL is `https://api.atlascloud.ai`. Both are configurable:
 
 ```go
-m := ai.New("atlascloud",
-    ai.WithAPIKey("your-key"),
-    ai.WithModel("deepseek-v4"),
-    ai.WithBaseURL("https://api.atlascloud.ai"),
+m := model.New("atlascloud",
+    model.WithAPIKey("your-key"),
+    model.WithModel("deepseek-v4"),
+    model.WithBaseURL("https://api.atlascloud.ai"),
 )
 ```
 
@@ -67,11 +67,11 @@ m := ai.New("atlascloud",
 Atlas Cloud's image generation models are available through Go Micro's `ImageModel` interface. Generate images from text prompts with the same pattern as text generation:
 
 ```go
-ig := ai.NewImage("atlascloud",
-    ai.WithAPIKey("your-key"),
+ig := model.NewImage("atlascloud",
+    model.WithAPIKey("your-key"),
 )
 
-resp, err := ig.GenerateImage(ctx, &ai.ImageRequest{
+resp, err := ig.GenerateImage(ctx, &model.ImageRequest{
     Prompt: "A futuristic city skyline at sunset, digital art",
     Size:   "1024x1024",
 })
@@ -88,15 +88,15 @@ Atlas Cloud supports OpenAI-compatible function calling, which means it works wi
 
 ```go
 
-tools := ai.NewTools(service.Registry())
+tools := model.NewTools(service.Registry())
 discovered, _ := tools.Discover()
 
-m := ai.New("atlascloud",
-    ai.WithAPIKey(key),
-    ai.WithTools(tools),
+m := model.New("atlascloud",
+    model.WithAPIKey(key),
+    model.WithTools(tools),
 )
 
-resp, _ := m.Generate(ctx, &ai.Request{
+resp, _ := m.Generate(ctx, &model.Request{
     Prompt: "List all users and send a welcome email to each",
     Tools:  discovered,
 })
@@ -140,7 +140,7 @@ With Atlas Cloud, Go Micro now supports seven AI providers:
 | **Mistral** | OpenAI-compatible | `mistral-large-latest` |
 | **Together AI** | OpenAI-compatible | `Llama-3.3-70B-Instruct-Turbo` |
 
-All providers implement the same `ai.Model` interface and work with `ai.Tools`, `micro chat`, and the agent playground.
+All providers implement the same `model.Model` interface and work with `model.Tools`, `micro chat`, and the agent playground.
 
 ## Getting Started
 
