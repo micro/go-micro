@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,11 +10,24 @@ import (
 	"testing"
 	"time"
 
+	"go-micro.dev/v4/config/loader"
+	loadermemory "go-micro.dev/v4/config/loader/memory"
 	"go-micro.dev/v4/config/source"
 	"go-micro.dev/v4/config/source/env"
 	"go-micro.dev/v4/config/source/file"
 	"go-micro.dev/v4/config/source/memory"
 )
+
+type closeTrackingLoader struct {
+	loader.Loader
+	err   error
+	calls int
+}
+
+func (l *closeTrackingLoader) Close() error {
+	l.calls++
+	return l.err
+}
 
 func createFileForIssue18(t *testing.T, content string) *os.File {
 	data := []byte(content)
@@ -43,6 +57,28 @@ func createFileForTest(t *testing.T) *os.File {
 	}
 
 	return fh
+}
+
+func TestConfigCloseClosesLoader(t *testing.T) {
+	wantErr := errors.New("loader close failed")
+	l := &closeTrackingLoader{
+		Loader: loadermemory.NewLoader(loadermemory.WithWatcherDisabled()),
+		err:    wantErr,
+	}
+	conf, err := NewConfig(WithLoader(l), WithWatcherDisabled())
+	if err != nil {
+		t.Fatalf("Expected no error but got %v", err)
+	}
+
+	if err := conf.Close(); !errors.Is(err, wantErr) {
+		t.Fatalf("Expected loader close error %v but got %v", wantErr, err)
+	}
+	if err := conf.Close(); err != nil {
+		t.Fatalf("Expected repeated close to be idempotent but got %v", err)
+	}
+	if l.calls != 1 {
+		t.Fatalf("Expected loader to be closed once but got %d calls", l.calls)
+	}
 }
 
 func TestConfigLoadWithGoodFile(t *testing.T) {

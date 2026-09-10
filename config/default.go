@@ -126,7 +126,9 @@ func (c *config) run() {
 			case <-c.exit:
 			}
 			err := w.Stop()
-			fmt.Println(err.Error())
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		}()
 
 		// block watch
@@ -184,13 +186,17 @@ func (c *config) Sync() error {
 }
 
 func (c *config) Close() error {
+	c.Lock()
 	select {
 	case <-c.exit:
+		c.Unlock()
 		return nil
 	default:
 		close(c.exit)
 	}
-	return nil
+	c.Unlock()
+
+	return c.opts.Loader.Close()
 }
 
 func (c *config) Get(path ...string) reader.Value {
