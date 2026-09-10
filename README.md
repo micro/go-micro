@@ -48,8 +48,6 @@ The generated code is plain Go on disk — edit it by hand at any time; re-runni
 
 ## Sponsors
 
-<a href="https://go-micro.dev/blog/2026/03/04/building-the-ai-native-future-of-go-micro-with-claude.html"><img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Anthropic_logo.svg" height="26" /></a>
-&nbsp;&nbsp;
 <a href="https://go-micro.dev/blog/2026/06/23/go-micro-joins-openai-s-codex-for-open-source.html"><img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" height="26" /></a>
 &nbsp;&nbsp;
 <a href="https://go-micro.dev/blog/2026/05/28/atlas-cloud-sponsors-go-micro-300-ai-models-one-integration.html"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
