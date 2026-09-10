@@ -1,4 +1,4 @@
-// Package ai provides abstraction for AI model providers
+// Package model provides abstraction for AI model providers
 package model
 
 import (

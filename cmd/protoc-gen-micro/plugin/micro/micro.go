@@ -81,7 +81,6 @@ func (g *micro) Generate(file *generator.FileDescriptor) {
 	for i, service := range file.Service {
 		g.generateService(file, service, i)
 	}
-
 }
 
 // GenerateImports generates the import declaration for this file.
