@@ -9,7 +9,6 @@ service UserService {
 	rpc Delete(DeleteUserRequest) returns (DeleteUserResponse) {}
 }
 
-// @model
 message User {
 	string id = 1;
 	string name = 2;

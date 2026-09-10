@@ -16,15 +16,15 @@ import (
 	"sync"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 
-	_ "go-micro.dev/v6/ai/anthropic"
-	_ "go-micro.dev/v6/ai/atlascloud"
-	_ "go-micro.dev/v6/ai/gemini"
-	_ "go-micro.dev/v6/ai/groq"
-	_ "go-micro.dev/v6/ai/mistral"
-	_ "go-micro.dev/v6/ai/openai"
-	_ "go-micro.dev/v6/ai/together"
+	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/atlascloud"
+	_ "go-micro.dev/v6/model/gemini"
+	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/together"
 )
 
 // goMicroVersion is the go-micro.dev/v6 release pinned into the go.mod of
@@ -179,8 +179,8 @@ type EndpointSpec struct {
 // Design calls an LLM to design services from a prompt.
 // If baseDir contains existing services, they are included as context
 // so the LLM extends the system rather than redesigning from scratch.
-func Design(ctx context.Context, provider, apiKey, model, baseDir, prompt string) (*ServiceDesign, error) {
-	m := newModel(provider, apiKey, model)
+func Design(ctx context.Context, provider, apiKey, modelName, baseDir, prompt string) (*ServiceDesign, error) {
+	m := newModel(provider, apiKey, modelName)
 	if m == nil {
 		return nil, fmt.Errorf("unknown provider: %s", provider)
 	}
@@ -199,7 +199,7 @@ func Design(ctx context.Context, provider, apiKey, model, baseDir, prompt string
 	sp := startSpinner("designing services...")
 	designCtx, designCancel := context.WithTimeout(ctx, 60*time.Second)
 	defer designCancel()
-	resp, err := m.Generate(designCtx, &ai.Request{
+	resp, err := m.Generate(designCtx, &model.Request{
 		Prompt:       userPrompt,
 		SystemPrompt: sysPrompt,
 	})
@@ -372,7 +372,7 @@ func generateStructure(dir string, svc ServiceSpec) error {
 // generateHandler asks the LLM to write the handler with business logic.
 // If the handler exists and the user has modified it since generation,
 // it is left untouched.
-func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpec, proto string) error {
+func generateHandler(ctx context.Context, m model.Model, dir string, svc ServiceSpec, proto string) error {
 	if m == nil {
 		return nil // no LLM — keep the placeholder
 	}
@@ -398,7 +398,7 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 	sp := startSpinner(fmt.Sprintf("writing %s handler...", svc.Name))
 	genCtx, genCancel := context.WithTimeout(ctx, 90*time.Second)
 	defer genCancel()
-	resp, err := m.Generate(genCtx, &ai.Request{
+	resp, err := m.Generate(genCtx, &model.Request{
 		Prompt:       fmt.Sprintf("Generate the handler for the %s service with real business logic.", svc.Name),
 		SystemPrompt: prompt,
 	})
@@ -419,7 +419,7 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 		sp = startSpinner(fmt.Sprintf("rewriting %s handler...", svc.Name))
 		retryCtx, retryCancel := context.WithTimeout(ctx, 90*time.Second)
 		defer retryCancel()
-		resp, err = m.Generate(retryCtx, &ai.Request{
+		resp, err = m.Generate(retryCtx, &model.Request{
 			Prompt:       fmt.Sprintf("Generate the handler for the %s service with real business logic. Keep it concise — no more than 200 lines.", svc.Name),
 			SystemPrompt: prompt,
 		})
@@ -442,7 +442,7 @@ func generateHandler(ctx context.Context, m ai.Model, dir string, svc ServiceSpe
 
 // compileFix tries to compile, and if it fails, sends the error to
 // the LLM to fix. Up to maxAttempts iterations.
-func compileFix(ctx context.Context, m ai.Model, dir, name string, maxAttempts int) error {
+func compileFix(ctx context.Context, m model.Model, dir, name string, maxAttempts int) error {
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		cmd := exec.Command("go", "build", "./...")
 		cmd.Dir = dir
@@ -461,7 +461,7 @@ func compileFix(ctx context.Context, m ai.Model, dir, name string, maxAttempts i
 
 		sp := startSpinner(fmt.Sprintf("fixing compile errors (attempt %d/%d)...", attempt+1, maxAttempts))
 		fixCtx, fixCancel := context.WithTimeout(ctx, 60*time.Second)
-		resp, fixErr := m.Generate(fixCtx, &ai.Request{
+		resp, fixErr := m.Generate(fixCtx, &model.Request{
 			Prompt: fmt.Sprintf("This Go code has compile errors. Fix ALL of them and return the COMPLETE corrected file.\n\nErrors:\n%s\n\nCode:\n%s",
 				string(out), currentCode),
 			SystemPrompt: "You are a Go expert. Return ONLY the corrected Go code. No markdown, no explanation. Start with 'package handler'.",
@@ -488,16 +488,16 @@ func compileFix(ctx context.Context, m ai.Model, dir, name string, maxAttempts i
 	return nil
 }
 
-func newModel(provider, apiKey, model string) ai.Model {
+func newModel(provider, apiKey, modelName string) model.Model {
 	if provider == "" {
-		provider = ai.AutoDetectProvider("")
+		provider = model.AutoDetectProvider("")
 	}
-	var opts []ai.Option
-	opts = append(opts, ai.WithAPIKey(apiKey))
-	if model != "" {
-		opts = append(opts, ai.WithModel(model))
+	var opts []model.Option
+	opts = append(opts, model.WithAPIKey(apiKey))
+	if modelName != "" {
+		opts = append(opts, model.WithModel(modelName))
 	}
-	return ai.New(provider, opts...)
+	return model.New(provider, opts...)
 }
 
 func buildProto(dehyphen, titleName string, svc ServiceSpec) string {

@@ -10,7 +10,6 @@ import (
 	"go-micro.dev/v6/cmd"
 	signalutil "go-micro.dev/v6/internal/util/signal"
 	log "go-micro.dev/v6/logger"
-	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/store"
 )
@@ -29,8 +28,6 @@ type Service interface {
 	Client() client.Client
 	// Server returns the RPC server.
 	Server() server.Server
-	// Model returns the data model backend.
-	Model() model.Model
 	// Start the service (non-blocking).
 	Start() error
 	// Stop the service.
@@ -115,10 +112,6 @@ func (s *serviceImpl) Client() client.Client {
 
 func (s *serviceImpl) Server() server.Server {
 	return s.opts.Server
-}
-
-func (s *serviceImpl) Model() model.Model {
-	return s.opts.Model
 }
 
 func (s *serviceImpl) String() string {

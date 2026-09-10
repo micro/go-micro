@@ -9,8 +9,8 @@ import (
 	"time"
 
 	goagent "go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	aiflow "go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
@@ -112,7 +112,7 @@ func TestWriteRunHistoryHumanAndJSON(t *testing.T) {
 		Provider:  "oteltest",
 		Model:     "unit-model",
 		LatencyMS: 42,
-		Tokens:    ai.Usage{TotalTokens: 5},
+		Tokens:    model.Usage{TotalTokens: 5},
 		TraceID:   "1234567890abcdef",
 		ParentID:  "parent-run",
 	}}

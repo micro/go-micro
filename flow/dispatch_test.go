@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
 	codecbytes "go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
@@ -80,11 +80,11 @@ func TestScheduledAgentRunHarnessContract(t *testing.T) {
 	)
 
 	var parentID string
-	var dispatched ai.RunInfo
+	var dispatched model.RunInfo
 	f.client = &fakeClient{
 		Client: client.DefaultClient,
 		callFn: func(ctx context.Context, req client.Request, rsp interface{}) error {
-			dispatched, _ = ai.RunInfoFrom(ctx)
+			dispatched, _ = model.RunInfoFrom(ctx)
 			if req.Service() != "ops-agent" || req.Endpoint() != "Agent.Chat" {
 				t.Fatalf("dispatched to %s.%s, want ops-agent.Agent.Chat", req.Service(), req.Endpoint())
 			}
@@ -147,11 +147,11 @@ func TestCallRecordsServiceTargetAndPropagatesLineage(t *testing.T) {
 	cp := StoreCheckpoint(store.NewMemoryStore(), "service-call")
 	f := New("service-call", WithCheckpoint(cp), Steps(Step{Name: "charge", Run: Call("payments", "Payments.Charge")}))
 
-	var called ai.RunInfo
+	var called model.RunInfo
 	f.client = &fakeClient{
 		Client: client.DefaultClient,
 		callFn: func(callCtx context.Context, req client.Request, rsp interface{}) error {
-			called, _ = ai.RunInfoFrom(callCtx)
+			called, _ = model.RunInfoFrom(callCtx)
 			if req.Service() != "payments" || req.Endpoint() != "Payments.Charge" {
 				t.Fatalf("called %s.%s, want payments.Payments.Charge", req.Service(), req.Endpoint())
 			}

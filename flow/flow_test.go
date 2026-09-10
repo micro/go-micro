@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 )
 
@@ -89,43 +89,43 @@ func TestDefaultOptions(t *testing.T) {
 }
 
 func TestSingleStepFlowRunInfoIdentifiesFlow(t *testing.T) {
-	model := &runInfoModel{}
+	llm := &runInfoModel{}
 	f := New("single-observed")
-	f.model = model
-	f.toolSet = ai.NewTools(registry.NewMemoryRegistry())
+	f.model = llm
+	f.toolSet = model.NewTools(registry.NewMemoryRegistry())
 
 	if err := f.Execute(context.Background(), "observe me"); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
-	if model.got.RunID == "" {
+	if llm.got.RunID == "" {
 		t.Fatal("RunInfo.RunID is empty")
 	}
-	if model.got.Flow != "single-observed" {
-		t.Fatalf("RunInfo.Flow = %q, want single-observed", model.got.Flow)
+	if llm.got.Flow != "single-observed" {
+		t.Fatalf("RunInfo.Flow = %q, want single-observed", llm.got.Flow)
 	}
-	if model.got.Agent != "" {
-		t.Fatalf("RunInfo.Agent = %q, want empty for flow-owned LLM run", model.got.Agent)
+	if llm.got.Agent != "" {
+		t.Fatalf("RunInfo.Agent = %q, want empty for flow-owned LLM run", llm.got.Agent)
 	}
-	if model.got.Step != "" {
-		t.Fatalf("RunInfo.Step = %q, want empty for single-step flow", model.got.Step)
+	if llm.got.Step != "" {
+		t.Fatalf("RunInfo.Step = %q, want empty for single-step flow", llm.got.Step)
 	}
 }
 
 type runInfoModel struct {
-	got ai.RunInfo
+	got model.RunInfo
 }
 
-func (m *runInfoModel) Init(...ai.Option) error { return nil }
+func (m *runInfoModel) Init(...model.Option) error { return nil }
 
-func (m *runInfoModel) Options() ai.Options { return ai.Options{} }
+func (m *runInfoModel) Options() model.Options { return model.Options{} }
 
-func (m *runInfoModel) Generate(ctx context.Context, _ *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
-	m.got, _ = ai.RunInfoFrom(ctx)
-	return &ai.Response{Reply: "ok"}, nil
+func (m *runInfoModel) Generate(ctx context.Context, _ *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
+	m.got, _ = model.RunInfoFrom(ctx)
+	return &model.Response{Reply: "ok"}, nil
 }
 
-func (m *runInfoModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, ai.ErrStreamingUnsupported
+func (m *runInfoModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
+	return nil, model.ErrStreamingUnsupported
 }
 
 func (m *runInfoModel) String() string { return "run-info-model" }

@@ -3,21 +3,21 @@ title: "Adding an AI Provider to Go Micro"
 ---
 
 This guide walks you through implementing a new AI model provider for
-go-micro's `ai` package. After following these steps your provider will
-be available via `ai.New("yourprovider")` and automatically usable by the
+go-micro's `model` package. After following these steps your provider will
+be available via `model.New("yourprovider")` and automatically usable by the
 MCP gateway, the agent playground, and any service that calls
-`service.Model()`.
+`model.New()`.
 
 ## Overview
 
-The `ai` package uses the same plugin pattern as the rest of go-micro:
+The `model` package uses the same plugin pattern as the rest of go-micro:
 define an interface, register an implementation, and let users swap
-providers with a single import. All providers live under `ai/<name>/`.
+providers with a single import. All providers live under `model/<name>/`.
 
 **Files you will create:**
 
 ```
-ai/
+model/
 └── yourprovider/
     ├── yourprovider.go       # Provider implementation
     └── yourprovider_test.go  # Unit tests
@@ -31,14 +31,14 @@ runtime tooling and docs can report what is actually available after blank
 imports are linked in:
 
 ```go
-for _, row := range ai.CapabilityRows() {
+for _, row := range model.CapabilityRows() {
     fmt.Printf("%s: chat=%t image=%t video=%t stream=%t tool_stream=%t\n", row.Provider, row.Model, row.Image, row.Video, row.Stream, row.ToolStream)
 }
 ```
 
 The built-in providers currently register these capability interfaces:
 
-| Provider | Chat/text (`ai.Model`) | Image (`ai.ImageModel`) | Video (`ai.VideoModel`) | Streaming (`ai.Stream`) | Tool streaming |
+| Provider | Chat/text (`model.Model`) | Image (`model.ImageModel`) | Video (`model.VideoModel`) | Streaming (`model.Stream`) | Tool streaming |
 | --- | --- | --- | --- | --- | --- |
 | `anthropic` | Yes | No | No | Yes | Yes |
 | `atlascloud` | Yes | Yes | Yes | Yes | No |
@@ -50,9 +50,9 @@ The built-in providers currently register these capability interfaces:
 | `openai` | Yes | Yes | No | Yes | Yes |
 | `together` | Yes | No | No | Yes | Yes |
 
-## Step 1: Implement the `ai.Model` Interface
+## Step 1: Implement the `model.Model` Interface
 
-Every provider must satisfy `ai.Model`:
+Every provider must satisfy `model.Model`:
 
 ```go
 type Model interface {
@@ -66,7 +66,7 @@ type Model interface {
 
 ### Skeleton
 
-Create `ai/yourprovider/yourprovider.go`:
+Create `model/yourprovider/yourprovider.go`:
 
 ```go
 package yourprovider
@@ -80,21 +80,21 @@ import (
     "net/http"
     "strings"
 
-    "go-micro.dev/v6/ai"
+    "go-micro.dev/v6/model"
 )
 
 func init() {
-    ai.Register("yourprovider", func(opts ...ai.Option) ai.Model {
+    model.Register("yourprovider", func(opts ...model.Option) model.Model {
         return NewProvider(opts...)
     })
 }
 
 type Provider struct {
-    opts ai.Options
+    opts model.Options
 }
 
-func NewProvider(opts ...ai.Option) *Provider {
-    options := ai.NewOptions(opts...)
+func NewProvider(opts ...model.Option) *Provider {
+    options := model.NewOptions(opts...)
     if options.Model == "" {
         options.Model = "your-default-model"
     }
@@ -104,14 +104,14 @@ func NewProvider(opts ...ai.Option) *Provider {
     return &Provider{opts: options}
 }
 
-func (p *Provider) Init(opts ...ai.Option) error {
+func (p *Provider) Init(opts ...model.Option) error {
     for _, o := range opts {
         o(&p.opts)
     }
     return nil
 }
 
-func (p *Provider) Options() ai.Options { return p.opts }
+func (p *Provider) Options() model.Options { return p.opts }
 func (p *Provider) String() string      { return "yourprovider" }
 ```
 
@@ -121,14 +121,14 @@ func (p *Provider) String() string      { return "yourprovider" }
 
 1. Convert `req.Tools` into the provider's native tool format.
 2. Send the request to the provider API.
-3. Parse the response into `ai.Response` (text in `Reply`, tool calls in
+3. Parse the response into `model.Response` (text in `Reply`, tool calls in
    `ToolCalls`).
 4. If `p.opts.ToolHandler` is set **and** there are tool calls, execute
    each tool and make a follow-up API call to get the final answer in
    `Answer`.
 
 ```go
-func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
+func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
     // 1. Build provider-specific tool definitions
     var tools []map[string]any
     for _, t := range req.Tools {
@@ -184,7 +184,7 @@ func (p *Provider) Generate(ctx context.Context, req *ai.Request, opts ...ai.Gen
 If streaming is not supported yet, return a clear error:
 
 ```go
-func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
+func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
     return nil, fmt.Errorf("streaming not yet implemented for yourprovider")
 }
 ```
@@ -194,7 +194,7 @@ func (p *Provider) Stream(ctx context.Context, req *ai.Request, opts ...ai.Gener
 Use `net/http` directly — no external SDK needed:
 
 ```go
-func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Response, map[string]any, error) {
+func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, map[string]any, error) {
     reqBody, err := json.Marshal(req)
     if err != nil {
         return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -220,14 +220,14 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*ai.Respons
         return nil, nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
     }
 
-    // Parse your provider's response format into ai.Response
+    // Parse your provider's response format into model.Response
     // ...
 }
 ```
 
 ## Step 2: Write Tests
 
-Create `ai/yourprovider/yourprovider_test.go`. At minimum test:
+Create `model/yourprovider/yourprovider_test.go`. At minimum test:
 
 - **`String()`** returns the correct name.
 - **`Init()`** applies options.
@@ -242,7 +242,7 @@ import (
     "context"
     "testing"
 
-    "go-micro.dev/v6/ai"
+    "go-micro.dev/v6/model"
 )
 
 func TestProvider_String(t *testing.T) {
@@ -265,7 +265,7 @@ func TestProvider_Defaults(t *testing.T) {
 
 func TestProvider_Init(t *testing.T) {
     p := NewProvider()
-    if err := p.Init(ai.WithModel("custom"), ai.WithAPIKey("key")); err != nil {
+    if err := p.Init(model.WithModel("custom"), model.WithAPIKey("key")); err != nil {
         t.Fatalf("Init: %v", err)
     }
     if p.Options().Model != "custom" {
@@ -275,7 +275,7 @@ func TestProvider_Init(t *testing.T) {
 
 func TestProvider_Generate_NoAPIKey(t *testing.T) {
     p := NewProvider()
-    _, err := p.Generate(context.Background(), &ai.Request{Prompt: "hi"})
+    _, err := p.Generate(context.Background(), &model.Request{Prompt: "hi"})
     if err == nil {
         t.Error("expected error without API key")
     }
@@ -283,7 +283,7 @@ func TestProvider_Generate_NoAPIKey(t *testing.T) {
 
 func TestProvider_Stream_NotImplemented(t *testing.T) {
     p := NewProvider()
-    _, err := p.Stream(context.Background(), &ai.Request{Prompt: "hi"})
+    _, err := p.Stream(context.Background(), &model.Request{Prompt: "hi"})
     if err == nil {
         t.Error("expected error for unimplemented streaming")
     }
@@ -298,22 +298,22 @@ go test ./ai/yourprovider/...
 
 ## Step 3: Register the Provider
 
-The `init()` function in your package calls `ai.Register`. Users enable
+The `init()` function in your package calls `model.Register`. Users enable
 your provider with a blank import:
 
 ```go
-import _ "go-micro.dev/v6/ai/yourprovider"
+import _ "go-micro.dev/v6/model/yourprovider"
 ```
 
 Then use it:
 
 ```go
-m := ai.New("yourprovider",
-    ai.WithAPIKey("your-api-key"),
-    ai.WithModel("your-model-name"),
+m := model.New("yourprovider",
+    model.WithAPIKey("your-api-key"),
+    model.WithModel("your-model-name"),
 )
 
-resp, err := m.Generate(ctx, &ai.Request{
+resp, err := m.Generate(ctx, &model.Request{
     Prompt:       "Hello!",
     SystemPrompt: "You are a helpful assistant",
 })
@@ -328,9 +328,9 @@ project README.md. Follow the existing format:
 ### YourProvider
 
 ```go
-m := ai.New("yourprovider",
-    ai.WithAPIKey("your-key"),
-    ai.WithModel("your-default-model"),
+m := model.New("yourprovider",
+    model.WithAPIKey("your-key"),
+    model.WithModel("your-default-model"),
 )
 ```
 
@@ -344,15 +344,15 @@ Also add an entry in `ai/README.md` under "Supported Providers".
 
 Before submitting your PR:
 
-- [ ] `ai/yourprovider/yourprovider.go` implements `ai.Model`
-- [ ] `init()` calls `ai.Register("yourprovider", ...)`
+- [ ] `model/yourprovider/yourprovider.go` implements `model.Model`
+- [ ] `init()` calls `model.Register("yourprovider", ...)`
 - [ ] `Generate()` handles tool calls via `ToolHandler` when set
-- [ ] `ai/yourprovider/yourprovider_test.go` covers basics
+- [ ] `model/yourprovider/yourprovider_test.go` covers basics
 - [ ] `go test ./ai/yourprovider/...` passes
 - [ ] `go vet ./ai/yourprovider/...` is clean
 - [ ] Provider added to `ai/README.md` under "Supported Providers"
 - [ ] Provider added to project README.md under "Supported AI Providers"
-- [ ] No new dependencies beyond `go-micro.dev/v6/ai` and stdlib (use
+- [ ] No new dependencies beyond `go-micro.dev/v6/model` and stdlib (use
       `net/http` directly rather than an SDK)
 
 ## Design Notes
@@ -364,7 +364,7 @@ existing providers (Anthropic, OpenAI) use raw HTTP for the same reason.
 **OpenAI-compatible APIs.** Many providers (Together, Groq, Fireworks,
 Atlas Cloud, etc.) expose an OpenAI-compatible `/v1/chat/completions`
 endpoint. In that case, users can often just use the `openai` provider
-with `ai.WithBaseURL("https://api.yourprovider.com")`. A dedicated
+with `model.WithBaseURL("https://api.yourprovider.com")`. A dedicated
 provider package is only needed when the API differs or you want to set
 provider-specific defaults.
 

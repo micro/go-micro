@@ -36,7 +36,7 @@ your stack — the harness *is* the stack.
 | Resilience | Per-call timeout with context propagation; opt-in retry/backoff (`ModelRetry`) across the loop | Shipped |
 | Durable runs | Checkpoint and resume an agent run with the same checkpoint backend flows use | Shipped |
 | Observability | `RunInfo` → OpenTelemetry spans for runs, model calls, tools, delegation, and failures; persisted run history | Shipped |
-| Streaming | `ai.Stream` through chat, agent, and A2A | In progress |
+| Streaming | `model.Stream` through chat, agent, and A2A | In progress |
 
 The "in progress" rows are exactly the roadmap's [Now and Next](/docs/roadmap.html),
 and the work is happening in the open.
@@ -105,7 +105,7 @@ Important span attributes include:
 
 | Attribute | Meaning |
 |---|---|
-| `agent.run.id` | Stable run correlation ID surfaced as `ai.RunInfo.RunID` |
+| `agent.run.id` | Stable run correlation ID surfaced as `model.RunInfo.RunID` |
 | `agent.run.parent_id` | Parent run for delegated sub-agent work |
 | `agent.name` | Agent that owns the run or call |
 | `agent.model.provider` / `agent.model.name` | Provider and configured model for model calls |

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 // LoopCondition decides whether a Loop should stop, given the latest state
@@ -128,7 +128,7 @@ func askDone(ctx context.Context, question string, state State) (bool, error) {
 		return false, fmt.Errorf("flow: UntilLLM requires a flow model (set Provider/APIKey)")
 	}
 	prompt := fmt.Sprintf("%s\n\nLatest result:\n%s\n\nAnswer with only \"yes\" or \"no\".", question, state.String())
-	resp, err := d.model.Generate(ctx, &ai.Request{Prompt: prompt})
+	resp, err := d.model.Generate(ctx, &model.Request{Prompt: prompt})
 	if err != nil {
 		return false, err
 	}

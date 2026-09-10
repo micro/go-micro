@@ -3,11 +3,11 @@
 Middleware around an agent's tool execution, the same way
 `client.CallWrapper` and `server.HandlerWrapper` wrap RPCs.
 
-Every tool call an agent makes runs through `ai.ToolHandler`:
+Every tool call an agent makes runs through `model.ToolHandler`:
 
 ```go
-type ToolHandler func(ctx context.Context, call ai.ToolCall) ai.ToolResult
-type ToolWrapper func(ai.ToolHandler) ai.ToolHandler
+type ToolHandler func(ctx context.Context, call model.ToolCall) model.ToolResult
+type ToolWrapper func(model.ToolHandler) model.ToolHandler
 ```
 
 `WrapTool` (exposed as `micro.AgentWrapTool`) registers a wrapper: it

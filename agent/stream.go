@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 // StreamEventType identifies an event emitted by a tool-aware agent stream.
@@ -31,8 +31,8 @@ const (
 type StreamEvent struct {
 	Type     StreamEventType
 	Token    string
-	ToolCall ai.ToolCall
-	Result   ai.ToolResult
+	ToolCall model.ToolCall
+	Result   model.ToolResult
 	Response *Response
 }
 
@@ -123,10 +123,10 @@ func (a *agentImpl) askWithStreamEvents(ctx context.Context, message string, eve
 	defer a.mu.Unlock()
 
 	if a.tools == nil {
-		a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
+		a.tools = model.NewTools(a.opts.Registry, model.ToolClient(a.opts.Client))
 	}
 	base := a.toolHandler()
-	handler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	handler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		_ = sendStreamEvent(ctx, events, &StreamEvent{Type: StreamEventToolStart, ToolCall: call})
 		result := base(ctx, call)
 		_ = sendStreamEvent(ctx, events, &StreamEvent{Type: StreamEventToolEnd, ToolCall: call, Result: result})
@@ -162,10 +162,10 @@ func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, ev
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.tools == nil {
-		a.tools = ai.NewTools(a.opts.Registry, ai.ToolClient(a.opts.Client))
+		a.tools = model.NewTools(a.opts.Registry, model.ToolClient(a.opts.Client))
 	}
 	base := a.toolHandler()
-	handler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	handler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		_ = sendStreamEvent(ctx, events, &StreamEvent{Type: StreamEventToolStart, ToolCall: call})
 		result := base(ctx, call)
 		_ = sendStreamEvent(ctx, events, &StreamEvent{Type: StreamEventToolEnd, ToolCall: call, Result: result})
@@ -188,7 +188,7 @@ type agentStreamAdapter struct {
 }
 
 type memoryRecordingStream struct {
-	stream ai.Stream
+	stream model.Stream
 	memory Memory
 
 	mu     sync.Mutex
@@ -196,7 +196,7 @@ type memoryRecordingStream struct {
 	closed bool
 }
 
-func (s *memoryRecordingStream) Recv() (*ai.Response, error) {
+func (s *memoryRecordingStream) Recv() (*model.Response, error) {
 	resp, err := s.stream.Recv()
 	if resp != nil && resp.Reply != "" {
 		s.mu.Lock()
@@ -226,7 +226,7 @@ func (s *memoryRecordingStream) recordAssistant() {
 	}
 }
 
-func (s *agentStreamAdapter) Recv() (*ai.Response, error) {
+func (s *agentStreamAdapter) Recv() (*model.Response, error) {
 	for {
 		event, err := s.stream.Recv()
 		if err != nil {
@@ -240,7 +240,7 @@ func (s *agentStreamAdapter) Recv() (*ai.Response, error) {
 			if event.Token == "" {
 				continue
 			}
-			return &ai.Response{Reply: event.Token}, nil
+			return &model.Response{Reply: event.Token}, nil
 		case StreamEventDone:
 			return nil, io.EOF
 		}
@@ -251,7 +251,7 @@ func (s *agentStreamAdapter) Close() error {
 	return s.stream.Close()
 }
 
-func (a *agentImpl) streamAskAI(ctx context.Context, message string) (ai.Stream, error) {
+func (a *agentImpl) streamAskAI(ctx context.Context, message string) (model.Stream, error) {
 	stream, err := a.StreamAsk(ctx, message)
 	if err != nil {
 		return nil, err

@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/service"
@@ -37,7 +37,7 @@ func waitForService(t *testing.T, reg registry.Registry, name string) {
 // — real services, a shared in-memory registry, real RPC, the real agent
 // loop, real store — with only the LLM mocked. No mDNS, no sleeps.
 func TestPlanDelegateEndToEnd(t *testing.T) {
-	ai.Register("mock", newMock)
+	model.Register("mock", newMock)
 
 	// Shared infrastructure: one in-memory registry, a client bound to
 	// it, and an in-memory store. Everything resolves through these.
@@ -129,7 +129,7 @@ func TestPlanDelegateEndToEnd(t *testing.T) {
 // plans, creates tasks, and delegates to comms — all over real RPC. Only
 // the LLM is mocked.
 func TestFlowDispatchesToAgentEndToEnd(t *testing.T) {
-	ai.Register("mock", newMock)
+	model.Register("mock", newMock)
 
 	reg := registry.NewMemoryRegistry()
 	cl := client.NewClient(
@@ -391,13 +391,13 @@ type scriptedAgent struct {
 	calls   int
 }
 
-func (a *scriptedAgent) Name() string                                      { return "scripted" }
-func (a *scriptedAgent) Init(...agent.Option)                              {}
-func (a *scriptedAgent) Options() agent.Options                            { return agent.Options{} }
-func (a *scriptedAgent) Stream(context.Context, string) (ai.Stream, error) { return nil, nil }
-func (a *scriptedAgent) Run() error                                        { return nil }
-func (a *scriptedAgent) Stop() error                                       { return nil }
-func (a *scriptedAgent) String() string                                    { return "scripted" }
+func (a *scriptedAgent) Name() string                                         { return "scripted" }
+func (a *scriptedAgent) Init(...agent.Option)                                 {}
+func (a *scriptedAgent) Options() agent.Options                               { return agent.Options{} }
+func (a *scriptedAgent) Stream(context.Context, string) (model.Stream, error) { return nil, nil }
+func (a *scriptedAgent) Run() error                                           { return nil }
+func (a *scriptedAgent) Stop() error                                          { return nil }
+func (a *scriptedAgent) String() string                                       { return "scripted" }
 func (a *scriptedAgent) Ask(ctx context.Context, prompt string) (*agent.Response, error) {
 	if a.calls >= len(a.replies) {
 		return &agent.Response{Reply: "done"}, nil
@@ -415,7 +415,7 @@ func (a failingAgent) Name() string                                         { re
 func (a failingAgent) Init(...agent.Option)                                 {}
 func (a failingAgent) Options() agent.Options                               { return agent.Options{} }
 func (a failingAgent) Ask(context.Context, string) (*agent.Response, error) { return nil, a.err }
-func (a failingAgent) Stream(context.Context, string) (ai.Stream, error)    { return nil, a.err }
+func (a failingAgent) Stream(context.Context, string) (model.Stream, error) { return nil, a.err }
 func (a failingAgent) Run() error                                           { return nil }
 func (a failingAgent) Stop() error                                          { return nil }
 func (a failingAgent) String() string                                       { return "failing" }
@@ -461,17 +461,17 @@ func TestRequireConductorPlanFailureNamesScopedRecord(t *testing.T) {
 func TestRequirePersistedPlanBeforeConductorActionsBlocksSideEffects(t *testing.T) {
 	mem := store.NewMemoryStore()
 	called := false
-	wrapped := requirePersistedPlanBeforeConductorActions(mem)(func(context.Context, ai.ToolCall) ai.ToolResult {
+	wrapped := requirePersistedPlanBeforeConductorActions(mem)(func(context.Context, model.ToolCall) model.ToolResult {
 		called = true
-		return ai.ToolResult{ID: "call-1", Content: `{"ok":true}`}
+		return model.ToolResult{ID: "call-1", Content: `{"ok":true}`}
 	})
 
-	res := wrapped(context.Background(), ai.ToolCall{ID: "call-1", Name: "task.Add"})
+	res := wrapped(context.Background(), model.ToolCall{ID: "call-1", Name: "task.Add"})
 	if called {
 		t.Fatal("side-effecting tool ran before persisted plan")
 	}
-	if res.Refused != ai.RefusedApproval {
-		t.Fatalf("Refused = %q, want %q", res.Refused, ai.RefusedApproval)
+	if res.Refused != model.RefusedApproval {
+		t.Fatalf("Refused = %q, want %q", res.Refused, model.RefusedApproval)
 	}
 	if !strings.Contains(res.Content, "built-in plan tool") {
 		t.Fatalf("Content = %q, want plan-first steering message", res.Content)
@@ -481,20 +481,20 @@ func TestRequirePersistedPlanBeforeConductorActionsBlocksSideEffects(t *testing.
 func TestRequirePersistedPlanBeforeConductorActionsAllowsPlanAndPlannedActions(t *testing.T) {
 	mem := store.NewMemoryStore()
 	var calls []string
-	wrapped := requirePersistedPlanBeforeConductorActions(mem)(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	wrapped := requirePersistedPlanBeforeConductorActions(mem)(func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		calls = append(calls, call.Name)
 		if call.Name == "plan" {
 			if err := store.Scope(mem, "agent", "conductor").Write(&store.Record{Key: "plan", Value: []byte(`{"steps":[{"task":"Design","status":"pending"}]}`)}); err != nil {
 				t.Fatalf("write plan: %v", err)
 			}
 		}
-		return ai.ToolResult{ID: call.ID, Content: `{"ok":true}`}
+		return model.ToolResult{ID: call.ID, Content: `{"ok":true}`}
 	})
 
-	if res := wrapped(context.Background(), ai.ToolCall{ID: "call-1", Name: "plan"}); res.Refused != "" {
+	if res := wrapped(context.Background(), model.ToolCall{ID: "call-1", Name: "plan"}); res.Refused != "" {
 		t.Fatalf("plan Refused = %q, want allowed", res.Refused)
 	}
-	if res := wrapped(context.Background(), ai.ToolCall{ID: "call-2", Name: "task.Add"}); res.Refused != "" {
+	if res := wrapped(context.Background(), model.ToolCall{ID: "call-2", Name: "task.Add"}); res.Refused != "" {
 		t.Fatalf("planned action Refused = %q, want allowed", res.Refused)
 	}
 	if want := []string{"plan", "task.Add"}; !reflect.DeepEqual(calls, want) {

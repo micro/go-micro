@@ -23,20 +23,20 @@ import (
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v6/agent"
 	agentpb "go-micro.dev/v6/agent/proto"
-	"go-micro.dev/v6/ai"
 	clt "go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
 	"go-micro.dev/v6/cmd/micro/cli/generate"
 	"go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 
-	_ "go-micro.dev/v6/ai/anthropic"
-	_ "go-micro.dev/v6/ai/atlascloud"
-	_ "go-micro.dev/v6/ai/gemini"
-	_ "go-micro.dev/v6/ai/groq"
-	_ "go-micro.dev/v6/ai/mistral"
-	_ "go-micro.dev/v6/ai/openai"
-	_ "go-micro.dev/v6/ai/together"
+	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/atlascloud"
+	_ "go-micro.dev/v6/model/gemini"
+	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/together"
 )
 
 const systemPromptTmpl = `You are an agent that orchestrates microservices. Use the available tools to fulfill user requests. When you call a tool, explain what you are doing.
@@ -47,7 +47,7 @@ If a user asks for something that no existing service can handle, use the micro_
 
 Do NOT make up capabilities. Only use the tools that are available. If generation fails, tell the user.`
 
-var generateTool = ai.Tool{
+var generateTool = model.Tool{
 	Name:         "micro_generate_service",
 	OriginalName: "micro.generate_service",
 	Description:  "Generate a new microservice from a description. Use when the user needs a capability that no existing service provides. The service will be created, compiled, and started automatically.",
@@ -99,12 +99,12 @@ type agentInfo struct {
 type session struct {
 	provider  string
 	apiKey    string
-	model     ai.Model
-	tools     *ai.Tools
+	model     model.Model
+	tools     *model.Tools
 	reg       registry.Registry
 	cl        clt.Client
-	hist      *ai.History
-	toolList  []ai.Tool
+	hist      *model.History
+	toolList  []model.Tool
 	sysPrompt string
 	procs     []*exec.Cmd
 	agents    map[string]agentInfo
@@ -113,7 +113,7 @@ type session struct {
 	// Built-in agent capabilities (plan, delegate), shared with the
 	// agent package so the direct-service fallback has the same tools a
 	// real agent would.
-	builtinTools  []ai.Tool
+	builtinTools  []model.Tool
 	builtinHandle func(name string, input map[string]any) (any, string, bool)
 }
 
@@ -180,7 +180,7 @@ func (s *session) callAgent(ctx context.Context, name, message string) (*agent.R
 	for _, tc := range resp.ToolCalls {
 		var input map[string]any
 		_ = json.Unmarshal([]byte(tc.Input), &input)
-		r.ToolCalls = append(r.ToolCalls, ai.ToolCall{
+		r.ToolCalls = append(r.ToolCalls, model.ToolCall{
 			ID:     tc.ID,
 			Name:   tc.Name,
 			Input:  input,
@@ -352,7 +352,7 @@ func run(c *cli.Context) error {
 	targetAgent := c.Args().First()
 
 	if provider == "" {
-		provider = ai.AutoDetectProvider(baseURL)
+		provider = model.AutoDetectProvider(baseURL)
 	}
 	if apiKey == "" {
 		apiKey = fallbackAPIKey(provider)
@@ -361,7 +361,7 @@ func run(c *cli.Context) error {
 	reg := registry.DefaultRegistry
 	cl := clt.DefaultClient
 
-	tools := ai.NewTools(reg, ai.ToolClient(cl))
+	tools := model.NewTools(reg, model.ToolClient(cl))
 
 	s := &session{
 		provider: provider,
@@ -369,7 +369,7 @@ func run(c *cli.Context) error {
 		tools:    tools,
 		reg:      reg,
 		cl:       cl,
-		hist:     ai.NewHistory(50),
+		hist:     model.NewHistory(50),
 		stream:   streamOutput,
 	}
 	hasAgents := s.discoverAgents()
@@ -404,29 +404,29 @@ func run(c *cli.Context) error {
 
 	// Wrap the tool handler to intercept generate calls
 	baseHandler := tools.Handler()
-	wrappedHandler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	wrappedHandler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		if call.Name == "micro_generate_service" {
 			r, c := s.handleGenerate(call.Input)
-			return ai.ToolResult{ID: call.ID, Value: r, Content: c}
+			return model.ToolResult{ID: call.ID, Value: r, Content: c}
 		}
 		if result, content, ok := s.builtinHandle(call.Name, call.Input); ok {
-			return ai.ToolResult{ID: call.ID, Value: result, Content: content}
+			return model.ToolResult{ID: call.ID, Value: result, Content: content}
 		}
 		return baseHandler(ctx, call)
 	}
 
-	opts := []ai.Option{
-		ai.WithAPIKey(apiKey),
-		ai.WithToolHandler(wrappedHandler),
+	opts := []model.Option{
+		model.WithAPIKey(apiKey),
+		model.WithToolHandler(wrappedHandler),
 	}
 	if modelName != "" {
-		opts = append(opts, ai.WithModel(modelName))
+		opts = append(opts, model.WithModel(modelName))
 	}
 	if baseURL != "" {
-		opts = append(opts, ai.WithBaseURL(baseURL))
+		opts = append(opts, model.WithBaseURL(baseURL))
 	}
 
-	s.model = ai.New(provider, opts...)
+	s.model = model.New(provider, opts...)
 	if s.model == nil {
 		return fmt.Errorf("unknown provider: %s", provider)
 	}
@@ -498,7 +498,7 @@ func (s *session) ask(ctx context.Context, prompt string) error {
 	// Fallback: direct service access (no agents)
 	s.hist.Add("user", prompt)
 
-	req := &ai.Request{
+	req := &model.Request{
 		Prompt:       prompt,
 		SystemPrompt: s.sysPrompt,
 		Tools:        s.toolList,
@@ -507,7 +507,7 @@ func (s *session) ask(ctx context.Context, prompt string) error {
 	if s.stream {
 		if err := s.askStream(ctx, req); err == nil {
 			return nil
-		} else if !errors.Is(err, ai.ErrStreamingUnsupported) {
+		} else if !errors.Is(err, model.ErrStreamingUnsupported) {
 			return err
 		}
 	}
@@ -547,7 +547,7 @@ func (s *session) ask(ctx context.Context, prompt string) error {
 	return nil
 }
 
-func (s *session) askStream(ctx context.Context, req *ai.Request) error {
+func (s *session) askStream(ctx context.Context, req *model.Request) error {
 	stream, err := s.model.Stream(ctx, req)
 	if err != nil {
 		return err
@@ -598,7 +598,7 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 	}
 
 	// Multiple agents — use LLM to route
-	routeTool := ai.Tool{
+	routeTool := model.Tool{
 		Name:         "route_to_agent",
 		OriginalName: "route_to_agent",
 		Description:  "Route a message to a specific agent for handling.",
@@ -614,7 +614,7 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 		},
 	}
 
-	routerHandler := func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	routerHandler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		agentName, _ := call.Input["agent"].(string)
 		message, _ := call.Input["message"].(string)
 		if message == "" {
@@ -622,36 +622,36 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 		}
 
 		if _, ok := s.agents[agentName]; !ok {
-			return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": "unknown agent: " + agentName}, Content: `{"error":"unknown agent"}`}
+			return model.ToolResult{ID: call.ID, Value: map[string]string{"error": "unknown agent: " + agentName}, Content: `{"error":"unknown agent"}`}
 		}
 
 		fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", agentName)
 		if s.stream {
 			if err := s.streamAgent(ctx, agentName, message); err == nil {
-				return ai.ToolResult{ID: call.ID, Value: map[string]string{"agent": agentName, "streamed": "true"}, Content: `{"streamed":true}`}
+				return model.ToolResult{ID: call.ID, Value: map[string]string{"agent": agentName, "streamed": "true"}, Content: `{"streamed":true}`}
 			}
 		}
 		resp, err := s.callAgent(ctx, agentName, message)
 		if err != nil {
-			return ai.ToolResult{ID: call.ID, Value: map[string]string{"error": err.Error()}, Content: `{"error":"` + err.Error() + `"}`}
+			return model.ToolResult{ID: call.ID, Value: map[string]string{"error": err.Error()}, Content: `{"error":"` + err.Error() + `"}`}
 		}
 
 		s.printAgentResponse(resp)
 
 		result := map[string]any{"agent": agentName, "reply": resp.Reply}
 		b, _ := json.Marshal(result)
-		return ai.ToolResult{ID: call.ID, Value: result, Content: string(b)}
+		return model.ToolResult{ID: call.ID, Value: result, Content: string(b)}
 	}
 
-	routerModel := ai.New(s.provider,
-		ai.WithAPIKey(s.apiKey),
-		ai.WithToolHandler(routerHandler),
+	routerModel := model.New(s.provider,
+		model.WithAPIKey(s.apiKey),
+		model.WithToolHandler(routerHandler),
 	)
 
-	resp, err := routerModel.Generate(ctx, &ai.Request{
+	resp, err := routerModel.Generate(ctx, &model.Request{
 		Prompt:       prompt,
 		SystemPrompt: s.buildRouterPrompt(),
-		Tools:        []ai.Tool{routeTool},
+		Tools:        []model.Tool{routeTool},
 	})
 	if err != nil {
 		return err

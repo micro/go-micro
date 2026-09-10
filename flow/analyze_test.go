@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 func TestAnalyzeRanksFailedGraderStepAbovePassingStep(t *testing.T) {
@@ -78,12 +78,12 @@ func TestLLMOptimizerReturnsProposalWithoutMutatingFlow(t *testing.T) {
 
 type optimizerModel struct{ reply string }
 
-func (m *optimizerModel) Init(...ai.Option) error { return nil }
-func (m *optimizerModel) Options() ai.Options     { return ai.Options{} }
-func (m *optimizerModel) Generate(context.Context, *ai.Request, ...ai.GenerateOption) (*ai.Response, error) {
-	return &ai.Response{Reply: m.reply}, nil
+func (m *optimizerModel) Init(...model.Option) error { return nil }
+func (m *optimizerModel) Options() model.Options     { return model.Options{} }
+func (m *optimizerModel) Generate(context.Context, *model.Request, ...model.GenerateOption) (*model.Response, error) {
+	return &model.Response{Reply: m.reply}, nil
 }
-func (m *optimizerModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, ai.ErrStreamingUnsupported
+func (m *optimizerModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
+	return nil, model.ErrStreamingUnsupported
 }
 func (m *optimizerModel) String() string { return "optimizer" }

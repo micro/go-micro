@@ -38,13 +38,13 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	codecbytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/internal/harness/harnessutil"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
@@ -243,7 +243,7 @@ func dispatchBuyerNotification(ctx context.Context, agentName string, cl client.
 	if cl == nil {
 		cl = client.DefaultClient
 	}
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	message := fmt.Sprintf(
 		"Checkout flow confirmed this order: %s. Use notify.Send exactly once to notify buyer@acme.com that the order is confirmed. Do not reply until the notify tool call has completed.",
 		strings.TrimSpace(in.String()),
@@ -296,35 +296,35 @@ func completeNotifyOnObservedSideEffect(ctx context.Context, in flow.State, ntf 
 // mock LLM — the only fake. The concierge agent uses it to decide to notify.
 // ---------------------------------------------------------------------------
 
-type mockModel struct{ opts ai.Options }
+type mockModel struct{ opts model.Options }
 
-func newMock(opts ...ai.Option) ai.Model {
+func newMock(opts ...model.Option) model.Model {
 	m := &mockModel{}
 	_ = m.Init(opts...)
 	return m
 }
 
-func (m *mockModel) Init(opts ...ai.Option) error {
+func (m *mockModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "mock" }
-func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+func (m *mockModel) Options() model.Options { return m.opts }
+func (m *mockModel) String() string         { return "mock" }
+func (m *mockModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
 	return nil, fmt.Errorf("stream not supported by mock")
 }
 
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	if strings.Contains(strings.ToLower(req.Prompt), "a2a reachability probe") {
-		return &ai.Response{Answer: "concierge reachable"}, nil
+		return &model.Response{Answer: "concierge reachable"}, nil
 	}
 
 	// The concierge is asked to notify the buyer. Find the notify tool and call it.
 	for _, t := range req.Tools {
 		if strings.Contains(t.Name, "Send") && m.opts.ToolHandler != nil {
-			m.opts.ToolHandler(ctx, ai.ToolCall{
+			m.opts.ToolHandler(ctx, model.ToolCall{
 				ID:    "call-1",
 				Name:  t.Name,
 				Input: map[string]any{"to": "buyer@acme.com", "message": "Your order is confirmed."},
@@ -332,7 +332,7 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 			break
 		}
 	}
-	return &ai.Response{Answer: "Buyer notified."}, nil
+	return &model.Response{Answer: "Buyer notified."}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -441,7 +441,7 @@ func runUniverse(provider string) int {
 	failures = 0
 	apiKey := ""
 	if provider == "mock" {
-		ai.Register("mock", newMock)
+		model.Register("mock", newMock)
 	} else if apiKey = providerKey(provider); apiKey == "" {
 		fmt.Printf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env\n", provider)
 		return 2
@@ -479,8 +479,8 @@ func runUniverse(provider string) int {
 		agent.Provider(provider), agent.APIKey(apiKey),
 		agent.MaxSteps(5),
 		agent.WithBroker(br),
-		agent.WrapTool(func(next ai.ToolHandler) ai.ToolHandler {
-			return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+		agent.WrapTool(func(next model.ToolHandler) model.ToolHandler {
+			return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 				atomic.AddInt64(&wrapped, 1)
 				return next(ctx, call)
 			}

@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
 	codecBytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -19,9 +19,9 @@ func TestResumeCompletedCheckpointDoesNotReplayModel(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "durable-agent")
 	calls := 0
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		calls++
-		return &ai.Response{Reply: "done", ToolCalls: []ai.ToolCall{{ID: "call-1", Name: "external.lookup", Result: "cached"}}}, nil
+		return &model.Response{Reply: "done", ToolCalls: []model.ToolCall{{ID: "call-1", Name: "external.lookup", Result: "cached"}}}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -34,7 +34,7 @@ func TestResumeCompletedCheckpointDoesNotReplayModel(t *testing.T) {
 		t.Fatalf("model calls after Ask = %d, want 1", calls)
 	}
 
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		calls++
 		t.Fatal("Resume of a completed run replayed the model")
 		return nil, nil
@@ -62,9 +62,9 @@ func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "tool-resume-agent")
 	toolRuns := 0
 	first := true
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler != nil {
-			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.charge", Input: map[string]any{"order": "42"}})
+			res := opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "external.charge", Input: map[string]any{"order": "42"}})
 			if res.Content != "charged" {
 				t.Fatalf("tool result = %q, want charged", res.Content)
 			}
@@ -73,7 +73,7 @@ func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
 			first = false
 			return nil, errors.New("model connection dropped after tool")
 		}
-		return &ai.Response{Reply: "finished from checkpoint"}, nil
+		return &model.Response{Reply: "finished from checkpoint"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -119,22 +119,22 @@ func TestCheckpointSkipsDuplicateToolWithinAsk(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "tool-dedupe-agent")
 	toolRuns := 0
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler == nil {
 			t.Fatal("missing tool handler")
 		}
-		opts.ToolHandler(ctx, ai.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
+		opts.ToolHandler(ctx, model.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
 			"steps": []any{
 				map[string]any{"task": "create Design task", "status": "pending"},
 			},
 		}})
 		for i := 0; i < 3; i++ {
-			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.create", Input: map[string]any{"title": "Design"}})
+			res := opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "external.create", Input: map[string]any{"title": "Design"}})
 			if res.Content != "created Design" {
 				t.Fatalf("tool result %d = %q, want cached created Design", i, res.Content)
 			}
 		}
-		return &ai.Response{Reply: "done"}, nil
+		return &model.Response{Reply: "done"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -168,11 +168,11 @@ func TestCheckpointToolWrapSurvivesClearedCurrentRun(t *testing.T) {
 		currentRun: &run,
 	}
 
-	handler := a.checkpointToolWrap(func(context.Context, ai.ToolCall) ai.ToolResult {
+	handler := a.checkpointToolWrap(func(context.Context, model.ToolCall) model.ToolResult {
 		a.currentRun = nil
-		return ai.ToolResult{ID: "call-1", Content: "created"}
+		return model.ToolResult{ID: "call-1", Content: "created"}
 	})
-	res := handler(ctx, ai.ToolCall{ID: "call-1", Name: "external.create", Input: map[string]any{"title": "Design"}})
+	res := handler(ctx, model.ToolCall{ID: "call-1", Name: "external.create", Input: map[string]any{"title": "Design"}})
 	if res.Content != "created" {
 		t.Fatalf("tool result = %q, want created", res.Content)
 	}
@@ -219,29 +219,29 @@ func TestCheckpointContinuesRunWithUnfinishedPlanStep(t *testing.T) {
 	}
 
 	modelCalls := 0
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		modelCalls++
 		if opts.ToolHandler == nil {
 			t.Fatal("missing tool handler")
 		}
 		switch modelCalls {
 		case 1:
-			opts.ToolHandler(ctx, ai.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
+			opts.ToolHandler(ctx, model.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
 				"steps": []any{
 					map[string]any{"task": "create launch tasks", "status": "done"},
 					map[string]any{"task": "delegate readiness notification to comms", "status": "in_progress"},
 				},
 			}})
-			return &ai.Response{Reply: "tasks are ready"}, nil
+			return &model.Response{Reply: "tasks are ready"}, nil
 		case 2:
 			if !strings.Contains(req.Prompt, "delegate readiness notification to comms") {
 				t.Fatalf("continuation prompt = %q, want unfinished step", req.Prompt)
 			}
-			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "delegate-1", Name: toolDelegate, Input: map[string]any{"task": "Notify owner@acme.com that the launch plan is ready", "to": "comms"}})
+			res := opts.ToolHandler(ctx, model.ToolCall{ID: "delegate-1", Name: toolDelegate, Input: map[string]any{"task": "Notify owner@acme.com that the launch plan is ready", "to": "comms"}})
 			if !strings.Contains(res.Content, "owner notified") {
 				t.Fatalf("delegate result = %q, want owner notified", res.Content)
 			}
-			return &ai.Response{Reply: "all done"}, nil
+			return &model.Response{Reply: "all done"}, nil
 		default:
 			t.Fatalf("unexpected model call %d", modelCalls)
 			return nil, nil
@@ -274,14 +274,14 @@ func TestCheckpointContinuesRunThroughSeveralSingleStepTurns(t *testing.T) {
 
 	completed := []string{}
 	modelCalls := 0
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		modelCalls++
 		if opts.ToolHandler == nil {
 			t.Fatal("missing tool handler")
 		}
 		switch modelCalls {
 		case 1:
-			opts.ToolHandler(ctx, ai.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
+			opts.ToolHandler(ctx, model.ToolCall{ID: "plan-1", Name: toolPlan, Input: map[string]any{
 				"steps": []any{
 					map[string]any{"task": "create Design task", "status": "pending"},
 					map[string]any{"task": "create Build task", "status": "pending"},
@@ -289,20 +289,20 @@ func TestCheckpointContinuesRunThroughSeveralSingleStepTurns(t *testing.T) {
 					map[string]any{"task": "delegate readiness notification", "status": "pending"},
 				},
 			}})
-			return &ai.Response{Reply: "planned"}, nil
+			return &model.Response{Reply: "planned"}, nil
 		case 2, 3, 4, 5:
 			want := []string{"create Design task", "create Build task", "create Ship task", "delegate readiness notification"}[modelCalls-2]
 			if !strings.Contains(req.Prompt, want) {
 				t.Fatalf("continuation prompt %d = %q, want %q", modelCalls, req.Prompt, want)
 			}
-			res := opts.ToolHandler(ctx, ai.ToolCall{ID: want, Name: "external.step", Input: map[string]any{"step": want}})
+			res := opts.ToolHandler(ctx, model.ToolCall{ID: want, Name: "external.step", Input: map[string]any{"step": want}})
 			if res.Content != "completed "+want {
 				t.Fatalf("tool result = %q, want completed %s", res.Content, want)
 			}
 			if modelCalls == 5 {
-				return &ai.Response{Reply: "all plan steps complete"}, nil
+				return &model.Response{Reply: "all plan steps complete"}, nil
 			}
-			return &ai.Response{Reply: "one more step complete"}, nil
+			return &model.Response{Reply: "one more step complete"}, nil
 		default:
 			t.Fatalf("unexpected model call %d", modelCalls)
 			return nil, nil
@@ -341,10 +341,10 @@ func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	toolRuns := 0
 	modelCalls := 0
 	failFirst := true
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		modelCalls++
 		if opts.ToolHandler != nil {
-			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.provision", Input: map[string]any{"service": "api"}})
+			res := opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "external.provision", Input: map[string]any{"service": "api"}})
 			if res.Content != "provisioned" {
 				t.Fatalf("tool result = %q, want provisioned", res.Content)
 			}
@@ -353,7 +353,7 @@ func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 			failFirst = false
 			return nil, errors.New("process stopped after tool checkpoint")
 		}
-		return &ai.Response{Reply: "resumed after restart"}, nil
+		return &model.Response{Reply: "resumed after restart"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -451,9 +451,9 @@ func TestResumePendingAfterFreshAgentRestartDoesNotReplayCompletedTool(t *testin
 	cp := flow.StoreCheckpoint(st, "startup-resume-agent")
 	toolRuns := 0
 	failFirst := true
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler != nil {
-			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.allocate", Input: map[string]any{"cluster": "blue"}})
+			res := opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "external.allocate", Input: map[string]any{"cluster": "blue"}})
 			if res.Content != "allocated" {
 				t.Fatalf("tool result = %q, want allocated", res.Content)
 			}
@@ -462,7 +462,7 @@ func TestResumePendingAfterFreshAgentRestartDoesNotReplayCompletedTool(t *testin
 			failFirst = false
 			return nil, errors.New("process stopped before final response")
 		}
-		return &ai.Response{Reply: "startup recovery complete"}, nil
+		return &model.Response{Reply: "startup recovery complete"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -516,7 +516,7 @@ func TestResumeFailedCheckpointDoesNotDuplicateCompactedMemory(t *testing.T) {
 	cp := flow.StoreCheckpoint(st, "memory-resume-agent")
 	failRetry := true
 	var sawRecall bool
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		for _, msg := range req.Messages {
 			if text, ok := msg.Content.(string); ok && strings.Contains(text, "alpha code is 42") {
 				sawRecall = true
@@ -526,7 +526,7 @@ func TestResumeFailedCheckpointDoesNotDuplicateCompactedMemory(t *testing.T) {
 			failRetry = false
 			return nil, errors.New("model connection dropped")
 		}
-		return &ai.Response{Reply: "ok"}, nil
+		return &model.Response{Reply: "ok"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -566,7 +566,7 @@ func TestResumeFailedCheckpointDoesNotDuplicateCompactedMemory(t *testing.T) {
 	}
 }
 
-func countMemoryContent(messages []ai.Message, needle string) int {
+func countMemoryContent(messages []model.Message, needle string) int {
 	var count int
 	for _, msg := range messages {
 		if text, ok := msg.Content.(string); ok && strings.Contains(text, needle) {
@@ -591,12 +591,12 @@ func TestResumePendingResumesOldestAgentRunsUntilFailure(t *testing.T) {
 	}
 
 	var prompts []string
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		prompts = append(prompts, req.Prompt)
 		if req.Prompt == "block" {
 			return nil, errors.New("still blocked")
 		}
-		return &ai.Response{Reply: req.Prompt + " resumed"}, nil
+		return &model.Response{Reply: req.Prompt + " resumed"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -671,18 +671,18 @@ func TestHumanInputPauseResumesSameRunWithInput(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "input-agent")
 	calls := 0
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		calls++
 		if calls == 1 {
 			if opts.ToolHandler != nil {
-				opts.ToolHandler(ctx, ai.ToolCall{ID: "input-1", Name: toolHumanInput, Input: map[string]any{"prompt": "Which region should I deploy to?"}})
+				opts.ToolHandler(ctx, model.ToolCall{ID: "input-1", Name: toolHumanInput, Input: map[string]any{"prompt": "Which region should I deploy to?"}})
 			}
-			return &ai.Response{Reply: "waiting"}, nil
+			return &model.Response{Reply: "waiting"}, nil
 		}
 		if !strings.Contains(req.Prompt, "Human input: us-east-1") {
 			t.Fatalf("resumed prompt = %q, want human input", req.Prompt)
 		}
-		return &ai.Response{Reply: "deploying to us-east-1"}, nil
+		return &model.Response{Reply: "deploying to us-east-1"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -728,11 +728,11 @@ func TestHumanInputPauseResumesSameRunWithInput(t *testing.T) {
 func TestHumanInputResumeHonorsCanceledContextAndLeavesRunPending(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "input-cancel-agent")
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler != nil {
-			opts.ToolHandler(ctx, ai.ToolCall{ID: "input-1", Name: toolHumanInput, Input: map[string]any{"prompt": "Approve deploy?"}})
+			opts.ToolHandler(ctx, model.ToolCall{ID: "input-1", Name: toolHumanInput, Input: map[string]any{"prompt": "Approve deploy?"}})
 		}
-		return &ai.Response{Reply: "waiting"}, nil
+		return &model.Response{Reply: "waiting"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -774,12 +774,12 @@ func TestApprovalDenialPausesCheckpointedRunAndResumeContinues(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "approval-agent")
 	calls := 0
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		calls++
 		if opts.ToolHandler != nil {
-			opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "external.approve", Input: map[string]any{"id": "42"}})
+			opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "external.approve", Input: map[string]any{"id": "42"}})
 		}
-		return &ai.Response{Reply: "model saw approval result"}, nil
+		return &model.Response{Reply: "model saw approval result"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -809,15 +809,15 @@ func TestApprovalDenialPausesCheckpointedRunAndResumeContinues(t *testing.T) {
 	}
 
 	approved = true
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		calls++
 		if opts.ToolHandler != nil {
-			res := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-2", Name: "external.approve", Input: map[string]any{"id": "42"}})
+			res := opts.ToolHandler(ctx, model.ToolCall{ID: "call-2", Name: "external.approve", Input: map[string]any{"id": "42"}})
 			if res.Refused != "" {
 				t.Fatalf("resumed call was refused: %#v", res)
 			}
 		}
-		return &ai.Response{Reply: "done after approval"}, nil
+		return &model.Response{Reply: "done after approval"}, nil
 	}
 	resp, err := Resume(ctx, a, runs[0].ID)
 	if err != nil {

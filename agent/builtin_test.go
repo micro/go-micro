@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -36,7 +36,7 @@ func TestHandlePlanPersists(t *testing.T) {
 			map[string]any{"task": "write code", "status": "in_progress"},
 		},
 	}
-	content := a.handlePlan(ai.ToolCall{Name: "plan", Input: steps}).Content
+	content := a.handlePlan(model.ToolCall{Name: "plan", Input: steps}).Content
 	if content == "" {
 		t.Fatal("handlePlan returned empty content")
 	}
@@ -59,14 +59,14 @@ func TestHandlePlanPreservesCompletedSteps(t *testing.T) {
 	mem := store.NewMemoryStore()
 	a := New(Name("planner"), WithStore(mem)).(*agentImpl)
 
-	a.handlePlan(ai.ToolCall{Name: "plan", Input: map[string]any{
+	a.handlePlan(model.ToolCall{Name: "plan", Input: map[string]any{
 		"steps": []any{
 			map[string]any{"task": "create Design task", "status": "done"},
 			map[string]any{"task": "Delegate readiness notification to comms agent", "status": "done"},
 		},
 	}})
 
-	res := a.handlePlan(ai.ToolCall{Name: "plan", Input: map[string]any{
+	res := a.handlePlan(model.ToolCall{Name: "plan", Input: map[string]any{
 		"steps": []any{
 			map[string]any{"task": "create Design task", "status": "done"},
 			map[string]any{"task": "  delegate   readiness notification TO comms agent  ", "status": "in_progress"},
@@ -85,13 +85,13 @@ func TestHandlePlanPreservesCompletedLaunchReadinessNotification(t *testing.T) {
 	mem := store.NewMemoryStore()
 	a := New(Name("planner"), WithStore(mem)).(*agentImpl)
 
-	a.handlePlan(ai.ToolCall{Name: toolPlan, Input: map[string]any{
+	a.handlePlan(model.ToolCall{Name: toolPlan, Input: map[string]any{
 		"steps": []any{
 			map[string]any{"task": "notify owner via comms", "status": "done"},
 		},
 	}})
 
-	a.handlePlan(ai.ToolCall{Name: toolPlan, Input: map[string]any{
+	a.handlePlan(model.ToolCall{Name: toolPlan, Input: map[string]any{
 		"steps": []any{
 			map[string]any{"task": "Delegate launch readiness notification for owner@acme.com to comms agent", "status": "in_progress"},
 		},
@@ -110,7 +110,7 @@ func TestPlanShowsInPrompt(t *testing.T) {
 		t.Errorf("buildPrompt() with no plan = %q, want %q", got, "base prompt")
 	}
 
-	a.handlePlan(ai.ToolCall{Name: "plan", Input: map[string]any{"steps": []any{map[string]any{"task": "do it", "status": "pending"}}}})
+	a.handlePlan(model.ToolCall{Name: "plan", Input: map[string]any{"steps": []any{map[string]any{"task": "do it", "status": "pending"}}}})
 
 	got := a.buildPrompt()
 	if got == "base prompt" {
@@ -223,7 +223,7 @@ func TestDelegateInFlightReplaysShareFirstResult(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	results := make(chan ai.ToolResult, 1)
+	results := make(chan model.ToolResult, 1)
 	go func() {
 		defer wg.Done()
 		res, joined := a.joinDelegateCall(context.Background(), "delegate-2", key)
@@ -240,7 +240,7 @@ func TestDelegateInFlightReplaysShareFirstResult(t *testing.T) {
 	case <-time.After(25 * time.Millisecond):
 	}
 
-	first := ai.ToolResult{ID: "delegate-1", Content: `{"reply":"Notified owner@acme.com."}`}
+	first := model.ToolResult{ID: "delegate-1", Content: `{"reply":"Notified owner@acme.com."}`}
 	a.finishDelegateCall(key, first)
 	wg.Wait()
 	replayed := <-results
@@ -287,7 +287,7 @@ func TestIsAgent(t *testing.T) {
 func TestPlanWrapBlocksDelegationUntilPriorPlanStepsFinish(t *testing.T) {
 	mem := store.NewMemoryStore()
 	a := New(Name("planner"), WithStore(mem)).(*agentImpl)
-	a.handlePlan(ai.ToolCall{Name: toolPlan, Input: map[string]any{
+	a.handlePlan(model.ToolCall{Name: toolPlan, Input: map[string]any{
 		"steps": []any{
 			map[string]any{"task": "Create Design task", "status": "pending"},
 			map[string]any{"task": "Create Build task", "status": "pending"},
@@ -297,12 +297,12 @@ func TestPlanWrapBlocksDelegationUntilPriorPlanStepsFinish(t *testing.T) {
 	}})
 
 	called := false
-	handle := a.planWrap(func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+	handle := a.planWrap(func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		called = true
-		return ai.ToolResult{ID: call.ID, Content: "ok"}
+		return model.ToolResult{ID: call.ID, Content: "ok"}
 	})
 
-	res := handle(context.Background(), ai.ToolCall{ID: "delegate-1", Name: toolDelegate, Input: map[string]any{"to": "comms"}})
+	res := handle(context.Background(), model.ToolCall{ID: "delegate-1", Name: toolDelegate, Input: map[string]any{"to": "comms"}})
 	if called {
 		t.Fatal("delegate handler was called before prior task plan steps completed")
 	}
@@ -314,10 +314,10 @@ func TestPlanWrapBlocksDelegationUntilPriorPlanStepsFinish(t *testing.T) {
 	}
 
 	for _, id := range []string{"add-design", "add-build", "add-ship"} {
-		_ = handle(context.Background(), ai.ToolCall{ID: id, Name: "task.Add", Input: map[string]any{"title": id}})
+		_ = handle(context.Background(), model.ToolCall{ID: id, Name: "task.Add", Input: map[string]any{"title": id}})
 	}
 	called = false
-	res = handle(context.Background(), ai.ToolCall{ID: "delegate-2", Name: toolDelegate, Input: map[string]any{"to": "comms"}})
+	res = handle(context.Background(), model.ToolCall{ID: "delegate-2", Name: toolDelegate, Input: map[string]any{"to": "comms"}})
 	if !called {
 		t.Fatal("delegate handler was not called after prior task plan steps completed")
 	}

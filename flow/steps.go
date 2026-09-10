@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
 	codecbytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
@@ -56,7 +56,7 @@ type StepFunc func(ctx context.Context, in State) (State, error)
 // Verifier grades a step output before the flow advances. Returning
 // Passed=false converts the grade into a retryable VerificationError, so
 // the existing step retry/supervision path can feed Feedback into the next
-// attempt through ai.RunInfo.VerificationFeedback.
+// attempt through model.RunInfo.VerificationFeedback.
 type Verifier func(ctx context.Context, out State) (Verification, error)
 
 // Verification is the verifier's deterministic grade for one step attempt.
@@ -235,8 +235,8 @@ func defaultCheckpoint(name string, o Options) Checkpoint {
 // StepFunc keeps the clean (ctx, State) signature.
 type runDeps struct {
 	client client.Client
-	model  ai.Model
-	tools  *ai.Tools
+	model  model.Model
+	tools  *model.Tools
 	step   *StepRecord
 }
 
@@ -295,7 +295,7 @@ func Dispatch(name string) StepFunc {
 				d.step.Agent = name
 			}
 		}
-		info, _ := ai.RunInfoFrom(ctx)
+		info, _ := model.RunInfoFrom(ctx)
 		body, _ := json.Marshal(map[string]string{"message": in.String(), "parent_id": info.RunID})
 		req := cl.NewRequest(name, "Agent.Chat", &codecbytes.Frame{Data: body})
 		var rsp codecbytes.Frame
@@ -346,11 +346,11 @@ func LLM(prompt string) StepFunc {
 				text = buf.String()
 			}
 		}
-		var tools []ai.Tool
+		var tools []model.Tool
 		if d.tools != nil {
 			tools, _ = d.tools.Discover()
 		}
-		resp, err := d.model.Generate(ctx, &ai.Request{Prompt: text, Tools: tools})
+		resp, err := d.model.Generate(ctx, &model.Request{Prompt: text, Tools: tools})
 		if err != nil {
 			return in, err
 		}
@@ -416,7 +416,7 @@ func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
 	if err := validateSteps(f.opts.Steps); err != nil {
 		return Run{}, err
 	}
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	dispatch := info.Dispatch
 	if dispatch == "" {
 		dispatch = "direct"
@@ -578,14 +578,14 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	steps := f.opts.Steps
 	deps := &runDeps{client: f.client, model: f.model, tools: f.toolSet}
 	ctx = withDeps(ctx, deps)
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	info.RunID = run.ID
 	info.ParentID = run.ParentID
 	info.Agent = f.name
 	info.Flow = f.name
 	info.Dispatch = run.Dispatch
 	info.Trigger = run.Trigger
-	ctx = ai.WithRunInfo(ctx, info)
+	ctx = model.WithRunInfo(ctx, info)
 	ctx, finishSpan := f.startRunSpan(ctx, run)
 	var spanErr error
 	defer func() { finishSpan(run, spanErr) }()
@@ -629,7 +629,7 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 			spanErr = err
 			run.Steps[i].Status = "failed"
 			run.Steps[i].Error = err.Error()
-			run.Steps[i].ErrorKind = string(ai.ClassifyError(err))
+			run.Steps[i].ErrorKind = string(model.ClassifyError(err))
 			run.Status = "failed"
 			if saveErr := f.save(ctx, run); saveErr != nil {
 				spanErr = saveErr
@@ -692,10 +692,10 @@ func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, Ve
 			return in, attempt - 1, lastVerification, err
 		}
 		attemptCtx := ctx
-		if info, ok := ai.RunInfoFrom(ctx); ok {
+		if info, ok := model.RunInfoFrom(ctx); ok {
 			info.Step = step.Name
 			info.VerificationFeedback = feedback
-			attemptCtx = ai.WithRunInfo(ctx, info)
+			attemptCtx = model.WithRunInfo(ctx, info)
 		}
 		out, err := step.Run(attemptCtx, in)
 		// An await signal is control flow, not a failure: suspend immediately

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 )
 
 func TestValidateSelectionAcceptsKnownProviderAndHarness(t *testing.T) {
@@ -49,7 +49,7 @@ func TestDefaultProvidersTracksLiveProviderSet(t *testing.T) {
 }
 
 func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
-	rows := ai.CapabilityRows()
+	rows := model.CapabilityRows()
 	if len(rows) == 0 {
 		t.Fatal("CapabilityRows returned no providers")
 	}
@@ -96,9 +96,9 @@ func TestMissingKeyResultsReportsEachHarness(t *testing.T) {
 
 func TestWriteCapabilityMarkdown(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "capabilities.md")
-	rows := []ai.CapabilityRow{
-		{Provider: "mock", Capabilities: ai.Capabilities{Model: true}},
-		{Provider: "vision", Capabilities: ai.Capabilities{Image: true, Video: true}},
+	rows := []model.CapabilityRow{
+		{Provider: "mock", Capabilities: model.Capabilities{Model: true}},
+		{Provider: "vision", Capabilities: model.Capabilities{Image: true, Video: true}},
 	}
 	if err := writeCapabilityMarkdown(path, rows); err != nil {
 		t.Fatalf("writeCapabilityMarkdown returned error: %v", err)
@@ -123,7 +123,7 @@ func TestWriteCapabilityMarkdown(t *testing.T) {
 func TestWriteSummaryMarkdown(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "summary.md")
 	summary := conformanceSummary{
-		Capabilities: []ai.CapabilityRow{{Provider: "mock", Capabilities: ai.Capabilities{Model: true}}},
+		Capabilities: []model.CapabilityRow{{Provider: "mock", Capabilities: model.Capabilities{Model: true}}},
 		Results: []conformanceResult{
 			{Provider: "mock", Harness: "agent-flow", Phase: harnessPhase("agent-flow"), Status: statusPassed},
 			{Provider: "live", Status: statusSkipped, Error: "missing | key"},

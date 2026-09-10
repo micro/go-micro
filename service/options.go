@@ -14,8 +14,6 @@ import (
 	"go-micro.dev/v6/debug/profile"
 	"go-micro.dev/v6/debug/trace"
 	"go-micro.dev/v6/logger"
-	"go-micro.dev/v6/model"
-	"go-micro.dev/v6/model/memory"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/server"
@@ -32,7 +30,6 @@ type Options struct {
 	Config   config.Config
 	Client   client.Client
 	Server   server.Server
-	Model    model.Model
 
 	// Other options for implementations of the interface
 	// can be stored in a context
@@ -66,7 +63,6 @@ func newOptions(opts ...Option) Options {
 		Client:    client.NewClient(),
 		Server:    server.NewRPCServer(),
 		Store:     store.NewStore(),
-		Model:     memory.New(),
 		Cache:     cache.NewCache(),
 		Registry:  registry.DefaultRegistry,
 		Transport: transport.DefaultTransport,
@@ -167,13 +163,6 @@ func Server(s server.Server) Option {
 func Store(s store.Store) Option {
 	return func(o *Options) {
 		o.Store = s
-	}
-}
-
-// Model sets the model backend to use.
-func Model(m model.Model) Option {
-	return func(o *Options) {
-		o.Model = m
 	}
 }
 

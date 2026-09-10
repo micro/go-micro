@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -86,7 +86,7 @@ type RunEvent struct {
 	ToolSpend   int64     `json:"tool_spend,omitempty"`
 }
 
-type Usage = ai.Usage
+type Usage = model.Usage
 
 // RunListOptions controls how recorded agent run summaries are returned.
 // Zero values preserve the full deterministic run list.
@@ -147,7 +147,7 @@ func (a *agentImpl) tracer() trace.Tracer {
 }
 
 func (a *agentImpl) startRun(ctx context.Context, message string) (context.Context, func(error)) {
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	start := time.Now()
 	runEvent := RunEvent{Time: start, RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "run", InputChars: len(message)}
 	applyRunInfoToEvent(&runEvent, info)
@@ -160,7 +160,7 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 		return ctx, func(err error) {
 			latency := time.Since(start).Milliseconds()
 			if err != nil {
-				e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+				e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(model.ClassifyError(err))}
 				applyRunInfoToEvent(&e, info)
 				a.recordRunEvent(e)
 				return
@@ -182,10 +182,10 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 		latency := time.Since(start).Milliseconds()
 		span.SetAttributes(attribute.Int64(AttrLatencyMS, latency))
 		if err != nil {
-			span.SetAttributes(attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
+			span.SetAttributes(attribute.String(AttrErrorKind, string(model.ClassifyError(err))))
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
-			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "error", LatencyMS: latency, Error: err.Error(), ErrorKind: string(model.ClassifyError(err))}
 			applyRunInfoToEvent(&e, info)
 			a.recordSpanEvent(span, e)
 		} else {
@@ -199,29 +199,29 @@ func (a *agentImpl) startRun(ctx context.Context, message string) (context.Conte
 }
 
 type tracedModel struct {
-	ai.Model
+	model.Model
 	a *agentImpl
 }
 
-func (a *agentImpl) tracedModel(m ai.Model) ai.Model { return &tracedModel{Model: m, a: a} }
-func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (*ai.Response, error) {
-	info, _ := ai.RunInfoFrom(ctx)
+func (a *agentImpl) tracedModel(m model.Model) model.Model { return &tracedModel{Model: m, a: a} }
+func (m *tracedModel) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+	info, _ := model.RunInfoFrom(ctx)
 	provider := m.String()
-	model := m.Options().Model
+	modelName := m.Options().Model
 	start := time.Now()
 
 	if m.a.opts.TraceProvider == nil {
 		resp, err := m.Model.Generate(ctx, req, opts...)
 		dur := time.Since(start).Milliseconds()
-		usage := ai.Usage{}
+		usage := model.Usage{}
 		if resp != nil {
 			usage = resp.Usage
 		}
-		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: modelName, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
 		applyRunInfoToEvent(&e, info)
 		if err != nil {
 			e.Error = err.Error()
-			e.ErrorKind = string(ai.ClassifyError(err))
+			e.ErrorKind = string(model.ClassifyError(err))
 		}
 		m.a.recordRunEvent(e)
 		return resp, err
@@ -232,7 +232,7 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 		attribute.String(AttrParentRunID, info.ParentID),
 		attribute.String(AttrAgentName, info.Agent),
 		attribute.String(AttrProvider, provider),
-		attribute.String(AttrModel, model),
+		attribute.String(AttrModel, modelName),
 	}, info)
 	ctx, span := m.a.tracer().Start(ctx, spanNameModelCall, trace.WithAttributes(attrs...))
 	resp, err := m.Model.Generate(ctx, req, opts...)
@@ -244,45 +244,45 @@ func (m *tracedModel) Generate(ctx context.Context, req *ai.Request, opts ...ai.
 	if info.MaxAttempts > 0 {
 		attrs = append(attrs, attribute.Int(AttrMaxAttempts, info.MaxAttempts))
 	}
-	usage := ai.Usage{}
+	usage := model.Usage{}
 	if resp != nil {
 		usage = resp.Usage
 		attrs = appendUsage(attrs, usage)
 	}
 	span.SetAttributes(attrs...)
 	if err != nil {
-		span.SetAttributes(attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
+		span.SetAttributes(attribute.String(AttrErrorKind, string(model.ClassifyError(err))))
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 	} else {
 		span.SetStatus(codes.Ok, "")
 	}
-	e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
+	e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "model", Provider: provider, Model: modelName, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Tokens: usage}
 	applyRunInfoToEvent(&e, info)
 	if err != nil {
 		e.Error = err.Error()
-		e.ErrorKind = string(ai.ClassifyError(err))
+		e.ErrorKind = string(model.ClassifyError(err))
 	}
 	m.a.recordSpanEvent(span, e)
 	span.End()
 	return resp, err
 }
 
-func (m *tracedModel) Stream(ctx context.Context, req *ai.Request, opts ...ai.GenerateOption) (ai.Stream, error) {
-	info, _ := ai.RunInfoFrom(ctx)
+func (m *tracedModel) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
+	info, _ := model.RunInfoFrom(ctx)
 	provider := m.String()
-	model := m.Options().Model
+	modelName := m.Options().Model
 	start := time.Now()
 
 	if m.a.opts.TraceProvider == nil {
 		stream, err := m.Model.Stream(ctx, req, opts...)
 		if err != nil {
-			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: time.Since(start).Milliseconds(), Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+			e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: modelName, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: time.Since(start).Milliseconds(), Error: err.Error(), ErrorKind: string(model.ClassifyError(err))}
 			applyRunInfoToEvent(&e, info)
 			m.a.recordRunEvent(e)
 			return nil, err
 		}
-		return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: model, start: start}, nil
+		return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: modelName, start: start}, nil
 	}
 
 	attrs := appendRunInfoAttributes([]attribute.KeyValue{
@@ -290,37 +290,37 @@ func (m *tracedModel) Stream(ctx context.Context, req *ai.Request, opts ...ai.Ge
 		attribute.String(AttrParentRunID, info.ParentID),
 		attribute.String(AttrAgentName, info.Agent),
 		attribute.String(AttrProvider, provider),
-		attribute.String(AttrModel, model),
+		attribute.String(AttrModel, modelName),
 	}, info)
 	ctx, span := m.a.tracer().Start(ctx, spanNameModelStream, trace.WithAttributes(attrs...))
 	stream, err := m.Model.Stream(ctx, req, opts...)
 	if err != nil {
 		dur := time.Since(start).Milliseconds()
-		span.SetAttributes(attribute.Int64(AttrLatencyMS, dur), attribute.String(AttrErrorKind, string(ai.ClassifyError(err))))
+		span.SetAttributes(attribute.Int64(AttrLatencyMS, dur), attribute.String(AttrErrorKind, string(model.ClassifyError(err))))
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: model, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Error: err.Error(), ErrorKind: string(ai.ClassifyError(err))}
+		e := RunEvent{Time: time.Now(), RunID: info.RunID, ParentID: info.ParentID, Agent: info.Agent, Kind: "stream", Provider: provider, Model: modelName, Attempt: info.Attempt, MaxAttempts: info.MaxAttempts, LatencyMS: dur, Error: err.Error(), ErrorKind: string(model.ClassifyError(err))}
 		applyRunInfoToEvent(&e, info)
 		m.a.recordSpanEvent(span, e)
 		span.End()
 		return nil, err
 	}
-	return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: model, start: start, span: span}, nil
+	return &tracedStream{Stream: stream, a: m.a, info: info, provider: provider, model: modelName, start: start, span: span}, nil
 }
 
 type tracedStream struct {
-	ai.Stream
+	model.Stream
 	a        *agentImpl
-	info     ai.RunInfo
+	info     model.RunInfo
 	provider string
 	model    string
 	start    time.Time
 	span     trace.Span
-	usage    ai.Usage
+	usage    model.Usage
 	closed   bool
 }
 
-func (s *tracedStream) Recv() (*ai.Response, error) {
+func (s *tracedStream) Recv() (*model.Response, error) {
 	resp, err := s.Stream.Recv()
 	if resp != nil {
 		s.usage = mergeUsage(s.usage, resp.Usage)
@@ -351,7 +351,7 @@ func (s *tracedStream) finish(err error) {
 	applyRunInfoToEvent(&e, s.info)
 	if err != nil {
 		e.Error = err.Error()
-		e.ErrorKind = string(ai.ClassifyError(err))
+		e.ErrorKind = string(model.ClassifyError(err))
 	}
 	if s.span == nil {
 		s.a.recordRunEvent(e)
@@ -376,7 +376,7 @@ func (s *tracedStream) finish(err error) {
 	s.span.End()
 }
 
-func mergeUsage(current, next ai.Usage) ai.Usage {
+func mergeUsage(current, next model.Usage) model.Usage {
 	if next.InputTokens > current.InputTokens {
 		current.InputTokens = next.InputTokens
 	}
@@ -389,7 +389,7 @@ func mergeUsage(current, next ai.Usage) ai.Usage {
 	return current
 }
 
-func appendUsage(attrs []attribute.KeyValue, u ai.Usage) []attribute.KeyValue {
+func appendUsage(attrs []attribute.KeyValue, u model.Usage) []attribute.KeyValue {
 	if u.InputTokens > 0 {
 		attrs = append(attrs, attribute.Int(AttrInputTokens, u.InputTokens))
 	}
@@ -402,9 +402,9 @@ func appendUsage(attrs []attribute.KeyValue, u ai.Usage) []attribute.KeyValue {
 	return attrs
 }
 
-func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
-	return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
-		info, _ := ai.RunInfoFrom(ctx)
+func (a *agentImpl) traceTool(next model.ToolHandler) model.ToolHandler {
+	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
+		info, _ := model.RunInfoFrom(ctx)
 		start := time.Now()
 		spentBefore := a.spend
 
@@ -468,7 +468,7 @@ func (a *agentImpl) traceTool(next ai.ToolHandler) ai.ToolHandler {
 	}
 }
 
-func resultError(res ai.ToolResult) string {
+func resultError(res model.ToolResult) string {
 	if m, ok := res.Value.(map[string]string); ok {
 		return m["error"]
 	}
@@ -485,16 +485,16 @@ func classifyToolError(err string) string {
 	case err == "":
 		return ""
 	case strings.Contains(strings.ToLower(err), "context canceled"):
-		return string(ai.ErrorKindCanceled)
+		return string(model.ErrorKindCanceled)
 	case strings.Contains(strings.ToLower(err), "deadline exceeded"):
-		return string(ai.ErrorKindTimeout)
+		return string(model.ErrorKindTimeout)
 	default:
-		return string(ai.ErrorKindProvider)
+		return string(model.ErrorKindProvider)
 	}
 }
 
 func (a *agentImpl) recordTimelineEvent(ctx context.Context, e RunEvent) {
-	if info, ok := ai.RunInfoFrom(ctx); ok {
+	if info, ok := model.RunInfoFrom(ctx); ok {
 		applyRunInfoToEvent(&e, info)
 	}
 	span := trace.SpanFromContext(ctx)
@@ -505,7 +505,7 @@ func (a *agentImpl) recordTimelineEvent(ctx context.Context, e RunEvent) {
 	a.recordRunEvent(e)
 }
 
-func applyRunInfoToEvent(e *RunEvent, info ai.RunInfo) {
+func applyRunInfoToEvent(e *RunEvent, info model.RunInfo) {
 	if e.RunID == "" {
 		e.RunID = info.RunID
 	}
@@ -607,7 +607,7 @@ func runEventAttributes(e RunEvent) []attribute.KeyValue {
 	return attrs
 }
 
-func appendRunInfoAttributes(attrs []attribute.KeyValue, info ai.RunInfo) []attribute.KeyValue {
+func appendRunInfoAttributes(attrs []attribute.KeyValue, info model.RunInfo) []attribute.KeyValue {
 	if info.Flow != "" {
 		attrs = append(attrs, attribute.String(AttrFlowName, info.Flow))
 	}
@@ -782,20 +782,20 @@ func runStatus(events []RunEvent) string {
 }
 
 func runErrorStatus(kind string) string {
-	switch ai.ErrorKind(kind) {
-	case ai.ErrorKindCanceled:
+	switch model.ErrorKind(kind) {
+	case model.ErrorKindCanceled:
 		return "canceled"
-	case ai.ErrorKindTimeout:
+	case model.ErrorKindTimeout:
 		return "timeout"
-	case ai.ErrorKindRateLimited:
+	case model.ErrorKindRateLimited:
 		return "rate_limited"
-	case ai.ErrorKindAuth:
+	case model.ErrorKindAuth:
 		return "auth"
-	case ai.ErrorKindConfiguration:
+	case model.ErrorKindConfiguration:
 		return "configuration"
-	case ai.ErrorKindUnavailable:
+	case model.ErrorKindUnavailable:
 		return "unavailable"
-	case ai.ErrorKindProvider:
+	case model.ErrorKindProvider:
 		return "provider_error"
 	default:
 		return "error"

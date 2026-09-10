@@ -51,10 +51,10 @@ micro.NewAgent("worker", micro.AgentApproveTool(
 `ApproveTool` is a *before* gate. When you need the full lifecycle — timing, logging, metrics, retries, or inspecting the result — wrap the execution instead. `WrapTool` is the tool-side analogue of go-micro's `client.CallWrapper` and `server.HandlerWrapper`: a wrapper takes the next handler and returns a new one, so code before the `next(...)` call runs *before* the tool, and code after runs *after*.
 
 ```go
-import "go-micro.dev/v6/ai"
+import "go-micro.dev/v6/model"
 
-func logging(next ai.ToolHandler) ai.ToolHandler {
-    return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func logging(next model.ToolHandler) model.ToolHandler {
+    return func(ctx context.Context, call model.ToolCall) model.ToolResult {
         start := time.Now()
         res := next(ctx, call)
         log.Printf("id=%s tool=%s took=%s", call.ID, call.Name, time.Since(start))
@@ -85,16 +85,16 @@ A wrapper has what it needs to build reliability tooling — loop handling, retr
   ```go
   res := next(ctx, call)
   switch res.Refused {
-  case ai.RefusedLoop:     // the agent repeated an identical call
-  case ai.RefusedMaxSteps: // the step budget was exhausted
-  case ai.RefusedApproval: // ApproveTool blocked it
+  case model.RefusedLoop:     // the agent repeated an identical call
+  case model.RefusedMaxSteps: // the step budget was exhausted
+  case model.RefusedApproval: // ApproveTool blocked it
   }
   ```
 
-- **Which run** — `ai.RunInfoFrom(ctx)` returns a correlation id for the run, the agent's name, and the parent run when the call came from a delegated sub-agent:
+- **Which run** — `model.RunInfoFrom(ctx)` returns a correlation id for the run, the agent's name, and the parent run when the call came from a delegated sub-agent:
 
   ```go
-  if run, ok := ai.RunInfoFrom(ctx); ok {
+  if run, ok := model.RunInfoFrom(ctx); ok {
       log.Printf("run=%s parent=%s agent=%s tool=%s", run.RunID, run.ParentID, run.Agent, call.Name)
   }
   ```

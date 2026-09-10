@@ -49,7 +49,7 @@ record, err := flow.LoadRunRecord(ctx, checkpoint, "daily-ops", runID)
 ```
 
 Execution identity also travels in Go Micro RPC metadata. A service or agent can
-call `ai.RunInfoFrom(ctx)` to recover the flow run, current step, dispatch, and
+call `model.RunInfoFrom(ctx)` to recover the flow run, current step, dispatch, and
 trigger without changing its request schema. Agent runs replace the run id with
 their own identity and retain the flow run as `parent_id`; their service tools
 receive that same lineage.

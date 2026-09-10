@@ -37,13 +37,13 @@ considered conformant when the configured-key run passes all selected harnesses.
 
 | Capability | Harness coverage | Notes |
 | --- | --- | --- |
-| Simple generation | ✅ Verified | Each harness asks the provider to produce an agent response through `ai.Model`. |
+| Simple generation | ✅ Verified | Each harness asks the provider to produce an agent response through `model.Model`. |
 | Service tool calls | ✅ Verified | Harness services are discovered and invoked as model-selected tools. |
 | Multi-step tool use | ✅ Verified | The `universe` and `plan-delegate` harnesses require more than one service/tool action. |
 | `plan` | ✅ Verified | `plan-delegate` verifies that the conductor agent stores a plan in scoped state. |
 | `delegate` | ✅ Verified | `plan-delegate` verifies agent-to-agent delegation over real RPC. |
 | Guardrail/stop behavior | ✅ Verified | `universe` runs with guardrails enabled and asserts the guarded path completes. |
-| Streaming | ⚠️ Unverified | `ai.Model.Stream` exists on the interface, but end-to-end streaming conformance is a roadmap item. |
+| Streaming | ⚠️ Unverified | `model.Model.Stream` exists on the interface, but end-to-end streaming conformance is a roadmap item. |
 | Structured errors | ⚠️ Unverified | Error handling is covered by normal test suites, but provider conformance does not yet compare structured provider errors. |
 
 ## Provider capability matrix

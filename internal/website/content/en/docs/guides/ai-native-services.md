@@ -373,15 +373,15 @@ If your service needs to call AI models directly:
 
 ```go
 import (
-    "go-micro.dev/v6/ai"
-    _ "go-micro.dev/v6/ai/anthropic"
+    "go-micro.dev/v6/model"
+    _ "go-micro.dev/v6/model/anthropic"
 )
 
-m := ai.New("anthropic",
-    ai.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
+m := model.New("anthropic",
+    model.WithAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
 )
 
-resp, err := m.Generate(ctx, &ai.Request{
+resp, err := m.Generate(ctx, &model.Request{
     Prompt:       "Summarize these tasks: " + taskJSON,
     SystemPrompt: "You are a project manager assistant",
 })

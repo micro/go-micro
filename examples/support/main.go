@@ -29,10 +29,10 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/service"
@@ -145,35 +145,35 @@ func (s *NotifyService) Send(_ context.Context, req *SendRequest, rsp *SendRespo
 // mock LLM — the only fake. It scripts the triage from the offered tools.
 // ---------------------------------------------------------------------------
 
-type mockModel struct{ opts ai.Options }
+type mockModel struct{ opts model.Options }
 
-func newMock(opts ...ai.Option) ai.Model {
+func newMock(opts ...model.Option) model.Model {
 	m := &mockModel{}
 	_ = m.Init(opts...)
 	return m
 }
-func (m *mockModel) Init(opts ...ai.Option) error {
+func (m *mockModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "mock" }
-func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+func (m *mockModel) Options() model.Options { return m.opts }
+func (m *mockModel) String() string         { return "mock" }
+func (m *mockModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
 	return nil, fmt.Errorf("stream not supported by mock")
 }
 
-func (m *mockModel) call(ctx context.Context, tools []ai.Tool, sub string, input map[string]any) {
+func (m *mockModel) call(ctx context.Context, tools []model.Tool, sub string, input map[string]any) {
 	for _, t := range tools {
 		if strings.Contains(t.Name, sub) && m.opts.ToolHandler != nil {
-			m.opts.ToolHandler(ctx, ai.ToolCall{ID: sub, Name: t.Name, Input: input})
+			m.opts.ToolHandler(ctx, model.ToolCall{ID: sub, Name: t.Name, Input: input})
 			return
 		}
 	}
 }
 
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	// A real model would read the ticket from the prompt and decide. The
 	// mock follows a fixed, sensible triage so the demo is deterministic.
 	m.call(ctx, req.Tools, "Lookup", map[string]any{"email": "alice@acme.com"})
@@ -182,7 +182,7 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 		"to":      "alice@acme.com",
 		"message": "Hi Alice — thanks for reaching out. We've bumped this to high priority and are on it.",
 	})
-	return &ai.Response{Answer: "Triaged ticket-1 for Alice and sent a reply."}, nil
+	return &model.Response{Answer: "Triaged ticket-1 for Alice and sent a reply."}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ func waitFor(reg registry.Registry, names ...string) {
 func runSupport(provider string) error {
 	apiKey := ""
 	if provider == "mock" {
-		ai.Register("mock", newMock)
+		model.Register("mock", newMock)
 	} else if apiKey = providerKey(provider); apiKey == "" {
 		return fmt.Errorf("no API key for provider %q — set MICRO_AI_API_KEY or the provider's key env", provider)
 	}

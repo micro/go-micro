@@ -24,10 +24,10 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/internal/harness/harnessutil"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
@@ -251,7 +251,7 @@ func isLaunchReadinessNotify(message string) bool {
 // ---------------------------------------------------------------------------
 
 type mockModel struct {
-	opts ai.Options
+	opts model.Options
 
 	// unknownDelegateOnce makes the mock emit one provider-style, unavailable
 	// delegate tool name before using the registered delegate tool. This mirrors
@@ -280,57 +280,57 @@ type mockModel struct {
 	nestedDelegateMarkup bool
 }
 
-func newMock(opts ...ai.Option) ai.Model {
+func newMock(opts ...model.Option) model.Model {
 	m := &mockModel{}
 	_ = m.Init(opts...)
 	return m
 }
 
-func newMockUnknownDelegate(opts ...ai.Option) ai.Model {
+func newMockUnknownDelegate(opts ...model.Option) model.Model {
 	m := &mockModel{unknownDelegateOnce: true}
 	_ = m.Init(opts...)
 	return m
 }
 
-func newMockDuplicateNotify(opts ...ai.Option) ai.Model {
+func newMockDuplicateNotify(opts ...model.Option) model.Model {
 	m := &mockModel{duplicateNotify: true}
 	_ = m.Init(opts...)
 	return m
 }
 
-func newMockDuplicateDelegate(opts ...ai.Option) ai.Model {
+func newMockDuplicateDelegate(opts ...model.Option) model.Model {
 	m := &mockModel{duplicateDelegate: true}
 	_ = m.Init(opts...)
 	return m
 }
 
-func newMockInterruptAfterTasks(opts ...ai.Option) ai.Model {
+func newMockInterruptAfterTasks(opts ...model.Option) model.Model {
 	m := &mockModel{interruptAfterTasks: true}
 	_ = m.Init(opts...)
 	return m
 }
 
-func newMockNestedDelegateMarkup(opts ...ai.Option) ai.Model {
+func newMockNestedDelegateMarkup(opts ...model.Option) model.Model {
 	m := &mockModel{nestedDelegateMarkup: true}
 	_ = m.Init(opts...)
 	return m
 }
 
-func (m *mockModel) Init(opts ...ai.Option) error {
+func (m *mockModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "mock" }
-func (m *mockModel) Stream(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (ai.Stream, error) {
+func (m *mockModel) Options() model.Options { return m.opts }
+func (m *mockModel) String() string         { return "mock" }
+func (m *mockModel) Stream(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (model.Stream, error) {
 	return nil, fmt.Errorf("stream not supported by mock")
 }
 
 // findTool returns the safe name of the first offered tool whose name
 // contains sub, or "" if none.
-func findTool(tools []ai.Tool, sub string) string {
+func findTool(tools []model.Tool, sub string) string {
 	for _, t := range tools {
 		if strings.Contains(t.Name, sub) {
 			return t.Name
@@ -339,16 +339,16 @@ func findTool(tools []ai.Tool, sub string) string {
 	return ""
 }
 
-func (m *mockModel) call(who, name string, input map[string]any) ai.ToolResult {
+func (m *mockModel) call(who, name string, input map[string]any) model.ToolResult {
 	args, _ := json.Marshal(input)
 	fmt.Printf("  \033[33m[%s]\033[0m → %s(%s)\n", who, name, args)
 	if m.opts.ToolHandler != nil {
-		return m.opts.ToolHandler(context.Background(), ai.ToolCall{Name: name, Input: input})
+		return m.opts.ToolHandler(context.Background(), model.ToolCall{Name: name, Input: input})
 	}
-	return ai.ToolResult{}
+	return model.ToolResult{}
 }
 
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	// Classify by the tools actually offered, not by prompt text:
 	// the conductor has the task "Add" tool, comms has "Send".
 	hasAdd := findTool(req.Tools, "Add") != ""
@@ -366,7 +366,7 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 		if m.duplicateNotify {
 			m.call("comms", send, input)
 		}
-		return &ai.Response{Answer: "Notified owner@acme.com."}, nil
+		return &model.Response{Answer: "Notified owner@acme.com."}, nil
 
 	// conductor: has the task Add tool — plan, create tasks, delegate.
 	case hasAdd:
@@ -412,11 +412,11 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 				}
 			}
 		}
-		return &ai.Response{Answer: "Created Design, Build and Ship, and had comms notify the owner."}, nil
+		return &model.Response{Answer: "Created Design, Build and Ship, and had comms notify the owner."}, nil
 
 	// ephemeral sub-agent or anything else.
 	default:
-		return &ai.Response{Reply: "subtask handled"}, nil
+		return &model.Response{Reply: "subtask handled"}, nil
 	}
 }
 
@@ -440,17 +440,17 @@ func runPlanDelegate(provider string) error {
 	apiKey := ""
 	switch provider {
 	case "mock":
-		ai.Register("mock", newMock)
+		model.Register("mock", newMock)
 	case "mock-unknown-delegate":
-		ai.Register("mock-unknown-delegate", newMockUnknownDelegate)
+		model.Register("mock-unknown-delegate", newMockUnknownDelegate)
 	case "mock-duplicate-notify":
-		ai.Register("mock-duplicate-notify", newMockDuplicateNotify)
+		model.Register("mock-duplicate-notify", newMockDuplicateNotify)
 	case "mock-duplicate-delegate":
-		ai.Register("mock-duplicate-delegate", newMockDuplicateDelegate)
+		model.Register("mock-duplicate-delegate", newMockDuplicateDelegate)
 	case "mock-interrupt-after-tasks":
-		ai.Register("mock-interrupt-after-tasks", newMockInterruptAfterTasks)
+		model.Register("mock-interrupt-after-tasks", newMockInterruptAfterTasks)
 	case "mock-nested-delegate-markup":
-		ai.Register("mock-nested-delegate-markup", newMockNestedDelegateMarkup)
+		model.Register("mock-nested-delegate-markup", newMockNestedDelegateMarkup)
 	default:
 		apiKey = providerKey(provider)
 		if apiKey == "" {
@@ -579,9 +579,9 @@ func runPlanDelegate(provider string) error {
 	return nil
 }
 
-func requirePersistedPlanBeforeConductorActions(mem store.Store) ai.ToolWrapper {
-	return func(next ai.ToolHandler) ai.ToolHandler {
-		return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+func requirePersistedPlanBeforeConductorActions(mem store.Store) model.ToolWrapper {
+	return func(next model.ToolHandler) model.ToolHandler {
+		return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 			if call.Name == "plan" {
 				return next(ctx, call)
 			}
@@ -589,11 +589,11 @@ func requirePersistedPlanBeforeConductorActions(mem store.Store) ai.ToolWrapper 
 				return next(ctx, call)
 			}
 			msg := "persist the launch-readiness plan first by calling the built-in plan tool before task or delegate side effects"
-			return ai.ToolResult{
+			return model.ToolResult{
 				ID:      call.ID,
 				Value:   map[string]string{"error": msg},
 				Content: `{"error":"` + msg + `"}`,
-				Refused: ai.RefusedApproval,
+				Refused: model.RefusedApproval,
 			}
 		}
 	}

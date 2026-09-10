@@ -298,17 +298,17 @@ modules:
     packages:
       - go-micro.dev/v6/agent
       - go-micro.dev/v6/agent/proto
-      - go-micro.dev/v6/ai
-      - go-micro.dev/v6/ai/anthropic
-      - go-micro.dev/v6/ai/atlascloud
-      - go-micro.dev/v6/ai/gemini
-      - go-micro.dev/v6/ai/groq
-      - go-micro.dev/v6/ai/internal/openaiapi
-      - go-micro.dev/v6/ai/minimax
-      - go-micro.dev/v6/ai/mistral
-      - go-micro.dev/v6/ai/ollama
-      - go-micro.dev/v6/ai/openai
-      - go-micro.dev/v6/ai/together
+      - go-micro.dev/v6/model
+      - go-micro.dev/v6/model/anthropic
+      - go-micro.dev/v6/model/atlascloud
+      - go-micro.dev/v6/model/gemini
+      - go-micro.dev/v6/model/groq
+      - go-micro.dev/v6/model/internal/openaiapi
+      - go-micro.dev/v6/model/minimax
+      - go-micro.dev/v6/model/mistral
+      - go-micro.dev/v6/model/ollama
+      - go-micro.dev/v6/model/openai
+      - go-micro.dev/v6/model/together
       - go-micro.dev/v6/auth
       - go-micro.dev/v6/auth/jwt
       - go-micro.dev/v6/auth/jwt/token
@@ -446,10 +446,6 @@ modules:
       - go-micro.dev/v6/internal/util/wrapper
       - go-micro.dev/v6/logger
       - go-micro.dev/v6/metadata
-      - go-micro.dev/v6/model
-      - go-micro.dev/v6/model/memory
-      - go-micro.dev/v6/model/postgres
-      - go-micro.dev/v6/model/sqlite
       - go-micro.dev/v6/registry
       - go-micro.dev/v6/registry/cache
       - go-micro.dev/v6/registry/consul

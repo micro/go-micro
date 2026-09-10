@@ -15,8 +15,8 @@ import (
 	"time"
 
 	pb "go-micro.dev/v6/agent/proto"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/server"
@@ -356,7 +356,7 @@ type sliceStream struct {
 	err    error
 }
 
-func (s *sliceStream) Recv() (*ai.Response, error) {
+func (s *sliceStream) Recv() (*model.Response, error) {
 	if len(s.chunks) == 0 {
 		if s.err != nil {
 			err := s.err
@@ -367,7 +367,7 @@ func (s *sliceStream) Recv() (*ai.Response, error) {
 	}
 	next := s.chunks[0]
 	s.chunks = s.chunks[1:]
-	return &ai.Response{Reply: next}, nil
+	return &model.Response{Reply: next}, nil
 }
 
 func (s *sliceStream) Close() error { return nil }
@@ -439,7 +439,7 @@ func TestMessageStreamChunksStoreFinalTask(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/", bytes.NewBufferString(body))
 	rr := httptest.NewRecorder()
 
-	d.serveWithStream(rr, req, nil, func(ctx context.Context, text string) (ai.Stream, error) {
+	d.serveWithStream(rr, req, nil, func(ctx context.Context, text string) (model.Stream, error) {
 		if text != "ping" {
 			t.Fatalf("stream text = %q, want ping", text)
 		}
@@ -512,7 +512,7 @@ type contextStream struct {
 	closed chan struct{}
 }
 
-func (s *contextStream) Recv() (*ai.Response, error) {
+func (s *contextStream) Recv() (*model.Response, error) {
 	<-s.ctx.Done()
 	return nil, s.ctx.Err()
 }
@@ -531,7 +531,7 @@ func TestMessageStreamChunksPropagatesCancellationAndClosesStream(t *testing.T) 
 	rr := httptest.NewRecorder()
 	cancel()
 
-	d.serveWithStream(rr, req, nil, func(ctx context.Context, text string) (ai.Stream, error) {
+	d.serveWithStream(rr, req, nil, func(ctx context.Context, text string) (model.Stream, error) {
 		if text != "ping" {
 			t.Fatalf("stream text = %q, want ping", text)
 		}
@@ -585,9 +585,9 @@ func TestMessageStreamChunksFallsBackWhenUnsupported(t *testing.T) {
 	d.serveWithStream(rr, req, func(ctx context.Context, text string) (string, error) {
 		fallbackText = text
 		return "pong", nil
-	}, func(ctx context.Context, text string) (ai.Stream, error) {
+	}, func(ctx context.Context, text string) (model.Stream, error) {
 		streamed = true
-		return nil, fmt.Errorf("%w: test provider", ai.ErrStreamingUnsupported)
+		return nil, fmt.Errorf("%w: test provider", model.ErrStreamingUnsupported)
 	})
 
 	if !streamed {
@@ -628,8 +628,8 @@ func TestMessageStreamFallbackDoesNotCompleteWithEmptyText(t *testing.T) {
 
 	d.serveWithStream(rr, req, func(context.Context, string) (string, error) {
 		return "", nil
-	}, func(context.Context, string) (ai.Stream, error) {
-		return nil, fmt.Errorf("%w: test provider", ai.ErrStreamingUnsupported)
+	}, func(context.Context, string) (model.Stream, error) {
+		return nil, fmt.Errorf("%w: test provider", model.ErrStreamingUnsupported)
 	})
 
 	events := collectSSE(t, rr.Body.String())

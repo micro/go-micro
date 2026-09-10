@@ -22,47 +22,47 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/internal/harness/harnessutil"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
 
-type mockModel struct{ opts ai.Options }
+type mockModel struct{ opts model.Options }
 
-func newMock(opts ...ai.Option) ai.Model {
+func newMock(opts ...model.Option) model.Model {
 	m := &mockModel{}
 	_ = m.Init(opts...)
 	return m
 }
 
-func (m *mockModel) Init(opts ...ai.Option) error {
+func (m *mockModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "mock" }
-func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
-	return nil, ai.ErrStreamingUnsupported
+func (m *mockModel) Options() model.Options { return m.opts }
+func (m *mockModel) String() string         { return "mock" }
+func (m *mockModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
+	return nil, model.ErrStreamingUnsupported
 }
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	if req.Prompt == "" {
 		return nil, errors.New("missing prompt")
 	}
 	if len(req.Tools) == 0 || m.opts.ToolHandler == nil {
 		return nil, errors.New("missing tools or tool handler")
 	}
-	res := m.opts.ToolHandler(ctx, ai.ToolCall{ID: "a2a-stream-call", Name: "stream_echo", Input: map[string]any{"value": "a2a-stream"}})
+	res := m.opts.ToolHandler(ctx, model.ToolCall{ID: "a2a-stream-call", Name: "stream_echo", Input: map[string]any{"value": "a2a-stream"}})
 	if res.Content == "" {
 		return nil, errors.New("empty tool result")
 	}
-	return &ai.Response{
+	return &model.Response{
 		Reply:  "streaming completed",
 		Answer: res.Content,
-		ToolCalls: []ai.ToolCall{{
+		ToolCalls: []model.ToolCall{{
 			ID: "a2a-stream-call", Name: "stream_echo", Input: map[string]any{"value": "a2a-stream"}, Result: res.Content,
 		}},
 	}, nil
@@ -70,7 +70,7 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 
 type agentStreamAdapter struct{ stream agent.AgentStream }
 
-func (s agentStreamAdapter) Recv() (*ai.Response, error) {
+func (s agentStreamAdapter) Recv() (*model.Response, error) {
 	for {
 		event, err := s.stream.Recv()
 		if err != nil {
@@ -82,7 +82,7 @@ func (s agentStreamAdapter) Recv() (*ai.Response, error) {
 		switch event.Type {
 		case agent.StreamEventToken:
 			if event.Token != "" {
-				return &ai.Response{Reply: event.Token}, nil
+				return &model.Response{Reply: event.Token}, nil
 			}
 		case agent.StreamEventDone:
 			return nil, io.EOF
@@ -96,7 +96,7 @@ func main() {
 	provider := flag.String("provider", "mock", "LLM provider; mock is deterministic and requires no API key")
 	flag.Parse()
 	if *provider == "mock" {
-		ai.Register("mock", newMock)
+		model.Register("mock", newMock)
 	}
 
 	fmt.Printf("\n\033[1mA2A streaming conformance (provider: %s)\033[0m\n", *provider)
@@ -115,7 +115,7 @@ func main() {
 			"value": map[string]any{"type": "string", "description": "value to echo"},
 		}, func(ctx context.Context, input map[string]any) (string, error) {
 			sawTool = true
-			info, ok := ai.RunInfoFrom(ctx)
+			info, ok := model.RunInfoFrom(ctx)
 			if !ok || info.RunID == "" || info.Agent != "a2a-streaming" {
 				return "", fmt.Errorf("unexpected run info: %+v", info)
 			}
@@ -136,7 +136,7 @@ func main() {
 			}
 			return resp.Reply, nil
 		},
-		func(ctx context.Context, text string) (ai.Stream, error) {
+		func(ctx context.Context, text string) (model.Stream, error) {
 			stream, err := agent.StreamAsk(ctx, ag, text)
 			if err != nil {
 				return nil, err

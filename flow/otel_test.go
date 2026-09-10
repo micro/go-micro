@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/trace"
@@ -72,7 +72,7 @@ func flowSpanAttributes(attrs []attribute.KeyValue) map[string]string {
 }
 
 func withTestRunInfo(ctx context.Context, runID string) context.Context {
-	return ai.WithRunInfo(ctx, ai.RunInfo{RunID: runID, Agent: "planner"})
+	return model.WithRunInfo(ctx, model.RunInfo{RunID: runID, Agent: "planner"})
 }
 
 func TestScheduledFlowOpenTelemetryDispatchAttributes(t *testing.T) {

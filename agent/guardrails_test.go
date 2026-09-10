@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
@@ -17,8 +17,8 @@ import (
 
 // toolContent runs a tool call through a handler and returns the content
 // shown to the model — the part these tests assert on.
-func toolContent(h ai.ToolHandler, name string, input map[string]any) string {
-	return h(context.Background(), ai.ToolCall{Name: name, Input: input}).Content
+func toolContent(h model.ToolHandler, name string, input map[string]any) string {
+	return h(context.Background(), model.ToolCall{Name: name, Input: input}).Content
 }
 
 // MaxSteps refuses tool calls once the per-Ask limit is exceeded; plan
@@ -107,7 +107,7 @@ func TestMaxSpendAllowsPaidToolWithinBudget(t *testing.T) {
 		}),
 	)
 
-	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
+	res := a.toolHandler()(context.Background(), model.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
 	if calls != 1 {
 		t.Fatalf("paid tool was not executed")
 	}
@@ -130,12 +130,12 @@ func TestMaxSpendRefusesPaidToolBeforePaymentWhenBudgetExceeded(t *testing.T) {
 		}),
 	)
 
-	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
+	res := a.toolHandler()(context.Background(), model.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
 	if calls != 0 {
 		t.Fatalf("paid tool ran despite budget refusal")
 	}
-	if res.Refused != ai.RefusedSpendBudget {
-		t.Fatalf("Refused = %q, want %q (result %+v)", res.Refused, ai.RefusedSpendBudget, res)
+	if res.Refused != model.RefusedSpendBudget {
+		t.Fatalf("Refused = %q, want %q (result %+v)", res.Refused, model.RefusedSpendBudget, res)
 	}
 	if !strings.Contains(res.Content, "x402 spend budget exceeded") {
 		t.Fatalf("content = %q, want inspectable budget refusal", res.Content)
@@ -157,11 +157,11 @@ func TestMaxSpendRollsBackFailedPaidToolReservation(t *testing.T) {
 	)
 
 	h := a.toolHandler()
-	first := h(context.Background(), ai.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
+	first := h(context.Background(), model.ToolCall{ID: "paid-1", Name: "paid.lookup", Input: map[string]any{}})
 	if first.Refused != "" || !strings.Contains(first.Content, "context canceled") {
 		t.Fatalf("first result = %+v, want tool error without guardrail refusal", first)
 	}
-	second := h(context.Background(), ai.ToolCall{ID: "paid-2", Name: "paid.lookup", Input: map[string]any{}})
+	second := h(context.Background(), model.ToolCall{ID: "paid-2", Name: "paid.lookup", Input: map[string]any{}})
 	if second.Refused != "" || second.Content != `{"ok":true}` {
 		t.Fatalf("second result = %+v, want reservation rollback to allow retry", second)
 	}
@@ -229,8 +229,8 @@ func TestAgentPayerPaysX402ToolResultAndRetries(t *testing.T) {
 		return string(body), nil
 	}))
 
-	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{RunID: "run-paid", Agent: "x402-payer"})
-	res := a.toolHandler()(ctx, ai.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
+	ctx := model.WithRunInfo(context.Background(), model.RunInfo{RunID: "run-paid", Agent: "x402-payer"})
+	res := a.toolHandler()(ctx, model.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
 	if !paid || payer.calls != 1 {
 		t.Fatalf("payment not made: paid=%v payer.calls=%d", paid, payer.calls)
 	}
@@ -274,11 +274,11 @@ func TestAgentPayerRefusesX402OverBudget(t *testing.T) {
 		return string(body), nil
 	}))
 
-	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
+	res := a.toolHandler()(context.Background(), model.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
 	if payer.calls != 0 {
 		t.Fatalf("payer called despite over-budget refusal")
 	}
-	if res.Refused != ai.RefusedSpendBudget || !strings.Contains(res.Content, "would exceed budget") {
+	if res.Refused != model.RefusedSpendBudget || !strings.Contains(res.Content, "would exceed budget") {
 		t.Fatalf("result = %+v, want budget refusal", res)
 	}
 }
@@ -310,7 +310,7 @@ func TestAgentPayerRequiredWithoutPayerReturnsClearError(t *testing.T) {
 		return string(body), nil
 	}))
 
-	res := a.toolHandler()(context.Background(), ai.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
+	res := a.toolHandler()(context.Background(), model.ToolCall{ID: "pay-1", Name: "paid.http", Input: map[string]any{"url": srv.URL}})
 	if !strings.Contains(res.Content, "no Payer configured") {
 		t.Fatalf("content = %q, want no payer error", res.Content)
 	}

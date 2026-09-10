@@ -1,0 +1,1194 @@
+// Package atlascloud implements the Atlas Cloud model provider.
+//
+// Atlas Cloud is an enterprise AI infrastructure platform offering
+// high-performance LLM, image, and video APIs. It exposes
+// OpenAI-compatible endpoints for chat completions and image
+// generation.
+//
+// Usage:
+//
+//	import _ "go-micro.dev/v6/model/atlascloud"
+//
+//	m := model.New("atlascloud",
+//	    model.WithAPIKey("your-api-key"),
+//	)
+//
+//	// Image generation
+//	ig := model.NewImage("atlascloud",
+//	    model.WithAPIKey("your-api-key"),
+//	)
+package atlascloud
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"go-micro.dev/v6/model"
+)
+
+func init() {
+	model.Register("atlascloud", func(opts ...model.Option) model.Model {
+		return NewProvider(opts...)
+	})
+	model.RegisterImage("atlascloud", func(opts ...model.Option) model.ImageModel {
+		return NewProvider(opts...)
+	})
+	model.RegisterVideo("atlascloud", func(opts ...model.Option) model.VideoModel {
+		return NewProvider(opts...)
+	})
+	model.RegisterStream("atlascloud")
+}
+
+// Provider implements the model.Model interface for Atlas Cloud.
+type Provider struct {
+	opts model.Options
+}
+
+type atlasToolCall struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"`
+	Function struct {
+		Name      string `json:"name"`
+		Arguments string `json:"arguments"`
+	} `json:"function"`
+}
+
+// NewProvider creates a new Atlas Cloud provider.
+func NewProvider(opts ...model.Option) *Provider {
+	options := model.NewOptions(opts...)
+
+	if options.Model == "" {
+		// Allow the chat model to be selected via the ATLASCLOUD_MODEL env var
+		// (e.g. to run CI conformance against a stronger tool-use model) without
+		// a code change; fall back to a sensible default otherwise.
+		if m := os.Getenv("ATLASCLOUD_MODEL"); m != "" {
+			options.Model = m
+		} else {
+			options.Model = "deepseek-ai/DeepSeek-V3-0324"
+		}
+	}
+	if options.BaseURL == "" {
+		options.BaseURL = "https://api.atlascloud.ai"
+	}
+
+	return &Provider{opts: options}
+}
+
+func (p *Provider) Init(opts ...model.Option) error {
+	for _, o := range opts {
+		o(&p.opts)
+	}
+	return nil
+}
+
+func (p *Provider) Options() model.Options { return p.opts }
+func (p *Provider) String() string         { return "atlascloud" }
+
+func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+	tools := atlascloudTools(req.Tools)
+	compatTools, compatPrompt := atlascloudMinimaxCompatTools(p.opts.Model, req.Tools)
+	textToolPrompt := atlascloudMinimaxTextToolPrompt(p.opts.Model, req.Tools)
+
+	messages := []map[string]any{
+		{"role": "system", "content": req.SystemPrompt},
+	}
+	for _, m := range req.Messages {
+		messages = append(messages, map[string]any{"role": m.Role, "content": m.Content})
+	}
+	if req.Prompt != "" {
+		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
+	}
+	if compatPrompt != "" {
+		messages = append(messages, map[string]any{"role": "system", "content": compatPrompt})
+	}
+
+	apiReq := map[string]any{
+		"model":    p.opts.Model,
+		"messages": messages,
+	}
+	if p.opts.MaxTokens > 0 {
+		apiReq["max_tokens"] = p.opts.MaxTokens
+	}
+
+	if len(tools) > 0 {
+		apiReq["tools"] = tools
+	}
+
+	resp, rawMessage, err := p.callAPI(ctx, "chat", apiReq)
+	if err != nil {
+		if atlascloudShouldRetryMinimaxCompat(err, compatTools) {
+			apiReq["tools"] = compatTools
+			resp, rawMessage, err = p.callAPI(ctx, "chat-minimax-compat", apiReq)
+		}
+		if atlascloudShouldRetryMinimaxTextTools(err, textToolPrompt) {
+			delete(apiReq, "tools")
+			apiReq["messages"] = append(messages, map[string]any{"role": "system", "content": textToolPrompt})
+			resp, rawMessage, err = p.callAPI(ctx, "chat-minimax-text-tools", apiReq)
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if toolName := atlascloudPartialTextToolCallName(resp.Reply, req.Tools); toolName != "" {
+		repairReq := map[string]any{
+			"model": p.opts.Model,
+			"messages": append(append([]map[string]any(nil), messages...),
+				map[string]any{"role": "assistant", "content": resp.Reply},
+				map[string]any{"role": "user", "content": fmt.Sprintf("Your previous response started a %q tool call but did not finish valid tool-call markup or JSON arguments, so no tool was executed. Retry the same step now by emitting one complete valid tool call for %q. Do not describe the action in prose, and do not claim completion until the tool call succeeds.", toolName, toolName)},
+			),
+		}
+		if p.opts.MaxTokens > 0 {
+			repairReq["max_tokens"] = p.opts.MaxTokens
+		}
+		if len(tools) > 0 {
+			repairReq["tools"] = tools
+		}
+		resp, rawMessage, err = p.callAPI(ctx, "chat-partial-tool-repair", repairReq)
+		if err != nil {
+			return nil, fmt.Errorf("atlascloud partial text tool-call repair failed for %q: %w", toolName, err)
+		}
+		if atlascloudPartialTextToolCallName(resp.Reply, req.Tools) != "" && len(resp.ToolCalls) == 0 {
+			fallback := atlascloudFallbackTextToolCall(toolName, req)
+			if fallback == "" {
+				return nil, fmt.Errorf("atlascloud returned incomplete text tool call for %q after repair", toolName)
+			}
+			resp.Reply = fallback
+		}
+	}
+
+	if len(resp.ToolCalls) == 0 {
+		return resp, nil
+	}
+
+	if p.opts.ToolHandler != nil {
+		var allToolCalls []model.ToolCall
+		var toolResults []string
+		pendingToolCalls := append([]model.ToolCall(nil), resp.ToolCalls...)
+		// Copied rather than aliased: append on a slice that shares an array
+		// with messages would overwrite it on a later round.
+		followUpMessages := append(append([]map[string]any(nil), messages...), map[string]any{
+			"role":       "assistant",
+			"content":    rawMessage["content"],
+			"tool_calls": rawMessage["tool_calls"],
+		})
+
+		for attempt := 0; len(pendingToolCalls) > 0 && attempt < maxToolRounds; attempt++ {
+			for _, tc := range pendingToolCalls {
+				result := p.opts.ToolHandler(ctx, tc)
+				if result.Refused != "" {
+					tc.Error = result.Refused
+				}
+				if result.Content != "" {
+					tc.Result = result.Content
+					toolResults = append(toolResults, result.Content)
+				}
+				allToolCalls = append(allToolCalls, tc)
+				resp.ToolCalls = allToolCalls
+				followUpMessages = append(followUpMessages, map[string]any{
+					"role":         "tool",
+					"tool_call_id": tc.ID,
+					"content":      result.Content,
+				})
+			}
+
+			followUpReq := map[string]any{
+				"model":    p.opts.Model,
+				"messages": followUpMessages,
+			}
+			if p.opts.MaxTokens > 0 {
+				followUpReq["max_tokens"] = p.opts.MaxTokens
+			}
+			if len(tools) > 0 {
+				// Keep the tool schema available during follow-up turns. Minimax
+				// models behind Atlas Cloud sometimes complete a multi-tool task
+				// one call at a time (plan, then service tools, then delegate).
+				followUpReq["tools"] = tools
+			}
+
+			followUpResp, followUpRawMessage, err := p.callAPI(ctx, "tool-follow-up", followUpReq)
+			if err != nil {
+				if atlascloudShouldRetryWithoutTools(err, followUpReq) {
+					delete(followUpReq, "tools")
+					followUpReq["messages"] = atlascloudFollowUpMessagesWithoutTools(p.opts.Model, followUpMessages)
+					followUpResp, followUpRawMessage, err = p.callAPI(ctx, "tool-follow-up-no-tools", followUpReq)
+				}
+				if err != nil {
+					return nil, err
+				}
+			}
+			if len(followUpResp.ToolCalls) == 0 {
+				if followUpResp.Reply != "" {
+					if strings.Contains(followUpResp.Reply, "<tool_call") || strings.Contains(followUpResp.Reply, "function=") {
+						// Preserve follow-up assistant content as Reply, not Answer, when
+						// it may contain a text-encoded tool call. The agent harness
+						// inspects Reply for text fallback calls after Generate returns.
+						resp.Reply = followUpResp.Reply
+						if len(toolResults) > 0 {
+							resp.Answer = strings.Join(toolResults, "\n")
+						}
+					} else {
+						resp.Answer = atlascloudAnswerWithRequiredToolMarkers(followUpResp.Reply, toolResults, allToolCalls)
+					}
+				} else if len(toolResults) > 0 {
+					resp.Answer = strings.Join(toolResults, "\n")
+				}
+				break
+			}
+
+			followUpMessages = append(followUpMessages, map[string]any{
+				"role":       "assistant",
+				"content":    followUpRawMessage["content"],
+				"tool_calls": followUpRawMessage["tool_calls"],
+			})
+			pendingToolCalls = followUpResp.ToolCalls
+		}
+	}
+
+	return resp, nil
+}
+
+// maxToolRounds bounds the tool-execution loop in a single Generate. Each
+// round is a model call plus the tools it asks for, so this is the ceiling on
+// one question's cost as well as its length; it is high enough that no honest
+// piece of multi-step work reaches it.
+const maxToolRounds = 12
+
+func atlascloudAnswerWithRequiredToolMarkers(answer string, toolResults []string, toolCalls []model.ToolCall) string {
+	if strings.Contains(answer, "agent-conformance") || !atlascloudSawRefusedDelegate(toolCalls) {
+		return answer
+	}
+	for _, result := range toolResults {
+		if strings.Contains(result, "agent-conformance") {
+			return strings.TrimSpace(answer + "\n" + result)
+		}
+	}
+	return answer
+}
+
+func atlascloudSawRefusedDelegate(toolCalls []model.ToolCall) bool {
+	for _, call := range toolCalls {
+		if call.Name == "delegate" && call.Error != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// Stream generates a streaming response from Atlas Cloud's OpenAI-compatible
+// chat completions endpoint, emitting content deltas as they arrive.
+func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
+	if len(req.Tools) > 0 {
+		return nil, fmt.Errorf("%w: atlascloud streaming does not expose tools", model.ErrStreamingUnsupported)
+	}
+
+	messages := []map[string]any{
+		{"role": "system", "content": req.SystemPrompt},
+	}
+	for _, m := range req.Messages {
+		messages = append(messages, map[string]any{"role": m.Role, "content": m.Content})
+	}
+	if req.Prompt != "" {
+		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
+	}
+	apiReq := map[string]any{
+		"model":          p.opts.Model,
+		"messages":       messages,
+		"stream":         true,
+		"stream_options": map[string]any{"include_usage": true},
+	}
+	if p.opts.MaxTokens > 0 {
+		apiReq["max_tokens"] = p.opts.MaxTokens
+	}
+	reqBody, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal stream request: %w", err)
+	}
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/chat/completions"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stream request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("stream API request failed: %w", err)
+	}
+	if httpResp.StatusCode != http.StatusOK {
+		defer httpResp.Body.Close()
+		respBody, _ := io.ReadAll(httpResp.Body)
+		return nil, fmt.Errorf("stream API error (%s): %s", httpResp.Status, string(respBody))
+	}
+	return &atlasStream{body: httpResp.Body, scanner: bufio.NewScanner(httpResp.Body)}, nil
+}
+
+type atlasStream struct {
+	body    io.ReadCloser
+	scanner *bufio.Scanner
+	closed  bool
+}
+
+func (s *atlasStream) Recv() (*model.Response, error) {
+	for s.scanner.Scan() {
+		line := strings.TrimSpace(s.scanner.Text())
+		if line == "" || strings.HasPrefix(line, ":") {
+			continue
+		}
+		if !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "[DONE]" {
+			return nil, io.EOF
+		}
+		var chunk struct {
+			Choices []struct {
+				Delta struct {
+					Content string `json:"content"`
+				} `json:"delta"`
+			} `json:"choices"`
+			Usage *struct {
+				PromptTokens     int `json:"prompt_tokens"`
+				CompletionTokens int `json:"completion_tokens"`
+				TotalTokens      int `json:"total_tokens"`
+			} `json:"usage"`
+		}
+		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
+			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
+		}
+		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
+			return &model.Response{Reply: chunk.Choices[0].Delta.Content}, nil
+		}
+		// Final chunk (after include_usage) carries token usage and no content.
+		if chunk.Usage != nil {
+			return &model.Response{Usage: model.Usage{
+				InputTokens:  chunk.Usage.PromptTokens,
+				OutputTokens: chunk.Usage.CompletionTokens,
+				TotalTokens:  chunk.Usage.TotalTokens,
+			}}, nil
+		}
+		continue
+	}
+	if err := s.scanner.Err(); err != nil {
+		return nil, err
+	}
+	return nil, io.EOF
+}
+
+func (s *atlasStream) Close() error {
+	if s.closed {
+		return nil
+	}
+	s.closed = true
+	return s.body.Close()
+}
+
+type atlascloudAPIError struct {
+	Status  string
+	Code    int
+	Retry   time.Duration
+	Phase   string
+	Summary string
+	Body    string
+}
+
+func (e *atlascloudAPIError) Error() string {
+	return fmt.Sprintf("API error (%s) during atlascloud %s request (%s): %s", e.Status, e.Phase, e.Summary, e.Body)
+}
+
+func (e *atlascloudAPIError) StatusCode() int {
+	if e == nil {
+		return 0
+	}
+	return e.Code
+}
+
+func (e *atlascloudAPIError) RetryAfter() time.Duration {
+	if e == nil {
+		return 0
+	}
+	return e.Retry
+}
+
+func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any) (*model.Response, map[string]any, error) {
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/v1/chat/completions"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	respBody, _ := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode != http.StatusOK {
+		retryAfter := time.Duration(0)
+		var retryErr interface{ RetryAfter() time.Duration }
+		if errors.As(model.NewHTTPError(httpResp, respBody), &retryErr) {
+			retryAfter = retryErr.RetryAfter()
+		}
+		return nil, nil, &atlascloudAPIError{Status: httpResp.Status, Code: httpResp.StatusCode, Retry: retryAfter, Phase: phase, Summary: atlascloudRequestSummary(req), Body: string(respBody)}
+	}
+
+	var chatResp struct {
+		Choices []struct {
+			Message struct {
+				Content   string          `json:"content"`
+				ToolCalls []atlasToolCall `json:"tool_calls"`
+			} `json:"message"`
+		} `json:"choices"`
+		// Token counts, which the API returns on every completion and this
+		// struct did not ask for.
+		//
+		// model.Response has carried a Usage field from the start and the
+		// streaming path fills it in (see the final chunk after
+		// include_usage), so a caller metering spend got real numbers from a
+		// stream and zeroes from a plain Generate — indistinguishable from a
+		// call that cost nothing. An agent runs on Generate.
+		Usage struct {
+			PromptTokens     int `json:"prompt_tokens"`
+			CompletionTokens int `json:"completion_tokens"`
+			TotalTokens      int `json:"total_tokens"`
+		} `json:"usage"`
+	}
+
+	if err := json.Unmarshal(respBody, &chatResp); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	if len(chatResp.Choices) == 0 {
+		return nil, nil, fmt.Errorf("no response from API")
+	}
+
+	choice := chatResp.Choices[0]
+	response := &model.Response{
+		Reply: choice.Message.Content,
+		Usage: model.Usage{
+			InputTokens:  chatResp.Usage.PromptTokens,
+			OutputTokens: chatResp.Usage.CompletionTokens,
+			TotalTokens:  chatResp.Usage.TotalTokens,
+		},
+	}
+
+	for _, tc := range choice.Message.ToolCalls {
+		var input map[string]any
+		if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
+			input = map[string]any{}
+		}
+		response.ToolCalls = append(response.ToolCalls, model.ToolCall{
+			ID:    tc.ID,
+			Name:  tc.Function.Name,
+			Input: input,
+		})
+	}
+
+	rawMessage := map[string]any{
+		"content":    choice.Message.Content,
+		"tool_calls": normalizeAtlasCloudToolCalls(choice.Message.ToolCalls),
+	}
+
+	return response, rawMessage, nil
+}
+
+func atlascloudFollowUpMessagesWithoutTools(modelName string, messages []map[string]any) []map[string]any {
+	if !atlascloudIsMinimaxModel(modelName) {
+		return messages
+	}
+	out := make([]map[string]any, 0, len(messages)+1)
+	for _, msg := range messages {
+		role, _ := msg["role"].(string)
+		switch role {
+		case "assistant":
+			converted := map[string]any{"role": "assistant"}
+			if content, _ := msg["content"].(string); content != "" {
+				converted["content"] = content
+			} else if calls, ok := msg["tool_calls"]; ok {
+				converted["content"] = "Tool call requested: " + atlascloudToolCallsText(calls)
+			} else {
+				converted["content"] = ""
+			}
+			out = append(out, converted)
+		case "tool":
+			toolID, _ := msg["tool_call_id"].(string)
+			content, _ := msg["content"].(string)
+			if toolID != "" {
+				content = "Tool result for " + toolID + ": " + content
+			} else {
+				content = "Tool result: " + content
+			}
+			out = append(out, map[string]any{"role": "user", "content": content})
+		default:
+			copyMsg := make(map[string]any, len(msg))
+			for k, v := range msg {
+				copyMsg[k] = v
+			}
+			out = append(out, copyMsg)
+		}
+	}
+	return out
+}
+
+func atlascloudToolCallsText(calls any) string {
+	b, err := json.Marshal(calls)
+	if err != nil {
+		return fmt.Sprint(calls)
+	}
+	return string(b)
+}
+
+func atlascloudPartialTextToolCallName(text string, tools []model.Tool) string {
+	if !strings.Contains(text, "<tool_call") {
+		return ""
+	}
+	if strings.Contains(text, "</tool_call>") {
+		return ""
+	}
+	for _, tool := range tools {
+		for _, name := range []string{tool.Name, tool.OriginalName} {
+			if name == "" {
+				continue
+			}
+			if strings.Contains(text, `name="`+name+`"`) || strings.Contains(text, `name='`+name+`'`) {
+				return tool.Name
+			}
+		}
+	}
+	return ""
+}
+
+func atlascloudFallbackTextToolCall(toolName string, req *model.Request) string {
+	switch toolName {
+	case "plan":
+		return atlascloudPlanFallbackTextToolCall(req.Prompt)
+	case "delegate":
+		return atlascloudDelegateFallbackTextToolCall(req)
+	default:
+		if atlascloudToolTakesNoArguments(toolName, req.Tools) {
+			return atlascloudEmptyArgumentFallbackTextToolCall(toolName)
+		}
+		return atlascloudServiceFallbackTextToolCall(toolName, req)
+	}
+}
+
+func atlascloudServiceFallbackTextToolCall(toolName string, req *model.Request) string {
+	if req == nil {
+		return ""
+	}
+	for _, tool := range req.Tools {
+		if tool.Name != toolName {
+			continue
+		}
+		args := atlascloudFallbackArgsForProperties(tool.Properties, atlascloudRequestText(req))
+		if args == nil {
+			return ""
+		}
+		b, err := json.Marshal(args)
+		if err != nil {
+			return ""
+		}
+		return `<tool_call name="` + toolName + `">` + string(b) + `</tool_call>`
+	}
+	return ""
+}
+
+func atlascloudFallbackArgsForProperties(properties map[string]any, ctxText string) map[string]any {
+	if len(properties) == 0 {
+		return map[string]any{}
+	}
+	args := make(map[string]any, len(properties))
+	for name, schema := range properties {
+		value, ok := atlascloudFallbackArgValue(name, schema, ctxText)
+		if !ok {
+			return nil
+		}
+		args[name] = value
+	}
+	return args
+}
+
+func atlascloudFallbackArgValue(name string, schema any, ctxText string) (any, bool) {
+	typeName := "string"
+	if m, ok := schema.(map[string]any); ok {
+		if t, _ := m["type"].(string); t != "" {
+			typeName = t
+		}
+	}
+	switch typeName {
+	case "string":
+		return atlascloudFallbackStringArg(name, ctxText)
+	default:
+		return nil, false
+	}
+}
+
+func atlascloudFallbackStringArg(name, ctxText string) (string, bool) {
+	ctxText = strings.TrimSpace(ctxText)
+	if ctxText == "" {
+		return "", false
+	}
+	if strings.Contains(strings.ToLower(name), "email") || strings.Contains(strings.ToLower(name), "owner") {
+		if email := atlascloudFirstEmail(ctxText); email != "" {
+			return email, true
+		}
+	}
+	return ctxText, true
+}
+
+func atlascloudFirstEmail(text string) string {
+	for _, field := range strings.FieldsFunc(text, func(r rune) bool {
+		return strings.ContainsRune(" \t\n\r<>\"'(),;", r)
+	}) {
+		field = strings.Trim(field, ".:")
+		if strings.Contains(field, "@") && strings.Contains(field, ".") {
+			return field
+		}
+	}
+	return ""
+}
+
+func atlascloudToolTakesNoArguments(toolName string, tools []model.Tool) bool {
+	for _, tool := range tools {
+		if tool.Name != toolName {
+			continue
+		}
+		return len(tool.Properties) == 0
+	}
+	return false
+}
+
+func atlascloudEmptyArgumentFallbackTextToolCall(toolName string) string {
+	if toolName == "" {
+		return ""
+	}
+	return `<tool_call name="` + toolName + `">{}</tool_call>`
+}
+
+func atlascloudPlanFallbackTextToolCall(prompt string) string {
+	task := strings.TrimSpace(prompt)
+	if task == "" {
+		task = "continue the requested work"
+	}
+	args, err := json.Marshal(map[string]any{
+		"steps": []map[string]string{{
+			"task":   task,
+			"status": "pending",
+		}},
+	})
+	if err != nil {
+		return `<tool_call name="plan">{"steps":[{"task":"continue the requested work","status":"pending"}]}</tool_call>`
+	}
+	return `<tool_call name="plan">` + string(args) + `</tool_call>`
+}
+
+func atlascloudDelegateFallbackTextToolCall(req *model.Request) string {
+	ctxText := atlascloudRequestText(req)
+	task := strings.TrimSpace(req.Prompt)
+	if task == "" {
+		task = strings.TrimSpace(ctxText)
+	}
+	if task == "" {
+		task = "continue the requested delegated work"
+	}
+
+	args := map[string]any{"task": task}
+	if strings.Contains(strings.ToLower(ctxText), "comms") {
+		args["to"] = "comms"
+	}
+	b, err := json.Marshal(args)
+	if err != nil {
+		return `<tool_call name="delegate">{"task":"continue the requested delegated work"}</tool_call>`
+	}
+	return `<tool_call name="delegate">` + string(b) + `</tool_call>`
+}
+
+func atlascloudRequestText(req *model.Request) string {
+	if req == nil {
+		return ""
+	}
+	var parts []string
+	if req.SystemPrompt != "" {
+		parts = append(parts, req.SystemPrompt)
+	}
+	for _, msg := range req.Messages {
+		switch c := msg.Content.(type) {
+		case string:
+			parts = append(parts, c)
+		default:
+			parts = append(parts, fmt.Sprint(c))
+		}
+	}
+	if req.Prompt != "" {
+		parts = append(parts, req.Prompt)
+	}
+	return strings.Join(parts, "\n")
+}
+
+func atlascloudMinimaxCompatTools(modelName string, input []model.Tool) ([]map[string]any, string) {
+	if !atlascloudIsMinimaxModel(modelName) || len(input) == 0 {
+		return nil, ""
+	}
+	var native []model.Tool
+	var builtins []string
+	for _, tool := range input {
+		switch tool.Name {
+		case "plan", "request_input", "delegate":
+			builtins = append(builtins, tool.Name)
+		default:
+			native = append(native, tool)
+		}
+	}
+	if len(builtins) == 0 || len(native) == len(input) {
+		return nil, ""
+	}
+	prompt := "AtlasCloud/minimax compatibility: use native tool_calls for the listed service tools. " +
+		"For built-in agent tools that are not listed natively (" + strings.Join(builtins, ", ") +
+		"), emit exactly <tool_call name=\"tool_name\">{...}</tool_call> so the agent runtime can execute them. Do not describe those built-in tool calls in prose instead of emitting the tag."
+	return atlascloudTools(native), prompt
+}
+
+func atlascloudMinimaxTextToolPrompt(modelName string, input []model.Tool) string {
+	if !atlascloudIsMinimaxModel(modelName) || len(input) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(input))
+	for _, tool := range input {
+		if tool.Name != "" {
+			names = append(names, tool.Name)
+		}
+	}
+	if len(names) == 0 {
+		return ""
+	}
+	return "AtlasCloud/minimax text-tool compatibility: the native tools payload was rejected. " +
+		"Call exactly one needed tool from this list by emitting exactly <tool_call name=\"tool_name\">{...}</tool_call>: " +
+		strings.Join(names, ", ") + ". Do not answer in prose instead of emitting the tag."
+}
+
+func atlascloudShouldRetryMinimaxTextTools(err error, prompt string) bool {
+	if prompt == "" {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
+}
+
+func atlascloudIsMinimaxModel(model string) bool {
+	model = strings.ToLower(model)
+	return strings.Contains(model, "minimax")
+}
+
+func atlascloudShouldRetryMinimaxCompat(err error, compatTools []map[string]any) bool {
+	if len(compatTools) == 0 {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
+}
+
+func atlascloudShouldRetryWithoutTools(err error, req map[string]any) bool {
+	if _, ok := req["tools"]; !ok {
+		return false
+	}
+	var apiErr *atlascloudAPIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode() == http.StatusBadRequest
+}
+
+func atlascloudTools(input []model.Tool) []map[string]any {
+	tools := make([]map[string]any, 0, len(input))
+	for _, t := range input {
+		tools = append(tools, map[string]any{
+			"type": "function",
+			"function": map[string]any{
+				"name":        t.Name,
+				"description": t.Description,
+				"parameters": map[string]any{
+					"type":       "object",
+					"properties": normalizeAtlasCloudSchema(t.Properties),
+				},
+			},
+		})
+	}
+	return tools
+}
+
+func normalizeAtlasCloudSchema(schema map[string]any) map[string]any {
+	if schema == nil {
+		return nil
+	}
+	out := make(map[string]any, len(schema))
+	for k, v := range schema {
+		out[k] = normalizeAtlasCloudSchemaValue(v)
+	}
+	return out
+}
+
+func normalizeAtlasCloudSchemaValue(v any) any {
+	switch val := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(val)+1)
+		for k, nested := range val {
+			out[k] = normalizeAtlasCloudSchemaValue(nested)
+		}
+		if typ, _ := out["type"].(string); typ == "array" {
+			if _, ok := out["items"]; !ok {
+				out["items"] = map[string]any{}
+			}
+		}
+		return out
+	case []any:
+		out := make([]any, len(val))
+		for i, nested := range val {
+			out[i] = normalizeAtlasCloudSchemaValue(nested)
+		}
+		return out
+	default:
+		return v
+	}
+}
+
+func normalizeAtlasCloudToolCalls(toolCalls []atlasToolCall) []map[string]any {
+	out := make([]map[string]any, 0, len(toolCalls))
+	for _, tc := range toolCalls {
+		toolType := tc.Type
+		if toolType == "" {
+			toolType = "function"
+		}
+		out = append(out, map[string]any{
+			"id":   tc.ID,
+			"type": toolType,
+			"function": map[string]any{
+				"name":      tc.Function.Name,
+				"arguments": tc.Function.Arguments,
+			},
+		})
+	}
+	return out
+}
+
+func atlascloudRequestSummary(req map[string]any) string {
+	parts := []string{}
+	if model, ok := req["model"].(string); ok && model != "" {
+		parts = append(parts, "model="+model)
+	}
+	if messages, ok := req["messages"].([]map[string]any); ok {
+		parts = append(parts, fmt.Sprintf("messages=%d", len(messages)))
+		if len(messages) > 0 {
+			last := messages[len(messages)-1]
+			if role, ok := last["role"].(string); ok && role != "" {
+				parts = append(parts, "last_role="+role)
+			}
+			if _, ok := last["tool_call_id"].(string); ok {
+				parts = append(parts, "last_has_tool_call_id=true")
+			}
+		}
+	}
+	if tools, ok := req["tools"].([]map[string]any); ok {
+		names := make([]string, 0, len(tools))
+		for _, tool := range tools {
+			fn, _ := tool["function"].(map[string]any)
+			name, _ := fn["name"].(string)
+			if name != "" {
+				names = append(names, name)
+			}
+		}
+		parts = append(parts, fmt.Sprintf("tools=%d", len(tools)))
+		if len(names) > 0 {
+			parts = append(parts, "tool_names="+strings.Join(names, ","))
+		}
+	}
+	if len(parts) == 0 {
+		return "request_context=unavailable"
+	}
+	return strings.Join(parts, " ")
+}
+
+const defaultImageModel = "openai/gpt-image-2/text-to-image"
+
+// GenerateImage creates an image using Atlas Cloud's async image API.
+// It submits the job and polls until completion or context cancellation.
+func (p *Provider) GenerateImage(ctx context.Context, req *model.ImageRequest, opts ...model.GenerateOption) (*model.ImageResponse, error) {
+	model := req.Model
+	if model == "" {
+		model = defaultImageModel
+	}
+	quality := req.Quality
+	if quality == "" {
+		quality = "medium"
+	}
+	outputFmt := req.OutputFormat
+	if outputFmt == "" {
+		outputFmt = "png"
+	}
+	size := req.Size
+	if size == "" {
+		size = "1024x1024"
+	}
+
+	apiReq := map[string]any{
+		"model":                model,
+		"prompt":               req.Prompt,
+		"quality":              quality,
+		"output_format":        outputFmt,
+		"size":                 size,
+		"enable_sync_mode":     false,
+		"enable_base64_output": false,
+		"moderation":           "low",
+	}
+
+	reqBody, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/generateImage"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	respBody, _ := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
+	}
+
+	var submitResp struct {
+		Code int    `json:"code"`
+		Msg  string `json:"message"`
+		Data struct {
+			ID     string `json:"id"`
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &submitResp); err != nil {
+		return nil, fmt.Errorf("failed to parse submit response: %w", err)
+	}
+	if submitResp.Code != 200 {
+		return nil, fmt.Errorf("API error: %s", submitResp.Msg)
+	}
+
+	predictionID := submitResp.Data.ID
+	pollURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/prediction/" + predictionID
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			result, err := p.pollPrediction(ctx, pollURL)
+			if err != nil {
+				return nil, err
+			}
+			if result != nil {
+				return result, nil
+			}
+		}
+	}
+}
+
+func (p *Provider) pollPrediction(ctx context.Context, url string) (*model.ImageResponse, error) {
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("poll request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	body, _ := io.ReadAll(httpResp.Body)
+
+	var pollResp struct {
+		Data struct {
+			Status  string   `json:"status"`
+			Outputs []string `json:"outputs"`
+			Error   string   `json:"error"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &pollResp); err != nil {
+		return nil, fmt.Errorf("failed to parse poll response: %w", err)
+	}
+
+	switch pollResp.Data.Status {
+	case "completed":
+		resp := &model.ImageResponse{}
+		for _, output := range pollResp.Data.Outputs {
+			resp.Images = append(resp.Images, model.Image{URL: output})
+		}
+		return resp, nil
+	case "failed":
+		return nil, fmt.Errorf("image generation failed: %s", pollResp.Data.Error)
+	default:
+		return nil, nil
+	}
+}
+
+const defaultVideoModel = "google/gemini-omni-flash/image-to-video-developer"
+
+// GenerateVideo creates a video using Atlas Cloud's async video API.
+// Supports text-to-video and image-to-video depending on whether
+// Images are provided in the request.
+func (p *Provider) GenerateVideo(ctx context.Context, req *model.VideoRequest, opts ...model.GenerateOption) (*model.VideoResponse, error) {
+	model := req.Model
+	if model == "" {
+		model = defaultVideoModel
+	}
+	duration := req.Duration
+	if duration <= 0 {
+		duration = 6
+	}
+	aspect := req.AspectRatio
+	if aspect == "" {
+		aspect = "16:9"
+	}
+	resolution := req.Resolution
+	if resolution == "" {
+		resolution = "720p"
+	}
+
+	apiReq := map[string]any{
+		"model":        model,
+		"prompt":       req.Prompt,
+		"duration":     duration,
+		"aspect_ratio": aspect,
+		"resolution":   resolution,
+		"seed":         -1,
+	}
+	if len(req.Images) > 0 {
+		apiReq["images"] = req.Images
+	}
+
+	reqBody, err := json.Marshal(apiReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/generateVideo"
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("API request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	respBody, _ := io.ReadAll(httpResp.Body)
+	if httpResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error (%s): %s", httpResp.Status, string(respBody))
+	}
+
+	var submitResp struct {
+		Code int    `json:"code"`
+		Msg  string `json:"message"`
+		Data struct {
+			ID     string `json:"id"`
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(respBody, &submitResp); err != nil {
+		return nil, fmt.Errorf("failed to parse submit response: %w", err)
+	}
+	if submitResp.Code != 200 {
+		return nil, fmt.Errorf("API error: %s", submitResp.Msg)
+	}
+
+	pollURL := strings.TrimRight(p.opts.BaseURL, "/") + "/api/v1/model/prediction/" + submitResp.Data.ID
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			result, err := p.pollVideo(ctx, pollURL)
+			if err != nil {
+				return nil, err
+			}
+			if result != nil {
+				return result, nil
+			}
+		}
+	}
+}
+
+func (p *Provider) pollVideo(ctx context.Context, url string) (*model.VideoResponse, error) {
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+p.opts.APIKey)
+
+	httpResp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("poll request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	body, _ := io.ReadAll(httpResp.Body)
+
+	var pollResp struct {
+		Data struct {
+			Status  string   `json:"status"`
+			Outputs []string `json:"outputs"`
+			Error   string   `json:"error"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &pollResp); err != nil {
+		return nil, fmt.Errorf("failed to parse poll response: %w", err)
+	}
+
+	switch pollResp.Data.Status {
+	case "completed", "succeeded":
+		if len(pollResp.Data.Outputs) == 0 {
+			return nil, fmt.Errorf("video completed but no outputs returned")
+		}
+		return &model.VideoResponse{URL: pollResp.Data.Outputs[0]}, nil
+	case "failed":
+		return nil, fmt.Errorf("video generation failed: %s", pollResp.Data.Error)
+	default:
+		return nil, nil
+	}
+}

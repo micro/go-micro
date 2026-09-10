@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	pb "go-micro.dev/v6/agent/proto"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
@@ -42,18 +42,18 @@ func TestNew(t *testing.T) {
 }
 
 func TestBundledProviderImportsIncludeMiniMaxForConformance(t *testing.T) {
-	if model := ai.New("minimax", ai.WithAPIKey("test-key")); model == nil {
-		t.Fatal("ai.New(\"minimax\") returned nil; agent live conformance cannot exercise MiniMax")
+	if model := model.New("minimax", model.WithAPIKey("test-key")); model == nil {
+		t.Fatal("model.New(\"minimax\") returned nil; agent live conformance cannot exercise MiniMax")
 	}
-	caps := ai.ProviderCapabilities("minimax")
+	caps := model.ProviderCapabilities("minimax")
 	if !caps.Stream || !caps.ToolStream {
 		t.Fatalf("MiniMax capabilities = %#v, want streaming and tool streaming registered", caps)
 	}
 }
 
 func TestChatResponseIncludesRunIDs(t *testing.T) {
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
-		return &ai.Response{Reply: "ok"}, nil
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
+		return &model.Response{Reply: "ok"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -74,15 +74,15 @@ func TestChatResponseIncludesRunIDs(t *testing.T) {
 }
 
 func TestChatRequestParentIDPropagatesToResponse(t *testing.T) {
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
-		info, ok := ai.RunInfoFrom(ctx)
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
+		info, ok := model.RunInfoFrom(ctx)
 		if !ok {
 			t.Fatal("RunInfo missing from model context")
 		}
 		if info.ParentID != "flow-run-123" {
 			t.Fatalf("RunInfo.ParentID = %q, want flow-run-123", info.ParentID)
 		}
-		return &ai.Response{Reply: "ok"}, nil
+		return &model.Response{Reply: "ok"}, nil
 	}
 	defer func() { fakeGen = nil }()
 
@@ -97,32 +97,32 @@ func TestChatRequestParentIDPropagatesToResponse(t *testing.T) {
 }
 
 func TestChatPreservesTransportedFlowLineageThroughToolExecution(t *testing.T) {
-	origin := ai.RunInfo{
+	origin := model.RunInfo{
 		RunID:    "flow-run-123",
 		Flow:     "daily-ops",
 		Step:     "summarize",
 		Dispatch: "schedule",
 		Trigger:  "daily-review",
 	}
-	transportCtx := ai.WithRunInfo(context.Background(), origin)
+	transportCtx := model.WithRunInfo(context.Background(), origin)
 	md, ok := metadata.FromContext(transportCtx)
 	if !ok {
 		t.Fatal("flow lineage was not attached to metadata")
 	}
 	serverCtx := metadata.NewContext(context.Background(), md)
 
-	var modelInfo, toolInfo ai.RunInfo
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
-		modelInfo, _ = ai.RunInfoFrom(ctx)
-		result := opts.ToolHandler(ctx, ai.ToolCall{ID: "call-1", Name: "lookup"})
-		return &ai.Response{Reply: result.Content}, nil
+	var modelInfo, toolInfo model.RunInfo
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
+		modelInfo, _ = model.RunInfoFrom(ctx)
+		result := opts.ToolHandler(ctx, model.ToolCall{ID: "call-1", Name: "lookup"})
+		return &model.Response{Reply: result.Content}, nil
 	}
 	defer func() { fakeGen = nil }()
 
 	st := store.NewMemoryStore()
 	a := newTestAgent(Name("ops-agent"), WithStore(st), WithTool("lookup", "look up service state", nil,
 		func(ctx context.Context, _ map[string]any) (string, error) {
-			toolInfo, _ = ai.RunInfoFrom(ctx)
+			toolInfo, _ = model.RunInfoFrom(ctx)
 			return "ready", nil
 		}))
 	var rsp pb.ChatResponse
@@ -132,7 +132,7 @@ func TestChatPreservesTransportedFlowLineageThroughToolExecution(t *testing.T) {
 	if rsp.RunId == "" || rsp.RunId == origin.RunID {
 		t.Fatalf("child run id = %q, want a distinct agent run", rsp.RunId)
 	}
-	for label, got := range map[string]ai.RunInfo{"model": modelInfo, "tool": toolInfo} {
+	for label, got := range map[string]model.RunInfo{"model": modelInfo, "tool": toolInfo} {
 		if got.RunID != rsp.RunId || got.ParentID != origin.RunID || got.Agent != "ops-agent" ||
 			got.Flow != origin.Flow || got.Step != origin.Step || got.Dispatch != origin.Dispatch || got.Trigger != origin.Trigger {
 			t.Fatalf("%s RunInfo = %#v, want transported flow lineage and child agent identity", label, got)
@@ -165,10 +165,10 @@ func TestResumeRestoresPersistedFlowLineage(t *testing.T) {
 	if err := cp.Save(context.Background(), run); err != nil {
 		t.Fatal(err)
 	}
-	var got ai.RunInfo
-	fakeGen = func(ctx context.Context, opts ai.Options, req *ai.Request) (*ai.Response, error) {
-		got, _ = ai.RunInfoFrom(ctx)
-		return &ai.Response{Reply: "resumed"}, nil
+	var got model.RunInfo
+	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
+		got, _ = model.RunInfoFrom(ctx)
+		return &model.Response{Reply: "resumed"}, nil
 	}
 	defer func() { fakeGen = nil }()
 

@@ -31,21 +31,21 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	codecbytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 
 	// Register default providers.
-	_ "go-micro.dev/v6/ai/anthropic"
-	_ "go-micro.dev/v6/ai/atlascloud"
-	_ "go-micro.dev/v6/ai/gemini"
-	_ "go-micro.dev/v6/ai/groq"
-	_ "go-micro.dev/v6/ai/mistral"
-	_ "go-micro.dev/v6/ai/openai"
-	_ "go-micro.dev/v6/ai/together"
+	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/atlascloud"
+	_ "go-micro.dev/v6/model/gemini"
+	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/together"
 )
 
 // Flow is an event-driven LLM orchestration unit. It subscribes to
@@ -54,8 +54,8 @@ import (
 type Flow struct {
 	name         string
 	opts         Options
-	model        ai.Model
-	toolSet      *ai.Tools
+	model        model.Model
+	toolSet      *model.Tools
 	client       client.Client
 	tmpl         *template.Template
 	log          logger.Logger
@@ -116,24 +116,24 @@ func New(name string, opts ...Option) *Flow {
 func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Client) error {
 	f.client = cl
 	f.reg = reg
-	f.toolSet = ai.NewTools(reg, ai.ToolClient(cl))
+	f.toolSet = model.NewTools(reg, model.ToolClient(cl))
 
 	// A flow that dispatches to an agent doesn't run its own model — the
 	// agent is the engine. Otherwise, set up the augmented LLM.
 	if f.opts.Agent == "" {
-		var modelOpts []ai.Option
+		var modelOpts []model.Option
 		if f.opts.APIKey != "" {
-			modelOpts = append(modelOpts, ai.WithAPIKey(f.opts.APIKey))
+			modelOpts = append(modelOpts, model.WithAPIKey(f.opts.APIKey))
 		}
 		if f.opts.Model != "" {
-			modelOpts = append(modelOpts, ai.WithModel(f.opts.Model))
+			modelOpts = append(modelOpts, model.WithModel(f.opts.Model))
 		}
 		if f.opts.BaseURL != "" {
-			modelOpts = append(modelOpts, ai.WithBaseURL(f.opts.BaseURL))
+			modelOpts = append(modelOpts, model.WithBaseURL(f.opts.BaseURL))
 		}
-		modelOpts = append(modelOpts, ai.WithTools(f.toolSet))
+		modelOpts = append(modelOpts, model.WithTools(f.toolSet))
 
-		f.model = ai.New(f.opts.Provider, modelOpts...)
+		f.model = model.New(f.opts.Provider, modelOpts...)
 		if f.model == nil {
 			return fmt.Errorf("unknown provider: %s", f.opts.Provider)
 		}
@@ -142,7 +142,7 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 	if f.opts.TriggerTopic != "" {
 		sub, err := br.Subscribe(f.opts.TriggerTopic, func(p broker.Event) error {
 			data := string(p.Message().Body)
-			ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{Dispatch: "broker", Trigger: f.opts.TriggerTopic})
+			ctx := model.WithRunInfo(context.Background(), model.RunInfo{Dispatch: "broker", Trigger: f.opts.TriggerTopic})
 			if err := f.Execute(ctx, data); err != nil {
 				f.log.Logf(logger.ErrorLevel, "Flow %s failed: %v", f.name, err)
 			}
@@ -224,10 +224,10 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 	}
 
 	runID := uuid.New().String()
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	info.RunID = runID
 	info.Flow = f.name
-	ctx = ai.WithRunInfo(ctx, info)
+	ctx = model.WithRunInfo(ctx, info)
 
 	start := time.Now()
 
@@ -251,7 +251,7 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		result.Duration = time.Since(start).Seconds()
 		if err != nil {
 			result.Error = err.Error()
-			result.ErrorKind = string(ai.ClassifyError(err))
+			result.ErrorKind = string(model.ClassifyError(err))
 			f.record(result)
 			return err
 		}
@@ -267,12 +267,12 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 	if err != nil {
 		result.Duration = time.Since(start).Seconds()
 		result.Error = err.Error()
-		result.ErrorKind = string(ai.ClassifyError(err))
+		result.ErrorKind = string(model.ClassifyError(err))
 		f.record(result)
 		return fmt.Errorf("discover tools: %w", err)
 	}
 
-	resp, err := f.model.Generate(ctx, &ai.Request{
+	resp, err := f.model.Generate(ctx, &model.Request{
 		Prompt:       prompt,
 		SystemPrompt: f.opts.SystemPrompt,
 		Tools:        discovered,
@@ -281,7 +281,7 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 
 	if err != nil {
 		result.Error = err.Error()
-		result.ErrorKind = string(ai.ClassifyError(err))
+		result.ErrorKind = string(model.ClassifyError(err))
 		f.record(result)
 		return err
 	}
@@ -304,7 +304,7 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 // callAgent hands the rendered prompt to a registered agent's Agent.Chat
 // endpoint over RPC and returns its reply.
 func (f *Flow) callAgent(ctx context.Context, name, message string) (string, error) {
-	info, _ := ai.RunInfoFrom(ctx)
+	info, _ := model.RunInfoFrom(ctx)
 	body, _ := json.Marshal(map[string]string{"message": message, "parent_id": info.RunID})
 	req := f.client.NewRequest(name, "Agent.Chat", &codecbytes.Frame{Data: body})
 	var rsp codecbytes.Frame

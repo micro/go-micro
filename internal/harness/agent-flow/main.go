@@ -23,10 +23,10 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/internal/harness/harnessutil"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/service"
 	"go-micro.dev/v6/store"
@@ -128,27 +128,27 @@ func (s *NotifyService) count() int {
 // mock LLM — the only fake. It reasons by the tools it's offered.
 // ---------------------------------------------------------------------------
 
-type mockModel struct{ opts ai.Options }
+type mockModel struct{ opts model.Options }
 
-func newMock(opts ...ai.Option) ai.Model {
+func newMock(opts ...model.Option) model.Model {
 	m := &mockModel{}
 	_ = m.Init(opts...)
 	return m
 }
 
-func (m *mockModel) Init(opts ...ai.Option) error {
+func (m *mockModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "mock" }
-func (m *mockModel) Stream(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (ai.Stream, error) {
+func (m *mockModel) Options() model.Options { return m.opts }
+func (m *mockModel) String() string         { return "mock" }
+func (m *mockModel) Stream(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (model.Stream, error) {
 	return nil, fmt.Errorf("stream not supported by mock")
 }
 
-func findTool(tools []ai.Tool, sub string) string {
+func findTool(tools []model.Tool, sub string) string {
 	for _, t := range tools {
 		if strings.Contains(t.Name, sub) {
 			return t.Name
@@ -161,11 +161,11 @@ func (m *mockModel) call(name string, input map[string]any) {
 	args, _ := json.Marshal(input)
 	fmt.Printf("  \033[33m[onboarder]\033[0m → %s(%s)\n", name, args)
 	if m.opts.ToolHandler != nil {
-		m.opts.ToolHandler(context.Background(), ai.ToolCall{Name: name, Input: input})
+		m.opts.ToolHandler(context.Background(), model.ToolCall{Name: name, Input: input})
 	}
 }
 
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	owner := "alice@acme.com"
 	if create := findTool(req.Tools, "Create"); create != "" {
 		m.call(create, map[string]any{"owner": owner})
@@ -173,7 +173,7 @@ func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.Gener
 	if send := findTool(req.Tools, "Send"); send != "" {
 		m.call(send, map[string]any{"to": owner, "message": "Welcome — your workspace is ready."})
 	}
-	return &ai.Response{Answer: "Onboarded " + owner + "."}, nil
+	return &model.Response{Answer: "Onboarded " + owner + "."}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +233,7 @@ func main() {
 
 	apiKey := ""
 	if *provider == "mock" {
-		ai.Register("mock", newMock)
+		model.Register("mock", newMock)
 	} else {
 		apiKey = providerKey(*provider)
 		if apiKey == "" {

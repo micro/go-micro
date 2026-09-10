@@ -24,15 +24,15 @@ import (
 	"strings"
 	"time"
 
-	"go-micro.dev/v6/ai"
-	_ "go-micro.dev/v6/ai/anthropic"
-	_ "go-micro.dev/v6/ai/atlascloud"
-	_ "go-micro.dev/v6/ai/gemini"
-	_ "go-micro.dev/v6/ai/groq"
-	_ "go-micro.dev/v6/ai/minimax"
-	_ "go-micro.dev/v6/ai/mistral"
-	_ "go-micro.dev/v6/ai/openai"
-	_ "go-micro.dev/v6/ai/together"
+	"go-micro.dev/v6/model"
+	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/atlascloud"
+	_ "go-micro.dev/v6/model/gemini"
+	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/minimax"
+	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/together"
 )
 
 const defaultHarnesses = "agent,universe,agent-flow,plan-delegate,a2a-streaming,a2a-stream-fallback"
@@ -79,7 +79,7 @@ func main() {
 		printCapabilityMatrix()
 	}
 	if *capabilityMarkdownFlag != "" {
-		if err := writeCapabilityMarkdown(*capabilityMarkdownFlag, ai.CapabilityRows()); err != nil {
+		if err := writeCapabilityMarkdown(*capabilityMarkdownFlag, model.CapabilityRows()); err != nil {
 			fmt.Fprintf(os.Stderr, "write capabilities markdown: %v\n", err)
 			os.Exit(1)
 		}
@@ -120,7 +120,7 @@ func main() {
 	summary := conformanceSummary{
 		Providers:    providers,
 		Harnesses:    harnesses,
-		Capabilities: ai.CapabilityRows(),
+		Capabilities: model.CapabilityRows(),
 		Results:      results,
 		Passed:       ran,
 		Skipped:      skipped,
@@ -158,13 +158,13 @@ type conformanceResult struct {
 }
 
 type conformanceSummary struct {
-	Providers    []string            `json:"providers"`
-	Harnesses    []string            `json:"harnesses"`
-	Capabilities []ai.CapabilityRow  `json:"capabilities"`
-	Results      []conformanceResult `json:"results"`
-	Passed       int                 `json:"passed"`
-	Skipped      int                 `json:"skipped"`
-	Failed       int                 `json:"failed"`
+	Providers    []string              `json:"providers"`
+	Harnesses    []string              `json:"harnesses"`
+	Capabilities []model.CapabilityRow `json:"capabilities"`
+	Results      []conformanceResult   `json:"results"`
+	Passed       int                   `json:"passed"`
+	Skipped      int                   `json:"skipped"`
+	Failed       int                   `json:"failed"`
 }
 
 func missingKeyResults(provider string, harnesses []string, status, detail string) []conformanceResult {
@@ -190,7 +190,7 @@ func writeSummaryJSON(path string, summary conformanceSummary) error {
 	return os.WriteFile(path, b, 0o644)
 }
 
-func writeCapabilityMarkdown(path string, rows []ai.CapabilityRow) error {
+func writeCapabilityMarkdown(path string, rows []model.CapabilityRow) error {
 	return os.WriteFile(path, []byte(capabilityMarkdown(rows)), 0o644)
 }
 
@@ -219,7 +219,7 @@ func writeSummaryMarkdown(path string, summary conformanceSummary) error {
 	return os.WriteFile(path, []byte(b.String()), 0o644)
 }
 
-func capabilityMarkdown(rows []ai.CapabilityRow) string {
+func capabilityMarkdown(rows []model.CapabilityRow) string {
 	var b strings.Builder
 	b.WriteString("| Provider | Model | Image | Video | Streaming | Tool streaming |\n")
 	b.WriteString("| --- | --- | --- | --- | --- | --- |\n")
@@ -266,7 +266,7 @@ func mark(ok bool) string {
 func printCapabilityMatrix() {
 	fmt.Println("Provider capability matrix:")
 	fmt.Println("provider     model  image  video  stream  tool-stream")
-	for _, row := range ai.CapabilityRows() {
+	for _, row := range model.CapabilityRows() {
 		fmt.Printf("%-12s %-5s  %-5s  %-5s  %-6s  %-11s\n", row.Provider, yesNo(row.Model), yesNo(row.Image), yesNo(row.Video), yesNo(row.Stream), yesNo(row.ToolStream))
 	}
 	fmt.Println()

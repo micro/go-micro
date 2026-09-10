@@ -22,7 +22,7 @@ import (
 
 	go_micro "go-micro.dev/v6"
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
 )
@@ -57,34 +57,34 @@ func (devPayer) Pay(ctx context.Context, req x402.Requirements) (string, error) 
 	return paymentToken, nil
 }
 
-type mockModel struct{ opts ai.Options }
+type mockModel struct{ opts model.Options }
 
-func newMock(opts ...ai.Option) ai.Model {
+func newMock(opts ...model.Option) model.Model {
 	m := &mockModel{}
 	_ = m.Init(opts...)
 	return m
 }
 
-func (m *mockModel) Init(opts ...ai.Option) error {
+func (m *mockModel) Init(opts ...model.Option) error {
 	for _, o := range opts {
 		o(&m.opts)
 	}
 	return nil
 }
-func (m *mockModel) Options() ai.Options { return m.opts }
-func (m *mockModel) String() string      { return "agent-x402-buyer-mock" }
-func (m *mockModel) Stream(context.Context, *ai.Request, ...ai.GenerateOption) (ai.Stream, error) {
+func (m *mockModel) Options() model.Options { return m.opts }
+func (m *mockModel) String() string         { return "agent-x402-buyer-mock" }
+func (m *mockModel) Stream(context.Context, *model.Request, ...model.GenerateOption) (model.Stream, error) {
 	return nil, fmt.Errorf("stream not supported by agent-x402-buyer mock")
 }
 
-func (m *mockModel) Generate(ctx context.Context, req *ai.Request, _ ...ai.GenerateOption) (*ai.Response, error) {
+func (m *mockModel) Generate(ctx context.Context, req *model.Request, _ ...model.GenerateOption) (*model.Response, error) {
 	for _, tool := range req.Tools {
 		if tool.Name == paidToolName && m.opts.ToolHandler != nil {
-			out := m.opts.ToolHandler(ctx, ai.ToolCall{ID: "paid-brief", Name: tool.Name, Input: map[string]any{"url": req.Prompt}})
-			return &ai.Response{Answer: fmt.Sprintf("Paid tool returned: %s", out.Content)}, nil
+			out := m.opts.ToolHandler(ctx, model.ToolCall{ID: "paid-brief", Name: tool.Name, Input: map[string]any{"url": req.Prompt}})
+			return &model.Response{Answer: fmt.Sprintf("Paid tool returned: %s", out.Content)}, nil
 		}
 	}
-	return &ai.Response{Answer: "No paid tool was available."}, nil
+	return &model.Response{Answer: "No paid tool was available."}, nil
 }
 
 func paidToolServer(fac *devFacilitator) *httptest.Server {
@@ -107,7 +107,7 @@ func paidToolServer(fac *devFacilitator) *httptest.Server {
 }
 
 func run(w io.Writer) error {
-	ai.Register("agent-x402-buyer-mock", newMock)
+	model.Register("agent-x402-buyer-mock", newMock)
 
 	fac := &devFacilitator{}
 	srv := paidToolServer(fac)

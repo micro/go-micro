@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
 	"go-micro.dev/v6/service"
@@ -24,7 +24,7 @@ import (
 // broker, agent loop, store; only the LLM is mocked. No mDNS, no sleeps
 // beyond polling for the asynchronous side effect.
 func TestEventTriggersAgentNoPrompt(t *testing.T) {
-	ai.Register("mock", newMock)
+	model.Register("mock", newMock)
 
 	reg := registry.NewMemoryRegistry()
 	br := broker.NewMemoryBroker()

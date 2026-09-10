@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"go-micro.dev/v6/ai"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
@@ -30,7 +30,7 @@ type ToolFunc func(ctx context.Context, input map[string]any) (string, error)
 
 // customTool is a developer-registered tool beyond the agent's services.
 type customTool struct {
-	def     ai.Tool
+	def     model.Tool
 	handler ToolFunc
 }
 
@@ -132,7 +132,7 @@ type Options struct {
 	tools []customTool
 	// wrappers are developer-registered tool-execution wrappers
 	// (see WrapTool), applied outside the built-in guardrails.
-	wrappers []ai.ToolWrapper
+	wrappers []model.ToolWrapper
 }
 
 func newOptions(opts ...Option) Options {
@@ -388,14 +388,14 @@ func WithCheckpoint(c flow.Checkpoint) Option {
 // result, including refusals. Multiple wrappers compose outermost-first.
 //
 //	micro.NewAgent("worker", micro.AgentWrapTool(
-//	    func(next ai.ToolHandler) ai.ToolHandler {
-//	        return func(ctx context.Context, call ai.ToolCall) ai.ToolResult {
+//	    func(next model.ToolHandler) model.ToolHandler {
+//	        return func(ctx context.Context, call model.ToolCall) model.ToolResult {
 //	            res := next(ctx, call)
 //	            log.Printf("id=%s tool=%s", call.ID, call.Name)
 //	            return res
 //	        }
 //	    }))
-func WrapTool(w ...ai.ToolWrapper) Option {
+func WrapTool(w ...model.ToolWrapper) Option {
 	return func(o *Options) {
 		o.wrappers = append(o.wrappers, w...)
 	}
@@ -407,7 +407,7 @@ func WrapTool(w ...ai.ToolWrapper) Option {
 func WithTool(name, description string, properties map[string]any, handler ToolFunc) Option {
 	return func(o *Options) {
 		o.tools = append(o.tools, customTool{
-			def: ai.Tool{
+			def: model.Tool{
 				Name:         name,
 				OriginalName: name,
 				Description:  description,

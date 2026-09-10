@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/ai"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
@@ -175,10 +175,10 @@ func TestFlowResumeWithRejectsNonWaiting(t *testing.T) {
 }
 
 func TestFlowStepContextIncludesRunInfo(t *testing.T) {
-	var got ai.RunInfo
+	var got model.RunInfo
 	step := Step{Name: "inspect", Run: func(ctx context.Context, in State) (State, error) {
 		var ok bool
-		got, ok = ai.RunInfoFrom(ctx)
+		got, ok = model.RunInfoFrom(ctx)
 		if !ok {
 			t.Fatal("RunInfo missing from step context")
 		}
@@ -191,7 +191,7 @@ func TestFlowStepContextIncludesRunInfo(t *testing.T) {
 		WithCheckpoint(StoreCheckpoint(mem, "correlated")),
 		Steps(step),
 	)
-	ctx := ai.WithRunInfo(context.Background(), ai.RunInfo{RunID: "agent-run-1", Agent: "planner"})
+	ctx := model.WithRunInfo(context.Background(), model.RunInfo{RunID: "agent-run-1", Agent: "planner"})
 	if err := f.Execute(ctx, "start"); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -660,15 +660,15 @@ func TestFlowFailureRecordsErrorKind(t *testing.T) {
 	if len(runs) != 1 {
 		t.Fatalf("runs = %d, want 1", len(runs))
 	}
-	if got := runs[0].Steps[0].ErrorKind; got != string(ai.ErrorKindRateLimited) {
-		t.Fatalf("step error kind = %q, want %q", got, ai.ErrorKindRateLimited)
+	if got := runs[0].Steps[0].ErrorKind; got != string(model.ErrorKindRateLimited) {
+		t.Fatalf("step error kind = %q, want %q", got, model.ErrorKindRateLimited)
 	}
 
 	results := f.Results()
 	if len(results) != 1 {
 		t.Fatalf("results = %d, want 1", len(results))
 	}
-	if got := results[0].ErrorKind; got != string(ai.ErrorKindRateLimited) {
-		t.Fatalf("result error kind = %q, want %q", got, ai.ErrorKindRateLimited)
+	if got := results[0].ErrorKind; got != string(model.ErrorKindRateLimited) {
+		t.Fatalf("result error kind = %q, want %q", got, model.ErrorKindRateLimited)
 	}
 }

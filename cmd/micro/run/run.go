@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	"go-micro.dev/v6/ai"
 	clt "go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
 	"go-micro.dev/v6/cmd/micro/cli/generate"
@@ -27,15 +26,16 @@ import (
 	"go-micro.dev/v6/cmd/micro/run/config"
 	"go-micro.dev/v6/cmd/micro/run/watcher"
 	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 
-	_ "go-micro.dev/v6/ai/anthropic"
-	_ "go-micro.dev/v6/ai/atlascloud"
-	_ "go-micro.dev/v6/ai/gemini"
-	_ "go-micro.dev/v6/ai/groq"
-	_ "go-micro.dev/v6/ai/mistral"
-	_ "go-micro.dev/v6/ai/openai"
-	_ "go-micro.dev/v6/ai/together"
+	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/atlascloud"
+	_ "go-micro.dev/v6/model/gemini"
+	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/together"
 )
 
 // Color codes for log output
@@ -673,7 +673,7 @@ func runConsole(sigCh chan os.Signal) {
 		}
 	}
 	if provider == "" {
-		provider = ai.AutoDetectProvider("")
+		provider = model.AutoDetectProvider("")
 	}
 
 	if apiKey == "" {
@@ -690,14 +690,14 @@ func runConsole(sigCh chan os.Signal) {
 	// Set up tools and model
 	reg := registry.DefaultRegistry
 	cl := clt.DefaultClient
-	tools := ai.NewTools(reg, ai.ToolClient(cl))
+	tools := model.NewTools(reg, model.ToolClient(cl))
 
-	var modelOpts []ai.Option
-	modelOpts = append(modelOpts, ai.WithAPIKey(apiKey))
-	modelOpts = append(modelOpts, ai.WithToolHandler(tools.Handler()))
-	m := ai.New(provider, modelOpts...)
+	var modelOpts []model.Option
+	modelOpts = append(modelOpts, model.WithAPIKey(apiKey))
+	modelOpts = append(modelOpts, model.WithToolHandler(tools.Handler()))
+	m := model.New(provider, modelOpts...)
 
-	hist := ai.NewHistory(50)
+	hist := model.NewHistory(50)
 
 	// Build system prompt with service list
 	discovered, _ := tools.Discover()
@@ -739,7 +739,7 @@ func runConsole(sigCh chan os.Signal) {
 			}
 
 			hist.Add("user", line)
-			resp, err := m.Generate(context.Background(), &ai.Request{
+			resp, err := m.Generate(context.Background(), &model.Request{
 				Prompt:       line,
 				SystemPrompt: sysPrompt,
 				Tools:        discovered,

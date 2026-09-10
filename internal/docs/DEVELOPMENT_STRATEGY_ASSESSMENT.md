@@ -103,7 +103,7 @@ There are many targeted examples, but the strategy needs one polished real-world
    - Expose `micro runs` / `micro history` as first-class inspection commands if not already complete.
 
 3. **Streaming end to end**
-   - Implement `ai.Stream` uniformly where provider support exists.
+   - Implement `model.Stream` uniformly where provider support exists.
    - Carry streaming through `micro chat`, agent `Ask`/`Chat`, A2A `message/stream`, and any UI surface that remains.
 
 4. **Human-in-the-loop state**

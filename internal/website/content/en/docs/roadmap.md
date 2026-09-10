@@ -47,7 +47,7 @@ The priority is that what exists works everywhere, under real conditions.
 
 ## Next — agentic depth
 
-- **Streaming.** Broaden provider-backed `ai.Stream` coverage and keep chat plus A2A `message/stream` working end to end for real chat and long-task UX.
+- **Streaming.** Broaden provider-backed `model.Stream` coverage and keep chat plus A2A `message/stream` working end to end for real chat and long-task UX.
 - **Resume operations polish.** Keep improving CLI/docs breadcrumbs for finding
   pending agent runs and deciding whether to call resume, resume-input, or stream
   resume in production.
