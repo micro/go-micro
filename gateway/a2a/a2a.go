@@ -33,6 +33,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -74,6 +75,12 @@ type Options struct {
 	// time (DNS-rebinding safe). Set this to permit a trusted in-cluster
 	// receiver, or to narrow delivery to an allowlist.
 	AllowPushURL func(*url.URL) error
+	// NAT64Prefixes lists network-specific RFC 6052 translation prefixes used
+	// by the gateway's network. Supported prefix lengths are /32, /40, /48,
+	// /56, /64, and /96. The default push URL guard decodes addresses under
+	// these prefixes and rejects callbacks whose embedded IPv4 is private or
+	// otherwise blocked.
+	NAT64Prefixes []net.IPNet
 	// AP2PublicKey, when set, verifies AP2 payment/checkout mandates carried on
 	// incoming A2A messages against this Ed25519 key and records the outcome in
 	// each task's ap2Verifications (signature + task/context binding). When
@@ -104,6 +111,7 @@ func New(opts Options) *Gateway {
 	}
 	opts.BaseURL = strings.TrimRight(opts.BaseURL, "/")
 	g := &Gateway{opts: opts, disp: newDispatcher()}
+	g.disp.setNAT64Prefixes(opts.NAT64Prefixes)
 	if opts.AllowPushURL != nil {
 		// Operator owns the trust decision: use their policy and skip the
 		// built-in private-IP dial guard so trusted in-cluster hosts resolve.
@@ -142,6 +150,14 @@ func WithPushURLPolicy(allow func(*url.URL) error) AgentHandlerOption {
 		}
 		d.allowPushURL = allow
 		d.guardPushDial = false
+	}
+}
+
+// WithPushNAT64Prefixes configures the network-specific RFC 6052 translation
+// prefixes used by an embedded agent handler. See Options.NAT64Prefixes.
+func WithPushNAT64Prefixes(prefixes ...net.IPNet) AgentHandlerOption {
+	return func(d *dispatcher) {
+		d.setNAT64Prefixes(prefixes)
 	}
 }
 
@@ -582,8 +598,10 @@ type dispatcher struct {
 	// allowPushURL authorizes an outbound push-notification callback URL; nil
 	// means the default SSRF-safe policy. guardPushDial applies the private-IP
 	// dial guard (on unless an operator supplied a custom policy).
-	allowPushURL  func(*url.URL) error
-	guardPushDial bool
+	allowPushURL   func(*url.URL) error
+	guardPushDial  bool
+	nat64Prefixes  []net.IPNet
+	pushHTTPClient *http.Client
 
 	// ap2Verify, when non-nil, verifies each AP2 mandate carried on a task and
 	// records the result in the task's AP2Verifications. Nil = carry unverified.
@@ -592,11 +610,12 @@ type dispatcher struct {
 
 func newDispatcher() *dispatcher {
 	return &dispatcher{
-		tasks:         map[string]*Task{},
-		pushConfigs:   map[string]PushNotificationConfig{},
-		watchers:      map[string]map[chan *Task]struct{}{},
-		allowPushURL:  defaultPushURLPolicy,
-		guardPushDial: true,
+		tasks:          map[string]*Task{},
+		pushConfigs:    map[string]PushNotificationConfig{},
+		watchers:       map[string]map[chan *Task]struct{}{},
+		allowPushURL:   defaultPushURLPolicy,
+		guardPushDial:  true,
+		pushHTTPClient: newPushGuardClient(nil),
 	}
 }
 

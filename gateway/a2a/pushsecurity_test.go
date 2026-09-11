@@ -83,6 +83,54 @@ func TestPushDialControlBlocksPrivate(t *testing.T) {
 	}
 }
 
+func TestRFC6052NetworkSpecificPrefixes(t *testing.T) {
+	want := net.IPv4(169, 254, 169, 254)
+	cases := []struct {
+		bits    int
+		indexes [4]int
+	}{
+		{32, [4]int{4, 5, 6, 7}},
+		{40, [4]int{5, 6, 7, 9}},
+		{48, [4]int{6, 7, 9, 10}},
+		{56, [4]int{7, 9, 10, 11}},
+		{64, [4]int{9, 10, 11, 12}},
+		{96, [4]int{12, 13, 14, 15}},
+	}
+	for _, tc := range cases {
+		prefix := net.IPNet{IP: net.ParseIP("2001:db8::"), Mask: net.CIDRMask(tc.bits, 128)}
+		ip := append(net.IP(nil), prefix.IP.To16()...)
+		for i, index := range tc.indexes {
+			ip[index] = want[i+12]
+		}
+		if got := rfc6052IPv4(ip, prefix); got == nil || !got.Equal(want) {
+			t.Errorf("rfc6052IPv4(%s, /%d) = %v, want %s", ip, tc.bits, got, want)
+		}
+		if !blockedPushIP(ip, prefix) {
+			t.Errorf("blockedPushIP(%s, /%d) = false, want true", ip, tc.bits)
+		}
+	}
+
+	prefix := net.IPNet{IP: net.ParseIP("2001:db8:1234::"), Mask: net.CIDRMask(48, 128)}
+	nat64IP := func(v4 net.IP) net.IP {
+		ip := append(net.IP(nil), prefix.IP.To16()...)
+		for i, index := range cases[2].indexes {
+			ip[index] = v4.To4()[i]
+		}
+		return ip
+	}
+	private := nat64IP(want)
+	public := nat64IP(net.IPv4(8, 8, 8, 8))
+	if err := defaultPushURLPolicyWithPrefixes(&url.URL{Scheme: "http", Host: "[" + private.String() + "]"}, []net.IPNet{prefix}); err == nil {
+		t.Error("network-specific NAT64 URL wrapping link-local IPv4 was allowed")
+	}
+	if err := pushDialControlWithPrefixes("tcp", "["+private.String()+"]:80", nil, []net.IPNet{prefix}); err == nil {
+		t.Error("network-specific NAT64 dial wrapping link-local IPv4 was allowed")
+	}
+	if blockedPushIP(public, prefix) {
+		t.Error("network-specific NAT64 address wrapping public IPv4 was blocked")
+	}
+}
+
 // TestSetPushConfigRejectsSSRFURL: an untrusted caller cannot register a
 // callback pointing at an internal address — it is refused and nothing stored.
 func TestSetPushConfigRejectsSSRFURL(t *testing.T) {
