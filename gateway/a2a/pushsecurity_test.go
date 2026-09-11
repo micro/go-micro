@@ -28,17 +28,22 @@ func TestDefaultPushURLPolicy(t *testing.T) {
 	defer func() { pushLookupIP = orig }()
 
 	blocked := []string{
-		"http://127.0.0.1/hook",              // loopback
-		"http://169.254.169.254/latest/meta", // cloud metadata (link-local)
-		"http://10.0.0.5/hook",               // RFC1918
-		"http://[::1]/hook",                  // IPv6 loopback
-		"http://[fd00::1]/hook",              // IPv6 ULA (private)
-		"http://0.0.0.0/hook",                // unspecified
-		"http://internal.example/hook",       // hostname → private
-		"http://rebind.example/hook",         // one internal IP among many
-		"ftp://public.example/hook",          // non-http(s) scheme
-		"file:///etc/passwd",                 // scheme
-		"http:///nohost",                     // no host
+		"http://127.0.0.1/hook",                  // loopback
+		"http://169.254.169.254/latest/meta",     // cloud metadata (link-local)
+		"http://10.0.0.5/hook",                   // RFC1918
+		"http://[::1]/hook",                      // IPv6 loopback
+		"http://[fd00::1]/hook",                  // IPv6 ULA (private)
+		"http://0.0.0.0/hook",                    // unspecified
+		"http://internal.example/hook",           // hostname → private
+		"http://rebind.example/hook",             // one internal IP among many
+		"ftp://public.example/hook",              // non-http(s) scheme
+		"file:///etc/passwd",                     // scheme
+		"http:///nohost",                         // no host
+		"http://[2002:a9fe:a9fe::1]/hook",        // 6to4 → 169.254.169.254
+		"http://[64:ff9b::a9fe:a9fe]/hook",       // NAT64 well-known prefix → 169.254.169.254
+		"http://[64:ff9b:1::7f00:1]/hook",        // NAT64 local-use prefix
+		"http://[2001:0:0:0:0:0:80ff:fffe]/hook", // Teredo → client 127.0.0.1
+		"http://[::7f00:1]/hook",                 // IPv4-compatible → 127.0.0.1
 	}
 	for _, raw := range blocked {
 		u, err := url.Parse(raw)
@@ -51,8 +56,9 @@ func TestDefaultPushURLPolicy(t *testing.T) {
 	}
 
 	allowed := []string{
-		"http://93.184.216.34/hook",   // public literal IP
-		"https://public.example/hook", // hostname → public
+		"http://93.184.216.34/hook",      // public literal IP
+		"https://public.example/hook",    // hostname → public
+		"http://[64:ff9b::808:808]/hook", // NAT64 wrapping a public IPv4 (8.8.8.8)
 	}
 	for _, raw := range allowed {
 		u, _ := url.Parse(raw)
@@ -63,7 +69,10 @@ func TestDefaultPushURLPolicy(t *testing.T) {
 }
 
 func TestPushDialControlBlocksPrivate(t *testing.T) {
-	blocked := []string{"127.0.0.1:80", "169.254.169.254:80", "10.0.0.1:443", "[::1]:80", "0.0.0.0:80"}
+	blocked := []string{
+		"127.0.0.1:80", "169.254.169.254:80", "10.0.0.1:443", "[::1]:80", "0.0.0.0:80",
+		"[2002:a9fe:a9fe::1]:80", "[64:ff9b::a9fe:a9fe]:443",
+	}
 	for _, addr := range blocked {
 		if err := pushDialControl("tcp", addr, nil); err == nil {
 			t.Errorf("pushDialControl(%q) = nil, want blocked", addr)
@@ -71,6 +80,54 @@ func TestPushDialControlBlocksPrivate(t *testing.T) {
 	}
 	if err := pushDialControl("tcp", "8.8.8.8:443", nil); err != nil {
 		t.Errorf("pushDialControl(public) = %v, want allowed", err)
+	}
+}
+
+func TestRFC6052NetworkSpecificPrefixes(t *testing.T) {
+	want := net.IPv4(169, 254, 169, 254)
+	cases := []struct {
+		bits    int
+		indexes [4]int
+	}{
+		{32, [4]int{4, 5, 6, 7}},
+		{40, [4]int{5, 6, 7, 9}},
+		{48, [4]int{6, 7, 9, 10}},
+		{56, [4]int{7, 9, 10, 11}},
+		{64, [4]int{9, 10, 11, 12}},
+		{96, [4]int{12, 13, 14, 15}},
+	}
+	for _, tc := range cases {
+		prefix := net.IPNet{IP: net.ParseIP("2001:db8::"), Mask: net.CIDRMask(tc.bits, 128)}
+		ip := append(net.IP(nil), prefix.IP.To16()...)
+		for i, index := range tc.indexes {
+			ip[index] = want[i+12]
+		}
+		if got := rfc6052IPv4(ip, prefix); got == nil || !got.Equal(want) {
+			t.Errorf("rfc6052IPv4(%s, /%d) = %v, want %s", ip, tc.bits, got, want)
+		}
+		if !blockedPushIP(ip, prefix) {
+			t.Errorf("blockedPushIP(%s, /%d) = false, want true", ip, tc.bits)
+		}
+	}
+
+	prefix := net.IPNet{IP: net.ParseIP("2001:db8:1234::"), Mask: net.CIDRMask(48, 128)}
+	nat64IP := func(v4 net.IP) net.IP {
+		ip := append(net.IP(nil), prefix.IP.To16()...)
+		for i, index := range cases[2].indexes {
+			ip[index] = v4.To4()[i]
+		}
+		return ip
+	}
+	private := nat64IP(want)
+	public := nat64IP(net.IPv4(8, 8, 8, 8))
+	if err := defaultPushURLPolicyWithPrefixes(&url.URL{Scheme: "http", Host: "[" + private.String() + "]"}, []net.IPNet{prefix}); err == nil {
+		t.Error("network-specific NAT64 URL wrapping link-local IPv4 was allowed")
+	}
+	if err := pushDialControlWithPrefixes("tcp", "["+private.String()+"]:80", nil, []net.IPNet{prefix}); err == nil {
+		t.Error("network-specific NAT64 dial wrapping link-local IPv4 was allowed")
+	}
+	if blockedPushIP(public, prefix) {
+		t.Error("network-specific NAT64 address wrapping public IPv4 was blocked")
 	}
 }
 
