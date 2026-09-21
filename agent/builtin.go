@@ -689,6 +689,19 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 		return errResult(call.ID, "task is required")
 	}
 	to, _ := input["to"].(string)
+	// Validate before cache lookup or dispatch, including remote agents.
+	if to != "" && a.opts.Services != nil {
+		allowed := false
+		for _, service := range a.opts.Services {
+			if service == to {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return errResult(call.ID, "delegate target is outside the agent's service scope: "+to)
+		}
+	}
 	if cached, ok := a.cachedDelegateResult(call.ID, to, task); ok {
 		return cached
 	}
@@ -719,13 +732,17 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 
 	// Otherwise create a focused, ephemeral sub-agent. Fresh context:
 	// it loads no history and persists none.
-	var svcs []string
+	svcs := a.opts.Services
 	if to != "" {
 		svcs = []string{to}
 	}
 	sub := newEphemeral(
 		Name(a.opts.Name+".sub"),
-		Services(svcs...),
+		func(o *Options) {
+			if svcs != nil {
+				o.Services = append([]string{}, svcs...)
+			}
+		},
 		Prompt("You are a sub-agent handling a single delegated subtask. "+
 			"Complete it using the available tools and report the result concisely."),
 		Provider(a.opts.Provider),

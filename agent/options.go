@@ -162,9 +162,10 @@ func Name(n string) Option {
 	return func(o *Options) { o.Name = n }
 }
 
-// Services sets which services this agent manages.
+// Services restricts which services this agent manages. Calling Services()
+// permits no discovered services; omitting this option permits all services.
 func Services(names ...string) Option {
-	return func(o *Options) { o.Services = names }
+	return func(o *Options) { o.Services = append([]string{}, names...) }
 }
 
 // Prompt sets the system prompt.
