@@ -843,9 +843,9 @@ func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
 		want    []string
 	}{
 		{
-			name:    "README quick start",
+			name:    "README CLI quick start",
 			file:    filepath.Join(root, "README.md"),
-			section: "## Quick Start",
+			section: "## CLI",
 			want: []string{
 				"install troubleshooting guide",
 				"### Fastest start — no API key",
