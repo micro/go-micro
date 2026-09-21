@@ -251,12 +251,30 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 		subOpts = append(subOpts, nats.AckExplicit())
 	}
 
-	if !options.Offset.IsZero() {
-		subOpts = append(subOpts, nats.StartTime(options.Offset))
-	} else if !s.opts.DisableDurableStreams {
-		subOpts = append(subOpts, nats.DeliverAll())
-	} else {
-		subOpts = append(subOpts, nats.DeliverNew())
+	consumerExists := false
+	if !s.opts.DisableDurableStreams {
+		_, err = s.natsJetStreamCtx.ConsumerInfo(topic, options.Group)
+		switch {
+		case err == nil:
+			consumerExists = true
+		case errors.Is(err, nats.ErrConsumerNotFound):
+			// The delivery policy below is used only when creating the durable.
+		default:
+			return nil, errors.Wrap(err, "Error checking durable consumer")
+		}
+	}
+
+	// Delivery policies are immutable, so do not specify one when binding to an
+	// existing durable. This also keeps consumers created by older versions with
+	// DeliverNew compatible after upgrading.
+	if !consumerExists {
+		if !options.Offset.IsZero() {
+			subOpts = append(subOpts, nats.StartTime(options.Offset))
+		} else if !s.opts.DisableDurableStreams {
+			subOpts = append(subOpts, nats.DeliverAll())
+		} else {
+			subOpts = append(subOpts, nats.DeliverNew())
+		}
 	}
 
 	if options.AckWait > 0 {
@@ -265,7 +283,11 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 
 	// connect the subscriber via a queue group only if durable streams are enabled
 	if !s.opts.DisableDurableStreams {
-		subOpts = append(subOpts, nats.Durable(options.Group))
+		if consumerExists {
+			subOpts = append(subOpts, nats.Bind(topic, options.Group))
+		} else {
+			subOpts = append(subOpts, nats.Durable(options.Group))
+		}
 		_, err = s.natsJetStreamCtx.QueueSubscribe(topic, options.Group, handleMsg, subOpts...)
 	} else {
 		subOpts = append(subOpts, nats.ConsumerName(options.Group))
