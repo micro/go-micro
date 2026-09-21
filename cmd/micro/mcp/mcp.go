@@ -72,6 +72,12 @@ Examples:
   # Custom registry
   micro mcp serve --registry consul --registry_address consul:8500`,
 				Flags: []cli.Flag{
+					&cli.StringSliceFlag{
+						Name:    "mcp-allowed-origins",
+						Usage:   "Exact trusted browser origins for MCP (repeatable)",
+						EnvVars: []string{"MICRO_MCP_ALLOWED_ORIGINS"},
+					},
+
 					&cli.StringFlag{
 						Name:  "address",
 						Usage: "HTTP address to listen on (e.g., :3000). If not set, uses stdio.",
@@ -249,10 +255,11 @@ func serveAction(ctx *cli.Context) error {
 
 	// Create MCP server options
 	opts := mcp.Options{
-		Registry: reg,
-		Address:  ctx.String("address"),
-		Context:  context.Background(),
-		Logger:   log.Default(),
+		AllowedOrigins: ctx.StringSlice("mcp-allowed-origins"),
+		Registry:       reg,
+		Address:        ctx.String("address"),
+		Context:        context.Background(),
+		Logger:         log.Default(),
 	}
 
 	// Opt-in x402 payments: a config file (per-tool amounts) or flags.

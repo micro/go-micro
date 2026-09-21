@@ -16,9 +16,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
+var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }} // Origin is checked before Upgrade.
 
 // WebSocketTransport implements MCP JSON-RPC 2.0 over WebSocket.
 // It supports bidirectional streaming for real-time AI agents.
@@ -31,7 +29,7 @@ type wsConn struct {
 	conn    *websocket.Conn
 	writeMu sync.Mutex
 	server  *Server
-	account *auth.Account // set once during initial auth
+	token   string // re-inspected for each tool call
 }
 
 // NewWebSocketTransport creates a WebSocket transport for the MCP server.
@@ -41,31 +39,29 @@ func NewWebSocketTransport(server *Server) *WebSocketTransport {
 
 // ServeHTTP implements http.Handler and upgrades HTTP to WebSocket.
 func (t *WebSocketTransport) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !t.server.checkOrigin(w, r) {
+		return
+	}
+	if t.server.opts.AuthFunc != nil {
+		if err := t.server.opts.AuthFunc(r); err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		t.server.opts.Logger.Printf("[mcp] WebSocket upgrade failed: %v", err)
 		return
 	}
 
-	// Extract bearer token from the upgrade request (if present).
-	var account *auth.Account
-	if t.server.opts.Auth != nil {
-		token := r.Header.Get("Authorization")
-		token = strings.TrimPrefix(token, "Bearer ")
-		// Allow connection-level auth from header. Per-message auth via
-		// _token param is also supported (checked in handleToolsCall).
-		if token != "" {
-			acc, err := t.server.opts.Auth.Inspect(token)
-			if err == nil {
-				account = acc
-			}
-		}
-	}
+	// Retain the credential, not a cached authorization decision.
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
 	wc := &wsConn{
-		conn:    conn,
-		server:  t.server,
-		account: account,
+		conn:   conn,
+		server: t.server,
+		token:  token,
 	}
 
 	t.server.opts.Logger.Printf("[mcp] WebSocket client connected from %s", r.RemoteAddr)
@@ -169,6 +165,16 @@ func (wc *wsConn) handleToolsCall(req *JSONRPCRequest) {
 		return
 	}
 
+	// x402 verification/settlement is HTTP-bound. Never bypass the payment
+	// gate when a caller selects the WebSocket transport instead.
+	if wc.server.opts.Payment != nil {
+		amount := wc.server.opts.Payment.AmountFor(params.Name)
+		if amount != "" && amount != "0" {
+			wc.sendError(req.ID, -32002, "Payment required", "use the HTTP MCP endpoint for paid tools")
+			return
+		}
+	}
+
 	traceID := uuid.New().String()
 
 	// Start OTel span
@@ -176,10 +182,13 @@ func (wc *wsConn) handleToolsCall(req *JSONRPCRequest) {
 	defer span.End()
 
 	// Resolve account: prefer connection-level auth, fall back to per-message _token.
-	account := wc.account
+	var account *auth.Account
 	if wc.server.opts.Auth != nil {
 		if account == nil {
-			token := params.Token
+			token := wc.token
+			if token == "" {
+				token = params.Token
+			}
 			if token == "" {
 				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "missing token"))
 				setSpanError(span, fmt.Errorf("missing token"))
@@ -189,7 +198,7 @@ func (wc *wsConn) handleToolsCall(req *JSONRPCRequest) {
 			}
 			token = strings.TrimPrefix(token, "Bearer ")
 			acc, err := wc.server.opts.Auth.Inspect(token)
-			if err != nil {
+			if err != nil || acc == nil {
 				span.SetAttributes(attribute.Bool(AttrAuthAllowed, false), attribute.String(AttrAuthDeniedReason, "invalid token"))
 				setSpanError(span, fmt.Errorf("invalid token"))
 				wc.server.audit(AuditRecord{TraceID: traceID, Timestamp: time.Now(), Tool: params.Name, Allowed: false, DeniedReason: "invalid token"})

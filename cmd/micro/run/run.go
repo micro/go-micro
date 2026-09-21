@@ -544,10 +544,11 @@ func Run(c *cli.Context) error {
 // limiting, scopes, x402) stay on the standalone `micro gateway` command.
 func buildRunMCPOptions(c *cli.Context, addr string) (mcp.Options, error) {
 	return mcp.Options{
-		Registry: registry.DefaultRegistry,
-		Address:  addr,
-		Context:  context.Background(),
-		Logger:   log.Default(),
+		AllowedOrigins: c.StringSlice("mcp-allowed-origins"),
+		Registry:       registry.DefaultRegistry,
+		Address:        addr,
+		Context:        context.Background(),
+		Logger:         log.Default(),
 	}, nil
 }
 
@@ -837,6 +838,11 @@ Examples:
 				Aliases: []string{"e"},
 				Usage:   "Environment to use (default: development)",
 				EnvVars: []string{"MICRO_ENV"},
+			},
+			&cli.StringSliceFlag{
+				Name:    "mcp-allowed-origins",
+				Usage:   "Exact trusted browser origins for MCP (repeatable)",
+				EnvVars: []string{"MICRO_MCP_ALLOWED_ORIGINS"},
 			},
 			&cli.StringFlag{
 				Name:    "mcp-address",

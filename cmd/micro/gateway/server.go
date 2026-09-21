@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"html/template"
 	"io"
 	"io/fs"
 	"log"
@@ -21,7 +22,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"text/template"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -31,6 +31,7 @@ import (
 	"go-micro.dev/v6/cmd"
 	codecBytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/gateway/mcp"
+	"go-micro.dev/v6/internal/browserorigin"
 	"go-micro.dev/v6/model"
 	_ "go-micro.dev/v6/model/anthropic"
 	_ "go-micro.dev/v6/model/atlascloud"
@@ -166,6 +167,10 @@ func deleteUserTokens(storeInst store.Store, userID string) {
 func authRequired(storeInst store.Store) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != http.MethodGet && r.Method != http.MethodHead && !browserorigin.Allowed(r, []string{"https://" + r.Host}) {
+				http.Error(w, "Forbidden origin", http.StatusForbidden)
+				return
+			}
 			token := extractToken(r)
 			if token == "" {
 				if strings.HasPrefix(r.URL.Path, "/api/") && r.URL.Path != "/api" && r.URL.Path != "/api/" {
@@ -312,9 +317,15 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		authMw := authRequired(storeInst)
 		wrap = wrapAuth(authMw)
 	} else {
-		// No auth in dev mode - pass through handlers unchanged
+		// Local development skips authentication, but still rejects foreign browser origins.
 		wrap = func(h http.HandlerFunc) http.HandlerFunc {
-			return h
+			return func(w http.ResponseWriter, r *http.Request) {
+				if !browserorigin.Allowed(r, []string{"https://" + r.Host}) {
+					http.Error(w, "Forbidden origin", http.StatusForbidden)
+					return
+				}
+				h(w, r)
+			}
 		}
 	}
 
@@ -855,7 +866,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						if ep.Request != nil && len(ep.Request.Values) > 0 {
 							params += "<ul class=no-bullets>"
 							for _, v := range ep.Request.Values {
-								params += fmt.Sprintf("<li><b>%s</b> <span style='color:#888;'>%s</span></li>", v.Name, v.Type)
+								params += fmt.Sprintf("<li><b>%s</b> <span style='color:#888;'>%s</span></li>", template.HTMLEscapeString(v.Name), template.HTMLEscapeString(v.Type))
 							}
 							params += "</ul>"
 						} else {
@@ -864,7 +875,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						if ep.Response != nil && len(ep.Response.Values) > 0 {
 							response += "<ul class=no-bullets>"
 							for _, v := range ep.Response.Values {
-								response += fmt.Sprintf("<li><b>%s</b> <span style='color:#888;'>%s</span></li>", v.Name, v.Type)
+								response += fmt.Sprintf("<li><b>%s</b> <span style='color:#888;'>%s</span></li>", template.HTMLEscapeString(v.Name), template.HTMLEscapeString(v.Type))
 							}
 							response += "</ul>"
 						} else {
@@ -873,8 +884,8 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 						endpoints = append(endpoints, map[string]any{
 							"Name":     ep.Name,
 							"Path":     apiPath,
-							"Params":   params,
-							"Response": response,
+							"Params":   template.HTML(params),
+							"Response": template.HTML(response),
 						})
 					}
 					anchor := strings.ReplaceAll(s.Name, ".", "-")
@@ -1227,7 +1238,7 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 
 	// Auth routes - only registered when auth is enabled
 	if authEnabled {
-		authMw := authRequired(storeInst)
+		authMw := adminRequired(storeInst)
 
 		// loadEndpointScopes returns all stored endpoint scopes from the store
 		loadEndpointScopes := func() map[string][]string {
@@ -1489,6 +1500,10 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 			_ = renderPage(w, tmpls.authUsers, map[string]any{"Title": "Users", "Users": users, "User": user})
 		}))
 		mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodPost && !browserorigin.Allowed(r, []string{"https://" + r.Host}) {
+				http.Error(w, "Forbidden origin", http.StatusForbidden)
+				return
+			}
 			if r.Method == http.MethodGet {
 				loginTmpl, err := template.ParseFS(HTML, "web/templates/base.html", "web/templates/auth_login.html")
 				if err != nil {
@@ -1535,6 +1550,8 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 					Path:     "/",
 					Expires:  time.Now().Add(time.Hour * 24),
 					HttpOnly: true,
+					SameSite: http.SameSiteStrictMode,
+					Secure:   r.TLS != nil,
 				})
 				http.Redirect(w, r, "/", http.StatusSeeOther)
 				return
@@ -1629,10 +1646,11 @@ func Run(c *cli.Context) error {
 func buildMCPOptions(c *cli.Context, addr string) (mcp.Options, error) {
 	logger := log.New(os.Stdout, "[mcp-gateway] ", log.LstdFlags)
 	opts := mcp.Options{
-		Registry: registry.DefaultRegistry,
-		Address:  addr,
-		Context:  c.Context,
-		Logger:   logger,
+		AllowedOrigins: c.StringSlice("mcp-allowed-origins"),
+		Registry:       registry.DefaultRegistry,
+		Address:        addr,
+		Context:        c.Context,
+		Logger:         logger,
 	}
 
 	// x402 payments: a config file (per-tool amounts) or the flags.
@@ -1776,6 +1794,11 @@ func gatewayFlags() []cli.Flag {
 			Usage:   "HTTP address for the dashboard/API",
 			EnvVars: []string{"MICRO_SERVER_ADDRESS"},
 			Value:   ":8080",
+		},
+		&cli.StringSliceFlag{
+			Name:    "mcp-allowed-origins",
+			Usage:   "Exact trusted browser origins for MCP (repeatable)",
+			EnvVars: []string{"MICRO_MCP_ALLOWED_ORIGINS"},
 		},
 		&cli.StringFlag{
 			Name:    "mcp-address",

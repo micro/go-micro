@@ -358,3 +358,31 @@ func main() {
 - [Building AI-Native Services](ai-native-services.md) - End-to-end tutorial
 - [Tool Description Best Practices](tool-descriptions.md) - Write effective documentation
 - [Agent Integration Patterns](agent-patterns.md) - Multi-agent architectures
+
+## Browser origins
+
+HTTP and WebSocket MCP transports now reject cross-origin browser requests by
+default. Native clients that omit `Origin` continue to work. To allow a trusted
+browser application, set exact origins in `mcp.Options.AllowedOrigins`, or pass
+`mcp.WithAllowedOrigins("https://console.example.com")` to `mcp.NewHandler`.
+Wildcards are not accepted. Origin permission does not replace authentication.
+For `micro mcp serve`, `micro gateway`, and `micro run`, use the repeatable
+`--mcp-allowed-origins https://console.example.com` flag or the comma-separated
+`MICRO_MCP_ALLOWED_ORIGINS` environment variable.
+
+Reverse proxies should preserve the original Host. When TLS terminates at a
+proxy, explicitly allow the public HTTPS origin in the MCP options. Do not trust
+arbitrary client-supplied forwarded headers to establish an allowed origin.
+For loopback sockets, a browser-controlled hostname is not sufficient for origin
+authorization; non-loopback hostnames require an explicit trusted origin.
+
+The gateway dashboard's user, token and scope administration pages require an
+administrator account or the configured machine token. Tool invocation scopes,
+including `*`, do not grant dashboard administration privileges.
+
+Streamable HTTP requests and WebSocket upgrades also enforce the configured `AuthFunc`. Bearer credentials
+are inspected on each tool call so an existing connection cannot retain a revoked
+or expired authorization decision.
+
+Paid tools must use the HTTP MCP endpoint for x402 verification and settlement;
+WebSocket calls to priced tools are rejected. Free WebSocket tools are unchanged.
