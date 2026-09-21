@@ -139,10 +139,6 @@ func (s *stream) Publish(topic string, msg interface{}, opts ...events.PublishOp
 		return errors.Wrap(err, "Error encoding event")
 	}
 
-	if _, err := s.ensureStream(topic); err != nil {
-		return err
-	}
-
 	// publish the event to the topic's channel
 	// publish synchronously if configured
 	if s.opts.SyncPublish {

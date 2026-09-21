@@ -39,7 +39,9 @@ func TestDottedSubjectsStableIDsAndSharedStream(t *testing.T) {
 			client, err := natsjs.NewStream(opts...)
 			require.NoError(t, err)
 			defer client.(interface{ Close() error }).Close()
-			// Publish before any consumer exists; retries preserve the ID and deduplicate.
+			ch, err := client.Consume("orders.created.v1", events.WithGroup("created"))
+			require.NoError(t, err)
+			// Retries preserve the ID and deduplicate.
 			require.NoError(t, client.Publish("orders.created.v1", []byte("first"), events.WithID("outbox-1")))
 			require.NoError(t, client.Publish("orders.created.v1", []byte("first"), events.WithID("outbox-1")))
 			info, err := js.StreamInfo(streamName)
@@ -49,8 +51,6 @@ func TestDottedSubjectsStableIDsAndSharedStream(t *testing.T) {
 				require.Equal(t, nats.MemoryStorage, info.Config.Storage)
 				require.EqualValues(t, 100, info.Config.MaxMsgs)
 			}
-			ch, err := client.Consume("orders.created.v1", events.WithGroup("created"))
-			require.NoError(t, err)
 			select {
 			case event := <-ch:
 				require.Equal(t, "outbox-1", event.ID)
@@ -58,6 +58,13 @@ func TestDottedSubjectsStableIDsAndSharedStream(t *testing.T) {
 			case <-time.After(time.Second):
 				t.Fatal("missing event")
 			}
+			// Publisher-only use with an externally provisioned wildcard stream.
+			_, err = js.AddStream(&nats.StreamConfig{Name: "EXTERNAL", Subjects: []string{"external.>"}})
+			require.NoError(t, err)
+			require.NoError(t, client.Publish("external.created", []byte("external"), events.WithID("external-id")))
+			external, err := js.StreamInfo("EXTERNAL")
+			require.NoError(t, err)
+			require.EqualValues(t, 1, external.State.Msgs)
 			if shared {
 				require.NoError(t, client.Publish("orders.updated.v1", []byte("second"), events.WithID("outbox-2")))
 				second, err := client.Consume("orders.updated.v1", events.WithGroup("updated"))

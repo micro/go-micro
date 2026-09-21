@@ -69,8 +69,10 @@ processing must succeed before delivery is confirmed.
 
 Topics are NATS subjects, so dotted names such as `orders.created.v1` work.
 Simple legacy names keep their existing stream names. Other subjects receive a
-stable name from `natsjs.StreamName(topic)`. Publishing or consuming creates a
-missing stream; existing stream configuration is never silently changed.
+stable name from `natsjs.StreamName(topic)`. Consuming creates a missing stream; existing stream configuration is never
+silently changed. Publishing sends directly to the subject, preserving support
+for externally managed shared streams and publisher-only credentials. Provision
+a stream through NATS or start a consumer before publishing.
 
 Configure several subjects on one stream with a per-topic configuration hook:
 
