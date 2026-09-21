@@ -187,7 +187,7 @@ func TestDelegateToRegisteredAgent(t *testing.T) {
 	}
 	defer func() { fakeGen = nil }()
 
-	a := newTestAgent(Name("root"), WithRegistry(reg), WithClient(fc))
+	a := newTestAgent(Name("root"), Services("task"), WithRegistry(reg), WithClient(fc))
 	content := a.handleDelegate(context.Background(), model.ToolCall{Name: "delegate", Input: map[string]any{"task": "notify alice", "to": "comms"}}).Content
 
 	if calledService != "comms" || calledEndpoint != "Agent.Chat" {

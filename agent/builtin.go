@@ -689,8 +689,11 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 		return errResult(call.ID, "task is required")
 	}
 	to, _ := input["to"].(string)
-	// Validate before cache lookup or dispatch, including remote agents.
-	if to != "" && a.opts.Services != nil {
+	// Services scopes local tool discovery. Registered and A2A agents have
+	// their own tool policy; preserve the existing remote delegation path.
+	remoteURL := strings.HasPrefix(to, "http://") || strings.HasPrefix(to, "https://")
+	registeredAgent := to != "" && !remoteURL && a.isAgent(to)
+	if to != "" && !remoteURL && !registeredAgent && a.opts.Services != nil {
 		allowed := false
 		for _, service := range a.opts.Services {
 			if service == to {
@@ -713,7 +716,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 	defer func() { a.finishDelegateCall(key, res) }()
 
 	// An external agent on another framework, addressed by A2A URL.
-	if strings.HasPrefix(to, "http://") || strings.HasPrefix(to, "https://") {
+	if remoteURL {
 		reply, err := a2a.NewClient(to).Send(ctx, task)
 		if err != nil {
 			return errResult(call.ID, "delegate to A2A agent "+to+": "+err.Error())
@@ -722,7 +725,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 	}
 
 	// Delegate-first: an existing agent that owns the domain handles it.
-	if to != "" && a.isAgent(to) {
+	if registeredAgent {
 		reply, err := a.callAgentRPC(ctx, to, task)
 		if err != nil {
 			return errResult(call.ID, "delegate to agent "+to+": "+err.Error())

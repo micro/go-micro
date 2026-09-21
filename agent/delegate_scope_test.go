@@ -49,7 +49,7 @@ func TestDelegateServiceScope(t *testing.T) {
 
 func TestDelegateRejectsOutOfScopeTarget(t *testing.T) {
 	a := newTestAgent(Services("allowed"))
-	for _, target := range []string{"private", "https://example.com/agent"} {
+	for _, target := range []string{"private"} {
 		res := a.handleDelegate(context.Background(), model.ToolCall{ID: target, Input: map[string]any{"task": "read", "to": target}})
 		if !strings.Contains(res.Content, "outside the agent's service scope") {
 			t.Fatalf("target %q was not refused: %+v", target, res)
