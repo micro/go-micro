@@ -118,3 +118,34 @@ func TestControllerFailures(t *testing.T) {
 		t.Fatalf("canceled: %v", err)
 	}
 }
+
+func TestControllerRepairsPortDrift(t *testing.T) {
+	for _, field := range []string{"service-type", "service-name", "service-protocol", "service-target", "container-port", "container-name", "container-protocol"} {
+		t.Run(field, func(t *testing.T) {
+			resource := agentResource()
+			dep, _ := MapDeployment(resource)
+			svc, _ := MapService(resource)
+			switch field {
+			case "service-type":
+				svc.Type = "NodePort"
+			case "service-name":
+				svc.PortName = "wrong"
+			case "service-protocol":
+				svc.Protocol = "UDP"
+			case "service-target":
+				svc.TargetPort = "9000"
+			case "container-port":
+				dep.Pod.Container.Port = 9000
+			case "container-name":
+				dep.Pod.Container.PortName = "wrong"
+			case "container-protocol":
+				dep.Pod.Container.Protocol = "UDP"
+			}
+			client := &fakeWorkloadClient{observed: Observed{Deployment: &dep, Service: &svc, ReadyReplicas: 2}}
+			conditions, err := (Controller{Client: client}).Reconcile(context.Background(), resource)
+			if err != nil || len(client.objects) != 1 || findCondition(conditions, "Ready").Status != "False" {
+				t.Fatalf("drift ignored: actions=%v conditions=%v err=%v", client.objects, conditions, err)
+			}
+		})
+	}
+}

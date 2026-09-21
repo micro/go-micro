@@ -63,6 +63,9 @@ type PodTemplate struct {
 
 // Container describes the single Go Micro workload container.
 type Container struct {
+	Port        int32
+	PortName    string
+	Protocol    string
 	Name        string
 	Image       string
 	Command     []string
@@ -119,6 +122,9 @@ func MapDeployment(resource Resource) (Deployment, error) {
 			Labels: copyMap(labels),
 			Container: Container{
 				Name:        name,
+				Port:        workloadPort(resource),
+				PortName:    "rpc",
+				Protocol:    "TCP",
 				Image:       image,
 				Command:     append([]string(nil), resource.Spec.Command...),
 				Args:        append([]string(nil), resource.Spec.Args...),

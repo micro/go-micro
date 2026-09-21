@@ -10,11 +10,15 @@ import (
 // NetworkService is the ClusterIP Service shape owned by the alpha controller.
 // Cluster-assigned addresses are deliberately excluded from reconciliation.
 type NetworkService struct {
-	Name      string
-	Namespace string
-	Labels    map[string]string
-	Selector  map[string]string
-	Port      int32
+	Type       string
+	PortName   string
+	Protocol   string
+	TargetPort string
+	Name       string
+	Namespace  string
+	Labels     map[string]string
+	Selector   map[string]string
+	Port       int32
 }
 
 func workloadPort(resource Resource) int32 {
@@ -30,7 +34,7 @@ func MapService(resource Resource) (NetworkService, error) {
 	if err != nil {
 		return NetworkService{}, err
 	}
-	return NetworkService{Name: deployment.Name, Namespace: deployment.Namespace, Labels: copyMap(deployment.Labels), Selector: copyMap(deployment.Pod.Labels), Port: workloadPort(resource)}, nil
+	return NetworkService{Type: "ClusterIP", PortName: "rpc", Protocol: "TCP", TargetPort: "rpc", Name: deployment.Name, Namespace: deployment.Namespace, Labels: copyMap(deployment.Labels), Selector: copyMap(deployment.Pod.Labels), Port: workloadPort(resource)}, nil
 }
 
 // WorkloadAction contains a Kubernetes API object ready for an adapter to apply.
@@ -63,7 +67,7 @@ func ReconcileWorkloads(resource Resource, observed Observed) ([]WorkloadAction,
 	for _, key := range deployment.Pod.Container.EnvironmentKeys() {
 		env = append(env, map[string]string{"name": key, "value": deployment.Pod.Container.Environment[key]})
 	}
-	container := map[string]interface{}{"name": deployment.Pod.Container.Name, "image": deployment.Pod.Container.Image, "env": env, "ports": []map[string]interface{}{{"name": "rpc", "containerPort": service.Port}}}
+	container := map[string]interface{}{"name": deployment.Pod.Container.Name, "image": deployment.Pod.Container.Image, "env": env, "ports": []map[string]interface{}{{"name": deployment.Pod.Container.PortName, "containerPort": deployment.Pod.Container.Port, "protocol": deployment.Pod.Container.Protocol}}}
 	if len(deployment.Pod.Container.Command) > 0 {
 		container["command"] = deployment.Pod.Container.Command
 	}
@@ -71,7 +75,7 @@ func ReconcileWorkloads(resource Resource, observed Observed) ([]WorkloadAction,
 		container["args"] = deployment.Pod.Container.Args
 	}
 	depObject := map[string]interface{}{"apiVersion": "apps/v1", "kind": "Deployment", "metadata": objectMetadata(resource, deployment.Name, deployment.Namespace, deployment.Labels), "spec": map[string]interface{}{"replicas": deployment.Replicas, "selector": map[string]interface{}{"matchLabels": deployment.Pod.Labels}, "template": map[string]interface{}{"metadata": map[string]interface{}{"labels": deployment.Pod.Labels}, "spec": map[string]interface{}{"containers": []map[string]interface{}{container}}}}}
-	serviceObject := map[string]interface{}{"apiVersion": "v1", "kind": "Service", "metadata": objectMetadata(resource, service.Name, service.Namespace, service.Labels), "spec": map[string]interface{}{"type": "ClusterIP", "selector": service.Selector, "ports": []map[string]interface{}{{"name": "rpc", "port": service.Port, "targetPort": "rpc", "protocol": "TCP"}}}}
+	serviceObject := map[string]interface{}{"apiVersion": "v1", "kind": "Service", "metadata": objectMetadata(resource, service.Name, service.Namespace, service.Labels), "spec": map[string]interface{}{"type": service.Type, "selector": service.Selector, "ports": []map[string]interface{}{{"name": service.PortName, "port": service.Port, "targetPort": service.TargetPort, "protocol": service.Protocol}}}}
 	serviceAction := ActionNoop
 	if observed.Service == nil {
 		serviceAction = ActionCreate
