@@ -142,3 +142,12 @@ func RegisterGreeterHandler(s server.Server, hdlr GreeterHandler, opts ...server
 ## LICENSE
 
 protoc-gen-micro is a liberal reuse of protoc-gen-go hence we maintain the original license 
+
+## Protobuf responses over JSON
+
+Generated message fields come from `protoc-gen-go` and commonly carry
+`omitempty`. If clients need explicit zero counts, `false`, or empty lists,
+configure the response codec's protobuf JSON options. See
+[JSON output options](../../codec/json/README.md) for `EmitUnpopulated`,
+`UseProtoNames`, and range-checked numeric 64-bit integers. Protobuf JSON normally
+encodes 64-bit integers as strings; do not change that wire contract implicitly.

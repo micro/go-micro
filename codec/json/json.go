@@ -6,11 +6,11 @@ import (
 	"io"
 
 	"go-micro.dev/v6/codec"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
 type Codec struct {
+	Options Options
 	Conn    io.ReadWriteCloser
 	Encoder *json.Encoder
 	Decoder *json.Decoder
@@ -30,7 +30,7 @@ func (c *Codec) ReadBody(b interface{}) error {
 		if err := c.Decoder.Decode(&raw); err != nil {
 			return err
 		}
-		return protojson.Unmarshal(raw, pb)
+		return (Marshaler{Options: c.Options}).Unmarshal(raw, pb)
 	}
 	return c.Decoder.Decode(b)
 }
@@ -40,7 +40,7 @@ func (c *Codec) Write(m *codec.Message, b interface{}) error {
 		return nil
 	}
 	if pb, ok := b.(proto.Message); ok {
-		data, err := protojson.Marshal(pb)
+		data, err := (Marshaler{Options: c.Options}).Marshal(pb)
 		if err != nil {
 			return err
 		}
@@ -64,5 +64,14 @@ func NewCodec(c io.ReadWriteCloser) codec.Codec {
 		Conn:    c,
 		Decoder: json.NewDecoder(c),
 		Encoder: json.NewEncoder(c),
+	}
+}
+
+// NewCodecWithOptions returns a codec factory for client/server codec registration.
+// Use EmitUnpopulated and UseProtoNames in MarshalOptions for explicit zero values
+// and proto field names. NewCodec retains the existing defaults.
+func NewCodecWithOptions(options Options) codec.NewCodec {
+	return func(conn io.ReadWriteCloser) codec.Codec {
+		return &Codec{Conn: conn, Encoder: json.NewEncoder(conn), Decoder: json.NewDecoder(conn), Options: options}
 	}
 }
