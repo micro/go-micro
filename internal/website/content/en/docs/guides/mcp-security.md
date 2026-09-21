@@ -366,6 +366,9 @@ default. Native clients that omit `Origin` continue to work. To allow a trusted
 browser application, set exact origins in `mcp.Options.AllowedOrigins`, or pass
 `mcp.WithAllowedOrigins("https://console.example.com")` to `mcp.NewHandler`.
 Wildcards are not accepted. Origin permission does not replace authentication.
+For `micro mcp serve`, `micro gateway`, and `micro run`, use the repeatable
+`--mcp-allowed-origins https://console.example.com` flag or the comma-separated
+`MICRO_MCP_ALLOWED_ORIGINS` environment variable.
 
 Reverse proxies should preserve the original Host. When TLS terminates at a
 proxy, explicitly allow the public HTTPS origin in the MCP options. Do not trust

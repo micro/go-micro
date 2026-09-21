@@ -1646,10 +1646,11 @@ func Run(c *cli.Context) error {
 func buildMCPOptions(c *cli.Context, addr string) (mcp.Options, error) {
 	logger := log.New(os.Stdout, "[mcp-gateway] ", log.LstdFlags)
 	opts := mcp.Options{
-		Registry: registry.DefaultRegistry,
-		Address:  addr,
-		Context:  c.Context,
-		Logger:   logger,
+		AllowedOrigins: c.StringSlice("mcp-allowed-origins"),
+		Registry:       registry.DefaultRegistry,
+		Address:        addr,
+		Context:        c.Context,
+		Logger:         logger,
 	}
 
 	// x402 payments: a config file (per-tool amounts) or the flags.
@@ -1793,6 +1794,11 @@ func gatewayFlags() []cli.Flag {
 			Usage:   "HTTP address for the dashboard/API",
 			EnvVars: []string{"MICRO_SERVER_ADDRESS"},
 			Value:   ":8080",
+		},
+		&cli.StringSliceFlag{
+			Name:    "mcp-allowed-origins",
+			Usage:   "Exact trusted browser origins for MCP (repeatable)",
+			EnvVars: []string{"MICRO_MCP_ALLOWED_ORIGINS"},
 		},
 		&cli.StringFlag{
 			Name:    "mcp-address",
