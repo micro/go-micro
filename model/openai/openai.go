@@ -117,6 +117,7 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 			if followUpResp.Reply != "" {
 				resp.Answer = followUpResp.Reply
 			}
+			resp.StopReason = followUpResp.StopReason
 			pending, raw = followUpResp.ToolCalls, followUpRaw
 			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
 		}
@@ -162,9 +163,10 @@ func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model
 }
 
 type openAIStream struct {
-	body    io.ReadCloser
-	scanner *bufio.Scanner
-	closed  bool
+	body       io.ReadCloser
+	scanner    *bufio.Scanner
+	closed     bool
+	hasContent bool
 }
 
 func (s *openAIStream) Recv() (*model.Response, error) {
@@ -182,7 +184,8 @@ func (s *openAIStream) Recv() (*model.Response, error) {
 		}
 		var chunk struct {
 			Choices []struct {
-				Delta struct {
+				FinishReason string `json:"finish_reason"`
+				Delta        struct {
 					Content string `json:"content"`
 				} `json:"delta"`
 			} `json:"choices"`
@@ -195,18 +198,23 @@ func (s *openAIStream) Recv() (*model.Response, error) {
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
 		}
-		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
-			return &model.Response{Reply: chunk.Choices[0].Delta.Content}, nil
+		response := &model.Response{}
+		if len(chunk.Choices) > 0 {
+			choice := chunk.Choices[0]
+			if strings.TrimSpace(choice.Delta.Content) != "" {
+				s.hasContent = true
+			}
+			if choice.FinishReason == "length" && !s.hasContent {
+				return nil, model.ErrOutputLimit
+			}
+			response.Reply, response.StopReason = choice.Delta.Content, choice.FinishReason
 		}
-		// Final chunk (after include_usage) carries token usage and no content.
 		if chunk.Usage != nil {
-			return &model.Response{Usage: model.Usage{
-				InputTokens:  chunk.Usage.PromptTokens,
-				OutputTokens: chunk.Usage.CompletionTokens,
-				TotalTokens:  chunk.Usage.TotalTokens,
-			}}, nil
+			response.Usage = model.Usage{InputTokens: chunk.Usage.PromptTokens, OutputTokens: chunk.Usage.CompletionTokens, TotalTokens: chunk.Usage.TotalTokens}
 		}
-		continue
+		if response.Reply != "" || response.StopReason != "" || chunk.Usage != nil {
+			return response, nil
+		}
 	}
 	if err := s.scanner.Err(); err != nil {
 		return nil, err
@@ -262,7 +270,8 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 			TotalTokens      int `json:"total_tokens"`
 		} `json:"usage"`
 		Choices []struct {
-			Message struct {
+			FinishReason string `json:"finish_reason"`
+			Message      struct {
 				Content   string `json:"content"`
 				ToolCalls []struct {
 					ID       string `json:"id"`
@@ -285,10 +294,15 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	}
 
 	choice := chatResp.Choices[0]
+	if choice.FinishReason == "length" && strings.TrimSpace(choice.Message.Content) == "" && len(choice.Message.ToolCalls) == 0 {
+		return nil, nil, model.ErrOutputLimit
+	}
 	response := &model.Response{
 		Reply: choice.Message.Content,
 		Usage: model.Usage{InputTokens: chatResp.Usage.PromptTokens, OutputTokens: chatResp.Usage.CompletionTokens, TotalTokens: chatResp.Usage.TotalTokens},
 	}
+
+	response.StopReason = choice.FinishReason
 
 	// Extract tool calls
 	for _, tc := range choice.Message.ToolCalls {

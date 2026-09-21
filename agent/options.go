@@ -50,6 +50,14 @@ type Options struct {
 	Store        store.Store
 	HistoryLimit int
 
+	// MaxTokens and Effort configure provider output and reasoning budgets.
+	MaxTokens int
+	Effort    string
+	// Temperature is optional; nil leaves the provider default unchanged.
+	Temperature *float64
+	// MaxTools caps advertised tools, including custom and built-in tools (0 = unlimited).
+	MaxTools int
+
 	// ModelTimeout bounds each provider Generate call (0 disables).
 	ModelTimeout time.Duration
 	// ModelMaxAttempts bounds provider Generate attempts including the first
@@ -454,3 +462,17 @@ type RunEventFunc func(RunEvent)
 func OnRunEvent(f RunEventFunc) Option {
 	return func(o *Options) { o.OnRunEvent = f }
 }
+
+// MaxTokens caps provider output tokens (0 leaves the provider default).
+func MaxTokens(n int) Option { return func(o *Options) { o.MaxTokens = n } }
+
+// Effort sets provider-specific reasoning effort. Empty leaves the default.
+func Effort(level string) Option { return func(o *Options) { o.Effort = level } }
+
+// Temperature sets sampling temperature for providers that support it, including zero.
+func Temperature(t float64) Option { return func(o *Options) { v := t; o.Temperature = &v } }
+
+// MaxTools limits advertised tools to the first n names in lexical order when
+// the limit is exceeded, logging omitted names. Zero leaves tools unlimited.
+// This includes service, custom and built-in tools; MaxSteps separately limits executions.
+func MaxTools(n int) Option { return func(o *Options) { o.MaxTools = n } }

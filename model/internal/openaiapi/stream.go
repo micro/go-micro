@@ -45,9 +45,10 @@ func Stream(ctx context.Context, opts model.Options, req *model.Request, basePat
 
 // StreamReader reads OpenAI-compatible server-sent event chunks.
 type StreamReader struct {
-	body    io.ReadCloser
-	scanner *bufio.Scanner
-	closed  bool
+	body       io.ReadCloser
+	scanner    *bufio.Scanner
+	closed     bool
+	hasContent bool
 }
 
 func (s *StreamReader) Recv() (*model.Response, error) {
@@ -65,7 +66,8 @@ func (s *StreamReader) Recv() (*model.Response, error) {
 		}
 		var chunk struct {
 			Choices []struct {
-				Delta struct {
+				FinishReason string `json:"finish_reason"`
+				Delta        struct {
 					Content string `json:"content"`
 				} `json:"delta"`
 			} `json:"choices"`
@@ -78,15 +80,22 @@ func (s *StreamReader) Recv() (*model.Response, error) {
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
 		}
-		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
-			return &model.Response{Reply: chunk.Choices[0].Delta.Content}, nil
+		response := &model.Response{}
+		if len(chunk.Choices) > 0 {
+			choice := chunk.Choices[0]
+			if strings.TrimSpace(choice.Delta.Content) != "" {
+				s.hasContent = true
+			}
+			if choice.FinishReason == "length" && !s.hasContent {
+				return nil, model.ErrOutputLimit
+			}
+			response.Reply, response.StopReason = choice.Delta.Content, choice.FinishReason
 		}
 		if chunk.Usage != nil {
-			return &model.Response{Usage: model.Usage{
-				InputTokens:  chunk.Usage.PromptTokens,
-				OutputTokens: chunk.Usage.CompletionTokens,
-				TotalTokens:  chunk.Usage.TotalTokens,
-			}}, nil
+			response.Usage = model.Usage{InputTokens: chunk.Usage.PromptTokens, OutputTokens: chunk.Usage.CompletionTokens, TotalTokens: chunk.Usage.TotalTokens}
+		}
+		if response.Reply != "" || response.StopReason != "" || chunk.Usage != nil {
+			return response, nil
 		}
 	}
 	if err := s.scanner.Err(); err != nil {

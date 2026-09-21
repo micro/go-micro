@@ -291,3 +291,7 @@ func Generate(ctx context.Context, req *Request, opts ...GenerateOption) (*Respo
 	}
 	return DefaultModel.Generate(ctx, req, opts...)
 }
+
+// ErrOutputLimit means a provider exhausted its output budget without visible
+// content or tool calls. Increase MaxTokens or adjust reasoning effort before retrying.
+var ErrOutputLimit = errors.New("model: output token limit reached without visible content")

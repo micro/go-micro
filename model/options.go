@@ -23,6 +23,8 @@ type Options struct {
 	Thinking ThinkingMode
 	// Effort controls reasoning depth for providers that support it.
 	Effort string
+	// Temperature is optional; nil leaves provider defaults unchanged.
+	Temperature *float64
 	// NoCache disables prompt-prefix caching for providers that support it
 	// (e.g. Anthropic cache_control). Caching is on by default because the
 	// dominant caller — the agent tool loop — re-sends an identical prefix on
@@ -143,3 +145,6 @@ func WithEffort(effort string) Option {
 		o.Effort = effort
 	}
 }
+
+// WithTemperature sets sampling temperature for supporting providers, including zero.
+func WithTemperature(t float64) Option { return func(o *Options) { v := t; o.Temperature = &v } }

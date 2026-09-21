@@ -24,6 +24,9 @@ func Request(opts model.Options, messages []map[string]any, tools []model.Tool) 
 	if opts.Effort != "" {
 		request["reasoning_effort"] = opts.Effort
 	}
+	if opts.Temperature != nil {
+		request["temperature"] = *opts.Temperature
+	}
 	if len(tools) > 0 {
 		definitions := make([]map[string]any, 0, len(tools))
 		for _, tool := range tools {

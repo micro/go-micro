@@ -105,6 +105,18 @@ func AgentAPIKey(k string) AgentOption { return agent.APIKey(k) }
 // the provider at a non-default endpoint (e.g., local Ollama, a proxy).
 func AgentBaseURL(url string) AgentOption { return agent.BaseURL(url) }
 
+// AgentMaxTokens caps provider output tokens (0 leaves the provider default).
+func AgentMaxTokens(n int) AgentOption { return agent.MaxTokens(n) }
+
+// AgentEffort sets provider-specific reasoning effort.
+func AgentEffort(level string) AgentOption { return agent.Effort(level) }
+
+// AgentTemperature sets sampling temperature, including zero, for supporting providers.
+func AgentTemperature(t float64) AgentOption { return agent.Temperature(t) }
+
+// AgentMaxTools caps the advertised tool count (0 leaves it unlimited).
+func AgentMaxTools(n int) AgentOption { return agent.MaxTools(n) }
+
 // ApproveFunc gates an agent's tool calls before they run.
 type ApproveFunc = agent.ApproveFunc
 

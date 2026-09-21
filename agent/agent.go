@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,7 @@ import (
 	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
+	"go-micro.dev/v6/logger"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/store"
@@ -168,6 +170,11 @@ func (a *agentImpl) setupWithToolHandler(handler model.ToolHandler) {
 	}
 	if a.opts.BaseURL != "" {
 		modelOpts = append(modelOpts, model.WithBaseURL(a.opts.BaseURL))
+	}
+
+	modelOpts = append(modelOpts, model.WithMaxTokens(a.opts.MaxTokens), model.WithEffort(a.opts.Effort))
+	if a.opts.Temperature != nil {
+		modelOpts = append(modelOpts, model.WithTemperature(*a.opts.Temperature))
 	}
 
 	// Reuse the existing tools instance: its name map is populated by
@@ -745,6 +752,20 @@ func (a *agentImpl) discoverTools() ([]model.Tool, error) {
 	// Ephemeral sub-agents don't get them.
 	if !a.ephemeral {
 		scoped = append(scoped, builtinTools()...)
+	}
+	if limit := a.opts.MaxTools; limit > 0 && len(scoped) > limit {
+		sort.SliceStable(scoped, func(i, j int) bool {
+			if scoped[i].Name == scoped[j].Name {
+				return scoped[i].OriginalName < scoped[j].OriginalName
+			}
+			return scoped[i].Name < scoped[j].Name
+		})
+		dropped := make([]string, 0, len(scoped)-limit)
+		for _, tool := range scoped[limit:] {
+			dropped = append(dropped, tool.Name)
+		}
+		logger.Warnf("agent %s: MaxTools=%d omitted tools: %s", a.opts.Name, limit, strings.Join(dropped, ", "))
+		scoped = scoped[:limit]
 	}
 	return scoped, nil
 }

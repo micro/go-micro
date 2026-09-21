@@ -27,7 +27,7 @@ func TestChatRequestParity(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					if body["max_tokens"] != float64(1024) || body["reasoning_effort"] != "high" || body["model"] != "test" {
+					if body["max_tokens"] != float64(1024) || body["reasoning_effort"] != "high" || body["model"] != "test" || body["temperature"] != float64(0) {
 						t.Errorf("lost options: %v", body)
 					}
 					messages := body["messages"].([]any)
@@ -73,7 +73,7 @@ func TestChatRequestParity(t *testing.T) {
 					fmt.Fprint(w, `{"choices":[{"message":{"content":"done"}}]}`)
 				}))
 				defer ts.Close()
-				p := factory(model.WithBaseURL(ts.URL), model.WithAPIKey("test"), model.WithModel("test"), model.WithMaxTokens(1024), model.WithEffort("high"), model.WithToolHandler(func(_ context.Context, c model.ToolCall) model.ToolResult {
+				p := factory(model.WithBaseURL(ts.URL), model.WithAPIKey("test"), model.WithModel("test"), model.WithMaxTokens(1024), model.WithTemperature(0), model.WithEffort("high"), model.WithToolHandler(func(_ context.Context, c model.ToolCall) model.ToolResult {
 					calls++
 					return model.ToolResult{ID: c.ID, Content: "result"}
 				}))
@@ -113,6 +113,61 @@ func TestChatRequestParity(t *testing.T) {
 					t.Fatalf("requests=%d calls=%d", requests, calls)
 				}
 			})
+		}
+	}
+}
+
+func TestChatEmptyOutputLimit(t *testing.T) {
+	for name, factory := range map[string]func(...model.Option) model.Model{
+		"groq":   func(opts ...model.Option) model.Model { return groq.NewProvider(opts...) },
+		"openai": func(opts ...model.Option) model.Model { return openai.NewProvider(opts...) },
+	} {
+		for _, streaming := range []bool{false, true} {
+			for _, visible := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%s/stream=%v/visible=%v", name, streaming, visible), func(t *testing.T) {
+					ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						content := ""
+						if visible {
+							content = "partial"
+						}
+						if streaming {
+							fmt.Fprintf(w, "data: {\"choices\":[{\"delta\":{\"content\":%q}}]}\n\n", content)
+							fmt.Fprint(w, "data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}\n\ndata: [DONE]\n\n")
+						} else {
+							fmt.Fprintf(w, `{"choices":[{"message":{"content":%q},"finish_reason":"length"}]}`, content)
+						}
+					}))
+					defer ts.Close()
+					p := factory(model.WithBaseURL(ts.URL), model.WithAPIKey("test"))
+					var err error
+					if streaming {
+						var s model.Stream
+						s, err = p.Stream(context.Background(), &model.Request{Prompt: "hello"})
+						if err != nil {
+							t.Fatal(err)
+						}
+						defer s.Close()
+						for {
+							_, err = s.Recv()
+							if err != nil {
+								break
+							}
+						}
+						if err == io.EOF {
+							err = nil
+						}
+					} else {
+						_, err = p.Generate(context.Background(), &model.Request{Prompt: "hello"})
+					}
+					if visible {
+						if err != nil {
+							t.Fatal(err)
+						}
+					} else if !errors.Is(err, model.ErrOutputLimit) {
+						t.Fatalf("error=%v", err)
+					}
+				})
+			}
 		}
 	}
 }

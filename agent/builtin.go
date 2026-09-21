@@ -750,6 +750,15 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 			"Complete it using the available tools and report the result concisely."),
 		Provider(a.opts.Provider),
 		Model(a.opts.Model),
+		BaseURL(a.opts.BaseURL),
+		MaxTokens(a.opts.MaxTokens),
+		Effort(a.opts.Effort),
+		MaxTools(a.opts.MaxTools),
+		func(o *Options) {
+			if a.opts.Temperature != nil {
+				Temperature(*a.opts.Temperature)(o)
+			}
+		},
 		APIKey(a.opts.APIKey),
 		WithRegistry(a.opts.Registry),
 		WithClient(a.opts.Client),

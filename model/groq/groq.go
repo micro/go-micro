@@ -106,6 +106,7 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 			if followUpResp.Reply != "" {
 				resp.Answer = followUpResp.Reply
 			}
+			resp.StopReason = followUpResp.StopReason
 			pending, raw = followUpResp.ToolCalls, followUpRaw
 			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
 		}
@@ -152,7 +153,8 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 
 	var chatResp struct {
 		Choices []struct {
-			Message struct {
+			FinishReason string `json:"finish_reason"`
+			Message      struct {
 				Content   string `json:"content"`
 				ToolCalls []struct {
 					ID       string `json:"id"`
@@ -174,7 +176,12 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	}
 
 	choice := chatResp.Choices[0]
+	if choice.FinishReason == "length" && strings.TrimSpace(choice.Message.Content) == "" && len(choice.Message.ToolCalls) == 0 {
+		return nil, nil, model.ErrOutputLimit
+	}
 	response := &model.Response{Reply: choice.Message.Content}
+
+	response.StopReason = choice.FinishReason
 
 	for _, tc := range choice.Message.ToolCalls {
 		var input map[string]any
