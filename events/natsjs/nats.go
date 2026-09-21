@@ -164,7 +164,8 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 
 	// parse the options
 	options := events.ConsumeOptions{
-		Group: uuid.New().String(),
+		Group:   uuid.New().String(),
+		AutoAck: true,
 	}
 	for _, o := range opts {
 		o(&options)

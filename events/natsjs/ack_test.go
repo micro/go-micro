@@ -11,7 +11,19 @@ import (
 	"go-micro.dev/v6/events/natsjs"
 )
 
-func TestManualAcknowledgements(t *testing.T) {
+func TestAcknowledgements(t *testing.T) {
+	for _, manual := range []bool{true, false} {
+		name := "automatic default"
+		if manual {
+			name = "manual"
+		}
+		t.Run(name, func(t *testing.T) {
+			testAcknowledgements(t, manual)
+		})
+	}
+}
+
+func testAcknowledgements(t *testing.T, manual bool) {
 	srv, err := nserver.NewServer(&nserver.Options{Host: "127.0.0.1", Port: -1, JetStream: true, StoreDir: t.TempDir()})
 	require.NoError(t, err)
 	go srv.Start()
@@ -25,7 +37,11 @@ func TestManualAcknowledgements(t *testing.T) {
 	client, err := natsjs.NewStream(natsjs.Address(srv.ClientURL()), natsjs.SynchronousPublish(true))
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.(interface{ Close() error }).Close()) })
-	ch, err := client.Consume("manual", events.WithGroup("worker"), events.WithAutoAck(false, 200*time.Millisecond))
+	options := []events.ConsumeOption{events.WithGroup("worker")}
+	if manual {
+		options = append(options, events.WithAutoAck(false, 200*time.Millisecond))
+	}
+	ch, err := client.Consume("manual", options...)
 	require.NoError(t, err)
 	require.NoError(t, client.Publish("manual", []byte("payload")))
 	receive := func() events.Event {
@@ -39,13 +55,16 @@ func TestManualAcknowledgements(t *testing.T) {
 		}
 	}
 	first := receive()
-	// Returning from the delivery callback must not implicitly acknowledge.
-	second := receive()
-	require.Equal(t, first.ID, second.ID)
-	require.NoError(t, second.Nack())
-	third := receive()
-	require.Equal(t, first.ID, third.ID)
-	require.NoError(t, third.Ack())
+	_ = first
+	if manual {
+		// Returning from the delivery callback must not implicitly acknowledge.
+		second := receive()
+		require.Equal(t, first.ID, second.ID)
+		require.NoError(t, second.Nack())
+		third := receive()
+		require.Equal(t, first.ID, third.ID)
+		require.NoError(t, third.Ack())
+	}
 	require.Eventually(t, func() bool {
 		info, err := js.ConsumerInfo("manual", "worker")
 		return err == nil && info.NumAckPending == 0 && info.AckFloor.Stream == 1

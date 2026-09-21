@@ -49,7 +49,7 @@ if err != nil {
 
 ## Acknowledgements
 
-Manual acknowledgement is the default. Use `events.WithAutoAck(false, ackWait)`
+Automatic acknowledgement on delivery is the default. Use `events.WithAutoAck(false, ackWait)`
 and call `event.Ack()` after processing succeeds, or `event.Nack()` to request
 redelivery after a failure. Unacknowledged events are redelivered after `ackWait`.
 
