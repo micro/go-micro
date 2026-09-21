@@ -185,6 +185,14 @@ MCP exposes your services as tools; A2A exposes your agents as agents. See the [
 Define ordered work in Go, with RPC calls and agent dispatch as steps:
 
 ```go
+service := micro.NewService("fulfillment")
+service.Init()
+opts := service.Options()
+if err := opts.Broker.Connect(); err != nil {
+    return err
+}
+defer opts.Broker.Disconnect()
+
 workflow := micro.NewFlow("order-fulfillment",
     micro.FlowTrigger("orders.created"),
     micro.FlowSteps(
@@ -192,6 +200,13 @@ workflow := micro.NewFlow("order-fulfillment",
         micro.FlowStep{Name: "notify", Run: micro.FlowDispatch("order-assistant")},
     ),
 )
+if err := workflow.Register(opts.Registry, opts.Broker, service.Client()); err != nil {
+    return err
+}
+defer workflow.Stop()
+if err := service.Run(); err != nil {
+    return err
+}
 ```
 
 Flows checkpoint between steps. Use persistent storage for recovery across restarts, and make external side effects idempotent because an interrupted step can repeat. See [Agents and Workflows](internal/website/docs/guides/agents-and-workflows.md) and [Durability and Recovery](internal/website/content/en/docs/guides/durability.md) for execution and resume APIs.
