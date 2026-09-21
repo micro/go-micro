@@ -250,3 +250,25 @@ func runTestStream(t *testing.T, stream Stream) {
 		wg.Wait()
 	})
 }
+
+func TestPublishPreservesSuppliedID(t *testing.T) {
+	stream, err := NewStream()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ch, err := stream.Consume("ids")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := stream.Publish("ids", []byte("payload"), WithID("outbox-123")); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case event := <-ch:
+		if event.ID != "outbox-123" {
+			t.Fatalf("ID=%q", event.ID)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("missing event")
+	}
+}

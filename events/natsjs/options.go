@@ -4,11 +4,15 @@ import (
 	"crypto/tls"
 	"time"
 
+	"github.com/nats-io/nats.go"
+
 	"go-micro.dev/v6/logger"
 )
 
 // Options which are used to configure the nats stream.
 type Options struct {
+	// StreamConfig optionally maps a subject to a stream configuration. Existing streams are never modified.
+	StreamConfig          func(string) (nats.StreamConfig, error)
 	ClusterID             string
 	ClientID              string
 	Address               string
@@ -113,4 +117,11 @@ func MaxAge(age time.Duration) Option {
 	return func(o *Options) {
 		o.MaxAge = age
 	}
+}
+
+// WithStreamConfig maps each topic/subject to its stream configuration. Return
+// the same Name and Subjects for topics sharing a stream. Configuration applies
+// only at creation; existing streams must be managed explicitly by the caller.
+func WithStreamConfig(fn func(string) (nats.StreamConfig, error)) Option {
+	return func(o *Options) { o.StreamConfig = fn }
 }
