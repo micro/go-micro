@@ -55,17 +55,26 @@ func StreamAsk(ctx context.Context, ag Agent, message string) (AgentStream, erro
 	return streamer.StreamAsk(ctx, message)
 }
 
+// StreamResumer is the optional capability for resuming a run as a stream.
+type StreamResumer interface {
+	ResumeStreamAsk(context.Context, string) (AgentStream, error)
+}
+
+func (a *agentImpl) ResumeStreamAsk(ctx context.Context, runID string) (AgentStream, error) {
+	return a.resumeStreamAsk(ctx, runID)
+}
+
 // ResumeStreamAsk resumes a checkpointed agent run and emits the same event
 // shape as StreamAsk. Completed runs are streamed from the persisted response;
 // unfinished runs continue from their checkpoint and emit tool events for any
 // work that still needs to run. Tool calls already recorded as done in the
 // checkpoint are reused by the agent checkpoint wrapper and are not re-executed.
 func ResumeStreamAsk(ctx context.Context, ag Agent, runID string) (AgentStream, error) {
-	a, ok := ag.(*agentImpl)
+	a, ok := ag.(StreamResumer)
 	if !ok {
 		return nil, errors.New("agent: ResumeStreamAsk unsupported by implementation")
 	}
-	return a.resumeStreamAsk(ctx, runID)
+	return a.ResumeStreamAsk(ctx, runID)
 }
 
 // StreamAsk runs tools like Ask, emits ToolStart/ToolEnd events as they execute,
