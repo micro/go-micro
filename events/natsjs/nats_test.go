@@ -9,6 +9,7 @@ import (
 	"time"
 
 	nserver "github.com/nats-io/nats-server/v2/server"
+	nats "github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/test-go/testify/require"
 	"go-micro.dev/v6/events"
@@ -171,5 +172,60 @@ func TestNewDurableConsumerReceivesStreamHistory(t *testing.T) {
 		require.Equal(t, []byte("before-subscribe"), event.Payload)
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for historical event")
+	}
+}
+
+func TestExistingDeliverNewDurableCanReconnect(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	clusterName := "existing-durable-test-cluster"
+	natsAddr := getFreeLocalhostAddress()
+	natsPort, _ := strconv.Atoi(strings.Split(natsAddr, ":")[1])
+	go natsServer(ctx, t, &nserver.Options{
+		Host: strings.Split(natsAddr, ":")[0],
+		Port: natsPort,
+		Cluster: nserver.ClusterOpts{
+			Name: clusterName,
+		},
+	})
+	time.Sleep(time.Second)
+
+	conn, err := nats.Connect(natsAddr)
+	require.NoError(t, err)
+	defer conn.Close()
+	js, err := conn.JetStream()
+	require.NoError(t, err)
+	_, err = js.AddStream(&nats.StreamConfig{Name: "existing-durable"})
+	require.NoError(t, err)
+
+	// Simulate the durable configuration created by versions that defaulted to
+	// DeliverNew. It must remain usable after the new DeliverAll default.
+	sub, err := js.QueueSubscribe(
+		"existing-durable",
+		"existing-reader",
+		func(_ *nats.Msg) {},
+		nats.Durable("existing-reader"),
+		nats.DeliverNew(),
+	)
+	require.NoError(t, err)
+	require.NoError(t, sub.Unsubscribe())
+
+	client, err := natsjs.NewStream(
+		natsjs.Address(natsAddr),
+		natsjs.ClusterID(clusterName),
+		natsjs.SynchronousPublish(true),
+	)
+	require.NoError(t, err)
+
+	eventsChannel, err := client.Consume("existing-durable", events.WithGroup("existing-reader"))
+	require.NoError(t, err)
+	require.NoError(t, client.Publish("existing-durable", []byte("after-reconnect")))
+
+	select {
+	case event := <-eventsChannel:
+		require.Equal(t, []byte("after-reconnect"), event.Payload)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for event after reconnecting existing durable")
 	}
 }
