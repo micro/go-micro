@@ -60,3 +60,22 @@ func TestResumeCapabilities(t *testing.T) {
 var _ Resumer = (*agentImpl)(nil)
 var _ InputResumer = (*agentImpl)(nil)
 var _ StreamResumer = (*agentImpl)(nil)
+
+func (f *resumeFake) ResumePending(ctx context.Context) (string, error) {
+	f.ctx = ctx
+	return "pending-run", f.err
+}
+func TestResumePendingCapability(t *testing.T) {
+	ctx := context.Background()
+	expected := errors.New("pending sentinel")
+	fake := &resumeFake{err: expected}
+	id, err := ResumePending(ctx, fake)
+	if id != "pending-run" || err != expected || fake.ctx != ctx {
+		t.Fatalf("ResumePending lost result or context: %q %v", id, err)
+	}
+	if _, err := ResumePending(ctx, struct{ Agent }{}); err == nil {
+		t.Fatal("expected unsupported error")
+	}
+}
+
+var _ PendingResumer = (*agentImpl)(nil)
