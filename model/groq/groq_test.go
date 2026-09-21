@@ -20,7 +20,7 @@ func TestProvider_String(t *testing.T) {
 
 func TestProvider_Defaults(t *testing.T) {
 	opts := NewProvider().Options()
-	if opts.Model != "llama-3.3-70b-versatile" {
+	if opts.Model != "openai/gpt-oss-120b" {
 		t.Errorf("default model = %q", opts.Model)
 	}
 	if opts.BaseURL != "https://api.groq.com/openai" {

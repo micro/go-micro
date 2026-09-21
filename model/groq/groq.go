@@ -40,7 +40,7 @@ type Provider struct {
 func NewProvider(opts ...model.Option) *Provider {
 	options := model.NewOptions(opts...)
 	if options.Model == "" {
-		options.Model = "llama-3.3-70b-versatile"
+		options.Model = "openai/gpt-oss-120b"
 	}
 	if options.BaseURL == "" {
 		options.BaseURL = "https://api.groq.com/openai"
@@ -59,33 +59,8 @@ func (p *Provider) Options() model.Options { return p.opts }
 func (p *Provider) String() string         { return "groq" }
 
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-	var tools []map[string]any
-	for _, t := range req.Tools {
-		tools = append(tools, map[string]any{
-			"type": "function",
-			"function": map[string]any{
-				"name":        t.Name,
-				"description": t.Description,
-				"parameters": map[string]any{
-					"type":       "object",
-					"properties": t.Properties,
-				},
-			},
-		})
-	}
-
-	messages := []map[string]any{
-		{"role": "system", "content": req.SystemPrompt},
-		{"role": "user", "content": req.Prompt},
-	}
-
-	apiReq := map[string]any{
-		"model":    p.opts.Model,
-		"messages": messages,
-	}
-	if len(tools) > 0 {
-		apiReq["tools"] = tools
-	}
+	messages := openaiapi.Messages(req)
+	apiReq := openaiapi.Request(p.opts, messages, req.Tools)
 
 	resp, rawMessage, err := p.callAPI(ctx, apiReq)
 	if err != nil {
@@ -122,17 +97,11 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 				})
 			}
 
-			followUpReq := map[string]any{
-				"model":    p.opts.Model,
-				"messages": followUpMessages,
-			}
-			if len(tools) > 0 {
-				followUpReq["tools"] = tools
-			}
+			followUpReq := openaiapi.Request(p.opts, followUpMessages, req.Tools)
 
 			followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
 			if err != nil {
-				break
+				return nil, fmt.Errorf("tool follow-up: %w", err)
 			}
 			if followUpResp.Reply != "" {
 				resp.Answer = followUpResp.Reply
@@ -187,6 +156,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 				Content   string `json:"content"`
 				ToolCalls []struct {
 					ID       string `json:"id"`
+					Type     string `json:"type"`
 					Function struct {
 						Name      string `json:"name"`
 						Arguments string `json:"arguments"`
