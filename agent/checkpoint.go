@@ -68,15 +68,35 @@ func (a *agentImpl) saveRun(ctx context.Context, run flow.Run) error {
 	return nil
 }
 
+// Resumer is the optional capability for resuming checkpointed runs.
+// Wrappers and alternative Agent implementations can implement it without
+// depending on the built-in agent's concrete type.
+type Resumer interface {
+	Resume(context.Context, string) (*Response, error)
+}
+
+// InputResumer is the optional capability for resuming runs with human input.
+type InputResumer interface {
+	ResumeInput(context.Context, string, string) (*Response, error)
+}
+
+func (a *agentImpl) Resume(ctx context.Context, runID string) (*Response, error) {
+	return a.resume(ctx, runID)
+}
+
+func (a *agentImpl) ResumeInput(ctx context.Context, runID, input string) (*Response, error) {
+	return a.resumeInput(ctx, runID, input)
+}
+
 // Resume returns the response for a checkpointed agent run. Completed runs are
 // returned from the checkpoint without calling the model or replaying tool
 // calls; failed or in-progress runs continue from the saved input message.
 func Resume(ctx context.Context, ag Agent, runID string) (*Response, error) {
-	a, ok := ag.(*agentImpl)
+	a, ok := ag.(Resumer)
 	if !ok {
 		return nil, fmt.Errorf("agent resume: unsupported agent implementation %T", ag)
 	}
-	return a.resume(ctx, runID)
+	return a.Resume(ctx, runID)
 }
 
 func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error) {
@@ -121,11 +141,11 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 // request_input tool. The supplied input is appended to the original request so
 // the same run can continue with durable checkpoint and completed tool history.
 func ResumeInput(ctx context.Context, ag Agent, runID, input string) (*Response, error) {
-	a, ok := ag.(*agentImpl)
+	a, ok := ag.(InputResumer)
 	if !ok {
 		return nil, fmt.Errorf("agent resume input: unsupported agent implementation %T", ag)
 	}
-	return a.resumeInput(ctx, runID, input)
+	return a.ResumeInput(ctx, runID, input)
 }
 
 func (a *agentImpl) resumeInput(ctx context.Context, runID, input string) (*Response, error) {
