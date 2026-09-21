@@ -72,9 +72,10 @@ one run therefore share a completed result. This is not a cross-run idempotency
 key and does not guarantee that a model will choose the same arguments after a
 restart.
 
-Agent pending runs exclude terminal `done`, `canceled`, `timeout`,
-`rate_limited`, and `expired` statuses. Paused runs can still appear in pending
-results; an input-required pause needs the input helper, so an unattended
+Agent pending runs exclude terminal `done`, `canceled`, and `expired` statuses.
+Interrupted `timeout` and `rate_limited` runs remain pending and can resume with
+a fresh context, reusing saved input and completed tool results. Paused runs can
+still appear in pending results; an input-required pause needs the input helper, so an unattended
 `ResumePending` loop can stop there.
 
 ## What is not guaranteed

@@ -90,7 +90,8 @@ func (a *agentImpl) ResumeInput(ctx context.Context, runID, input string) (*Resp
 
 // Resume returns the response for a checkpointed agent run. Completed runs are
 // returned from the checkpoint without calling the model or replaying tool
-// calls; failed or in-progress runs continue from the saved input message.
+// calls; failed, interrupted (timeout/rate_limited), or in-progress runs
+// continue from the saved input message and reuse completed tool results.
 func Resume(ctx context.Context, ag Agent, runID string) (*Response, error) {
 	a, ok := ag.(Resumer)
 	if !ok {
@@ -201,7 +202,7 @@ func (a *agentImpl) pending(ctx context.Context) ([]flow.Run, error) {
 
 func terminalAgentRunStatus(status string) bool {
 	switch status {
-	case "done", "canceled", "timeout", "rate_limited", "expired":
+	case "done", "canceled", "expired":
 		return true
 	default:
 		return false
