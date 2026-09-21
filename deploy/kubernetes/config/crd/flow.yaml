@@ -14,15 +14,31 @@ spec:
   - name: v1alpha1
     served: true
     storage: true
+    subresources:
+      status: {}
     schema:
       openAPIV3Schema:
         type: object
         required: [spec]
         properties:
+          status:
+            type: object
+            properties:
+              conditions:
+                type: array
+                items:
+                  type: object
+                  required: [type, status, reason]
+                  properties:
+                    type: {type: string}
+                    status: {type: string}
+                    reason: {type: string}
+                    message: {type: string}
           spec:
             type: object
             required: [image]
             properties:
+              port: {type: integer, minimum: 1, maximum: 65535, default: 8080}
               image: {type: string, minLength: 1}
               command:
                 type: array

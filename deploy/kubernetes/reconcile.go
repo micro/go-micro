@@ -34,6 +34,8 @@ type Action struct {
 // Observed is the current cluster state Reconcile compares against. The adapter
 // fills it from the live cluster; a nil Deployment means "not created yet".
 type Observed struct {
+	// Service is the currently observed ClusterIP service, or nil if absent.
+	Service *NetworkService
 	// Deployment is the workload as it currently exists, or nil if absent.
 	Deployment *Deployment
 	// ReadyReplicas is how many pods are ready, from the live Deployment status.
@@ -82,6 +84,8 @@ func conditions(want Deployment, observed Observed) []Condition {
 			Type: "Ready", Status: "False", Reason: "Creating",
 			Message: "workload not yet created",
 		}}
+	case deploymentDiffers(*observed.Deployment, want):
+		return []Condition{{Type: "Ready", Status: "False", Reason: "Updating", Message: "workload spec is changing"}}
 	case observed.ReadyReplicas < want.Replicas:
 		return []Condition{{
 			Type: "Ready", Status: "False", Reason: "Progressing",
@@ -101,5 +105,6 @@ func conditions(want Deployment, observed Observed) []Condition {
 func deploymentDiffers(current, want Deployment) bool {
 	return current.Replicas != want.Replicas ||
 		!reflect.DeepEqual(current.Pod.Container, want.Pod.Container) ||
-		!reflect.DeepEqual(current.Labels, want.Labels)
+		!reflect.DeepEqual(current.Labels, want.Labels) ||
+		!reflect.DeepEqual(current.Pod.Labels, want.Pod.Labels)
 }
