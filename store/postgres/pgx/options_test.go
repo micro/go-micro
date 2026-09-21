@@ -17,7 +17,8 @@ func TestNewStoreContext(t *testing.T) {
 	})
 
 	t.Run("preserves configured context", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), struct{}{}, "value")
+		type contextKey struct{}
+		ctx := context.WithValue(context.Background(), contextKey{}, "value")
 		s := NewStore(store.WithContext(ctx))
 
 		if s.Options().Context != ctx {
@@ -26,7 +27,7 @@ func TestNewStoreContext(t *testing.T) {
 	})
 
 	t.Run("replaces configured nil context", func(t *testing.T) {
-		s := NewStore(store.WithContext(nil))
+		s := NewStore(func(options *store.Options) { options.Context = nil })
 
 		if s.Options().Context == nil {
 			t.Fatal("expected a non-nil fallback context")
