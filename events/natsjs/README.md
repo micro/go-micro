@@ -13,6 +13,13 @@ ev, err := natsjs.NewStream(
 
 ## Consume a stream
 
+Durable streams require an explicit consumer group. A newly created durable
+consumer starts at the beginning of the stream and resumes from its persisted
+position on later connections. Use `events.WithOffset` to choose a different
+starting time when the durable consumer is first created. When durable streams
+are disabled, consumers are ephemeral and receive only newly published events
+by default.
+
 ```go
 ee, err := events.Consume("test",
   events.WithAutoAck(false, time.Second*30),

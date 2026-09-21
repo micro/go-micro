@@ -9,6 +9,7 @@ import (
 	"time"
 
 	nserver "github.com/nats-io/nats-server/v2/server"
+	nats "github.com/nats-io/nats.go"
 	"github.com/stretchr/testify/assert"
 	"github.com/test-go/testify/require"
 	"go-micro.dev/v6/events"
@@ -64,7 +65,7 @@ func TestSingleEvent(t *testing.T) {
 		t.Helper()
 		defer cancel()
 
-		foobarEvents, err := client.Consume(topic)
+		foobarEvents, err := client.Consume(topic, events.WithGroup("foobar-consumer"))
 		require.Nil(t, err)
 		if err != nil {
 			return
@@ -109,4 +110,127 @@ func TestSingleEvent(t *testing.T) {
 
 	// wait until consumer received the event
 	<-ctx.Done()
+}
+
+func TestConsumeRequiresGroupForDurableStreams(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	clusterName := "group-test-cluster"
+	natsAddr := getFreeLocalhostAddress()
+	natsPort, _ := strconv.Atoi(strings.Split(natsAddr, ":")[1])
+	go natsServer(ctx, t, &nserver.Options{
+		Host: strings.Split(natsAddr, ":")[0],
+		Port: natsPort,
+		Cluster: nserver.ClusterOpts{
+			Name: clusterName,
+		},
+	})
+	time.Sleep(time.Second)
+
+	client, err := natsjs.NewStream(natsjs.Address(natsAddr), natsjs.ClusterID(clusterName))
+	require.NoError(t, err)
+
+	_, err = client.Consume("requires-group")
+	require.EqualError(t, err, "consumer group is required when durable streams are enabled")
+}
+
+func TestNewDurableConsumerReceivesStreamHistory(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	clusterName := "history-test-cluster"
+	natsAddr := getFreeLocalhostAddress()
+	natsPort, _ := strconv.Atoi(strings.Split(natsAddr, ":")[1])
+	go natsServer(ctx, t, &nserver.Options{
+		Host: strings.Split(natsAddr, ":")[0],
+		Port: natsPort,
+		Cluster: nserver.ClusterOpts{
+			Name: clusterName,
+		},
+	})
+	time.Sleep(time.Second)
+
+	client, err := natsjs.NewStream(
+		natsjs.Address(natsAddr),
+		natsjs.ClusterID(clusterName),
+		natsjs.SynchronousPublish(true),
+	)
+	require.NoError(t, err)
+
+	// Establish the stream before publishing the event. The first consumer can
+	// receive it, but the limits retention policy keeps it available for replay.
+	_, err = client.Consume("history", events.WithGroup("stream-creator"))
+	require.NoError(t, err)
+	require.NoError(t, client.Publish("history", []byte("before-subscribe")))
+
+	history, err := client.Consume("history", events.WithGroup("history-reader"))
+	require.NoError(t, err)
+
+	select {
+	case event := <-history:
+		require.Equal(t, []byte("before-subscribe"), event.Payload)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for historical event")
+	}
+}
+
+func TestExistingDeliverNewDurableCanReconnect(t *testing.T) {
+	for _, policy := range []nats.AckPolicy{nats.AckExplicitPolicy, nats.AckAllPolicy} {
+		t.Run(policy.String(), func(t *testing.T) { testExistingDurable(t, policy) })
+	}
+}
+
+func testExistingDurable(t *testing.T, policy nats.AckPolicy) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	clusterName := "existing-durable-test-cluster"
+	natsAddr := getFreeLocalhostAddress()
+	natsPort, _ := strconv.Atoi(strings.Split(natsAddr, ":")[1])
+	go natsServer(ctx, t, &nserver.Options{
+		Host: strings.Split(natsAddr, ":")[0],
+		Port: natsPort,
+		Cluster: nserver.ClusterOpts{
+			Name: clusterName,
+		},
+	})
+	time.Sleep(time.Second)
+
+	conn, err := nats.Connect(natsAddr)
+	require.NoError(t, err)
+	defer conn.Close()
+	js, err := conn.JetStream()
+	require.NoError(t, err)
+	_, err = js.AddStream(&nats.StreamConfig{Name: "existing-durable"})
+	require.NoError(t, err)
+
+	// Simulate the durable configuration created by versions that defaulted to
+	// DeliverNew. It must remain usable after the new DeliverAll default.
+	_, err = js.AddConsumer("existing-durable", &nats.ConsumerConfig{
+		Durable:        "existing-reader",
+		DeliverSubject: nats.NewInbox(),
+		DeliverGroup:   "existing-reader",
+		DeliverPolicy:  nats.DeliverNewPolicy,
+		AckPolicy:      policy,
+	})
+	require.NoError(t, err)
+
+	client, err := natsjs.NewStream(
+		natsjs.Address(natsAddr),
+		natsjs.ClusterID(clusterName),
+		natsjs.SynchronousPublish(true),
+	)
+	require.NoError(t, err)
+
+	eventsChannel, err := client.Consume("existing-durable", events.WithGroup("existing-reader"))
+	require.NoError(t, err)
+	require.NoError(t, client.Publish("existing-durable", []byte("after-reconnect")))
+
+	select {
+	case event := <-eventsChannel:
+		require.Equal(t, []byte("after-reconnect"), event.Payload)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for event after reconnecting existing durable")
+	}
 }
