@@ -7,6 +7,7 @@ import (
 )
 
 func TestRegister(t *testing.T) {
+	requireExternalNATS(t)
 	service := registry.Service{Name: "test"}
 	assertNoError(t, e.registryOne.Register(&service))
 	defer e.registryOne.Deregister(&service)
@@ -21,6 +22,7 @@ func TestRegister(t *testing.T) {
 }
 
 func TestDeregister(t *testing.T) {
+	requireExternalNATS(t)
 	service1 := registry.Service{Name: "test-deregister", Version: "v1"}
 	service2 := registry.Service{Name: "test-deregister", Version: "v2"}
 
@@ -46,6 +48,7 @@ func TestDeregister(t *testing.T) {
 }
 
 func TestGetService(t *testing.T) {
+	requireExternalNATS(t)
 	services, err := e.registryTwo.GetService("one")
 	assertNoError(t, err)
 	assertEqual(t, 1, len(services))
@@ -54,12 +57,14 @@ func TestGetService(t *testing.T) {
 }
 
 func TestGetServiceWithNoNodes(t *testing.T) {
+	requireExternalNATS(t)
 	services, err := e.registryOne.GetService("missing")
 	assertNoError(t, err)
 	assertEqual(t, 0, len(services))
 }
 
 func TestGetServiceFromMultipleNodes(t *testing.T) {
+	requireExternalNATS(t)
 	services, err := e.registryOne.GetService("two")
 	assertNoError(t, err)
 	assertEqual(t, 1, len(services))
@@ -68,6 +73,7 @@ func TestGetServiceFromMultipleNodes(t *testing.T) {
 }
 
 func BenchmarkGetService(b *testing.B) {
+	requireExternalNATS(b)
 	for n := 0; n < b.N; n++ {
 		services, err := e.registryTwo.GetService("one")
 		assertNoError(b, err)
@@ -77,6 +83,7 @@ func BenchmarkGetService(b *testing.B) {
 }
 
 func BenchmarkGetServiceWithNoNodes(b *testing.B) {
+	requireExternalNATS(b)
 	for n := 0; n < b.N; n++ {
 		services, err := e.registryOne.GetService("missing")
 		assertNoError(b, err)
@@ -85,6 +92,7 @@ func BenchmarkGetServiceWithNoNodes(b *testing.B) {
 }
 
 func BenchmarkGetServiceFromMultipleNodes(b *testing.B) {
+	requireExternalNATS(b)
 	for n := 0; n < b.N; n++ {
 		services, err := e.registryTwo.GetService("two")
 		assertNoError(b, err)
