@@ -197,7 +197,8 @@ performs verification and settlement.
 With `WithAP2PublicKey`, embedded `Invoke` and `StreamInvoke` callbacks can call
 `a2a.AP2FromContext(ctx)` before executing a paid tool. It returns the task/context
 IDs, signed mandates and verification outcomes. Require a successful verification,
-then validate the payment mandate's merchant, amount, currency and expected x402
+require `Mandate.Kind == a2a.AP2PaymentMandate`, then validate its merchant,
+amount, currency and expected x402
 rail reference (using `VerifyAP2ForTask`) before initiating payment. Enforce replay
 and spend limits in the application. An absent key leaves verification empty;
 carrying a mandate alone does not authorize spending.

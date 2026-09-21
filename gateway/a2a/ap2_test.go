@@ -170,7 +170,7 @@ func TestAP2PaidInvocationChecksMandateBeforeSideEffect(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, streaming := range []bool{false, true} {
-		for _, scenario := range []string{"valid", "tampered", "wrong-rail", "unverified"} {
+		for _, scenario := range []string{"valid", "tampered", "wrong-rail", "checkout", "unverified"} {
 			t.Run(fmt.Sprintf("stream=%v/%s", streaming, scenario), func(t *testing.T) {
 				signed := good
 				if scenario == "tampered" {
@@ -184,6 +184,14 @@ func TestAP2PaidInvocationChecksMandateBeforeSideEffect(t *testing.T) {
 						t.Fatal(err)
 					}
 				}
+				if scenario == "checkout" {
+					signed.Mandate.Kind = AP2CheckoutMandate
+					signed.Mandate.Rail = nil
+					signed, err = SignAP2Mandate(signed.Mandate, "key", priv)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
 				paidCalls := 0
 				invoke := func(ctx context.Context, _ string) (string, error) {
 					authorization, ok := AP2FromContext(ctx)
@@ -192,7 +200,7 @@ func TestAP2PaidInvocationChecksMandateBeforeSideEffect(t *testing.T) {
 					}
 					mandate := authorization.Mandates[0]
 					check := VerifyAP2ForTask(mandate, pub, Task{ID: authorization.TaskID, ContextID: authorization.ContextID}, &rail)
-					if !check.Verified || mandate.Mandate.Merchant != "tool" || mandate.Mandate.Amount != "1" || mandate.Mandate.Currency != "USD" {
+					if !check.Verified || mandate.Mandate.Kind != AP2PaymentMandate || mandate.Mandate.Merchant != "tool" || mandate.Mandate.Amount != "1" || mandate.Mandate.Currency != "USD" {
 						return "", fmt.Errorf("payment policy rejected")
 					}
 					// Paid-tool boundary: authorization has already been checked.
