@@ -232,6 +232,9 @@ func (n *natsRegistry) query(s string, quorum int) ([]*registry.Service, error) 
 	if err != nil {
 		return nil, err
 	}
+	if err := connectionError(conn); err != nil {
+		return nil, err
+	}
 
 	var action string
 	var service *registry.Service
@@ -304,7 +307,20 @@ loop:
 	for _, service := range serviceMap {
 		services = append(services, service)
 	}
+	if err := connectionError(conn); err != nil {
+		return nil, err
+	}
 	return services, nil
+}
+
+func connectionError(conn *nats.Conn) error {
+	if conn.IsClosed() {
+		return nats.ErrConnectionClosed
+	}
+	if !conn.IsConnected() {
+		return nats.ErrDisconnected
+	}
+	return nil
 }
 
 func (n *natsRegistry) Init(opts ...registry.Option) error {

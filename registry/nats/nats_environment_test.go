@@ -27,8 +27,8 @@ var e environment
 func TestMain(m *testing.M) {
 	natsURL := os.Getenv("NATS_URL")
 	if natsURL == "" {
-		log.Infof("NATS_URL is undefined - skipping tests")
-		return
+		log.Infof("NATS_URL is undefined - skipping external NATS tests")
+		os.Exit(m.Run())
 	}
 
 	e.registryOne = nats.NewNatsRegistry(registry.Addrs(natsURL), nats.Quorum(1))
@@ -66,4 +66,11 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(result)
+}
+
+func requireExternalNATS(tb testing.TB) {
+	tb.Helper()
+	if e.registryOne == nil {
+		tb.Skip("NATS_URL is undefined")
+	}
 }

@@ -201,15 +201,14 @@ func TestExistingDeliverNewDurableCanReconnect(t *testing.T) {
 
 	// Simulate the durable configuration created by versions that defaulted to
 	// DeliverNew. It must remain usable after the new DeliverAll default.
-	sub, err := js.QueueSubscribe(
-		"existing-durable",
-		"existing-reader",
-		func(_ *nats.Msg) {},
-		nats.Durable("existing-reader"),
-		nats.DeliverNew(),
-	)
+	_, err = js.AddConsumer("existing-durable", &nats.ConsumerConfig{
+		Durable:        "existing-reader",
+		DeliverSubject: nats.NewInbox(),
+		DeliverGroup:   "existing-reader",
+		DeliverPolicy:  nats.DeliverNewPolicy,
+		AckPolicy:      nats.AckExplicitPolicy,
+	})
 	require.NoError(t, err)
-	require.NoError(t, sub.Unsubscribe())
 
 	client, err := natsjs.NewStream(
 		natsjs.Address(natsAddr),
