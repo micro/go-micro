@@ -25,6 +25,8 @@ const (
 
 // WorkloadSpec is the common alpha spec shared by Agent, Service, and Flow CRDs.
 type WorkloadSpec struct {
+	// Port is the workload RPC port (default 8080).
+	Port        int32             `json:"port,omitempty"`
 	Image       string            `json:"image"`
 	Command     []string          `json:"command,omitempty"`
 	Args        []string          `json:"args,omitempty"`
@@ -35,6 +37,8 @@ type WorkloadSpec struct {
 
 // Resource is the minimal desired state for a Go Micro lifecycle resource.
 type Resource struct {
+	// UID enables Kubernetes garbage-collection ownership on rendered workloads.
+	UID       string
 	Kind      Kind
 	Name      string
 	Namespace string
@@ -76,6 +80,9 @@ func MapDeployment(resource Resource) (Deployment, error) {
 	if name == "" {
 		return Deployment{}, fmt.Errorf("name is required")
 	}
+	if resource.Spec.Port < 0 || resource.Spec.Port > 65535 {
+		return Deployment{}, fmt.Errorf("spec.port must be between 1 and 65535")
+	}
 	image := strings.TrimSpace(resource.Spec.Image)
 	if image == "" {
 		return Deployment{}, fmt.Errorf("spec.image is required")
@@ -96,6 +103,9 @@ func MapDeployment(resource Resource) (Deployment, error) {
 		"micro.dev/kind":               strings.ToLower(string(resource.Kind)),
 	}
 	env := copyMap(resource.Spec.Environment)
+	if _, configured := env["MICRO_SERVER_ADDRESS"]; !configured {
+		env["MICRO_SERVER_ADDRESS"] = fmt.Sprintf(":%d", workloadPort(resource))
+	}
 	if resource.Spec.Registry != "" {
 		env["MICRO_REGISTRY"] = resource.Spec.Registry
 	}
