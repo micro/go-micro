@@ -183,24 +183,9 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 			// not acknowledging the message is the way to indicate an error occurred
 			return
 		}
-		if options.AutoAck {
-			// set up the ack funcs
-			evt.SetAckFunc(func() error {
-				return msg.Ack()
-			})
-
-			evt.SetNackFunc(func() error {
-				return msg.Nak()
-			})
-		} else {
-			// set up the ack funcs
-			evt.SetAckFunc(func() error {
-				return nil
-			})
-			evt.SetNackFunc(func() error {
-				return nil
-			})
-		}
+		// Manual acknowledgements must reach JetStream regardless of AutoAck.
+		evt.SetAckFunc(func() error { return msg.Ack() })
+		evt.SetNackFunc(func() error { return msg.Nak() })
 
 		// push onto the channel and wait for the consumer to take the event off before we acknowledge it.
 		channel <- evt
@@ -235,7 +220,9 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 	}
 
 	// setup the options
-	subOpts := []nats.SubOpt{}
+	// Disable the NATS callback auto-ack: this callback only delivers to a
+	// channel and cannot know when the application has finished processing.
+	subOpts := []nats.SubOpt{nats.ManualAck()}
 
 	if options.CustomRetries {
 		subOpts = append(subOpts, nats.MaxDeliver(options.GetRetryLimit()))
