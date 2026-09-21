@@ -4,6 +4,7 @@ package nats
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -369,7 +370,7 @@ func (n *natsRegistry) Deregister(s *registry.Service, opts ...registry.Deregist
 func (n *natsRegistry) GetService(s string, opts ...registry.GetOption) ([]*registry.Service, error) {
 	services, err := n.query(s, getQuorum(n.opts))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrUnavailable, err)
 	}
 	return services, nil
 }
@@ -377,7 +378,7 @@ func (n *natsRegistry) GetService(s string, opts ...registry.GetOption) ([]*regi
 func (n *natsRegistry) ListServices(opts ...registry.ListOption) ([]*registry.Service, error) {
 	s, err := n.query("", 0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", registry.ErrUnavailable, err)
 	}
 
 	var services []*registry.Service

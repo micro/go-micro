@@ -6,6 +6,8 @@ import (
 )
 
 var (
+	// ErrUnavailable means the discovery backend could not be reached.
+	ErrUnavailable = errors.New("registry unavailable")
 	// Not found error when GetService is called.
 	ErrNotFound = errors.New("service not found")
 	// Watcher stopped error when watcher is stopped.

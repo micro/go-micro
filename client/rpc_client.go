@@ -420,11 +420,7 @@ func (r *rpcClient) next(request Request, opts CallOptions) (selector.Next, erro
 	// get next nodes from the selector
 	next, err := r.opts.Selector.Select(service, opts.SelectOptions...)
 	if err != nil {
-		if errors.Is(err, selector.ErrNotFound) {
-			return nil, merrors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-		}
-
-		return nil, merrors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
+		return nil, NewDiscoveryError(service, err)
 	}
 
 	return next, nil
@@ -437,29 +433,21 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 	defer r.mu.RUnlock()
 
 	// make a copy of call opts
-	callOpts := r.opts.CallOptions
-	for _, opt := range opts {
-		opt(&callOpts)
-	}
+	callOpts := ResolveCallOptions(r.opts, request, opts...)
 
 	next, err := r.next(request, callOpts)
 	if err != nil {
 		return err
 	}
 
-	// check if we already have a deadline
-	d, ok := ctx.Deadline()
-	if !ok {
-		// no deadline so we create a new one
+	// The request budget and caller deadline both apply; the earlier wins.
+	if callOpts.RequestTimeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, callOpts.RequestTimeout)
-
 		defer cancel()
-	} else {
-		// got a deadline so no need to setup context
-		// but we need to set the timeout we pass along
-		opt := WithRequestTimeout(time.Until(d))
-		opt(&callOpts)
+	}
+	if deadline, ok := ctx.Deadline(); ok {
+		callOpts.RequestTimeout = time.Until(deadline)
 	}
 
 	// should we noop right here?
@@ -495,14 +483,7 @@ func (r *rpcClient) Call(ctx context.Context, request Request, response interfac
 		service := request.Service()
 
 		if err != nil {
-			if errors.Is(err, selector.ErrNotFound) {
-				return merrors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-			}
-
-			return merrors.InternalServerError("go.micro.client",
-				"error getting next %s node: %s",
-				service,
-				err.Error())
+			return NewDiscoveryError(service, err)
 		}
 
 		// make the call
@@ -562,10 +543,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 	defer r.mu.RUnlock()
 
 	// make a copy of call opts
-	callOpts := r.opts.CallOptions
-	for _, opt := range opts {
-		opt(&callOpts)
-	}
+	callOpts := ResolveCallOptions(r.opts, request, opts...)
 
 	next, err := r.next(request, callOpts)
 	if err != nil {
@@ -594,14 +572,7 @@ func (r *rpcClient) Stream(ctx context.Context, request Request, opts ...CallOpt
 		service := request.Service()
 
 		if err != nil {
-			if errors.Is(err, selector.ErrNotFound) {
-				return nil, merrors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-			}
-
-			return nil, merrors.InternalServerError("go.micro.client",
-				"error getting next %s node: %s",
-				service,
-				err.Error())
+			return nil, NewDiscoveryError(service, err)
 		}
 
 		stream, err := r.stream(ctx, node, request, callOpts)
