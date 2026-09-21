@@ -289,7 +289,7 @@ func TestSlowProviderTimeoutPreventsLateToolSideEffects(t *testing.T) {
 	}
 }
 
-func TestAskCheckpointRecordsTerminalOperationalFailureStatus(t *testing.T) {
+func TestAskCheckpointRecordsOperationalFailureStatus(t *testing.T) {
 	tests := []struct {
 		name string
 		err  error
@@ -333,8 +333,12 @@ func TestAskCheckpointRecordsTerminalOperationalFailureStatus(t *testing.T) {
 			if got := runs[0].Steps[0].ErrorKind; got != string(model.ClassifyError(tt.err)) {
 				t.Fatalf("step error kind = %q, want %q", got, model.ClassifyError(tt.err))
 			}
-			if pending, err := Pending(context.Background(), a); err != nil || len(pending) != 0 {
-				t.Fatalf("Pending = %#v, %v; want no terminal run", pending, err)
+			wantPending := 1
+			if tt.want == "canceled" {
+				wantPending = 0
+			}
+			if pending, err := Pending(context.Background(), a); err != nil || len(pending) != wantPending {
+				t.Fatalf("Pending = %#v, %v; want %d runs", pending, err, wantPending)
 			}
 		})
 	}

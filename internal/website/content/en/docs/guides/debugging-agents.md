@@ -263,3 +263,26 @@ micro call <service> <Handler.Method> '{}'
 
 Redact secrets and user data. If you enabled `agent.TraceInputs(true)`, inspect the
 JSON before sharing it because prompts may be present.
+
+### Recovering interrupted runs
+
+With `agent.WithCheckpoint(...)`, provider `timeout` and `rate_limited` outcomes
+remain discoverable through `agent.Pending` and can be continued with
+`agent.Resume(ctx, ag, runID)`, `agent.ResumeStreamAsk`, or `agent.ResumePending`.
+Use a fresh context after a deadline and wait for the provider's rate-limit
+window before retrying. Recovery keeps the run ID and saved request and reuses
+completed tool results, including after recreating the agent with the same
+checkpoint store. Canceled and expired runs remain terminal. An interrupted
+side effect without a saved result can still be retried: use idempotency keys
+for such tools; checkpointing is not an exactly-once guarantee.
+
+The defaults remain 30 seconds per model call and 30 seconds per tool call.
+For slower models or multi-tool turns, configure the budgets explicitly:
+
+```go
+agent.ModelCallTimeout(120 * time.Second)
+agent.ToolCallTimeout(60 * time.Second)
+```
+
+The caller's context and RPC request deadline must also allow the whole turn to
+finish. Increasing a per-call timeout cannot extend an earlier caller deadline.

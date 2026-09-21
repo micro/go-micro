@@ -15,7 +15,7 @@ func TestTypedRunErrors(t *testing.T) {
 	ctx := context.Background()
 	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "typed-errors")
 	a := newTestAgent(Name("typed-errors"), WithCheckpoint(cp))
-	for _, status := range []string{"timeout", "canceled", "rate_limited", "expired"} {
+	for _, status := range []string{"canceled", "expired"} {
 		if err := cp.Save(ctx, flow.Run{ID: status, Status: status}); err != nil {
 			t.Fatal(err)
 		}
