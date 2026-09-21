@@ -370,6 +370,8 @@ Wildcards are not accepted. Origin permission does not replace authentication.
 Reverse proxies should preserve the original Host. When TLS terminates at a
 proxy, explicitly allow the public HTTPS origin in the MCP options. Do not trust
 arbitrary client-supplied forwarded headers to establish an allowed origin.
+For loopback sockets, a browser-controlled hostname is not sufficient for origin
+authorization; non-loopback hostnames require an explicit trusted origin.
 
 The gateway dashboard's user, token and scope administration pages require an
 administrator account or the configured machine token. Tool invocation scopes,

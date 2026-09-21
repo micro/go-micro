@@ -1,6 +1,8 @@
 package browserorigin
 
 import (
+	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,5 +29,22 @@ func TestOriginValidation(t *testing.T) {
 	r.Header.Add("Origin", "https://trusted.example")
 	if Allowed(r, []string{"https://trusted.example"}) {
 		t.Fatal("multiple origins accepted")
+	}
+}
+
+func TestLoopbackSocketRejectsReboundBrowserHost(t *testing.T) {
+	request := httptest.NewRequest(http.MethodPost, "http://rebound.example:3000/mcp", nil)
+	request = request.WithContext(context.WithValue(request.Context(), http.LocalAddrContextKey, &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 3000}))
+	request.Header.Set("Origin", "http://rebound.example:3000")
+	if Allowed(request, nil) {
+		t.Fatal("browser-controlled Host authorized loopback access")
+	}
+	if !Allowed(request, []string{"http://rebound.example:3000"}) {
+		t.Fatal("explicit proxy origin rejected")
+	}
+	request.Host = "localhost:3000"
+	request.Header.Set("Origin", "http://localhost:3000")
+	if !Allowed(request, nil) {
+		t.Fatal("localhost origin rejected")
 	}
 }

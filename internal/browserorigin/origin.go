@@ -2,6 +2,7 @@
 package browserorigin
 
 import (
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -28,7 +29,21 @@ func Allowed(r *http.Request, trusted []string) bool {
 		scheme = "https"
 	}
 	if u.Scheme == scheme && strings.EqualFold(u.Host, r.Host) {
-		return true
+		// A browser-controlled Host must not authorize a rebinding domain on
+		// a loopback socket. Explicit origins remain available for proxies.
+		local, _ := r.Context().Value(http.LocalAddrContextKey).(net.Addr)
+		if local == nil {
+			return true
+		}
+		host, _, err := net.SplitHostPort(local.String())
+		ip := net.ParseIP(host)
+		if err != nil || ip == nil || !ip.IsLoopback() {
+			return true
+		}
+		originIP := net.ParseIP(u.Hostname())
+		if strings.EqualFold(u.Hostname(), "localhost") || (originIP != nil && originIP.IsLoopback()) {
+			return true
+		}
 	}
 	for _, entry := range trusted {
 		if entry == origin {
