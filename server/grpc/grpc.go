@@ -572,6 +572,9 @@ func (g *grpcServer) processRequest(stream grpc.ServerStream, service *service, 
 	// execute the handler
 	if appErr := fn(ctx, r, replyv.Interface()); appErr != nil {
 		var errStatus *status.Status
+		if structured, ok := errors.As(appErr); ok && structured != nil {
+			appErr = structured
+		}
 		switch verr := appErr.(type) {
 		case *errors.Error:
 			// micro.Error now proto based and we can attach it to grpc status
@@ -644,6 +647,9 @@ func (g *grpcServer) processStream(stream grpc.ServerStream, service *service, m
 	if appErr := fn(ctx, r, ss); appErr != nil {
 		var err error
 		var errStatus *status.Status
+		if structured, ok := errors.As(appErr); ok && structured != nil {
+			appErr = structured
+		}
 		switch verr := appErr.(type) {
 		case *errors.Error:
 			// micro.Error now proto based and we can attach it to grpc status

@@ -114,7 +114,7 @@ func FromError(err error) *Error {
 	if err == nil {
 		return nil
 	}
-	if verr, ok := err.(*Error); ok && verr != nil {
+	if verr, ok := As(err); ok && verr != nil {
 		return verr
 	}
 
@@ -150,4 +150,41 @@ func (e *MultiError) HasErrors() bool {
 func (e *MultiError) Error() string {
 	b, _ := json.Marshal(e)
 	return string(b)
+}
+
+// Stable HTTP status codes used by the structured RPC error constructors.
+const (
+	CodeAlreadyExists      int32 = http.StatusConflict
+	CodeFailedPrecondition int32 = http.StatusPreconditionFailed
+	CodeResourceExhausted  int32 = http.StatusTooManyRequests
+	CodeUnavailable        int32 = http.StatusServiceUnavailable
+)
+
+// AlreadyExists generates a 409 error, equivalent to Conflict.
+func AlreadyExists(id, format string, a ...interface{}) error {
+	return newError(id, CodeAlreadyExists, format, a...)
+}
+
+// FailedPrecondition generates a 412 error.
+func FailedPrecondition(id, format string, a ...interface{}) error {
+	return newError(id, CodeFailedPrecondition, format, a...)
+}
+
+// ResourceExhausted generates a 429 error.
+func ResourceExhausted(id, format string, a ...interface{}) error {
+	return newError(id, CodeResourceExhausted, format, a...)
+}
+
+// Unavailable generates a 503 error.
+func Unavailable(id, format string, a ...interface{}) error {
+	return newError(id, CodeUnavailable, format, a...)
+}
+
+// Is compares status codes and any nonempty Reason/Domain on the target.
+// IDs and human-readable details do not participate, so a remote error can
+// match a local sentinel after transport serialization.
+func (e *Error) Is(target error) bool {
+	other, ok := target.(*Error)
+	return ok && e != nil && other != nil && e.Code != 0 && e.Code == other.Code &&
+		(other.Reason == "" || e.Reason == other.Reason) && (other.Domain == "" || e.Domain == other.Domain)
 }
