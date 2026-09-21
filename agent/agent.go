@@ -724,7 +724,7 @@ func (a *agentImpl) discoverTools() ([]model.Tool, error) {
 		if strings.HasPrefix(t.OriginalName, a.opts.Name+".") {
 			continue
 		}
-		if len(a.opts.Services) == 0 {
+		if a.opts.Services == nil {
 			scoped = append(scoped, t)
 			continue
 		}

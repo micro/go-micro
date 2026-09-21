@@ -689,6 +689,22 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 		return errResult(call.ID, "task is required")
 	}
 	to, _ := input["to"].(string)
+	// Services scopes local tool discovery. Registered and A2A agents have
+	// their own tool policy; preserve the existing remote delegation path.
+	remoteURL := strings.HasPrefix(to, "http://") || strings.HasPrefix(to, "https://")
+	registeredAgent := to != "" && !remoteURL && a.isAgent(to)
+	if to != "" && !remoteURL && !registeredAgent && a.opts.Services != nil {
+		allowed := false
+		for _, service := range a.opts.Services {
+			if service == to {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return errResult(call.ID, "delegate target is outside the agent's service scope: "+to)
+		}
+	}
 	if cached, ok := a.cachedDelegateResult(call.ID, to, task); ok {
 		return cached
 	}
@@ -700,7 +716,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 	defer func() { a.finishDelegateCall(key, res) }()
 
 	// An external agent on another framework, addressed by A2A URL.
-	if strings.HasPrefix(to, "http://") || strings.HasPrefix(to, "https://") {
+	if remoteURL {
 		reply, err := a2a.NewClient(to).Send(ctx, task)
 		if err != nil {
 			return errResult(call.ID, "delegate to A2A agent "+to+": "+err.Error())
@@ -709,7 +725,7 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 	}
 
 	// Delegate-first: an existing agent that owns the domain handles it.
-	if to != "" && a.isAgent(to) {
+	if registeredAgent {
 		reply, err := a.callAgentRPC(ctx, to, task)
 		if err != nil {
 			return errResult(call.ID, "delegate to agent "+to+": "+err.Error())
@@ -719,13 +735,17 @@ func (a *agentImpl) handleDelegate(ctx context.Context, call model.ToolCall) (re
 
 	// Otherwise create a focused, ephemeral sub-agent. Fresh context:
 	// it loads no history and persists none.
-	var svcs []string
+	svcs := a.opts.Services
 	if to != "" {
 		svcs = []string{to}
 	}
 	sub := newEphemeral(
 		Name(a.opts.Name+".sub"),
-		Services(svcs...),
+		func(o *Options) {
+			if svcs != nil {
+				o.Services = append([]string{}, svcs...)
+			}
+		},
 		Prompt("You are a sub-agent handling a single delegated subtask. "+
 			"Complete it using the available tools and report the result concisely."),
 		Provider(a.opts.Provider),
