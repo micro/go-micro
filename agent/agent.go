@@ -502,7 +502,11 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			if err := a.saveRun(ctx, run); err != nil {
 				return nil, err
 			}
-			return nil, fmt.Errorf("agent run %s paused for approval: %s", run.ID, a.pause.Message)
+			kind := PauseApproval
+			if a.pause.Tool == toolHumanInput {
+				kind = PauseInput
+			}
+			return nil, &PausedError{RunID: run.ID, Kind: kind, Tool: a.pause.Tool, Reason: a.pause.Message}
 		}
 
 		if len(resp.ToolCalls) == 0 {

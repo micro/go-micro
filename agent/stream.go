@@ -165,7 +165,7 @@ func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, ev
 		return &resp, nil
 	}
 	if terminalAgentRunStatus(run.Status) {
-		return nil, errors.New("agent: checkpointed run is terminal with status " + run.Status)
+		return nil, &TerminalRunError{RunID: run.ID, Status: run.Status, message: "agent: checkpointed run is terminal with status " + run.Status}
 	}
 
 	a.mu.Lock()
@@ -184,7 +184,7 @@ func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, ev
 	defer a.setupWithToolHandler(nil)
 	if run.Status == "paused" {
 		if run.State.Stage == agentInputStep {
-			return nil, errors.New("agent: checkpointed run is input-required; resume with ResumeInput")
+			return nil, &AwaitingInputError{RunID: run.ID, message: "agent: checkpointed run is input-required; resume with ResumeInput"}
 		}
 		run.Status = "running"
 		run.State.Stage = agentAskStep
