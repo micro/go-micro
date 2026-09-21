@@ -5,6 +5,9 @@ import (
 	"crypto/ed25519"
 	"encoding/json"
 	"fmt"
+	"go-micro.dev/v6/model"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -154,5 +157,92 @@ func TestAP2TamperCasesFailDistinctly(t *testing.T) {
 	otherRail := X402AP2Rail("payreq_other")
 	if got := VerifyAP2ForTask(signed, pub, task, &otherRail); got.Verified || !strings.Contains(got.Error, "rail reference") {
 		t.Fatalf("expected rail reference failure, got %+v", got)
+	}
+}
+
+// The embedded invocation enforces its payment policy before calling a paid
+// tool. No settlement service or real payment is contacted by this test.
+func TestAP2PaidInvocationChecksMandateBeforeSideEffect(t *testing.T) {
+	pub, priv := testAP2Key(t)
+	rail := X402AP2Rail("payreq_paid_tool")
+	good, err := SignAP2Mandate(AP2Mandate{ID: "paid", Kind: AP2PaymentMandate, TaskID: "task-paid", ContextID: "ctx-paid", Merchant: "tool", Amount: "1", Currency: "USD", Rail: &rail}, "key", priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, streaming := range []bool{false, true} {
+		for _, scenario := range []string{"valid", "tampered", "wrong-rail", "checkout", "unverified"} {
+			t.Run(fmt.Sprintf("stream=%v/%s", streaming, scenario), func(t *testing.T) {
+				signed := good
+				if scenario == "tampered" {
+					signed.Mandate.Amount = "999"
+				}
+				if scenario == "wrong-rail" {
+					wrong := X402AP2Rail("other")
+					signed.Mandate.Rail = &wrong
+					signed, err = SignAP2Mandate(signed.Mandate, "key", priv)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				if scenario == "checkout" {
+					signed.Mandate.Kind = AP2CheckoutMandate
+					signed.Mandate.Rail = nil
+					signed, err = SignAP2Mandate(signed.Mandate, "key", priv)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				paidCalls := 0
+				invoke := func(ctx context.Context, _ string) (string, error) {
+					authorization, ok := AP2FromContext(ctx)
+					if !ok || len(authorization.Mandates) != 1 || len(authorization.Verifications) != 1 || !authorization.Verifications[0].Verified {
+						return "", fmt.Errorf("verified payment mandate required")
+					}
+					mandate := authorization.Mandates[0]
+					check := VerifyAP2ForTask(mandate, pub, Task{ID: authorization.TaskID, ContextID: authorization.ContextID}, &rail)
+					if !check.Verified || mandate.Mandate.Kind != AP2PaymentMandate || mandate.Mandate.Merchant != "tool" || mandate.Mandate.Amount != "1" || mandate.Mandate.Currency != "USD" {
+						return "", fmt.Errorf("payment policy rejected")
+					}
+					// Paid-tool boundary: authorization has already been checked.
+					paidCalls++
+					authorization.Mandates[0].Mandate.Rail.Reference = "mutated"
+					again, _ := AP2FromContext(ctx)
+					if again.Mandates[0].Mandate.Rail.Reference != rail.Reference {
+						t.Fatal("context snapshot was mutable")
+					}
+					return "paid tool result", nil
+				}
+				var opts []AgentHandlerOption
+				if scenario != "unverified" {
+					opts = append(opts, WithAP2PublicKey(pub))
+				}
+				handler := NewAgentStreamHandler(AgentCard{Name: "paid"}, invoke, func(ctx context.Context, text string) (model.Stream, error) {
+					result, err := invoke(ctx, text)
+					if err != nil {
+						return nil, err
+					}
+					return &sliceStream{chunks: []string{result}}, nil
+				}, opts...)
+				method := "message/send"
+				if streaming {
+					method = "message/stream"
+				}
+				msg := AP2AttachMandate(Message{TaskID: "task-paid", ContextID: "ctx-paid", Role: "user", Parts: []Part{{Kind: "text", Text: "purchase"}}}, signed)
+				params, _ := json.Marshal(sendParams{Message: msg})
+				body := fmt.Sprintf(`{"jsonrpc":"2.0","id":1,"method":%q,"params":%s}`, method, params)
+				recorder := httptest.NewRecorder()
+				handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body)))
+				want := 0
+				if scenario == "valid" {
+					want = 1
+				}
+				if paidCalls != want {
+					t.Fatalf("paid calls=%d want=%d response=%s", paidCalls, want, recorder.Body.String())
+				}
+				if want == 1 && !strings.Contains(recorder.Body.String(), "paid tool result") {
+					t.Fatalf("missing result: %s", recorder.Body.String())
+				}
+			})
+		}
 	}
 }

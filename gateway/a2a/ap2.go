@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -147,4 +148,46 @@ func ap2Payload(m AP2Mandate) ([]byte, error) {
 	}
 	sum := sha256.Sum256(b)
 	return sum[:], nil
+}
+
+// AP2Invocation carries mandate verification into an embedded invocation before
+// it performs paid work. Signature verification does not authorize spending:
+// the application must enforce merchant, amount, currency, rail and replay policy.
+type AP2Invocation struct {
+	TaskID        string
+	ContextID     string
+	Mandates      []AP2SignedMandate
+	Verifications []AP2Verification
+}
+
+type ap2InvocationKey struct{}
+
+// AP2FromContext returns request-local mandate data for Invoke/StreamInvoke.
+// Without a configured public key, Verifications is empty. The data is not
+// automatically forwarded across RPC boundaries and is not proof of settlement.
+func AP2FromContext(ctx context.Context) (AP2Invocation, bool) {
+	data, ok := ctx.Value(ap2InvocationKey{}).([]byte)
+	if !ok {
+		return AP2Invocation{}, false
+	}
+	var invocation AP2Invocation
+	if json.Unmarshal(data, &invocation) != nil {
+		return AP2Invocation{}, false
+	}
+	return invocation, true
+}
+
+func (d *dispatcher) ap2InvocationContext(ctx context.Context, task *Task) context.Context {
+	if len(task.AP2Mandates) == 0 {
+		return ctx
+	}
+	invocation := AP2Invocation{TaskID: task.ID, ContextID: task.ContextID, Mandates: task.AP2Mandates}
+	if d.ap2Verify != nil {
+		for _, mandate := range task.AP2Mandates {
+			invocation.Verifications = append(invocation.Verifications, d.ap2Verify(mandate, *task))
+		}
+	}
+	// Store an immutable snapshot; callers receive independent copies.
+	data, _ := json.Marshal(invocation)
+	return context.WithValue(ctx, ap2InvocationKey{}, data)
 }

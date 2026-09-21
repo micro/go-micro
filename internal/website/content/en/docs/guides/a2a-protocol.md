@@ -194,6 +194,19 @@ the payment rail. For x402, use an AP2 payment mandate with an `x402` rail
 reference to name the payment requirement; the existing x402 facilitator still
 performs verification and settlement.
 
+With `WithAP2PublicKey`, embedded `Invoke` and `StreamInvoke` callbacks can call
+`a2a.AP2FromContext(ctx)` before executing a paid tool. It returns the task/context
+IDs, signed mandates and verification outcomes. Require a successful verification,
+require `Mandate.Kind == a2a.AP2PaymentMandate`, then validate its merchant,
+amount, currency and expected x402
+rail reference (using `VerifyAP2ForTask`) before initiating payment. Enforce replay
+and spend limits in the application. An absent key leaves verification empty;
+carrying a mandate alone does not authorize spending.
+
+This context is local to the embedded invocation; it is not automatically sent
+over `Agent.Chat` RPC. Signature verification is neither settlement nor a replay
+ledger. The x402 payment path still performs its own verification and settlement.
+
 ## See also
 
 - [MCP & AI Agents](../mcp.md) — exposing services as tools
