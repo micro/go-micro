@@ -15,7 +15,7 @@ func microError(err error) error {
 		return nil
 	}
 
-	if verr, ok := err.(*errors.Error); ok {
+	if verr, ok := errors.As(err); ok {
 		return verr
 	}
 
@@ -26,8 +26,10 @@ func microError(err error) error {
 	}
 
 	// return first error from details
-	if details := s.Details(); len(details) > 0 {
-		return microError(details[0].(error))
+	for _, detail := range s.Details() {
+		if detailError, ok := detail.(error); ok {
+			return microError(detailError)
+		}
 	}
 
 	// try to decode micro *errors.Error
@@ -61,6 +63,8 @@ func microStatusFromGrpcCode(code codes.Code) int32 {
 		return http.StatusNotImplemented
 	case codes.Internal:
 		return http.StatusInternalServerError
+	case codes.ResourceExhausted:
+		return http.StatusTooManyRequests
 	case codes.Unavailable:
 		return http.StatusServiceUnavailable
 	}

@@ -34,6 +34,8 @@ func microError(err *errors.Error) codes.Code {
 		return codes.Unimplemented
 	case http.StatusInternalServerError:
 		return codes.Internal
+	case http.StatusTooManyRequests:
+		return codes.ResourceExhausted
 	case http.StatusServiceUnavailable:
 		return codes.Unavailable
 	}
