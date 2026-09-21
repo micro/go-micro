@@ -176,6 +176,12 @@ func TestNewDurableConsumerReceivesStreamHistory(t *testing.T) {
 }
 
 func TestExistingDeliverNewDurableCanReconnect(t *testing.T) {
+	for _, policy := range []nats.AckPolicy{nats.AckExplicitPolicy, nats.AckAllPolicy} {
+		t.Run(policy.String(), func(t *testing.T) { testExistingDurable(t, policy) })
+	}
+}
+
+func testExistingDurable(t *testing.T, policy nats.AckPolicy) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -206,7 +212,7 @@ func TestExistingDeliverNewDurableCanReconnect(t *testing.T) {
 		DeliverSubject: nats.NewInbox(),
 		DeliverGroup:   "existing-reader",
 		DeliverPolicy:  nats.DeliverNewPolicy,
-		AckPolicy:      nats.AckExplicitPolicy,
+		AckPolicy:      policy,
 	})
 	require.NoError(t, err)
 

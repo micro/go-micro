@@ -52,3 +52,15 @@ if err != nil {
   panic(err)
 }
 ```
+
+
+## Acknowledgements
+
+Automatic acknowledgement on delivery is the default. Use `events.WithAutoAck(false, ackWait)`
+and call `event.Ack()` after processing succeeds, or `event.Nack()` to request
+redelivery after a failure. Unacknowledged events are redelivered after `ackWait`.
+
+With `events.WithAutoAck(true, ackWait)`, events are acknowledged when received
+from the channel, **before application processing completes**. A subsequent
+processing failure can lose the event; use manual acknowledgements when
+processing must succeed before delivery is confirmed.
