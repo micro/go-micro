@@ -696,6 +696,8 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 		writeRPC(w, req.ID, nil, &rpcError{Code: errInvalidParams, Message: "message has no text part"})
 		return
 	}
+	initial := d.taskFromReply(p.Message, "", stateWorking)
+	ctx = d.ap2InvocationContext(ctx, initial)
 	stream, err := invoke(ctx, text)
 	if err != nil {
 		if errors.Is(err, model.ErrStreamingUnsupported) && fallback != nil {
@@ -707,16 +709,11 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 	}
 	defer stream.Close()
 	enc, flush := sseResponse(w)
-	taskID := uuid.New().String()
-	contextID := p.Message.ContextID
-	if contextID == "" {
-		contextID = uuid.New().String()
-	}
+	taskID, contextID := initial.ID, initial.ContextID
 	// One artifact id for the whole stream so append:true chunks target it.
 	artifactID := uuid.New().String()
 
 	// Open with the Task snapshot (working) so the client learns the ids.
-	initial := taskFromReplyWithIDs(p.Message, "", stateWorking, taskID, contextID)
 	d.store(initial)
 	writeSSE(enc, flush, req.ID, initial)
 
@@ -724,7 +721,7 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 	for {
 		chunk, err := stream.Recv()
 		if err == io.EOF {
-			task := taskFromReplyWithIDs(p.Message, reply.String(), stateCompleted, taskID, contextID)
+			task := taskFromReplyWithIDsAndHistory(p.Message, reply.String(), stateCompleted, taskID, contextID, initial.History[:len(initial.History)-2])
 			d.store(task)
 			// Spec-shaped terminal: a status-update with final:true — not a
 			// full Task snapshot, which carries no terminal marker.
@@ -732,7 +729,7 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 			return
 		}
 		if err != nil {
-			task := taskFromReplyWithIDs(p.Message, "error: "+err.Error(), stateFailed, taskID, contextID)
+			task := taskFromReplyWithIDsAndHistory(p.Message, "error: "+err.Error(), stateFailed, taskID, contextID, initial.History[:len(initial.History)-2])
 			d.store(task)
 			// A failed status-update (final) — never `result` and `error`
 			// together in one response, which strict clients reject.
@@ -745,7 +742,7 @@ func (d *dispatcher) streamChunks(ctx context.Context, w http.ResponseWriter, re
 		reply.WriteString(chunk.Reply)
 		// Emit the delta as an append artifact-update; keep the stored task
 		// current for tasks/get and resubscribe watchers.
-		d.store(taskFromReplyWithIDs(p.Message, reply.String(), stateWorking, taskID, contextID))
+		d.store(taskFromReplyWithIDsAndHistory(p.Message, reply.String(), stateWorking, taskID, contextID, initial.History[:len(initial.History)-2]))
 		writeSSE(enc, flush, req.ID, TaskArtifactUpdateEvent{
 			TaskID:    taskID,
 			ContextID: contextID,
@@ -766,6 +763,8 @@ func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Inv
 		return nil, &rpcError{Code: errInvalidParams, Message: "message has no text part"}
 	}
 
+	initial := d.taskFromReply(p.Message, "", stateWorking)
+	ctx = d.ap2InvocationContext(ctx, initial)
 	reply, err := invoke(ctx, text)
 	state := stateCompleted
 	if err != nil {
@@ -779,7 +778,7 @@ func (d *dispatcher) run(ctx context.Context, params json.RawMessage, invoke Inv
 		reply = "error: agent returned an empty response"
 		state = stateFailed
 	}
-	task := d.taskFromReply(p.Message, reply, state)
+	task := taskFromReplyWithIDsAndHistory(p.Message, reply, state, initial.ID, initial.ContextID, initial.History[:len(initial.History)-2])
 	d.store(task)
 	return task, nil
 }
