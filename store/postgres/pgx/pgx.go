@@ -14,6 +14,7 @@
 package pgx
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"net/url"
@@ -385,6 +386,9 @@ func NewStore(opts ...store.Option) store.Store {
 
 	for _, o := range opts {
 		o(&options)
+	}
+	if options.Context == nil {
+		options.Context = context.Background()
 	}
 
 	// new store
