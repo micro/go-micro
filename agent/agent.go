@@ -70,12 +70,13 @@ type Response struct {
 }
 
 type agentImpl struct {
-	opts   Options
-	model  model.Model
-	tools  *model.Tools
-	mem    Memory
-	server server.Server
-	mu     sync.Mutex
+	approvalErr error
+	opts        Options
+	model       model.Model
+	tools       *model.Tools
+	mem         Memory
+	server      server.Server
+	mu          sync.Mutex
 
 	// ephemeral marks a short-lived sub-agent created by delegation.
 	// Ephemeral agents run with an isolated context: they load and
@@ -410,6 +411,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	a.spend = 0
 	a.calls = map[string]int{}
 	a.pause = nil
+	a.approvalErr = nil
 
 	// Correlate this run's tool calls and surface lineage to wrappers. Keep
 	// the flow origin recovered from RPC metadata while assigning this agent
@@ -449,7 +451,11 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	}
 	defer func() { endRun(err) }()
 
-	messages := a.mem.Messages()
+	approvalMessages, err := a.resolveApprovedCalls(ctx, &run, toolList)
+	if err != nil {
+		return nil, err
+	}
+	messages := append(a.mem.Messages(), approvalMessages...)
 	if recall, ok := a.mem.(MemoryRecall); ok && a.opts.MemoryRecallLimit > 0 {
 		if recalled := recall.Recall(message, a.opts.MemoryRecallLimit); len(recalled) > 0 {
 			messages = append([]model.Message{{
@@ -477,6 +483,12 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			Backoff:     a.opts.ModelRetryBackoff,
 			Jitter:      a.opts.ModelRetryJitter,
 		})
+		if a.approvalErr != nil {
+			err = a.approvalErr
+		}
+		if a.pause != nil && a.pause.ApprovalID != "" && a.approvalErr == nil {
+			return nil, a.persistApprovalPause(ctx, &run)
+		}
 		if err != nil {
 			run.Status = agentRunFailureStatus(err)
 			failureKind := model.ClassifyError(err)
@@ -536,6 +548,13 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 					resp.Answer += "\n" + answer
 				}
 			}
+		}
+
+		if a.approvalErr != nil {
+			return nil, a.approvalErr
+		}
+		if a.pause != nil && a.pause.ApprovalID != "" {
+			return nil, a.persistApprovalPause(ctx, &run)
 		}
 
 		if a.opts.Checkpoint != nil {

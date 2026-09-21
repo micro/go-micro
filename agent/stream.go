@@ -182,6 +182,9 @@ func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, ev
 	}
 	a.setupWithToolHandler(handler)
 	defer a.setupWithToolHandler(nil)
+	if paused := pendingApproval(run); paused != nil {
+		return nil, paused
+	}
 	if run.Status == "paused" {
 		if run.State.Stage == agentInputStep {
 			return nil, &AwaitingInputError{RunID: run.ID, message: "agent: checkpointed run is input-required; resume with ResumeInput"}

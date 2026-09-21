@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	codecBytes "go-micro.dev/v6/codec/bytes"
+	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
@@ -413,8 +415,9 @@ func (a *agentImpl) loopWrap(next model.ToolHandler) model.ToolHandler {
 
 // approveWrap gates each action before it runs (ApproveTool).
 type approvalPause struct {
-	Tool    string
-	Message string
+	ApprovalID string
+	Tool       string
+	Message    string
 }
 
 type inputPause struct {
@@ -424,6 +427,57 @@ type inputPause struct {
 
 func (a *agentImpl) approveWrap(next model.ToolHandler) model.ToolHandler {
 	return func(ctx context.Context, call model.ToolCall) model.ToolResult {
+		if a.approvalErr != nil {
+			return refused(call.ID, model.RefusedApproval, a.approvalErr.Error())
+		}
+		if a.pause != nil && a.pause.ApprovalID != "" {
+			return refused(call.ID, model.RefusedApproval, a.pause.Message)
+		}
+		if key, _ := ctx.Value(approvedCallKey{}).(string); key != "" && key == toolCheckpointName(call) {
+			return next(ctx, call)
+		}
+		if a.opts.Approval != nil {
+			if a.currentRun != nil {
+				if saved, ok := findStep(a.currentRun.Steps, toolCheckpointName(call)); ok && saved.Status == "done" {
+					return next(ctx, call)
+				}
+			}
+			decision, err := a.opts.Approval(ctx, call)
+			if err != nil {
+				a.approvalErr = err
+				return refused(call.ID, model.RefusedApproval, err.Error())
+			}
+			switch decision.Status {
+			case ApprovalApproved:
+			case ApprovalDenied:
+				return refused(call.ID, model.RefusedApproval, decision.Reason)
+			case ApprovalPending:
+				if a.opts.Checkpoint == nil || a.currentRun == nil || decision.ID == "" {
+					a.approvalErr = fmt.Errorf("pending approval requires a checkpoint and nonempty ID")
+					return refused(call.ID, model.RefusedApproval, a.approvalErr.Error())
+				}
+				if _, exists := findStep(a.currentRun.Steps, approvalPrefix+decision.ID); exists {
+					a.approvalErr = fmt.Errorf("approval ID %s already exists in this run", decision.ID)
+					return refused(call.ID, model.RefusedApproval, a.approvalErr.Error())
+				}
+				data, err := json.Marshal(approvalRecord{ID: decision.ID, Call: call, Reason: decision.Reason})
+				if err != nil {
+					a.approvalErr = err
+					return refused(call.ID, model.RefusedApproval, err.Error())
+				}
+				a.currentRun.Steps = append(a.currentRun.Steps, flow.StepRecord{Name: approvalPrefix + decision.ID, Status: "pending", Result: string(data)})
+				a.pause = &approvalPause{ApprovalID: decision.ID, Tool: call.Name, Message: decision.Reason}
+				if err := a.persistApprovalPause(ctx, a.currentRun); err != nil && !errors.Is(err, ErrRunPaused) {
+					a.approvalErr = err
+					a.currentRun.Steps = a.currentRun.Steps[:len(a.currentRun.Steps)-1]
+					a.pause = nil
+				}
+				return refused(call.ID, model.RefusedApproval, decision.Reason)
+			default:
+				a.approvalErr = fmt.Errorf("invalid approval decision %q", decision.Status)
+				return refused(call.ID, model.RefusedApproval, a.approvalErr.Error())
+			}
+		}
 		if a.opts.Approve != nil {
 			if ok, reason := a.opts.Approve(call.Name, call.Input); !ok {
 				msg := "tool call was not approved"

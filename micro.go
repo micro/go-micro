@@ -417,3 +417,11 @@ func RegisterHandler(s server.Server, h interface{}, opts ...server.HandlerOptio
 func RegisterSubscriber(topic string, s server.Server, h interface{}, opts ...server.SubscriberOption) error {
 	return s.Subscribe(s.NewSubscriber(topic, h, opts...))
 }
+
+// AgentWithApproval installs context-aware durable tool approval.
+func AgentWithApproval(fn agent.ApprovalFunc) AgentOption { return agent.WithApproval(fn) }
+
+// AgentResumeApproval resolves a saved tool approval and resumes its run.
+func AgentResumeApproval(ctx context.Context, a Agent, runID, approvalID string, approved bool, reason string) (*AgentResponse, error) {
+	return agent.ResumeApproval(ctx, a, runID, approvalID, approved, reason)
+}
