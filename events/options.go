@@ -29,6 +29,8 @@ type StoreOption func(o *StoreOptions)
 
 // PublishOptions contains all the options which can be provided when publishing an event
 type PublishOptions struct {
+	// ID is a caller-supplied stable event ID. Empty generates a UUID.
+	ID string
 	// Metadata contains any keys which can be used to query the data, for example a customer id
 	Metadata map[string]string
 	// Timestamp to set for the event, if the timestamp is a zero value, the current time will be used
@@ -156,3 +158,7 @@ func ReadOffset(l uint) ReadOption {
 		o.Offset = 1
 	}
 }
+
+// WithID preserves a caller-supplied event ID across outbox retries. JetStream
+// uses it as Nats-Msg-Id for deduplication within the stream's duplicate window.
+func WithID(id string) PublishOption { return func(o *PublishOptions) { o.ID = id } }

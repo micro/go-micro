@@ -3,6 +3,7 @@ package natsjs
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -119,9 +120,13 @@ func (s *stream) Publish(topic string, msg interface{}, opts ...events.PublishOp
 		payload = p
 	}
 
+	if options.ID == "" {
+		options.ID = uuid.New().String()
+	}
+
 	// construct the event
 	event := &events.Event{
-		ID:        uuid.New().String(),
+		ID:        options.ID,
 		Topic:     topic,
 		Timestamp: options.Timestamp,
 		Metadata:  options.Metadata,
@@ -134,10 +139,14 @@ func (s *stream) Publish(topic string, msg interface{}, opts ...events.PublishOp
 		return errors.Wrap(err, "Error encoding event")
 	}
 
+	if _, err := s.ensureStream(topic); err != nil {
+		return err
+	}
+
 	// publish the event to the topic's channel
 	// publish synchronously if configured
 	if s.opts.SyncPublish {
-		_, err := s.natsJetStreamCtx.Publish(event.Topic, bytes)
+		_, err := s.natsJetStreamCtx.Publish(event.Topic, bytes, nats.MsgId(event.ID))
 		if err != nil {
 			err = errors.Wrap(err, "Error publishing message to topic")
 		}
@@ -146,7 +155,7 @@ func (s *stream) Publish(topic string, msg interface{}, opts ...events.PublishOp
 	}
 
 	// publish asynchronously by default
-	if _, err := s.natsJetStreamCtx.PublishAsync(event.Topic, bytes); err != nil {
+	if _, err := s.natsJetStreamCtx.PublishAsync(event.Topic, bytes, nats.MsgId(event.ID)); err != nil {
 		return errors.Wrap(err, "Error publishing message to topic")
 	}
 
@@ -204,29 +213,15 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 		}
 	}
 
-	// ensure that a stream exists for that topic
-	_, err := s.natsJetStreamCtx.StreamInfo(topic)
+	streamName, err := s.ensureStream(topic)
 	if err != nil {
-		cfg := &nats.StreamConfig{
-			Name: topic,
-		}
-		if s.opts.RetentionPolicy != 0 {
-			cfg.Retention = nats.RetentionPolicy(s.opts.RetentionPolicy)
-		}
-		if s.opts.MaxAge > 0 {
-			cfg.MaxAge = s.opts.MaxAge
-		}
-
-		_, err = s.natsJetStreamCtx.AddStream(cfg)
-		if err != nil {
-			return nil, errors.Wrap(err, "Stream did not exist and adding a stream failed")
-		}
+		return nil, err
 	}
 
 	// setup the options
 	// Disable the NATS callback auto-ack: this callback only delivers to a
 	// channel and cannot know when the application has finished processing.
-	subOpts := []nats.SubOpt{nats.ManualAck()}
+	subOpts := []nats.SubOpt{nats.ManualAck(), nats.BindStream(streamName)}
 
 	if options.CustomRetries {
 		subOpts = append(subOpts, nats.MaxDeliver(options.GetRetryLimit()))
@@ -234,7 +229,7 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 
 	consumerExists := false
 	if !s.opts.DisableDurableStreams {
-		_, err = s.natsJetStreamCtx.ConsumerInfo(topic, options.Group)
+		_, err = s.natsJetStreamCtx.ConsumerInfo(streamName, options.Group)
 		switch {
 		case err == nil:
 			consumerExists = true
@@ -267,7 +262,7 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 	// connect the subscriber via a queue group only if durable streams are enabled
 	if !s.opts.DisableDurableStreams {
 		if consumerExists {
-			subOpts = append(subOpts, nats.Bind(topic, options.Group))
+			subOpts = append(subOpts, nats.Bind(streamName, options.Group))
 		} else {
 			subOpts = append(subOpts, nats.Durable(options.Group))
 		}
@@ -296,3 +291,50 @@ func (s *stream) Close() error {
 
 // Ensure stream implements io.Closer
 var _ io.Closer = (*stream)(nil)
+
+// StreamName maps a topic to a legal stream name while preserving legacy names
+// for simple subjects. Dotted subjects use a stable SHA-256-derived name.
+func StreamName(topic string) string {
+	if !strings.ContainsAny(topic, ".*> /\\\t\r\n") {
+		return topic
+	}
+	return fmt.Sprintf("micro_%x", sha256.Sum256([]byte(topic)))
+}
+
+func (s *stream) ensureStream(topic string) (string, error) {
+	cfg := nats.StreamConfig{Name: StreamName(topic), Subjects: []string{topic},
+		Retention: nats.RetentionPolicy(s.opts.RetentionPolicy), MaxAge: s.opts.MaxAge}
+	if s.opts.MaxMsgSize > 0 {
+		cfg.MaxMsgSize = int32(s.opts.MaxMsgSize)
+	}
+	if s.opts.StreamConfig != nil {
+		custom, err := s.opts.StreamConfig(topic)
+		if err != nil {
+			return "", fmt.Errorf("stream config for %s: %w", topic, err)
+		}
+		cfg = custom
+		if cfg.Name == "" {
+			cfg.Name = StreamName(topic)
+		}
+		if len(cfg.Subjects) == 0 {
+			cfg.Subjects = []string{topic}
+		}
+	}
+	_, err := s.natsJetStreamCtx.StreamInfo(cfg.Name)
+	if err == nil {
+		return cfg.Name, nil
+	}
+	if !errors.Is(err, nats.ErrStreamNotFound) {
+		return "", fmt.Errorf("inspect stream %s: %w", cfg.Name, err)
+	}
+	if _, err = s.natsJetStreamCtx.AddStream(&cfg); err != nil {
+		// Another publisher or consumer may have created the same stream meanwhile.
+		if errors.Is(err, nats.ErrStreamNameAlreadyInUse) {
+			if _, lookupErr := s.natsJetStreamCtx.StreamInfo(cfg.Name); lookupErr == nil {
+				return cfg.Name, nil
+			}
+		}
+		return "", fmt.Errorf("create stream %s: %w", cfg.Name, err)
+	}
+	return cfg.Name, nil
+}

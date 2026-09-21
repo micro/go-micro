@@ -74,9 +74,13 @@ func (m *mem) Publish(topic string, msg interface{}, opts ...PublishOption) erro
 		payload = p
 	}
 
+	if options.ID == "" {
+		options.ID = uuid.New().String()
+	}
+
 	// construct the event
 	event := &Event{
-		ID:        uuid.New().String(),
+		ID:        options.ID,
 		Topic:     topic,
 		Timestamp: options.Timestamp,
 		Metadata:  options.Metadata,
