@@ -163,11 +163,15 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 	log := s.opts.Logger
 
 	// parse the options
-	options := events.ConsumeOptions{
-		Group: uuid.New().String(),
-	}
+	options := events.ConsumeOptions{}
 	for _, o := range opts {
 		o(&options)
+	}
+	if !s.opts.DisableDurableStreams && options.Group == "" {
+		return nil, fmt.Errorf("consumer group is required when durable streams are enabled")
+	}
+	if s.opts.DisableDurableStreams && options.Group == "" {
+		options.Group = uuid.New().String()
 	}
 
 	// setup the subscriber
@@ -249,6 +253,8 @@ func (s *stream) Consume(topic string, opts ...events.ConsumeOption) (<-chan eve
 
 	if !options.Offset.IsZero() {
 		subOpts = append(subOpts, nats.StartTime(options.Offset))
+	} else if !s.opts.DisableDurableStreams {
+		subOpts = append(subOpts, nats.DeliverAll())
 	} else {
 		subOpts = append(subOpts, nats.DeliverNew())
 	}
