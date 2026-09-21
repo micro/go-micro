@@ -92,7 +92,7 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 	}
 	if run.Status == "paused" {
 		if run.State.Stage == agentInputStep {
-			return nil, fmt.Errorf("agent run %s is input-required; resume with ResumeInput", runID)
+			return nil, &AwaitingInputError{RunID: runID}
 		}
 		run.Status = "running"
 		run.State.Stage = agentAskStep
@@ -105,7 +105,7 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 		return &resp, nil
 	}
 	if terminalAgentRunStatus(run.Status) {
-		return nil, fmt.Errorf("agent run %s is terminal with status %q", runID, run.Status)
+		return nil, &TerminalRunError{RunID: runID, Status: run.Status}
 	}
 	message := string(run.State.Data)
 	parentID := run.ParentID
