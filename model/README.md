@@ -228,7 +228,7 @@ m := model.New("openai",
 ```
 
 Default model: `gpt-4o`
-Default base URL: `https://api.openmodel.com`
+Default base URL: `https://api.openai.com`
 
 ### Google Gemini
 
@@ -249,11 +249,11 @@ Google Gemini uses its own API format with `system_instruction`, `contents` (not
 ```go
 m := model.New("groq",
     model.WithAPIKey("your-key"),
-    model.WithModel("llama-3.3-70b-versatile"), // default
+    model.WithModel("openai/gpt-oss-120b"), // default
 )
 ```
 
-Default model: `llama-3.3-70b-versatile`
+Default model: `openai/gpt-oss-120b`
 Default base URL: `https://api.groq.com/openai`
 
 Groq provides ultra-fast inference for open-weight models via an OpenAI-compatible endpoint.

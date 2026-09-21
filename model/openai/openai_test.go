@@ -67,8 +67,8 @@ func TestProvider_Defaults(t *testing.T) {
 	if opts.Model != "gpt-4o" {
 		t.Errorf("Expected default model 'gpt-4o', got '%s'", opts.Model)
 	}
-	if opts.BaseURL != "https://api.openmodel.com" {
-		t.Errorf("Expected default base URL 'https://api.openmodel.com', got '%s'", opts.BaseURL)
+	if opts.BaseURL != "https://api.openai.com" {
+		t.Errorf("Expected default base URL 'https://api.openai.com', got '%s'", opts.BaseURL)
 	}
 }
 

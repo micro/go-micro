@@ -386,7 +386,7 @@ Swap providers with a single import — same interface everywhere:
 | Anthropic | `claude-sonnet-4-20250514` |
 | OpenAI | `gpt-4o` |
 | Google Gemini | `gemini-2.5-flash` |
-| Groq | `llama-3.3-70b-versatile` |
+| Groq | `openai/gpt-oss-120b` |
 | Mistral | `mistral-large-latest` |
 | Together AI | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
 | Atlas Cloud | `deepseek-ai/DeepSeek-V3-0324` |

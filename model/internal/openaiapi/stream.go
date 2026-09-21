@@ -15,25 +15,9 @@ import (
 
 // Stream opens an OpenAI-compatible chat completions SSE stream.
 func Stream(ctx context.Context, opts model.Options, req *model.Request, basePath string) (model.Stream, error) {
-	messages := []map[string]any{{"role": "system", "content": req.SystemPrompt}}
-	for _, m := range req.Messages {
-		messages = append(messages, map[string]any{"role": m.Role, "content": m.Content})
-	}
-	if req.Prompt != "" {
-		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
-	}
-	apiReq := map[string]any{
-		"model":          opts.Model,
-		"messages":       messages,
-		"stream":         true,
-		"stream_options": map[string]any{"include_usage": true},
-	}
-	if opts.MaxTokens > 0 {
-		apiReq["max_tokens"] = opts.MaxTokens
-	}
-	if opts.Effort != "" {
-		apiReq["reasoning_effort"] = opts.Effort
-	}
+	apiReq := Request(opts, Messages(req), nil)
+	apiReq["stream"] = true
+	apiReq["stream_options"] = map[string]any{"include_usage": true}
 	reqBody, err := json.Marshal(apiReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal stream request: %w", err)

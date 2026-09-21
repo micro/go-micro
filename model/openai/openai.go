@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"go-micro.dev/v6/model"
+	"go-micro.dev/v6/model/internal/openaiapi"
 )
 
 func init() {
@@ -39,7 +40,7 @@ func NewProvider(opts ...model.Option) *Provider {
 		options.Model = "gpt-4o"
 	}
 	if options.BaseURL == "" {
-		options.BaseURL = "https://api.openmodel.com"
+		options.BaseURL = "https://api.openai.com"
 	}
 
 	return &Provider{
@@ -67,50 +68,9 @@ func (p *Provider) String() string {
 
 // Generate generates a response from the model
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-	// Build tools for OpenAI format
-	var openaiTools []map[string]any
-	for _, t := range req.Tools {
-		openaiTools = append(openaiTools, map[string]any{
-			"type": "function",
-			"function": map[string]any{
-				"name":        t.Name,
-				"description": t.Description,
-				"parameters": map[string]any{
-					"type":       "object",
-					"properties": t.Properties,
-				},
-			},
-		})
-	}
+	messages := openaiapi.Messages(req)
+	apiReq := openaiapi.Request(p.opts, messages, req.Tools)
 
-	// Build messages
-	messages := []map[string]any{
-		{"role": "system", "content": req.SystemPrompt},
-	}
-	for _, m := range req.Messages {
-		messages = append(messages, map[string]any{"role": m.Role, "content": m.Content})
-	}
-	if req.Prompt != "" {
-		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
-	}
-
-	// Build initial request
-	apiReq := map[string]any{
-		"model":    p.opts.Model,
-		"messages": messages,
-	}
-	if p.opts.MaxTokens > 0 {
-		apiReq["max_tokens"] = p.opts.MaxTokens
-	}
-	if p.opts.Effort != "" {
-		apiReq["reasoning_effort"] = p.opts.Effort
-	}
-
-	if len(openaiTools) > 0 {
-		apiReq["tools"] = openaiTools
-	}
-
-	// Make API call
 	resp, rawMessage, err := p.callAPI(ctx, apiReq)
 	if err != nil {
 		return nil, err
@@ -148,23 +108,11 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 				})
 			}
 
-			followUpReq := map[string]any{
-				"model":    p.opts.Model,
-				"messages": followUpMessages,
-			}
-			if p.opts.MaxTokens > 0 {
-				followUpReq["max_tokens"] = p.opts.MaxTokens
-			}
-			if p.opts.Effort != "" {
-				followUpReq["reasoning_effort"] = p.opts.Effort
-			}
-			if len(openaiTools) > 0 {
-				followUpReq["tools"] = openaiTools
-			}
+			followUpReq := openaiapi.Request(p.opts, followUpMessages, req.Tools)
 
 			followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
 			if err != nil {
-				break
+				return nil, fmt.Errorf("tool follow-up: %w", err)
 			}
 			if followUpResp.Reply != "" {
 				resp.Answer = followUpResp.Reply
@@ -185,27 +133,9 @@ const maxToolRounds = 12
 
 // Stream generates a streaming response from the OpenAI chat completions API.
 func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
-	messages := []map[string]any{
-		{"role": "system", "content": req.SystemPrompt},
-	}
-	for _, m := range req.Messages {
-		messages = append(messages, map[string]any{"role": m.Role, "content": m.Content})
-	}
-	if req.Prompt != "" {
-		messages = append(messages, map[string]any{"role": "user", "content": req.Prompt})
-	}
-	apiReq := map[string]any{
-		"model":          p.opts.Model,
-		"messages":       messages,
-		"stream":         true,
-		"stream_options": map[string]any{"include_usage": true},
-	}
-	if p.opts.MaxTokens > 0 {
-		apiReq["max_tokens"] = p.opts.MaxTokens
-	}
-	if p.opts.Effort != "" {
-		apiReq["reasoning_effort"] = p.opts.Effort
-	}
+	apiReq := openaiapi.Request(p.opts, openaiapi.Messages(req), nil)
+	apiReq["stream"] = true
+	apiReq["stream_options"] = map[string]any{"include_usage": true}
 	reqBody, err := json.Marshal(apiReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal stream request: %w", err)
@@ -336,6 +266,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 				Content   string `json:"content"`
 				ToolCalls []struct {
 					ID       string `json:"id"`
+					Type     string `json:"type"`
 					Function struct {
 						Name      string `json:"name"`
 						Arguments string `json:"arguments"`
