@@ -110,15 +110,22 @@ func (s *Server) sweepSessions(ctx context.Context) {
 
 // handleStreamableHTTP routes the MCP streamable-HTTP methods.
 func (s *Server) handleStreamableHTTP(w http.ResponseWriter, r *http.Request) {
-	// The gateway is often called from browser-based MCP clients; allow
-	// cross-origin use even without a proxy in front.
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if !s.checkOrigin(w, r) {
+		return
+	}
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept, MCP-Protocol-Version, MCP-Session-Id, MCP-Request-Id, Authorization")
 
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusNoContent)
 		return
+	}
+
+	if s.opts.AuthFunc != nil {
+		if err := s.opts.AuthFunc(r); err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 	}
 
 	switch r.Method {

@@ -88,6 +88,9 @@ type RateLimitConfig struct {
 
 // Options configures the MCP gateway
 type Options struct {
+	// AllowedOrigins permits exact additional browser origins; defaults to same-origin only.
+	AllowedOrigins []string
+
 	// Registry for service discovery (required)
 	Registry registry.Registry
 
@@ -667,6 +670,9 @@ func (s *Server) toolCatalog() []*Tool {
 
 // handleListTools returns the list of available tools
 func (s *Server) handleListTools(w http.ResponseWriter, r *http.Request) {
+	if !s.checkOrigin(w, r) {
+		return
+	}
 	if s.opts.AuthFunc != nil {
 		if err := s.opts.AuthFunc(r); err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -682,6 +688,9 @@ func (s *Server) handleListTools(w http.ResponseWriter, r *http.Request) {
 
 // handleCallTool executes a tool (makes an RPC call)
 func (s *Server) handleCallTool(w http.ResponseWriter, r *http.Request) {
+	if !s.checkOrigin(w, r) {
+		return
+	}
 	if s.opts.AuthFunc != nil {
 		if err := s.opts.AuthFunc(r); err != nil {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)

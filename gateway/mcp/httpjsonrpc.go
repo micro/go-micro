@@ -10,7 +10,13 @@ import (
 type HandlerOption func(*handlerOptions)
 
 type handlerOptions struct {
+	allowedOrigins                             []string
 	serverName, serverVersion, protocolVersion string
+}
+
+// WithAllowedOrigins permits exact additional browser origins for NewHandler.
+func WithAllowedOrigins(origins ...string) HandlerOption {
+	return func(o *handlerOptions) { o.allowedOrigins = append([]string(nil), origins...) }
 }
 
 // WithServerInfo sets the name/version advertised in the initialize response.
@@ -34,6 +40,16 @@ func NewHandler(r Resolver, opts ...HandlerOption) http.Handler {
 		fn(&o)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if !checkBrowserOrigin(w, req, o.allowedOrigins) {
+			return
+		}
+		if req.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, MCP-Protocol-Version")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		if req.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return

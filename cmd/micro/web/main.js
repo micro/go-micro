@@ -25,7 +25,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     respDiv.className = 'js-response';
                     form.appendChild(respDiv);
                 }
-                respDiv.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(data, null, 2);
+                respDiv.replaceChildren(pre);
             } catch (err) {
                 alert('Error: ' + err);
             }
