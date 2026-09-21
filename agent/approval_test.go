@@ -152,3 +152,30 @@ func TestDurableApprovalFailsClosedOnSaveError(t *testing.T) {
 		t.Fatal("tool executed without durable approval")
 	}
 }
+
+func TestDurableApprovalReturnsPauseAfterProviderCancellation(t *testing.T) {
+	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "canceled-approval")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	a := newTestAgent(Name("cancel-after-save"), WithCheckpoint(cp), WithApproval(func(context.Context, model.ToolCall) (ApprovalDecision, error) {
+		return ApprovalDecision{Status: ApprovalPending, ID: "saved"}, nil
+	}), WithTool("publish", "", nil, func(context.Context, map[string]any) (string, error) {
+		t.Fatal("pending call executed")
+		return "", nil
+	}))
+	fakeGen = func(ctx context.Context, opts model.Options, _ *model.Request) (*model.Response, error) {
+		opts.ToolHandler(ctx, model.ToolCall{ID: "one", Name: "publish"})
+		cancel()
+		return nil, context.Canceled
+	}
+	defer func() { fakeGen = nil }()
+	_, err := a.Ask(ctx, "publish")
+	var paused *PausedError
+	if !errors.As(err, &paused) || paused.ApprovalID != "saved" {
+		t.Fatalf("lost durable pause: %v", err)
+	}
+	run, ok, err := cp.Load(context.Background(), paused.RunID)
+	if err != nil || !ok || pendingApproval(run) == nil {
+		t.Fatalf("missing pending checkpoint: %v", err)
+	}
+}

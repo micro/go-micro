@@ -487,7 +487,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			err = a.approvalErr
 		}
 		if a.pause != nil && a.pause.ApprovalID != "" && a.approvalErr == nil {
-			return nil, a.persistApprovalPause(ctx, &run)
+			return nil, pendingApproval(run)
 		}
 		if err != nil {
 			run.Status = agentRunFailureStatus(err)
@@ -554,7 +554,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			return nil, a.approvalErr
 		}
 		if a.pause != nil && a.pause.ApprovalID != "" {
-			return nil, a.persistApprovalPause(ctx, &run)
+			return nil, pendingApproval(run)
 		}
 
 		if a.opts.Checkpoint != nil {
