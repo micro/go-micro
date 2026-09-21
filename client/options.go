@@ -36,6 +36,8 @@ type Options struct {
 
 	// Default Call Options
 	CallOptions CallOptions
+	// EndpointOptions are applied after defaults and before per-call options. Keys are service/endpoint.
+	EndpointOptions map[string][]CallOption
 
 	// Router sets the router
 	Router Router
@@ -449,4 +451,30 @@ func WithLogger(l logger.Logger) Option {
 	return func(o *Options) {
 		o.Logger = l
 	}
+}
+
+// EndpointOptions sets per-service/endpoint defaults, for example
+// "assistant/Agent.Chat": {WithRequestTimeout(2*time.Minute)}. The map and option
+// slices are copied. Per-call options take precedence, including explicit zero values.
+func EndpointOptions(endpoints map[string][]CallOption) Option {
+	copyOptions := make(map[string][]CallOption, len(endpoints))
+	for key, options := range endpoints {
+		copyOptions[key] = append([]CallOption(nil), options...)
+	}
+	return func(o *Options) { o.EndpointOptions = copyOptions }
+}
+
+// ResolveCallOptions applies client, endpoint and per-call options in that order.
+func ResolveCallOptions(o Options, req Request, overrides ...CallOption) CallOptions {
+	resolved := o.CallOptions
+	resolved.SelectOptions = append([]selector.SelectOption(nil), resolved.SelectOptions...)
+	resolved.CallWrappers = append([]CallWrapper(nil), resolved.CallWrappers...)
+	resolved.Address = append([]string(nil), resolved.Address...)
+	for _, option := range o.EndpointOptions[req.Service()+"/"+req.Endpoint()] {
+		option(&resolved)
+	}
+	for _, option := range overrides {
+		option(&resolved)
+	}
+	return resolved
 }

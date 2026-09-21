@@ -57,7 +57,12 @@ var (
 		&cli.StringFlag{
 			Name:    "client_request_timeout",
 			EnvVars: []string{"MICRO_CLIENT_REQUEST_TIMEOUT"},
-			Usage:   "Sets the client request timeout. e.g 500ms, 5s, 1m. Default: 5s",
+			Usage:   "Sets the client request timeout. e.g 500ms, 5s, 1m. Default: 30s",
+		},
+		&cli.StringFlag{
+			Name:    "client_connection_timeout",
+			EnvVars: []string{"MICRO_CLIENT_CONNECTION_TIMEOUT"},
+			Usage:   "Sets the client connection/request-attempt timeout. Default: 5s",
 		},
 		&cli.IntFlag{
 			Name:    "client_retries",
@@ -633,6 +638,14 @@ func (c *cmd) Before(ctx *cli.Context) error {
 			return fmt.Errorf("failed to parse client_request_timeout: %v", t)
 		}
 		clientOpts = append(clientOpts, client.RequestTimeout(d))
+	}
+
+	if value := ctx.String("client_connection_timeout"); value != "" {
+		duration, err := time.ParseDuration(value)
+		if err != nil {
+			return fmt.Errorf("failed to parse client_connection_timeout: %w", err)
+		}
+		clientOpts = append(clientOpts, client.ConnectionTimeout(duration))
 	}
 
 	if r := ctx.Int("client_pool_size"); r > 0 {

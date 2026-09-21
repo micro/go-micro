@@ -89,10 +89,7 @@ func (g *grpcClient) next(request client.Request, opts client.CallOptions) (sele
 	// get next nodes from the selector
 	next, err := g.opts.Selector.Select(service, opts.SelectOptions...)
 	if err != nil {
-		if err == selector.ErrNotFound {
-			return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-		}
-		return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
+		return nil, client.NewDiscoveryError(service, err)
 	}
 
 	return next, nil
@@ -400,28 +397,21 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		return errors.InternalServerError("go.micro.client", "rsp is nil")
 	}
 	// make a copy of call opts
-	callOpts := g.opts.CallOptions
-	for _, opt := range opts {
-		opt(&callOpts)
-	}
+	callOpts := client.ResolveCallOptions(g.opts, req, opts...)
 
 	next, err := g.next(req, callOpts)
 	if err != nil {
 		return err
 	}
 
-	// check if we already have a deadline
-	d, ok := ctx.Deadline()
-	if !ok {
-		// no deadline so we create a new one
+	// The request budget and caller deadline both apply; the earlier wins.
+	if callOpts.RequestTimeout > 0 {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithTimeout(ctx, callOpts.RequestTimeout)
 		defer cancel()
-	} else {
-		// got a deadline so no need to setup context
-		// but we need to set the timeout we pass along
-		opt := client.WithRequestTimeout(time.Until(d))
-		opt(&callOpts)
+	}
+	if deadline, ok := ctx.Deadline(); ok {
+		callOpts.RequestTimeout = time.Until(deadline)
 	}
 
 	// should we noop right here?
@@ -456,10 +446,7 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 		node, err := next()
 		service := req.Service()
 		if err != nil {
-			if err == selector.ErrNotFound {
-				return errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-			}
-			return errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
+			return client.NewDiscoveryError(service, err)
 		}
 
 		// make the call
@@ -507,10 +494,7 @@ func (g *grpcClient) Call(ctx context.Context, req client.Request, rsp interface
 
 func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...client.CallOption) (client.Stream, error) {
 	// make a copy of call opts
-	callOpts := g.opts.CallOptions
-	for _, opt := range opts {
-		opt(&callOpts)
-	}
+	callOpts := client.ResolveCallOptions(g.opts, req, opts...)
 
 	next, err := g.next(req, callOpts)
 	if err != nil {
@@ -549,10 +533,7 @@ func (g *grpcClient) Stream(ctx context.Context, req client.Request, opts ...cli
 		node, err := next()
 		service := req.Service()
 		if err != nil {
-			if err == selector.ErrNotFound {
-				return nil, errors.InternalServerError("go.micro.client", "service %s: %s", service, err.Error())
-			}
-			return nil, errors.InternalServerError("go.micro.client", "error selecting %s node: %s", service, err.Error())
+			return nil, client.NewDiscoveryError(service, err)
 		}
 
 		// make the call

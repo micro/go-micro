@@ -48,7 +48,7 @@ func TestQueryConnectionState(t *testing.T) {
 	}
 
 	_, err = r.ListServices()
-	if !errors.Is(err, gonats.ErrDisconnected) {
+	if !errors.Is(err, gonats.ErrDisconnected) || !errors.Is(err, registry.ErrUnavailable) {
 		t.Fatalf("expected disconnected error, got %v", err)
 	}
 }
