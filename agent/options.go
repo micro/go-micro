@@ -109,7 +109,8 @@ type Options struct {
 	// identical action — which MaxSteps only bounds by total count.
 	LoopLimit int
 	// Approve gates each action before it runs. Nil = allow all.
-	Approve ApproveFunc
+	Approve  ApproveFunc
+	Approval ApprovalFunc
 	// MaxSpend bounds paid x402 tool spend per Ask in the asset's smallest
 	// unit (0 = disabled). ToolSpend lists known paid tools and their prices.
 	MaxSpend  int64

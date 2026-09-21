@@ -111,6 +111,9 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 	if !ok {
 		return nil, fmt.Errorf("agent run %s not found", runID)
 	}
+	if paused := pendingApproval(run); paused != nil {
+		return nil, paused
+	}
 	if run.Status == "paused" {
 		if run.State.Stage == agentInputStep {
 			return nil, &AwaitingInputError{RunID: runID}

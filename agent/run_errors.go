@@ -22,10 +22,11 @@ const (
 
 // PausedError reports a persisted pause, including multiline human-facing text.
 type PausedError struct {
-	RunID  string
-	Kind   PauseKind
-	Tool   string
-	Reason string
+	ApprovalID string
+	RunID      string
+	Kind       PauseKind
+	Tool       string
+	Reason     string
 }
 
 func (e *PausedError) Error() string {
