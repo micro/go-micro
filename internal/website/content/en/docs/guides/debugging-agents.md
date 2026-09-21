@@ -286,3 +286,36 @@ agent.ToolCallTimeout(60 * time.Second)
 
 The caller's context and RPC request deadline must also allow the whole turn to
 finish. Increasing a per-call timeout cannot extend an earlier caller deadline.
+
+## Configure model budgets and tool counts
+
+Agent options pass generation settings to the provider for both `Ask` and
+streaming calls. Ephemeral delegates inherit these settings; registered domain
+agents retain their own configuration.
+
+```go
+agent.New(
+    agent.Provider("groq"),
+    agent.MaxTokens(1024),
+    agent.Effort("low"),
+    agent.Temperature(0),
+    agent.MaxTools(128),
+)
+```
+
+`MaxTokens(0)`, an empty effort, and an unset temperature keep provider defaults.
+Temperature zero is explicitly sent. Valid effort and temperature values depend
+on the selected model; Groq and OpenAI adapters send all three settings on initial
+requests, tool follow-ups, and text streams.
+
+`MaxTools` limits the advertised set, including service, custom, and built-in
+plan/delegate tools. When exceeded, tools are sorted by name, the first N are
+retained, and omitted names are logged. Zero means unlimited. Use `Services` to
+narrow the selection before applying the cap. `MaxSteps` remains a separate
+limit on executions.
+
+Groq/OpenAI responses that finish with `length` without visible text or tool
+calls return `model.ErrOutputLimit` (detectable with `errors.Is`), including in
+text streams. Increase the output budget or adjust the model's reasoning effort
+before retrying. Partial visible responses remain usable and carry
+`StopReason: "length"`.
