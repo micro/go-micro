@@ -206,19 +206,6 @@ Get the code
 {{% /blocks/section %}}
 
 {{% blocks/section color="dark-blue" pattern=true padding="py-5" type="text-center" %}}
-<h2>Sponsors</h2>
-<p class="text-light mb-4">Go Micro is supported by companies building the future of AI infrastructure.</p>
-<div class="d-flex align-items-center justify-content-center gap-4 flex-wrap mb-5">
-<a href="/blog/2026/05/28/atlas-cloud-sponsors-go-micro-300-ai-models-one-integration.html"><img src="/images/sponsors/atlas-cloud-logo.svg" alt="Atlas Cloud" class="sponsor-logo" /></a>
-</div>
-<p class="text-light mb-3">Want to support Go Micro and put your logo here? Or running it in production and need a hand?</p>
-<div class="d-flex gap-3 justify-content-center">
-<a href="https://discord.gg/G8Gk5j3uXr" class="btn btn-outline-go">Become a sponsor</a>
-<a href="/support.html" class="btn btn-go">Commercial support</a>
-</div>
-{{% /blocks/section %}}
-
-{{% blocks/section color="dark-blue" pattern=true padding="py-5" type="text-center" %}}
 <h2>Trusted by Developers</h2>
 <p class="text-light mb-4">23,000+ stars on GitHub. Production-ready. Apache 2.0 licensed.</p>
 <div class="d-flex gap-3 justify-content-center flex-wrap">
