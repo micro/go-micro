@@ -63,14 +63,14 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 }
 
 .gradient-text {
-    background: linear-gradient(135deg, #00ADD8 0%, #5DC9E2 100%);
+    background: linear-gradient(135deg, #007d9c 0%, #00647d 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 .bg-pattern {
-    background-image: radial-gradient(circle at 1px 1px, rgba(0, 173, 216, 0.15) 1px, transparent 0);
+    background-image: radial-gradient(circle at 1px 1px, rgba(0, 173, 216, 0.07) 1px, transparent 0);
     background-size: 20px 20px;
 }
 
@@ -84,7 +84,7 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
     color: $dark;
     background: white;
     backdrop-filter: blur(12px);
-    border-color: #374151;
+    border-color: #dbe3e8;
 }
 
 .variant-card--dark {
@@ -94,24 +94,21 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 }
 
 .variant-card--gradient {
-    background: linear-gradient(135deg, rgba(0,173,216,.2), #0D1117);
+    background: linear-gradient(135deg, #eefafd, #ffffff);
     border-color: rgba(0,173,216,.3);
 }
 
 .variant-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
-/* Sponsor logos: forced white via filter (section bg is dark-blue).
-   <img> keeps intrinsic size so it can't collapse to 0 width in a flex row. */
+/* Keep intrinsic sizing and dark logos on light section backgrounds. */
 .sponsor-logo {
     height: 28px;
     width: auto;
-    opacity: 0.75;
-    /* ponytail: brightness(0) invert(1) = pure white regardless of SVG fill.
-       If a section ever goes light, drop invert(1) (brightness(0) = black). */
-    filter: brightness(0) invert(1);
+    opacity: 0.85;
+    filter: brightness(0);
 }
 
 .size-demo {
@@ -143,7 +140,7 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 }
 
 .text-gray-custom {
-    color: #9ca3af;
+    color: #4b5563;
 }
 
 .text-light-gray {
@@ -155,16 +152,15 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: rgba(31, 41, 55, 0.5);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #ffffff;
+    border: 1px solid #dbe3e8;
     border-radius: 1rem;
     padding: 1.5rem;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .tier-card.featured {
-    border-color: #00ADD8;
+    border-color: #007d9c;
     box-shadow: 0 4px 24px rgba(0, 173, 216, 0.2);
 }
 
@@ -174,20 +170,20 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 
 .tier-name {
     font-size: 1.15rem;
-    color: #f3f4f6;
+    color: #1f2937;
     margin-bottom: 0.25rem;
 }
 
 .tier-who {
     font-size: 0.8rem;
-    color: #9ca3af;
+    color: #4b5563;
     margin-bottom: 1rem;
     min-height: 2.4em;
 }
 
 .price {
     font-weight: 700;
-    color: #00ADD8;
+    color: #007d9c;
     font-size: 0.95rem;
     margin-bottom: 1rem;
 }
@@ -196,7 +192,7 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
     list-style: none;
     padding-left: 0;
     font-size: 0.88rem;
-    color: #d1d5db;
+    color: #374151;
     flex: 1;
 }
 
@@ -207,7 +203,7 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 
 .tier-list li::before {
     content: "✓";
-    color: #00ADD8;
+    color: #007d9c;
     position: absolute;
     left: 0;
 }
@@ -216,36 +212,36 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 .link-card {
     display: block;
     height: 100%;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #dbe3e8;
     border-radius: 0.75rem;
     padding: 1rem 1.25rem;
-    background: rgba(31, 41, 55, 0.5);
+    background: #ffffff;
     transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .link-card:hover {
     text-decoration: none;
-    border-color: #00ADD8;
+    border-color: #007d9c;
     transform: translateY(-4px);
     box-shadow: 0 4px 24px rgba(0, 173, 216, 0.2);
 }
 
 .link-card strong {
     display: block;
-    color: #00ADD8;
+    color: #007d9c;
 }
 
 .link-card span {
     font-size: 0.85rem;
-    color: #9ca3af;
+    color: #4b5563;
 }
 
 .border-light-custom {
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #dbe3e8;
 }
 
 .logo-glow {
-  background-color: #00ADD8;
+  background-color: #007d9c;
   opacity: .2;
   filter: blur(3rem);
   transition: opacity .5s;
@@ -257,13 +253,16 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 }
 
 .btn-go {
-    background: linear-gradient(135deg, #00ADD8 0%, #0095B6 100%);
+    background: linear-gradient(135deg, #007d9c 0%, #00647d 100%);
     transition: all 0.3s ease;
     border: none;
     color: #fff;
 }
 
-.btn-go:hover {
+.btn-go:hover,
+.btn-go:focus-visible {
+    color: #fff;
+    background: #00647d;
     border-color: #0090b3;
     transform: translateY(-2px);
     box-shadow: 0 10px 20px rgba(0, 173, 216, 0.3);
@@ -271,14 +270,14 @@ $theme-colors: map-merge($theme-colors, $custom-colors);
 
 .btn-outline-go {
     transition: all 0.3s ease;
-    color: #00ADD8;
-    border-color: #00ADD8;
+    color: #007d9c;
+    border-color: #007d9c;
 }
 
 .btn-outline-go:hover {
     background: rgba(0,173,216,.1);
-    color: #00ADD8;
-    border-color: #00ADD8;
+    color: #007d9c;
+    border-color: #007d9c;
     transform: translateY(-2px);
     box-shadow: 0 10px 20px rgba(0, 173, 216, 0.3);
 }

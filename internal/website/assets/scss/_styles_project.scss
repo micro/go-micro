@@ -3,10 +3,6 @@ Project-specific styles. For details, see:
 https://www.docsy.dev/docs/content/lookandfeel/#project-style-files
 */
 
-// Dark mode enhancements
-@import 'td/color-adjustments-dark';
-@import 'td/code-dark';
-@import 'td/gcs-search-dark';
 @import 'td/extra/buttons';
 @import 'td/extra/main-container';
 
@@ -34,17 +30,19 @@ https://www.docsy.dev/docs/content/lookandfeel/#project-style-files
   padding-bottom: 5rem;
 }
 
-@if $enable-dark-mode {
-  [data-bs-theme='light'] {
-    .td-footer {
-        background-color: #111827 !important;
-    }
+// Docsy gives the footer a dark background independently of its theme setting.
+.td-footer {
+  background-color: #f8fafc;
+  color: #1f2937;
+  --td-footer-border-color: #e5e7eb;
+
+  a {
+    color: #007d9c;
   }
-  [data-bs-theme='dark'] {
-    body, .td-navbar, .td-footer {
-        background-color: #111827 !important;
-    }
-  }
+}
+
+:root {
+  color-scheme: light;
 }
 
 .td-max-width-on-larger-screens {
