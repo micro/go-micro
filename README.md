@@ -358,12 +358,6 @@ The AI designs the architecture, you review it, then it generates handlers with 
 
 See the [CLI reference](cmd/micro/README.md) for commands and project configuration.
 
-## Sponsors
-
-<a href="https://go-micro.dev/blog/2026/05/28/atlas-cloud-sponsors-go-micro-300-ai-models-one-integration.html"><img src="https://www.atlascloud.ai/logo.svg" height="26" /></a>
-
-**Want to support Go Micro and see your logo here?** [Become a sponsor](https://discord.gg/G8Gk5j3uXr) — reach out on Discord.
-
 ## Community
 
 Questions, ideas, or just want to build alongside us? [Join the Discord](https://discord.gg/G8Gk5j3uXr).
