@@ -4,7 +4,7 @@ An agent harness and service framework
 
 ## Overview
 
-Go Micro is a framework for agentic and service development. Service discovery, RPC, messaging, storage, pubsub and config underpin everything. 
+Go Micro is a framework for agentic and service development. Service discovery, RPC messaging, storage and pubsub underpin everything. 
 
 Agents use service endpoints as tools; workflows coordinate ordered steps and recover from saved checkpoints. Each package is pluggable and can run inside a single Go binary or multi process.
 
