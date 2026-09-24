@@ -2,12 +2,12 @@
 title: Go Micro
 description: Go Micro - A Go microservices framework
 params:
-  body_class: td-navbar-links-all-active bg-pattern
+  body_class: bg-pattern
 ---
 
 {{% blocks/hero
   height="full td-below-navbar"
-  color="dark-blue"
+  color="light"
   pattern=true
 %}}
 
@@ -46,15 +46,15 @@ params:
 <line x1="57.5" y1="122.5" x2="57.5" y2="77.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.6s"></line>
 <line x1="57.5" y1="77.5" x2="100" y2="55" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.7s"></line>
 <!-- Central Node (Core) -->
-<circle cx="100" cy="100" r="12" fill="#0D1117" stroke="#00ADD8" stroke-width="3" class="network-node"></circle>
+<circle cx="100" cy="100" r="12" fill="#ffffff" stroke="#00ADD8" stroke-width="3" class="network-node"></circle>
 <circle cx="100" cy="100" r="6" fill="#00ADD8" class="network-node pulse"></circle>
 <!-- Outer Nodes (Microservices) -->
-<circle cx="100" cy="55" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-1"></circle>
-<circle cx="142.5" cy="77.5" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-2"></circle>
-<circle cx="142.5" cy="122.5" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-3"></circle>
-<circle cx="100" cy="145" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-4"></circle>
-<circle cx="57.5" cy="122.5" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-5"></circle>
-<circle cx="57.5" cy="77.5" r="6" fill="#0D1117" stroke="#00ADD8" stroke-width="2" class="network-node node-6"></circle>
+<circle cx="100" cy="55" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-1"></circle>
+<circle cx="142.5" cy="77.5" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-2"></circle>
+<circle cx="142.5" cy="122.5" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-3"></circle>
+<circle cx="100" cy="145" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-4"></circle>
+<circle cx="57.5" cy="122.5" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-5"></circle>
+<circle cx="57.5" cy="77.5" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-6"></circle>
 <!-- Data packets animation -->
 <circle cx="100" cy="77.5" r="2" fill="#5DC9E2" opacity="0">
 <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="0s"></animate>
@@ -97,10 +97,10 @@ Get the code
 {{% blocks/link-down color="info" %}}
 {{% /blocks/hero %}}
 
-{{% blocks/section color="dark-blue" type="row" pattern=true padding="py-5" %}}
+{{% blocks/section color="light" type="row" pattern=true padding="py-5" %}}
 <div class="row g-4 justify-content-center">
 <h2>Features</h2>
-<p class="text-light mb-4">An agent harness and a service framework in one — agents, services, and flows on the same runtime, with the production pieces agents need.
+<p class="text-body-secondary mb-4">An agent harness and a service framework in one — agents, services, and flows on the same runtime, with the production pieces agents need.
 </p>
 </div>
 <div class="row g-4 justify-content-center">
@@ -166,7 +166,7 @@ Get the code
 </div>
 {{% /blocks/section %}}
 
-{{% blocks/section color="dark-blue" pattern=true padding="py-5" %}}
+{{% blocks/section color="light" pattern=true padding="py-5" %}}
 <div class="row align-items-center">
 <div class="col-lg-6 p-4">
 <img src="/images/generated/mcp-agent.jpg" alt="AI agent calling microservices via MCP" class="img-fluid rounded-4 shadow" />
@@ -174,14 +174,14 @@ Get the code
 <div class="col-lg-6 p-4">
 <h2>From Prompt Loop to Operating Harness</h2>
 <p>Tell it what you need. The AI designs services, generates an agent, and drops you into an interactive console. The harness gives that agent tools, memory, guardrails, and workflows so it can operate across services.</p>
-<pre><code><span style="color:#ff7b72">$</span> <span style="color:#d2a8ff">micro run</span> <span style="color:#a5d6ff">--prompt "task management system"</code></br>
-<code><span style="color:#ff7b72">&gt;</span> Create a project called Launch, add tasks, assign to Alice</code></pre>
+<pre><code><span style="color:#a82424">$</span> <span style="color:#6639a6">micro run</span> <span style="color:#075985">--prompt "task management system"</span></code><br>
+<code><span style="color:#a82424">&gt;</span> Create a project called Launch, add tasks, assign to Alice</code></pre>
 <a class="btn btn-go mt-3" href="/blog/2026/06/05/introducing-micro-newagent.html">Learn About Agents</a>
 </div>
 </div>
 {{% /blocks/section %}}
 
-{{% blocks/section color="dark-blue" pattern=true padding="py-5" %}}
+{{% blocks/section color="light" pattern=true padding="py-5" %}}
 <div class="row align-items-center">
 <div class="col-lg-6 p-4">
 <img src="/images/generated/architecture.jpg" alt="Go Micro architecture diagram" class="img-fluid rounded-4 shadow" />
@@ -193,7 +193,7 @@ Get the code
 </div>
 {{% /blocks/section %}}
 
-{{% blocks/section color="dark-blue" pattern=true padding="py-5" %}}
+{{% blocks/section color="light" pattern=true padding="py-5" %}}
 <div class="row align-items-center">
 <div class="col-lg-6 p-4">
 <img src="/images/generated/developer-experience.jpg" alt="Terminal showing micro run and micro chat" class="img-fluid rounded-4 shadow" />
@@ -205,9 +205,9 @@ Get the code
 </div>
 {{% /blocks/section %}}
 
-{{% blocks/section color="dark-blue" pattern=true padding="py-5" type="text-center" %}}
+{{% blocks/section color="light" pattern=true padding="py-5" type="text-center" %}}
 <h2>Trusted by Developers</h2>
-<p class="text-light mb-4">23,000+ stars on GitHub. Production-ready. Apache 2.0 licensed.</p>
+<p class="text-body-secondary mb-4">23,000+ stars on GitHub. Production-ready. Apache 2.0 licensed.</p>
 <div class="d-flex gap-3 justify-content-center flex-wrap">
 <a href="/docs/getting-started.html" class="btn btn-go">Get Started</a>
 <a href="/docs/" class="btn btn-outline-go">Read the Docs</a>

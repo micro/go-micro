@@ -9,7 +9,7 @@ menu:
 ---
 {{% blocks/hero
   height="td-below-navbar"
-  color="dark-blue"
+  color="light"
   pattern=true
 %}}
 <h1 class="display-3 fw-bold mb-3">Support</h1>
@@ -23,7 +23,7 @@ menu:
 {{% /blocks/hero %}}
 
 {{% blocks/section 
-    color="dark-blue"
+    color="light"
     pattern=true
     padding="py-5"
     type="row"
@@ -90,7 +90,7 @@ menu:
 </div>
 {{% /blocks/section %}}
 
-{{% blocks/section color="dark-blue" pattern=true padding="py-5" type="row" %}}
+{{% blocks/section color="light" pattern=true padding="py-5" type="row" %}}
 <div class="text-center mb-4">
   <h2 class="fw-bold">Community support</h2>
   <p class="text-gray-custom col-10 offset-1">Free, from maintainers and contributors. No response-time guarantees.</p>
@@ -123,7 +123,7 @@ menu:
 </div>
 {{% /blocks/section %}}
 
-{{% blocks/section color="dark-blue" pattern=true padding="py-5" type="row" %}}
+{{% blocks/section color="light" pattern=true padding="py-5" type="row" %}}
 <div class="text-center">
   <h2 class="fw-bold">Running Go Micro in production?</h2>
   <p class="text-gray-custom mb-4">Tell us what you're building and what you need — we'll follow up.</p>

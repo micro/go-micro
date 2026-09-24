@@ -3,7 +3,7 @@
 
 {{- if eq $variant "hero" -}}
   {{- $blockID := printf "td-cover-block-%d" $ctx.Ordinal -}}
-  {{- $col_id := $ctx.Get "color" | default "dark" -}}
+  {{- $col_id := $ctx.Get "color" | default "light" -}}
   {{/* Height can be one of: auto, min, med, max, full. */ -}}
   {{- $height := $ctx.Get "height" | default "max" -}}
   {{/* pattern: adds the dotted bg-pattern overlay. See DESIGN.md. */ -}}

@@ -12,7 +12,7 @@ for each:
 
 | token         | hex       | use                                  |
 |---------------|-----------|--------------------------------------|
-| `dark-blue`   | `#111827` | primary dark section background      |
+| `light`       | `#f8f9fa` | primary light section background     |
 | `deep-blue`   | `#03045e` |                                      |
 | `teal-blue`   | `#0077b6` |                                      |
 | `turquoise`   | `#00b4d8` | brand cyan                           |
@@ -22,8 +22,7 @@ for each:
 Plus Docsy built-ins: `primary`, `secondary`, `dark`, `light`, `white`, `gray`.
 
 A section background is set with `color="<token>"`, which renders
-`td-box--<token>`. `td-box--dark-blue` and `td-box--light` are the two used on
-the landing pages.
+`td-box--<token>`. `td-box--light` is used on the landing pages.
 
 ## `bg-pattern`
 
@@ -34,15 +33,14 @@ by hand.
 
 ## Section rhythm
 
-The landing pages (`content/en/_index.md`, `content/en/support.md`) are
-**uniformly dark**: every `blocks/section` uses `color="dark-blue"
-pattern=true padding="py-5"`. Do **not** introduce `light` sections — the site
-is dark-mode-forced, so a light section would clash and was deliberately removed.
-Adjacent sections share the same background by design; content, headings, and
-the `bg-pattern` texture carry the separation.
+The landing pages (`content/en/_index.md`, `content/en/support.md`) use
+`color="light" pattern=true padding="py-5"`. Cards use white or a pale cyan
+background with dark text and subtle borders. The navbar is white and the footer
+is light. Light mode is set for the whole site in `hugo.yaml` and the project
+SCSS, including browsers with a dark system preference.
 
-When a section holds dark-theme syntax-highlighted `code` (GitHub dark palette:
-`#ff7b72`/`#d2a8ff`/`#a5d6ff`), keep it `dark-blue` so the snippet reads.
+Use dark, readable syntax colors for inline HTML code samples. Links and button
+backgrounds use the darker Go blue (`#007d9c`) for contrast on light surfaces.
 
 ## Shortcode contracts
 
@@ -51,7 +49,7 @@ When a section holds dark-theme syntax-highlighted `code` (GitHub dark palette:
 ```go-html-template
 {{% blocks/hero
   height="max"          /* auto | min | med | max | full */
-  color="dark-blue"     /* td-box-- color token */
+  color="light"     /* td-box-- color token */
   pattern=true          /* optional: add bg-pattern overlay */
 %}}
 ...inner content...
@@ -66,7 +64,7 @@ When a section holds dark-theme syntax-highlighted `code` (GitHub dark palette:
 
 ```go-html-template
 {{% blocks/section
-  color="dark-blue"     /* td-box-- color token; defaults to auto-alternating by ordinal */
+  color="light"     /* td-box-- color token; defaults to auto-alternating by ordinal */
   height="auto"         /* auto | min | med | max | full */
   type="row"            /* container | row | text-center | ... Bootstrap utilities */
   pattern=true          /* optional: add bg-pattern overlay */
@@ -100,8 +98,8 @@ When a section holds dark-theme syntax-highlighted `code` (GitHub dark palette:
 Do **not** pack extra classes into a single param:
 
 ```go-html-template
-{{% blocks/section color="dark-blue bg-pattern py-5" type="row" %}}   <!-- WRONG -->
-{{% blocks/section color="dark-blue" pattern=true padding="py-5" type="row" %}}  <!-- RIGHT -->
+{{% blocks/section color="light bg-pattern py-5" type="row" %}}   <!-- WRONG -->
+{{% blocks/section color="light" pattern=true padding="py-5" type="row" %}}  <!-- RIGHT -->
 ```
 
 `color`, `height`, and `type` are single-purpose. `pattern` and `padding` are
@@ -113,14 +111,14 @@ first-class; alignment utilities (`text-center`) belong in `type`.
 
 ## Sponsor logos
 
-In the `_index.md` Sponsors section, each logo is a local `<img>` forced white
-with a CSS filter (the section background is `dark-blue`):
+In the `_index.md` Sponsors section, each logo is a local `<img>` rendered dark
+with a CSS filter on the light section background:
 
 ```html
 <a href="/blog/2026/03/04/building-the-ai-native-future-of-go-micro-with-claude/"><img src="/images/sponsors/anthropic.svg" alt="Anthropic" class="sponsor-logo" /></a>
 ```
 
-`.sponsor-logo` applies `filter: brightness(0) invert(1)` — pure white
+`.sponsor-logo` applies `filter: brightness(0)` — black
 regardless of the SVG's own fill. Using `<img>` (not a CSS mask) keeps the
 intrinsic size, so the logo can't collapse to zero width inside the `d-flex`
 row. Assets live in `static/images/sponsors/`. Swap a logo by replacing the
