@@ -1,8 +1,12 @@
 # Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v6?tab=doc)
 
-Go Micro is a **Go framework for services, agents, and workflows**. Import it into your application, implement handlers as Go methods, and compose the runtime through Go interfaces.
+An agent harness and service framework 
 
-Service discovery, RPC, messaging, storage, and configuration provide the foundation. Agents use service endpoints as tools; workflows coordinate ordered steps and recover from saved checkpoints. Each component is pluggable and can run inside your own Go binary.
+## Overview
+
+Go Micro is a framework for agentic and service development. Service discovery, RPC, messaging, storage, pubsub and config underpin everything. 
+
+Agents use service endpoints as tools; workflows coordinate ordered steps and recover from saved checkpoints. Each package is pluggable and can run inside a single Go binary or multi process.
 
 ## Contents
 
