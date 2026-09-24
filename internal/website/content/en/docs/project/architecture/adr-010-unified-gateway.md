@@ -78,13 +78,13 @@ We unified the gateway implementation by:
 ### Development Mode (`micro run`)
 
 ```bash
-# Start services with gateway (auth enabled, default admin/micro)
+# Start services with gateway (auth follows the bind address)
 micro run
 
 # Gateway provides:
 # - HTTP API at /api/{service}/{endpoint}
 # - Web dashboard at /
-# - JWT authentication (admin/micro default)
+# - Bearer authentication (startup token; no default password)
 # - Endpoint scopes at /auth/scopes
 ```
 

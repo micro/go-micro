@@ -1,6 +1,6 @@
 ---
 title: Go Micro
-description: Go Micro - A Go microservices framework
+description: Build an agent, develop services, and use them through conversation.
 params:
   body_class: bg-pattern
 ---
@@ -74,7 +74,7 @@ params:
         An Agent Harness for Go
     </h1>
     <p class="lead text-gray-custom mb-5 mx-auto">
-        Build agents, services, and workflows on one runtime.
+        Build an agent, give it services as tools, and use them through conversation.
     </p>
 </div>
 
@@ -83,8 +83,8 @@ params:
 
 <!-- prettier-ignore -->
 <div class="td-cta-buttons my-5">
-<a class="download-btn btn btn-go btn-lg d-inline-flex align-items-center gap-2" href="docs/">
-Learn more
+<a class="download-btn btn btn-go btn-lg d-inline-flex align-items-center gap-2" href="/docs/quickstart.html">
+Get started
 <i class="fa-solid fa-book-open-reader"></i>
 </a>
 <a class="btn btn-outline-go btn-lg d-inline-flex align-items-center gap-2"
@@ -172,11 +172,11 @@ Get the code
 <img src="/images/generated/mcp-agent.jpg" alt="AI agent calling microservices via MCP" class="img-fluid rounded-4 shadow" />
 </div>
 <div class="col-lg-6 p-4">
-<h2>From Prompt Loop to Operating Harness</h2>
-<p>Tell it what you need. The AI designs services, generates an agent, and drops you into an interactive console. The harness gives that agent tools, memory, guardrails, and workflows so it can operate across services.</p>
-<pre><code><span style="color:#a82424">$</span> <span style="color:#6639a6">micro run</span> <span style="color:#075985">--prompt "task management system"</span></code><br>
-<code><span style="color:#a82424">&gt;</span> Create a project called Launch, add tasks, assign to Alice</code></pre>
-<a class="btn btn-go mt-3" href="/blog/2026/06/05/introducing-micro-newagent.html">Learn About Agents</a>
+<h2>Develop Through Conversation</h2>
+<p>Start with <code>micro chat</code> in a new project. With no registered agents, the development agent can generate a missing service, build and start it, and discover its endpoints as tools. Describe what you need, then use it in the same conversation.</p>
+<pre><code><span style="color:#a82424">$</span> <span style="color:#6639a6">micro chat</span> <span style="color:#075985">--provider openai</span></code><br>
+<code><span style="color:#a82424">&gt;</span> Build a notes service that can save, list, and search notes.</code></pre>
+<a class="btn btn-go mt-3" href="/docs/getting-started.html">Create Your Agent</a>
 </div>
 </div>
 {{% /blocks/section %}}
@@ -200,7 +200,7 @@ Get the code
 </div>
 <div class="col-lg-6 p-4">
 <h2>Developer Experience</h2>
-<p><code>micro new</code> scaffolds a service or an agent — every endpoint is automatically an MCP tool. <code>micro run</code> starts everything with hot reload, an API gateway, and an interactive console, and <code>micro chat</code> talks to your agents and services from the terminal.</p>
+<p>Create agents with <code>micro.NewAgent</code> and scaffold services with <code>micro new</code>. Assign services as tools with <code>micro.AgentServices</code>. <code>micro run</code> starts everything with hot reload, an API gateway, and an interactive console, and <code>micro chat</code> talks to your agents and services from the terminal.</p>
 </div>
 </div>
 {{% /blocks/section %}}

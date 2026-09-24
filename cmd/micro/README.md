@@ -2,14 +2,41 @@
 
 Go Micro Command Line
 
+`micro gateway` is the current gateway command; `micro server` remains a deprecated alias used in the examples below.
+
 ## Install the CLI
 
-Install `micro` via `go install`
+Install Go 1.25 or newer, then install `micro` via `go install`
 
 ```
-go install go-micro.dev/v5/cmd/micro@v5.16.0
+go install go-micro.dev/v6/cmd/micro@latest
 ```
 
+
+## Develop through conversation
+
+```bash
+export OPENAI_API_KEY=your-api-key
+mkdir my-app && cd my-app
+micro chat --provider openai
+```
+
+With no registered agents, the CLI development agent can generate a missing
+service, compile and start it, and expose its endpoints as tools. Describe what
+you need, then ask it to use the service in the same conversation. Generated
+source stays in your directory; services started by this session stop on exit.
+Use `micro run` to continue developing the project with hot reload.
+
+To review a design before generating and running the project:
+
+```bash
+micro run --prompt "a notes service with saving, listing, and search" --provider openai
+```
+
+If agents are already registered, `micro chat` routes requests to them.
+`micro chat assistant --provider openai` selects a named agent. Create named
+agents with `micro.NewAgent` and assign service tools with `micro.AgentServices`;
+see the [Getting Started guide](../../internal/website/content/en/docs/getting-started/index.md).
 
 ## Create a service
 
@@ -29,9 +56,9 @@ micro new gateway --template api        # API gateway with health check
 
 This will:
 - Create a new service in the `helloworld` directory
-- Automatically run `go mod tidy` and `make proto` for you
+- Run `go mod tidy`; the default scaffold uses plain Go types
 - Show the updated project tree including generated files
-- Warn you if `protoc` is not installed, with install instructions
+- Run `make proto` for `--proto` or protobuf templates, with install instructions if `protoc` is missing
 
 ## Run the service
 
@@ -59,11 +86,10 @@ curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
   -H 'Content-Type: application/json' -d '{"name":"World"}'
 ```
 
-## First agent on-ramp
+## Optional no-key examples
 
-Once the scaffold → run → call path works, ask the installed CLI for the
-provider-free agent path. The focused no-secret docs/CLI contract is
-`make docs-wayfinding`:
+To check the runtime without a provider key, ask the installed CLI for runnable
+examples and troubleshooting commands:
 
 ```
 micro agent demo
@@ -277,7 +303,7 @@ import (
         "context"
         "fmt"
 
-        "go-micro.dev/v5"
+        "go-micro.dev/v6"
 )
 
 type Request struct {
@@ -484,7 +510,7 @@ Run it like so
 micro server
 ```
 
-Then browse to [localhost:8080](http://localhost:8080) and log in with the default admin account (`admin`/`micro`).
+Use the machine token printed at startup (or set `MICRO_AUTH_TOKEN`) to access the gateway. There is no default username/password. Loopback gateways do not require authentication unless explicitly enabled.
 
 ### API Endpoints 
 
@@ -514,20 +540,20 @@ To get started, run:
 micro server
 ```
 
-Then browse to [localhost:8080](http://localhost:8080) and log in with the default admin account (`admin`/`micro`).
+Use the machine token printed at startup (or set `MICRO_AUTH_TOKEN`) to access the gateway. There is no default username/password. Loopback gateways do not require authentication unless explicitly enabled.
 
 > **Note:** See the `/api` page for details on API authentication and how to generate tokens for use with the HTTP API
 
 ## Gateway Architecture
 
-The `micro run` and `micro server` commands both use a unified gateway implementation (`cmd/micro/server/gateway.go`), providing consistent HTTP-to-RPC translation, service discovery, and web UI capabilities.
+The `micro run` and `micro server` commands both use a unified gateway implementation (`cmd/micro/gateway/server.go`), providing consistent HTTP-to-RPC translation, service discovery, and web UI capabilities.
 
 ### Key Differences
 
 | Feature | `micro run` | `micro server` |
 |---------|-------------|----------------|
 | **Purpose** | Development | Production |
-| **Authentication** | Enabled (default `admin`/`micro`) | Enabled (default `admin`/`micro`) |
+| **Authentication** | Depends on bind address | Depends on bind address |
 | **Process Management** | Yes (builds/runs services) | No (assumes services running) |
 | **Hot Reload** | Yes (watches files) | No |
 | **Scopes** | Available (`/auth/scopes`) | Available (`/auth/scopes`) |
@@ -557,7 +583,7 @@ Both commands provide:
 
 ### Authentication & Scopes
 
-Both `micro run` and `micro server` use the same `auth.Account` type from the go-micro framework. The gateway stores accounts under `auth/<id>` in the default store and uses JWT tokens with RSA256 signing.
+Both `micro run` and `micro server` use the same `auth.Account` type from the go-micro framework. The gateway stores accounts under `auth/<id>` in the default store and uses JWT tokens with RS256 signing.
 
 **Scope enforcement** applies to all call paths:
 
@@ -571,49 +597,21 @@ Scopes are configured via the web UI at `/auth/scopes`. Each endpoint can requir
 
 See the [Scopes](#scopes) section below for details.
 
-### Development Mode (`micro run`)
+### Authentication defaults
 
-```bash
-micro run  # Auth enabled, default admin/micro
-```
+Authentication follows the bind address. `micro run` binds to `127.0.0.1:8080`
+by default, so ordinary local calls do not require a login. Exposed addresses
+(such as `:8080` or `0.0.0.0:8080`) enable authentication automatically.
 
-- Authentication enabled with default credentials (`admin`/`micro`)
-- Web UI requires login
-- Scopes available for testing access control
-- Ideal for development with realistic auth behavior
+There is no default username/password. Use the machine token printed at startup,
+or supply one with `--auth-token` / `MICRO_AUTH_TOKEN`. Send it as a Bearer token;
+for browser access, use `?token=<token>`. You can explicitly select `--auth` or
+`--no-auth` (`MICRO_AUTH=on|off`). Endpoint scopes remain enforced even when
+ordinary loopback calls are open.
 
-### Production Mode (`micro server`)
-
-```bash
-micro server  # Auth enabled, JWT tokens required
-```
-
-- JWT authentication on all API calls
-- User/token management via web UI
-- Secure by default
-- Login required: default credentials `admin/micro`
-
-### Programmatic Gateway Usage
-
-You can also start the gateway programmatically in your own Go code:
-
-```go
-import "go-micro.dev/v5/cmd/micro/server"
-
-// Start gateway with auth (recommended)
-gw, err := server.StartGateway(server.GatewayOptions{
-    Address:     ":8080",
-    AuthEnabled: true,
-})
-
-// Start gateway without auth (testing only)
-gw, err := server.StartGateway(server.GatewayOptions{
-    Address:     ":8080",
-    AuthEnabled: false,
-})
-```
-
-See [`internal/website/docs/architecture/adr-010-unified-gateway.md`](../../internal/website/docs/architecture/adr-010-unified-gateway.md) for architecture details.
+See [micro run](../../internal/website/content/en/docs/guides/micro-run.md)
+for the local workflow and [gateway implementation](gateway/server.go) for
+embedding details.
 
 ### Scopes
 

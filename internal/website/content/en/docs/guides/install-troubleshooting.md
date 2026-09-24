@@ -75,7 +75,7 @@ calling a model provider.
 | Symptom | Check | Fix |
 |---------|-------|-----|
 | `micro: command not found` | `command -v micro` | Add the installer bin directory or `$(go env GOPATH)/bin` to `PATH`, then open a new terminal. |
-| `micro run` cannot find Go | `go version` | Install Go 1.24 or newer from <https://go.dev/doc/install>. |
+| `micro run` cannot find Go | `go version` | Install Go 1.25 or newer from <https://go.dev/doc/install>. |
 | The gateway port is busy | `lsof -i :8080` | Stop the process using the port, or run with a different address. |
 | Provider-key errors block an agent run | `micro agent preflight` | Stay on the no-secret path first: run `micro agent demo`, then the no-secret first-agent guide. |
 

@@ -2,12 +2,14 @@
 title: "Your First Agent"
 ---
 
-This walkthrough builds the smallest useful Go Micro agent path: one service
-with typed endpoints, one agent scoped to that service, and one CLI conversation
-that proves the agent can use the service as a tool. It is the 0→1 version of
-the services → agents → workflows lifecycle: build capability first, add
-intelligence on top, then keep a clear path toward flows when the work needs to
-run on events or schedules.
+Create an agent, give it a service as tools, and talk to it through the CLI.
+This guide shows the complete Go implementation. For conversational service
+generation, start with [Quick Start](../quickstart.md); for the smallest agent
+setup, see [Getting Started](../getting-started/index.md).
+
+The agent below is scoped to the `task` service. Its instructions and provider
+live in Go code; its tools come from the service endpoints. The standalone agent
+uses those tools, while the CLI development chat provides service generation.
 
 ## Runnable reference first
 
@@ -34,12 +36,12 @@ agent.
 
 ## Prerequisites
 
-- Go 1.24 or newer.
+- Go 1.25 or newer.
 - The `micro` CLI installed.
 - An LLM provider key for live agent calls. For example:
 
 ```sh
-export ANTHROPIC_API_KEY=sk-ant-...
+export OPENAI_API_KEY=your-api-key
 ```
 
 Plain service calls work without a model key; the key is only needed when the
@@ -51,7 +53,7 @@ Run the read-only first-agent preflight before starting the walkthrough. The sam
 micro agent preflight
 ```
 
-It checks Go 1.24+, the `micro` binary, provider-key setup, and the default local gateway port without contacting a provider. Failed checks include a `Fix:` line and a `Next:` line that points back to this guide, the no-secret walkthrough, or the debugging guide. Use it before `micro run`; if `micro run` is already active but `micro chat`, the `/agent` gateway, registration, provider settings, or inspect history is failing, run the after-run recovery check instead:
+It checks Go 1.25+, the `micro` binary, provider-key setup, and the default local gateway port without contacting a provider. Failed checks include a `Fix:` line and a `Next:` line that points back to this guide, the no-secret walkthrough, or the debugging guide. Use it before `micro run`; if `micro run` is already active but `micro chat`, the `/agent` gateway, registration, provider settings, or inspect history is failing, run the after-run recovery check instead:
 
 ```sh
 micro agent doctor
@@ -130,8 +132,8 @@ func main() {
 	agent := micro.NewAgent("assistant",
 		micro.AgentServices("task"),
 		micro.AgentPrompt("You help manage tasks. Use the task service before answering."),
-		micro.AgentProvider("anthropic"),
-		micro.AgentAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
+		micro.AgentProvider("openai"),
+		micro.AgentAPIKey(os.Getenv("OPENAI_API_KEY")),
 	)
 
 	go agent.Run()
@@ -165,7 +167,7 @@ micro call task TaskService.List '{}'
 In another terminal, ask the agent to use the service:
 
 ```sh
-micro chat assistant
+micro chat assistant --provider openai
 ```
 
 Try:
@@ -215,8 +217,8 @@ human typed a message, move the handoff into a flow:
 flow := micro.NewFlow("task-triage",
 	micro.FlowTrigger("tasks.created"),
 	micro.FlowPrompt("Review this new task and decide the next action: {{.Data}}"),
-	micro.FlowProvider("anthropic"),
-	micro.FlowAPIKey(os.Getenv("ANTHROPIC_API_KEY")),
+	micro.FlowProvider("openai"),
+	micro.FlowAPIKey(os.Getenv("OPENAI_API_KEY")),
 )
 ```
 

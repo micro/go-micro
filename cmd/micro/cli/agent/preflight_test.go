@@ -23,7 +23,7 @@ func TestRunAgentPreflightPassesWithKeyAndFreePort(t *testing.T) {
 	deps := preflightDeps{
 		lookPath: func(name string) (string, error) { return "/usr/bin/" + name, nil },
 		commandOutput: func(name string, args ...string) ([]byte, error) {
-			return []byte("go version go1.24.0 linux/amd64\n"), nil
+			return []byte("go version go1.25.0 linux/amd64\n"), nil
 		},
 		executable: func() (string, error) { return "/usr/local/bin/micro", nil },
 		getenv: func(key string) string {
@@ -90,7 +90,7 @@ func TestRunAgentPreflightReportsOldGoVersion(t *testing.T) {
 		t.Fatal("runAgentPreflight() error = nil")
 	}
 	got := out.String()
-	for _, want := range []string{"✗ Go toolchain", "go1.23.9", "Upgrade to Go 1.24 or newer", "Rerun micro agent preflight"} {
+	for _, want := range []string{"✗ Go toolchain", "go1.23.9", "Upgrade to Go 1.25 or newer", "Rerun micro agent preflight"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("output missing %q:\n%s", want, got)
 		}
@@ -102,13 +102,14 @@ func TestGoVersionAtLeast(t *testing.T) {
 		line string
 		want bool
 	}{
-		{line: "go version go1.24.0 linux/amd64", want: true},
+		{line: "go version go1.25.0 linux/amd64", want: true},
 		{line: "go version go1.25.1 linux/amd64", want: true},
+		{line: "go version go1.24.9 linux/amd64", want: false},
 		{line: "go version go1.23.9 linux/amd64", want: false},
 		{line: "unexpected", want: false},
 	}
 	for _, tt := range tests {
-		if got := goVersionAtLeast(tt.line, 1, 24); got != tt.want {
+		if got := goVersionAtLeast(tt.line, 1, 25); got != tt.want {
 			t.Fatalf("goVersionAtLeast(%q) = %v, want %v", tt.line, got, tt.want)
 		}
 	}
