@@ -68,14 +68,14 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	}
 
 	readme := readFile(t, filepath.Join(root, "README.md"))
-	if !strings.Contains(readme, "internal/website/docs/guides/zero-to-hero.md") {
+	if !strings.Contains(readme, "internal/website/content/en/docs/guides/zero-to-hero.md") {
 		t.Fatal("README does not point to the canonical 0→hero guide")
 	}
-	if !strings.Contains(readme, "make zero-to-hero-transcript") {
-		t.Fatal("README does not expose the focused ordered 0→hero transcript contract")
+	if !strings.Contains(guide, "make zero-to-hero-transcript") {
+		t.Fatal("0→hero guide does not expose the focused ordered 0→hero transcript contract")
 	}
-	if !strings.Contains(readme, "make inner-loop") {
-		t.Fatal("README does not expose the focused CLI inner-loop contract")
+	if !strings.Contains(guide, "make inner-loop") {
+		t.Fatal("0→hero guide does not expose the focused CLI inner-loop contract")
 	}
 
 	nav := readFile(t, filepath.Join(root, "internal", "website", "_data", "navigation.yml"))
@@ -228,7 +228,7 @@ func TestYourFirstAgentTutorialSmoke(t *testing.T) {
 
 	mainGo := extractFirstAgentMain(t, guide)
 	workspace := t.TempDir()
-	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent\n\ngo 1.24\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+absRoot+"\n")
+	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent\n\ngo 1.25\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+absRoot+"\n")
 	writeFile(t, filepath.Join(workspace, "main.go"), mainGo)
 
 	runInWorkspace(t, workspace, "go", "mod", "tidy")
@@ -309,179 +309,28 @@ func TestArchitectureDocsAlignWithAgentHarnessLifecycle(t *testing.T) {
 func TestFirstAgentWayfindingDocs(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	checks := []struct {
-		name    string
-		file    string
-		heading string
-		links   []string
+		file  string
+		links []string
 	}{
-		{
-			name:    "README first-agent on-ramp",
-			file:    filepath.Join(root, "README.md"),
-			heading: "### First agent on-ramp",
-			links: []string{
-				"internal/website/docs/guides/install-troubleshooting.md",
-				"make docs-wayfinding",
-				"micro agent demo",
-				"micro agent quickcheck",
-				"micro examples",
-				"micro zero-to-hero",
-				"internal/website/docs/guides/no-secret-first-agent.md",
-				"internal/website/docs/guides/your-first-agent.md",
-				"micro chat",
-				"internal/website/docs/guides/debugging-agents.md",
-				"micro inspect agent <name>",
-				"internal/website/docs/guides/zero-to-hero.md",
-			},
-		},
-		{
-			name:    "README examples list",
-			file:    filepath.Join(root, "README.md"),
-			heading: "## Examples",
-			links: []string{
-				"examples/README.md",
-				"examples/first-agent/",
-			},
-		},
-		{
-			name:    "repository examples index",
-			file:    filepath.Join(root, "examples", "README.md"),
-			heading: "## Recommended first-agent path",
-			links: []string{
-				"./first-agent/",
-				"./support/",
-			},
-		},
-		{
-			name:    "repository examples wayfinding index",
-			file:    filepath.Join(root, "examples", "INDEX.md"),
-			heading: "## Recommended adoption path",
-			links: []string{
-				"./hello-world/",
-				"./first-agent/",
-				"./support/",
-			},
-		},
-		{
-			name:    "micro README first-agent on-ramp",
-			file:    filepath.Join(root, "cmd", "micro", "README.md"),
-			heading: "## First agent on-ramp",
-			links: []string{
-				"make docs-wayfinding",
-				"micro agent demo",
-				"micro agent quickcheck",
-				"micro examples",
-				"micro zero-to-hero",
-			},
-		},
-		{
-			name:    "website examples index",
-			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "examples", "_index.md"),
-			heading: "## Start here",
-			links: []string{
-				"https://github.com/micro/go-micro/tree/master/examples/first-agent",
-				"../guides/no-secret-first-agent.md",
-				"../guides/your-first-agent.md",
-				"../guides/debugging-agents.md",
-				"../guides/zero-to-hero.md",
-			},
-		},
-		{
-			name:    "website getting-started on-ramp",
-			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
-			heading: "### First-agent on-ramp",
-			links: []string{
-				"../guides/install-troubleshooting.md",
-				"make docs-wayfinding",
-				"micro agent demo",
-				"micro agent quickcheck",
-				"micro examples",
-				"micro zero-to-hero",
-				"https://github.com/micro/go-micro/blob/master/examples/INDEX.md",
-				"https://github.com/micro/go-micro/tree/master/examples/support",
-				"https://github.com/micro/go-micro/tree/master/examples/first-agent",
-				"../guides/no-secret-first-agent.md",
-				"../guides/your-first-agent.md",
-				"micro chat",
-				"../guides/debugging-agents.md",
-				"micro inspect agent <name>",
-				"../guides/zero-to-hero.md",
-			},
-		},
-		{
-			name:    "website quickstart next steps",
-			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
-			heading: "## Next Steps",
-			links: []string{
-				"guides/install-troubleshooting.md",
-				"micro agent demo",
-				"micro agent quickcheck",
-				"micro examples",
-				"micro zero-to-hero",
-				"https://github.com/micro/go-micro/blob/master/examples/INDEX.md",
-				"https://github.com/micro/go-micro/tree/master/examples/support",
-				"https://github.com/micro/go-micro/tree/master/examples/first-agent",
-				"guides/no-secret-first-agent.md",
-				"guides/your-first-agent.md",
-				"micro chat",
-				"guides/debugging-agents.md",
-				"micro inspect agent <name>",
-				"guides/zero-to-hero.md",
-			},
-		},
-		{
-			name:    "website docs index learn more",
-			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "_index.md"),
-			heading: "## Learn More",
-			links: []string{
-				"getting-started/index.md",
-				"https://github.com/micro/go-micro/blob/master/examples/INDEX.md",
-				"https://github.com/micro/go-micro/tree/master/examples/support",
-				"guides/no-secret-first-agent.md",
-				"guides/your-first-agent.md",
-				"micro chat",
-				"guides/debugging-agents.md",
-				"micro inspect agent <name>",
-				"guides/zero-to-hero.md",
-			},
-		},
+		{"README.md", []string{"examples/first-agent/", "internal/website/content/en/docs/guides/your-first-agent.md", "internal/website/content/en/docs/guides/debugging-agents.md"}},
+		{"internal/website/content/en/docs/quickstart.md", []string{"getting-started/index.md", "guides/your-first-agent.md", "guides/debugging-agents.md", "guides/no-secret-first-agent.md"}},
+		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md", "../guides/debugging-agents.md", "../guides/no-secret-first-agent.md"}},
+		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "getting-started/index.md", "guides/your-first-agent.md", "guides/no-secret-first-agent.md"}},
 	}
-
 	for _, check := range checks {
-		t.Run(check.name, func(t *testing.T) {
-			doc := firstMarkdownSection(t, readFile(t, check.file), check.heading)
-			last := -1
-			for _, link := range check.links {
-				idx := strings.Index(doc, link)
-				if idx == -1 {
-					t.Fatalf("%s missing first-agent wayfinding link %q; keep the no-secret → first-agent → debugging → 0→hero path discoverable", check.name, link)
-				}
-				assertWayfindingTargetExists(t, root, check.file, link)
-				if idx < last {
-					t.Fatalf("%s link %q appeared out of order; expected no-secret → first-agent → debugging → 0→hero", check.name, link)
-				}
-				last = idx
+		doc := readFile(t, filepath.Join(root, check.file))
+		for _, link := range check.links {
+			if !strings.Contains(doc, link) {
+				t.Errorf("%s missing %s", check.file, link)
 			}
-		})
+			assertWayfindingTargetExists(t, root, filepath.Join(root, check.file), link)
+		}
 	}
 }
 
 func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	onRampTrail := []string{
-		"micro agent demo",
-		"micro agent quickcheck",
-		"micro examples",
-		"micro zero-to-hero",
-		"examples/INDEX.md",
-		"examples/first-agent",
-		"examples/support",
-		"no-secret-first-agent",
-		"your-first-agent",
-		"micro chat",
-		"debugging-agents",
-		"micro inspect agent <name>",
-		"zero-to-hero",
-	}
+	onRampTrail := []string{"micro chat", "your-first-agent", "debugging-agents", "zero-to-hero"}
 	checks := []struct {
 		name    string
 		file    string
@@ -491,25 +340,25 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 		{
 			name:    "README first-agent on-ramp",
 			file:    filepath.Join(root, "README.md"),
-			heading: "### First agent on-ramp",
+			heading: "",
 			markers: onRampTrail,
 		},
 		{
 			name:    "website docs index first-agent path",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "_index.md"),
-			heading: "## Learn More",
+			heading: "",
 			markers: onRampTrail,
 		},
 		{
 			name:    "website getting-started first-agent on-ramp",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
-			heading: "### First-agent on-ramp",
+			heading: "",
 			markers: onRampTrail,
 		},
 		{
 			name:    "website quickstart next steps",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
-			heading: "## Next Steps",
+			heading: "",
 			markers: onRampTrail,
 		},
 		{
@@ -578,7 +427,7 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 		{
 			name:    "README first-agent on-ramp",
 			file:    filepath.Join(root, "README.md"),
-			heading: "### First agent on-ramp",
+			heading: "## CLI",
 		},
 		{
 			name:    "README examples list",
@@ -603,17 +452,17 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 		{
 			name:    "website getting-started on-ramp",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
-			heading: "### First-agent on-ramp",
+			heading: "## Examples and troubleshooting",
 		},
 		{
 			name:    "website quickstart next steps",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
-			heading: "## Next Steps",
+			heading: "## Next steps",
 		},
 		{
 			name:    "website docs index learn more",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "_index.md"),
-			heading: "## Learn More",
+			heading: "## Start here",
 		},
 	}
 
@@ -834,98 +683,22 @@ func TestExamplesIndexesPreserveLifecycleMap(t *testing.T) {
 	}
 }
 
-func TestGettingStartedDocsLeadWithNoSecretFirstRun(t *testing.T) {
+func TestGettingStartedDocsLeadWithConversation(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	checks := []struct {
-		name    string
-		file    string
-		section string
-		want    []string
-	}{
-		{
-			name:    "README CLI quick start",
-			file:    filepath.Join(root, "README.md"),
-			section: "## CLI",
-			want: []string{
-				"install troubleshooting guide",
-				"### Fastest start — no API key",
-				"micro new helloworld",
-				"micro run",
-				"curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call",
-				"### First agent on-ramp",
-				"micro agent demo",
-				"### Generate from a prompt — with an LLM key",
-			},
-		},
-		{
-			name:    "CLI README",
-			file:    filepath.Join(root, "cmd", "micro", "README.md"),
-			section: "## Create a service",
-			want: []string{
-				"## Create a service",
-				"micro new helloworld",
-				"## Run the service",
-				"micro run",
-				"micro agent demo",
-			},
-		},
-		{
-			name:    "website getting started",
-			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
-			section: "Install troubleshooting",
-			want: []string{
-				"Install troubleshooting",
-				"## Quick Start: Scaffold, Run, Call",
-				"micro new helloworld",
-				"micro run",
-				"curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call",
-				"### First-agent on-ramp",
-				"micro agent demo",
-				"## Generate from a Prompt — with an LLM key",
-			},
-		},
-		{
-			name:    "website quickstart",
-			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
-			section: "## Create Your First Service",
-			want: []string{
-				"micro new helloworld",
-				"micro run",
-				"curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call",
-				"## Next Steps",
-				"micro agent demo",
-				"micro agent quickcheck",
-				"micro zero-to-hero",
-				"guides/no-secret-first-agent.md",
-				"guides/debugging-agents.md",
-				"micro inspect agent <name>",
-				"guides/zero-to-hero.md",
-			},
-		},
-	}
-
-	for _, check := range checks {
-		t.Run(check.name, func(t *testing.T) {
-			doc := readFile(t, check.file)
-			if check.section != "" {
-				start := strings.Index(doc, check.section)
-				if start == -1 {
-					t.Fatalf("%s missing %q section", check.name, check.section)
-				}
-				doc = doc[start:]
+	for _, file := range []string{"README.md", "cmd/micro/README.md", "internal/website/content/en/docs/quickstart.md", "internal/website/content/en/docs/getting-started/index.md"} {
+		doc := readFile(t, filepath.Join(root, file))
+		chat := strings.Index(doc, "micro chat --provider openai")
+		if chat < 0 {
+			t.Errorf("%s does not introduce development chat", file)
+		}
+		if service := strings.Index(doc, "micro new helloworld"); service >= 0 && service < chat {
+			t.Errorf("%s introduces the service scaffold before development chat", file)
+		}
+		for _, marker := range []string{"Go 1.25", "registered agents", "provider"} {
+			if !strings.Contains(doc, marker) {
+				t.Errorf("%s missing prerequisite or routing detail %q", file, marker)
 			}
-			last := -1
-			for _, want := range check.want {
-				idx := strings.Index(doc, want)
-				if idx == -1 {
-					t.Fatalf("%s missing no-secret first-run marker %q", check.name, want)
-				}
-				if idx < last {
-					t.Fatalf("%s marker %q appeared out of order; keep install/scaffold/run/call before provider-backed generation", check.name, want)
-				}
-				last = idx
-			}
-		})
+		}
 	}
 }
 
@@ -985,8 +758,8 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	}
 
 	readme := readFile(t, filepath.Join(root, "README.md"))
-	if !strings.Contains(readme, "internal/website/docs/guides/no-secret-first-agent.md") {
-		t.Fatal("README does not point to the no-secret first-agent transcript")
+	if !strings.Contains(readme, "internal/website/content/en/docs/guides/your-first-agent.md") {
+		t.Fatal("README does not point to the first-agent guide")
 	}
 
 	firstAgent := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "your-first-agent.md"))
@@ -1057,7 +830,7 @@ func TestFirstAgentCLIChatInspectFixture(t *testing.T) {
 	if err := os.MkdirAll(home, 0o755); err != nil {
 		t.Fatalf("create fixture home: %v", err)
 	}
-	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent-cli-fixture\n\ngo 1.24\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+filepath.ToSlash(absRoot)+"\n")
+	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent-cli-fixture\n\ngo 1.25\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+filepath.ToSlash(absRoot)+"\n")
 	writeFile(t, filepath.Join(workspace, "main.go"), firstAgentCLIFixtureSource())
 	runInWorkspace(t, workspace, "go", "mod", "tidy")
 

@@ -1,74 +1,103 @@
 ---
 title: "Getting Started"
-description: "Go Micro has three core abstractions:"
+description: "Build an agent, develop services, and use them through conversation."
 ---
 
-![Getting started with Go Micro](getting-started.jpg)
+Go Micro is an agent harness and service framework for Go. Start with a
+conversation, develop the capabilities you need as services, and let the agent
+use their endpoints as tools.
 
-Go Micro has three core abstractions:
+## Start through conversation
 
-| Abstraction | What | Constructor |
-|-------------|------|-------------|
-| **Service** | Capability — endpoints, data, business logic | `micro.NewService("task")` |
-| **Agent** | Intelligence — manages services with an LLM | `micro.NewAgent("task-mgr")` |
-| **Flow** | Orchestration — event-driven LLM triggers | `micro.NewFlow("onboard")` |
+Follow the [Quick Start](../quickstart.md) to install Go 1.25+ and the v6 CLI,
+configure a provider key, and start `micro chat --provider openai` in a new directory.
+With no registered agents, the CLI development agent can generate missing
+services, compile and start them, and discover their tools for use in the same
+conversation. `micro run --prompt "..." --provider openai` lets you review a design
+before generating a project and starting its agent and services.
 
-## Prerequisites
+The generated source stays in your directory. Services started by `micro chat`
+stop when that session exits; use `micro run` to work on the generated project
+with hot reload. Edit its Go code to change existing services.
 
-- **Go 1.24+** for development. The `curl` install below gives you the `micro` binary without Go, but `micro run` compiles your services, so you'll want Go installed to build them.
-- **No LLM provider key is required** for the first run below. Add an Anthropic, OpenAI, Gemini, or other provider key only when you reach the provider-backed generation and chat steps.
+## Create your own agent
 
-## Install
 
-```bash
-# Binary (no Go required)
-curl -fsSL https://go-micro.dev/install.sh | sh
+Create your own agent when you want to define its instructions, model, and tools
+in Go. An agent registers an `Agent.Chat` endpoint and can be called from the CLI,
+other services, or another agent.
 
-# Or with Go
-go install go-micro.dev/v6/cmd/micro@latest
-```
-
-If install or shell setup fails, start with [Install troubleshooting](../guides/install-troubleshooting.md) to verify the binary installer or `go install`, `PATH`, `micro --version`, and the no-secret smoke path.
-
-## Quick Start: Scaffold, Run, Call
-
-Start with the path that proves the runtime works before any provider setup: install the CLI, scaffold one service, run it locally, then call it through the gateway.
+In a new directory, initialize a module:
 
 ```bash
-micro new helloworld
-cd helloworld
-micro run
+mkdir assistant && cd assistant
+go mod init example.com/assistant
+go get go-micro.dev/v6
 ```
 
-In another terminal, call the generated service:
+Save this as `main.go`:
+
+```go
+package main
+
+import (
+    "log"
+    "os"
+
+    "go-micro.dev/v6"
+)
+
+func main() {
+    agent := micro.NewAgent("assistant",
+        micro.AgentPrompt("You are a helpful assistant. Use your tools to carry out requests."),
+        micro.AgentProvider("openai"),
+        micro.AgentAPIKey(os.Getenv("OPENAI_API_KEY")),
+        micro.AgentServices(), // Start without application service tools.
+    )
+    if err := agent.Run(); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+Run it with `go run .`. In another terminal with your provider key exported, talk
+to it:
 
 ```bash
-curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
-  -H 'Content-Type: application/json' -d '{"name":"World"}'
+micro chat assistant --provider openai
 ```
 
-That install → scaffold → run → call loop is the 0→1 contract. It requires Go and the `micro` binary, but no LLM key. Once this succeeds, you know the local runtime, hot reload, gateway, and service registration are working.
+### Give the agent services as tools
 
-### First-agent on-ramp
+Develop the capabilities your agent needs as Go services, then replace the empty
+`micro.AgentServices()` option with their registered names:
 
-After this quick start, follow the agent path in order:
+```go
+micro.AgentServices("notes", "search"),
+```
 
-1. [Install troubleshooting](../guides/install-troubleshooting.md) — verify the CLI install before agent work.
+Restart the agent with the updated options and start those services alongside it. Go Micro discovers their endpoints and
+makes them available as tools; method descriptions and request fields tell the
+model how to call them. The agent can now act on your application through chat.
+The `notes` and `search` names above refer to services you create, not built-ins.
 
-Run `make docs-wayfinding` to verify the focused no-secret docs/CLI contract that keeps these website and README commands aligned with the installed CLI.
+Use `micro run` to develop a project containing your services and agent together.
+See [Your First Agent](../guides/your-first-agent.md)
+for a complete service-and-agent implementation. The standalone agent above uses
+the services you assign; service generation belongs to the CLI development chat.
 
-2. `micro agent demo` — print the provider-free first-agent demo command and next docs steps from the installed CLI.
-3. `micro agent quickcheck` (or `micro agent debug`) — when scaffold → run → chat → inspect stalls, print the short recovery map before you dive into the full debugging guide.
-4. `micro examples` — print the maintained provider-free runnable examples in copy/paste order.
-5. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle harness and runnable examples.
-6. [Examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md) — choose the smallest no-secret first-agent, maintained [0→hero support reference](https://github.com/micro/go-micro/tree/master/examples/support), and next interop examples from one map.
-7. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent) — run one service-backed agent with a mock model and no provider key.
-8. [No-secret first-agent transcript](../guides/no-secret-first-agent.md) — run a useful support agent with a mock model before setting up a provider key.
-9. [Your First Agent](../guides/your-first-agent.md) — build a service-backed agent and talk to it with `micro chat`.
-10. [Debugging your agent](../guides/debugging-agents.md) — use `micro agent preflight` before `micro run`, `micro agent doctor` after `micro run`, then `micro chat` and `micro inspect agent <name>` to recover service registration, tool calls, run history, memory, provider failures, and flow handoffs when the agent surprises you.
-11. [0→hero reference path](../guides/zero-to-hero.md) — prove the full scaffold → run → chat → inspect → deploy dry-run lifecycle with commands exercised by `make harness`.
+You can also call the agent from Go:
 
-## Write a Service
+```go
+resp, err := agent.Ask(ctx, "Find my notes about the launch.")
+if err != nil {
+    return err
+}
+fmt.Println(resp.Reply)
+```
+
+## Build services for the agent
+
 
 Create and run a service manually:
 
@@ -132,134 +161,35 @@ micro new events --template pubsub
 micro new gateway --template api
 ```
 
-## Generate from a Prompt — with an LLM key
+## Add workflows when needed
 
-After the no-secret path works, set a provider key if you want Go Micro to design services and an agent from a prompt:
+Services provide capabilities; agents choose which tools to use in response to a
+request. Flows coordinate ordered steps or respond to events. With persistent
+storage, they can resume from saved step boundaries; interrupted steps may run
+again. See [Agents and Workflows](../guides/agents-and-workflows.md) and
+[Durability and Recovery](../guides/durability.md) for setup and recovery semantics.
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...   # or OPENAI_API_KEY, GEMINI_API_KEY, ...
-micro run --prompt "task management system" --provider anthropic
-```
-
-You'll see the design, confirm it, and then services plus an agent start:
-
-```text
-Services:
-  ● task — Core task management
-  ● project — Project organization
-
-Generate? [Y/n]
-
-Micro
-  Services:
-    ● task
-    ● project
-  Agents:
-    ◆ agent
-```
-
-Use the interactive console, `micro run -d` plus `micro chat`, or the agent playground to talk to the generated services.
-
-Before your first provider-backed agent run, check the local path with:
-
-```bash
-micro agent preflight
-```
-
-The preflight is read-only: it verifies Go 1.24+, the `micro` binary, provider-key setup, and whether the default `micro run` gateway port is free, without calling an LLM provider. When a check fails it prints the exact fix plus the next guide to open, so the scaffold → run → chat path stays walkable.
-
-## Building Agents
-
-For a complete service-backed walkthrough, start with [Your First Agent](../guides/your-first-agent.md). If you want to run before you write, use [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the full services → agents → workflows lifecycle or [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate) for the smallest multi-agent planning/delegation path.
-
-An Agent is an intelligent layer that manages one or more services:
-
-```go
-package main
-
-import "go-micro.dev/v6"
-
-func main() {
-    agent := micro.NewAgent("task-mgr",
-        micro.AgentServices("task", "project"),
-        micro.AgentPrompt("You manage tasks and projects. You understand deadlines, priorities, and assignments."),
-        micro.AgentProvider("anthropic"),
-        micro.AgentAPIKey("sk-ant-..."),
-    )
-    agent.Run()
-}
-```
-
-An agent is a service — it has a proto-defined `Agent.Chat` RPC endpoint and registers in the registry like everything else. It:
-- Discovers its services from the registry
-- Only sees endpoints from its assigned services (scoped tools)
-- Maintains conversation memory in the store (persists across restarts)
-- Is callable via `micro call`, the interactive console, or any go-micro client
-
-Use it programmatically:
-
-```go
-resp, _ := agent.Ask(ctx, "What tasks are overdue for Alice?")
-fmt.Println(resp.Reply)
-```
-
-Or via the CLI:
-
-```bash
-micro agent list                    # list registered agents
-micro call task-mgr Agent.Chat '{"message": "What tasks are overdue?"}'
-```
-
-When multiple agents are registered, the console routes to the right agent automatically.
-
-## Event-Driven Flows
-
-A Flow subscribes to a broker topic and triggers an LLM when events arrive. You can define flows in code or run them from the CLI.
-
-**In code:**
-
-```go
-f := micro.NewFlow("onboard-user",
-    micro.FlowTrigger("events.user.created"),
-    micro.FlowPrompt("New user created: {{.Data}}. Send welcome email and create workspace."),
-    micro.FlowProvider("anthropic"),
-    micro.FlowAPIKey(os.Getenv("MICRO_AI_API_KEY")),
-)
-f.Register(service.Options().Registry, service.Options().Broker, service.Client())
-```
-
-**From the CLI:**
-
-```bash
-micro flow run --trigger events.user.created --prompt "New user: {{.Data}}. Send welcome email."
-micro flow exec --prompt "Summarize all open tickets and email the report."
-```
-
-The flow discovers all services as tools and lets the LLM decide which RPCs to call in response to the event.
-
-## CLI Workflow
+## Development commands
 
 | Command | Purpose |
 |---------|---------|
-| `micro run --prompt "..."` | Generate services + agent, start with interactive console |
-| `micro run` | Dev mode: hot reload, gateway, interactive console |
-| `micro run -d` | Detached mode (no console) |
-| `micro chat` | Standalone chat (when not using micro run) |
-| `micro agent list` | List registered agents |
-| `micro flow run --trigger <topic>` | Run an event-driven flow |
-| `micro flow exec --prompt "..."` | Execute a one-shot flow |
-| `micro new myservice` | Scaffold a service |
-| `micro call service endpoint '{}'` | Call a service or agent |
+| `micro chat --provider openai` | Use the development agent when none are registered; otherwise route to registered agents |
+| `micro run --prompt "..." --provider openai` | Review a design, generate services and an agent, then run them |
+| `micro run` | Run the current project with hot reload, gateway, and console |
+| `micro run -d` | Run without the console, in the foreground |
+| `micro chat assistant --provider openai` | Talk to a specific running agent |
+| `micro inspect agent assistant` | Inspect that agent's recorded runs |
+| `micro new myservice` | Scaffold a service to implement yourself |
 | `micro build` | Compile production binaries |
-| `micro deploy user@server` | Deploy via SSH + systemd |
+| `micro deploy user@server` | Deploy via SSH and systemd |
 
-## Next Steps
+## Examples and troubleshooting
 
-- [Learn by Example](../examples/) — runnable examples mapped to services, agents, and workflows
-- [0→hero Reference](../guides/zero-to-hero.md) — the maintained no-secret lifecycle contract
-- [AI Integration](../ai-integration/index.md) — how services, agents, MCP, and LLMs fit together
-- [Agent Design](https://github.com/micro/go-micro/blob/master/internal/docs/AGENT_DESIGN.md) — the full agent interface specification
-- [MCP & AI Agents](../mcp/index.md) — MCP gateway, tool discovery, and auth
-- [Data Model](../model/index.md) — typed persistence with CRUD and queries
-- [`micro loop` quickstart](../guides/micro-loop.md) — scaffold a CI-gated autonomous improvement loop for a repository
-- [Deployment](../deployment/index.md) — deploy via SSH + systemd
+- [Your First Agent](../guides/your-first-agent.md): complete service-and-agent code.
+- [Install troubleshooting](../guides/install-troubleshooting.md): toolchain and PATH checks.
+- [Debugging your agent](../guides/debugging-agents.md): `micro agent preflight` before running, `micro agent doctor` afterwards, and `micro inspect agent <name>` for recorded runs.
+- [No-secret transcript](../guides/no-secret-first-agent.md): use a mock model without an API key. `micro agent demo` prints the command; `micro agent quickcheck` prints troubleshooting steps.
+- [Examples index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md): includes the [first-agent](https://github.com/micro/go-micro/tree/master/examples/first-agent) and [support](https://github.com/micro/go-micro/tree/master/examples/support) examples. `micro examples` lists runnable starting points.
+- [0→hero reference](../guides/zero-to-hero.md): the optional lifecycle harness, also listed by `micro zero-to-hero`.
+- [AI Integration](../ai-integration/index.md): models, service tools, MCP, and agents.
+- [Deployment](../deployment.md): build and deploy your application.

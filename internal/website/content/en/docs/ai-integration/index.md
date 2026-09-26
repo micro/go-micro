@@ -20,7 +20,7 @@ model.Model                →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Clo
 agent / flow / micro chat  →  agent-managed, event-driven, or interactive orchestration
 ```
 
-Every layer is optional. You can use go-micro without AI. You can use the `ai` package without MCP. But when you stack them, you get services that AI agents can discover and orchestrate automatically.
+Every layer is optional. You can use go-micro without AI. You can use the `model` package without MCP. But when you stack them, you get services that AI agents can discover and orchestrate automatically.
 
 ## Layer by Layer
 
@@ -73,7 +73,7 @@ Any MCP-compatible agent (Claude Code, ChatGPT, custom agents) can discover and 
 `model.Tools` turns registered services into LLM-callable tools — discovery plus RPC execution in one type:
 
 ```go
-tools := model.NewTools(service.Registry())
+tools := model.NewTools(service.Options().Registry)
 discovered, _ := tools.Discover()  // []model.Tool from all registered services
 
 // Wire execution into a model with one option:
@@ -84,7 +84,7 @@ This is what powers `micro chat` and the agent playground. You can use it direct
 
 ### 5. model.Model (LLM providers)
 
-The `ai` package provides a pluggable interface for calling LLMs:
+The `model` package provides a pluggable interface for calling LLMs:
 
 ```go
 import (
@@ -99,7 +99,7 @@ resp, _ := m.Generate(ctx, &model.Request{
 })
 ```
 
-Seven text providers, two image providers, one video provider. Same interface, swap with an import.
+Provider adapters implement the same model interface. See the current [provider list](https://github.com/micro/go-micro#ai-providers) for supported models.
 
 | Provider | Text | Image | Video |
 |----------|------|-------|-------|
@@ -110,6 +110,8 @@ Seven text providers, two image providers, one video provider. Same interface, s
 | Groq | yes | | |
 | Mistral | yes | | |
 | Together AI | yes | | |
+| MiniMax | yes | | |
+| Ollama | yes | | |
 
 ### 6. micro chat (orchestration)
 
@@ -137,7 +139,7 @@ f := flow.New("onboard",
     flow.Provider("anthropic"),
     flow.APIKey(key),
 )
-f.Register(service.Registry(), service.Options().Broker, service.Client())
+f.Register(service.Options().Registry, service.Options().Broker, service.Client())
 ```
 
 Or from the CLI:
@@ -171,23 +173,10 @@ curl -XPOST -d '{"name":"Alice"}' http://localhost:8080/greeter/Greeter.Hello
 
 ## Getting Started
 
-The fastest path:
+Start with the [Quick Start](../quickstart.md) to develop services through
+conversation. Follow [Getting Started](../getting-started/index.md) to create your
+own Go agent and assign its service tools. The CLI development agent can generate
+new services; a named `micro.NewAgent` uses the tools you explicitly configure.
 
-```bash
-# Create a service with MCP enabled
-micro new myservice --template crud
-cd myservice
-
-# Run it
-micro run
-
-# Chat with it
-ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
-> list all records
-```
-
-See also:
-- [MCP Documentation](/docs/mcp.html) — detailed MCP gateway guide
-- [Atlas Cloud Integration](/docs/guides/atlascloud-integration.html) — using Atlas Cloud as a provider
-- [AI Provider Guide](/docs/guides/ai-provider-guide.html) — adding new providers
-- [gRPC Interop Example](https://github.com/micro/go-micro/tree/master/examples/grpc-interop) — calling go-micro from standard gRPC clients
+See [MCP](../mcp.md), [A2A](../guides/a2a-protocol.md), and the
+[provider guide](../guides/ai-provider-guide.md) for integration details.

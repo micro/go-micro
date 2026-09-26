@@ -132,7 +132,7 @@ Develop the capabilities your agent needs as Go services, then replace the empty
 micro.AgentServices("notes", "search"),
 ```
 
-Start those services alongside the agent. Go Micro discovers their endpoints and
+Restart the agent with the updated options and start those services alongside it. Go Micro discovers their endpoints and
 makes them available as tools; method descriptions and request fields tell the
 model how to call them. The agent can now act on your application through chat.
 The `notes` and `search` names above refer to services you create, not built-ins.
@@ -346,7 +346,6 @@ g.Run()
 | RPC client/server | gRPC transport, load balancing, streaming |
 | Pub/sub events | NATS, RabbitMQ, HTTP broker |
 | Key-value store | File (bbolt), Postgres, NATS KV |
-| Typed model layer | CRUD + queries, SQLite/Postgres backends |
 | Everything swappable | All abstractions are Go interfaces |
 
 ### AI

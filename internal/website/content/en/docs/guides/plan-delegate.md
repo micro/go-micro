@@ -11,7 +11,7 @@ They are exposed to the model as ordinary tools. There is no separate graph runt
 
 ## Prerequisites
 
-- Go 1.24+
+- Go 1.25+
 - An API key for any supported provider (Anthropic, OpenAI, Gemini, Groq, Mistral, Together, Atlas Cloud)
 
 ```bash

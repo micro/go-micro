@@ -5,6 +5,8 @@ description: "The Micro server is an optional web dashboard and authenticated AP
 ---
 **`micro server` does not build, run, or watch services.** It only discovers services via the registry and provides a UI/API to interact with them.
 
+`micro gateway` is the current gateway command; `micro server` remains a deprecated alias used in the examples below.
+
 ## micro server vs micro run
 
 | | `micro run` | `micro server` |
@@ -13,7 +15,7 @@ description: "The Micro server is an optional web dashboard and authenticated AP
 | **Builds services** | Yes | No |
 | **Runs services** | Yes (as child processes) | No (discovers already-running services) |
 | **Hot reload** | Yes | No |
-| **Authentication** | Yes (default `admin`/`micro`) | Yes (default `admin`/`micro`) |
+| **Authentication** | Depends on bind address | Depends on bind address |
 | **Scopes** | Yes (`/auth/scopes`) | Yes (`/auth/scopes`) |
 | **Dashboard** | Full gateway UI with auth, scopes, agent | Full dashboard with API explorer, logs, user/token management |
 | **When to use** | Day-to-day development | Deployed environments, shared servers |
@@ -36,13 +38,13 @@ Start the server:
 micro server
 ```
 
-Then open http://localhost:8080 and log in with the default admin account (`admin`/`micro`).
+Open the gateway using the machine token printed at startup, for example `http://localhost:8080/?token=<token>`. There is no default username/password. Authentication defaults to on for non-loopback addresses and off for loopback addresses.
 
 ## Features
 
 - **Web Dashboard** — Browse registered services, view endpoints, request/response schemas
 - **API Gateway** — Authenticated HTTP-to-RPC proxy at `/api/{service}/{method}`
-- **JWT Authentication** — All API endpoints require a Bearer token or session cookie
+- **Authentication** — Exposed gateways require the startup machine token, a JWT, or a session cookie; scoped endpoints enforce their requirements even on loopback
 - **Token Management** — Generate, view, copy, and revoke JWT tokens
 - **User Management** — Create, list, and delete users with bcrypt-hashed passwords
 - **Endpoint Scopes** — Restrict which tokens can call which endpoints via `/auth/scopes`

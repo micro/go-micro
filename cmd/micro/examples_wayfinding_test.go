@@ -28,7 +28,7 @@ func TestExamplesWayfindingIndexStaysLinked(t *testing.T) {
 	}{
 		{
 			file: "README.md",
-			want: []string{"examples/INDEX.md", "examples/first-agent/", "examples/support/", "zero-to-hero.md"},
+			want: []string{"examples/README.md", "examples/first-agent/", "zero-to-hero.md"},
 		},
 		{
 			file: "examples/README.md",

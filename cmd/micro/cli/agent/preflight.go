@@ -91,15 +91,15 @@ func agentPreflightChecks(deps preflightDeps) []preflightCheck {
 func checkGoToolchain(deps preflightDeps) preflightCheck {
 	path, err := deps.lookPath("go")
 	if err != nil {
-		return preflightCheck{Name: "Go toolchain", Detail: "go was not found on PATH", Fix: "Install Go 1.24 or newer from https://go.dev/doc/install and ensure go is on PATH.", Next: "After installing Go, rerun micro agent preflight, then continue with docs/guides/your-first-agent.html."}
+		return preflightCheck{Name: "Go toolchain", Detail: "go was not found on PATH", Fix: "Install Go 1.25 or newer from https://go.dev/doc/install and ensure go is on PATH.", Next: "After installing Go, rerun micro agent preflight, then continue with docs/guides/your-first-agent.html."}
 	}
 	out, err := deps.commandOutput("go", "version")
 	if err != nil {
 		return preflightCheck{Name: "Go toolchain", Detail: strings.TrimSpace(string(out)), Fix: "Ensure the go command runs successfully (try `go version`) before starting the agent walkthrough.", Next: "Use docs/guides/debugging-agents.html after the toolchain check passes if an agent run still fails."}
 	}
 	version := firstLine(out)
-	if !goVersionAtLeast(version, 1, 24) {
-		return preflightCheck{Name: "Go toolchain", Detail: fmt.Sprintf("%s (%s)", version, path), Fix: "Upgrade to Go 1.24 or newer before running generated services.", Next: "Rerun micro agent preflight, then continue with docs/guides/your-first-agent.html."}
+	if !goVersionAtLeast(version, 1, 25) {
+		return preflightCheck{Name: "Go toolchain", Detail: fmt.Sprintf("%s (%s)", version, path), Fix: "Upgrade to Go 1.25 or newer before running generated services.", Next: "Rerun micro agent preflight, then continue with docs/guides/your-first-agent.html."}
 	}
 	return preflightCheck{Name: "Go toolchain", OK: true, Detail: fmt.Sprintf("%s (%s)", version, path)}
 }

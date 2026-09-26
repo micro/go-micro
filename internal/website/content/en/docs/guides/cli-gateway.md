@@ -4,6 +4,8 @@ title: "CLI & Gateway Guide"
 
 The Go Micro CLI provides two gateway modes for accessing your microservices: development (`micro run`) and production (`micro server`). Both use the same underlying gateway architecture, ensuring consistent behavior across environments.
 
+`micro gateway` is the current gateway command; `micro server` remains a deprecated alias used in the examples below.
+
 ## Overview
 
 ```
@@ -31,7 +33,7 @@ The Go Micro CLI provides two gateway modes for accessing your microservices: de
 | Feature | `micro run` | `micro server` |
 |---------|-------------|----------------|
 | **Purpose** | Local development | Production API gateway |
-| **Authentication** | Yes (default `admin`/`micro`) | Yes (default `admin`/`micro`) |
+| **Authentication** | Depends on bind address | Depends on bind address |
 | **Process Management** | Yes (builds & runs services) | No (services run separately) |
 | **Hot Reload** | Yes (watches file changes) | No |
 | **Endpoint Scopes** | Yes (`/auth/scopes`) | Yes (`/auth/scopes`) |
@@ -55,7 +57,7 @@ Open http://localhost:8080 - no login required!
 - **Instant Gateway**: HTTP API at `/api/{service}/{method}`
 - **Web Dashboard**: Browse and test services at `/`
 - **Hot Reload**: Code changes trigger automatic rebuild
-- **Authentication**: JWT auth with default credentials (`admin`/`micro`)
+- **Authentication**: off on loopback by default; enabled on non-loopback addresses, using the startup machine token or a configured JWT
 - **Scopes**: Endpoint access control via `/auth/scopes`
 
 ### Example Usage
@@ -64,7 +66,7 @@ Open http://localhost:8080 - no login required!
 # Start with hot reload
 micro run
 
-# Log in at http://localhost:8080 with admin/micro
+# On an exposed gateway, use http://localhost:8080/?token=<startup-token>
 # Or use a token for API calls:
 curl -X POST http://localhost:8080/api/myservice/Handler.Call \
   -H "Authorization: Bearer <token>" \
@@ -92,7 +94,7 @@ See [micro run guide](micro-run.md) for full details.
 micro server --address :8080
 ```
 
-Open http://localhost:8080 and log in with `admin/micro`.
+Use the startup machine token: `http://localhost:8080/?token=<token>`. There is no default username/password.
 
 ### What You Get
 
@@ -119,7 +121,7 @@ curl -X POST http://localhost:8080/api/myservice/Handler.Call \
 
 ### Managing Users, Tokens & Scopes
 
-1. **Log in**: Visit http://localhost:8080 → Enter `admin/micro`
+1. **Authenticate**: use the startup machine token or an account you have configured; no default account is created
 2. **Create API Token**: Go to `/auth/tokens` → Generate token with scopes
 3. **Set Endpoint Scopes**: Go to `/auth/scopes` → Restrict which endpoints require which scopes
 4. **Use Token**: Copy and use in `Authorization: Bearer <token>` header
@@ -272,7 +274,7 @@ The unified gateway means:
 
 From a user perspective:
 
-- `micro run` and `micro server` both have auth enabled
+- Authentication defaults depend on the bind address: loopback is unauthenticated; exposed interfaces require a token
 - Both use the same JWT authentication and scopes system
 - API endpoints are unchanged
 - Web UI is identical
