@@ -331,9 +331,13 @@ func (s *Server) discoverServices() error {
 		inputSchema["type"] = "object"
 		props := make(map[string]any, len(ep.Request))
 		for _, f := range ep.Request {
+			desc := f.Description
+			if desc == "" {
+				desc = fmt.Sprintf("%s field", f.Name)
+			}
 			props[f.Name] = map[string]any{
 				"type":        schema.JSONType(f.Type),
-				"description": fmt.Sprintf("%s field", f.Name),
+				"description": desc,
 			}
 		}
 		inputSchema["properties"] = props

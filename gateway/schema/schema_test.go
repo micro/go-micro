@@ -20,9 +20,10 @@ func TestResolverDiscoversEndpoints(t *testing.T) {
 			{
 				Name: "Blog.Create",
 				Metadata: map[string]string{
-					"description": "Create a blog post",
-					"scopes":      "blog:write, blog:admin",
-					"example":     `{"title":"hi"}`,
+					"description":    "Create a blog post",
+					"scopes":         "blog:write, blog:admin",
+					"example":        `{"title":"hi"}`,
+					"request_fields": `{"title":"Blog post title","likes":"Number of likes"}`,
 				},
 				Request: &registry.Value{
 					Name: "Request",
@@ -73,6 +74,9 @@ func TestResolverDiscoversEndpoints(t *testing.T) {
 	}
 	if len(create.Request) != 2 || create.Request[0].Name != "title" || create.Request[0].Type != "string" {
 		t.Errorf("request = %+v", create.Request)
+	}
+	if create.Request[0].Description != "Blog post title" || create.Request[1].Description != "Number of likes" {
+		t.Errorf("request field descriptions = %q, %q", create.Request[0].Description, create.Request[1].Description)
 	}
 	if len(create.Response) != 1 || create.Response[0].Name != "id" {
 		t.Errorf("response = %+v", create.Response)

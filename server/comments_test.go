@@ -27,7 +27,39 @@ func (s *TestService) NoDoc(ctx context.Context, req *TestRequest, rsp *TestResp
 }
 
 type TestRequest struct{}
+
+// TestDocRequest carries field descriptions via struct tags.
+type TestDocRequest struct {
+	ID   string `json:"id" description:"Item ID to operate on"`
+	Note string `json:"note,omitempty" description:"Optional note"`
+}
+
 type TestResponse struct{}
+
+type TestDocService struct{}
+
+func (s *TestDocService) Touch(ctx context.Context, req *TestDocRequest, rsp *TestResponse) error {
+	return nil
+}
+
+func TestRequestFieldDescriptionsMetadata(t *testing.T) {
+	handler := NewRpcHandler(&TestDocService{})
+	rpcHandler := handler.(*RpcHandler)
+	for _, ep := range rpcHandler.Endpoints() {
+		if ep.Name != "TestDocService.Touch" {
+			continue
+		}
+		raw, ok := ep.Metadata["request_fields"]
+		if !ok {
+			t.Fatal("request_fields metadata missing")
+		}
+		if raw != `{"id":"Item ID to operate on","note":"Optional note"}` {
+			t.Errorf("request_fields = %q", raw)
+		}
+		return
+	}
+	t.Error("Touch endpoint not found")
+}
 
 func TestExtractHandlerDocs(t *testing.T) {
 	handler := &TestService{}

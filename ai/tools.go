@@ -112,10 +112,20 @@ func (t *Tools) Discover() ([]Tool, error) {
 
 			props := map[string]any{}
 			if ep.Request != nil {
+				descs := map[string]string{}
+				if ep.Metadata != nil {
+					if raw, ok := ep.Metadata["request_fields"]; ok && raw != "" {
+						_ = json.Unmarshal([]byte(raw), &descs)
+					}
+				}
 				for _, field := range ep.Request.Values {
+					desc := descs[field.Name]
+					if desc == "" {
+						desc = fmt.Sprintf("%s (%s)", field.Name, field.Type)
+					}
 					props[field.Name] = map[string]any{
 						"type":        toolJSONType(field.Type),
-						"description": fmt.Sprintf("%s (%s)", field.Name, field.Type),
+						"description": desc,
 					}
 				}
 			}
@@ -132,7 +142,7 @@ func (t *Tools) Discover() ([]Tool, error) {
 	// Deterministic order. The registry iterates a map, so without this the
 	// tool list is shuffled on every discovery — which silently defeats
 	// provider prompt caching (Anthropic cache_control, Gemini implicit
-	// caching): both key on a byte-identical prefix, and the tool catalogue
+	// caching): both key on a byte-identical prefix, and the tool catalog
 	// is the bulk of that prefix.
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].Name != out[j].Name {

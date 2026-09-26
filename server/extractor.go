@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -114,7 +115,53 @@ func extractEndpoint(method reflect.Method) *registry.Endpoint {
 		}
 	}
 
+	// Carry per-field descriptions from the request struct's `description`
+	// struct tags so the MCP/API gateways can emit meaningful input schemas
+	// without re-reading handler source at runtime.
+	if descs := fieldDescriptions(reqType); len(descs) > 0 {
+		if b, err := json.Marshal(descs); err == nil {
+			ep.Metadata["request_fields"] = string(b)
+		}
+	}
+
 	return ep
+}
+
+// fieldDescriptions maps each exportable top-level request field (by JSON
+// name) to its `description` struct tag, if set.
+func fieldDescriptions(typ reflect.Type) map[string]string {
+	if typ == nil {
+		return nil
+	}
+	if typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+	if typ.Kind() != reflect.Struct {
+		return nil
+	}
+	var out map[string]string
+	for i := 0; i < typ.NumField(); i++ {
+		f := typ.Field(i)
+		if f.PkgPath != "" {
+			continue
+		}
+		desc := f.Tag.Get("description")
+		if desc == "" {
+			continue
+		}
+		name := f.Name
+		if tags := f.Tag.Get("json"); len(tags) > 0 {
+			parts := strings.Split(tags, ",")
+			if parts[0] != "" && parts[0] != "-" {
+				name = parts[0]
+			}
+		}
+		if out == nil {
+			out = make(map[string]string)
+		}
+		out[name] = desc
+	}
+	return out
 }
 
 func extractSubValue(typ reflect.Type) *registry.Value {

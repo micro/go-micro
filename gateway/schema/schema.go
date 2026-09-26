@@ -6,6 +6,7 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sort"
@@ -20,6 +21,9 @@ import (
 type Field struct {
 	Name string
 	Type string
+	// Description is the field's `description` struct tag, if the service
+	// registered one.
+	Description string
 }
 
 // Endpoint is the resolved schema for one service endpoint, keyed by its
@@ -188,6 +192,16 @@ func resolveEndpoint(service string, ep *registry.Endpoint) *Endpoint {
 		}
 	}
 	e.Request = fieldsOf(ep.Request)
+	if ep.Metadata != nil {
+		if raw, ok := ep.Metadata["request_fields"]; ok && raw != "" {
+			var descs map[string]string
+			if json.Unmarshal([]byte(raw), &descs) == nil {
+				for i := range e.Request {
+					e.Request[i].Description = descs[e.Request[i].Name]
+				}
+			}
+		}
+	}
 	e.Response = fieldsOf(ep.Response)
 	return e
 }

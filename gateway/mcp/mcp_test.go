@@ -105,8 +105,12 @@ func TestToolScopesFromMetadata(t *testing.T) {
 			{
 				Name: "Blog.Create",
 				Metadata: map[string]string{
-					"description": "Create a blog post",
-					"scopes":      "blog:write,blog:admin",
+					"description":    "Create a blog post",
+					"scopes":         "blog:write,blog:admin",
+					"request_fields": `{"title":"Blog post title"}`,
+				},
+				Request: &registry.Value{
+					Values: []*registry.Value{{Name: "title", Type: "string"}},
 				},
 			},
 			{
@@ -133,6 +137,20 @@ func TestToolScopesFromMetadata(t *testing.T) {
 	}
 	if len(createTool.Scopes) != 2 || createTool.Scopes[0] != "blog:write" || createTool.Scopes[1] != "blog:admin" {
 		t.Errorf("unexpected scopes: %v", createTool.Scopes)
+	}
+
+	// Request field descriptions from source metadata are rendered into the
+	// input schema instead of the generic "<name> field".
+	if props, ok := createTool.InputSchema["properties"].(map[string]any); ok {
+		if p, txt := props["title"]; txt {
+			if pm := p.(map[string]any); pm["description"] != "Blog post title" {
+				t.Errorf("title description = %q, want %q", pm["description"], "Blog post title")
+			}
+		} else {
+			t.Error("missing title property in input schema")
+		}
+	} else {
+		t.Errorf("input schema properties = %+v", createTool.InputSchema["properties"])
 	}
 
 	readTool := s.tools["blog.Blog.Read"]
