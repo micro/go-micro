@@ -12,11 +12,24 @@ import (
 
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/model/groq"
+	"go-micro.dev/v6/model/minimax"
+	"go-micro.dev/v6/model/mistral"
 	"go-micro.dev/v6/model/openai"
+	"go-micro.dev/v6/model/together"
 )
 
+func compatibleProviders() map[string]func(...model.Option) model.Model {
+	return map[string]func(...model.Option) model.Model{
+		"openai":   func(opts ...model.Option) model.Model { return openai.NewProvider(opts...) },
+		"groq":     func(opts ...model.Option) model.Model { return groq.NewProvider(opts...) },
+		"mistral":  func(opts ...model.Option) model.Model { return mistral.NewProvider(opts...) },
+		"minimax":  func(opts ...model.Option) model.Model { return minimax.NewProvider(opts...) },
+		"together": func(opts ...model.Option) model.Model { return together.NewProvider(opts...) },
+	}
+}
+
 func TestChatRequestParity(t *testing.T) {
-	for name, factory := range map[string]func(...model.Option) model.Model{"groq": func(opts ...model.Option) model.Model { return groq.NewProvider(opts...) }, "openai": func(opts ...model.Option) model.Model { return openai.NewProvider(opts...) }} {
+	for name, factory := range compatibleProviders() {
 		for _, mode := range []string{"generate", "followup_error", "stream"} {
 			t.Run(name+"/"+mode, func(t *testing.T) {
 				requests, calls := 0, 0
@@ -169,5 +182,31 @@ func TestChatEmptyOutputLimit(t *testing.T) {
 				})
 			}
 		}
+	}
+}
+
+// Direct model users can inspect tool calls without allowing the provider to
+// execute them. Sharing the legacy loop must retain this single-turn boundary.
+func TestChatWithoutToolHandler(t *testing.T) {
+	for name, factory := range compatibleProviders() {
+		t.Run(name, func(t *testing.T) {
+			requests := 0
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				fmt.Fprint(w, `{"choices":[{"message":{"content":"","tool_calls":[{"id":"call1","type":"function","function":{"name":"lookup","arguments":"{}"}}]}}]}`)
+			}))
+			defer ts.Close()
+			p := factory(model.WithBaseURL(ts.URL), model.WithAPIKey("test"))
+			resp, err := p.Generate(context.Background(), &model.Request{
+				Prompt: "find it",
+				Tools:  []model.Tool{{Name: "lookup", Properties: map[string]any{}}},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if requests != 1 || len(resp.ToolCalls) != 1 || resp.ToolCalls[0].ID != "call1" || resp.Answer != "" {
+				t.Fatalf("requests=%d response=%+v; expected one unexecuted tool call", requests, resp)
+			}
+		})
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/model"
+	"go-micro.dev/v6/model/internal/openaiapi"
 )
 
 // A multi-step task needs the provider to (a) loop while the model keeps
@@ -110,11 +111,11 @@ func TestGenerateToolLoopIsBounded(t *testing.T) {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	// Initial call + at most maxToolRounds follow-ups.
-	if calls > maxToolRounds+1 {
-		t.Fatalf("model calls = %d, want at most %d — the loop must be bounded", calls, maxToolRounds+1)
+	// Initial call + at most openaiapi.MaxToolRounds follow-ups.
+	if calls > openaiapi.MaxToolRounds+1 {
+		t.Fatalf("model calls = %d, want at most %d — the loop must be bounded", calls, openaiapi.MaxToolRounds+1)
 	}
-	if calls < maxToolRounds {
+	if calls < openaiapi.MaxToolRounds {
 		t.Fatalf("model calls = %d — expected the loop to keep going while tool calls keep coming", calls)
 	}
 }

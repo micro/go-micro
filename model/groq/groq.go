@@ -59,67 +59,8 @@ func (p *Provider) Options() model.Options { return p.opts }
 func (p *Provider) String() string         { return "groq" }
 
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-	messages := openaiapi.Messages(req)
-	apiReq := openaiapi.Request(p.opts, messages, req.Tools)
-
-	resp, rawMessage, err := p.callAPI(ctx, apiReq)
-	if err != nil {
-		return nil, err
-	}
-	if len(resp.ToolCalls) == 0 {
-		return resp, nil
-	}
-
-	// Tool execution loop: execute tools, send results back, and keep the
-	// tools on offer so the model can take the next step. A follow-up without
-	// "tools" asks the model to continue with its hands tied — the call it
-	// wanted comes back written out as prose — and without a loop a second
-	// step is impossible whatever the model wants. Bounded so a model that
-	// never stops asking cannot run forever.
-	if p.opts.ToolHandler != nil {
-		// Copied rather than aliased: append on a slice that shares an array
-		// with messages would overwrite it on a later round.
-		followUpMessages := append([]map[string]any(nil), messages...)
-		pending := resp.ToolCalls
-		raw := rawMessage
-		for round := 0; len(pending) > 0 && round < maxToolRounds; round++ {
-			followUpMessages = append(followUpMessages, map[string]any{
-				"role":       "assistant",
-				"content":    raw["content"],
-				"tool_calls": raw["tool_calls"],
-			})
-			for _, tc := range pending {
-				content := p.opts.ToolHandler(ctx, tc).Content
-				followUpMessages = append(followUpMessages, map[string]any{
-					"role":         "tool",
-					"tool_call_id": tc.ID,
-					"content":      content,
-				})
-			}
-
-			followUpReq := openaiapi.Request(p.opts, followUpMessages, req.Tools)
-
-			followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
-			if err != nil {
-				return nil, fmt.Errorf("tool follow-up: %w", err)
-			}
-			if followUpResp.Reply != "" {
-				resp.Answer = followUpResp.Reply
-			}
-			resp.StopReason = followUpResp.StopReason
-			pending, raw = followUpResp.ToolCalls, followUpRaw
-			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
-		}
-	}
-
-	return resp, nil
+	return openaiapi.Generate(ctx, p.opts, req, p.callAPI)
 }
-
-// maxToolRounds bounds the tool-execution loop in a single Generate. Each
-// round is a model call plus the tools it asks for, so this is the ceiling on
-// one question's cost as well as its length; it is high enough that no honest
-// piece of multi-step work reaches it.
-const maxToolRounds = 12
 
 func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
 	return openaiapi.Stream(ctx, p.opts, req, "/v1/chat/completions")
