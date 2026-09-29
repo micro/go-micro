@@ -23,9 +23,15 @@ micro chat --provider openai
 
 With no registered agents, the CLI development agent can generate a missing
 service, compile and start it, and expose its endpoints as tools. Describe what
-you need, then ask it to use the service in the same conversation. Generated
+you need, then ask it to use the service on your next message. Generated
 source stays in your directory; services started by this session stop on exit.
 Use `micro run` to continue developing the project with hot reload.
+
+Development chat uses the framework agent harness, including tool guardrails.
+Conversation and plan state stay in memory for the session; `reset` clears that
+local state. It does not reset a remote agent. `--stream` shows tool events as
+they happen and chunks the completed answer; it does not stream native provider
+tokens during generation. An interrupted remote stream is not retried automatically.
 
 To review a design before generating and running the project:
 

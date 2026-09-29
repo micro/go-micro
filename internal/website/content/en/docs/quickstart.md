@@ -30,8 +30,10 @@ Find my notes about the launch.
 With no registered agents, `micro chat` uses its built-in development agent.
 When a capability is missing, it can generate a service in the current directory,
 compile and start it, and discover its endpoints as tools. You can then use that
-service in the same conversation. The generated Go source is yours to inspect
-and change.
+service on your next message. The generated Go source is yours to inspect
+and change. Development chat uses the same agent harness and tool guardrails as
+framework agents. Its conversation and plan state are session-local; `reset`
+clears this local state, without resetting remote agents.
 
 Services started by this chat session stop when you exit. To continue developing
 the generated project, run `micro run` from its directory: it starts the services
