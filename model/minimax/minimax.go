@@ -59,108 +59,8 @@ func (p *Provider) Options() model.Options { return p.opts }
 func (p *Provider) String() string         { return "minimax" }
 
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-	var tools []map[string]any
-	for _, t := range req.Tools {
-		tools = append(tools, map[string]any{
-			"type": "function",
-			"function": map[string]any{
-				"name":        t.Name,
-				"description": t.Description,
-				"parameters": map[string]any{
-					"type":       "object",
-					"properties": t.Properties,
-				},
-			},
-		})
-	}
-
-	messages := make([]map[string]any, 0, len(req.Messages)+2)
-	messages = append(messages, map[string]any{
-		"role":    "system",
-		"content": req.SystemPrompt,
-	})
-	for _, message := range req.Messages {
-		messages = append(messages, map[string]any{
-			"role":    message.Role,
-			"content": message.Content,
-		})
-	}
-	messages = append(messages, map[string]any{
-		"role":    "user",
-		"content": req.Prompt,
-	})
-
-	apiReq := map[string]any{
-		"model":    p.opts.Model,
-		"messages": messages,
-	}
-	if len(tools) > 0 {
-		apiReq["tools"] = tools
-	}
-
-	resp, rawMessage, err := p.callAPI(ctx, apiReq)
-	if err != nil {
-		return nil, err
-	}
-	if len(resp.ToolCalls) == 0 {
-		return resp, nil
-	}
-
-	// Tool execution loop: execute tools, send results back, and keep the
-	// tools on offer so the model can take the next step. A follow-up without
-	// "tools" asks the model to continue with its hands tied — the call it
-	// wanted comes back written out as prose — and without a loop a second
-	// step is impossible whatever the model wants. Bounded so a model that
-	// never stops asking cannot run forever.
-	if p.opts.ToolHandler != nil {
-		// Copied rather than aliased: append on a slice that shares an array
-		// with messages would overwrite it on a later round.
-		followUpMessages := append([]map[string]any(nil), messages...)
-		pending := resp.ToolCalls
-		raw := rawMessage
-		for round := 0; len(pending) > 0 && round < maxToolRounds; round++ {
-			followUpMessages = append(followUpMessages, map[string]any{
-				"role":       "assistant",
-				"content":    raw["content"],
-				"tool_calls": raw["tool_calls"],
-			})
-			for _, tc := range pending {
-				content := p.opts.ToolHandler(ctx, tc).Content
-				followUpMessages = append(followUpMessages, map[string]any{
-					"role":         "tool",
-					"tool_call_id": tc.ID,
-					"content":      content,
-				})
-			}
-
-			followUpReq := map[string]any{
-				"model":    p.opts.Model,
-				"messages": followUpMessages,
-			}
-			if len(tools) > 0 {
-				followUpReq["tools"] = tools
-			}
-
-			followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
-			if err != nil {
-				break
-			}
-			if followUpResp.Reply != "" {
-				resp.Answer = followUpResp.Reply
-			}
-			pending, raw = followUpResp.ToolCalls, followUpRaw
-			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
-		}
-	}
-
-	return resp, nil
+	return openaiapi.Generate(ctx, p.opts, req, p.callAPI)
 }
-
-// maxToolRounds bounds the tool-execution loop in a single Generate. Each
-// round is a model call plus the tools it asks for, so this is the ceiling on
-// one question's cost as well as its length; it is high enough that no honest
-// piece of multi-step work reaches it.
-const maxToolRounds = 12
 
 func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
 	return openaiapi.Stream(ctx, p.opts, req, "/v1/chat/completions")
@@ -198,6 +98,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 				Content   string `json:"content"`
 				ToolCalls []struct {
 					ID       string `json:"id"`
+					Type     string `json:"type"`
 					Function struct {
 						Name      string `json:"name"`
 						Arguments string `json:"arguments"`

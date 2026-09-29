@@ -4,6 +4,13 @@ title: "Roadmap"
 
 Go Micro is a framework for building **agents and services** in Go. An agent is a distributed system — it discovers services, calls them, holds state, and recovers from failure — so building an agent is building a service. The roadmap has two jobs: make **agentic development** excellent, and make the **developer experience** around it excellent. Nothing else.
 
+## Towards v7 — proposal
+
+A [v7 proposal](v7.md) explores a consistent model/agent execution contract and
+an application lifecycle built on services. Work starts with compatible provider
+cleanup; an `app` package will be shaped by a complete build, use, revise, and
+recover path in Mu and the CLI. This is a design review, not a release commitment.
+
 ## Where we are (v6)
 
 The foundation is in place:

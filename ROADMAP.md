@@ -10,7 +10,15 @@ jobs: make **agentic development** excellent, and make the **developer experienc
 around it excellent.
 
 The full, current roadmap lives at **[go-micro.dev/docs/roadmap](https://go-micro.dev/docs/roadmap)**
-([source](internal/website/docs/roadmap.md)). The highlights:
+([source](internal/website/content/en/docs/roadmap.md)). The highlights:
+
+## Towards v7 — proposal
+
+We are reviewing a direction built around a consistent execution harness and an
+application lifecycle: build from services and agents, then run, revise, and
+recover the result. Compatible provider cleanup comes first. The scope of a
+possible `app` package and the breaking changes that could justify v7 are in the
+[v7 proposal](internal/website/content/en/docs/v7.md); this is not a release commitment.
 
 ## Where we are (v6)
 
