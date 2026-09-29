@@ -62,8 +62,9 @@ to use it. Tool selection is not a substitute for service-side authorization.
 There is currently a split in execution responsibility: provider adapters can
 perform repeated tool calls inside `Generate` when a tool handler is supplied,
 while the agent adds guardrails, run tracking, and plan-completion logic around
-those calls. The CLI development chat also has its own session orchestration.
-These are separate execution paths, not one universally shared agent loop.
+those calls. CLI development chat and multi-agent routing use this same agent
+harness, with session-local memory and storage. Provider-level tool iteration
+and agent-level execution control remain separate responsibilities.
 
 See [AI Integration](../ai-integration/index.md),
 [guardrails](../guides/agent-guardrails.md), and
@@ -101,8 +102,10 @@ The resulting app may itself call services through an authenticated API.
 
 The distinction is between the **run** (the work in progress) and the **output**
 (the saved object someone can open, revise, or share). Go Micro currently returns
-replies, tool results, and run identifiers; it does not define a common app or
-artifact lifecycle. `micro chat` can generate backend services, but that is not
+replies, tool results, and run identifiers. The [app package](../app.md) defines
+an app’s identity, entrypoint, assets, and required services, and provides an HTTP
+handler. Generation, revision storage, authorization, and publishing belong to
+the host. `micro chat` can generate backend services, but that is not
 a general UI builder with preview, versioning, and publishing.
 
 [Mu](https://github.com/micro/mu) demonstrates this composition. At the

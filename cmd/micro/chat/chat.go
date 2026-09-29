@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/urfave/cli/v2"
@@ -29,6 +30,7 @@ import (
 	"go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/store"
 
 	_ "go-micro.dev/v6/model/anthropic"
 	_ "go-micro.dev/v6/model/atlascloud"
@@ -39,18 +41,15 @@ import (
 	_ "go-micro.dev/v6/model/together"
 )
 
-const systemPromptTmpl = `You are an agent that orchestrates microservices. Use the available tools to fulfill user requests. When you call a tool, explain what you are doing.
-
-Available services: %s
-
-If a user asks for something that no existing service can handle, use the micro_generate_service tool to create it. Pass a short description of what the service should do. After it's created, the new service's endpoints will be available as tools and you can use them immediately.
-
-Do NOT make up capabilities. Only use the tools that are available. If generation fails, tell the user.`
+const systemPrompt = `You are a development agent that uses microservices to fulfill requests.
+Use only the available tools. If a capability is missing, use micro_generate_service.
+New services become available as tools on the next user message. Report generation
+failures honestly and ask the user to continue after creating a service.`
 
 var generateTool = model.Tool{
 	Name:         "micro_generate_service",
 	OriginalName: "micro.generate_service",
-	Description:  "Generate a new microservice from a description. Use when the user needs a capability that no existing service provides. The service will be created, compiled, and started automatically.",
+	Description:  "Generate a new microservice from a description. Use when the user needs a capability that no existing service provides. The service will be created, compiled, and started automatically; its tools are available on the next user message.",
 	Properties: map[string]any{
 		"description": map[string]any{
 			"type":        "string",
@@ -71,7 +70,7 @@ tool, and lets you ask natural-language questions like "list all users" or
 issues RPCs to the right service.
 
 If you ask for something no existing service handles, the agent will generate
-a new service automatically and start using it.
+a new service automatically. Its tools are available on your next message.
 
 Examples:
   ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
@@ -84,7 +83,7 @@ Examples:
 			&cli.StringFlag{Name: "model", Usage: "Model name (uses provider default if unset)", EnvVars: []string{"MICRO_AI_MODEL"}},
 			&cli.StringFlag{Name: "base_url", Usage: "Override the provider's base URL", EnvVars: []string{"MICRO_AI_BASE_URL"}},
 			&cli.StringFlag{Name: "prompt", Usage: "Send a single prompt and exit (non-interactive)"},
-			&cli.BoolFlag{Name: "stream", Usage: "Stream model output as it is generated when the provider supports it"},
+			&cli.BoolFlag{Name: "stream", Usage: "Show agent tool events and answer chunks"},
 		},
 		Action: run,
 	})
@@ -94,114 +93,59 @@ Examples:
 type agentInfo struct {
 	Name     string
 	Services []string
+	Stream   bool
 }
 
 type session struct {
 	provider  string
 	apiKey    string
-	model     model.Model
-	tools     *model.Tools
+	modelName string
+	baseURL   string
 	reg       registry.Registry
 	cl        clt.Client
-	hist      *model.History
 	toolList  []model.Tool
-	sysPrompt string
 	procs     []*exec.Cmd
+	procMu    sync.Mutex
+	closed    bool
 	agents    map[string]agentInfo
 	stream    bool
-
-	// Built-in agent capabilities (plan, delegate), shared with the
-	// agent package so the direct-service fallback has the same tools a
-	// real agent would.
-	builtinTools  []model.Tool
-	builtinHandle func(name string, input map[string]any) (any, string, bool)
+	local     agent.Agent
+	router    agent.Agent
+	generate  agent.ToolFunc
 }
+
+// newHarness supplies session-local state; it never registers a CLI agent or
+// persists conversations/plans under the identity of another chat session.
+func (s *session) newHarness(name, prompt string, opts ...agent.Option) agent.Agent {
+	base := []agent.Option{
+		agent.Name(name), agent.Prompt(prompt), agent.Provider(s.provider),
+		agent.Model(s.modelName), agent.APIKey(s.apiKey), agent.BaseURL(s.baseURL),
+		agent.WithRegistry(s.reg), agent.WithClient(s.cl),
+		agent.WithStore(store.NewMemoryStore()), agent.WithMemory(agent.NewInMemory(50)),
+		agent.ModelCallTimeout(5 * time.Minute), agent.ToolCallTimeout(2 * time.Minute),
+	}
+	return agent.New(append(base, opts...)...)
+}
+
+func (s *session) developmentAgent() agent.Agent {
+	if s.local == nil {
+		generate := s.generate
+		if generate == nil {
+			generate = s.handleGenerate
+		}
+		s.local = s.newHarness("micro-chat", systemPrompt,
+			agent.WithTool(generateTool.Name, generateTool.Description, generateTool.Properties, generate))
+	}
+	return s.local
+}
+
+func (s *session) reset() { s.local, s.router = nil, nil }
 
 // discoverAgents finds agents registered in the registry.
 func (s *session) discoverAgents() bool {
 	svcs, err := s.reg.ListServices()
 	if err != nil {
-		return false
-	}
-
-	s.agents = make(map[string]agentInfo)
-
-	for _, svc := range svcs {
-		records, err := s.reg.GetService(svc.Name)
-		if err != nil || len(records) == 0 {
-			continue
-		}
-		meta := records[0].Metadata
-		if meta == nil || meta["type"] != "agent" {
-			if len(records[0].Nodes) > 0 {
-				meta = records[0].Nodes[0].Metadata
-			}
-			if meta == nil || meta["type"] != "agent" {
-				continue
-			}
-		}
-
-		var services []string
-		if svcsStr := meta["services"]; svcsStr != "" {
-			services = strings.Split(svcsStr, ",")
-		}
-
-		s.agents[svc.Name] = agentInfo{Name: svc.Name, Services: services}
-	}
-
-	return len(s.agents) > 0
-}
-
-// callAgent calls an agent's Chat endpoint via RPC.
-func (s *session) callAgent(ctx context.Context, name, message string) (*agent.Response, error) {
-	reqBody, _ := json.Marshal(map[string]string{"message": message})
-	req := s.cl.NewRequest(name, "Agent.Chat", &bytes.Frame{Data: reqBody})
-	var rsp bytes.Frame
-	if err := s.cl.Call(ctx, req, &rsp); err != nil {
-		return nil, err
-	}
-	var resp struct {
-		Reply     string `json:"reply"`
-		Agent     string `json:"agent"`
-		ToolCalls []struct {
-			ID     string `json:"id"`
-			Name   string `json:"name"`
-			Input  string `json:"input"`
-			Result string `json:"result"`
-		} `json:"tool_calls"`
-	}
-	if err := json.Unmarshal(rsp.Data, &resp); err != nil {
-		return nil, err
-	}
-	r := &agent.Response{
-		Reply: resp.Reply,
-		Agent: resp.Agent,
-	}
-	for _, tc := range resp.ToolCalls {
-		var input map[string]any
-		_ = json.Unmarshal([]byte(tc.Input), &input)
-		r.ToolCalls = append(r.ToolCalls, model.ToolCall{
-			ID:     tc.ID,
-			Name:   tc.Name,
-			Input:  input,
-			Result: tc.Result,
-		})
-	}
-	return r, nil
-}
-
-// streamAgent calls an agent's StreamChat endpoint and prints chunks as they
-// arrive. Agents that do not expose StreamChat return an error; callers use that
-// signal to fall back to Agent.Chat.
-func (s *session) streamAgent(ctx context.Context, name, message string) error {
-	stream, err := agentpb.NewAgentService(name, s.cl).StreamChat(ctx, &agentpb.ChatRequest{Message: message})
-	if err != nil {
-		return err
-	}
-	defer stream.Close()
-	var reply strings.Builder
-	for {
-		chunk, err := stream.Recv()
+		return fa…695 tokens truncated… := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
@@ -241,105 +185,82 @@ If no agent can handle the request, say so.`, strings.Join(agentDescs, "\n"))
 }
 
 func (s *session) refreshTools() {
-	discovered, err := s.tools.Discover()
-	if err != nil {
-		return
-	}
-	s.toolList = append(discovered, generateTool)
-	s.toolList = append(s.toolList, s.builtinTools...)
-
-	serviceNames := make(map[string]bool)
-	for _, t := range discovered {
-		parts := strings.SplitN(t.OriginalName, ".", 2)
-		if len(parts) == 2 {
-			serviceNames[parts[0]] = true
-		}
-	}
-	var svcList []string
-	for name := range serviceNames {
-		svcList = append(svcList, name)
-	}
-	if len(svcList) == 0 {
-		s.sysPrompt = fmt.Sprintf(systemPromptTmpl, "(none yet)")
-	} else {
-		s.sysPrompt = fmt.Sprintf(systemPromptTmpl, strings.Join(svcList, ", "))
+	discovered, err := model.NewTools(s.reg, model.ToolClient(s.cl)).Discover()
+	if err == nil {
+		s.toolList = append(discovered, generateTool)
 	}
 }
 
-func (s *session) handleGenerate(input map[string]any) (any, string) {
+func (s *session) handleGenerate(ctx context.Context, input map[string]any) (string, error) {
 	desc, _ := input["description"].(string)
-	if desc == "" {
-		return map[string]string{"error": "description is required"}, `{"error":"description is required"}`
+	if strings.TrimSpace(desc) == "" {
+		return "", fmt.Errorf("description is required")
 	}
-
-	fmt.Printf("\n  \033[36m⚡\033[0m generating service: %s\n", desc)
-
-	design, err := generate.Design(context.Background(), s.provider, s.apiKey, "", ".", desc)
+	fmt.Printf("\n  Generating service: %s\n", desc)
+	design, err := generate.Design(ctx, s.provider, s.apiKey, s.modelName, ".", desc)
 	if err != nil {
-		msg := fmt.Sprintf(`{"error":"design failed: %s"}`, err)
-		return map[string]string{"error": err.Error()}, msg
+		return "", fmt.Errorf("design failed: %w", err)
 	}
-
-	if err := generate.Generate(context.Background(), ".", design, s.provider, s.apiKey, ""); err != nil {
-		msg := fmt.Sprintf(`{"error":"generate failed: %s"}`, err)
-		return map[string]string{"error": err.Error()}, msg
+	if err := generate.Generate(ctx, ".", design, s.provider, s.apiKey, s.modelName); err != nil {
+		return "", fmt.Errorf("generate failed: %w", err)
 	}
-
-	// Find which services are new (not already in registry)
 	existing := make(map[string]bool)
 	if svcs, err := s.reg.ListServices(); err == nil {
 		for _, svc := range svcs {
 			existing[svc.Name] = true
 		}
 	}
-
 	var created []string
 	for _, svc := range design.Services {
 		name := strings.TrimSuffix(svc.Name, "-service")
 		if existing[name] {
 			continue
 		}
-		created = append(created, svc.Name)
-
-		// Build and start the new service
-		svcDir, _ := filepath.Abs(svc.Name)
-		fmt.Printf("  \033[36m⚡\033[0m starting %s...\n", svc.Name)
-
-		buildCmd := exec.Command("go", "build", "-o", svc.Name, ".")
-		buildCmd.Dir = svcDir
-		if out, err := buildCmd.CombinedOutput(); err != nil {
-			fmt.Printf("  \033[33m⚠\033[0m build failed: %s\n", string(out))
-			continue
+		if err := ctx.Err(); err != nil {
+			return "", err
 		}
-
-		runCmd := exec.Command(filepath.Join(svcDir, svc.Name))
-		runCmd.Dir = svcDir
-		if err := runCmd.Start(); err != nil {
-			fmt.Printf("  \033[33m⚠\033[0m start failed: %v\n", err)
-			continue
+		svcDir, err := filepath.Abs(svc.Name)
+		if err != nil {
+			return "", err
 		}
-		s.procs = append(s.procs, runCmd)
+		build := exec.CommandContext(ctx, "go", "build", "-o", svc.Name, ".")
+		build.Dir = svcDir
+		if out, err := build.CombinedOutput(); err != nil {
+			return "", fmt.Errorf("build %s: %w: %s", svc.Name, err, out)
+		}
+		process := exec.Command(filepath.Join(svcDir, svc.Name))
+		process.Dir = svcDir
+		if err := s.startProcess(ctx, process); err != nil {
+			return "", fmt.Errorf("start %s: %w", svc.Name, err)
+		}
+		created = append(created, name)
 	}
-
 	if len(created) == 0 {
-		result := map[string]any{"message": "No new services needed — all already exist."}
-		b, _ := json.Marshal(result)
-		return result, string(b)
+		return `{"message":"No new services needed; the services already exist."}`, nil
 	}
-
-	// Wait for services to register
-	fmt.Printf("  \033[36m⚡\033[0m waiting for services to register...\n")
-	time.Sleep(5 * time.Second)
-
-	s.refreshTools()
-	fmt.Printf("  \033[32m✓\033[0m %d tools available\n\n", len(s.toolList)-1)
-
-	result := map[string]any{
-		"created": created,
-		"message": fmt.Sprintf("Created and started: %s. Their endpoints are now available as tools.", strings.Join(created, ", ")),
+	wait, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	for _, name := range created {
+		for {
+			records, err := s.reg.GetService(name)
+			ready := false
+			if err == nil {
+				for _, record := range records {
+					ready = ready || len(record.Nodes) > 0
+				}
+			}
+			if ready {
+				break
+			}
+			select {
+			case <-wait.Done():
+				return "", fmt.Errorf("waiting for %s registration: %w", name, wait.Err())
+			case <-time.After(100 * time.Millisecond):
+			}
+		}
 	}
-	b, _ := json.Marshal(result)
-	return result, string(b)
+	result, err := json.Marshal(map[string]any{"created": created, "message": "Services are running. Their tools will be discovered on the next user message."})
+	return string(result), err
 }
 
 func run(c *cli.Context) error {
@@ -361,16 +282,14 @@ func run(c *cli.Context) error {
 	reg := registry.DefaultRegistry
 	cl := clt.DefaultClient
 
-	tools := model.NewTools(reg, model.ToolClient(cl))
-
 	s := &session{
-		provider: provider,
-		apiKey:   apiKey,
-		tools:    tools,
-		reg:      reg,
-		cl:       cl,
-		hist:     model.NewHistory(50),
-		stream:   streamOutput,
+		provider:  provider,
+		apiKey:    apiKey,
+		modelName: modelName,
+		baseURL:   baseURL,
+		reg:       reg,
+		cl:        cl,
+		stream:    streamOutput,
 	}
 	hasAgents := s.discoverAgents()
 	if targetAgent != "" {
@@ -387,49 +306,13 @@ func run(c *cli.Context) error {
 		return fmt.Errorf("no API key configured; set --api_key or %s", envVarForProvider(provider))
 	}
 
-	// Built-in agent capabilities (plan, delegate), reused from the
-	// agent package so the direct-service fallback matches a real agent.
-	builtinTools, builtinHandle := agent.Builtins(
-		agent.Name("chat"),
-		agent.WithRegistry(reg),
-		agent.WithClient(cl),
-		agent.Provider(provider),
-		agent.Model(modelName),
-		agent.APIKey(apiKey),
-	)
-
-	s.builtinTools = builtinTools
-	s.builtinHandle = builtinHandle
-	s.refreshTools()
-
-	// Wrap the tool handler to intercept generate calls
-	baseHandler := tools.Handler()
-	wrappedHandler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
-		if call.Name == "micro_generate_service" {
-			r, c := s.handleGenerate(call.Input)
-			return model.ToolResult{ID: call.ID, Value: r, Content: c}
-		}
-		if result, content, ok := s.builtinHandle(call.Name, call.Input); ok {
-			return model.ToolResult{ID: call.ID, Value: result, Content: content}
-		}
-		return baseHandler(ctx, call)
-	}
-
-	opts := []model.Option{
-		model.WithAPIKey(apiKey),
-		model.WithToolHandler(wrappedHandler),
-	}
-	if modelName != "" {
-		opts = append(opts, model.WithModel(modelName))
-	}
-	if baseURL != "" {
-		opts = append(opts, model.WithBaseURL(baseURL))
-	}
-
-	s.model = model.New(provider, opts...)
-	if s.model == nil {
+	// Constructing the adapter resolves defaults without running a model call.
+	configured := model.New(provider, model.WithAPIKey(apiKey), model.WithModel(modelName), model.WithBaseURL(baseURL))
+	if configured == nil {
 		return fmt.Errorf("unknown provider: %s", provider)
 	}
+	s.modelName = configured.Options().Model
+	s.refreshTools()
 
 	defer s.cleanup()
 
@@ -441,7 +324,7 @@ func run(c *cli.Context) error {
 	fmt.Println("  \033[1mmicro chat\033[0m")
 	fmt.Println()
 	fmt.Printf("  Provider    \033[36m%s\033[0m\n", provider)
-	fmt.Printf("  Model       \033[36m%s\033[0m\n", s.model.Options().Model)
+	fmt.Printf("  Model       \033[36m%s\033[0m\n", s.modelName)
 	fmt.Println()
 	if hasAgents {
 		fmt.Println("  Agents:")
@@ -467,7 +350,7 @@ func run(c *cli.Context) error {
 		fmt.Print("\033[1;36m>\033[0m ")
 		if !scanner.Scan() {
 			fmt.Println()
-			return nil
+			return scanner.Err()
 		}
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
@@ -477,7 +360,7 @@ func run(c *cli.Context) error {
 			return nil
 		}
 		if line == "reset" {
-			s.hist.Reset()
+			s.reset()
 			fmt.Println("\033[2m(history cleared)\033[0m")
 			fmt.Println()
 			continue
@@ -490,89 +373,47 @@ func run(c *cli.Context) error {
 }
 
 func (s *session) ask(ctx context.Context, prompt string) error {
-	// If agents are registered, route to them
 	if len(s.agents) > 0 {
 		return s.routeToAgent(ctx, prompt)
 	}
-
-	// Fallback: direct service access (no agents)
-	s.hist.Add("user", prompt)
-
-	req := &model.Request{
-		Prompt:       prompt,
-		SystemPrompt: s.sysPrompt,
-		Tools:        s.toolList,
-		Messages:     s.hist.Messages(),
-	}
-	if s.stream {
-		if err := s.askStream(ctx, req); err == nil {
-			return nil
-		} else if !errors.Is(err, model.ErrStreamingUnsupported) {
-			return err
-		}
-	}
-
-	resp, err := s.model.Generate(ctx, req)
-	if err != nil {
-		return err
-	}
-
-	if resp.Reply != "" {
-		s.hist.Add("assistant", resp.Reply)
-	}
-	if resp.Answer != "" {
-		s.hist.Add("assistant", resp.Answer)
-	}
-
-	if resp.Reply != "" {
-		fmt.Println(resp.Reply)
-	}
-	for _, tc := range resp.ToolCalls {
-		if tc.Name == "micro_generate_service" {
-			continue
-		}
-		args, _ := json.Marshal(tc.Input)
-		fmt.Printf("  \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
-		if tc.Result != "" {
-			fmt.Printf("  \033[32m←\033[0m \033[2m%s\033[0m\n", truncateResult(tc.Result))
-		}
-		if tc.Error != "" {
-			fmt.Printf("  \033[31m✗\033[0m %s\n", tc.Error)
-		}
-	}
-	if resp.Answer != "" {
-		fmt.Println()
-		fmt.Println(resp.Answer)
-	}
-	return nil
+	return s.askHarness(ctx, s.developmentAgent(), prompt)
 }
 
-func (s *session) askStream(ctx context.Context, req *model.Request) error {
-	stream, err := s.model.Stream(ctx, req)
+func (s *session) askHarness(ctx context.Context, ag agent.Agent, prompt string) error {
+	if !s.stream {
+		response, err := ag.Ask(ctx, prompt)
+		if err != nil {
+			return err
+		}
+		s.printAgentResponse(response)
+		return nil
+	}
+	stream, err := agent.StreamAsk(ctx, ag, prompt)
 	if err != nil {
 		return err
 	}
 	defer stream.Close()
-	var reply strings.Builder
 	for {
-		chunk, err := stream.Recv()
+		event, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
-			break
+			fmt.Println()
+			return nil
 		}
 		if err != nil {
 			return err
 		}
-		if chunk == nil || chunk.Reply == "" {
+		if event == nil {
 			continue
 		}
-		fmt.Print(chunk.Reply)
-		reply.WriteString(chunk.Reply)
+		switch event.Type {
+		case agent.StreamEventToolStart:
+			fmt.Printf("  → %s\n", event.ToolCall.Name)
+		case agent.StreamEventToolEnd:
+			fmt.Printf("  ← %s\n", truncateResult(event.Result.Content))
+		case agent.StreamEventToken:
+			fmt.Print(event.Token)
+		}
 	}
-	if reply.Len() > 0 {
-		fmt.Println()
-		s.hist.Add("assistant", reply.String())
-	}
-	return nil
 }
 
 // routeToAgent dispatches a message to the right agent.
@@ -583,10 +424,8 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 	if len(s.agents) == 1 {
 		for name := range s.agents {
 			fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", name)
-			if s.stream {
-				if err := s.streamAgent(ctx, name, prompt); err == nil {
-					return nil
-				}
+			if s.stream && s.agents[name].Stream {
+				return s.streamAgent(ctx, name, prompt)
 			}
 			resp, err := s.callAgent(ctx, name, prompt)
 			if err != nil {
@@ -614,55 +453,29 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 		},
 	}
 
-	routerHandler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
-		agentName, _ := call.Input["agent"].(string)
-		message, _ := call.Input["message"].(string)
-		if message == "" {
-			message = prompt
-		}
-
-		if _, ok := s.agents[agentName]; !ok {
-			return model.ToolResult{ID: call.ID, Value: map[string]string{"error": "unknown agent: " + agentName}, Content: `{"error":"unknown agent"}`}
-		}
-
-		fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", agentName)
-		if s.stream {
-			if err := s.streamAgent(ctx, agentName, message); err == nil {
-				return model.ToolResult{ID: call.ID, Value: map[string]string{"agent": agentName, "streamed": "true"}, Content: `{"streamed":true}`}
+	if s.router == nil {
+		route := func(ctx context.Context, input map[string]any) (string, error) {
+			name, _ := input["agent"].(string)
+			message, _ := input["message"].(string)
+			if _, ok := s.agents[name]; !ok {
+				return "", fmt.Errorf("unknown agent: %s", name)
 			}
+			if strings.TrimSpace(message) == "" {
+				return "", fmt.Errorf("message is required")
+			}
+			fmt.Printf("  ◆ %s\n", name)
+			response, err := s.callAgent(ctx, name, message)
+			if err != nil {
+				return "", err
+			}
+			s.printAgentResponse(response)
+			result, err := json.Marshal(map[string]string{"agent": name, "reply": response.Reply})
+			return string(result), err
 		}
-		resp, err := s.callAgent(ctx, agentName, message)
-		if err != nil {
-			return model.ToolResult{ID: call.ID, Value: map[string]string{"error": err.Error()}, Content: `{"error":"` + err.Error() + `"}`}
-		}
-
-		s.printAgentResponse(resp)
-
-		result := map[string]any{"agent": agentName, "reply": resp.Reply}
-		b, _ := json.Marshal(result)
-		return model.ToolResult{ID: call.ID, Value: result, Content: string(b)}
+		s.router = s.newHarness("micro-chat-router", s.buildRouterPrompt(), agent.Services(),
+			agent.WithTool(routeTool.Name, routeTool.Description, routeTool.Properties, route))
 	}
-
-	routerModel := model.New(s.provider,
-		model.WithAPIKey(s.apiKey),
-		model.WithToolHandler(routerHandler),
-	)
-
-	resp, err := routerModel.Generate(ctx, &model.Request{
-		Prompt:       prompt,
-		SystemPrompt: s.buildRouterPrompt(),
-		Tools:        []model.Tool{routeTool},
-	})
-	if err != nil {
-		return err
-	}
-
-	if resp.Answer != "" {
-		fmt.Println()
-		fmt.Println(resp.Answer)
-	}
-
-	return nil
+	return s.askHarness(ctx, s.router, prompt)
 }
 
 func (s *session) printAgentResponse(resp *agent.Response) {
@@ -679,10 +492,32 @@ func (s *session) printAgentResponse(resp *agent.Response) {
 	}
 }
 
+func (s *session) startProcess(ctx context.Context, process *exec.Cmd) error {
+	s.procMu.Lock()
+	defer s.procMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if s.closed {
+		return errors.New("chat session closed")
+	}
+	if err := process.Start(); err != nil {
+		return err
+	}
+	s.procs = append(s.procs, process)
+	return nil
+}
+
 func (s *session) cleanup() {
-	for _, p := range s.procs {
+	s.procMu.Lock()
+	s.closed = true
+	processes := s.procs
+	s.procs = nil
+	s.procMu.Unlock()
+	for _, p := range processes {
 		if p.Process != nil {
 			_ = p.Process.Kill()
+			_ = p.Wait()
 		}
 	}
 }
