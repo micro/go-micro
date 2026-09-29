@@ -145,7 +145,97 @@ func (s *session) reset() { s.local, s.router = nil, nil }
 func (s *session) discoverAgents() bool {
 	svcs, err := s.reg.ListServices()
 	if err != nil {
-		return fa…695 tokens truncated… := stream.Recv()
+		return false
+	}
+
+	s.agents = make(map[string]agentInfo)
+
+	for _, svc := range svcs {
+		records, err := s.reg.GetService(svc.Name)
+		if err != nil || len(records) == 0 {
+			continue
+		}
+		meta := records[0].Metadata
+		if meta == nil || meta["type"] != "agent" {
+			if len(records[0].Nodes) > 0 {
+				meta = records[0].Nodes[0].Metadata
+			}
+			if meta == nil || meta["type"] != "agent" {
+				continue
+			}
+		}
+
+		var services []string
+		if svcsStr := meta["services"]; svcsStr != "" {
+			services = strings.Split(svcsStr, ",")
+		}
+
+		info := agentInfo{Name: svc.Name, Services: services, Stream: true}
+		for _, record := range records {
+			supportsStream := false
+			for _, endpoint := range record.Endpoints {
+				if endpoint != nil && endpoint.Name == "Agent.StreamChat" {
+					supportsStream = true
+				}
+			}
+			info.Stream = info.Stream && supportsStream
+		}
+		s.agents[svc.Name] = info
+	}
+
+	return len(s.agents) > 0
+}
+
+// callAgent calls an agent's Chat endpoint via RPC.
+func (s *session) callAgent(ctx context.Context, name, message string) (*agent.Response, error) {
+	reqBody, _ := json.Marshal(map[string]string{"message": message})
+	req := s.cl.NewRequest(name, "Agent.Chat", &bytes.Frame{Data: reqBody})
+	var rsp bytes.Frame
+	if err := s.cl.Call(ctx, req, &rsp); err != nil {
+		return nil, err
+	}
+	var resp struct {
+		Reply     string `json:"reply"`
+		Agent     string `json:"agent"`
+		ToolCalls []struct {
+			ID     string `json:"id"`
+			Name   string `json:"name"`
+			Input  string `json:"input"`
+			Result string `json:"result"`
+		} `json:"tool_calls"`
+	}
+	if err := json.Unmarshal(rsp.Data, &resp); err != nil {
+		return nil, err
+	}
+	r := &agent.Response{
+		Reply: resp.Reply,
+		Agent: resp.Agent,
+	}
+	for _, tc := range resp.ToolCalls {
+		var input map[string]any
+		_ = json.Unmarshal([]byte(tc.Input), &input)
+		r.ToolCalls = append(r.ToolCalls, model.ToolCall{
+			ID:     tc.ID,
+			Name:   tc.Name,
+			Input:  input,
+			Result: tc.Result,
+		})
+	}
+	return r, nil
+}
+
+// streamAgent calls an agent's StreamChat endpoint and prints chunks as they
+// arrive. Callers check endpoint metadata before choosing this path; an error
+// after dispatch must not replay potentially completed work through Agent.Chat.
+func (s *session) streamAgent(ctx context.Context, name, message string) error {
+	stream, err := agentpb.NewAgentService(name, s.cl).StreamChat(ctx, &agentpb.ChatRequest{Message: message})
+	if err != nil {
+		return err
+	}
+	defer stream.Close()
+	var reply strings.Builder
+	for {
+		chunk, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
