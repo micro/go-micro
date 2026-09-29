@@ -1,0 +1,6 @@
+:root { color-scheme: light; font: 16px/1.6 system-ui, sans-serif; color: #243344; background: #f6f8fa; }
+body { margin: 0; } main { max-width: 38rem; margin: 8vh auto; padding: 1.5rem; }
+h1 { font-size: 2.4rem; font-weight: 600; margin: .4rem 0; } .eyebrow { font-size: .75rem; letter-spacing: .12em; color: #506579; }
+form { margin-top: 2rem; } label { display: block; margin-bottom: .5rem; } form div { display: flex; gap: .6rem; }
+input, button { font: inherit; border: 1px solid #c3ced8; border-radius: .4rem; padding: .6rem .8rem; } input { flex: 1; min-width: 0; background: white; } button { cursor: pointer; background: #e9eef3; color: inherit; } button:hover { background: #dae3ec; }
+ul { padding: 0; list-style: none; } li { padding: .8rem 0; border-bottom: 1px solid #dbe2e9; overflow-wrap: anywhere; } #status { color: #43566a; min-height: 1.5rem; } footer { margin-top: 3rem; color: #586c7e; font-size: .85rem; }
