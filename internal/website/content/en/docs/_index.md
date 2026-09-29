@@ -14,6 +14,9 @@ in `micro chat`, develop services, and use their endpoints as tools through
 conversation. You can also create an agent directly with `micro.NewAgent`, choose
 its model and instructions, and assign the services it can use.
 
+For the relationship between services, models, agents, workflows, and applications,
+read the [architecture overview](architecture/index.md).
+
 ## Start here
 
 1. [Quick Start](quickstart.md): install the CLI and develop through conversation.

@@ -1,6 +1,6 @@
-# AI Package
+# Model Package
 
-The `ai` package provides simple, high-level interfaces for AI model providers. It supports text generation (`Model`), image generation (`ImageModel`), and video generation (`VideoModel`).
+The `model` package provides simple, high-level interfaces for AI model providers. It supports text generation (`Model`), image generation (`ImageModel`), and video generation (`VideoModel`).
 
 ## Interfaces
 
@@ -314,6 +314,21 @@ Default base URL: `https://api.minimax.io`
 
 MiniMax offers its flagship MiniMax-M3 model via an OpenAI-compatible chat completions endpoint.
 
+### Ollama
+
+Import `go-micro.dev/v6/model/ollama` to register the provider, then configure a
+local server and an installed model:
+
+```go
+m := model.New("ollama",
+    model.WithBaseURL("http://localhost:11434"),
+    model.WithModel("llama3.2"),
+)
+```
+
+The local provider does not require an API key. See the
+[Ollama provider](ollama/) for cloud configuration and protocol selection.
+
 ## Auto-Detection
 
 Use `AutoDetectProvider()` to detect the provider from a base URL:
@@ -327,7 +342,7 @@ m := model.New(provider, model.WithAPIKey("..."))
 
 ## Adding a New Provider
 
-See the full **[AI Provider Integration Guide](../internal/website/docs/guides/ai-provider-guide.md)** for a step-by-step walkthrough, checklist, and design notes.
+See the full **[AI Provider Integration Guide](../internal/website/content/en/docs/guides/ai-provider-guide.md)** for a step-by-step walkthrough, checklist, and design notes.
 
 Quick summary:
 
@@ -344,7 +359,7 @@ We welcome contributions and sponsorships from AI infrastructure companies — s
 
 ## Comparison with Other Packages
 
-The ai package follows the same patterns as other go-micro packages:
+The model package follows the same patterns as other go-micro packages:
 
 **Registry:**
 ```go
@@ -373,9 +388,9 @@ All use:
 ## Testing
 
 ```bash
-go test ./ai/...
+go test ./model/...
 ```
 
 ## Examples
 
-See the [server implementation](../cmd/micro/server/server.go) for a complete example of using the ai package with tool execution.
+See the [CLI chat implementation](../cmd/micro/chat/chat.go) for a complete example of using the model package with tool execution.
