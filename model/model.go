@@ -18,7 +18,7 @@ type Model interface {
 	Options() Options
 	// Generate generates a response from the model
 	Generate(ctx context.Context, req *Request, opts ...GenerateOption) (*Response, error)
-	// Stream generates a streaming response (for future implementation)
+	// Stream generates a streaming response when supported by the provider.
 	Stream(ctx context.Context, req *Request, opts ...GenerateOption) (Stream, error)
 	// String returns the name of the provider
 	String() string

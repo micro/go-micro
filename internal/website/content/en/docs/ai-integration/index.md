@@ -99,7 +99,7 @@ resp, _ := m.Generate(ctx, &model.Request{
 })
 ```
 
-Provider adapters implement the same model interface. See the current [provider list](https://github.com/micro/go-micro#ai-providers) for supported models.
+Provider adapters implement the same model interface. See the current [provider list](https://github.com/micro/go-micro/blob/master/model/README.md#supported-providers) for supported models.
 
 | Provider | Text | Image | Video |
 |----------|------|-------|-------|

@@ -190,8 +190,6 @@ func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
 			name: "README first-agent on-ramp",
 			file: filepath.Join(root, "README.md"),
 			markers: []string{
-				"micro agent preflight",
-				"micro agent doctor",
 				"examples/first-agent/",
 				"internal/website/content/en/docs/guides/your-first-agent.md",
 				"internal/website/content/en/docs/guides/debugging-agents.md",

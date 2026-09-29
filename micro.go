@@ -1,4 +1,4 @@
-// Package micro is a pluggable framework for microservices
+// Package micro is a pluggable framework for services, agents, and workflows.
 package micro
 
 import (
@@ -33,7 +33,7 @@ type AgentStream = agent.AgentStream
 // AgentOption configures an Agent.
 type AgentOption = agent.Option
 
-// Flow is an event-driven LLM orchestration unit.
+// Flow coordinates predefined steps, service calls, and agent decisions.
 type Flow = flow.Flow
 
 // FlowRun is a checkpointed flow or agent run record.

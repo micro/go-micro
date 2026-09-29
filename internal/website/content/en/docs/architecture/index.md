@@ -1,189 +1,143 @@
 ---
 title: "Architecture"
-description: "An overview of the Go Micro architecture."
+description: "How services, models, agents, and workflows fit together."
 ---
-![Go Micro architecture](architecture.jpg)
 
-Go Micro is one runtime for the services → agents → workflows lifecycle. The same
-registry, client/server RPC, store, broker, and gateway primitives that run a
-service also give an agent discoverable tools, durable state, interop, and a
-place to hand off deterministic work.
+Go Micro began as a framework for service communication. RPC clients and servers,
+service discovery, codecs, transports, and pub/sub let applications communicate
+without tying their business logic to one infrastructure provider. Storage,
+configuration, and authentication support that same application boundary.
 
-## Lifecycle map
+Agents extend this foundation: a service endpoint can also be a tool. The
+services → agents → workflows lifecycle describes how these components compose;
+it is not a requirement to adopt all of them or a replacement for RPC.
 
-```text
-Services  →  Agents  →  Workflows
-handlers     model loop  durable orchestration
-registry     memory      triggers and ordered steps
-RPC tools    guardrails   agent dispatch
-```
-
-The layers are progressive: start with a service, expose its endpoints as tools,
-wrap those tools with an agent, then move the known paths into flows so the model
-only handles the uncertain parts.
-
-## Overview
-
-Go Micro abstracts away the details of distributed systems. Here are the main features.
-
-- **Authentication** - Auth is built in as a first class citizen. Authentication and authorization enable secure
-  zero trust networking by providing every service an identity and certificates. This additionally includes rule
-  based access control.
-
-- **Dynamic Config** - Load and hot reload dynamic config from anywhere. The config interface provides a way to load application
-  level config from any source such as env vars, file, etcd. You can merge the sources and even define fallbacks.
-
-- **Data Storage** - A simple data store interface to read, write and delete records. It includes support for many storage backends
-in the plugins repo. State and persistence becomes a core requirement beyond prototyping and Micro looks to build that into the framework.
-
-- **Service Discovery** - Automatic service registration and name resolution. Service discovery is at the core of micro service
-  development. When service A needs to speak to service B it needs the location of that service. The default discovery mechanism is
-  multicast DNS (mdns), a zeroconf system.
-
-- **Load Balancing** - Client side load balancing built on service discovery. Once we have the addresses of any number of instances
-  of a service we now need a way to decide which node to route to. We use random hashed load balancing to provide even distribution
-  across the services and retry a different node if there's a problem.
-
-- **Message Encoding** - Dynamic message encoding based on content-type. The client and server will use codecs along with content-type
-  to seamlessly encode and decode Go types for you. Any variety of messages could be encoded and sent from different clients. The client
-  and server handle this by default. This includes protobuf and json by default.
-
-- **RPC Client/Server** - RPC based request/response with support for bidirectional streaming. We provide an abstraction for synchronous
-  communication. A request made to a service will be automatically resolved, load balanced, dialled and streamed.
-
-- **Async Messaging** - PubSub is built in as a first class citizen for asynchronous communication and event driven architectures.
-  Event notifications are a core pattern in micro service development. The default messaging system is a HTTP event message broker.
-
-- **Pluggable Interfaces** - Go Micro makes use of Go interfaces for each distributed system abstraction. Because of this these interfaces
-  are pluggable and allows Go Micro to be runtime agnostic. You can plugin any underlying technology.
+| Component | Responsibility | Public entry point |
+|-----------|----------------|--------------------|
+| Service | Implement capabilities and own application data | `micro.NewService` |
+| Model | Adapt model requests, responses, and tool calls to a provider | `model.Model` |
+| Agent | Interpret a request and use tools, memory, and execution controls | `micro.NewAgent` |
+| Workflow | Coordinate predefined steps, with agent decisions where needed | `micro.NewFlow` |
+| Application | Combine these components with users, interfaces, and usable outputs | Your program or a runtime such as Mu |
 
 ## Service substrate
 
-Go Micro's service framework supplies the distributed-systems base every agent
-needs:
+Services remain useful without a model or agent:
 
-- **Registry** — services, agents, and flows register under names so clients,
-  gateways, and other agents can discover them without hard-coded addresses. The
-  default is mDNS for local development, with pluggable backends for production.
-- **RPC client/server** — endpoints are normal Go handlers reached through the
-  client, load balanced through discovery, encoded through codecs, and optionally
-  streamed.
-- **Broker** — asynchronous events connect services and trigger flows without
-  coupling producers to consumers.
-- **Config and auth** — dynamic configuration plus identity and authorization keep
-  local and production runtimes using the same shape.
-- **Pluggable interfaces** — registry, broker, store, transport, codecs, auth, and
-  config are Go interfaces, so the runtime can stay stable while deployments swap
-  infrastructure.
+- **Client and server** provide RPC handlers and calls, including streaming.
+- **Registry** resolves service names to instances and publishes endpoint metadata.
+- **Transport and codec** carry and encode messages. Protobuf contracts and
+  generated clients remain supported; reflected Go handlers also expose endpoints
+  without generated code.
+- **Broker** carries pub/sub events so producers do not need to call consumers.
+- **Store** persists records; **config** supplies settings; **auth** supplies
+  authentication and authorization abstractions.
 
-That substrate is intentionally not separate from the agent stack. A service
-endpoint is the smallest useful unit of work, and the registry is the source of
-truth for which tools and agents exist.
+These are pluggable Go interfaces. Choosing a registry, broker, or store does not
+change a service's business methods. Deployments still need to configure their
+backends, permissions, and persistence; the interfaces do not make a deployment
+secure or durable automatically.
 
 ## Agent harness
 
-Agents compose the service substrate with the AI-specific packages:
+The AI packages build on those service contracts:
 
-- **`model` / `model.Model`** — a pluggable model interface normalizes provider calls
-  while letting applications pick Anthropic, OpenAI, Gemini, Atlas Cloud, Groq,
-  Mistral, Together AI, or a mock model for no-secret tests.
-- **`store` / memory** — agent history, plans, run state, and compacted memory live
-  in durable storage rather than in an in-process chat loop.
-- **`model.Tools`** — discovers registered service endpoints and executes them through
-  the Go Micro client, so tools are generated from running services instead of a
-  parallel tool registry.
-- **`agent`** — runs the tool-calling loop with guardrails, planning, delegation,
-  service-backed memory, and an `Agent.Chat` RPC endpoint. An agent is therefore a
-  service other clients and agents can call.
+- **`model` / `model.Model`** adapts provider APIs for generation and streaming.
+  Image and video generation have separate interfaces. See the
+  [model package](https://github.com/micro/go-micro/tree/master/model) for providers
+  and capability reporting.
+- **`model.Tools`** discovers endpoint schemas from the registry and invokes them
+  through the RPC client. An agent can also register Go functions as custom tools.
+- **`agent`** adds instructions, service selection, planning, delegation, tool
+  wrappers, limits, and an `Agent.Chat` RPC endpoint.
+- **`store` / memory** holds conversation history and run records. Persistent
+  memory and resuming interrupted execution are separate concerns; checkpointed
+  resume must be configured explicitly.
 
-The result is a harness, not just a prompt loop: model calls are bounded by tool
-scope, state is recoverable, and the same CLI and gateways that reach services can
-reach agents.
+A request arrives through `Ask`, RPC, or a gateway. The agent presents its tools
+to the model, executes requested calls, and returns a reply with tool-call and
+run metadata. The service owns the action and its data; the agent chooses when
+to use it. Tool selection is not a substitute for service-side authorization.
+
+There is currently a split in execution responsibility: provider adapters can
+perform repeated tool calls inside `Generate` when a tool handler is supplied,
+while the agent adds guardrails, run tracking, and plan-completion logic around
+those calls. The CLI development chat also has its own session orchestration.
+These are separate execution paths, not one universally shared agent loop.
+
+See [AI Integration](../ai-integration/index.md),
+[guardrails](../guides/agent-guardrails.md), and
+[durability and recovery](../guides/durability.md).
 
 ## Workflows
 
-Use `flow` when the path is known or must be repeatable. Flows subscribe to broker
-events, run ordered deterministic steps, and can dispatch to an agent at the point
-where judgment or language understanding is needed. This keeps long-running work
-observable and restartable while preserving agents for open-ended decisions.
+Use `flow` when the sequence is defined: call a service, validate a result,
+dispatch to an agent, and save the outcome. Flows can react to broker events or
+run through their execution APIs. A prompt-driven flow can also let a model
+choose tools; a workflow does not require every step to use a model.
 
-A common shape is:
+Flows save checkpoints between steps. Recovery needs persistent storage, and an
+interrupted step may execute again. An agent's plan is its working plan;
+a workflow is the sequence defined by application code. Neither is automatically
+a user-facing task queue or a guarantee that an external action succeeded.
 
-1. A service emits an event such as `ticket.created`.
-2. A flow validates and enriches the event with deterministic handlers.
-3. The flow dispatches to an agent for classification, drafting, or escalation.
-4. The agent calls registered service tools and returns to the flow for final
-   durable steps.
+See [Agents and Workflows](../guides/agents-and-workflows.md).
 
 ## Interop gateways
 
-Gateways project the same runtime to external callers:
-
 - **`micro api`** exposes service RPC over HTTP.
-- **`micro mcp`** exposes registered service endpoints as Model Context Protocol
-  tools for external agents.
-- **`micro a2a`** exposes registered Go Micro agents through the Agent2Agent
-  protocol and lets Go Micro flows or agents dispatch to agents hosted elsewhere.
+- **`micro mcp`** exposes service endpoints as tools for external agents.
+- **`micro a2a`** exposes agents through the Agent2Agent protocol.
 
-MCP is the services-as-tools boundary; A2A is the agents-as-agents boundary. Both
-come from registry metadata, so adding a service or agent updates the external
-surface without duplicate wiring.
+Gateways derive their service and agent descriptions from registry metadata.
+An application can expose the same capabilities to Go clients, agents, and a UI.
+
+## Work, outputs, and apps
+
+A tool can query data, perform an action, or create something that outlives the
+conversation. Building an app fits the third case: an app-building service can
+own generation, checks, storage, and serving, while an agent calls it as a tool.
+The resulting app may itself call services through an authenticated API.
+
+The distinction is between the **run** (the work in progress) and the **output**
+(the saved object someone can open, revise, or share). Go Micro currently returns
+replies, tool results, and run identifiers; it does not define a common app or
+artifact lifecycle. `micro chat` can generate backend services, but that is not
+a general UI builder with preview, versioning, and publishing.
+
+[Mu](https://github.com/micro/mu) demonstrates this composition. At the
+[reviewed revision](https://github.com/micro/mu/tree/9cdab7dfef90ead71c714cad22d5b99ebd88e937),
+its app service exposes build and read methods, keeps durable build jobs, checks
+and saves generated HTML, and returns structured output references. Mu's work
+layer consumes build events and delivers the result to the conversation. Those
+are application capabilities built above Go Micro's services and agent harness.
+Mu pins an earlier Go Micro revision, so this demonstrates integration rather
+than validation of every feature on the framework's current main branch.
+
+A possible next framework addition is a small, shared output-reference contract:
+identity, kind, owning service, revision, and a way to retrieve or open the result,
+associated with the run that produced it. This is a design direction, **not an
+existing API**. The owning service would still enforce access and decide how to
+store, validate, and serve its objects. App rendering, build execution, user
+accounts, and publishing policy remain responsibilities of the application or
+an optional app service.
+
+Before adding another top-level abstraction, the useful integration target is:
+a request creates a saved app, a later request revises that same app, and both
+the work status and output remain recoverable after a restart. That exercises
+the existing service, agent, and workflow boundaries and makes any missing shared
+contract concrete.
 
 ## Developer path
 
-If you are new, follow the architecture in the same order the runtime composes it:
+1. [Quick Start](../quickstart.md): develop services through conversation.
+2. [Getting Started](../getting-started/index.md): create a Go agent and choose its tools.
+3. [Your First Agent](../guides/your-first-agent.md): run a complete service-backed agent.
+4. [Debugging your agent](../guides/debugging-agents.md): inspect tools and run history.
 
-1. [Install troubleshooting](../guides/install-troubleshooting.md) — make sure the
-   CLI, `PATH`, version, and no-secret smoke path are healthy.
-2. [`micro agent demo`](../getting-started/index.md#first-agent-on-ramp) — print the
-   provider-free first-agent command and next docs steps from the installed CLI.
-3. `micro agent quickcheck` (or `micro agent debug`) — print the short recovery
-   map when scaffold → run → chat → inspect stalls.
-4. `micro examples` — list the maintained provider-free runnable examples in
-   copy/paste order.
-5. `micro zero-to-hero` — print the maintained one-command no-secret lifecycle
-   harness and runnable examples.
-6. [Examples wayfinding index](https://github.com/micro/go-micro/blob/master/examples/INDEX.md)
-   — choose the smallest no-secret first-agent, support reference, and interop
-   examples from one map.
-7. [Smallest first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent)
-   — run one service-backed agent with a mock model.
-8. [No-secret first-agent transcript](../guides/no-secret-first-agent.md) — see the
-   maintained support-agent path work without a provider key.
-9. [Your First Agent](../guides/your-first-agent.md) — build and chat with a
-   service-backed agent.
-10. [Debugging your agent](../guides/debugging-agents.md) — inspect service
-    registration, tools, memory, providers, and run history.
-11. [0→hero Reference](../guides/zero-to-hero.md) — walk scaffold → run → chat →
-    inspect → flow → deploy dry-run as the maintained lifecycle contract.
-
-## Related
-
-- [AI Integration](../ai-integration/index.md) — layer-by-layer services → agents → workflows wiring
-- [Getting Started](../getting-started/index.md) — first service and first-agent on-ramp
-- [Examples](../examples/) — runnable examples mapped to the lifecycle
-- [ADR Index](../project/architecture/) — architecture decision records
-- [Configuration](../config/)
-- [Plugins](../plugins.md)
-
-## Example Usage
-
-Here's a minimal Go Micro service demonstrating the architecture:
-
-```go
-package main
-
-import (
-    "go-micro.dev/v6"
-    "log"
-)
-
-func main() {
-    service := micro.NewService("example",
-    )
-    service.Init()
-    if err := service.Run(); err != nil {
-        log.Fatal(err)
-    }
-}
-```
+For a provider-free walkthrough, use the
+[first-agent example](https://github.com/micro/go-micro/tree/master/examples/first-agent).
+The [0→hero Reference](../guides/zero-to-hero.md) contains the maintained lifecycle
+checks. See the [API reference](https://pkg.go.dev/go-micro.dev/v6) for individual
+interfaces and the [CLI reference](https://github.com/micro/go-micro/blob/master/cmd/micro/README.md)
+for project generation and development commands.

@@ -1,12 +1,11 @@
 // Package flow provides event-driven workflows for go-micro services.
 //
-// A Flow is a workflow in the sense of Anthropic's "Building Effective
-// Agents": LLMs and tools orchestrated through a predefined path. It
-// subscribes to a broker topic and, for each event, runs one augmented
-// LLM step — the registered services as tools, a fixed prompt — and
-// lets the model decide which RPCs to call. Use a Flow when the task is
-// well-defined and you want a deterministic trigger; use an Agent (see
-// the agent package) when the work needs to direct itself dynamically.
+// A Flow coordinates predefined steps, including service calls, model calls,
+// and agent dispatch. It can subscribe to a broker topic or execute directly.
+// Prompt-driven flows let a model choose tools for an event; ordered flows
+// checkpoint between steps. Use an Agent when the work needs to direct itself
+// dynamically. Recovery requires persistent checkpoint storage, and interrupted
+// steps may execute again.
 //
 // Usage:
 //
@@ -16,7 +15,7 @@
 //	    flow.Provider("anthropic"),
 //	    flow.APIKey(key),
 //	)
-//	f.Register(service)
+//	f.Register(service.Options().Registry, service.Options().Broker, service.Client())
 //	service.Run()
 package flow
 
@@ -48,9 +47,8 @@ import (
 	_ "go-micro.dev/v6/model/together"
 )
 
-// Flow is an event-driven LLM orchestration unit. It subscribes to
-// a broker topic, discovers services as tools, and feeds each event
-// into an LLM that decides which RPCs to call.
+// Flow coordinates prompt-driven or ordered work, including service calls and
+// agent dispatch. Broker events can trigger execution.
 type Flow struct {
 	name         string
 	opts         Options
