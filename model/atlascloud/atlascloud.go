@@ -536,6 +536,15 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 	}
 	rawMessage := raw.Choices[0].Message
 	rawMessage["role"] = "assistant"
+	// Some compatible endpoints omit the function discriminator. Preserve the
+	// full provider message while normalizing this required request field.
+	if calls, ok := rawMessage["tool_calls"].([]any); ok {
+		for _, value := range calls {
+			if call, ok := value.(map[string]any); ok && (call["type"] == nil || call["type"] == "") {
+				call["type"] = "function"
+			}
+		}
+	}
 	response.StopReason = raw.Choices[0].FinishReason
 	response.Usage = model.Usage{InputTokens: raw.Usage.Input, OutputTokens: raw.Usage.Output, TotalTokens: raw.Usage.Total}
 

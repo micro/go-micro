@@ -156,7 +156,7 @@ func TestStableAgentChatDeduplicatesRPC(t *testing.T) {
 			t.Fatal(err)
 		}
 		if rsp.RunId != "stable-rpc" || rsp.ParentId != "parent" {
-			t.Fatalf("lost lineage: %+v", rsp)
+			t.Fatalf("lost lineage: %+v", &rsp)
 		}
 	}
 	if requests != 1 {
