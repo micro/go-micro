@@ -322,6 +322,14 @@ func (a *agentImpl) checkpointToolWrap(next model.ToolHandler) model.ToolHandler
 			idx = upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
 		}
 		run.Steps[idx].Attempts++
+		if a.opts.StrictRecovery && toolErrorMessage(res) != "" {
+			a.checkpointErr = fmt.Errorf("%w: %s", flow.ErrAmbiguous, res.Content)
+			run.Steps[idx].Error = res.Content
+			if err := a.saveRun(ctx, *run); err != nil {
+				a.checkpointErr = err
+			}
+			return model.ToolResult{ID: call.ID, Refused: "ambiguous", Content: a.checkpointErr.Error()}
+		}
 		if res.Refused != "" {
 			run.Steps[idx].Status = "failed"
 			run.Steps[idx].Error = res.Content

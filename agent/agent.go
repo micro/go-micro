@@ -415,6 +415,9 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 
 func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID string, existing *flow.Run, addUserMessage bool) (*Response, error) {
 	a.checkpointErr = nil
+	if a.opts.StrictRecovery && a.opts.ToolMaxAttempts > 1 {
+		return nil, fmt.Errorf("strict recovery requires ToolRetry(1): ambiguous tool failures need reconciliation")
+	}
 
 	toolList, err := a.discoverTools()
 	if err != nil {
@@ -516,6 +519,9 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		})
 		if a.checkpointErr != nil {
 			err = a.checkpointErr
+		}
+		if ctx.Err() != nil {
+			err = ctx.Err()
 		}
 		if a.approvalErr != nil {
 			err = a.approvalErr

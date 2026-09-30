@@ -163,3 +163,32 @@ func TestStableAgentChatDeduplicatesRPC(t *testing.T) {
 		t.Fatalf("replayed model %d times", requests)
 	}
 }
+
+func TestStrictAgentDoesNotReplayFailedTool(t *testing.T) {
+	cp, err := flow.OpenJournal(filepath.Join(t.TempDir(), "runs.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cp.Close()
+	name := t.Name()
+	effects := 0
+	model.Register(name, func(opts ...model.Option) model.Model {
+		return &turnTestModel{opts: model.NewOptions(opts...), turn: func(context.Context, *model.Request) (*model.Response, error) {
+			return &model.Response{ToolCalls: []model.ToolCall{{ID: "one", Name: "effect"}}, Continuation: &model.Continuation{Provider: name}}, nil
+		}}
+	})
+	makeAgent := func() Agent {
+		return New(Name("ambiguous"), Provider(name), WithRegistry(registry.NewMemoryRegistry()), WithStore(store.NewMemoryStore()), WithCheckpoint(cp), StrictRecovery(), WithTool("effect", "effect", nil, func(context.Context, map[string]any) (string, error) {
+			effects++
+			return "", errors.New("timeout after external effect")
+		}))
+	}
+	for i := 0; i < 2; i++ {
+		if _, err := Run(context.Background(), makeAgent(), "stable", "work"); !errors.Is(err, flow.ErrAmbiguous) {
+			t.Fatalf("wanted reconciliation: %v", err)
+		}
+	}
+	if effects != 1 {
+		t.Fatalf("effect repeated %d times", effects)
+	}
+}

@@ -114,6 +114,9 @@ func New(name string, opts ...Option) *Flow {
 // model, discovers tools from the registry, and subscribes to the
 // trigger topic on the broker. Call this before service.Run().
 func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Client) error {
+	if f.opts.StrictRecovery && len(f.opts.Steps) == 0 {
+		return fmt.Errorf("strict recovery requires explicit named steps")
+	}
 	f.client = cl
 	f.reg = reg
 	f.toolSet = model.NewTools(reg, model.ToolClient(cl))
@@ -225,6 +228,9 @@ func (f *Flow) Stop() error {
 // called automatically on each broker event, but can also be
 // invoked directly for testing or one-shot use.
 func (f *Flow) Execute(ctx context.Context, data string) error {
+	if f.opts.StrictRecovery && len(f.opts.Steps) == 0 {
+		return fmt.Errorf("strict recovery requires explicit named steps")
+	}
 	ctx, cancel := f.withTimeout(ctx)
 	defer cancel()
 

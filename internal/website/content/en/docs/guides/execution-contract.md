@@ -47,7 +47,7 @@ inside a custom step with no tool handler.
 
 ## Strict recovery
 
-Use `flow.StrictRecovery()` with a fenced checkpoint. `flow.OpenCheckpoint(path)`
+Use `flow.StrictRecovery()` with explicit named steps and a fenced checkpoint. `flow.OpenCheckpoint(path)`
 opens a persistent local journal with an exclusive process lock and per-run
 execution locks. It supports one host process, not a replicated cluster.
 Distributed backends must implement the checkpoint and fenced ownership contract;
@@ -72,7 +72,10 @@ that cooperation. Persisted state alone does not provide exactly-once effects.
 
 Strict local agents persist pending provider turns, continuation, tool results,
 and consumed model/tool budgets. Recovered completed calls are reused; an
-interrupted unrecorded tool effect stops for reconciliation. Checkpoint failures
+interrupted unrecorded tool effect stops for reconciliation. Strict agents require
+one tool attempt; a tool error stops for reconciliation rather than automatically
+repeating a potentially completed external effect. Provider/model identity must
+match a saved continuation. Checkpoint failures
 are surfaced rather than reported as successful execution. Human input starts a
 new model continuation while retaining completed tool results and budgets.
 

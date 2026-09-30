@@ -674,6 +674,9 @@ func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, Ve
 			}
 		}
 		out, err := step.Run(attemptCtx, in)
+		if err == nil {
+			err = ctx.Err()
+		}
 		// An await signal is control flow, not a failure: suspend immediately
 		// without retrying or grading.
 		if _, ok := isAwaitInput(err); ok {
