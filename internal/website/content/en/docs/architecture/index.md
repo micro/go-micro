@@ -93,43 +93,21 @@ See [Agents and Workflows](../guides/agents-and-workflows.md).
 Gateways derive their service and agent descriptions from registry metadata.
 An application can expose the same capabilities to Go clients, agents, and a UI.
 
-## Work, outputs, and apps
+## Services, agents, and flows
 
-A tool can query data, perform an action, or create something that outlives the
-conversation. Building an app fits the third case: an app-building service can
-own generation, checks, storage, and serving, while an agent calls it as a tool.
-The resulting app may itself call services through an authenticated API.
+Services expose capabilities and own their data. Agents choose capabilities in
+response to a goal. Flows coordinate explicit steps, calling services and agents
+where needed. The same service remains usable directly, without a model.
 
-The distinction is between the **run** (the work in progress) and the **output**
-(the saved object someone can open, revise, or share). Go Micro currently returns
-replies, tool results, and run identifiers. The [app package](../app.md) defines
-an app’s identity, entrypoint, assets, and required services, and provides an HTTP
-handler. Generation, revision storage, authorization, and publishing belong to
-the host. `micro chat` can generate backend services, but that is not
-a general UI builder with preview, versioning, and publishing.
+The next development priority is consistent execution across these boundaries:
+run identity, completion, cancellation, retry budgets, approval, and recovery.
+Existing checkpoints are useful, but interrupted operations can execute again;
+external effects require service-level idempotency. See the [v7 plan](../v7.md)
+for the implementation sequence and acceptance criteria.
 
-[Mu](https://github.com/micro/mu) demonstrates this composition. At the
-[reviewed revision](https://github.com/micro/mu/tree/9cdab7dfef90ead71c714cad22d5b99ebd88e937),
-its app service exposes build and read methods, keeps durable build jobs, checks
-and saves generated HTML, and returns structured output references. Mu's work
-layer consumes build events and delivers the result to the conversation. Those
-are application capabilities built above Go Micro's services and agent harness.
-Mu pins an earlier Go Micro revision, so this demonstrates integration rather
-than validation of every feature on the framework's current main branch.
-
-A possible next framework addition is a small, shared output-reference contract:
-identity, kind, owning service, revision, and a way to retrieve or open the result,
-associated with the run that produced it. This is a design direction, **not an
-existing API**. The owning service would still enforce access and decide how to
-store, validate, and serve its objects. App rendering, build execution, user
-accounts, and publishing policy remain responsibilities of the application or
-an optional app service.
-
-Before adding another top-level abstraction, the useful integration target is:
-a request creates a saved app, a later request revises that same app, and both
-the work status and output remain recoverable after a restart. That exercises
-the existing service, agent, and workflow boundaries and makes any missing shared
-contract concrete.
+Applications can provide interfaces and store outputs using these components.
+App generation, rendering, publishing, and product accounts belong to applications
+and hosts such as Mu. Go Micro does not define a separate app package.
 
 ## Developer path
 
