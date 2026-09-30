@@ -4,7 +4,6 @@ This directory contains runnable examples that take you through the Go Micro
 lifecycle: start with a service, expose it as agent-usable capability, then
 coordinate work with workflows.
 
-A human interface and an agent can share a service: see the [app example](app/).
 
 ## Quick Start
 

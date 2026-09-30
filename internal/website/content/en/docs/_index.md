@@ -29,7 +29,6 @@ or [no-secret transcript](guides/no-secret-first-agent.md).
 
 ## Develop and operate
 
-- [Apps](app.md): define and serve an interface over service capabilities.
 
 - [AI Integration](ai-integration/index.md): how agents, models, and service tools fit together.
 - [micro run](guides/micro-run.md): hot reload, gateway, and interactive console.
