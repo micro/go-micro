@@ -168,6 +168,10 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 		return nil, err
 	}
 
+	resp.Continuation = &model.Continuation{Provider: "anthropic", Messages: append(threadAnthropicMessages(req), map[string]any{"role": "assistant", "content": cleanContent(rawContent)})}
+	if model.IsSingleTurn(opts) {
+		return resp, nil
+	}
 	// If no tool calls or no handler, return as-is
 	if len(resp.ToolCalls) == 0 || p.opts.ToolHandler == nil {
 		return resp, nil
@@ -428,7 +432,18 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 		}
 	}
 
-	return response, anthropicResp.Content, nil
+	var raw struct {
+		Content []map[string]any `json:"content"`
+		Usage   struct {
+			Input  int `json:"input_tokens"`
+			Output int `json:"output_tokens"`
+		} `json:"usage"`
+	}
+	if err := json.Unmarshal(respBody, &raw); err != nil {
+		return nil, nil, err
+	}
+	response.Usage = usage(raw.Usage.Input, raw.Usage.Output)
+	return response, raw.Content, nil
 }
 
 // cleanContent strips fields from response content blocks that Anthropic
@@ -462,6 +477,14 @@ func cleanContent(raw any) any {
 // conversation history (req.Messages) followed by the current prompt. The
 // system prompt is sent separately via the top-level "system" field.
 func threadAnthropicMessages(req *model.Request) []map[string]any {
+	if req.Continuation != nil {
+		msgs := append([]map[string]any(nil), req.Continuation.Messages...)
+		blocks := make([]map[string]any, 0, len(req.Continuation.Results))
+		for _, result := range req.Continuation.Results {
+			blocks = append(blocks, map[string]any{"type": "tool_result", "tool_use_id": result.ID, "content": result.Content})
+		}
+		return append(msgs, map[string]any{"role": "user", "content": blocks})
+	}
 	msgs := make([]map[string]any, 0, len(req.Messages)+1)
 	for _, m := range req.Messages {
 		msgs = append(msgs, map[string]any{"role": m.Role, "content": m.Content})
@@ -486,4 +509,8 @@ func applyReasoningOptions(req map[string]any, opts model.Options) {
 	if opts.Effort != "" {
 		req["output_config"] = map[string]any{"effort": opts.Effort}
 	}
+}
+
+func (p *Provider) Turn(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+	return model.SingleTurn(ctx, p, req, opts...)
 }

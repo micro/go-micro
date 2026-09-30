@@ -20,6 +20,7 @@ func Generate(ctx context.Context, opts model.Options, req *model.Request, call 
 	if err != nil {
 		return nil, err
 	}
+	resp.Continuation = &model.Continuation{Provider: "openai", Messages: append(messages, raw)}
 	if opts.ToolHandler == nil {
 		return resp, nil
 	}

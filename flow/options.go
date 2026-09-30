@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"go-micro.dev/v6/agent"
 	"time"
 
 	"go.opentelemetry.io/otel/trace"
@@ -8,6 +9,10 @@ import (
 
 // Options configures a Flow.
 type Options struct {
+	StrictRecovery bool // require fenced checkpoints and bounded replay
+
+	AgentOptions []agent.Option // controls for local adaptive execution
+
 	// TriggerTopic is the broker topic that triggers this flow.
 	TriggerTopic string
 	// Prompt is a Go template string. {{.Data}} is the event payload.
@@ -153,3 +158,11 @@ func DeleteOnSuccess() Option {
 func TraceProvider(tp trace.TracerProvider) Option {
 	return func(o *Options) { o.TraceProvider = tp }
 }
+
+// AgentOptions configures the local harness used by prompt and adaptive steps.
+// Set explicit service scopes and execution limits here.
+func AgentOptions(opts ...agent.Option) Option {
+	return func(o *Options) { o.AgentOptions = append(o.AgentOptions, opts...) }
+}
+
+func StrictRecovery() Option { return func(o *Options) { o.StrictRecovery = true } }

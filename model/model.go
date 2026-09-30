@@ -34,6 +34,8 @@ type Tool struct {
 
 // Request represents a request to generate content from a model
 type Request struct {
+	Continuation *Continuation // opaque state from the previous provider turn
+
 	// Prompt is the user's message/prompt
 	Prompt string
 	// SystemPrompt is the system instruction for the model
@@ -60,6 +62,8 @@ type Usage struct {
 
 // Response represents the response from a model
 type Response struct {
+	Continuation *Continuation // next-turn state, including provider-specific reasoning
+
 	// Reply is the text response from the model
 	Reply string
 	// ToolCalls are tool calls requested by the model
@@ -97,6 +101,8 @@ func (c ToolCall) Scan(v any) error {
 
 // ToolResult represents the result of a tool execution
 type ToolResult struct {
+	Name string // tool name for provider continuation
+
 	ID       string // Tool call ID (for correlation)
 	Value    any    // Structured result (optional)
 	Content  string // Tool execution result (JSON string), shown to the model

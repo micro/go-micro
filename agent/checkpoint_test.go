@@ -9,7 +9,7 @@ import (
 
 	"go-micro.dev/v6/client"
 	codecBytes "go-micro.dev/v6/codec/bytes"
-	"go-micro.dev/v6/flow"
+	flow "go-micro.dev/v6/internal/runstate"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"

@@ -2,6 +2,8 @@ package flow
 
 import (
 	"context"
+	"errors"
+	"go-micro.dev/v6/internal/runstate"
 	"strconv"
 	"testing"
 )
@@ -40,8 +42,8 @@ func TestLoopMaxCapStops(t *testing.T) {
 		Until(func(ctx context.Context, s State, iter int) (bool, error) { return false, nil }),
 		LoopMax(5),
 	)
-	if _, err := step(context.Background(), State{}); err != nil {
-		t.Fatal(err)
+	if _, err := step(context.Background(), State{}); !errors.Is(err, runstate.ErrLimit) {
+		t.Fatalf("expected exhaustion, got %v", err)
 	}
 	if runs != 5 {
 		t.Fatalf("expected 5 iterations (cap), got %d", runs)

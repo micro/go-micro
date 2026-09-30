@@ -94,6 +94,10 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 		return nil, err
 	}
 
+	resp.Continuation = &model.Continuation{Provider: "gemini", Messages: append(contents, map[string]any{"role": "model", "parts": rawParts})}
+	if model.IsSingleTurn(opts) {
+		return resp, nil
+	}
 	if len(resp.ToolCalls) == 0 {
 		return resp, nil
 	}
@@ -359,6 +363,28 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 		response.Reply = strings.Join(replyParts, "\n")
 	}
 
+	// Preserve every provider field (notably thoughtSignature) on continuation.
+	var raw struct {
+		Candidates []struct {
+			FinishReason string `json:"finishReason"`
+			Content      struct {
+				Parts []map[string]any `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+		Usage struct {
+			Input  int `json:"promptTokenCount"`
+			Output int `json:"candidatesTokenCount"`
+			Total  int `json:"totalTokenCount"`
+		} `json:"usageMetadata"`
+	}
+	if err := json.Unmarshal(respBody, &raw); err != nil {
+		return nil, nil, err
+	}
+	if len(raw.Candidates) > 0 {
+		rawParts = raw.Candidates[0].Content.Parts
+		response.StopReason = raw.Candidates[0].FinishReason
+	}
+	response.Usage = model.Usage{InputTokens: raw.Usage.Input, OutputTokens: raw.Usage.Output, TotalTokens: raw.Usage.Total}
 	return response, rawParts, nil
 }
 
@@ -369,6 +395,24 @@ type functionCallPB struct {
 }
 
 func geminiContents(req *model.Request) []map[string]any {
+	if req.Continuation != nil {
+		contents := append([]map[string]any(nil), req.Continuation.Messages...)
+		parts := make([]map[string]any, 0, len(req.Continuation.Results))
+		for _, result := range req.Continuation.Results {
+			value := result.Value
+			if value == nil {
+				value = map[string]any{"result": result.Content}
+			} else {
+				switch value.(type) {
+				case map[string]any, map[string]string:
+				default:
+					value = map[string]any{"result": value}
+				}
+			}
+			parts = append(parts, map[string]any{"functionResponse": map[string]any{"id": result.ID, "name": result.Name, "response": value}})
+		}
+		return append(contents, map[string]any{"role": "user", "parts": parts})
+	}
 	contents := make([]map[string]any, 0, len(req.Messages)+1)
 	for _, m := range req.Messages {
 		role := m.Role
@@ -384,4 +428,8 @@ func geminiContents(req *model.Request) []map[string]any {
 		contents = append(contents, map[string]any{"role": "user", "parts": []map[string]any{{"text": req.Prompt}}})
 	}
 	return contents
+}
+
+func (p *Provider) Turn(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+	return model.SingleTurn(ctx, p, req, opts...)
 }

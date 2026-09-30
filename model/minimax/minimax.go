@@ -59,7 +59,11 @@ func (p *Provider) Options() model.Options { return p.opts }
 func (p *Provider) String() string         { return "minimax" }
 
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-	return openaiapi.Generate(ctx, p.opts, req, p.callAPI)
+	options := p.opts
+	if model.IsSingleTurn(opts) {
+		options.ToolHandler = nil
+	}
+	return openaiapi.Generate(ctx, options, req, p.callAPI)
 }
 
 func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
@@ -130,10 +134,28 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 		})
 	}
 
-	rawMessage := map[string]any{
-		"content":    choice.Message.Content,
-		"tool_calls": choice.Message.ToolCalls,
+	var raw struct {
+		Choices []struct {
+			Message      map[string]any `json:"message"`
+			FinishReason string         `json:"finish_reason"`
+		} `json:"choices"`
+		Usage struct {
+			Input  int `json:"prompt_tokens"`
+			Output int `json:"completion_tokens"`
+			Total  int `json:"total_tokens"`
+		} `json:"usage"`
 	}
+	if err := json.Unmarshal(respBody, &raw); err != nil {
+		return nil, nil, err
+	}
+	rawMessage := raw.Choices[0].Message
+	rawMessage["role"] = "assistant"
+	response.StopReason = raw.Choices[0].FinishReason
+	response.Usage = model.Usage{InputTokens: raw.Usage.Input, OutputTokens: raw.Usage.Output, TotalTokens: raw.Usage.Total}
 
 	return response, rawMessage, nil
+}
+
+func (p *Provider) Turn(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+	return model.SingleTurn(ctx, p, req, opts...)
 }

@@ -123,6 +123,21 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 		apiReq["tools"] = tools
 	}
 
+	if model.IsSingleTurn(opts) {
+		if req.Continuation != nil {
+			messages = append([]map[string]any(nil), req.Continuation.Messages...)
+			for _, r := range req.Continuation.Results {
+				messages = append(messages, map[string]any{"role": "tool", "tool_call_id": r.ID, "content": r.Content})
+			}
+			apiReq["messages"] = messages
+		}
+		resp, raw, err := p.callAPI(ctx, "turn", apiReq)
+		if err != nil {
+			return nil, err
+		}
+		resp.Continuation = &model.Continuation{Provider: "atlascloud", Messages: append(messages, raw)}
+		return resp, nil
+	}
 	resp, rawMessage, err := p.callAPI(ctx, "chat", apiReq)
 	if err != nil {
 		if atlascloudShouldRetryMinimaxCompat(err, compatTools) {
@@ -505,10 +520,24 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 		})
 	}
 
-	rawMessage := map[string]any{
-		"content":    choice.Message.Content,
-		"tool_calls": normalizeAtlasCloudToolCalls(choice.Message.ToolCalls),
+	var raw struct {
+		Choices []struct {
+			Message      map[string]any `json:"message"`
+			FinishReason string         `json:"finish_reason"`
+		} `json:"choices"`
+		Usage struct {
+			Input  int `json:"prompt_tokens"`
+			Output int `json:"completion_tokens"`
+			Total  int `json:"total_tokens"`
+		} `json:"usage"`
 	}
+	if err := json.Unmarshal(respBody, &raw); err != nil {
+		return nil, nil, err
+	}
+	rawMessage := raw.Choices[0].Message
+	rawMessage["role"] = "assistant"
+	response.StopReason = raw.Choices[0].FinishReason
+	response.Usage = model.Usage{InputTokens: raw.Usage.Input, OutputTokens: raw.Usage.Output, TotalTokens: raw.Usage.Total}
 
 	return response, rawMessage, nil
 }
@@ -869,25 +898,6 @@ func normalizeAtlasCloudSchemaValue(v any) any {
 	}
 }
 
-func normalizeAtlasCloudToolCalls(toolCalls []atlasToolCall) []map[string]any {
-	out := make([]map[string]any, 0, len(toolCalls))
-	for _, tc := range toolCalls {
-		toolType := tc.Type
-		if toolType == "" {
-			toolType = "function"
-		}
-		out = append(out, map[string]any{
-			"id":   tc.ID,
-			"type": toolType,
-			"function": map[string]any{
-				"name":      tc.Function.Name,
-				"arguments": tc.Function.Arguments,
-			},
-		})
-	}
-	return out
-}
-
 func atlascloudRequestSummary(req map[string]any) string {
 	parts := []string{}
 	if model, ok := req["model"].(string); ok && model != "" {
@@ -1191,4 +1201,8 @@ func (p *Provider) pollVideo(ctx context.Context, url string) (*model.VideoRespo
 	default:
 		return nil, nil
 	}
+}
+
+func (p *Provider) Turn(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+	return model.SingleTurn(ctx, p, req, opts...)
 }

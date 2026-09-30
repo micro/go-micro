@@ -30,12 +30,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	codecbytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/logger"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/store"
 
 	// Register default providers.
 	_ "go-micro.dev/v6/model/anthropic"
@@ -129,7 +131,7 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 		if f.opts.BaseURL != "" {
 			modelOpts = append(modelOpts, model.WithBaseURL(f.opts.BaseURL))
 		}
-		modelOpts = append(modelOpts, model.WithTools(f.toolSet))
+		// Plain model steps do not execute tools; adaptive work uses the agent harness.
 
 		f.model = model.New(f.opts.Provider, modelOpts...)
 		if f.model == nil {
@@ -141,8 +143,19 @@ func (f *Flow) Register(reg registry.Registry, br broker.Broker, cl client.Clien
 		sub, err := br.Subscribe(f.opts.TriggerTopic, func(p broker.Event) error {
 			data := string(p.Message().Body)
 			ctx := model.WithRunInfo(context.Background(), model.RunInfo{Dispatch: "broker", Trigger: f.opts.TriggerTopic})
-			if err := f.Execute(ctx, data); err != nil {
+			var executeErr error
+			if f.opts.StrictRecovery {
+				id := p.Message().Header["micro-run-id"]
+				if id == "" {
+					return fmt.Errorf("strict broker delivery requires micro-run-id")
+				}
+				_, executeErr = f.Start(ctx, id, data)
+			} else {
+				executeErr = f.Execute(ctx, data)
+			}
+			if err := executeErr; err != nil {
 				f.log.Logf(logger.ErrorLevel, "Flow %s failed: %v", f.name, err)
+				return err
 			}
 			return nil
 		})
@@ -260,33 +273,16 @@ func (f *Flow) Execute(ctx context.Context, data string) error {
 		return nil
 	}
 
-	// Otherwise run a single augmented-LLM step with the services as tools.
-	discovered, err := f.toolSet.Discover()
-	if err != nil {
-		result.Duration = time.Since(start).Seconds()
-		result.Error = err.Error()
-		result.ErrorKind = string(model.ClassifyError(err))
-		f.record(result)
-		return fmt.Errorf("discover tools: %w", err)
-	}
-
-	resp, err := f.model.Generate(ctx, &model.Request{
-		Prompt:       prompt,
-		SystemPrompt: f.opts.SystemPrompt,
-		Tools:        discovered,
-	})
+	response, err := f.ask(ctx, prompt)
 	result.Duration = time.Since(start).Seconds()
-
 	if err != nil {
 		result.Error = err.Error()
 		result.ErrorKind = string(model.ClassifyError(err))
 		f.record(result)
 		return err
 	}
-
-	result.Reply = resp.Reply
-	result.Answer = resp.Answer
-	for _, tc := range resp.ToolCalls {
+	result.Reply = response.Reply
+	for _, tc := range response.ToolCalls {
 		args, _ := json.Marshal(tc.Input)
 		result.ToolCalls = append(result.ToolCalls, fmt.Sprintf("%s(%s)", tc.Name, args))
 	}
@@ -340,4 +336,15 @@ func (f *Flow) record(r Result) {
 	if f.opts.OnResult != nil {
 		f.opts.OnResult(r)
 	}
+}
+
+func (f *Flow) ask(ctx context.Context, prompt string) (*agent.Response, error) {
+	opts := []agent.Option{agent.Name(f.name), agent.Provider(f.opts.Provider), agent.Model(f.opts.Model), agent.APIKey(f.opts.APIKey), agent.BaseURL(f.opts.BaseURL), agent.Prompt(f.opts.SystemPrompt), agent.WithRegistry(f.reg), agent.WithClient(f.client), agent.WithStore(store.NewMemoryStore()), agent.WithMemory(agent.NewInMemory(f.opts.HistoryLimit))}
+	opts = append(opts, f.opts.AgentOptions...)
+	if f.opts.StrictRecovery {
+		info, _ := model.RunInfoFrom(ctx)
+		opts = append(opts, agent.Name(f.name+"/agent"), agent.WithCheckpoint(f.checkpoint), agent.StrictRecovery())
+		return agent.Run(ctx, agent.New(opts...), info.RunID+"/agent/"+info.Step, prompt)
+	}
+	return agent.New(opts...).Ask(ctx, prompt)
 }

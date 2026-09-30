@@ -26,9 +26,10 @@ import (
 
 	"github.com/google/uuid"
 	pb "go-micro.dev/v6/agent/proto"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
+	flow "go-micro.dev/v6/internal/runstate"
 	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/store"
@@ -106,7 +107,9 @@ type agentImpl struct {
 	// currentRun points at the checkpoint record for the Ask currently
 	// holding mu. Tool execution updates it so resumed runs can reuse
 	// completed tool results without replaying side effects.
-	currentRun *flow.Run
+	ownsTurns     bool
+	checkpointErr error
+	currentRun    *flow.Run
 
 	// delegateCalls collapses concurrent equivalent delegate tool calls so a
 	// provider replay cannot fan out duplicate delegated side effects before the
@@ -190,6 +193,12 @@ func (a *agentImpl) setupWithToolHandler(handler model.ToolHandler) {
 	modelOpts = append(modelOpts, model.WithToolHandler(handler))
 	a.model = model.New(a.opts.Provider, modelOpts...)
 	if a.model != nil {
+		if turner, ok := a.model.(model.Turner); ok {
+			a.ownsTurns = true
+			a.model = &turnExecution{agent: a, Model: a.model, turner: turner, handler: handler, policy: model.GeneratePolicy{Timeout: a.opts.ModelTimeout, MaxAttempts: a.opts.ModelMaxAttempts, Backoff: a.opts.ModelRetryBackoff, Jitter: a.opts.ModelRetryJitter}}
+		} else {
+			a.ownsTurns = false
+		}
 		a.model = a.tracedModel(a.model)
 	}
 
@@ -380,7 +389,7 @@ func (a *agentImpl) ResumePending(ctx context.Context) (string, error) {
 		return "", err
 	}
 	for _, run := range runs {
-		if _, err := a.resume(ctx, run.ID); err != nil {
+		if _, err := a.Resume(ctx, run.ID); err != nil {
 			return run.ID, err
 		}
 	}
@@ -395,10 +404,18 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 		a.setup()
 	}
 
-	return a.askLocked(ctx, uuid.New().String(), message, parentRunID, nil, true)
+	id := uuid.New().String()
+	release, err := a.lockRun(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	return a.askLocked(ctx, id, message, parentRunID, nil, true)
 }
 
 func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID string, existing *flow.Run, addUserMessage bool) (*Response, error) {
+	a.checkpointErr = nil
+
 	toolList, err := a.discoverTools()
 	if err != nil {
 		return nil, fmt.Errorf("discover tools: %w", err)
@@ -410,6 +427,13 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	a.steps = 0
 	a.spend = 0
 	a.calls = map[string]int{}
+	if existing != nil && a.opts.StrictRecovery {
+		a.steps = existing.ToolSteps
+		a.spend = existing.Spend
+		for key, value := range existing.CallCounts {
+			a.calls[key] = value
+		}
+	}
 	a.pause = nil
 	a.approvalErr = nil
 
@@ -472,7 +496,14 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	const maxPlanCompletionTurns = 6
 	var resp *model.Response
 	for planCompletionTurn := 0; ; planCompletionTurn++ {
-		resp, err = model.GenerateWithRetry(ctx, a.model, &model.Request{
+		if planCompletionTurn > 0 && a.opts.StrictRecovery {
+			run.PendingTurn = nil
+			run.Continuation = nil
+			if err := a.saveRun(ctx, run); err != nil {
+				return nil, err
+			}
+		}
+		resp, err = a.generate(ctx, &model.Request{
 			Prompt:       message,
 			SystemPrompt: a.buildPrompt(),
 			Tools:        toolList,
@@ -483,6 +514,9 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			Backoff:     a.opts.ModelRetryBackoff,
 			Jitter:      a.opts.ModelRetryJitter,
 		})
+		if a.checkpointErr != nil {
+			err = a.checkpointErr
+		}
 		if a.approvalErr != nil {
 			err = a.approvalErr
 		}
@@ -504,7 +538,12 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			run.Steps[0].Attempts = attempts
 			run.Steps[0].Error = err.Error()
 			run.Steps[0].ErrorKind = string(failureKind)
-			_ = a.saveRun(ctx, run)
+			saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			saveErr := a.saveRun(saveCtx, run)
+			cancel()
+			if saveErr != nil {
+				return nil, fmt.Errorf("%w; checkpoint failed: %v", err, saveErr)
+			}
 			return nil, err
 		}
 		if a.pause != nil && a.opts.Checkpoint != nil {
@@ -650,7 +689,19 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 // Chat implements the proto AgentHandler interface for RPC.
 // @example {"message": "What tasks are overdue?"}
 func (a *agentImpl) Chat(ctx context.Context, req *pb.ChatRequest, rsp *pb.ChatResponse) error {
-	resp, err := a.ask(ctx, req.Message, req.ParentId)
+	var resp *Response
+	var err error
+	if id, ok := metadata.Get(ctx, "micro-agent-run-id"); ok && id != "" {
+		if !a.opts.StrictRecovery {
+			return fmt.Errorf("stable RPC runs require strict recovery")
+		}
+		info, _ := model.RunInfoFrom(ctx)
+		info.RunID = req.ParentId
+		ctx = model.WithRunInfo(ctx, info)
+		resp, err = Run(ctx, a, id, req.Message)
+	} else {
+		resp, err = a.ask(ctx, req.Message, req.ParentId)
+	}
 	if err != nil {
 		return err
 	}
@@ -676,14 +727,15 @@ func (a *agentImpl) Run() error {
 		a.setup()
 	}
 
+	meta := map[string]string{"type": "agent", "services": strings.Join(a.opts.Services, ",")}
+	if _, ok := a.opts.Checkpoint.(flow.Locker); ok && a.opts.StrictRecovery {
+		meta["stable_runs"] = "v1"
+	}
 	serverOpts := []server.Option{
 		server.Name(a.opts.Name),
 		server.Address(a.opts.Address),
 		server.Registry(a.opts.Registry),
-		server.Metadata(map[string]string{
-			"type":     "agent",
-			"services": strings.Join(a.opts.Services, ","),
-		}),
+		server.Metadata(meta),
 	}
 	if a.opts.Broker != nil {
 		serverOpts = append(serverOpts, server.Broker(a.opts.Broker))

@@ -143,10 +143,22 @@ func (a *agentImpl) askWithStreamEvents(ctx context.Context, message string, eve
 	}
 	a.setupWithToolHandler(handler)
 	defer a.setupWithToolHandler(nil)
-	return a.askLocked(ctx, uuid.New().String(), message, a.parentRunID, nil, true)
+	id := uuid.New().String()
+	release, err := a.lockRun(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	return a.askLocked(ctx, id, message, a.parentRunID, nil, true)
 }
 
 func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, events chan<- *StreamEvent) (*Response, error) {
+	release, err := a.lockRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+
 	if a.opts.Checkpoint == nil {
 		return nil, errors.New("agent: ResumeStreamAsk requires a checkpoint")
 	}
@@ -190,6 +202,8 @@ func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, ev
 			return nil, &AwaitingInputError{RunID: run.ID, message: "agent: checkpointed run is input-required; resume with ResumeInput"}
 		}
 		run.Status = "running"
+		run.PendingTurn = nil
+		run.Continuation = nil
 		run.State.Stage = agentAskStep
 	}
 	return a.askLocked(ctx, run.ID, string(run.State.Data), run.ParentID, &run, false)

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
+	"go-micro.dev/v6/internal/runstate"
 	"text/template"
 	"time"
 
@@ -15,39 +15,12 @@ import (
 	codecbytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/logger"
+	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
-// State carries data across the steps of a flow run. It is a struct, not
-// a map: Data is the serialized payload (set and read with Set/Scan), and
-// Stage names the step the run is at — so you can always tell where it is,
-// and the engine uses it as the resume point.
-type State struct {
-	Stage string `json:"stage"`
-	Data  []byte `json:"data"`
-}
-
-// Set replaces the data with the JSON encoding of v.
-func (s *State) Set(v any) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	s.Data = b
-	return nil
-}
-
-// Scan decodes the data into v (a pointer to the caller's struct).
-func (s State) Scan(v any) error {
-	if len(s.Data) == 0 {
-		return nil
-	}
-	return json.Unmarshal(s.Data, v)
-}
-
-// String returns the data as a string, for text payloads.
-func (s State) String() string { return string(s.Data) }
+type State = runstate.State
 
 // StepFunc performs one step's work: it receives the carried state and
 // returns the next state.
@@ -84,136 +57,21 @@ func (e *VerificationError) Error() string {
 // verification hooks. There is one Step kind; the action is the Run func,
 // and the Call/LLM/Agent helpers produce the common ones.
 type Step struct {
+	Idempotent bool // permits replay when an interrupted attempt has an unknown outcome
+
 	Name   string
 	Run    StepFunc
 	Retry  int      // per-step override of the flow's retry (0 = use the flow default)
 	Verify Verifier // optional grade; failed grades retry the step with feedback in RunInfo
 }
 
-// StepRecord is the recorded outcome of one step within a run.
-type StepRecord struct {
-	Name               string `json:"name"`
-	Status             string `json:"status"` // pending | in_progress | done | failed
-	Attempts           int    `json:"attempts"`
-	Service            string `json:"service,omitempty"`
-	Endpoint           string `json:"endpoint,omitempty"`
-	Agent              string `json:"agent,omitempty"`
-	ChildRunID         string `json:"child_run_id,omitempty"`
-	Result             string `json:"result,omitempty"`
-	Error              string `json:"error,omitempty"`
-	ErrorKind          string `json:"error_kind,omitempty"`
-	VerificationStatus string `json:"verification_status,omitempty"` // passed | failed
-	VerificationNote   string `json:"verification_note,omitempty"`
-}
+type StepRecord = runstate.StepRecord
+type Run = runstate.Run
+type Checkpoint = runstate.Checkpoint
 
-// Run is the persisted record of one flow execution — what a Checkpoint
-// saves and loads. It is retained for success and failure unless the flow
-// opts into cleanup with DeleteOnSuccess.
-type Run struct {
-	ID         string       `json:"id"`
-	ParentID   string       `json:"parent_id,omitempty"`
-	Flow       string       `json:"flow"`
-	OriginFlow string       `json:"origin_flow,omitempty"`
-	OriginStep string       `json:"origin_step,omitempty"`
-	Dispatch   string       `json:"dispatch,omitempty"`
-	Trigger    string       `json:"trigger,omitempty"`
-	State      State        `json:"state"`
-	Steps      []StepRecord `json:"steps"`
-	Status     string       `json:"status"` // running | waiting | done | failed
-	Await      *AwaitState  `json:"await,omitempty"`
-	Started    time.Time    `json:"started"`
-	Updated    time.Time    `json:"updated"`
-}
-
-// Checkpoint persists and restores flow runs so a run survives a crash
-// and resumes where it stopped. The built-in StoreCheckpoint is
-// store-backed; implement this interface to plug in another durable
-// execution backend.
-type Checkpoint interface {
-	Save(ctx context.Context, run Run) error
-	Load(ctx context.Context, runID string) (Run, bool, error)
-	Delete(ctx context.Context, runID string) error
-	List(ctx context.Context) ([]Run, error)
-}
-
-type storeCheckpoint struct {
-	store store.Store
-}
-
-// StoreCheckpoint returns a store-backed Checkpoint that keeps a flow's
-// runs in their own store table — pass the flow name as scope, so one
-// flow's runs never share a table with another's (or with service or
-// agent state). A nil store uses store.DefaultStore.
+// StoreCheckpoint persists runs in a named scope shared by flow and agent execution.
 func StoreCheckpoint(s store.Store, scope string) Checkpoint {
-	if s == nil {
-		s = store.DefaultStore
-	}
-	// Confine runs to the "flow" database, one table per flow name. The
-	// scoped handle injects this per-operation without mutating s.
-	return &storeCheckpoint{store: store.Scope(s, "flow", scope)}
-}
-
-func (c *storeCheckpoint) Save(ctx context.Context, run Run) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	run.Updated = time.Now()
-	b, err := json.Marshal(run)
-	if err != nil {
-		return err
-	}
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	return c.store.Write(&store.Record{Key: run.ID, Value: b})
-}
-
-func (c *storeCheckpoint) Load(ctx context.Context, runID string) (Run, bool, error) {
-	if err := ctx.Err(); err != nil {
-		return Run{}, false, err
-	}
-	recs, err := c.store.Read(runID)
-	if err == store.ErrNotFound || len(recs) == 0 {
-		return Run{}, false, nil
-	}
-	if err != nil {
-		return Run{}, false, err
-	}
-	var run Run
-	if err := json.Unmarshal(recs[0].Value, &run); err != nil {
-		return Run{}, false, err
-	}
-	return run, true, nil
-}
-
-func (c *storeCheckpoint) Delete(ctx context.Context, runID string) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	return c.store.Delete(runID)
-}
-
-func (c *storeCheckpoint) List(ctx context.Context) ([]Run, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	keys, err := c.store.List()
-	if err != nil {
-		return nil, err
-	}
-	var runs []Run
-	for _, id := range keys {
-		if run, ok, err := c.Load(ctx, id); err == nil && ok {
-			runs = append(runs, run)
-		}
-	}
-	sort.SliceStable(runs, func(i, j int) bool {
-		if runs[i].Started.Equal(runs[j].Started) {
-			return runs[i].ID < runs[j].ID
-		}
-		return runs[i].Started.Before(runs[j].Started)
-	})
-	return runs, nil
+	return runstate.StoreCheckpoint(s, scope)
 }
 
 // defaultCheckpoint returns the configured checkpoint, or a store-backed
@@ -234,10 +92,14 @@ func defaultCheckpoint(name string, o Options) Checkpoint {
 // They are injected into the context for the duration of a run so a
 // StepFunc keeps the clean (ctx, State) signature.
 type runDeps struct {
+	beforeAttempt func(int) error
+	priorAttempts int
+
 	client client.Client
 	model  model.Model
 	tools  *model.Tools
 	step   *StepRecord
+	flow   *Flow
 }
 
 type runCtxKey struct{}
@@ -270,6 +132,9 @@ func Call(service, endpoint string) StepFunc {
 		if len(body) == 0 {
 			body = []byte("{}")
 		}
+		if key := OperationKey(ctx); key != "" {
+			ctx = metadata.MergeContext(ctx, metadata.Metadata{"micro-idempotency-key": key}, true)
+		}
 		req := cl.NewRequest(service, endpoint, &codecbytes.Frame{Data: body})
 		var rsp codecbytes.Frame
 		if err := cl.Call(ctx, req, &rsp); err != nil {
@@ -285,6 +150,34 @@ func Call(service, endpoint string) StepFunc {
 // reply as the new Data.
 func Dispatch(name string) StepFunc {
 	return func(ctx context.Context, in State) (State, error) {
+		if d := depsFrom(ctx); d != nil && d.flow != nil && d.flow.opts.StrictRecovery {
+			if d.flow.reg == nil {
+				return in, fmt.Errorf("stable agent dispatch requires a registry")
+			}
+			records, err := d.flow.reg.GetService(name)
+			if err != nil {
+				return in, err
+			}
+			if len(records) == 0 {
+				return in, fmt.Errorf("agent is not registered")
+			}
+			for _, record := range records {
+				if record.Metadata["stable_runs"] != "v1" {
+					return in, fmt.Errorf("agent %s does not advertise fenced stable runs", name)
+				}
+			}
+			key := OperationKey(ctx) + "/agent"
+			ctx = metadata.MergeContext(ctx, metadata.Metadata{"micro-agent-run-id": key}, true)
+			if d.step != nil {
+				d.step.ChildRunID = key
+				if d.beforeAttempt != nil {
+					if err := d.beforeAttempt(d.step.Attempts); err != nil {
+						return in, err
+					}
+				}
+			}
+		}
+
 		cl := client.DefaultClient
 		d := depsFrom(ctx)
 		if d != nil {
@@ -306,7 +199,9 @@ func Dispatch(name string) StepFunc {
 			Reply string `json:"reply"`
 			RunID string `json:"run_id"`
 		}
-		_ = json.Unmarshal(rsp.Data, &out)
+		if err := json.Unmarshal(rsp.Data, &out); err != nil {
+			return in, err
+		}
 		if d != nil && d.step != nil {
 			d.step.ChildRunID = out.RunID
 		}
@@ -346,18 +241,18 @@ func LLM(prompt string) StepFunc {
 				text = buf.String()
 			}
 		}
-		var tools []model.Tool
-		if d.tools != nil {
-			tools, _ = d.tools.Discover()
+		if d.flow == nil {
+			return in, fmt.Errorf("LLM step requires a registered flow")
 		}
-		resp, err := d.model.Generate(ctx, &model.Request{Prompt: text, Tools: tools})
+		resp, err := d.flow.ask(ctx, text)
 		if err != nil {
 			return in, err
 		}
-		reply := resp.Answer
-		if reply == "" {
-			reply = resp.Reply
+		if d.step != nil {
+			d.step.ChildRunID = resp.RunID
 		}
+		reply := resp.Reply
+
 		in.Data = []byte(reply)
 		return in, nil
 	}
@@ -379,12 +274,7 @@ func (e *AwaitInput) Error() string {
 	return fmt.Sprintf("flow: awaiting input %q", e.Key)
 }
 
-// AwaitState records, on a suspended run, what it is waiting for.
-type AwaitState struct {
-	Step   string `json:"step"`
-	Key    string `json:"key"`
-	Prompt string `json:"prompt,omitempty"`
-}
+type AwaitState = runstate.AwaitState
 
 func isAwaitInput(err error) (*AwaitInput, bool) {
 	var a *AwaitInput
@@ -413,6 +303,38 @@ func AwaitStep(name, key, prompt string) Step {
 
 // startRun begins a fresh run of the flow's steps with the given input.
 func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
+	return f.Start(ctx, uuid.New().String(), data)
+}
+
+// Start admits a stable run ID. Redelivery of a completed run returns its record.
+// The caller supplies a stable event ID for broker deduplication.
+func (f *Flow) Start(ctx context.Context, id, data string) (Run, error) {
+	if id == "" {
+		return Run{}, fmt.Errorf("run ID is required")
+	}
+	release, err := f.lockRun(ctx, id)
+	if err != nil {
+		return Run{}, err
+	}
+	defer release()
+	if f.checkpoint != nil {
+		existing, ok, err := f.checkpoint.Load(ctx, id)
+		if err != nil {
+			return Run{}, err
+		}
+		if ok {
+			if err := f.validateRun(existing); err != nil {
+				return existing, err
+			}
+			if existing.Status == "done" || existing.Status == "waiting" {
+				return existing, nil
+			}
+			if existing.Status == "canceled" || existing.Status == "exhausted" {
+				return existing, fmt.Errorf("run is terminal: %s", existing.Status)
+			}
+			return f.runFrom(ctx, existing)
+		}
+	}
 	if err := validateSteps(f.opts.Steps); err != nil {
 		return Run{}, err
 	}
@@ -422,7 +344,7 @@ func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
 		dispatch = "direct"
 	}
 	run := Run{
-		ID:       uuid.New().String(),
+		ID:       id,
 		ParentID: info.RunID,
 		Flow:     f.name,
 		Dispatch: dispatch,
@@ -440,6 +362,12 @@ func (f *Flow) startRun(ctx context.Context, data string) (Run, error) {
 // Resume continues a persisted run by id, picking up at the step it
 // stopped on. Completed runs are a no-op.
 func (f *Flow) Resume(ctx context.Context, runID string) error {
+	release, err := f.lockRun(ctx, runID)
+	if err != nil {
+		return err
+	}
+	defer release()
+
 	ctx, cancel := f.withTimeout(ctx)
 	defer cancel()
 
@@ -456,8 +384,17 @@ func (f *Flow) Resume(ctx context.Context, runID string) error {
 	if !ok {
 		return fmt.Errorf("run %s not found", runID)
 	}
+	if err := f.validateRun(run); err != nil {
+		return err
+	}
 	if run.Status == "done" {
 		return nil
+	}
+	if run.Status == "waiting" {
+		return fmt.Errorf("run %s is waiting; use ResumeWith", runID)
+	}
+	if f.opts.StrictRecovery && (run.Status == "canceled" || run.Status == "exhausted") {
+		return fmt.Errorf("run %s is terminal (%s)", runID, run.Status)
 	}
 	_, err = f.runFrom(ctx, run)
 	return err
@@ -501,7 +438,7 @@ func (f *Flow) Pending(ctx context.Context) ([]Run, error) {
 	for _, r := range all {
 		// Waiting runs need injected input (ResumeWith), not a restart, so a
 		// recovery loop (ResumePending) should not pick them up.
-		if r.Flow == f.name && r.Status != "done" && r.Status != "waiting" {
+		if r.Flow == f.name && r.Status != "done" && r.Status != "waiting" && r.Status != "canceled" && r.Status != "exhausted" {
 			out = append(out, r)
 		}
 	}
@@ -532,6 +469,12 @@ func (f *Flow) Waiting(ctx context.Context) ([]Run, error) {
 // awaited step — the input becomes that step's output state — and continues
 // from the next step. It errors if the run is not waiting for input.
 func (f *Flow) ResumeWith(ctx context.Context, runID, input string) error {
+	release, err := f.lockRun(ctx, runID)
+	if err != nil {
+		return err
+	}
+	defer release()
+
 	ctx, cancel := f.withTimeout(ctx)
 	defer cancel()
 
@@ -547,6 +490,9 @@ func (f *Flow) ResumeWith(ctx context.Context, runID, input string) error {
 	}
 	if !ok {
 		return fmt.Errorf("run %s not found", runID)
+	}
+	if err := f.validateRun(run); err != nil {
+		return err
 	}
 	if run.Status != "waiting" {
 		return fmt.Errorf("run %s is not waiting for input (status %q)", runID, run.Status)
@@ -576,7 +522,7 @@ func (f *Flow) ResumeWith(ctx context.Context, runID, input string) error {
 // checkpointing before and after each step.
 func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	steps := f.opts.Steps
-	deps := &runDeps{client: f.client, model: f.model, tools: f.toolSet}
+	deps := &runDeps{client: f.client, model: f.model, tools: f.toolSet, flow: f}
 	ctx = withDeps(ctx, deps)
 	info, _ := model.RunInfoFrom(ctx)
 	info.RunID = run.ID
@@ -602,6 +548,13 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 	for i := start; i < len(steps); i++ {
 		step := steps[i]
 		deps.step = &run.Steps[i]
+		if f.opts.StrictRecovery {
+			if run.Steps[i].Status == "in_progress" && !step.Idempotent {
+				return run, runstate.ErrAmbiguous
+			}
+			deps.priorAttempts = run.Steps[i].Attempts
+			deps.beforeAttempt = func(attempt int) error { run.Steps[i].Attempts = attempt; return f.save(ctx, run) }
+		}
 		run.State.Stage = step.Name
 		run.Steps[i].Status = "in_progress"
 		if err := f.save(ctx, run); err != nil {
@@ -631,7 +584,17 @@ func (f *Flow) runFrom(ctx context.Context, run Run) (Run, error) {
 			run.Steps[i].Error = err.Error()
 			run.Steps[i].ErrorKind = string(model.ClassifyError(err))
 			run.Status = "failed"
-			if saveErr := f.save(ctx, run); saveErr != nil {
+			if f.opts.StrictRecovery {
+				if errors.Is(err, context.Canceled) {
+					run.Status = "canceled"
+				}
+				if errors.Is(err, runstate.ErrLimit) {
+					run.Status = "exhausted"
+				}
+			}
+			saveCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			defer cancel()
+			if saveErr := f.save(saveCtx, run); saveErr != nil {
 				spanErr = saveErr
 				return run, fmt.Errorf("%w; additionally failed to checkpoint failed run: %v", err, saveErr)
 			}
@@ -681,10 +644,18 @@ func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, Ve
 	if step.Retry > 0 {
 		retries = step.Retry
 	}
+	prior := 0
+	d := depsFrom(ctx)
+	if d != nil && d.flow != nil && d.flow.opts.StrictRecovery {
+		prior = d.priorAttempts
+	}
+	if prior >= retries+1 {
+		return in, prior, Verification{}, runstate.ErrLimit
+	}
 	var lastErr error
 	var lastVerification Verification
 	var feedback string
-	for attempt := 1; attempt <= retries+1; attempt++ {
+	for attempt := prior + 1; attempt <= retries+1; attempt++ {
 		// Stop the moment the run's context is canceled or its deadline
 		// passes — a canceled run shouldn't keep retrying, and the context
 		// error is surfaced so callers can detect cancellation upstream.
@@ -696,6 +667,11 @@ func (f *Flow) runStep(ctx context.Context, step Step, in State) (State, int, Ve
 			info.Step = step.Name
 			info.VerificationFeedback = feedback
 			attemptCtx = model.WithRunInfo(ctx, info)
+		}
+		if d != nil && d.beforeAttempt != nil {
+			if err := d.beforeAttempt(attempt); err != nil {
+				return in, attempt - 1, lastVerification, err
+			}
 		}
 		out, err := step.Run(attemptCtx, in)
 		// An await signal is control flow, not a failure: suspend immediately
@@ -799,3 +775,50 @@ func truncate(s string, n int) string {
 	}
 	return s[:n] + "…"
 }
+
+// OpenCheckpoint opens a single-host journal with an exclusive process lock.
+// Hosts must close it only after stopping all executions.
+func OpenCheckpoint(path string) (*runstate.Journal, error) { return runstate.OpenJournal(path) }
+func (f *Flow) lockRun(ctx context.Context, id string) (func(), error) {
+	if locker, ok := f.checkpoint.(runstate.Locker); ok {
+		return locker.Lock(ctx, id)
+	}
+	if f.opts.StrictRecovery {
+		return nil, fmt.Errorf("strict recovery requires a checkpoint with fenced run ownership")
+	}
+	return func() {}, nil
+}
+func (f *Flow) validateRun(r Run) error {
+	if r.SchemaVersion > 1 || r.SchemaVersion < 0 {
+		return fmt.Errorf("unsupported run schema %d", r.SchemaVersion)
+	}
+	if r.Flow != f.name {
+		return fmt.Errorf("run belongs to flow %q", r.Flow)
+	}
+	if len(r.Steps) != len(f.opts.Steps) {
+		return fmt.Errorf("flow definition changed; migrate the saved run")
+	}
+	for i, step := range f.opts.Steps {
+		if r.Steps[i].Name != step.Name {
+			return fmt.Errorf("flow step definition changed; migrate the saved run")
+		}
+	}
+	if r.State.Stage != "" && stepIndex(f.opts.Steps, r.State.Stage) < 0 {
+		return fmt.Errorf("unknown saved stage %q", r.State.Stage)
+	}
+	return nil
+}
+
+// OperationKey is stable across retries of the same service step. A service must
+// atomically deduplicate this key with its effect; the framework cannot do so.
+func OperationKey(ctx context.Context) string {
+	info, ok := model.RunInfoFrom(ctx)
+	if !ok || info.RunID == "" || info.Step == "" {
+		return ""
+	}
+	return info.RunID + "/" + info.Step
+}
+
+// ErrLimit indicates that a configured completion condition was not met within its budget.
+var ErrLimit = runstate.ErrLimit
+var ErrAmbiguous = runstate.ErrAmbiguous

@@ -59,12 +59,11 @@ to the model, executes requested calls, and returns a reply with tool-call and
 run metadata. The service owns the action and its data; the agent chooses when
 to use it. Tool selection is not a substitute for service-side authorization.
 
-There is currently a split in execution responsibility: provider adapters can
-perform repeated tool calls inside `Generate` when a tool handler is supplied,
-while the agent adds guardrails, run tracking, and plan-completion logic around
-those calls. CLI development chat and multi-agent routing use this same agent
-harness, with session-local memory and storage. Provider-level tool iteration
-and agent-level execution control remain separate responsibilities.
+Built-in providers expose one-turn results to the agent harness, which owns tool
+iteration, guardrails, and completion. CLI chat and adaptive flows use that same
+harness. Direct v6 `Generate` callers retain legacy provider-owned tool execution
+for migration. See the [execution contract](../guides/execution-contract.md) for
+strict recovery, provider continuation, and compatibility boundaries.
 
 See [AI Integration](../ai-integration/index.md),
 [guardrails](../guides/agent-guardrails.md), and

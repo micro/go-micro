@@ -90,9 +90,9 @@ func TestDefaultOptions(t *testing.T) {
 
 func TestSingleStepFlowRunInfoIdentifiesFlow(t *testing.T) {
 	llm := &runInfoModel{}
-	f := New("single-observed")
-	f.model = llm
-	f.toolSet = model.NewTools(registry.NewMemoryRegistry())
+	model.Register("flow-run-info", func(...model.Option) model.Model { return llm })
+	f := New("single-observed", Provider("flow-run-info"))
+	f.reg = registry.NewMemoryRegistry()
 
 	if err := f.Execute(context.Background(), "observe me"); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -103,8 +103,8 @@ func TestSingleStepFlowRunInfoIdentifiesFlow(t *testing.T) {
 	if llm.got.Flow != "single-observed" {
 		t.Fatalf("RunInfo.Flow = %q, want single-observed", llm.got.Flow)
 	}
-	if llm.got.Agent != "" {
-		t.Fatalf("RunInfo.Agent = %q, want empty for flow-owned LLM run", llm.got.Agent)
+	if llm.got.Agent != "single-observed" {
+		t.Fatalf("RunInfo.Agent = %q, want the local agent harness identity", llm.got.Agent)
 	}
 	if llm.got.Step != "" {
 		t.Fatalf("RunInfo.Step = %q, want empty for single-step flow", llm.got.Step)

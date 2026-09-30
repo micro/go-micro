@@ -82,9 +82,12 @@ func parseRetryAfter(value string, now time.Time) time.Duration {
 
 // ErrorKind classifies provider-boundary failures into stable buckets callers
 // can inspect without parsing provider-specific error strings.
+var ErrLimit = errors.New("execution limit exhausted")
+
 type ErrorKind string
 
 const (
+	ErrorKindExhausted     ErrorKind = "exhausted"
 	ErrorKindUnknown       ErrorKind = "unknown"
 	ErrorKindCanceled      ErrorKind = "canceled"
 	ErrorKindTimeout       ErrorKind = "timeout"
@@ -130,6 +133,8 @@ func (e *RetryError) ErrorKind() ErrorKind {
 
 // GeneratePolicy controls timeout and retry behavior for a model call.
 type GeneratePolicy struct {
+	BeforeAttempt func(context.Context, int) error // persist admission before a provider request
+
 	Timeout     time.Duration
 	MaxAttempts int
 	Backoff     time.Duration
@@ -162,6 +167,12 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 			info.Attempt = attempt
 			info.MaxAttempts = policy.MaxAttempts
 			callCtx = WithRunInfo(callCtx, info)
+		}
+		if policy.BeforeAttempt != nil {
+			if err := policy.BeforeAttempt(callCtx, attempt); err != nil {
+				cancel()
+				return nil, err
+			}
 		}
 		resp, err := generateAttempt(callCtx, m, req, opts...)
 		cancel()
@@ -257,6 +268,9 @@ func retryBackoffWithJitter(err error, attempt int, base, jitter time.Duration) 
 
 // ClassifyError maps provider and context failures to stable operational kinds.
 func ClassifyError(err error) ErrorKind {
+	if errors.Is(err, ErrLimit) {
+		return ErrorKindExhausted
+	}
 	if err == nil {
 		return ""
 	}

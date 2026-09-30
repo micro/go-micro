@@ -6,7 +6,7 @@ import (
 
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
-	"go-micro.dev/v6/flow"
+	flow "go-micro.dev/v6/internal/runstate"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
@@ -36,6 +36,8 @@ type customTool struct {
 
 // Options holds agent configuration.
 type Options struct {
+	StrictRecovery bool // refuse ambiguous interrupted tools; requires fenced checkpoint ownership
+
 	Name         string
 	Services     []string
 	Prompt       string
@@ -477,3 +479,5 @@ func Temperature(t float64) Option { return func(o *Options) { v := t; o.Tempera
 // the limit is exceeded, logging omitted names. Zero leaves tools unlimited.
 // This includes service, custom and built-in tools; MaxSteps separately limits executions.
 func MaxTools(n int) Option { return func(o *Options) { o.MaxTools = n } }
+
+func StrictRecovery() Option { return func(o *Options) { o.StrictRecovery = true } }

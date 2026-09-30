@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/flow"
+	flow "go-micro.dev/v6/internal/runstate"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )

@@ -12,8 +12,8 @@ import (
 	"time"
 
 	codecBytes "go-micro.dev/v6/codec/bytes"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
+	flow "go-micro.dev/v6/internal/runstate"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
@@ -141,6 +141,17 @@ func (a *agentImpl) toolHandler() model.ToolHandler {
 	h = a.loopWrap(h)
 	h = a.stepWrap(h)
 	h = a.planWrap(h)
+	if a.opts.StrictRecovery {
+		next := h
+		h = func(ctx context.Context, call model.ToolCall) model.ToolResult {
+			if a.currentRun != nil {
+				if rec, ok := findStep(a.currentRun.Steps, toolCheckpointName(call)); ok && rec.Status == "done" {
+					return model.ToolResult{ID: call.ID, Content: rec.Result, Value: map[string]any{"result": rec.Result}}
+				}
+			}
+			return next(ctx, call)
+		}
+	}
 	h = contextWrap(h)
 	h = a.traceTool(h)
 	for i := len(a.opts.wrappers) - 1; i >= 0; i-- {

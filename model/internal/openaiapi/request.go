@@ -4,6 +4,13 @@ import "go-micro.dev/v6/model"
 
 // Messages builds the shared chat history for Generate and Stream requests.
 func Messages(req *model.Request) []map[string]any {
+	if req.Continuation != nil {
+		messages := append([]map[string]any(nil), req.Continuation.Messages...)
+		for _, result := range req.Continuation.Results {
+			messages = append(messages, map[string]any{"role": "tool", "tool_call_id": result.ID, "content": result.Content})
+		}
+		return messages
+	}
 	messages := []map[string]any{{"role": "system", "content": req.SystemPrompt}}
 	for _, message := range req.Messages {
 		messages = append(messages, map[string]any{"role": message.Role, "content": message.Content})

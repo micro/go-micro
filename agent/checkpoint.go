@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"go-micro.dev/v6/flow"
+	flow "go-micro.dev/v6/internal/runstate"
 	"go-micro.dev/v6/model"
 )
 
@@ -37,6 +37,8 @@ func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info mo
 	if existing != nil {
 		run = *existing
 		run.Status = "running"
+		run.PendingTurn = nil
+		run.Continuation = nil
 		run.State.Stage = agentAskStep
 		if len(run.Steps) == 0 {
 			run.Steps = []flow.StepRecord{{Name: agentAskStep}}
@@ -49,6 +51,12 @@ func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info mo
 }
 
 func (a *agentImpl) saveRun(ctx context.Context, run flow.Run) error {
+	if a.opts.StrictRecovery {
+		run.ToolSteps = a.steps
+		run.CallCounts = a.calls
+		run.Spend = a.spend
+	}
+
 	if a.opts.Checkpoint == nil {
 		return nil
 	}
@@ -81,10 +89,22 @@ type InputResumer interface {
 }
 
 func (a *agentImpl) Resume(ctx context.Context, runID string) (*Response, error) {
+	release, err := a.lockRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+
 	return a.resume(ctx, runID)
 }
 
 func (a *agentImpl) ResumeInput(ctx context.Context, runID, input string) (*Response, error) {
+	release, err := a.lockRun(ctx, runID)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+
 	return a.resumeInput(ctx, runID, input)
 }
 
@@ -119,6 +139,8 @@ func (a *agentImpl) resume(ctx context.Context, runID string) (*Response, error)
 			return nil, &AwaitingInputError{RunID: runID}
 		}
 		run.Status = "running"
+		run.PendingTurn = nil
+		run.Continuation = nil
 		run.State.Stage = agentAskStep
 	}
 	if run.Status == "done" {
@@ -175,6 +197,8 @@ func (a *agentImpl) resumeInput(ctx context.Context, runID, input string) (*Resp
 		message = string(run.State.Data)
 	}
 	message += "\n\nHuman input: " + input
+	run.PendingTurn = nil
+	run.Continuation = nil
 	run.Status = "running"
 	run.State.Stage = agentAskStep
 	run.State.Data = []byte(message)
@@ -205,7 +229,7 @@ func (a *agentImpl) pending(ctx context.Context) ([]flow.Run, error) {
 
 func terminalAgentRunStatus(status string) bool {
 	switch status {
-	case "done", "canceled", "expired":
+	case "done", "canceled", "expired", "exhausted":
 		return true
 	default:
 		return false
@@ -213,6 +237,9 @@ func terminalAgentRunStatus(status string) bool {
 }
 
 func agentRunFailureStatus(err error) string {
+	if errors.Is(err, model.ErrLimit) {
+		return "exhausted"
+	}
 	switch model.ClassifyError(err) {
 	case model.ErrorKindCanceled:
 		return "canceled"
@@ -281,8 +308,15 @@ func (a *agentImpl) checkpointToolWrap(next model.ToolHandler) model.ToolHandler
 			return model.ToolResult{ID: call.ID, Value: rec.Result, Content: rec.Result}
 		}
 
+		if rec, ok := findStep(run.Steps, name); ok && rec.Status == "in_progress" && a.opts.StrictRecovery {
+			a.checkpointErr = flow.ErrAmbiguous
+			return model.ToolResult{ID: call.ID, Refused: "ambiguous", Content: flow.ErrAmbiguous.Error()}
+		}
 		idx := upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
-		_ = a.saveRun(ctx, *run)
+		if err := a.saveRun(ctx, *run); err != nil {
+			a.checkpointErr = err
+			return model.ToolResult{ID: call.ID, Refused: "checkpoint", Content: err.Error()}
+		}
 		res := next(ctx, call)
 		if idx < 0 || idx >= len(run.Steps) || run.Steps[idx].Name != name {
 			idx = upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
@@ -291,13 +325,18 @@ func (a *agentImpl) checkpointToolWrap(next model.ToolHandler) model.ToolHandler
 		if res.Refused != "" {
 			run.Steps[idx].Status = "failed"
 			run.Steps[idx].Error = res.Content
-			_ = a.saveRun(ctx, *run)
+			if err := a.saveRun(ctx, *run); err != nil {
+				a.checkpointErr = err
+			}
 			return res
 		}
 		run.Steps[idx].Status = "done"
 		run.Steps[idx].Result = res.Content
 		run.Steps[idx].Error = ""
-		_ = a.saveRun(ctx, *run)
+		if err := a.saveRun(ctx, *run); err != nil {
+			a.checkpointErr = err
+			return model.ToolResult{ID: call.ID, Refused: "checkpoint", Content: err.Error()}
+		}
 		return res
 	}
 }
@@ -382,4 +421,47 @@ func mergeCheckpointToolCalls(checkpointed, current []model.ToolCall) []model.To
 func toolCallKey(name string, input map[string]any) string {
 	b, _ := json.Marshal(input)
 	return name + ":" + string(b)
+}
+
+func (a *agentImpl) lockRun(ctx context.Context, id string) (func(), error) {
+	if cp, ok := a.opts.Checkpoint.(flow.Locker); ok {
+		return cp.Lock(ctx, id)
+	}
+	if a.opts.StrictRecovery {
+		return nil, fmt.Errorf("strict recovery requires a checkpoint with fenced run ownership")
+	}
+	return func() {}, nil
+}
+
+// Run starts or resumes a stable invocation ID. Completed runs return their saved
+// response. Use a persistent, fenced checkpoint for cross-process recovery.
+func Run(ctx context.Context, ag Agent, id, message string) (*Response, error) {
+	a, ok := ag.(*agentImpl)
+	if !ok {
+		return nil, fmt.Errorf("stable run unsupported by %T", ag)
+	}
+	if id == "" || a.opts.Checkpoint == nil {
+		return nil, fmt.Errorf("stable run requires an ID and checkpoint")
+	}
+	release, err := a.lockRun(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	saved, exists, err := a.opts.Checkpoint.Load(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		if saved.Flow != a.opts.Name {
+			return nil, fmt.Errorf("run belongs to another agent")
+		}
+		return a.resume(ctx, id)
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.model == nil {
+		a.setup()
+	}
+	return a.askLocked(ctx, id, message, "", nil, true)
 }

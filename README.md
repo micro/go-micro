@@ -1,6 +1,6 @@
 # Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v6?tab=doc)
 
-A framework for building services and agents in Go.
+A framework for building services, agents, and workflows in Go.
 
 Go Micro started with service communication: RPC, discovery, and pub/sub built
 on pluggable interfaces. That foundation now gives agents tools they can discover

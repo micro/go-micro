@@ -169,3 +169,5 @@ To add a new example:
 3. Include working code with comments
 4. Add to this index under the lifecycle stage it supports
 5. Ensure it runs with `go run .`
+
+For restartable services, agents, and approval flows, see [durable-flow](durable-flow/).

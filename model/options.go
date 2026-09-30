@@ -44,6 +44,8 @@ const (
 
 // GenerateOptions for generate call
 type GenerateOptions struct {
+	SingleTurn bool // disables provider-owned tool execution
+
 	// Context for this specific generate call
 	Context context.Context
 }

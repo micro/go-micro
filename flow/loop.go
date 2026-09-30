@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"go-micro.dev/v6/internal/runstate"
 	"go-micro.dev/v6/model"
 )
 
@@ -69,8 +70,8 @@ func OnIteration(fn func(iter int, state State)) LoopOption {
 // The loop runs as a single flow step: the flow checkpoints the loop's
 // outcome, and a resume re-enters the step, so loop bodies should be safe to
 // repeat. Use OnIteration to record per-pass progress. If the cap is hit
-// before the stop condition fires, the loop returns the latest state rather
-// than erroring — the guardrail did its job.
+// before a configured stop condition fires, the loop returns an exhaustion error.
+// A loop with no stop condition deliberately runs Max iterations.
 func Loop(body StepFunc, opts ...LoopOption) StepFunc {
 	o := LoopOptions{Max: 10}
 	for _, op := range opts {
@@ -80,6 +81,9 @@ func Loop(body StepFunc, opts ...LoopOption) StepFunc {
 		o.Max = 10
 	}
 	return func(ctx context.Context, in State) (State, error) {
+		if d := depsFrom(ctx); d != nil && d.flow != nil && d.flow.opts.StrictRecovery {
+			return in, fmt.Errorf("strict recovery requires explicit checkpointed steps instead of Loop")
+		}
 		if body == nil {
 			return in, fmt.Errorf("flow: Loop requires a body step")
 		}
@@ -100,6 +104,9 @@ func Loop(body StepFunc, opts ...LoopOption) StepFunc {
 			if done {
 				return cur, nil
 			}
+		}
+		if o.Until != nil || o.UntilLLM != "" {
+			return cur, runstate.ErrLimit
 		}
 		return cur, nil
 	}
