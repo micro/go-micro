@@ -2,10 +2,14 @@
 
 A framework for building services and agents in Go.
 
+## Overview
+
 Go Micro started with service communication: RPC, discovery, and pub/sub built
 on pluggable interfaces. That foundation now gives agents tools they can discover
 and call. You can build services independently, add an agent to work with them,
 and use workflows for repeatable sequences of work.
+
+## Features
 
 - **Services** implement capabilities and own their data.
 - **Models** provide access to AI providers through a common interface.
