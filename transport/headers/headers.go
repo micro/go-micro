@@ -13,7 +13,7 @@ const (
 	// Method header.
 	Method = "Micro-Method"
 	// ID header.
-	ID = "Micro-ID"
+	ID = "Micro-Id"
 	// Prefix used to prefix headers.
 	Prefix = "Micro-"
 	// Namespace header.
@@ -25,9 +25,9 @@ const (
 	// ContentType header.
 	ContentType = "Content-Type"
 	// SpanID header.
-	SpanID = "Micro-Span-ID"
+	SpanID = "Micro-Span-Id"
 	// TraceIDKey header.
-	TraceIDKey = "Micro-Trace-ID"
+	TraceIDKey = "Micro-Trace-Id"
 	// Stream header.
 	Stream = "Micro-Stream"
 )
