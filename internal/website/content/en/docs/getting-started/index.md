@@ -3,14 +3,14 @@ title: "Getting Started"
 description: "Build an agent, develop services, and use them through conversation."
 ---
 
-Go Micro is an agent harness and service framework for Go. Start with a
+Go Micro is a framework for building services and agents in Go. Start with a
 conversation, develop the capabilities you need as services, and let the agent
 use their endpoints as tools.
 
 ## Start through conversation
 
 Follow the [Quick Start](../quickstart.md) to install Go 1.25+ and the v6 CLI,
-configure a provider key, and start `micro chat --provider openai` in a new directory.
+configure a provider key, and start `micro chat` in a new directory.
 With no registered agents, the CLI development agent can generate missing
 services, compile and start them, and discover their tools for use in the same
 conversation. `micro run --prompt "..." --provider openai` lets you review a design
@@ -60,11 +60,11 @@ func main() {
 }
 ```
 
-Run it with `go run .`. In another terminal with your provider key exported, talk
-to it:
+Run it with `go run .`. In another terminal, talk to it. Chat discovers the running agent and uses
+its model and credentials:
 
 ```bash
-micro chat assistant --provider openai
+micro chat
 ```
 
 ### Give the agent services as tools
@@ -173,11 +173,11 @@ again. See [Agents and Workflows](../guides/agents-and-workflows.md) and
 
 | Command | Purpose |
 |---------|---------|
-| `micro chat --provider openai` | Use the development agent when none are registered; otherwise route to registered agents |
+| `micro chat` | Use the development agent when none are registered; otherwise route to registered agents |
 | `micro run --prompt "..." --provider openai` | Review a design, generate services and an agent, then run them |
 | `micro run` | Run the current project with hot reload, gateway, and console |
 | `micro run -d` | Run without the console, in the foreground |
-| `micro chat assistant --provider openai` | Talk to a specific running agent |
+| `micro chat <name>` | Talk to a specific running agent |
 | `micro inspect agent assistant` | Inspect that agent's recorded runs |
 | `micro new myservice` | Scaffold a service to implement yourself |
 | `micro build` | Compile production binaries |

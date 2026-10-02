@@ -167,7 +167,7 @@ micro call task TaskService.List '{}'
 In another terminal, ask the agent to use the service:
 
 ```sh
-micro chat assistant --provider openai
+micro chat
 ```
 
 Try:

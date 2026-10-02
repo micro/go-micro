@@ -1,7 +1,7 @@
 ---
 title: Documentation
 linkTitle: Docs
-description: "Documentation for the Go Micro agent harness and service framework."
+description: "Documentation for building services and agents with Go Micro."
 menu:
   main:
     weight: 10
@@ -9,7 +9,7 @@ menu:
 ---
 ## Build with an agent
 
-Go Micro is an agent harness and service framework for Go. Describe what you need
+Go Micro is a framework for building services and agents in Go. Describe what you need
 in `micro chat`, develop services, and use their endpoints as tools through
 conversation. You can also create an agent directly with `micro.NewAgent`, choose
 its model and instructions, and assign the services it can use.

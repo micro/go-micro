@@ -84,13 +84,13 @@ make harness
 
 When you are ready to build the smaller live-agent version yourself, follow
 [Your First Agent](your-first-agent.md). The command shape is the same, but a
-live `micro chat` turn needs a provider key because the model is no longer
-mocked:
+live agent needs a provider key in the shell that runs it. The chat client
+connects to that agent without a local key:
 
 ```sh
 micro agent preflight
 micro run
-micro chat assistant
+micro chat
 micro inspect agent assistant
 ```
 
@@ -108,7 +108,7 @@ chat command finishes, continue the same terminal transcript with the inspection
 and history commands before changing prompts or provider settings:
 
 ```sh
-micro chat assistant --prompt "Triage ticket-1 for Alice"
+micro chat --prompt "Triage ticket-1 for Alice"
 micro inspect agent assistant --limit 1
 micro agent history assistant
 ```

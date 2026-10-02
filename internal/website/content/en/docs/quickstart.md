@@ -16,7 +16,7 @@ start a conversation in a new directory:
 ```bash
 export OPENAI_API_KEY=your-api-key
 mkdir my-app && cd my-app
-micro chat --provider openai
+micro chat
 ```
 
 Describe a capability you want to build, then ask the agent to use it. For example:
@@ -69,3 +69,10 @@ For a provider-free check, `micro agent demo` prints the mock-model walkthrough;
 commands. See the [no-secret transcript](guides/no-secret-first-agent.md) and
 [0→hero reference](guides/zero-to-hero.md). These are optional checks, not steps
 required before conversational development.
+
+OpenAI is the default provider. For another provider, use
+`micro chat --provider anthropic` with its API key. When exactly one agent is
+registered, `micro chat` connects directly using that agent’s model and credentials.
+With multiple agents, the CLI needs a provider key to route requests;
+`micro chat <name>` connects directly to one without a local key. Put flags before
+the optional agent name.

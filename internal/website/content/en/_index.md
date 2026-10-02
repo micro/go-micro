@@ -71,7 +71,7 @@ params:
 <div class="text-center mb-5">
     <h1 class="display-3 fw-bold mb-4">
         <span class="gradient-text">Go Micro</span></br>
-        An Agent Harness for Go
+        A Framework for Services and Agents in Go
     </h1>
     <p class="lead text-gray-custom mb-5 mx-auto">
         Build an agent, give it services as tools, and use them through conversation.
@@ -100,7 +100,7 @@ Get the code
 {{% blocks/section color="light" type="row" pattern=true padding="py-5" %}}
 <div class="row g-4 justify-content-center">
 <h2>Features</h2>
-<p class="text-body-secondary mb-4">An agent harness and a service framework in one — agents, services, and flows on the same runtime, with the production pieces agents need.
+<p class="text-body-secondary mb-4">Build services, give agents tools to call them, and coordinate work with flows.
 </p>
 </div>
 <div class="row g-4 justify-content-center">
@@ -127,7 +127,7 @@ Get the code
 <div class="col-lg-4 col-md-6">
 {{% elements/variant-card
     color="gradient"
-    title="Durable Workflows"
+    title="Workflows"
     subtitle="Use fixed, checkpointed code paths for deterministic work; hand off to agents when the path is dynamic."
 %}}
 <div class="p-3 display-3">⚙️</div>
@@ -173,8 +173,8 @@ Get the code
 </div>
 <div class="col-lg-6 p-4">
 <h2>Develop Through Conversation</h2>
-<p>Start with <code>micro chat</code> in a new project. With no registered agents, the development agent can generate a missing service, build and start it, and discover its endpoints as tools. Describe what you need, then use it in the same conversation.</p>
-<pre><code><span style="color:#a82424">$</span> <span style="color:#6639a6">micro chat</span> <span style="color:#075985">--provider openai</span></code><br>
+<p>Start with <code>micro chat</code> in a new project. With no registered agents, the development agent can generate a missing service, build and start it, and discover its endpoints as tools. Set OPENAI_API_KEY, then describe what you need. Generated services become tools on your next message. If one agent is already running, chat connects directly without a local provider key.</p>
+<pre><code><span style="color:#a82424">$</span> <span style="color:#6639a6">micro chat</span></code><br>
 <code><span style="color:#a82424">&gt;</span> Build a notes service that can save, list, and search notes.</code></pre>
 <a class="btn btn-go mt-3" href="/docs/getting-started.html">Create Your Agent</a>
 </div>

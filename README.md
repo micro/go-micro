@@ -71,15 +71,13 @@ Install the optional CLI and talk to the agent from another terminal:
 
 ```bash
 go install go-micro.dev/v6/cmd/micro@latest
+micro chat
 ```
 
-Run the chat
+Chat connects directly when one agent is registered; no agent name or local
+provider key is needed. With multiple agents, a local model routes requests.
 
-```
-micro chat assistant --provider openai
-```
-
-To develop through conversation, run `micro chat --provider openai` in a new
+To develop through conversation, run `micro chat` in a new
 directory with your provider key exported. With no registered agents, the CLI's
 development agent can generate, build, and start services, then use them as tools.
 Those processes stop when chat exits; the source remains. Use `micro run` to

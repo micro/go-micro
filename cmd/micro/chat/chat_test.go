@@ -3,7 +3,10 @@ package chat
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
+	"github.com/urfave/cli/v2"
+	"os"
 	"os/exec"
 	"testing"
 
@@ -209,5 +212,48 @@ func TestRouterUsesConfiguredHarness(t *testing.T) {
 	}
 	if c.calls != 1 {
 		t.Fatalf("calls=%d", c.calls)
+	}
+}
+
+func TestChatDiscoversSingleAgentWithoutLocalModel(t *testing.T) {
+	for _, interactive := range []bool{false, true} {
+		t.Run(fmt.Sprint(interactive), func(t *testing.T) {
+			reg := registry.NewMemoryRegistry()
+			if err := reg.Register(&registry.Service{Name: "assistant", Metadata: map[string]string{"type": "agent"}, Nodes: []*registry.Node{{Id: "assistant-1", Address: "localhost:1234"}}}); err != nil {
+				t.Fatal(err)
+			}
+			oldReg, oldClient, oldStdin := registry.DefaultRegistry, client.DefaultClient, os.Stdin
+			remote := &remoteClient{Client: oldClient}
+			registry.DefaultRegistry, client.DefaultClient = reg, remote
+			t.Cleanup(func() { registry.DefaultRegistry, client.DefaultClient, os.Stdin = oldReg, oldClient, oldStdin })
+			input, err := os.CreateTemp(t.TempDir(), "input")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer input.Close()
+			if _, err := input.WriteString("Hello\nexit\n"); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := input.Seek(0, 0); err != nil {
+				t.Fatal(err)
+			}
+			os.Stdin = input
+			flags := flag.NewFlagSet("chat", flag.ContinueOnError)
+			// An unknown local provider proves the remote path needs no adapter.
+			flags.String("provider", "unconfigured", "")
+			flags.String("api_key", "", "")
+			prompt := "Hello"
+			if interactive {
+				prompt = ""
+			}
+			flags.String("prompt", prompt, "")
+			ctx := cli.NewContext(cli.NewApp(), flags, nil)
+			if err := run(ctx); err != nil {
+				t.Fatal(err)
+			}
+			if remote.calls != 1 {
+				t.Fatalf("got %d calls, want 1", remote.calls)
+			}
+		})
 	}
 }

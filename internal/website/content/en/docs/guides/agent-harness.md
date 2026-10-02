@@ -2,25 +2,25 @@
 title: "The Agent Harness"
 ---
 
-The first wave of agent frameworks solved one problem: put a model in a loop with
-some tools. The harder problem is **operating** that loop — and that's what a
-harness is.
+Go Micro's `agent` package combines a model, conversation memory, service tools,
+and tool guardrails. `micro chat` uses this package for its development agent and
+for routing requests between registered agents. A single registered agent is
+called directly and owns its model and credentials.
 
-A harness is the runtime around an agent:
+The framework also supplies discovery, RPC, storage, and flows. Those support
+agents, but are not substitutes for managing the model's conversation and tools.
 
-- the **tools** it can call,
-- the **memory** it keeps,
-- the **guardrails** that bound it,
-- the **workflows** that trigger and structure it,
-- the **state** that survives a restart,
-- the **observability** to see what it did,
-- the **services** it depends on,
-- and the **protocols** other agents use to reach it.
+## Current limits
 
-Go Micro's bet is that this runtime is the one you already deploy. An agent is a
-service with a model inside; the harness is the distributed-systems machinery
-services already have. So you don't bolt a separate orchestration product onto
-your stack — the harness *is* the stack.
+- Development chat keeps conversation and plan state only for the session.
+  `reset` clears it; exiting does not save a resumable CLI conversation.
+- Generated services become available on the next message. Chat can generate
+  services, but does not provide a general file-editing and shell coding agent.
+- `micro chat --stream` shows tool events and chunks the completed answer;
+  it does not stream provider tokens while the model generates.
+- Checkpoints reuse recorded results. They do not make an external action and
+  its checkpoint write atomic. An interruption between them can repeat an action;
+  services must handle retries safely. See [durability](durability.md).
 
 ## The pieces, and what they map to
 
@@ -45,7 +45,7 @@ and the work is happening in the open.
 
 Agents can persist their execution history to the same `Checkpoint` backend as
 flows. A checkpointed `Ask` records the run id, original prompt, model result,
-and completed tool calls. If the process restarts after a tool succeeds but
+and completed tool calls. If the process restarts after a tool result has been saved but
 before the model finishes, `AgentResume` continues the same run and returns the
 recorded tool result instead of re-running the side effect. If a run already
 completed, resume returns the persisted response without calling the model.
@@ -70,10 +70,9 @@ _ = resp
 Choose the boundary deliberately: use a durable flow when the steps are known
 (`reserve`, `charge`, `confirm`) and each step has deterministic retry/resume
 semantics. Use a checkpointed agent run when the model is deciding which tools to
-call or how many turns it needs, but the side effects of completed tool calls
-still need crash-safe resume. Flows and agents share the same `Checkpoint`
-interface, so a flow can safely dispatch to a checkpointed agent for the
-open-ended part.
+call or how many turns it needs, while reusing recorded tool results. Flows and agents share the same
+`Checkpoint` interface. Recovery still depends on the service handling repeated
+actions safely.
 
 For human-in-the-loop runs that pause through the built-in `request_input` tool,
 resume with the operator's response:
