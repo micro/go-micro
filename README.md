@@ -71,6 +71,11 @@ Install the optional CLI and talk to the agent from another terminal:
 
 ```bash
 go install go-micro.dev/v6/cmd/micro@latest
+```
+
+Run the chat
+
+```
 micro chat assistant --provider openai
 ```
 
