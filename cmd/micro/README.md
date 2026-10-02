@@ -18,7 +18,7 @@ go install go-micro.dev/v6/cmd/micro@latest
 ```bash
 export OPENAI_API_KEY=your-api-key
 mkdir my-app && cd my-app
-micro chat --provider openai
+micro chat
 ```
 
 With no registered agents, the CLI development agent can generate a missing
@@ -40,9 +40,17 @@ micro run --prompt "a notes service with saving, listing, and search" --provider
 ```
 
 If agents are already registered, `micro chat` routes requests to them.
-`micro chat assistant --provider openai` selects a named agent. Create named
+`micro chat <name>` optionally selects a named agent. Create named
 agents with `micro.NewAgent` and assign service tools with `micro.AgentServices`;
 see the [Getting Started guide](../../internal/website/content/en/docs/getting-started/index.md).
+
+
+OpenAI is the default provider. For another provider, use
+`micro chat --provider anthropic` with its API key. When exactly one agent is
+registered, `micro chat` connects directly using that agent’s model and credentials.
+With multiple agents, the CLI needs a provider key to route requests;
+`micro chat <name>` connects directly to one without a local key. Put flags before
+the optional agent name.
 
 ## Create a service
 

@@ -64,6 +64,10 @@ func init() {
 		Usage: "Interactive AI chat that orchestrates your services",
 		Description: `Start an interactive chat session that uses an LLM to call your services.
 
+With one registered agent, micro chat connects directly without a local API key.
+Use micro chat assistant to select a particular agent when several are running.
+With no registered agents, chat uses a local development agent.
+
 micro chat discovers every service in the registry, exposes each endpoint as a
 tool, and lets you ask natural-language questions like "list all users" or
 "create an order for product 42". The model decides which tool to call and
@@ -75,7 +79,7 @@ a new service automatically. Its tools are available on your next message.
 Examples:
   ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
   micro chat --provider openai --prompt "list all users"
-  micro chat assistant --prompt "create a task"`,
+  micro chat --prompt "create a task"`,
 		ArgsUsage: "[agent]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "provider", Usage: "AI provider (anthropic, openai, gemini, groq, mistral, together, atlascloud)", EnvVars: []string{"MICRO_AI_PROVIDER"}},
@@ -389,19 +393,18 @@ func run(c *cli.Context) error {
 		s.agents = map[string]agentInfo{targetAgent: s.agents[targetAgent]}
 		hasAgents = true
 	}
-	if targetAgent != "" && singlePrompt != "" {
-		return s.ask(c.Context, singlePrompt)
+	// A single registered agent owns its model and credentials. Only local
+	// development and routing between multiple agents need a CLI model.
+	if len(s.agents) != 1 {
+		if apiKey == "" {
+			return fmt.Errorf("no API key configured; set --api_key or %s", envVarForProvider(provider))
+		}
+		configured := model.New(provider, model.WithAPIKey(apiKey), model.WithModel(modelName), model.WithBaseURL(baseURL))
+		if configured == nil {
+			return fmt.Errorf("unknown provider: %s", provider)
+		}
+		s.modelName = configured.Options().Model
 	}
-	if apiKey == "" {
-		return fmt.Errorf("no API key configured; set --api_key or %s", envVarForProvider(provider))
-	}
-
-	// Constructing the adapter resolves defaults without running a model call.
-	configured := model.New(provider, model.WithAPIKey(apiKey), model.WithModel(modelName), model.WithBaseURL(baseURL))
-	if configured == nil {
-		return fmt.Errorf("unknown provider: %s", provider)
-	}
-	s.modelName = configured.Options().Model
 	s.refreshTools()
 
 	defer s.cleanup()
@@ -413,9 +416,11 @@ func run(c *cli.Context) error {
 	fmt.Println()
 	fmt.Println("  \033[1mmicro chat\033[0m")
 	fmt.Println()
-	fmt.Printf("  Provider    \033[36m%s\033[0m\n", provider)
-	fmt.Printf("  Model       \033[36m%s\033[0m\n", s.modelName)
-	fmt.Println()
+	if len(s.agents) != 1 {
+		fmt.Printf("  Provider    \033[36m%s\033[0m\n", provider)
+		fmt.Printf("  Model       \033[36m%s\033[0m\n", s.modelName)
+		fmt.Println()
+	}
 	if hasAgents {
 		fmt.Println("  Agents:")
 		for name, info := range s.agents {
