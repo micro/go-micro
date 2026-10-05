@@ -3,7 +3,9 @@ package main
 import (
 	"embed"
 	"go-micro.dev/v6/cmd"
+	"os/exec"
 	"runtime/debug"
+	"strings"
 
 	// Link every plugin so CLI flag selection (--registry etcd, --broker nats,
 	// --profile nats, ...) keeps working; library users omit this import.
@@ -61,6 +63,15 @@ func getVersion() string {
 				revision += "-dirty"
 			}
 			return revision
+		}
+	}
+	// The go tool stamps no VCS info for linked worktrees (.git is a file,
+	// not a dir), so dev installs from a worktree get here. Ask git about
+	// the repo in the current directory instead; silent when absent.
+	// ponytail: one exec, ~15ms, dev-builds only; releases return above.
+	if out, err := exec.Command("git", "describe", "--tags", "--always", "--dirty").Output(); err == nil {
+		if rev := strings.TrimSpace(string(out)); rev != "" {
+			return rev
 		}
 	}
 	return version
