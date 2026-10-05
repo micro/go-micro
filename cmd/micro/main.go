@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"go-micro.dev/v6/cmd"
+	"runtime/debug"
 
 	// Link every plugin so CLI flag selection (--registry etcd, --broker nats,
 	// --profile nats, ...) keeps working; library users omit this import.
@@ -29,6 +30,42 @@ var webFS embed.FS
 
 var version = "5.0.0-dev"
 
+// getVersion reports the ldflags-injected release version when set,
+// else the module or VCS revision stamped by the go tool, so binaries
+// installed via `go install ./cmd/micro` report the git commit instead
+// of the 5.0.0-dev fallback. Same build-info pattern as microVersion
+// in cmd/micro/cli/new (ponytail: keep in sync, don't abstract).
+func getVersion() string {
+	if version != "5.0.0-dev" && version != "" {
+		return version
+	}
+	if info, ok := debug.ReadBuildInfo(); ok {
+		if info.Main.Version != "" && info.Main.Version != "(devel)" {
+			return info.Main.Version
+		}
+		var revision string
+		var modified bool
+		for _, setting := range info.Settings {
+			switch setting.Key {
+			case "vcs.revision":
+				revision = setting.Value
+			case "vcs.modified":
+				modified = setting.Value == "true"
+			}
+		}
+		if revision != "" {
+			if len(revision) > 7 {
+				revision = revision[:7]
+			}
+			if modified {
+				revision += "-dirty"
+			}
+			return revision
+		}
+	}
+	return version
+}
+
 func init() {
 	gateway.HTML = webFS
 }
@@ -36,6 +73,6 @@ func init() {
 func main() {
 	_ = cmd.Init(
 		cmd.Name("micro"),
-		cmd.Version(version),
+		cmd.Version(getVersion()),
 	)
 }
