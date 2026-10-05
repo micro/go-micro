@@ -30,15 +30,15 @@ import (
 //go:embed web/styles.css web/main.js web/templates/*
 var webFS embed.FS
 
-var version = "5.0.0-dev"
+var version = "v6-dev"
 
 // getVersion reports the ldflags-injected release version when set,
 // else the module or VCS revision stamped by the go tool, so binaries
 // installed via `go install ./cmd/micro` report the git commit instead
-// of the 5.0.0-dev fallback. Same build-info pattern as microVersion
+// of the v6-dev fallback. Same build-info pattern as microVersion
 // in cmd/micro/cli/new (ponytail: keep in sync, don't abstract).
 func getVersion() string {
-	if version != "5.0.0-dev" && version != "" {
+	if version != "v6-dev" && version != "" {
 		return version
 	}
 	if info, ok := debug.ReadBuildInfo(); ok {
