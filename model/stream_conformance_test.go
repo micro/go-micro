@@ -230,7 +230,11 @@ func TestConfiguredProviderStreamsSkipWithoutCredentials(t *testing.T) {
 				opts = append(opts, model.WithModel(modelName))
 			}
 			stream, err := model.New(tc.provider, opts...).Stream(context.Background(), &model.Request{Prompt: "Reply with exactly: ok"})
+			// ponytail: placeholder/invalid keys are missing creds, not failures
 			if err != nil {
+				if model.ClassifyError(err) == model.ErrorKindAuth {
+					t.Skipf("%s key invalid (%v); skipping configured provider stream check", tc.keyEnv, err)
+				}
 				t.Fatalf("Stream returned error: %v", err)
 			}
 			defer stream.Close()
@@ -246,6 +250,9 @@ func TestConfiguredProviderStreamsSkipWithoutCredentials(t *testing.T) {
 				if err != nil {
 					if errors.Is(err, io.EOF) {
 						t.Fatal("provider stream ended without content")
+					}
+					if model.ClassifyError(err) == model.ErrorKindAuth {
+						t.Skipf("%s key invalid (%v); skipping configured provider stream check", tc.keyEnv, err)
 					}
 					t.Fatalf("Recv returned error: %v", err)
 				}

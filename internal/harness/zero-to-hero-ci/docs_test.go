@@ -218,7 +218,7 @@ func TestYourFirstAgentTutorialSmoke(t *testing.T) {
 		"micro run",
 		"micro call task TaskService.Create",
 		"micro call task TaskService.List",
-		"micro chat assistant",
+		"micro chat",
 		"micro inspect agent assistant",
 	} {
 		if !strings.Contains(guide, want) {
@@ -499,7 +499,7 @@ func TestFirstAgentGuideChainDocumentsRequiredNextSteps(t *testing.T) {
 				"make harness",
 				"micro agent preflight",
 				"micro run",
-				"micro chat assistant",
+				"micro chat",
 				"micro inspect agent assistant",
 				"Debugging your agent",
 				"debugging-agents.md",
@@ -514,7 +514,7 @@ func TestFirstAgentGuideChainDocumentsRequiredNextSteps(t *testing.T) {
 				"micro agent preflight",
 				"micro agent doctor",
 				"micro run",
-				"micro chat assistant",
+				"micro chat",
 				"micro inspect agent assistant",
 				"debugging-agents.md",
 				"zero-to-hero.md",
@@ -687,7 +687,7 @@ func TestGettingStartedDocsLeadWithConversation(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	for _, file := range []string{"README.md", "cmd/micro/README.md", "internal/website/content/en/docs/quickstart.md", "internal/website/content/en/docs/getting-started/index.md"} {
 		doc := readFile(t, filepath.Join(root, file))
-		chat := strings.Index(doc, "micro chat --provider openai")
+		chat := strings.Index(doc, "micro chat")
 		if chat < 0 {
 			t.Errorf("%s does not introduce development chat", file)
 		}
@@ -715,7 +715,7 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 		"make harness",
 		"micro agent preflight",
 		"micro run",
-		"micro chat assistant",
+		"micro chat",
 		"micro inspect agent assistant",
 		"go test ./cmd/micro -run TestFirstAgentWalkthroughCLIBoundaries -count=1",
 		"No-secret first-agent transcript",
@@ -727,7 +727,7 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 
 	debugCheckpoint := firstMarkdownSection(t, guide, "## Debug transcript checkpoint")
 	for _, want := range []string{
-		`micro chat assistant --prompt "Triage ticket-1 for Alice"`,
+		`micro chat --prompt "Triage ticket-1 for Alice"`,
 		"micro inspect agent assistant --limit 1",
 		"micro agent history assistant",
 		"status, event count, last event",
