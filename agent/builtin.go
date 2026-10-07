@@ -467,7 +467,8 @@ func (a *agentImpl) approveWrap(next model.ToolHandler) model.ToolHandler {
 				}
 				a.currentRun.Steps = append(a.currentRun.Steps, flow.StepRecord{Name: approvalPrefix + decision.ID, Status: "pending", Result: string(data)})
 				a.pause = &approvalPause{ApprovalID: decision.ID, Tool: call.Name, Message: decision.Reason}
-				if err := a.persistApprovalPause(ctx, a.currentRun); err != nil && !errors.Is(err, ErrRunPaused) {
+				// ponytail: persistApprovalPause never returns nil (PausedError or save err), so no nil check
+				if err := a.persistApprovalPause(ctx, a.currentRun); !errors.Is(err, ErrRunPaused) {
 					a.approvalErr = err
 					a.currentRun.Steps = a.currentRun.Steps[:len(a.currentRun.Steps)-1]
 					a.pause = nil

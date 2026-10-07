@@ -35,6 +35,28 @@ func TestCliSourceDefault(t *testing.T) {
 		&cli.StringFlag{
 			Name: "test.paniconexit0",
 		},
+		// ponytail: go test injects these into os.Args; accept to run inside go test
+		&cli.StringFlag{
+			Name: "test.count",
+		},
+		&cli.StringFlag{
+			Name: "test.cpu",
+		},
+		&cli.StringFlag{
+			Name: "test.benchtime",
+		},
+		&cli.StringFlag{
+			Name: "test.coverprofile",
+		},
+		&cli.StringFlag{
+			Name: "test.outputdir",
+		},
+		&cli.StringFlag{
+			Name: "test.shuffle",
+		},
+		&cli.StringFlag{
+			Name: "test.failfast",
+		},
 		&cli.StringFlag{
 			Name:    "flag",
 			Usage:   "It changes something",

@@ -464,28 +464,25 @@ func (c *cache) run(service string) {
 		// reset a
 		a = 0
 
-		// watch for events
-		if err := c.watch(w); err != nil {
-			if c.quit() {
-				return
-			}
-
-			d := backoff(b)
-			c.setStatus(err)
-
-			if b > 3 {
-				logger.Logf(log.DebugLevel, "rcache: ", err, " backing off ", d)
-				b = 0
-			}
-
-			time.Sleep(d)
-			b++
-
-			continue
+		// watch blocks until the watcher errors; it never returns nil.
+		// ponytail: no err-nil check, quit check first
+		watchErr := c.watch(w)
+		if c.quit() {
+			return
 		}
 
-		// reset b
-		b = 0
+		d := backoff(b)
+		c.setStatus(watchErr)
+
+		if b > 3 {
+			logger.Logf(log.DebugLevel, "rcache: ", watchErr, " backing off ", d)
+			b = 0
+		}
+
+		time.Sleep(d)
+		b++
+
+		continue
 	}
 }
 
