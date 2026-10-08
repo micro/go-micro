@@ -27,11 +27,29 @@ you need, then ask it to use the service on your next message. Generated
 source stays in your directory; services started by this session stop on exit.
 Use `micro run` to continue developing the project with hot reload.
 
-Development chat uses the framework agent harness, including tool guardrails.
-Conversation and plan state stay in memory for the session; `reset` clears that
-local state. It does not reset a remote agent. `--stream` shows tool events as
-they happen and chunks the completed answer; it does not stream native provider
-tokens during generation. An interrupted remote stream is not retried automatically.
+Development chat uses the framework agent and saves its conversation and plan
+through the existing store. Reopening `micro chat` in the same directory selects
+the last conversation. The terminal supports input editing, command completion,
+and cancellation while a request is running:
+
+- `/new`: start a separate conversation (`reset` is an alias).
+- `/sessions`: list saved conversation IDs and titles.
+- `/resume ID`: select a conversation.
+- `/stop` or Ctrl-C: cancel the current request.
+- `/exit`: leave chat and stop local work.
+
+Use `micro chat --new` or `micro chat --session ID` from the shell. Provider and
+model settings are saved per project. On a terminal, missing credentials prompt
+for a masked API key and save it locally in the file store; environment variables
+and flags override saved settings. Keys from the environment are not copied into
+settings. Saved keys are not reused when changing provider or endpoint.
+
+Tool activity appears during local execution. The terminal prints the completed
+answer together; `--stream` in scripts retains answer chunks. Native provider
+token streaming, background work after exit, and general file/shell tools remain
+separate work. Generated services still stop on exit. Remote sessions require an
+updated agent server using default store-backed memory; older servers report a
+compatibility error instead of silently sharing conversation history.
 
 To review a design before generating and running the project:
 

@@ -14,6 +14,7 @@ import (
 	"go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/store"
 )
 
 type harnessModel struct {
@@ -216,10 +217,13 @@ func TestRouterUsesConfiguredHarness(t *testing.T) {
 }
 
 func TestChatDiscoversSingleAgentWithoutLocalModel(t *testing.T) {
+	oldDir := store.DefaultDir
+	store.DefaultDir = t.TempDir()
+	defer func() { store.DefaultDir = oldDir }()
 	for _, interactive := range []bool{false, true} {
 		t.Run(fmt.Sprint(interactive), func(t *testing.T) {
 			reg := registry.NewMemoryRegistry()
-			if err := reg.Register(&registry.Service{Name: "assistant", Metadata: map[string]string{"type": "agent"}, Nodes: []*registry.Node{{Id: "assistant-1", Address: "localhost:1234"}}}); err != nil {
+			if err := reg.Register(&registry.Service{Name: "assistant", Metadata: map[string]string{"type": "agent", "sessions": "v1"}, Nodes: []*registry.Node{{Id: "assistant-1", Address: "localhost:1234"}}}); err != nil {
 				t.Fatal(err)
 			}
 			oldReg, oldClient, oldStdin := registry.DefaultRegistry, client.DefaultClient, os.Stdin

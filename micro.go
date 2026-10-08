@@ -195,6 +195,9 @@ func NewCompactingMemory(s store.Store, key string, maxMessages, keepRecent int)
 // NewInMemory returns non-persistent agent memory.
 func NewInMemory(limit int) Memory { return agent.NewInMemory(limit) }
 
+// AgentSession selects an independent persistent conversation within an agent.
+func AgentSession(id string) AgentOption { return agent.Session(id) }
+
 // AgentMemory sets the agent's conversation memory (default: store-backed).
 func AgentMemory(m Memory) AgentOption { return agent.WithMemory(m) }
 
