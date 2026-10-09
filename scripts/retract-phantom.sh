@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # retract-phantom.sh — Publish orphan retraction tags for phantom module paths.
 #
-# Usage:  ./retract-phantom.sh [--dry-run] [--push] [--pilot]
+# Usage:  ./scripts/retract-phantom.sh [--dry-run] [--push] [--pilot]
 #
 # Creates 4 orphan commits (one per module base: v0, v4, v5, v6), each containing
 # all go.mod files with retract directives for phantom paths in that base.

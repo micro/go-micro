@@ -784,7 +784,13 @@ func (s *session) showEvent(event *agent.StreamEvent) {
 			s.display.flush()
 		}
 		fmt.Fprintf(s.writer(), "  ← %s\n", terminalText(truncateResult(event.Result.Content)))
-	case agent.StreamEventToken, agent.StreamEventToolOutput:
+	case agent.StreamEventToolOutput:
+		if s.display != nil {
+			s.display.output(event.Token)
+		} else {
+			fmt.Fprint(s.writer(), event.Token)
+		}
+	case agent.StreamEventToken:
 		if s.display != nil {
 			s.display.token(event.Token)
 		} else {

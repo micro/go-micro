@@ -33,6 +33,9 @@ func (s *session) promptApproval(ctx context.Context, call model.ToolCall) (agen
 	if err := ctx.Err(); err != nil {
 		return agent.ApprovalDecision{}, err
 	}
+	if s.display != nil {
+		s.display.flush()
+	}
 	request := approvalRequest{ctx: ctx, answer: make(chan bool, 1)}
 	data, _ := json.MarshalIndent(call.Input, "", "  ")
 	fmt.Fprintf(s.writer(), "\nApprove %s?\n%s\n/approve or /deny\n", terminalText(call.Name), data)

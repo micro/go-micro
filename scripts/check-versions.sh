@@ -2,7 +2,7 @@
 # check-versions.sh — Run `go list -m -versions` for every phantom module path
 # declared in retract-phantom.sh.
 #
-# Usage:  ./check-versions.sh [--dry-run]
+# Usage:  ./scripts/check-versions.sh [--dry-run]
 #
 #   --dry-run  print the paths only, without running go list
 
