@@ -228,16 +228,33 @@ history, and no-secret fallback checks.`,
 					if c.Bool("json") {
 						return printRunIndex(name, runOptions(c), true)
 					}
-					// Read from the agent's scoped state store (database
-					// "agent", table = name) — available whether or not the
-					// agent is currently running.
-					mem := goagent.NewMemory(store.Scope(store.DefaultStore, "agent", name), "history", 1000)
-					msgs := mem.Messages()
-					if len(msgs) == 0 {
-						fmt.Printf("  No history for agent %q.\n", name)
-					} else {
+					ids := []string{c.String("session")}
+					if ids[0] == "" {
+						runs, err := goagent.ListRunSummaries(store.DefaultStore, name)
+						if err != nil {
+							return err
+						}
+						seen := map[string]bool{"": true}
+						for _, run := range runs {
+							if !seen[run.Session] {
+								ids = append(ids, run.Session)
+								seen[run.Session] = true
+							}
+						}
+					}
+					for _, id := range ids {
+						msgs, err := goagent.LoadHistory(store.DefaultStore, name, id)
+						if err != nil {
+							return err
+						}
+						if len(msgs) == 0 {
+							continue
+						}
+						if id != "" {
+							fmt.Printf("  Session %s\n", id)
+						}
 						for _, m := range msgs {
-							fmt.Printf("  \033[2m%s:\033[0m %v\n", m.Role, m.Content)
+							fmt.Printf("  %s: %v\n", m.Role, m.Content)
 						}
 					}
 					return printRunIndex(name, runOptions(c), c.Bool("json"))
@@ -249,6 +266,7 @@ history, and no-secret fallback checks.`,
 
 func runFlags() []cli.Flag {
 	return []cli.Flag{
+		&cli.StringFlag{Name: "session", Usage: "Select a conversation ID"},
 		&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
 		&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, error, refused)"},
 		&cli.StringFlag{Name: "trace", Usage: "Only show runs whose trace id matches this full id or prefix"},
@@ -257,7 +275,7 @@ func runFlags() []cli.Flag {
 }
 
 func runOptions(c *cli.Context) goagent.RunListOptions {
-	return goagent.RunListOptions{Status: c.String("status"), TraceID: c.String("trace"), Limit: c.Int("limit")}
+	return goagent.RunListOptions{Session: c.String("session"), Status: c.String("status"), TraceID: c.String("trace"), Limit: c.Int("limit")}
 }
 
 func printRunIndex(name string, opts goagent.RunListOptions, asJSON bool) error {
@@ -281,6 +299,9 @@ func writeRunIndex(w io.Writer, name string, runs []goagent.RunSummary, asJSON b
 	fmt.Fprintln(w, "  Runs:")
 	for _, run := range runs {
 		line := fmt.Sprintf("    %s  status=%s  events=%d  duration=%s  last=%s  updated=%s", run.RunID, run.Status, run.Events, formatDurationMS(run.DurationMS), run.LastKind, run.UpdatedAt.Format("2006-01-02 15:04:05"))
+		if run.Session != "" {
+			line += "  session=" + run.Session
+		}
 		if run.ParentID != "" {
 			line += "  parent=" + run.ParentID
 		}

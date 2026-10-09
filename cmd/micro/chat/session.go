@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/store"
 )
 
@@ -84,4 +85,22 @@ func (s *session) remember(prompt string) error {
 		value.Title = previous.Title
 	}
 	return s.conversations().Write(store.NewRecord(key, value))
+}
+
+// showHistory uses the framework's stored conversation. Remote history is owned
+// by the remote agent and cannot be read from this client's local store.
+func (s *session) showHistory() error {
+	if len(s.agents) > 0 {
+		return nil
+	}
+	messages, err := agent.LoadHistory(s.state, "micro-chat", s.id)
+	if err != nil {
+		return err
+	}
+	for _, message := range messages {
+		if (message.Role == "user" || message.Role == "assistant") && message.Content != "" {
+			fmt.Fprintf(s.writer(), "%s: %s\n", message.Role, message.Content)
+		}
+	}
+	return nil
 }

@@ -53,6 +53,9 @@ func (s *session) interactive(ctx context.Context) error {
 	s.output = terminal.Stdout()
 	defer func() { s.output = nil }()
 	fmt.Fprintf(s.writer(), "Session %s\n/new · /sessions · /resume ID · /stop · /exit\n", s.id)
+	if err := s.showHistory(); err != nil {
+		return err
+	}
 	var cancel context.CancelFunc
 	var done <-chan error
 	defer func() {
@@ -115,6 +118,9 @@ func (s *session) interactive(ctx context.Context) error {
 				return err
 			}
 			fmt.Fprintf(s.writer(), "Session %s\n", s.id)
+			if err := s.showHistory(); err != nil {
+				return err
+			}
 		case line == "/sessions":
 			keys, err := s.conversations().List(store.ListPrefix("session/"))
 			if err != nil {

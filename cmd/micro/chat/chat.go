@@ -302,7 +302,10 @@ If no agent can handle the request, say so.`, strings.Join(agentDescs, "\n"))
 func (s *session) refreshTools() {
 	discovered, err := model.NewTools(s.reg, model.ToolClient(s.cl)).Discover()
 	if err == nil {
-		s.toolList = append(discovered, generateTool)
+		s.toolList = discovered
+		if len(s.agents) == 0 {
+			s.toolList = append(s.toolList, generateTool)
+		}
 	}
 }
 
@@ -429,7 +432,7 @@ func run(c *cli.Context) error {
 	fmt.Fprintln(s.writer(), "  \033[1mmicro chat\033[0m")
 	fmt.Fprintln(s.writer())
 	if len(s.agents) != 1 {
-		fmt.Fprintf(s.writer(), "  Provider    \033[36m%s\033[0m\n", provider)
+		fmt.Fprintf(s.writer(), "  Provider    \033[36m%s\033[0m\n", s.provider)
 		fmt.Fprintf(s.writer(), "  Model       \033[36m%s\033[0m\n", s.modelName)
 		fmt.Fprintln(s.writer())
 	}
@@ -440,9 +443,11 @@ func run(c *cli.Context) error {
 		}
 		fmt.Fprintln(s.writer())
 	}
-	fmt.Fprintln(s.writer(), "  Tools:")
-	for _, t := range s.toolList {
-		fmt.Fprintf(s.writer(), "    \033[32m●\033[0m %s\n", t.OriginalName)
+	if !hasAgents {
+		fmt.Fprintln(s.writer(), "  Tools:")
+		for _, t := range s.toolList {
+			fmt.Fprintf(s.writer(), "    \033[32m●\033[0m %s\n", t.OriginalName)
+		}
 	}
 	if len(s.toolList) == 0 && !hasAgents {
 		fmt.Fprintln(s.writer(), "    \033[33m(no services found)\033[0m")

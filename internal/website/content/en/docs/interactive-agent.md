@@ -22,14 +22,22 @@ Implemented in the first change:
 
 Conversation memory retains the configured history window (50 messages by
 default). This is not an unlimited transcript archive. Custom memory backends
-remain responsible for isolation; RPC session selection rejects custom memory
-rather than accidentally sharing it. Remote servers advertise session support,
+can implement `agent.SessionMemory` to supply isolated memory for each session.
+Backends without that interface do not advertise RPC session support. Remote servers advertise session support,
 and the CLI refuses unsupported servers instead of silently sharing history.
 
 Still needed for the full interaction milestone: multiline composition,
 formatted responses, transcript browsing, model selection inside chat, visible
 approval requests, and true provider streaming through the tool execution path.
 Use `model.Message` and `model.History` to represent conversation content.
+
+Run records remain indexed by agent name across conversations. Use
+`micro inspect agent NAME --session ID` or `micro agent history NAME --session ID`
+to select a conversation. Go callers can use `agent.LoadHistory` for stored
+messages and `agent.RunListOptions{Session: id}` for run summaries. Independent
+RPC sessions can run concurrently; requests for the same session are serialized.
+Local chat displays retained messages when reopening a conversation. Remote
+transcript retrieval and a shared session catalog are still needed.
 
 ## Workspace tools
 

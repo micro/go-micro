@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"testing"
+	"time"
 
 	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/model"
@@ -31,6 +32,14 @@ func TestSessionsPersistAndIsolate(t *testing.T) {
 	ask("two", "private two")
 	if len(history) != 0 {
 		t.Fatalf("session two saw history: %+v", history)
+	}
+	state := store.NewFileStore(store.DirOption(dir))
+	messages, err := LoadHistory(state, "shared", "one")
+	if err != nil || len(messages) != 2 || messages[0].Content != "private one" {
+		t.Fatalf("stored history=%+v err=%v", messages, err)
+	}
+	if err := state.Close(); err != nil {
+		t.Fatal(err)
 	}
 	ask("one", "continue")
 	if len(history) != 2 || history[0].Content != "private one" {
@@ -90,5 +99,68 @@ func TestRPCStreamUsesSessionHistory(t *testing.T) {
 	}
 	if len(history) != 2 || history[0].Content != "streamed" {
 		t.Fatalf("history=%+v", history)
+	}
+}
+
+func TestSessionRunsRemainDiscoverable(t *testing.T) {
+	st := store.NewMemoryStore()
+	a := newTestAgent(Name("sessions"), WithStore(st), Session("one"))
+	a.recordRunEvent(RunEvent{RunID: "first", Kind: "done"})
+	a.opts.Session = "two"
+	a.recordRunEvent(RunEvent{RunID: "second", Kind: "done"})
+	runs, err := ListRunSummaries(st, "sessions")
+	if err != nil || len(runs) != 2 {
+		t.Fatalf("runs=%+v err=%v", runs, err)
+	}
+	runs, err = ListRunSummariesWithOptions(st, "sessions", RunListOptions{Session: "one"})
+	if err != nil || len(runs) != 1 || runs[0].RunID != "first" {
+		t.Fatalf("filtered runs=%+v err=%v", runs, err)
+	}
+}
+
+func TestSessionLocksAreIndependent(t *testing.T) {
+	a := &agentImpl{}
+	release, err := a.lockSession(context.Background(), "one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := a.lockSession(ctx, "one"); err != context.Canceled {
+		t.Fatalf("waiting request: %v", err)
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	other, err := a.lockSession(ctx, "two")
+	if err != nil {
+		t.Fatalf("independent session blocked: %v", err)
+	}
+	other()
+	release()
+	if len(a.sessions) != 0 {
+		t.Fatal("unused locks retained")
+	}
+}
+
+type customSessionMemory struct {
+	Memory
+	sessions map[string]Memory
+}
+
+func (m *customSessionMemory) Session(id string) (Memory, error) { return m.sessions[id], nil }
+
+func TestRPCCustomSessionMemory(t *testing.T) {
+	one, two := NewMemory(store.NewMemoryStore(), "one", 100), NewMemory(store.NewMemoryStore(), "two", 100)
+	backend := &customSessionMemory{Memory: NewMemory(store.NewMemoryStore(), "default", 100), sessions: map[string]Memory{"one": one, "two": two}}
+	a := newTestAgent(Name("custom"), WithStore(store.NewMemoryStore()), WithMemory(backend))
+	for id, expected := range backend.sessions {
+		child, release, err := a.rpcSession(WithSession(context.Background(), id))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if child.opts.Memory != expected {
+			t.Fatal("custom session memory ignored")
+		}
+		release()
 	}
 }
