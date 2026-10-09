@@ -23,6 +23,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v6/agent"
 	agentpb "go-micro.dev/v6/agent/proto"
+	"go-micro.dev/v6/agent/workspace"
 	clt "go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
 	"go-micro.dev/v6/cmd/micro/cli/generate"
@@ -41,7 +42,9 @@ import (
 )
 
 const systemPrompt = `You are a development agent that uses microservices to fulfill requests.
-Use only the available tools. If a capability is missing, use micro_generate_service.
+Read project files before changing them. Use workspace tools to inspect, edit and
+verify work. Respect project instructions. Use micro_generate_service when a new
+service is needed. Use only available tools and report failures honestly.
 New services become available as tools on the next user message. Report generation
 failures honestly and ask the user to continue after creating a service.`
 
@@ -72,8 +75,9 @@ tool, and lets you ask natural-language questions like "list all users" or
 "create an order for product 42". The model decides which tool to call and
 issues RPCs to the right service.
 
-If you ask for something no existing service handles, the agent will generate
-a new service automatically. Its tools are available on your next message.
+The local agent can read, search, edit files and run commands in the current
+project. It reads AGENTS.md and asks before tool actions that can change state.
+It can also generate a missing service; its tools are available on your next message.
 
 Examples:
   ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
@@ -86,6 +90,7 @@ Examples:
 			&cli.StringFlag{Name: "model", Usage: "Model name (uses provider default if unset)", EnvVars: []string{"MICRO_AI_MODEL"}},
 			&cli.StringFlag{Name: "base_url", Usage: "Override the provider's base URL", EnvVars: []string{"MICRO_AI_BASE_URL"}},
 			&cli.StringFlag{Name: "session", Usage: "Resume a conversation by ID"},
+			&cli.BoolFlag{Name: "yes", Usage: "Allow local tool actions without prompting (including shell commands)"},
 			&cli.BoolFlag{Name: "new", Usage: "Start a new conversation"},
 			&cli.StringFlag{Name: "prompt", Usage: "Send a single prompt and exit (non-interactive)"},
 			&cli.BoolFlag{Name: "stream", Usage: "Show agent tool events and answer chunks"},
@@ -103,10 +108,16 @@ type agentInfo struct {
 }
 
 type session struct {
-	project string
-	id      string
-	state   store.Store
-	output  io.Writer
+	workspace     *workspace.Workspace
+	instructions  string
+	approvals     chan approvalRequest
+	approvalMu    sync.Mutex
+	yes           bool
+	interactiveUI bool
+	id            string
+	state         store.Store
+	output        io.Writer
+	project       string
 
 	provider  string
 	apiKey    string
@@ -147,8 +158,12 @@ func (s *session) developmentAgent() agent.Agent {
 		if generate == nil {
 			generate = s.handleGenerate
 		}
-		s.local = s.newHarness("micro-chat", systemPrompt,
-			agent.WithTool(generateTool.Name, generateTool.Description, generateTool.Properties, generate))
+		opts := []agent.Option{agent.WithTool(generateTool.Name, generateTool.Description, generateTool.Properties, generate)}
+		if s.workspace != nil {
+			opts = append(opts, s.workspace.Tools()...)
+			opts = append(opts, agent.WithApproval(s.approve))
+		}
+		s.local = s.newHarness("micro-chat", systemPrompt+s.instructions, opts...)
 	}
 	return s.local
 }
@@ -426,6 +441,22 @@ func run(c *cli.Context) error {
 			return err
 		}
 	}
+	if !hasAgents {
+		var err error
+		s.workspace, err = workspace.New(".")
+		if err != nil {
+			return err
+		}
+		instructions, err := s.workspace.Instructions()
+		if err != nil {
+			return fmt.Errorf("project instructions: %w", err)
+		}
+		if instructions != "" {
+			s.instructions = "\n\nProject instructions (AGENTS.md):\n" + instructions
+		}
+		s.yes = c.Bool("yes")
+		s.approvals = make(chan approvalRequest)
+	}
 	s.refreshTools()
 
 	defer s.cleanup()
@@ -451,6 +482,9 @@ func run(c *cli.Context) error {
 	}
 	if !hasAgents {
 		fmt.Fprintln(s.writer(), "  Tools:")
+		for _, name := range []string{"workspace_read", "workspace_search", "workspace_write", "workspace_edit", "workspace_exec"} {
+			fmt.Fprintf(s.writer(), "    ● %s\n", name)
+		}
 		for _, t := range s.toolList {
 			fmt.Fprintf(s.writer(), "    \033[32m●\033[0m %s\n", t.OriginalName)
 		}

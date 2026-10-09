@@ -41,14 +41,32 @@ transcript retrieval and a shared session catalog are still needed.
 
 ## Workspace tools
 
-Provide file reading, editing, search, and shell execution through existing
-`agent.WithTool` handlers. Define the workspace and tool permissions explicitly.
-Connect tool approval to the same UI, with cancellation covering both model
-calls and child processes. Load project instructions and skills from files.
+The `agent/workspace` package supplies file reading, search, exact-text edits,
+file writing and command execution as ordinary `agent.WithTool` handlers.
+`micro chat` enables these for the local development agent and loads the root
+`AGENTS.md`. `/approve` and `/deny` use the existing framework approval hook.
+Scripts must explicitly pass `--yes` to allow actions beyond reading/searching.
+
+File tools stay within the workspace; shell commands use host permissions and
+are not sandboxed. Commands have bounded output and a two-minute timeout.
+Cancellation terminates the command process group on Unix and process tree on
+Windows. Detached processes and an execution sandbox remain separate work.
+
+Go applications can register the same tools with their own approval policy:
+
+```go
+workspace, err := workspace.New(".")
+if err != nil { return err }
+options := append(workspace.Tools(), agent.WithApproval(approve))
+assistant := agent.New(options...)
+```
+
+Project instructions currently load only the root `AGENTS.md`. Nested instruction
+files, `SKILL.md` discovery and a skill library remain to be implemented.
 
 Acceptance: in an existing project, the agent reads the code, makes a requested
 change, runs a check, and explains the result. The user can deny an action or
-cancel without leaving an unmanaged subprocess.
+cancel a running command.
 
 ## Work independent of the UI
 

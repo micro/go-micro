@@ -21,7 +21,13 @@ mkdir my-app && cd my-app
 micro chat
 ```
 
-With no registered agents, the CLI development agent can generate a missing
+With no registered agents, the local agent can read, search and edit project files,
+and run shell commands. It loads the root `AGENTS.md`. File edits, commands and
+other tool actions require `/approve` or `/deny`; reading and searching are allowed.
+Shell commands run with your host permissions, not in a sandbox. For scripts,
+`--yes` explicitly allows tool actions without prompting.
+
+The CLI development agent can also generate a missing
 service, compile and start it, and expose its endpoints as tools. Describe what
 you need, then ask it to use the service on your next message. Generated
 source stays in your directory; services started by this session stop on exit.
@@ -35,6 +41,7 @@ and cancellation while a request is running:
 - `/new`: start a separate conversation (`reset` is an alias).
 - `/sessions`: list saved conversation IDs and titles.
 - `/resume ID`: select a conversation.
+- `/approve` or `/deny`: decide the pending tool action.
 - `/stop` or Ctrl-C: cancel the current request.
 - `/exit`: leave chat and stop local work.
 
@@ -46,9 +53,8 @@ settings. Saved keys are not reused when changing provider or endpoint.
 
 Tool activity appears during local execution. The terminal prints the completed
 answer together; `--stream` in scripts retains answer chunks. Native provider
-token streaming, background work after exit, and general file/shell tools remain
-separate work. Generated services still stop on exit. Remote sessions require an
-updated agent server using default store-backed memory; older servers report a
+token streaming and background work after exit remain separate work. Generated services still stop on exit. Remote sessions require an
+updated agent server using store-backed memory or `agent.SessionMemory`; older servers report a
 compatibility error instead of silently sharing conversation history.
 
 To review a design before generating and running the project:
