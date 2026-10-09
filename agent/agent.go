@@ -70,6 +70,10 @@ type Response struct {
 }
 
 type agentImpl struct {
+	schedules   scheduleState
+	lifecycle   sync.Mutex
+	tasks       taskState
+	onToken     func(string)
 	approvalErr error
 	opts        Options
 	model       model.Model
@@ -490,7 +494,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 			MaxAttempts: a.opts.ModelMaxAttempts,
 			Backoff:     a.opts.ModelRetryBackoff,
 			Jitter:      a.opts.ModelRetryJitter,
-		})
+		}, model.WithTokenHandler(a.onToken))
 		if a.approvalErr != nil {
 			err = a.approvalErr
 		}
@@ -685,7 +689,16 @@ func (a *agentImpl) Chat(ctx context.Context, req *pb.ChatRequest, rsp *pb.ChatR
 }
 
 // Run starts the agent as a service with a Chat RPC endpoint.
-func (a *agentImpl) Run() error {
+func (a *agentImpl) startServer() (<-chan struct{}, error) {
+	a.lifecycle.Lock()
+	defer a.lifecycle.Unlock()
+	a.tasks.mu.Lock()
+	stopped := a.tasks.stopped
+	a.tasks.mu.Unlock()
+	if stopped {
+		return nil, errors.New("agent: host has stopped")
+	}
+
 	if a.model == nil {
 		a.setup()
 	}
@@ -696,14 +709,23 @@ func (a *agentImpl) Run() error {
 			sessionSupport = ""
 		}
 	}
+	modelName := a.opts.Model
+	if a.model != nil {
+		modelName = a.model.Options().Model
+	}
 	serverOpts := []server.Option{
 		server.Name(a.opts.Name),
 		server.Address(a.opts.Address),
 		server.Registry(a.opts.Registry),
 		server.Metadata(map[string]string{
-			"sessions": sessionSupport,
-			"type":     "agent",
-			"services": strings.Join(a.opts.Services, ","),
+			"sessions":        sessionSupport,
+			"session_history": sessionSupport,
+			"tasks":           "v1",
+			"schedules":       "v1",
+			"provider":        a.opts.Provider,
+			"model":           modelName,
+			"type":            "agent",
+			"services":        strings.Join(a.opts.Services, ","),
 		}),
 	}
 	if a.opts.Broker != nil {
@@ -711,16 +733,44 @@ func (a *agentImpl) Run() error {
 	}
 	a.server = server.NewServer(serverOpts...)
 
-	_ = pb.RegisterAgentHandler(a.server, a)
-
-	if err := a.server.Start(); err != nil {
-		return fmt.Errorf("failed to start agent: %w", err)
+	if err := pb.RegisterAgentHandler(a.server, a); err != nil {
+		return nil, err
+	}
+	if err := pb.RegisterAgentSessionsHandler(a.server, &sessionHandler{agent: a}); err != nil {
+		return nil, err
 	}
 
+	if err := pb.RegisterAgentTasksHandler(a.server, &taskHandler{agent: a}); err != nil {
+		return nil, err
+	}
+
+	if err := pb.RegisterAgentSchedulesHandler(a.server, &scheduleHandler{agent: a}); err != nil {
+		return nil, err
+	}
+	if err := a.server.Start(); err != nil {
+		return nil, fmt.Errorf("failed to start agent: %w", err)
+	}
+
+	a.tasks.mu.Lock()
+	a.tasks.address = a.server.Options().Address
+	a.tasks.mu.Unlock()
 	stopCh := make(chan struct{})
-	a.mu.Lock()
 	a.stopCh = stopCh
-	a.mu.Unlock()
+	ctx, cancel := context.WithCancel(context.Background())
+	a.schedules.cancel = cancel
+	a.schedules.done = make(chan struct{})
+	go func() {
+		a.schedules.err = a.runSchedules(ctx)
+		close(a.schedules.done)
+	}()
+	return stopCh, nil
+}
+
+func (a *agentImpl) Run() error {
+	stopCh, err := a.startServer()
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Agent %s registered (manages: %s)\n", a.opts.Name, strings.Join(a.opts.Services, ", "))
 
@@ -743,17 +793,39 @@ func (a *agentImpl) Run() error {
 		fmt.Printf("Agent %s serving A2A on %s\n", a.opts.Name, a.opts.A2AAddress)
 	}
 
-	<-stopCh
-	return nil
+	select {
+	case <-stopCh:
+		return nil
+	case <-a.schedules.done:
+		err := a.schedules.err
+		_ = a.Stop()
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
+		return fmt.Errorf("agent schedules: %w", err)
+	}
 }
 
 func (a *agentImpl) Stop() error {
-	a.mu.Lock()
+	a.lifecycle.Lock()
+	a.tasks.mu.Lock()
+	a.tasks.stopped = true
+	a.tasks.mu.Unlock()
+	if a.schedules.cancel != nil {
+		a.schedules.cancel()
+	}
+	done := a.schedules.done
+	a.lifecycle.Unlock()
+	if done != nil {
+		<-done
+	}
+	a.stopTasks()
+	a.lifecycle.Lock()
+	defer a.lifecycle.Unlock()
 	if a.stopCh != nil {
 		close(a.stopCh)
 		a.stopCh = nil
 	}
-	a.mu.Unlock()
 	if a.server != nil {
 		return a.server.Stop()
 	}

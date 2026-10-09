@@ -1,0 +1,26 @@
+syntax = "proto3";
+package agent;
+option go_package = "go-micro.dev/v6/agent/proto;agent";
+
+// AgentSessions accesses retained conversations on the agent host. The host
+// must authorize access; knowing a session ID does not grant permission.
+service AgentSessions {
+ rpc List(ListSessionsRequest) returns (ListSessionsResponse) {}
+ rpc History(HistoryRequest) returns (HistoryResponse) {}
+ rpc Compact(CompactRequest) returns (HistoryResponse) {}
+}
+message ListSessionsRequest {}
+message Session {
+ string id = 1;
+ int64 updated = 2;
+}
+message ListSessionsResponse { repeated Session sessions = 1; }
+message HistoryRequest { string session = 1; string query = 2; int32 limit = 3; }
+message CompactRequest { string session = 1; int32 keep_recent = 2; }
+message Message {
+ string role = 1;
+ string content = 2;
+ // Complete model.Message content encoded as JSON, including multimodal parts.
+ bytes content_json = 3;
+}
+message HistoryResponse { repeated Message messages = 1; }

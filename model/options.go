@@ -44,6 +44,9 @@ const (
 
 // GenerateOptions for generate call
 type GenerateOptions struct {
+	// OnToken receives text as it is generated, including text between tool calls.
+	// Providers without incremental generation may ignore it.
+	OnToken func(string)
 	// Context for this specific generate call
 	Context context.Context
 }
@@ -148,3 +151,18 @@ func WithEffort(effort string) Option {
 
 // WithTemperature sets sampling temperature for supporting providers, including zero.
 func WithTemperature(t float64) Option { return func(o *Options) { v := t; o.Temperature = &v } }
+
+// WithTokenHandler receives incremental text during Generate without replacing
+// the provider's tool loop. The handler must return promptly.
+func WithTokenHandler(handler func(string)) GenerateOption {
+	return func(o *GenerateOptions) { o.OnToken = handler }
+}
+
+// NewGenerateOptions applies options for one generation.
+func NewGenerateOptions(opts ...GenerateOption) GenerateOptions {
+	var o GenerateOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o
+}

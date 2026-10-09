@@ -56,7 +56,7 @@ func TestStreamAskEmitsToolEventsAndFinalTokens(t *testing.T) {
 		}
 	}
 
-	want := []StreamEventType{StreamEventToolStart, StreamEventToolEnd, StreamEventToken, StreamEventToken, StreamEventToken, StreamEventDone}
+	want := []StreamEventType{StreamEventToolStart, StreamEventToolEnd, StreamEventToken, StreamEventDone}
 	if len(types) != len(want) {
 		t.Fatalf("event types = %v, want %v", types, want)
 	}
@@ -65,7 +65,7 @@ func TestStreamAskEmitsToolEventsAndFinalTokens(t *testing.T) {
 			t.Fatalf("event types = %v, want %v", types, want)
 		}
 	}
-	if tokens != "planning final answer" {
+	if tokens != "planning\n\nfinal answer" {
 		t.Fatalf("tokens = %q", tokens)
 	}
 	if done == nil || done.Reply != "planning\n\nfinal answer" {
@@ -313,3 +313,31 @@ func (unsupportedAgent) Stream(context.Context, string) (model.Stream, error) { 
 func (unsupportedAgent) Run() error                                           { return nil }
 func (unsupportedAgent) Stop() error                                          { return nil }
 func (unsupportedAgent) String() string                                       { return "unsupported" }
+
+func TestStreamCloseIgnoresLateToolEvents(t *testing.T) {
+	started, release, finished := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	fakeGen = func(ctx context.Context, opts model.Options, _ *model.Request) (*model.Response, error) {
+		close(started)
+		<-ctx.Done()
+		<-release
+		opts.ToolHandler(ctx, model.ToolCall{ID: "late", Name: "echo", Input: map[string]any{}})
+		close(finished)
+		return nil, ctx.Err()
+	}
+	defer func() { fakeGen = nil }()
+	a := newTestAgent(Name("late-stream"))
+	stream, err := a.StreamAsk(context.Background(), "start")
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-started
+	if err := stream.Close(); err != nil {
+		t.Fatal(err)
+	}
+	close(release)
+	select {
+	case <-finished:
+	case <-time.After(time.Second):
+		t.Fatal("late provider did not finish")
+	}
+}

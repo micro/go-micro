@@ -40,6 +40,9 @@ func (s *session) configure(c *cli.Context) error {
 	if provider == "" {
 		provider = model.AutoDetectProvider(baseURL)
 	}
+	if !model.ProviderCapabilities(provider).Model {
+		return fmt.Errorf("unknown provider: %s", provider)
+	}
 	modelName := c.String("model")
 	if modelName == "" && provider == saved.Provider && baseURL == saved.BaseURL {
 		modelName = saved.Model
@@ -51,7 +54,7 @@ func (s *session) configure(c *cli.Context) error {
 	if apiKey == "" && provider == saved.Provider && baseURL == saved.BaseURL {
 		apiKey = saved.APIKey
 	}
-	if apiKey == "" && readline.IsTerminal(int(os.Stdin.Fd())) {
+	if apiKey == "" && provider != "ollama" && readline.IsTerminal(int(os.Stdin.Fd())) {
 		terminal, err := readline.NewEx(&readline.Config{Prompt: "", HistoryLimit: -1})
 		if err != nil {
 			return err
@@ -67,7 +70,7 @@ func (s *session) configure(c *cli.Context) error {
 	} else if provider != saved.Provider || baseURL != saved.BaseURL {
 		saved.APIKey = ""
 	}
-	if apiKey == "" {
+	if apiKey == "" && provider != "ollama" {
 		return fmt.Errorf("no API key configured; set --api_key or %s", envVarForProvider(provider))
 	}
 	configured := model.New(provider, model.WithAPIKey(apiKey), model.WithModel(modelName), model.WithBaseURL(baseURL))
@@ -76,5 +79,8 @@ func (s *session) configure(c *cli.Context) error {
 	}
 	s.provider, s.modelName, s.baseURL, s.apiKey = provider, configured.Options().Model, baseURL, apiKey
 	saved.Provider, saved.Model, saved.BaseURL = provider, s.modelName, baseURL
+	if err := s.conversations().Write(store.NewRecord(profileKey(provider, baseURL), saved)); err != nil {
+		return err
+	}
 	return s.conversations().Write(store.NewRecord("settings", saved))
 }

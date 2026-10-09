@@ -6,6 +6,7 @@ package workspace
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,11 +25,25 @@ const maxOutput = 64 * 1024
 
 // Workspace is a directory an agent can work in.
 type Workspace struct {
-	dir string
-	mu  sync.Mutex
+	processes map[string]*process
+	closed    bool
+	container string
+	skillDirs []string
+	dir       string
+	mu        sync.Mutex
+	output    func(context.Context, string)
 }
 
-func New(dir string) (*Workspace, error) {
+// Option configures workspace tool behavior.
+type Option func(*Workspace)
+
+// WithOutput receives bounded command output while a command runs. The callback
+// must return promptly; stdout and stderr share a serialized output stream.
+func WithOutput(fn func(context.Context, string)) Option {
+	return func(w *Workspace) { w.output = fn }
+}
+
+func New(dir string, opts ...Option) (*Workspace, error) {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err
@@ -38,19 +53,33 @@ func New(dir string) (*Workspace, error) {
 		return nil, err
 	}
 	root.Close()
-	return &Workspace{dir: dir}, nil
+	w := &Workspace{dir: dir}
+	for _, opt := range opts {
+		opt(w)
+	}
+	if strings.Contains(w.dir, ",") && w.container != "" {
+		return nil, errors.New("container workspace path cannot contain a comma")
+	}
+	return w, nil
 }
 
 // Tools registers ordinary agent tools; callers retain control over approvals,
 // models, memory, and the agent lifecycle.
 func (w *Workspace) Tools() []agent.Option {
+	commandDescription := "Run a shell command with host permissions. Output is limited to 64 KiB; foreground execution lasts at most two minutes. Set background to manage a longer-running process."
+	if w.container != "" {
+		commandDescription = "Run a command in the configured Docker container with networking disabled. Output is bounded; foreground execution lasts at most two minutes. Set background for a longer-running process."
+	}
 	text := func(description string) any { return map[string]any{"type": "string", "description": description} }
 	return []agent.Option{
-		agent.WithTool("workspace_read", "Read a UTF-8 text file relative to the workspace (maximum 64 KiB).", map[string]any{"path": text("Relative file path")}, w.read),
+		agent.WithTool("workspace_process", "List, stop, or forget background commands owned by this workspace host.", map[string]any{"action": text("list, stop or forget"), "id": text("Process ID for stop or forget")}, w.processTool),
+		agent.WithTool("workspace_save_skill", "Save a reusable project procedure as a new SKILL.md when requested. Existing skills are never overwritten.", map[string]any{"name": text("Skill directory name"), "description": text("When to use the skill"), "instructions": text("The reusable procedure")}, w.saveSkill),
+		agent.WithTool("workspace_skill", "List available project skills with an empty name, or load a skill by name before using its instructions. Skills are in .agents/skills/NAME/SKILL.md.", map[string]any{"name": text("Skill name; empty lists available skills")}, w.skill),
+		agent.WithTool("workspace_read", "Read a UTF-8 text file relative to the workspace (maximum 64 KiB).", map[string]any{"path": text("Relative file path")}, w.readWithInstructions),
 		agent.WithTool("workspace_search", "Find literal text in workspace files. Empty query lists files. Skips hidden directories, vendor and node_modules; returns up to 100 matches.", map[string]any{"query": text("Literal text to find")}, w.search),
 		agent.WithTool("workspace_write", "Create or replace a text file in the workspace. Read existing files first. Requires an existing parent directory.", map[string]any{"path": text("Relative file path"), "content": text("Complete new file content")}, w.write),
 		agent.WithTool("workspace_edit", "Replace one exact, unique occurrence of old_text in a workspace file. Fails if missing or ambiguous.", map[string]any{"path": text("Relative file path"), "old_text": text("Exact text to replace"), "new_text": text("Replacement text")}, w.edit),
-		agent.WithTool("workspace_exec", "Run a shell command in the workspace with host permissions. Not sandboxed. Output is limited to 64 KiB and execution to two minutes.", map[string]any{"command": text("Shell command")}, w.run),
+		agent.WithTool("workspace_exec", commandDescription, map[string]any{"command": text("Shell command"), "background": map[string]any{"type": "boolean", "description": "Run independently of this request; inspect or stop with workspace_process"}}, w.run),
 	}
 }
 
@@ -252,6 +281,7 @@ func (w *Workspace) search(ctx context.Context, input map[string]any) (string, e
 }
 
 type outputBuffer struct {
+	onWrite   func(string)
 	mu        sync.Mutex
 	text      strings.Builder
 	truncated bool
@@ -267,6 +297,9 @@ func (b *outputBuffer) Write(p []byte) (int, error) {
 		b.truncated = true
 	}
 	b.text.Write(p)
+	if b.onWrite != nil && len(p) > 0 {
+		b.onWrite(string(p))
+	}
 	return n, nil
 }
 
@@ -278,12 +311,29 @@ func (w *Workspace) run(ctx context.Context, input map[string]any) (string, erro
 	if strings.TrimSpace(command) == "" {
 		return "", errors.New("command must not be empty")
 	}
+	if background, ok := input["background"]; ok {
+		enabled, valid := background.(bool)
+		if !valid {
+			return "", errors.New("background must be a boolean")
+		}
+		if enabled {
+			process, err := w.Start(ctx, command)
+			if err != nil {
+				return "", err
+			}
+			data, err := json.Marshal(process)
+			return string(data), err
+		}
+	}
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	cmd := shellCommand(ctx, command)
+	cmd := w.command(ctx, command)
 	cmd.Dir = w.dir
 	cmd.WaitDelay = time.Second
 	var output outputBuffer
+	if w.output != nil {
+		output.onWrite = func(text string) { w.output(ctx, text) }
+	}
 	cmd.Stdout = &output
 	cmd.Stderr = &output
 	if err = cmd.Start(); err != nil {

@@ -63,25 +63,30 @@ func (a *agentImpl) rpcSession(ctx context.Context) (*agentImpl, func(), error) 
 // when id is empty. It reports storage errors rather than treating them as an
 // empty history. Custom memory implementations provide their own history access.
 func LoadHistory(s store.Store, name, id string) ([]model.Message, error) {
+	state, err := loadHistoryState(s, name, id)
+	return state.Messages, err
+}
+
+func loadHistoryState(s store.Store, name, id string) (memoryState, error) {
 	records, err := sessionStore(s, name, id).Read("history")
 	if errors.Is(err, store.ErrNotFound) {
-		return nil, nil
+		return memoryState{}, nil
 	}
 	if err != nil {
-		return nil, err
+		return memoryState{}, err
 	}
 	if len(records) == 0 {
-		return nil, nil
+		return memoryState{}, nil
 	}
 	var state memoryState
 	if err := records[0].Decode(&state); err != nil {
 		var legacy []model.Message
 		if legacyErr := json.Unmarshal(records[0].Value, &legacy); legacyErr != nil {
-			return nil, err
+			return memoryState{}, err
 		}
-		return legacy, nil
+		return memoryState{Messages: legacy}, nil
 	}
-	return state.Messages, nil
+	return state, nil
 }
 
 func sessionStore(s store.Store, name, id string) store.Store {

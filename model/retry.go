@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -147,6 +148,15 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		return nil, errors.New("ai model is nil")
 	}
 
+	var emitted atomic.Bool
+	if handler := NewGenerateOptions(opts...).OnToken; handler != nil {
+		opts = append(append([]GenerateOption(nil), opts...), WithTokenHandler(func(token string) {
+			if token != "" {
+				emitted.Store(true)
+			}
+			handler(token)
+		}))
+	}
 	var last error
 	for attempt := 1; attempt <= policy.MaxAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
@@ -179,7 +189,7 @@ func GenerateWithRetry(ctx context.Context, m Model, req *Request, policy Genera
 		last = err
 
 		transient := IsTransientError(err)
-		if attempt == policy.MaxAttempts || !transient {
+		if emitted.Load() || attempt == policy.MaxAttempts || !transient {
 			if attempt > 1 || transient {
 				return nil, &RetryError{Attempts: attempt, Kind: ClassifyError(err), Err: err}
 			}

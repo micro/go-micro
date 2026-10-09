@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/cmd"
 	"go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
@@ -226,10 +227,11 @@ func TestChatDiscoversSingleAgentWithoutLocalModel(t *testing.T) {
 			if err := reg.Register(&registry.Service{Name: "assistant", Metadata: map[string]string{"type": "agent", "sessions": "v1"}, Nodes: []*registry.Node{{Id: "assistant-1", Address: "localhost:1234", Metadata: map[string]string{"sessions": "v1"}}}}); err != nil {
 				t.Fatal(err)
 			}
-			oldReg, oldClient, oldStdin := registry.DefaultRegistry, client.DefaultClient, os.Stdin
+			options := cmd.DefaultOptions()
+			oldReg, oldClient, oldStdin := *options.Registry, *options.Client, os.Stdin
 			remote := &remoteClient{Client: oldClient}
-			registry.DefaultRegistry, client.DefaultClient = reg, remote
-			t.Cleanup(func() { registry.DefaultRegistry, client.DefaultClient, os.Stdin = oldReg, oldClient, oldStdin })
+			*options.Registry, *options.Client = reg, remote
+			t.Cleanup(func() { *options.Registry, *options.Client, os.Stdin = oldReg, oldClient, oldStdin })
 			input, err := os.CreateTemp(t.TempDir(), "input")
 			if err != nil {
 				t.Fatal(err)

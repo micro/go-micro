@@ -74,14 +74,14 @@ go install go-micro.dev/v6/cmd/micro@latest
 micro chat
 ```
 
-Chat connects directly when one agent is registered; no agent name or local
+Chat routes to registered agents. With one agent, no agent name or local
 provider key is needed. With multiple agents, a local model routes requests.
 
-To develop through conversation, run `micro chat` in a new
-directory with your provider key exported. With no registered agents, the CLI's
-development agent can generate, build, and start services, then use them as tools.
-Those processes stop when chat exits; the source remains. Use `micro run` to
-continue developing the project. When agents are registered, chat routes to them.
+Run `micro chat` in a project to work with files, commands, skills, and service
+tools. Conversations are saved; `/model` and `/provider` change the local model.
+For work that continues after chat exits, connect to a running agent host.
+See [interactive agent development](internal/website/content/en/docs/interactive-agent.md)
+for chat controls, background work, schedules, and extension points.
 
 See the [Quick Start](internal/website/content/en/docs/quickstart.md) and
 [CLI reference](cmd/micro/README.md) for generation, hot reload, and deployment.

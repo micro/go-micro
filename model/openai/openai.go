@@ -68,7 +68,7 @@ func (p *Provider) String() string {
 
 // Generate generates a response from the model
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-	return openaiapi.Generate(ctx, p.opts, req, p.callAPI)
+	return openaiapi.Generate(ctx, p.opts, req, p.callAPI, opts...)
 }
 
 // Stream generates a streaming response from the OpenAI chat completions API.

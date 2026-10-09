@@ -1,7 +1,9 @@
 package chat
 
 import (
+	"context"
 	"flag"
+	"go-micro.dev/v6/model"
 	"testing"
 
 	"github.com/urfave/cli/v2"
@@ -38,5 +40,44 @@ func TestSavedSettingsRestoreModel(t *testing.T) {
 	}
 	if s.provider != "openai" || s.modelName != "test-model" || s.apiKey != "saved-test-key" {
 		t.Fatal("settings not restored")
+	}
+}
+
+func TestModelSwitchPreservesConversation(t *testing.T) {
+	var observed []model.Message
+	s := testSession(t, func(_ context.Context, r *model.Request, o model.Options) (*model.Response, error) {
+		observed = r.Messages
+		return &model.Response{Reply: o.Model}, nil
+	})
+	s.state = store.NewMemoryStore()
+	s.id = "conversation"
+	if err := s.conversations().Write(store.NewRecord("settings", settings{Provider: s.provider, Model: s.modelName, BaseURL: s.baseURL, APIKey: "saved"})); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.developmentAgent().Ask(context.Background(), "remember this"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.selectModel("replacement"); err != nil {
+		t.Fatal(err)
+	}
+	response, err := s.developmentAgent().Ask(context.Background(), "continue")
+	if err != nil || response.Reply != "replacement" || len(observed) != 2 {
+		t.Fatalf("switch lost context: %+v %+v %v", response, observed, err)
+	}
+	records, _ := s.conversations().Read("settings")
+	var saved settings
+	records[0].Decode(&saved)
+	if saved.APIKey != "saved" || saved.Model != "replacement" {
+		t.Fatalf("saved settings changed: %+v", saved)
+	}
+}
+
+func TestUnknownProviderDoesNotReplaceSettings(t *testing.T) {
+	s := &session{state: store.NewMemoryStore(), provider: "openai", modelName: "original", apiKey: "key"}
+	if err := s.saveModel(settings{Provider: "missing-provider"}, "other"); err == nil {
+		t.Fatal("unknown provider accepted")
+	}
+	if s.provider != "openai" || s.modelName != "original" || s.apiKey != "key" {
+		t.Fatal("failed switch changed configuration")
 	}
 }

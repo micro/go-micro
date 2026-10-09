@@ -1,0 +1,24 @@
+syntax = "proto3";
+package agent;
+option go_package = "go-micro.dev/v6/agent/proto;agent";
+
+// AgentTasks owns work independently of a chat connection. Hosts authorize
+// these endpoints using the same policy as Agent.Chat.
+service AgentTasks {
+ rpc Start(StartTaskRequest) returns (TaskResponse) {}
+ rpc Get(TaskRequest) returns (TaskResponse) {}
+ rpc Stop(TaskRequest) returns (TaskResponse) {}
+ rpc List(ListTasksRequest) returns (ListTasksResponse) {}
+}
+message StartTaskRequest { string message = 1; }
+message TaskRequest { string id = 1; }
+message ListTasksRequest {}
+message TaskResponse {
+ string id = 1;
+ string session = 2;
+ string status = 3;
+ string reply = 4;
+ string error = 5;
+ string address = 6;
+}
+message ListTasksResponse { repeated TaskResponse tasks = 1; }
