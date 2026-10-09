@@ -38,13 +38,15 @@ func (s *session) interactive(ctx context.Context) error {
 		}
 		return scanner.Err()
 	}
+	s.interactiveUI = true
+	defer func() { s.interactiveUI = false }()
 	s.stream = true
 	terminal, err := readline.NewEx(&readline.Config{
 		Prompt: "micro > ",
 		AutoComplete: readline.NewPrefixCompleter(
 			readline.PcItem("/new"), readline.PcItem("/sessions"),
 			readline.PcItem("/resume"), readline.PcItem("/stop"),
-			readline.PcItem("/help"), readline.PcItem("/exit")),
+			readline.PcItem("/approve"), readline.PcItem("/deny"), readline.PcItem("/help"), readline.PcItem("/exit")),
 	})
 	if err != nil {
 		return err
@@ -99,8 +101,12 @@ func (s *session) interactive(ctx context.Context) error {
 			}
 			continue
 		}
+		if line == "/approve" || line == "/deny" {
+			s.answerApproval(line == "/approve")
+			continue
+		}
 		if line == "/help" {
-			fmt.Fprintln(s.writer(), "Enter a request. Ctrl-C or /stop cancels current work. /new starts a conversation; /sessions lists saved conversations; /resume ID reopens one. Exiting stops local work.")
+			fmt.Fprintln(s.writer(), "Use /approve or /deny for a proposed tool action. Enter a request. Ctrl-C or /stop cancels current work. /new starts a conversation; /sessions lists saved conversations; /resume ID reopens one. Exiting stops local work.")
 			continue
 		}
 		if cancel != nil {
