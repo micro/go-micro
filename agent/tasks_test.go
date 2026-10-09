@@ -143,3 +143,28 @@ func TestTaskRPCAndHistoryReconnect(t *testing.T) {
 		t.Fatalf("history=%v err=%v", history, err)
 	}
 }
+
+func TestHostWorkCapabilitiesRequireSessionMemory(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		memory Memory
+		want   string
+	}{
+		{name: "default", want: "v1"},
+		{name: "custom without sessions", memory: NewMemory(store.NewMemoryStore(), "custom", 100)},
+		{name: "custom with sessions", memory: &customSessionMemory{Memory: NewMemory(store.NewMemoryStore(), "custom", 100)}, want: "v1"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			a := newTestAgent(Name("capabilities"), Address("127.0.0.1:0"), WithRegistry(registry.NewMemoryRegistry()), WithBroker(broker.NewMemoryBroker()), WithMemory(tt.memory))
+			if _, err := a.startServer(); err != nil {
+				t.Fatal(err)
+			}
+			defer a.Stop()
+			for _, capability := range []string{"sessions", "session_history", "tasks", "schedules"} {
+				if got := a.server.Options().Metadata[capability]; got != tt.want {
+					t.Errorf("%s = %q, want %q", capability, got, tt.want)
+				}
+			}
+		})
+	}
+}

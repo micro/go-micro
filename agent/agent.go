@@ -720,8 +720,8 @@ func (a *agentImpl) startServer() (<-chan struct{}, error) {
 		server.Metadata(map[string]string{
 			"sessions":        sessionSupport,
 			"session_history": sessionSupport,
-			"tasks":           "v1",
-			"schedules":       "v1",
+			"tasks":           sessionSupport,
+			"schedules":       sessionSupport,
 			"provider":        a.opts.Provider,
 			"model":           modelName,
 			"type":            "agent",
