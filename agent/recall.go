@@ -16,11 +16,20 @@ type HistoryMatch struct {
 	Message model.Message `json:"message"`
 }
 
+type activeHistoryKey struct{}
+
+type activeHistory struct {
+	name, session, prompt string
+	archived              bool
+}
+
 // SearchSessions searches retained and archived messages in explicitly allowed
 // conversations belonging to one agent. The caller must authorize the session
 // IDs; this function never discovers or expands that scope. Results are ranked
 // by matching query words, then input session order and newest message first.
-// Only user and assistant messages are returned. No model calls are made.
+// Only user and assistant messages are returned. When called from a tool, the
+// active user turn in default store-backed memory is excluded before ranking.
+// No model calls are made.
 func SearchSessions(ctx context.Context, s store.Store, name string, ids []string, query string, limit int) ([]HistoryMatch, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -54,6 +63,13 @@ func SearchSessions(ctx context.Context, s store.Store, name string, ids []strin
 		if err != nil {
 			return nil, err
 		}
+		if active, ok := ctx.Value(activeHistoryKey{}).(activeHistory); ok && active.name == name && active.session == id && active.prompt != "" {
+			var removed bool
+			state.Messages, removed = omitUserTurn(state.Messages, active.prompt)
+			if active.archived || !removed {
+				state.Archive, _ = omitUserTurn(state.Archive, active.prompt)
+			}
+		}
 		messages := append(state.Archive, state.Messages...)
 		seen := map[string]bool{}
 		for i := len(messages) - 1; i >= 0; i-- {
@@ -82,4 +98,14 @@ func SearchSessions(ctx context.Context, s store.Store, name string, ids []strin
 		result[i] = match.HistoryMatch
 	}
 	return result, nil
+}
+
+// Remove one occurrence, preserving an identical question from an earlier turn.
+func omitUserTurn(messages []model.Message, prompt string) ([]model.Message, bool) {
+	for i := len(messages) - 1; i >= 0; i-- {
+		if text, ok := messages[i].Content.(string); ok && messages[i].Role == "user" && text == prompt {
+			return append(messages[:i:i], messages[i+1:]...), true
+		}
+	}
+	return messages, false
 }

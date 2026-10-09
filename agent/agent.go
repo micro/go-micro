@@ -419,6 +419,11 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 	if addUserMessage {
 		a.mem.Add("user", message)
 	}
+	active := activeHistory{}
+	if memory, ok := a.mem.(*storeMemory); ok && a.opts.Memory == nil && !a.ephemeral {
+		active = activeHistory{name: a.opts.Name, session: a.opts.Session, prompt: message, archived: memory.retrieveAll}
+	}
+	ctx = context.WithValue(ctx, activeHistoryKey{}, active)
 	a.steps = 0
 	a.spend = 0
 	a.calls = map[string]int{}

@@ -3,6 +3,7 @@ package agent
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"go-micro.dev/v6/model"
@@ -55,5 +56,55 @@ func TestSearchSessionsErrors(t *testing.T) {
 	}
 	if _, err := SearchSessions(context.Background(), failedRecallStore{store.NewMemoryStore()}, "agent", []string{"one"}, "postgres", 10); err == nil {
 		t.Fatal("storage failure hidden")
+	}
+}
+
+func TestSearchSessionsOmitsActiveTurnBeforeRanking(t *testing.T) {
+	for _, retrieval := range []bool{false, true} {
+		t.Run(fmt.Sprint(retrieval), func(t *testing.T) {
+			st := store.NewMemoryStore()
+			old := memoryState{Messages: []model.Message{{Role: "assistant", Content: "postgres decision was to use batches"}}}
+			if err := sessionStore(st, "recaller", "earlier").Write(store.NewRecord("history", old)); err != nil {
+				t.Fatal(err)
+			}
+			var matches []HistoryMatch
+			fakeGen = func(ctx context.Context, opts model.Options, _ *model.Request) (*model.Response, error) {
+				result := opts.ToolHandler(ctx, model.ToolCall{ID: "recall", Name: "recall", Input: map[string]any{}})
+				if result.Content != "ok" {
+					t.Errorf("recall: %+v", result)
+				}
+				return &model.Response{Reply: "done"}, nil
+			}
+			defer func() { fakeGen = nil }()
+			opts := []Option{Name("recaller"), Session("current"), WithStore(st), WithTool("recall", "recall", nil, func(ctx context.Context, _ map[string]any) (string, error) {
+				var err error
+				matches, err = SearchSessions(ctx, st, "recaller", []string{"current", "earlier"}, "postgres decision", 1)
+				return "ok", err
+			})}
+			if retrieval {
+				opts = append(opts, RetrievalMemory(10))
+			} else {
+				opts = append(opts, CompactMemory(10, 5))
+			}
+			a := newTestAgent(opts...)
+			if _, err := a.Ask(context.Background(), "what was the postgres decision"); err != nil {
+				t.Fatal(err)
+			}
+			if len(matches) != 1 || matches[0].Session != "earlier" {
+				t.Fatalf("active question crowded out history: %+v", matches)
+			}
+			// Once the turn finishes, explicit searches can inspect the stored question.
+			after, err := SearchSessions(context.Background(), st, "recaller", []string{"current"}, "postgres decision", 10)
+			if err != nil || len(after) != 1 {
+				t.Fatalf("completed turn was removed: %+v %v", after, err)
+			}
+			// An identical older question must remain searchable on the next turn.
+			if _, err := a.Ask(context.Background(), "what was the postgres decision"); err != nil {
+				t.Fatal(err)
+			}
+			if len(matches) != 1 || matches[0].Session != "current" {
+				t.Fatalf("older current-session message lost: %+v", matches)
+			}
+		})
 	}
 }

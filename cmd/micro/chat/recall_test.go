@@ -21,7 +21,7 @@ func TestRecallStaysInLocalProject(t *testing.T) {
 				toolAvailable = true
 			}
 		}
-		if r.Prompt == "recall" {
+		if r.Prompt == "recall postgres" {
 			result := o.ToolHandler(ctx, model.ToolCall{ID: "search", Name: "memory_search", Input: map[string]any{"query": "postgres"}})
 			if err := json.Unmarshal([]byte(result.Content), &recalled); err != nil {
 				t.Errorf("tool result: %q %v", result.Content, err)
@@ -46,7 +46,7 @@ func TestRecallStaysInLocalProject(t *testing.T) {
 	}
 	s.project, s.id = first, "current"
 	s.reset()
-	if _, err := s.developmentAgent().Ask(context.Background(), "recall"); err != nil {
+	if _, err := s.developmentAgent().Ask(context.Background(), "recall postgres"); err != nil {
 		t.Fatal(err)
 	}
 	if !toolAvailable || len(recalled) != 1 || recalled[0].Session != "earlier" || recalled[0].Content != "postgres decision in this project" {
