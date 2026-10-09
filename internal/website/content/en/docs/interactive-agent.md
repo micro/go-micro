@@ -162,7 +162,7 @@ options without using the CLI. No product-specific assistant runtime is required
 |---|---|
 | Model/provider selection | In-chat selectors, live catalogs, endpoint-scoped settings |
 | Instructions and skills | Nested instructions, project/personal loading, approved skill creation |
-| Terminal interaction | Editing, completion, multiline composition, queues, cancellation and correction |
+| Terminal interaction | Markdown replies, editing, completion, multiline composition, queues, cancellation and correction |
 | Live output | Provider text, local/remote tool activity and command output; some providers retain buffered fallback |
 | Conversations | Saved context, remote catalog/history, reconnect to a conversation |
 | Memory | Automatic/manual compaction and lexical archive search |
@@ -174,6 +174,9 @@ options without using the CLI. No product-specific assistant runtime is required
 | Delegation | Existing agent delegation with visible local target/task and agent listing |
 | Web research | Fetch and configurable search; full browser automation remains external |
 
-The terminal preserves plain text and Markdown syntax; it is not a full-screen
-rich Markdown UI. Live streaming for
-all providers, distributed scheduling, and full browser automation remain limits.
+The terminal renders Markdown replies with a small live preview above the prompt,
+then prints the complete reply into scrollback. Command output stays plain text.
+It uses the terminal’s foreground and background and respects `NO_COLOR`; piped
+output retains Markdown source. No separate graphical UI is included. Live
+streaming for all providers, distributed scheduling, and full browser automation
+remain limits.

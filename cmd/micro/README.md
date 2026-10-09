@@ -68,6 +68,9 @@ micro chat --host project
 micro chat project
 ```
 
+Interactive replies render Markdown above the prompt and remain in scrollback.
+Command output stays plain text; piped output preserves Markdown source.
+
 `--host` binds to loopback. Connected chat shows tool activity and asks for
 approval using `/approve` or `/deny`. Disconnecting cancels pending approvals.
 Without host `--yes`, unattended mutating tools are refused.

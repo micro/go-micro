@@ -9,7 +9,7 @@
 # Both paths are keyed to root tags (their cached versions are the repo's v1.x
 # root tags), so a root tag is the natural home for the retraction.
 #
-# Usage:  ./retract-tilde.sh [--dry-run] [--push]
+# Usage:  ./scripts/retract-tilde.sh [--dry-run] [--push]
 #
 #   --dry-run  print what would happen, create nothing
 #   --push     push the new root tags to origin (never git push --tags)

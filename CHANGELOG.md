@@ -50,7 +50,7 @@ below is kept current between tags and rolled into the next version when it ship
 - **Redis client upgraded to v9.** (`cache/redis/`)
 
 ### Fixed
-- **Phantom-tag retraction tooling** — batch pushes made reliable, non-major tag prefixes preserved, and missed paths covered in a second round. (`retract-phantom.sh`)
+- **Phantom-tag retraction tooling** — batch pushes made reliable, non-major tag prefixes preserved, and missed paths covered in a second round. (`scripts/retract-phantom.sh`)
 
 ## [6.10.0] - 2026-08-06
 
@@ -63,7 +63,7 @@ below is kept current between tags and rolled into the next version when it ship
 
 ### Added
 - **Auth follows the socket** — gateway authentication defaults by bind address: off on loopback (frictionless `micro run` and localhost MCP clients), automatically on when exposed — with a machine token generated and printed once (never a default credential), `Authorization: Bearer` plus `?token=` accepted, `--auth`/`--no-auth` overrides, and scoped/paid tools still requiring a token even on loopback. The `admin/micro` default credential is gone. (`cmd/micro/gateway/`, `cmd/micro/run/`)
-- **Phantom module path retraction** — `retract-phantom.sh` publishes orphan retraction tags for Go-proxy-cached phantom module paths. (`retract-phantom.sh`)
+- **Phantom module path retraction** — `scripts/retract-phantom.sh` publishes orphan retraction tags for Go-proxy-cached phantom module paths. (`scripts/retract-phantom.sh`)
 
 ### Changed
 - **`micro server` renamed to `micro gateway`** — one gateway command with the production MCP controls (rate limit, scopes, auth, audit, circuit breaker, x402) folded in from the deleted standalone `micro-mcp-gateway` binary; `micro server` remains as a hidden deprecated alias, and the Helm chart/Docker image run `micro gateway`. (`cmd/micro/gateway/`, `cmd/micro-mcp-gateway/` removed)
