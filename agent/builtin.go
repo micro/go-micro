@@ -443,6 +443,11 @@ func (a *agentImpl) approveWrap(next model.ToolHandler) model.ToolHandler {
 				}
 			}
 			decision, err := a.opts.Approval(ctx, call)
+			// Cancellation may return Generate before the approval callback unwinds.
+			// Refuse without writing run state that the caller may already be saving.
+			if ctx.Err() != nil {
+				return refused(call.ID, model.RefusedApproval, ctx.Err().Error())
+			}
 			if err != nil {
 				a.approvalErr = err
 				return refused(call.ID, model.RefusedApproval, err.Error())

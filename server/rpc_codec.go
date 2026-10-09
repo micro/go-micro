@@ -341,7 +341,7 @@ func (c *rpcCodec) Write(r *codec.Message, b interface{}) error {
 	// send on the socket
 	return c.socket.Send(&transport.Message{
 		Header: m.Header,
-		Body:   body,
+		Body:   append([]byte(nil), body...),
 	})
 }
 

@@ -20,6 +20,10 @@ type StreamEventType string
 const (
 	// StreamEventToolStart is emitted immediately before a tool call runs.
 	StreamEventToolStart StreamEventType = "tool_start"
+	// StreamEventToolOutput carries incremental command output.
+	StreamEventToolOutput StreamEventType = "tool_output"
+	// StreamEventApproval asks the connected client for a decision.
+	StreamEventApproval StreamEventType = "approval"
 	// StreamEventToolEnd is emitted after a tool call returns or is refused.
 	StreamEventToolEnd StreamEventType = "tool_end"
 	// StreamEventToken carries incremental text, including progress between tools.
@@ -30,11 +34,12 @@ const (
 
 // StreamEvent is one event from StreamAsk.
 type StreamEvent struct {
-	Type     StreamEventType
-	Token    string
-	ToolCall model.ToolCall
-	Result   model.ToolResult
-	Response *Response
+	ApprovalID string
+	Type       StreamEventType
+	Token      string
+	ToolCall   model.ToolCall
+	Result     model.ToolResult
+	Response   *Response
 }
 
 // AgentStream carries incremental text and tool events, followed by a completed response.
@@ -139,6 +144,7 @@ func (a *agentImpl) askWithStreamEvents(ctx context.Context, message string, eve
 	}
 	send, stop := streamEvents(ctx, events)
 	defer stop()
+	ctx = context.WithValue(ctx, eventKey{}, send)
 	base := a.toolHandler()
 	handler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		_ = send(&StreamEvent{Type: StreamEventToolStart, ToolCall: call})
@@ -186,6 +192,7 @@ func (a *agentImpl) resumeWithStreamEvents(ctx context.Context, runID string, ev
 	}
 	send, stop := streamEvents(ctx, events)
 	defer stop()
+	ctx = context.WithValue(ctx, eventKey{}, send)
 	base := a.toolHandler()
 	handler := func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		_ = send(&StreamEvent{Type: StreamEventToolStart, ToolCall: call})

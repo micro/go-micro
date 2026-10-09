@@ -19,7 +19,14 @@ func (s *session) approve(ctx context.Context, call model.ToolCall) (agent.Appro
 		return agent.ApprovalDecision{Status: agent.ApprovalApproved}, nil
 	}
 	if !s.interactiveUI {
-		return agent.ApprovalDecision{Status: agent.ApprovalDenied, Reason: "This action requires interactive approval. Use micro chat or explicitly allow tool actions with --yes."}, nil
+		return agent.RequestApproval(ctx, call)
+	}
+	return s.promptApproval(ctx, call)
+}
+
+func (s *session) promptApproval(ctx context.Context, call model.ToolCall) (agent.ApprovalDecision, error) {
+	if !s.interactiveUI {
+		return agent.ApprovalDecision{Status: agent.ApprovalDenied, Reason: "Interactive approval required"}, nil
 	}
 	s.approvalMu.Lock()
 	defer s.approvalMu.Unlock()
@@ -28,7 +35,7 @@ func (s *session) approve(ctx context.Context, call model.ToolCall) (agent.Appro
 	}
 	request := approvalRequest{ctx: ctx, answer: make(chan bool, 1)}
 	data, _ := json.MarshalIndent(call.Input, "", "  ")
-	fmt.Fprintf(s.writer(), "\nApprove %s?\n%s\n/approve or /deny\n", call.Name, data)
+	fmt.Fprintf(s.writer(), "\nApprove %s?\n%s\n/approve or /deny\n", terminalText(call.Name), data)
 	select {
 	case s.approvals <- request:
 	case <-ctx.Done():

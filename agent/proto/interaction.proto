@@ -1,0 +1,22 @@
+syntax = "proto3";
+package agent;
+option go_package = "./proto;agent";
+import "agent/proto/agent.proto";
+
+// AgentInteraction carries one chat turn and its approval decisions on one connection.
+service AgentInteraction {
+ rpc Chat(stream InteractionRequest) returns (stream InteractionEvent) {}
+}
+message InteractionRequest {
+ string message = 1;
+ string approval_id = 2;
+ bool approved = 3;
+}
+message InteractionEvent {
+ string type = 1;
+ string text = 2;
+ ToolCall tool_call = 3;
+ string result = 4;
+ string approval_id = 5;
+ ChatResponse response = 6;
+}
