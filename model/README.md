@@ -18,6 +18,19 @@ type Model interface {
 }
 ```
 
+### Discovery and incremental generation
+
+Providers can implement the optional `ModelLister` interface. Call
+`model.ListModels(ctx, provider)` for sorted, unique catalog IDs; providers without
+a catalog return `model.ErrModelsUnsupported`.
+
+Pass `model.WithTokenHandler(func(text string) { ... })` to `Generate` to receive
+text while preserving automatic tool execution. OpenAI, Anthropic, Gemini, Groq,
+Mistral, Together, and MiniMax implement this option. Other providers may ignore
+it. Text can include progress between tool calls; the returned `Response` still
+contains the completed result. `GenerateWithRetry` does not retry after visible
+text has been emitted.
+
 ## Quick Start
 
 ```go

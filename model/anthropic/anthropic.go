@@ -136,6 +136,7 @@ const minCacheBytes = 4096
 
 // Generate generates a response from the model
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+	onToken := model.NewGenerateOptions(opts...).OnToken
 	// Build tools for Anthropic format
 	var anthropicTools []map[string]any
 	for _, t := range req.Tools {
@@ -163,7 +164,7 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 	}
 
 	// Make API call
-	resp, rawContent, err := p.callAPI(ctx, apiReq)
+	resp, rawContent, err := p.callAPI(ctx, apiReq, onToken)
 	if err != nil {
 		return nil, err
 	}
@@ -209,9 +210,9 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 			followUpReq["tools"] = cacheableTools(anthropicTools, req.SystemPrompt, p.opts.NoCache)
 		}
 
-		followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
+		followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq, onToken)
 		if err != nil {
-			break
+			return nil, fmt.Errorf("tool follow-up: %w", err)
 		}
 
 		if len(followUpResp.ToolCalls) > 0 {
@@ -349,7 +350,10 @@ func usage(input, output int) model.Usage {
 }
 
 // callAPI makes an HTTP request to the Anthropic API
-func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, any, error) {
+func (p *Provider) callAPI(ctx context.Context, req map[string]any, onToken func(string)) (*model.Response, any, error) {
+	if onToken != nil {
+		req["stream"] = true
+	}
 	// Marshal request
 	reqBody, err := json.Marshal(req)
 	if err != nil {
@@ -375,13 +379,18 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	}
 	defer httpResp.Body.Close()
 
-	// Read response
-	respBody, err := io.ReadAll(httpResp.Body)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read response: %w", err)
-	}
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, nil, model.NewHTTPError(httpResp, respBody)
+		data, _ := io.ReadAll(io.LimitReader(httpResp.Body, 65536))
+		return nil, nil, model.NewHTTPError(httpResp, data)
+	}
+	var respBody []byte
+	if onToken != nil {
+		respBody, err = readMessage(httpResp.Body, onToken)
+	} else {
+		respBody, err = io.ReadAll(httpResp.Body)
+	}
+	if err != nil {
+		return nil, nil, err
 	}
 
 	// Parse response
@@ -428,7 +437,13 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 		}
 	}
 
-	return response, anthropicResp.Content, nil
+	var raw struct {
+		Content []map[string]any `json:"content"`
+	}
+	if err := json.Unmarshal(respBody, &raw); err != nil {
+		return nil, nil, err
+	}
+	return response, raw.Content, nil
 }
 
 // cleanContent strips fields from response content blocks that Anthropic

@@ -1,0 +1,22 @@
+syntax = "proto3";
+package agent;
+option go_package = "go-micro.dev/v6/agent/proto;agent";
+service AgentSchedules {
+ rpc Add(AddScheduleRequest) returns (ScheduleResponse) {}
+ rpc List(ListSchedulesRequest) returns (ListSchedulesResponse) {}
+ rpc Remove(RemoveScheduleRequest) returns (RemoveScheduleResponse) {}
+}
+message AddScheduleRequest { string message = 1; string every = 2; }
+message ScheduleResponse {
+ string id = 1;
+ string session = 2;
+ string message = 3;
+ string every = 4;
+ int64 next = 5;
+ string last_task = 6;
+ string error = 7;
+}
+message ListSchedulesRequest {}
+message ListSchedulesResponse { repeated ScheduleResponse schedules = 1; }
+message RemoveScheduleRequest { string id = 1; }
+message RemoveScheduleResponse {}

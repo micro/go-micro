@@ -59,7 +59,7 @@ func (p *Provider) Options() model.Options { return p.opts }
 func (p *Provider) String() string         { return "together" }
 
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-	return openaiapi.Generate(ctx, p.opts, req, p.callAPI)
+	return openaiapi.Generate(ctx, p.opts, req, p.callAPI, opts...)
 }
 
 func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {

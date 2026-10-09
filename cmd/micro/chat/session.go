@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"go-micro.dev/v6/agent"
+	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/store"
 )
 
@@ -97,8 +99,22 @@ func (s *session) remember(prompt string) error {
 
 // showHistory uses the framework's stored conversation. Remote history is owned
 // by the remote agent and cannot be read from this client's local store.
-func (s *session) showHistory() error {
+func (s *session) showHistoryContext(ctx context.Context) error {
 	if len(s.agents) > 0 {
+		for name, info := range s.agents {
+			if !info.History {
+				fmt.Fprintf(s.writer(), "%s does not advertise remote history.\n", name)
+				continue
+			}
+			response, err := pb.NewAgentSessionsService(name, s.cl).History(ctx, &pb.HistoryRequest{Session: s.id})
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(s.writer(), "%s / %s\n", name, s.id)
+			for _, message := range response.Messages {
+				fmt.Fprintf(s.writer(), "%s: %s\n", message.Role, message.Content)
+			}
+		}
 		return nil
 	}
 	messages, err := agent.LoadHistory(s.state, "micro-chat", s.localSessionID())
@@ -121,4 +137,20 @@ func (s *session) localSessionID() string {
 		dir, _ = os.Getwd()
 	}
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(dir+"\x00"+s.id)))
+}
+
+func (s *session) remoteSessions(ctx context.Context) error {
+	for name, info := range s.agents {
+		if !info.History {
+			return fmt.Errorf("%s does not advertise a session catalog", name)
+		}
+		response, err := pb.NewAgentSessionsService(name, s.cl).List(ctx, &pb.ListSessionsRequest{})
+		if err != nil {
+			return err
+		}
+		for _, session := range response.Sessions {
+			fmt.Fprintf(s.writer(), "%s  %s  %s\n", name, session.Id, time.Unix(session.Updated, 0).Format(time.RFC3339))
+		}
+	}
+	return nil
 }

@@ -14,7 +14,12 @@ const MaxToolRounds = 12
 // Generate preserves history, options, and tool definitions across model turns.
 // call performs one provider request; automatic tool execution remains supported
 // here for callers of the v6 model API that supply a ToolHandler.
-func Generate(ctx context.Context, opts model.Options, req *model.Request, call func(context.Context, map[string]any) (*model.Response, map[string]any, error)) (*model.Response, error) {
+func Generate(ctx context.Context, opts model.Options, req *model.Request, call func(context.Context, map[string]any) (*model.Response, map[string]any, error), options ...model.GenerateOption) (*model.Response, error) {
+	if onToken := model.NewGenerateOptions(options...).OnToken; onToken != nil {
+		call = func(ctx context.Context, req map[string]any) (*model.Response, map[string]any, error) {
+			return streamCall(ctx, opts, req, onToken)
+		}
+	}
 	messages := Messages(req)
 	resp, raw, err := call(ctx, Request(opts, messages, req.Tools))
 	if err != nil {

@@ -14,15 +14,18 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v6/agent"
 	agentpb "go-micro.dev/v6/agent/proto"
+	agentweb "go-micro.dev/v6/agent/web"
 	"go-micro.dev/v6/agent/workspace"
 	clt "go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
@@ -42,7 +45,9 @@ import (
 )
 
 const systemPrompt = `You are a development agent that uses microservices to fulfill requests.
-Read project files before changing them. Use workspace tools to inspect, edit and
+List available skills with workspace_skill before starting work. Load relevant skills
+on demand. Read project files before changing them; reads include the AGENTS.md
+instructions for their directory. Nested instructions apply to files beneath them. Use workspace tools to inspect, edit and
 verify work. Respect project instructions. Use micro_generate_service when a new
 service is needed. Use only available tools and report failures honestly.
 New services become available as tools on the next user message. Report generation
@@ -67,12 +72,12 @@ func init() {
 		Description: `Start an interactive chat session that uses an LLM to call your services.
 
 With one registered agent, micro chat connects directly without a local API key.
-Use micro chat assistant to select a particular agent when several are running.
+Use micro chat NAME to select a particular agent when several are running.
 With no registered agents, chat uses a local development agent.
 
 micro chat discovers every service in the registry, exposes each endpoint as a
-tool, and lets you ask natural-language questions like "list all users" or
-"create an order for product 42". The model decides which tool to call and
+tool alongside workspace and web tools. Describe the work you need done.
+The model decides which tool to call and
 issues RPCs to the right service.
 
 The local agent can read, search, edit files and run commands in the current
@@ -85,6 +90,8 @@ Examples:
   micro chat --prompt "create a task"`,
 		ArgsUsage: "[agent]",
 		Flags: []cli.Flag{
+			&cli.StringFlag{Name: "sandbox", Usage: "Run workspace commands in this Docker image with networking disabled"},
+			&cli.StringFlag{Name: "host", Usage: "Serve the local development agent under this name without a chat UI (loopback only); --yes allows unattended tool actions"},
 			&cli.StringFlag{Name: "provider", Usage: "AI provider (anthropic, openai, gemini, groq, mistral, together, atlascloud)", EnvVars: []string{"MICRO_AI_PROVIDER"}},
 			&cli.StringFlag{Name: "api_key", Usage: "API key for the provider", EnvVars: []string{"MICRO_AI_API_KEY"}},
 			&cli.StringFlag{Name: "model", Usage: "Model name (uses provider default if unset)", EnvVars: []string{"MICRO_AI_MODEL"}},
@@ -101,13 +108,19 @@ Examples:
 
 // agentInfo holds metadata about a discovered agent.
 type agentInfo struct {
-	Name     string
-	Services []string
-	Stream   bool
-	Sessions bool
+	Schedules bool
+	Tasks     bool
+	History   bool
+	Provider  string
+	Model     string
+	Name      string
+	Services  []string
+	Stream    bool
+	Sessions  bool
 }
 
 type session struct {
+	display       *chatDisplay
 	workspace     *workspace.Workspace
 	instructions  string
 	approvals     chan approvalRequest
@@ -144,6 +157,7 @@ func (s *session) newHarness(name, prompt string, opts ...agent.Option) agent.Ag
 		agent.Model(s.modelName), agent.APIKey(s.apiKey), agent.BaseURL(s.baseURL),
 		agent.WithRegistry(s.reg), agent.WithClient(s.cl),
 		agent.WithStore(store.NewMemoryStore()),
+		agent.CompactMemory(50, 20),
 		agent.ModelCallTimeout(5 * time.Minute), agent.ToolCallTimeout(2 * time.Minute),
 	}
 	if s.state != nil {
@@ -161,6 +175,11 @@ func (s *session) developmentAgent() agent.Agent {
 		opts := []agent.Option{agent.WithTool(generateTool.Name, generateTool.Description, generateTool.Properties, generate)}
 		if s.workspace != nil {
 			opts = append(opts, s.workspace.Tools()...)
+			web := agentweb.Web{}
+			if key := os.Getenv("BRAVE_SEARCH_API_KEY"); key != "" {
+				web.Search = agentweb.Brave(key)
+			}
+			opts = append(opts, web.Tools()...)
 			opts = append(opts, agent.WithApproval(s.approve))
 		}
 		s.local = s.newHarness("micro-chat", systemPrompt+s.instructions, opts...)
@@ -199,14 +218,26 @@ func (s *session) discoverAgents() bool {
 			services = strings.Split(svcsStr, ",")
 		}
 
-		info := agentInfo{Name: svc.Name, Services: services, Stream: true, Sessions: true}
+		info := agentInfo{History: true, Tasks: true, Schedules: true, Provider: meta["provider"], Model: meta["model"], Name: svc.Name, Services: services, Stream: true, Sessions: true}
 		for _, record := range records {
 			// Registries may combine old and new nodes during a rolling deploy.
 			// Service metadata cannot establish the capability of each target node.
 			if len(record.Nodes) == 0 {
 				info.Sessions = false
+				info.History = false
+				info.Tasks = false
+				info.Schedules = false
 			}
 			for _, node := range record.Nodes {
+				if node == nil || node.Metadata["schedules"] != "v1" {
+					info.Schedules = false
+				}
+				if node == nil || node.Metadata["tasks"] != "v1" {
+					info.Tasks = false
+				}
+				if node == nil || node.Metadata["session_history"] != "v1" {
+					info.History = false
+				}
 				if node == nil || node.Metadata["sessions"] != "v1" {
 					info.Sessions = false
 				}
@@ -272,7 +303,9 @@ func (s *session) streamAgent(ctx context.Context, name, message string) error {
 		return err
 	}
 	defer stream.Close()
-	var reply strings.Builder
+	if s.display != nil {
+		defer s.display.flush()
+	}
 	for {
 		chunk, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
@@ -285,18 +318,16 @@ func (s *session) streamAgent(ctx context.Context, name, message string) error {
 			continue
 		}
 
-		if s.output == nil {
+		if s.display != nil {
+			s.display.token(chunk.Reply)
+		} else {
 			fmt.Fprint(s.writer(), chunk.Reply)
 		}
-		reply.WriteString(chunk.Reply)
 	}
-	if reply.Len() > 0 {
-		if s.output != nil {
-			fmt.Fprintln(s.writer(), reply.String())
-		} else {
-			fmt.Fprintln(s.writer())
-		}
+	if s.display == nil {
+		fmt.Fprintln(s.writer())
 	}
+
 	return nil
 }
 
@@ -411,8 +442,8 @@ func run(c *cli.Context) error {
 	streamOutput := c.Bool("stream")
 	targetAgent := c.Args().First()
 
-	reg := registry.DefaultRegistry
-	cl := clt.DefaultClient
+	reg := *cmd.DefaultOptions().Registry
+	cl := *cmd.DefaultOptions().Client
 
 	s := &session{
 		provider:  provider,
@@ -424,6 +455,11 @@ func run(c *cli.Context) error {
 		stream:    streamOutput,
 	}
 	hasAgents := s.discoverAgents()
+	if c.String("host") != "" {
+		s.agents = nil
+		hasAgents = false
+		targetAgent = ""
+	}
 	if targetAgent != "" {
 		if _, ok := s.agents[targetAgent]; !ok {
 			return fmt.Errorf("agent %q is not registered; run `micro agent list` to see available agents", targetAgent)
@@ -434,7 +470,7 @@ func run(c *cli.Context) error {
 	if err := s.openSession(c.String("session"), c.Bool("new")); err != nil {
 		return err
 	}
-	defer s.state.Close()
+	defer func() { _ = s.state.Close() }()
 	// Remote agents own their model configuration.
 	if len(s.agents) != 1 {
 		if err := s.configure(c); err != nil {
@@ -443,7 +479,17 @@ func run(c *cli.Context) error {
 	}
 	if !hasAgents {
 		var err error
-		s.workspace, err = workspace.New(".")
+		skillsHome, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		s.workspace, err = workspace.New(".", workspace.WithContainer(c.String("sandbox")), workspace.WithSkills(filepath.Join(skillsHome, ".agents", "skills")), workspace.WithOutput(func(_ context.Context, text string) {
+			if s.display != nil {
+				s.display.token(text)
+			} else {
+				fmt.Fprint(s.writer(), text)
+			}
+		}))
 		if err != nil {
 			return err
 		}
@@ -460,6 +506,28 @@ func run(c *cli.Context) error {
 	s.refreshTools()
 
 	defer s.cleanup()
+
+	if name := c.String("host"); name != "" {
+		// Release the CLI settings database before serving so another chat process
+		// can open it. The host only needs agent state from this point onward.
+		if err := s.state.Close(); err != nil {
+			return err
+		}
+		s.state = store.NewFileStore()
+		host := s.developmentAgent()
+		host.Init(agent.Name(name), agent.Session(""), agent.Address("127.0.0.1:0"))
+		ctx, stop := signal.NotifyContext(c.Context, os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		done := make(chan error, 1)
+		go func() { done <- host.Run() }()
+		select {
+		case err := <-done:
+			return err
+		case <-ctx.Done():
+			_ = host.Stop()
+			return <-done
+		}
+	}
 
 	if singlePrompt != "" {
 		return s.ask(c.Context, singlePrompt)
@@ -482,7 +550,7 @@ func run(c *cli.Context) error {
 	}
 	if !hasAgents {
 		fmt.Fprintln(s.writer(), "  Tools:")
-		for _, name := range []string{"workspace_read", "workspace_search", "workspace_write", "workspace_edit", "workspace_exec"} {
+		for _, name := range []string{"workspace_skill", "workspace_read", "workspace_search", "workspace_write", "workspace_edit", "workspace_exec"} {
 			fmt.Fprintf(s.writer(), "    ● %s\n", name)
 		}
 		for _, t := range s.toolList {
@@ -533,11 +601,15 @@ func (s *session) askHarness(ctx context.Context, ag agent.Agent, prompt string)
 		return err
 	}
 	defer stream.Close()
-	var reply strings.Builder
+	if s.display != nil {
+		defer s.display.flush()
+	}
 	for {
 		event, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
-			fmt.Fprintln(s.writer(), reply.String())
+			if s.display == nil {
+				fmt.Fprintln(s.writer())
+			}
 			return nil
 		}
 		if err != nil {
@@ -548,12 +620,22 @@ func (s *session) askHarness(ctx context.Context, ag agent.Agent, prompt string)
 		}
 		switch event.Type {
 		case agent.StreamEventToolStart:
-			fmt.Fprintf(s.writer(), "  → %s\n", event.ToolCall.Name)
+			if s.display != nil {
+				s.display.flush()
+			}
+			if event.ToolCall.Name == "delegate" {
+				fmt.Fprintf(s.writer(), "  → delegate to %v: %v\n", event.ToolCall.Input["to"], event.ToolCall.Input["task"])
+			} else {
+				fmt.Fprintf(s.writer(), "  → %s\n", event.ToolCall.Name)
+			}
 		case agent.StreamEventToolEnd:
+			if s.display != nil {
+				s.display.flush()
+			}
 			fmt.Fprintf(s.writer(), "  ← %s\n", truncateResult(event.Result.Content))
 		case agent.StreamEventToken:
-			if s.output != nil {
-				reply.WriteString(event.Token)
+			if s.display != nil {
+				s.display.token(event.Token)
 			} else {
 				fmt.Fprint(s.writer(), event.Token)
 			}
@@ -654,6 +736,9 @@ func (s *session) startProcess(ctx context.Context, process *exec.Cmd) error {
 }
 
 func (s *session) cleanup() {
+	if s.workspace != nil {
+		_ = s.workspace.Close()
+	}
 	s.procMu.Lock()
 	s.closed = true
 	processes := s.procs

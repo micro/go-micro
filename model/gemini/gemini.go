@@ -59,6 +59,7 @@ func (p *Provider) Options() model.Options { return p.opts }
 func (p *Provider) String() string         { return "gemini" }
 
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
+	onToken := model.NewGenerateOptions(opts...).OnToken
 	var tools []map[string]any
 	for _, t := range req.Tools {
 		tools = append(tools, map[string]any{
@@ -89,7 +90,7 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 		}
 	}
 
-	resp, rawParts, err := p.callAPI(ctx, apiReq)
+	resp, rawParts, err := p.callAPI(ctx, apiReq, onToken)
 	if err != nil {
 		return nil, err
 	}
@@ -142,9 +143,9 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 				}
 			}
 
-			followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq)
+			followUpResp, followUpRaw, err := p.callAPI(ctx, followUpReq, onToken)
 			if err != nil {
-				break
+				return nil, fmt.Errorf("tool follow-up: %w", err)
 			}
 			if followUpResp.Reply != "" {
 				resp.Answer = followUpResp.Reply
@@ -281,7 +282,7 @@ func (s *streamReader) Close() error {
 	return s.body.Close()
 }
 
-func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, []map[string]any, error) {
+func (p *Provider) callAPI(ctx context.Context, req map[string]any, onToken func(string)) (*model.Response, []map[string]any, error) {
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
@@ -290,6 +291,9 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	apiURL := strings.TrimRight(p.opts.BaseURL, "/") +
 		"/v1beta/models/" + p.opts.Model + ":generateContent"
 
+	if onToken != nil {
+		apiURL = strings.TrimSuffix(apiURL, ":generateContent") + ":streamGenerateContent?alt=sse"
+	}
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
@@ -304,15 +308,25 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	}
 	defer httpResp.Body.Close()
 
-	respBody, _ := io.ReadAll(httpResp.Body)
 	if httpResp.StatusCode != http.StatusOK {
-		return nil, nil, model.NewHTTPError(httpResp, respBody)
+		data, _ := io.ReadAll(io.LimitReader(httpResp.Body, 65536))
+		return nil, nil, model.NewHTTPError(httpResp, data)
+	}
+	var respBody []byte
+	if onToken != nil {
+		respBody, err = readContent(httpResp.Body, onToken)
+	} else {
+		respBody, err = io.ReadAll(httpResp.Body)
+	}
+	if err != nil {
+		return nil, nil, err
 	}
 
 	var geminiResp struct {
 		Candidates []struct {
 			Content struct {
 				Parts []struct {
+					Thought      bool            `json:"thought"`
 					Text         string          `json:"text"`
 					FunctionCall *functionCallPB `json:"functionCall"`
 				} `json:"parts"`
@@ -332,25 +346,16 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	response := &model.Response{}
 
 	var replyParts []string
-	var rawParts []map[string]any
 
 	for _, part := range parts {
-		if part.Text != "" {
+		if part.Text != "" && !part.Thought {
 			replyParts = append(replyParts, part.Text)
-			rawParts = append(rawParts, map[string]any{"text": part.Text})
 		}
 		if part.FunctionCall != nil {
 			response.ToolCalls = append(response.ToolCalls, model.ToolCall{
 				ID:    part.FunctionCall.ID,
 				Name:  part.FunctionCall.Name,
 				Input: part.FunctionCall.Args,
-			})
-			rawParts = append(rawParts, map[string]any{
-				"functionCall": map[string]any{
-					"id":   part.FunctionCall.ID,
-					"name": part.FunctionCall.Name,
-					"args": part.FunctionCall.Args,
-				},
 			})
 		}
 	}
@@ -359,7 +364,20 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 		response.Reply = strings.Join(replyParts, "\n")
 	}
 
-	return response, rawParts, nil
+	var raw struct {
+		Candidates []struct {
+			Content struct {
+				Parts []map[string]any `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+	if err := json.Unmarshal(respBody, &raw); err != nil {
+		return nil, nil, err
+	}
+	if onToken != nil {
+		response.Reply = strings.Join(replyParts, "")
+	}
+	return response, raw.Candidates[0].Content.Parts, nil
 }
 
 type functionCallPB struct {

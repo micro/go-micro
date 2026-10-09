@@ -21,41 +21,76 @@ mkdir my-app && cd my-app
 micro chat
 ```
 
-With no registered agents, the local agent can read, search and edit project files,
-and run shell commands. It loads the root `AGENTS.md`. File edits, commands and
-other tool actions require `/approve` or `/deny`; reading and searching are allowed.
-Shell commands run with your host permissions, not in a sandbox. For scripts,
-`--yes` explicitly allows tool actions without prompting.
+With no registered agents, the local agent works with project files, shell
+commands, skills, web pages, and registered service tools. It loads `AGENTS.md`
+and includes directory-specific instructions when reading files. Mutating tools
+and network requests use `/approve` or `/deny`; `--yes` allows unattended actions.
+Commands use host permissions unless `--sandbox IMAGE` selects Docker execution.
 
-The CLI development agent can also generate a missing
-service, compile and start it, and expose its endpoints as tools. Describe what
-you need, then ask it to use the service on your next message. Generated
-source stays in your directory; services started by this session stop on exit.
-Use `micro run` to continue developing the project with hot reload.
+Conversations and project settings persist across restarts. The terminal supports
+live text and command output, input editing, completion, and these controls:
 
-Development chat uses the framework agent and saves its conversation and plan
-through the existing store. Reopening `micro chat` in the same directory selects
-the last conversation. The terminal supports input editing, command completion,
-and cancellation while a request is running:
+| Command | Behavior |
+|---|---|
+| `/model`, `/model ID`, `/models` | Select a model or list the provider catalog |
+| `/provider`, `/provider NAME [URL]` | Select a provider and optionally its endpoint |
+| `/skills` | List project and personal skills |
+| `/paste`, then `/send` or `/cancel` | Compose or discard a multiline request |
+| `/queue` | Show follow-ups entered while the agent is busy |
+| `/steer MESSAGE` | Cancel current work and run the correction next |
+| `/stop`, Ctrl-C | Cancel current work and clear queued requests |
+| `/new`, `/sessions`, `/resume ID` | Create, list, or reopen conversations |
+| `/history`, `/search TEXT`, `/compact` | Inspect, search, or compact the conversation |
+| `/agents` | Show connected agents and their models |
+| `/approve`, `/deny` | Decide a pending local tool action |
+| `/exit` | Exit and stop foreground work |
 
-- `/new`: start a separate conversation (`reset` is an alias).
-- `/sessions`: list saved conversation IDs and titles.
-- `/resume ID`: select a conversation.
-- `/approve` or `/deny`: decide the pending tool action.
-- `/stop` or Ctrl-C: cancel the current request.
-- `/exit`: leave chat and stop local work.
+Use `--new` or `--session ID` from the shell. Model changes preserve the active
+conversation and apply to the next request. Catalogs use `model.ModelLister`;
+providers without a catalog accept explicit model IDs. Catalog membership does
+not guarantee chat/tool support or account access. Remote model settings belong
+to the host.
 
-Use `micro chat --new` or `micro chat --session ID` from the shell. Provider and
-model settings are saved per project. On a terminal, missing credentials prompt
-for a masked API key and save it locally in the file store; environment variables
-and flags override saved settings. Keys from the environment are not copied into
-settings. Saved keys are not reused when changing provider or endpoint.
+Provider credentials entered at the masked prompt are saved per project and
+endpoint. Environment variables and flags override them without copying their
+values into settings. Local Ollama does not require a key.
 
-Tool activity appears during local execution. The terminal prints the completed
-answer together; `--stream` in scripts retains answer chunks. Native provider
-token streaming and background work after exit remain separate work. Generated services still stop on exit. Remote sessions require an
-updated agent server using store-backed memory or `agent.SessionMemory`; older servers report a
-compatibility error instead of silently sharing conversation history.
+Project skills live in `.agents/skills/NAME/SKILL.md`; `~/.agents/skills` is a
+read-only personal library. Ask the agent to save a reusable procedure: the
+approved `workspace_save_skill` tool creates a project skill without overwriting
+an existing one. Skill scripts execute only through normal approved tools.
+
+To keep work running independently of chat, start a host in another terminal:
+
+```bash
+micro chat --host project --yes
+# In another terminal, in the same project:
+micro chat project
+```
+
+`--host` binds to loopback. Without `--yes`, unattended mutating tools are refused.
+On the connected chat, `/background MESSAGE` submits work, `/tasks` lists it,
+`/task ID` inspects it, and `/cancel ID` cancels it. `/schedule 1h MESSAGE` saves a
+recurring request; `/schedules` lists definitions and `/unschedule ID` removes
+future dispatches. Results are saved in the selected conversation. The host must
+remain running; a stopped host does not replay unfinished tasks. One host owns
+scheduling for each agent/store namespace.
+
+Use `micro chat --sandbox IMAGE` to run commands in Docker with only the project
+mounted writable, networking disabled, and process/memory limits. The image must
+provide `sh`; Docker must be installed. This isolates command execution, not the
+agent's separately configured service or web tools.
+
+`web_fetch` reads HTTP(S) pages. Set `BRAVE_SEARCH_API_KEY` to enable `web_search`,
+or supply your own `agent/web.SearchFunc` in Go. These tools do not automate a
+JavaScript browser or access signed-in browser sessions.
+
+The development agent can still generate, compile, and start services. Those
+services and managed background commands belong to the local chat or host and
+stop when that process exits. Use `micro run` for hot reload.
+
+See [interactive agent development](../../internal/website/content/en/docs/interactive-agent.md)
+for framework APIs, streaming coverage, and lifecycle limits.
 
 To review a design before generating and running the project:
 

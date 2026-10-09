@@ -439,3 +439,16 @@ func TestRetryBackoffAddsBoundedJitter(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerateWithRetryDoesNotReplayVisibleOutput(t *testing.T) {
+	attempts := 0
+	m := retryModel{generate: func(_ context.Context, _ *Request, opts ...GenerateOption) (*Response, error) {
+		attempts++
+		NewGenerateOptions(opts...).OnToken("visible")
+		return nil, errors.New("temporary outage")
+	}}
+	_, err := GenerateWithRetry(context.Background(), m, &Request{}, GeneratePolicy{MaxAttempts: 3}, WithTokenHandler(func(string) {}))
+	if err == nil || attempts != 1 {
+		t.Fatalf("attempts=%d error=%v", attempts, err)
+	}
+}
