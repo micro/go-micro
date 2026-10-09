@@ -89,7 +89,8 @@ func sessionStore(s store.Store, name, id string) store.Store {
 		s = store.DefaultStore
 	}
 	if id != "" {
-		name += fmt.Sprintf("-session-%x", sha256.Sum256([]byte(id)))
+		key, _ := json.Marshal([]string{name, id})
+		return store.Scope(s, "agent_sessions", fmt.Sprintf("%x", sha256.Sum256(key)))
 	}
 	return store.Scope(s, "agent", name)
 }

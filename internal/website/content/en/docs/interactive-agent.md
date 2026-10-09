@@ -39,6 +39,12 @@ RPC sessions can run concurrently; requests for the same session are serialized.
 Local chat displays retained messages when reopening a conversation. Remote
 transcript retrieval and a shared session catalog are still needed.
 
+Session history and plans now use a separate `agent_sessions` database, with
+agent name and session ID encoded together. Earlier experimental session tables
+are left intact but are not read automatically: their names could overlap an
+unrelated agent's default state. Default conversations and run records keep their
+existing locations.
+
 ## Workspace tools
 
 The `agent/workspace` package supplies file reading, search, exact-text edits,

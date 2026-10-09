@@ -2,6 +2,9 @@ package agent
 
 import (
 	"context"
+	"crypto/sha256"
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -162,5 +165,36 @@ func TestRPCCustomSessionMemory(t *testing.T) {
 			t.Fatal("custom session memory ignored")
 		}
 		release()
+	}
+}
+
+func TestSessionNamespaceCannotOverlapAgentName(t *testing.T) {
+	for _, files := range []bool{false, true} {
+		t.Run(fmt.Sprint(files), func(t *testing.T) {
+			st := store.NewMemoryStore()
+			if files {
+				st = store.NewFileStore(store.DirOption(t.TempDir()))
+			}
+			defer st.Close()
+			name, id := "foo", "conversation"
+			other := fmt.Sprintf("%s-session-%x", name, sha256.Sum256([]byte(id)))
+			session := sessionStore(st, name, id)
+			ordinary := sessionStore(st, other, "")
+			for _, key := range []string{"history", "plan"} {
+				if err := session.Write(&store.Record{Key: key, Value: []byte("session")}); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := ordinary.Read(key); !errors.Is(err, store.ErrNotFound) {
+					t.Fatalf("%s leaked to ordinary agent: %v", key, err)
+				}
+				if err := ordinary.Write(&store.Record{Key: key, Value: []byte("ordinary")}); err != nil {
+					t.Fatal(err)
+				}
+				records, err := session.Read(key)
+				if err != nil || len(records) != 1 || string(records[0].Value) != "session" {
+					t.Fatalf("%s overwritten: %+v %v", key, records, err)
+				}
+			}
+		})
 	}
 }
