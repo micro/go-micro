@@ -77,6 +77,8 @@ type agentImpl struct {
 	mem         Memory
 	server      server.Server
 	mu          sync.Mutex
+	sessionMu   sync.Mutex
+	sessions    map[string]*sessionLock
 
 	// ephemeral marks a short-lived sub-agent created by delegation.
 	// Ephemeral agents run with an isolated context: they load and
@@ -145,8 +147,12 @@ func (a *agentImpl) Name() string {
 }
 
 func (a *agentImpl) Init(opts ...Option) {
+	previousSession := a.opts.Session
 	for _, o := range opts {
 		o(&a.opts)
+	}
+	if previousSession != a.opts.Session {
+		a.mem = nil
 	}
 	a.setup()
 }
@@ -219,11 +225,7 @@ func (a *agentImpl) setupWithToolHandler(handler model.ToolHandler) {
 // shared global one. The scoped handle injects the database/table per
 // operation without mutating the underlying store.
 func (a *agentImpl) stateStore() store.Store {
-	s := a.opts.Store
-	if s == nil {
-		s = store.DefaultStore
-	}
-	return store.Scope(s, "agent", a.opts.Name)
+	return sessionStore(a.opts.Store, a.opts.Name, a.opts.Session)
 }
 
 // requestHistory returns the conversation history to send alongside the
@@ -317,6 +319,12 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (model.Stream, e
 // remote clients to the agent streaming path. If the model cannot stream, the
 // underlying error is returned so callers can fall back to Agent.Chat.
 func (a *agentImpl) StreamChat(ctx context.Context, stream pb.Agent_StreamChatStream) error {
+	conversation, release, err := a.rpcSession(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	a = conversation
 	req, err := stream.Recv()
 	if err != nil {
 		return err
@@ -650,6 +658,12 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 // Chat implements the proto AgentHandler interface for RPC.
 // @example {"message": "What tasks are overdue?"}
 func (a *agentImpl) Chat(ctx context.Context, req *pb.ChatRequest, rsp *pb.ChatResponse) error {
+	conversation, release, err := a.rpcSession(ctx)
+	if err != nil {
+		return err
+	}
+	defer release()
+	a = conversation
 	resp, err := a.ask(ctx, req.Message, req.ParentId)
 	if err != nil {
 		return err
@@ -676,11 +690,18 @@ func (a *agentImpl) Run() error {
 		a.setup()
 	}
 
+	sessionSupport := "v1"
+	if a.opts.Memory != nil {
+		if _, ok := a.opts.Memory.(SessionMemory); !ok {
+			sessionSupport = ""
+		}
+	}
 	serverOpts := []server.Option{
 		server.Name(a.opts.Name),
 		server.Address(a.opts.Address),
 		server.Registry(a.opts.Registry),
 		server.Metadata(map[string]string{
+			"sessions": sessionSupport,
 			"type":     "agent",
 			"services": strings.Join(a.opts.Services, ","),
 		}),

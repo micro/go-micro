@@ -45,6 +45,7 @@ func inspectAgentFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "json", Usage: "Print run data as JSON for automation"},
 		&cli.StringFlag{Name: "run", Usage: "Show the complete versioned record for this run id"},
+		&cli.StringFlag{Name: "session", Usage: "Filter by conversation ID"},
 		&cli.StringFlag{Name: "status", Usage: "Only show runs with this status (running, done, canceled, timeout, rate_limited, auth, configuration, unavailable, provider_error, error, refused)"},
 		&cli.StringFlag{Name: "trace", Usage: "Only show runs whose trace id matches this full id or prefix"},
 		&cli.IntFlag{Name: "limit", Usage: "Show the most recently updated N runs"},
@@ -74,7 +75,7 @@ func inspectAgent(c *cli.Context) error {
 		}
 		return writeAgentRunRecord(os.Stdout, record, c.Bool("json"))
 	}
-	opts := goagent.RunListOptions{Status: c.String("status"), TraceID: c.String("trace"), Limit: c.Int("limit")}
+	opts := goagent.RunListOptions{Session: c.String("session"), Status: c.String("status"), TraceID: c.String("trace"), Limit: c.Int("limit")}
 	runs, err := goagent.ListRunSummariesWithOptions(store.DefaultStore, name, opts)
 	if err != nil {
 		return err
@@ -191,6 +192,9 @@ func writeAgentInspection(w io.Writer, name string, runs []goagent.RunSummary, a
 	fmt.Fprintf(w, "  Agent %q runs\n", name)
 	for _, run := range runs {
 		fmt.Fprintf(w, "  %s  status=%s  events=%d  last=%s", run.RunID, run.Status, run.Events, run.LastKind)
+		if run.Session != "" {
+			fmt.Fprintf(w, "  session=%s", run.Session)
+		}
 		if run.Checkpoint != "" {
 			fmt.Fprintf(w, "  checkpoint=%s", run.Checkpoint)
 		}

@@ -59,6 +59,7 @@ const (
 // intentionally contain operational metadata rather than model or tool payloads;
 // Name contains the prompt only when TraceInputs is explicitly enabled.
 type RunEvent struct {
+	Session     string    `json:"session,omitempty"`
 	Time        time.Time `json:"time"`
 	RunID       string    `json:"run_id"`
 	ParentID    string    `json:"parent_id,omitempty"`
@@ -91,6 +92,8 @@ type Usage = model.Usage
 // RunListOptions controls how recorded agent run summaries are returned.
 // Zero values preserve the full deterministic run list.
 type RunListOptions struct {
+	// Session filters runs by conversation ID. Empty includes all conversations.
+	Session string
 	// Status, when set, keeps only runs with the matching status
 	// (for example "running", "done", "canceled", "timeout",
 	// "rate_limited", "auth", "configuration", "unavailable",
@@ -108,6 +111,7 @@ type RunListOptions struct {
 // RunSummary is the derived, compact index entry for a recorded agent run. It
 // can be rebuilt from the run's events and is not a separate source of truth.
 type RunSummary struct {
+	Session       string    `json:"session,omitempty"`
 	RunID         string    `json:"run_id"`
 	Agent         string    `json:"agent"`
 	ParentID      string    `json:"parent_id,omitempty"`
@@ -636,12 +640,17 @@ func (a *agentImpl) recordRunEvent(e RunEvent) {
 	if e.RunID == "" {
 		return
 	}
+	e.Session = a.opts.Session
 	if f := a.opts.OnRunEvent; f != nil {
 		f(e)
 	}
 	b, _ := json.Marshal(e)
 	key := fmt.Sprintf("runs/%s/%020d-%s", e.RunID, e.Time.UnixNano(), e.Kind)
-	_ = a.stateStore().Write(&store.Record{Key: key, Value: b})
+	s := a.opts.Store
+	if s == nil {
+		s = store.DefaultStore
+	}
+	_ = store.Scope(s, "agent", a.opts.Name).Write(&store.Record{Key: key, Value: b})
 }
 
 // ListRunSummaries returns a deterministic summary of recorded runs for agentName.
@@ -680,6 +689,9 @@ func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOp
 			continue
 		}
 		summary := summarizeRunEvents(id, events)
+		if opts.Session != "" && summary.Session != opts.Session {
+			continue
+		}
 		if opts.Status != "" && summary.Status != opts.Status {
 			continue
 		}
@@ -701,6 +713,9 @@ func ListRunSummariesWithOptions(s store.Store, agentName string, opts RunListOp
 
 func summarizeRunEvents(runID string, events []RunEvent) RunSummary {
 	summary := RunSummary{RunID: runID, Events: len(events)}
+	if len(events) > 0 {
+		summary.Session = events[0].Session
+	}
 	if len(events) == 0 {
 		return summary
 	}

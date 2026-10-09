@@ -7,7 +7,6 @@
 package chat
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
@@ -86,6 +85,8 @@ Examples:
 			&cli.StringFlag{Name: "api_key", Usage: "API key for the provider", EnvVars: []string{"MICRO_AI_API_KEY"}},
 			&cli.StringFlag{Name: "model", Usage: "Model name (uses provider default if unset)", EnvVars: []string{"MICRO_AI_MODEL"}},
 			&cli.StringFlag{Name: "base_url", Usage: "Override the provider's base URL", EnvVars: []string{"MICRO_AI_BASE_URL"}},
+			&cli.StringFlag{Name: "session", Usage: "Resume a conversation by ID"},
+			&cli.BoolFlag{Name: "new", Usage: "Start a new conversation"},
 			&cli.StringFlag{Name: "prompt", Usage: "Send a single prompt and exit (non-interactive)"},
 			&cli.BoolFlag{Name: "stream", Usage: "Show agent tool events and answer chunks"},
 		},
@@ -98,9 +99,15 @@ type agentInfo struct {
 	Name     string
 	Services []string
 	Stream   bool
+	Sessions bool
 }
 
 type session struct {
+	project string
+	id      string
+	state   store.Store
+	output  io.Writer
+
 	provider  string
 	apiKey    string
 	modelName string
@@ -118,15 +125,18 @@ type session struct {
 	generate  agent.ToolFunc
 }
 
-// newHarness supplies session-local state; it never registers a CLI agent or
-// persists conversations/plans under the identity of another chat session.
+// newHarness uses the selected conversation for memory and plan state.
+// Tests without a backing store keep their state in memory.
 func (s *session) newHarness(name, prompt string, opts ...agent.Option) agent.Agent {
 	base := []agent.Option{
 		agent.Name(name), agent.Prompt(prompt), agent.Provider(s.provider),
 		agent.Model(s.modelName), agent.APIKey(s.apiKey), agent.BaseURL(s.baseURL),
 		agent.WithRegistry(s.reg), agent.WithClient(s.cl),
-		agent.WithStore(store.NewMemoryStore()), agent.WithMemory(agent.NewInMemory(50)),
+		agent.WithStore(store.NewMemoryStore()),
 		agent.ModelCallTimeout(5 * time.Minute), agent.ToolCallTimeout(2 * time.Minute),
+	}
+	if s.state != nil {
+		base = append(base, agent.WithStore(s.state), agent.Session(s.localSessionID()))
 	}
 	return agent.New(append(base, opts...)...)
 }
@@ -174,8 +184,18 @@ func (s *session) discoverAgents() bool {
 			services = strings.Split(svcsStr, ",")
 		}
 
-		info := agentInfo{Name: svc.Name, Services: services, Stream: true}
+		info := agentInfo{Name: svc.Name, Services: services, Stream: true, Sessions: true}
 		for _, record := range records {
+			// Registries may combine old and new nodes during a rolling deploy.
+			// Service metadata cannot establish the capability of each target node.
+			if len(record.Nodes) == 0 {
+				info.Sessions = false
+			}
+			for _, node := range record.Nodes {
+				if node == nil || node.Metadata["sessions"] != "v1" {
+					info.Sessions = false
+				}
+			}
 			supportsStream := false
 			for _, endpoint := range record.Endpoints {
 				if endpoint != nil && endpoint.Name == "Agent.StreamChat" {
@@ -249,11 +269,18 @@ func (s *session) streamAgent(ctx context.Context, name, message string) error {
 		if chunk == nil || chunk.Reply == "" {
 			continue
 		}
-		fmt.Print(chunk.Reply)
+
+		if s.output == nil {
+			fmt.Fprint(s.writer(), chunk.Reply)
+		}
 		reply.WriteString(chunk.Reply)
 	}
 	if reply.Len() > 0 {
-		fmt.Println()
+		if s.output != nil {
+			fmt.Fprintln(s.writer(), reply.String())
+		} else {
+			fmt.Fprintln(s.writer())
+		}
 	}
 	return nil
 }
@@ -281,7 +308,10 @@ If no agent can handle the request, say so.`, strings.Join(agentDescs, "\n"))
 func (s *session) refreshTools() {
 	discovered, err := model.NewTools(s.reg, model.ToolClient(s.cl)).Discover()
 	if err == nil {
-		s.toolList = append(discovered, generateTool)
+		s.toolList = discovered
+		if len(s.agents) == 0 {
+			s.toolList = append(s.toolList, generateTool)
+		}
 	}
 }
 
@@ -290,7 +320,7 @@ func (s *session) handleGenerate(ctx context.Context, input map[string]any) (str
 	if strings.TrimSpace(desc) == "" {
 		return "", fmt.Errorf("description is required")
 	}
-	fmt.Printf("\n  Generating service: %s\n", desc)
+	fmt.Fprintf(s.writer(), "\n  Generating service: %s\n", desc)
 	design, err := generate.Design(ctx, s.provider, s.apiKey, s.modelName, ".", desc)
 	if err != nil {
 		return "", fmt.Errorf("design failed: %w", err)
@@ -366,13 +396,6 @@ func run(c *cli.Context) error {
 	streamOutput := c.Bool("stream")
 	targetAgent := c.Args().First()
 
-	if provider == "" {
-		provider = model.AutoDetectProvider(baseURL)
-	}
-	if apiKey == "" {
-		apiKey = fallbackAPIKey(provider)
-	}
-
 	reg := registry.DefaultRegistry
 	cl := clt.DefaultClient
 
@@ -393,17 +416,15 @@ func run(c *cli.Context) error {
 		s.agents = map[string]agentInfo{targetAgent: s.agents[targetAgent]}
 		hasAgents = true
 	}
-	// A single registered agent owns its model and credentials. Only local
-	// development and routing between multiple agents need a CLI model.
+	if err := s.openSession(c.String("session"), c.Bool("new")); err != nil {
+		return err
+	}
+	defer s.state.Close()
+	// Remote agents own their model configuration.
 	if len(s.agents) != 1 {
-		if apiKey == "" {
-			return fmt.Errorf("no API key configured; set --api_key or %s", envVarForProvider(provider))
+		if err := s.configure(c); err != nil {
+			return err
 		}
-		configured := model.New(provider, model.WithAPIKey(apiKey), model.WithModel(modelName), model.WithBaseURL(baseURL))
-		if configured == nil {
-			return fmt.Errorf("unknown provider: %s", provider)
-		}
-		s.modelName = configured.Options().Model
 	}
 	s.refreshTools()
 
@@ -413,61 +434,51 @@ func run(c *cli.Context) error {
 		return s.ask(c.Context, singlePrompt)
 	}
 
-	fmt.Println()
-	fmt.Println("  \033[1mmicro chat\033[0m")
-	fmt.Println()
+	fmt.Fprintln(s.writer())
+	fmt.Fprintln(s.writer(), "  \033[1mmicro chat\033[0m")
+	fmt.Fprintln(s.writer())
 	if len(s.agents) != 1 {
-		fmt.Printf("  Provider    \033[36m%s\033[0m\n", provider)
-		fmt.Printf("  Model       \033[36m%s\033[0m\n", s.modelName)
-		fmt.Println()
+		fmt.Fprintf(s.writer(), "  Provider    \033[36m%s\033[0m\n", s.provider)
+		fmt.Fprintf(s.writer(), "  Model       \033[36m%s\033[0m\n", s.modelName)
+		fmt.Fprintln(s.writer())
 	}
 	if hasAgents {
-		fmt.Println("  Agents:")
+		fmt.Fprintln(s.writer(), "  Agents:")
 		for name, info := range s.agents {
-			fmt.Printf("    \033[35m◆\033[0m %s \033[2m(%s)\033[0m\n", name, strings.Join(info.Services, ", "))
+			fmt.Fprintf(s.writer(), "    \033[35m◆\033[0m %s \033[2m(%s)\033[0m\n", name, strings.Join(info.Services, ", "))
 		}
-		fmt.Println()
+		fmt.Fprintln(s.writer())
 	}
-	fmt.Println("  Tools:")
-	for _, t := range s.toolList {
-		fmt.Printf("    \033[32m●\033[0m %s\n", t.OriginalName)
+	if !hasAgents {
+		fmt.Fprintln(s.writer(), "  Tools:")
+		for _, t := range s.toolList {
+			fmt.Fprintf(s.writer(), "    \033[32m●\033[0m %s\n", t.OriginalName)
+		}
 	}
 	if len(s.toolList) == 0 && !hasAgents {
-		fmt.Println("    \033[33m(no services found)\033[0m")
+		fmt.Fprintln(s.writer(), "    \033[33m(no services found)\033[0m")
 	}
-	fmt.Println()
-	fmt.Println("  Type a prompt and press enter. \033[2mCtrl-D or 'exit' to quit.\033[0m")
-	fmt.Println()
+	fmt.Fprintln(s.writer())
+	fmt.Fprintln(s.writer(), "  Type a prompt and press enter. \033[2mCtrl-D or 'exit' to quit.\033[0m")
+	fmt.Fprintln(s.writer())
 
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Buffer(make([]byte, 0, 4096), 1024*1024)
-	for {
-		fmt.Print("\033[1;36m>\033[0m ")
-		if !scanner.Scan() {
-			fmt.Println()
-			return scanner.Err()
-		}
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" {
-			continue
-		}
-		if line == "exit" || line == "quit" {
-			return nil
-		}
-		if line == "reset" {
-			s.reset()
-			fmt.Println("\033[2m(history cleared)\033[0m")
-			fmt.Println()
-			continue
-		}
-		if err := s.ask(c.Context, line); err != nil {
-			fmt.Printf("\033[31merror:\033[0m %v\n", err)
-		}
-		fmt.Println()
-	}
+	return s.interactive(c.Context)
 }
 
 func (s *session) ask(ctx context.Context, prompt string) error {
+	if s.id != "" {
+		for name, info := range s.agents {
+			if !info.Sessions {
+				return fmt.Errorf("agent %q does not support isolated conversations; rebuild it with the current Go Micro version", name)
+			}
+		}
+		ctx = agent.WithSession(ctx, s.id)
+	}
+	if s.state != nil {
+		if err := s.remember(prompt); err != nil {
+			return err
+		}
+	}
 	if len(s.agents) > 0 {
 		return s.routeToAgent(ctx, prompt)
 	}
@@ -488,10 +499,11 @@ func (s *session) askHarness(ctx context.Context, ag agent.Agent, prompt string)
 		return err
 	}
 	defer stream.Close()
+	var reply strings.Builder
 	for {
 		event, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
-			fmt.Println()
+			fmt.Fprintln(s.writer(), reply.String())
 			return nil
 		}
 		if err != nil {
@@ -502,11 +514,15 @@ func (s *session) askHarness(ctx context.Context, ag agent.Agent, prompt string)
 		}
 		switch event.Type {
 		case agent.StreamEventToolStart:
-			fmt.Printf("  → %s\n", event.ToolCall.Name)
+			fmt.Fprintf(s.writer(), "  → %s\n", event.ToolCall.Name)
 		case agent.StreamEventToolEnd:
-			fmt.Printf("  ← %s\n", truncateResult(event.Result.Content))
+			fmt.Fprintf(s.writer(), "  ← %s\n", truncateResult(event.Result.Content))
 		case agent.StreamEventToken:
-			fmt.Print(event.Token)
+			if s.output != nil {
+				reply.WriteString(event.Token)
+			} else {
+				fmt.Fprint(s.writer(), event.Token)
+			}
 		}
 	}
 }
@@ -518,7 +534,7 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 	// Single agent — call directly via RPC
 	if len(s.agents) == 1 {
 		for name := range s.agents {
-			fmt.Printf("  \033[35m◆\033[0m \033[2m%s\033[0m\n", name)
+			fmt.Fprintf(s.writer(), "  \033[35m◆\033[0m \033[2m%s\033[0m\n", name)
 			if s.stream && s.agents[name].Stream {
 				return s.streamAgent(ctx, name, prompt)
 			}
@@ -558,7 +574,7 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 			if strings.TrimSpace(message) == "" {
 				return "", fmt.Errorf("message is required")
 			}
-			fmt.Printf("  ◆ %s\n", name)
+			fmt.Fprintf(s.writer(), "  ◆ %s\n", name)
 			response, err := s.callAgent(ctx, name, message)
 			if err != nil {
 				return "", err
@@ -576,14 +592,14 @@ func (s *session) routeToAgent(ctx context.Context, prompt string) error {
 func (s *session) printAgentResponse(resp *agent.Response) {
 	for _, tc := range resp.ToolCalls {
 		args, _ := json.Marshal(tc.Input)
-		fmt.Printf("    \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
+		fmt.Fprintf(s.writer(), "    \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
 		if tc.Result != "" {
-			fmt.Printf("    \033[32m←\033[0m \033[2m%s\033[0m\n", truncateResult(tc.Result))
+			fmt.Fprintf(s.writer(), "    \033[32m←\033[0m \033[2m%s\033[0m\n", truncateResult(tc.Result))
 		}
 	}
 	if resp.Reply != "" {
-		fmt.Println()
-		fmt.Println(resp.Reply)
+		fmt.Fprintln(s.writer())
+		fmt.Fprintln(s.writer(), resp.Reply)
 	}
 }
 

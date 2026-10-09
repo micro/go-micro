@@ -36,6 +36,9 @@ type customTool struct {
 
 // Options holds agent configuration.
 type Options struct {
+	// Session scopes conversation memory and plans within this agent.
+	Session string
+
 	Name         string
 	Services     []string
 	Prompt       string
@@ -477,3 +480,8 @@ func Temperature(t float64) Option { return func(o *Options) { v := t; o.Tempera
 // the limit is exceeded, logging omitted names. Zero leaves tools unlimited.
 // This includes service, custom and built-in tools; MaxSteps separately limits executions.
 func MaxTools(n int) Option { return func(o *Options) { o.MaxTools = n } }
+
+// Session selects an independent, persistent conversation within an agent.
+// An empty ID preserves the default conversation. Custom Memory implementations
+// are responsible for their own session isolation.
+func Session(id string) Option { return func(o *Options) { o.Session = id } }

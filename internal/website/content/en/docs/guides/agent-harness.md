@@ -12,8 +12,9 @@ agents, but are not substitutes for managing the model's conversation and tools.
 
 ## Current limits
 
-- Development chat keeps conversation and plan state only for the session.
-  `reset` clears it; exiting does not save a resumable CLI conversation.
+- Development chat saves conversations and plans. `/new` starts a separate
+  conversation and `/resume ID` reopens one. Exiting still cancels local work;
+  this is conversation persistence, not background execution.
 - Generated services become available on the next message. Chat can generate
   services, but does not provide a general file-editing and shell coding agent.
 - `micro chat --stream` shows tool events and chunks the completed answer;

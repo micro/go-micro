@@ -124,7 +124,7 @@ ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
 > create an order for product-42
 ```
 
-Multi-turn conversation with `model.History` — the model remembers context across turns. Type `reset` to clear history.
+Conversations persist through the agent memory store. Use `/new` to start a separate conversation, `/sessions` to list them, and `/resume ID` to continue one.
 
 ### 7. micro flow (event-driven orchestration)
 

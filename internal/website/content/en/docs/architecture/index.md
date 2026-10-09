@@ -63,7 +63,7 @@ There is currently a split in execution responsibility: provider adapters can
 perform repeated tool calls inside `Generate` when a tool handler is supplied,
 while the agent adds guardrails, run tracking, and plan-completion logic around
 those calls. CLI development chat and multi-agent routing use this same agent
-harness, with session-local memory and storage. Provider-level tool iteration
+harness, with memory and plans stored separately for each conversation. Provider-level tool iteration
 and agent-level execution control remain separate responsibilities.
 
 See [AI Integration](../ai-integration/index.md),
