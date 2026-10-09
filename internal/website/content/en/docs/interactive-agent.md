@@ -65,8 +65,11 @@ option return their completed reply through the same agent stream. Responses
 retain their newlines and indentation.
 
 `agent.StreamAsk` emits text and local tool events. The CLI also displays
-incremental foreground command output. Remote `StreamChat` carries reply text;
-remote tool events and interactive remote approval prompts are not transported.
+incremental foreground command output. Connected hosts send the same tool activity
+and approval prompts through `AgentInteraction.Chat`. Use `/approve` or `/deny`
+for the displayed action, just as in local chat. Disconnecting or stopping chat
+cancels pending approvals; completed actions are not rolled back. Older hosts
+continue to use the reply-only `StreamChat` endpoint.
 Visible partial model output is not automatically retried.
 
 `agent/workspace` supplies reads, search, exact edits, writes, command execution,
@@ -102,14 +105,23 @@ networking disabled, dropped capabilities, and resource limits. The image needs
 ## Work independent of chat
 
 ```bash
-# Keep this host running in one terminal. --yes permits unattended tool actions.
-micro chat --host project --yes
+# Keep this host running in one terminal.
+micro chat --host project
 # Connect from another terminal:
 micro chat project
 ```
 
-The CLI host listens on loopback. Without `--yes`, it permits read-only workspace
-tools and refuses unattended actions requiring approval.
+The CLI host listens on loopback. It permits read-only workspace tools and asks
+the connected chat to approve other actions. Unattended tasks have no approval
+connection and are refused when they need a decision. Use `--yes` on the host
+only when you want to allow unattended tool actions.
+
+Custom hosts opt in with `agent.WithApproval(agent.RequestApproval)`, or call
+`RequestApproval` from their own policy after checking the proposed tool. Client
+decisions cannot override that policy. `agent.ToolOutput(ctx, text)` sends tool
+output through the current stream; workspace hosts can use
+`workspace.WithOutput(agent.ToolOutput)`. Hosts must authenticate and authorize
+clients before exposing the interactive endpoint.
 
 Use `/background MESSAGE`, `/tasks`, `/task ID`, and `/cancel ID`. Exiting chat
 leaves submitted work on its host. The recorded owner address is used when
@@ -151,7 +163,7 @@ options without using the CLI. No product-specific assistant runtime is required
 | Model/provider selection | In-chat selectors, live catalogs, endpoint-scoped settings |
 | Instructions and skills | Nested instructions, project/personal loading, approved skill creation |
 | Terminal interaction | Editing, completion, multiline composition, queues, cancellation and correction |
-| Live output | Provider text and local command output; some providers retain buffered fallback |
+| Live output | Provider text, local/remote tool activity and command output; some providers retain buffered fallback |
 | Conversations | Saved context, remote catalog/history, reconnect to a conversation |
 | Memory | Automatic/manual compaction and lexical archive search |
 | Background commands | Host-owned processes with list/stop/cleanup |
@@ -163,5 +175,5 @@ options without using the CLI. No product-specific assistant runtime is required
 | Web research | Fetch and configurable search; full browser automation remains external |
 
 The terminal preserves plain text and Markdown syntax; it is not a full-screen
-rich Markdown UI. Remote approvals/tool-event forwarding, live streaming for
+rich Markdown UI. Live streaming for
 all providers, distributed scheduling, and full browser automation remain limits.

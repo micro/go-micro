@@ -42,6 +42,7 @@ func (r *rpcStream) Send(msg interface{}) error {
 
 	if err := r.codec.Write(&resp, msg); err != nil {
 		r.err = err
+		return err
 	}
 
 	return nil

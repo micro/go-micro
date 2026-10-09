@@ -718,6 +718,7 @@ func (a *agentImpl) startServer() (<-chan struct{}, error) {
 		server.Address(a.opts.Address),
 		server.Registry(a.opts.Registry),
 		server.Metadata(map[string]string{
+			"interaction":     "v1",
 			"sessions":        sessionSupport,
 			"session_history": sessionSupport,
 			"tasks":           sessionSupport,
@@ -734,6 +735,9 @@ func (a *agentImpl) startServer() (<-chan struct{}, error) {
 	a.server = server.NewServer(serverOpts...)
 
 	if err := pb.RegisterAgentHandler(a.server, a); err != nil {
+		return nil, err
+	}
+	if err := pb.RegisterAgentInteractionHandler(a.server, &interactionHandler{agent: a}); err != nil {
 		return nil, err
 	}
 	if err := pb.RegisterAgentSessionsHandler(a.server, &sessionHandler{agent: a}); err != nil {

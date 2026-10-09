@@ -63,12 +63,14 @@ an existing one. Skill scripts execute only through normal approved tools.
 To keep work running independently of chat, start a host in another terminal:
 
 ```bash
-micro chat --host project --yes
+micro chat --host project
 # In another terminal, in the same project:
 micro chat project
 ```
 
-`--host` binds to loopback. Without `--yes`, unattended mutating tools are refused.
+`--host` binds to loopback. Connected chat shows tool activity and asks for
+approval using `/approve` or `/deny`. Disconnecting cancels pending approvals.
+Without host `--yes`, unattended mutating tools are refused.
 On the connected chat, `/background MESSAGE` submits work, `/tasks` lists it,
 `/task ID` inspects it, and `/cancel ID` cancels it. `/schedule 1h MESSAGE` saves a
 recurring request; `/schedules` lists definitions and `/unschedule ID` removes

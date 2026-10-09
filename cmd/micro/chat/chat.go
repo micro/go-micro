@@ -108,15 +108,16 @@ Examples:
 
 // agentInfo holds metadata about a discovered agent.
 type agentInfo struct {
-	Schedules bool
-	Tasks     bool
-	History   bool
-	Provider  string
-	Model     string
-	Name      string
-	Services  []string
-	Stream    bool
-	Sessions  bool
+	Interaction bool
+	Schedules   bool
+	Tasks       bool
+	History     bool
+	Provider    string
+	Model       string
+	Name        string
+	Services    []string
+	Stream      bool
+	Sessions    bool
 }
 
 type session struct {
@@ -218,17 +219,21 @@ func (s *session) discoverAgents() bool {
 			services = strings.Split(svcsStr, ",")
 		}
 
-		info := agentInfo{History: true, Tasks: true, Schedules: true, Provider: meta["provider"], Model: meta["model"], Name: svc.Name, Services: services, Stream: true, Sessions: true}
+		info := agentInfo{Interaction: true, History: true, Tasks: true, Schedules: true, Provider: meta["provider"], Model: meta["model"], Name: svc.Name, Services: services, Stream: true, Sessions: true}
 		for _, record := range records {
 			// Registries may combine old and new nodes during a rolling deploy.
 			// Service metadata cannot establish the capability of each target node.
 			if len(record.Nodes) == 0 {
+				info.Interaction = false
 				info.Sessions = false
 				info.History = false
 				info.Tasks = false
 				info.Schedules = false
 			}
 			for _, node := range record.Nodes {
+				if node == nil || node.Metadata["interaction"] != "v1" {
+					info.Interaction = false
+				}
 				if node == nil || node.Metadata["schedules"] != "v1" {
 					info.Schedules = false
 				}
@@ -298,6 +303,9 @@ func (s *session) callAgent(ctx context.Context, name, message string) (*agent.R
 // arrive. Callers check endpoint metadata before choosing this path; an error
 // after dispatch must not replay potentially completed work through Agent.Chat.
 func (s *session) streamAgent(ctx context.Context, name, message string) error {
+	if s.agents[name].Interaction {
+		return s.interactAgent(ctx, name, message)
+	}
 	stream, err := agentpb.NewAgentService(name, s.cl).StreamChat(ctx, &agentpb.ChatRequest{Message: message})
 	if err != nil {
 		return err
@@ -483,13 +491,7 @@ func run(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		s.workspace, err = workspace.New(".", workspace.WithContainer(c.String("sandbox")), workspace.WithSkills(filepath.Join(skillsHome, ".agents", "skills")), workspace.WithOutput(func(_ context.Context, text string) {
-			if s.display != nil {
-				s.display.token(text)
-			} else {
-				fmt.Fprint(s.writer(), text)
-			}
-		}))
+		s.workspace, err = workspace.New(".", workspace.WithContainer(c.String("sandbox")), workspace.WithSkills(filepath.Join(skillsHome, ".agents", "skills")), workspace.WithOutput(agent.ToolOutput))
 		if err != nil {
 			return err
 		}
@@ -500,9 +502,9 @@ func run(c *cli.Context) error {
 		if instructions != "" {
 			s.instructions = "\n\nProject instructions (AGENTS.md):\n" + instructions
 		}
-		s.yes = c.Bool("yes")
-		s.approvals = make(chan approvalRequest)
 	}
+	s.yes = c.Bool("yes")
+	s.approvals = make(chan approvalRequest)
 	s.refreshTools()
 
 	defer s.cleanup()
@@ -618,28 +620,7 @@ func (s *session) askHarness(ctx context.Context, ag agent.Agent, prompt string)
 		if event == nil {
 			continue
 		}
-		switch event.Type {
-		case agent.StreamEventToolStart:
-			if s.display != nil {
-				s.display.flush()
-			}
-			if event.ToolCall.Name == "delegate" {
-				fmt.Fprintf(s.writer(), "  → delegate to %v: %v\n", event.ToolCall.Input["to"], event.ToolCall.Input["task"])
-			} else {
-				fmt.Fprintf(s.writer(), "  → %s\n", event.ToolCall.Name)
-			}
-		case agent.StreamEventToolEnd:
-			if s.display != nil {
-				s.display.flush()
-			}
-			fmt.Fprintf(s.writer(), "  ← %s\n", truncateResult(event.Result.Content))
-		case agent.StreamEventToken:
-			if s.display != nil {
-				s.display.token(event.Token)
-			} else {
-				fmt.Fprint(s.writer(), event.Token)
-			}
-		}
+		s.showEvent(event)
 	}
 }
 
@@ -785,4 +766,29 @@ func truncateResult(s string) string {
 		return s
 	}
 	return s[:200] + "..."
+}
+
+func (s *session) showEvent(event *agent.StreamEvent) {
+	switch event.Type {
+	case agent.StreamEventToolStart:
+		if s.display != nil {
+			s.display.flush()
+		}
+		if event.ToolCall.Name == "delegate" {
+			fmt.Fprintf(s.writer(), "  → delegate to %v: %v\n", terminalText(fmt.Sprint(event.ToolCall.Input["to"])), terminalText(fmt.Sprint(event.ToolCall.Input["task"])))
+		} else {
+			fmt.Fprintf(s.writer(), "  → %s\n", terminalText(event.ToolCall.Name))
+		}
+	case agent.StreamEventToolEnd:
+		if s.display != nil {
+			s.display.flush()
+		}
+		fmt.Fprintf(s.writer(), "  ← %s\n", terminalText(truncateResult(event.Result.Content)))
+	case agent.StreamEventToken, agent.StreamEventToolOutput:
+		if s.display != nil {
+			s.display.token(event.Token)
+		} else {
+			fmt.Fprint(s.writer(), event.Token)
+		}
+	}
 }

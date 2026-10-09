@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	errs "errors"
+	"sync"
 
 	"go-micro.dev/v6/codec"
 	raw "go-micro.dev/v6/codec/bytes"
@@ -35,6 +36,8 @@ var (
 )
 
 type rpcCodec struct {
+	mu     sync.Mutex
+	closed bool
 	client transport.Client
 	codec  codec.Codec
 
@@ -174,6 +177,11 @@ func newRPCCodec(req *transport.Message, client transport.Client, c codec.NewCod
 }
 
 func (c *rpcCodec) Write(message *codec.Message, body interface{}) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return errShutdown
+	}
 	c.buf.wbuf.Reset()
 
 	// create header
@@ -226,6 +234,11 @@ func (c *rpcCodec) ReadHeader(msg *codec.Message, r codec.MessageType) error {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
 
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return errShutdown
+	}
 	c.buf.rbuf.Reset()
 	c.buf.rbuf.Write(tm.Body)
 
@@ -247,6 +260,11 @@ func (c *rpcCodec) ReadHeader(msg *codec.Message, r codec.MessageType) error {
 }
 
 func (c *rpcCodec) ReadBody(b interface{}) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return errShutdown
+	}
 	// read body
 	// read raw data
 	if v, ok := b.(*raw.Frame); ok {
@@ -262,18 +280,20 @@ func (c *rpcCodec) ReadBody(b interface{}) error {
 }
 
 func (c *rpcCodec) Close() error {
-	if err := c.buf.Close(); err != nil {
-		return err
+	// Unblock transport reads before waiting for an in-flight decode.
+	err := c.client.Close()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.closed {
+		return nil
 	}
-
-	if err := c.codec.Close(); err != nil {
-		return err
+	c.closed = true
+	if closeErr := c.codec.Close(); closeErr != nil {
+		return closeErr
 	}
-
-	if err := c.client.Close(); err != nil {
+	if err != nil {
 		return errors.InternalServerError("go.micro.client.transport", err.Error())
 	}
-
 	return nil
 }
 

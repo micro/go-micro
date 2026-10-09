@@ -47,9 +47,9 @@ func (b *safeBuffer) Read(p []byte) (n int, err error) {
 	if len(p) == 0 {
 		return 0, nil
 	}
-	b.RLock()
+	b.Lock()
+	defer b.Unlock()
 	n = copy(p, b.buf[b.off:])
-	b.RUnlock()
 	if n == 0 {
 		return 0, io.EOF
 	}
@@ -112,7 +112,7 @@ func TestRPCStream_Concurrency(t *testing.T) {
 			for i := 0; i < 50; i++ {
 				msg := protoStruct{Payload: "test"}
 				<-time.After(time.Duration(rand.Intn(50)) * time.Millisecond)
-				if err := streamServer.Send(msg); err != nil {
+				if err := streamServer.Send(&msg); err != nil {
 					t.Errorf("Unexpected Send error: %s", err)
 				}
 			}
