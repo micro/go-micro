@@ -1,6 +1,6 @@
 # Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v6?tab=doc)
 
-A framework for building services and agents in Go.
+A framework for services, tools and agents.
 
 ## Overview
 
@@ -12,7 +12,7 @@ and use workflows for repeatable sequences of work.
 ## Features
 
 - **Services** implement capabilities and own their data.
-- **Models** provide access to AI providers through a common interface.
+- **Tools** provide access to services through a common interface.
 - **Agents** interpret requests and use tools to carry out work.
 - **Workflows** coordinate defined steps, including service calls and agent decisions.
 
