@@ -103,9 +103,10 @@ type agentInfo struct {
 }
 
 type session struct {
-	id     string
-	state  store.Store
-	output io.Writer
+	project string
+	id      string
+	state   store.Store
+	output  io.Writer
 
 	provider  string
 	apiKey    string
@@ -135,7 +136,7 @@ func (s *session) newHarness(name, prompt string, opts ...agent.Option) agent.Ag
 		agent.ModelCallTimeout(5 * time.Minute), agent.ToolCallTimeout(2 * time.Minute),
 	}
 	if s.state != nil {
-		base = append(base, agent.WithStore(s.state), agent.Session(s.id))
+		base = append(base, agent.WithStore(s.state), agent.Session(s.localSessionID()))
 	}
 	return agent.New(append(base, opts...)...)
 }
@@ -185,11 +186,16 @@ func (s *session) discoverAgents() bool {
 
 		info := agentInfo{Name: svc.Name, Services: services, Stream: true, Sessions: true}
 		for _, record := range records {
-			sessionMetadata := record.Metadata
-			if sessionMetadata["sessions"] == "" && len(record.Nodes) > 0 {
-				sessionMetadata = record.Nodes[0].Metadata
+			// Registries may combine old and new nodes during a rolling deploy.
+			// Service metadata cannot establish the capability of each target node.
+			if len(record.Nodes) == 0 {
+				info.Sessions = false
 			}
-			info.Sessions = info.Sessions && sessionMetadata["sessions"] == "v1"
+			for _, node := range record.Nodes {
+				if node == nil || node.Metadata["sessions"] != "v1" {
+					info.Sessions = false
+				}
+			}
 			supportsStream := false
 			for _, endpoint := range record.Endpoints {
 				if endpoint != nil && endpoint.Name == "Agent.StreamChat" {

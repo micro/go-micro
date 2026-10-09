@@ -385,7 +385,7 @@ func (s *Server) probe() {
 
 	for i := 0; i < 3; i++ {
 		if err := s.SendMulticast(q); err != nil {
-			log.Errorf("[ERR] mdns: failed to send probe:", err.Error())
+			log.Errorf("[ERR] mdns: failed to send probe: %s", err.Error())
 		}
 		time.Sleep(time.Duration(randomizer.Intn(250)) * time.Millisecond)
 	}
@@ -411,7 +411,7 @@ func (s *Server) probe() {
 	timer := time.NewTimer(timeout)
 	for i := 0; i < 3; i++ {
 		if err := s.SendMulticast(resp); err != nil {
-			log.Errorf("[ERR] mdns: failed to send announcement:", err.Error())
+			log.Errorf("[ERR] mdns: failed to send announcement: %s", err.Error())
 		}
 		select {
 		case <-timer.C:

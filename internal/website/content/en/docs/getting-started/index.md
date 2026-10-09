@@ -9,7 +9,7 @@ use their endpoints as tools.
 
 ## Start through conversation
 
-Follow the [Quick Start](../quickstart.md) to install Go 1.25+ and the v6 CLI,
+Follow the [Quick Start](../quickstart.md) to install Go 1.26+ and the v6 CLI,
 configure a provider key, and start `micro chat` in a new directory.
 With no registered agents, the CLI development agent can generate missing
 services, compile and start them, and discover their tools for use in the same

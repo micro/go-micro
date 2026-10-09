@@ -228,7 +228,7 @@ func TestYourFirstAgentTutorialSmoke(t *testing.T) {
 
 	mainGo := extractFirstAgentMain(t, guide)
 	workspace := t.TempDir()
-	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent\n\ngo 1.25\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+absRoot+"\n")
+	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent\n\ngo 1.26\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+absRoot+"\n")
 	writeFile(t, filepath.Join(workspace, "main.go"), mainGo)
 
 	runInWorkspace(t, workspace, "go", "mod", "tidy")
@@ -694,7 +694,7 @@ func TestGettingStartedDocsLeadWithConversation(t *testing.T) {
 		if service := strings.Index(doc, "micro new helloworld"); service >= 0 && service < chat {
 			t.Errorf("%s introduces the service scaffold before development chat", file)
 		}
-		for _, marker := range []string{"Go 1.25", "registered agents", "provider"} {
+		for _, marker := range []string{"Go 1.26", "registered agents", "provider"} {
 			if !strings.Contains(doc, marker) {
 				t.Errorf("%s missing prerequisite or routing detail %q", file, marker)
 			}
@@ -830,7 +830,7 @@ func TestFirstAgentCLIChatInspectFixture(t *testing.T) {
 	if err := os.MkdirAll(home, 0o755); err != nil {
 		t.Fatalf("create fixture home: %v", err)
 	}
-	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent-cli-fixture\n\ngo 1.25\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+filepath.ToSlash(absRoot)+"\n")
+	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/first-agent-cli-fixture\n\ngo 1.26\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+filepath.ToSlash(absRoot)+"\n")
 	writeFile(t, filepath.Join(workspace, "main.go"), firstAgentCLIFixtureSource())
 	runInWorkspace(t, workspace, "go", "mod", "tidy")
 

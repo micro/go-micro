@@ -4,7 +4,7 @@ description: "Start a conversation, develop services, and use them as agent tool
 ---
 
 
-Install [Go 1.25 or newer](https://go.dev/doc/install), then the `micro` CLI:
+Install [Go 1.26 or newer](https://go.dev/doc/install), then the `micro` CLI:
 
 ```bash
 go install go-micro.dev/v6/cmd/micro@latest

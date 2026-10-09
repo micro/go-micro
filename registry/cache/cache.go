@@ -451,7 +451,7 @@ func (c *cache) run(service string) {
 			c.setStatus(err)
 
 			if a > 3 {
-				logger.Logf(log.DebugLevel, "rcache: ", err, " backing off ", d)
+				logger.Logf(log.DebugLevel, "rcache: %v backing off %v", err, d)
 				a = 0
 			}
 
@@ -475,7 +475,7 @@ func (c *cache) run(service string) {
 		c.setStatus(watchErr)
 
 		if b > 3 {
-			logger.Logf(log.DebugLevel, "rcache: ", watchErr, " backing off ", d)
+			logger.Logf(log.DebugLevel, "rcache: %v backing off %v", watchErr, d)
 			b = 0
 		}
 

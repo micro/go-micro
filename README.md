@@ -22,7 +22,7 @@ for how the pieces fit together.
 
 ## Create an agent
 
-With [Go 1.25 or newer](https://go.dev/doc/install):
+With [Go 1.26 or newer](https://go.dev/doc/install):
 
 ```bash
 mkdir assistant && cd assistant

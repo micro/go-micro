@@ -6,7 +6,7 @@ Go Micro Command Line
 
 ## Install the CLI
 
-Install Go 1.25 or newer, then install `micro` via `go install`
+Install Go 1.26 or newer, then install `micro` via `go install`
 
 ```
 go install go-micro.dev/v6/cmd/micro@latest

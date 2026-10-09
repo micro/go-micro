@@ -223,7 +223,7 @@ func TestChatDiscoversSingleAgentWithoutLocalModel(t *testing.T) {
 	for _, interactive := range []bool{false, true} {
 		t.Run(fmt.Sprint(interactive), func(t *testing.T) {
 			reg := registry.NewMemoryRegistry()
-			if err := reg.Register(&registry.Service{Name: "assistant", Metadata: map[string]string{"type": "agent", "sessions": "v1"}, Nodes: []*registry.Node{{Id: "assistant-1", Address: "localhost:1234"}}}); err != nil {
+			if err := reg.Register(&registry.Service{Name: "assistant", Metadata: map[string]string{"type": "agent", "sessions": "v1"}, Nodes: []*registry.Node{{Id: "assistant-1", Address: "localhost:1234", Metadata: map[string]string{"sessions": "v1"}}}}); err != nil {
 				t.Fatal(err)
 			}
 			oldReg, oldClient, oldStdin := registry.DefaultRegistry, client.DefaultClient, os.Stdin

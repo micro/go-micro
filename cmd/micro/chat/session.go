@@ -26,11 +26,19 @@ func (s *session) writer() io.Writer {
 }
 
 func (s *session) conversations() store.Store {
-	dir, _ := os.Getwd()
+	dir := s.project
+	if dir == "" {
+		dir, _ = os.Getwd()
+	}
 	return store.Scope(s.state, "chat", fmt.Sprintf("%x", sha256.Sum256([]byte(dir))))
 }
 
 func (s *session) openSession(id string, fresh bool) error {
+	var err error
+	s.project, err = os.Getwd()
+	if err != nil {
+		return err
+	}
 	s.state = store.NewFileStore()
 	if fresh {
 		id = uuid.NewString()
@@ -93,7 +101,7 @@ func (s *session) showHistory() error {
 	if len(s.agents) > 0 {
 		return nil
 	}
-	messages, err := agent.LoadHistory(s.state, "micro-chat", s.id)
+	messages, err := agent.LoadHistory(s.state, "micro-chat", s.localSessionID())
 	if err != nil {
 		return err
 	}
@@ -103,4 +111,14 @@ func (s *session) showHistory() error {
 		}
 	}
 	return nil
+}
+
+// localSessionID keeps an explicit conversation name private to its project.
+// The displayed ID and remote RPC session IDs retain their original values.
+func (s *session) localSessionID() string {
+	dir := s.project
+	if dir == "" {
+		dir, _ = os.Getwd()
+	}
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(dir+"\x00"+s.id)))
 }
