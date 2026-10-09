@@ -128,6 +128,7 @@ type session struct {
 	approvalMu    sync.Mutex
 	yes           bool
 	interactiveUI bool
+	hosting       bool
 	id            string
 	state         store.Store
 	output        io.Writer
@@ -174,6 +175,9 @@ func (s *session) developmentAgent() agent.Agent {
 			generate = s.handleGenerate
 		}
 		opts := []agent.Option{agent.WithTool(generateTool.Name, generateTool.Description, generateTool.Properties, generate)}
+		if s.state != nil && !s.hosting {
+			opts = append(opts, s.memorySearchTool())
+		}
 		if s.workspace != nil {
 			opts = append(opts, s.workspace.Tools()...)
 			web := agentweb.Web{}
@@ -510,6 +514,7 @@ func run(c *cli.Context) error {
 	defer s.cleanup()
 
 	if name := c.String("host"); name != "" {
+		s.hosting = true
 		// Release the CLI settings database before serving so another chat process
 		// can open it. The host only needs agent state from this point onward.
 		if err := s.state.Close(); err != nil {

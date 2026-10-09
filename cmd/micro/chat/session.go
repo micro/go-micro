@@ -132,11 +132,15 @@ func (s *session) showHistoryContext(ctx context.Context) error {
 // localSessionID keeps an explicit conversation name private to its project.
 // The displayed ID and remote RPC session IDs retain their original values.
 func (s *session) localSessionID() string {
+	return s.projectSessionID(s.id)
+}
+
+func (s *session) projectSessionID(id string) string {
 	dir := s.project
 	if dir == "" {
 		dir, _ = os.Getwd()
 	}
-	return fmt.Sprintf("%x", sha256.Sum256([]byte(dir+"\x00"+s.id)))
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(dir+"\x00"+id)))
 }
 
 func (s *session) remoteSessions(ctx context.Context) error {

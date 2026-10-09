@@ -12,6 +12,22 @@ import (
 func (s *session) memoryCommand(ctx context.Context, line string) error {
 	compact := line == "/compact"
 	query := strings.TrimSpace(strings.TrimPrefix(line, "/search "))
+	if !compact && (query == "--all" || strings.HasPrefix(query, "--all ")) {
+		if len(s.agents) > 0 {
+			return fmt.Errorf("cross-conversation search is local; hosted agents control their own recall scope")
+		}
+		results, err := s.searchConversations(ctx, strings.TrimSpace(strings.TrimPrefix(query, "--all")))
+		if err != nil {
+			return err
+		}
+		for _, result := range results {
+			fmt.Fprintf(s.writer(), "%s · %s / %s: %s\n", terminalText(result.Session), terminalText(result.Title), result.Role, terminalText(result.Content))
+		}
+		if len(results) == 0 {
+			fmt.Fprintln(s.writer(), "No matching messages in this project's recent conversations.")
+		}
+		return nil
+	}
 	if len(s.agents) > 0 {
 		for name, info := range s.agents {
 			if !info.History {

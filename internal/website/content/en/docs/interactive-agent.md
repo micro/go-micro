@@ -36,9 +36,10 @@ Catalog IDs do not guarantee account access or suitability for tool use.
 - Ctrl-C or `/stop` cancels work and clears the queue. Completed tool actions
   are not rolled back.
 - `/new`, `/sessions`, and `/resume ID` manage conversations.
-- `/history` shows retained context; `/search TEXT` searches retained and archived
-  messages in the current conversation; `/compact` keeps recent messages and
-  summarizes older context.
+- `/history` shows retained context; `/search TEXT` searches this conversation.
+  `/search --all TEXT` searches the current and 100 most recent local project
+  conversations. Results include session IDs for `/resume ID`.
+- `/compact` keeps recent messages and summarizes older context.
 - `/agents` shows connected agents. Local delegation displays the target and task.
 
 Local chat uses `agent.CompactMemory(50, 20)` and explicit compaction keeps 12
@@ -46,6 +47,22 @@ recent messages. The default summary is deterministic and lossy; original
 archived messages remain searchable. Search is case-insensitive substring
 matching, not semantic retrieval. Custom memory backends can implement
 `agent.MemoryRecall` and `agent.MemoryCompactor`.
+
+Local agents also have a `memory_search` tool, so you can ask about an earlier
+decision in normal conversation. It retrieves matching user and assistant
+messages, including archived originals, and identifies their source sessions.
+This is keyword retrieval, not semantic search or automatic fact extraction.
+The tool returns up to 20 excerpts, each limited to 2,000 characters.
+
+Go callers can use `agent.SearchSessions(ctx, store, name, allowedIDs, query, limit)`
+to retrieve from an explicit set of conversations. Results are ranked by matching
+query words; ties follow the supplied session order, then newest message first.
+The caller chooses and authorizes the IDs. The function never lists other sessions
+or searches other agents. Custom memory backends can implement their own recall.
+
+The local CLI scopes recall to its project. Hosted agents do not inherit that
+local catalog or gain cross-user recall automatically. Hosts can expose an ordinary
+tool backed by `SearchSessions`, supplying only sessions their caller may access.
 
 Go callers use `agent.Session(id)`, `agent.LoadHistory`, `agent.SearchHistory`,
 `agent.ListSessions`, and `agent.CompactHistory`. RPC clients use
@@ -165,7 +182,7 @@ options without using the CLI. No product-specific assistant runtime is required
 | Terminal interaction | Markdown replies, editing, completion, multiline composition, queues, cancellation and correction |
 | Live output | Provider text, local/remote tool activity and command output; some providers retain buffered fallback |
 | Conversations | Saved context, remote catalog/history, reconnect to a conversation |
-| Memory | Automatic/manual compaction and lexical archive search |
+| Memory | Compaction, archive search, and scoped cross-conversation keyword recall |
 | Background commands | Host-owned processes with list/stop/cleanup |
 | Work after UI exit | Submitted tasks on a running agent host |
 | Scheduled work | Persisted intervals dispatched through flows |
