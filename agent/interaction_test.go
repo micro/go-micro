@@ -2,7 +2,9 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"io"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -91,6 +93,9 @@ func TestInteractionApproval(t *testing.T) {
 					}
 				}
 				if event.Type == string(StreamEventDone) {
+					if _, err := stream.Recv(); !errors.Is(err, io.EOF) {
+						t.Fatalf("end of stream: %v", err)
+					}
 					break
 				}
 			}
@@ -117,5 +122,39 @@ func TestRequestApprovalWithoutConnection(t *testing.T) {
 	d, err := RequestApproval(context.Background(), model.ToolCall{Name: "write"})
 	if err != nil || d.Status != ApprovalDenied {
 		t.Fatalf("%+v %v", d, err)
+	}
+}
+
+func TestInteractionReturnsProviderError(t *testing.T) {
+	const message = "provider unavailable for this request"
+	fakeGen = func(context.Context, model.Options, *model.Request) (*model.Response, error) {
+		return nil, errors.New(message)
+	}
+	defer func() { fakeGen = nil }()
+	reg := registry.NewMemoryRegistry()
+	a := newTestAgent(Name("error-host"), Address("127.0.0.1:0"), WithRegistry(reg), WithBroker(broker.NewMemoryBroker()))
+	if _, err := a.startServer(); err != nil {
+		t.Fatal(err)
+	}
+	defer a.Stop()
+	api := pb.NewAgentInteractionService(a.Name(), client.NewClient(client.Registry(reg)))
+	for i := 0; i < 2; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		stream, err := api.Chat(WithSession(ctx, "error-session"))
+		if err != nil {
+			cancel()
+			t.Fatal(err)
+		}
+		if err := stream.Send(&pb.InteractionRequest{Message: "hello"}); err != nil {
+			stream.Close()
+			cancel()
+			t.Fatal(err)
+		}
+		_, err = stream.Recv()
+		stream.Close()
+		cancel()
+		if err == nil || !strings.Contains(err.Error(), message) {
+			t.Fatalf("provider error lost: %v", err)
+		}
 	}
 }

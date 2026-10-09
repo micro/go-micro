@@ -42,7 +42,6 @@ type interactionHandler struct{ agent *agentImpl }
 func (h *interactionHandler) Chat(ctx context.Context, stream pb.AgentInteraction_ChatStream) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	defer stream.Close()
 	first, err := stream.Recv()
 	if err != nil {
 		return err
