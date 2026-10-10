@@ -15,7 +15,7 @@ type approvalRequest struct {
 }
 
 func (s *session) approve(ctx context.Context, call model.ToolCall) (agent.ApprovalDecision, error) {
-	if s.yes || call.Name == "workspace_read" || call.Name == "workspace_search" || call.Name == "workspace_skill" || call.Name == "plan" {
+	if s.yes || call.Name == "workspace_read" || call.Name == "workspace_search" || call.Name == "workspace_skill" || call.Name == "plan" || call.Name == "memory_search" {
 		return agent.ApprovalDecision{Status: agent.ApprovalApproved}, nil
 	}
 	if !s.interactiveUI {

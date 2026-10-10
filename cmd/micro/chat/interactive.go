@@ -150,7 +150,7 @@ func (s *session) interactive(ctx context.Context) error {
 			continue
 		}
 		if line == "/help" {
-			fmt.Fprintln(s.writer(), "Use /model, /models or /provider to select the local model. Use /approve or /deny for a proposed tool action. Requests entered while busy are queued. /steer MESSAGE cancels and follows up. /paste composes multiple lines until /send; /history shows retained messages, /search TEXT searches retained and archived messages, and /compact reduces active context. Ctrl-C or /stop cancels current work. /new starts a conversation; /sessions lists saved conversations; /resume ID reopens one. Exiting stops foreground work. /background MESSAGE submits to a connected host; /tasks, /task ID and /cancel ID manage it. /schedule 1h MESSAGE, /schedules and /unschedule ID manage recurring host work.")
+			fmt.Fprintln(s.writer(), "Use /model, /models or /provider to select the local model. Use /approve or /deny for a proposed tool action. Requests entered while busy are queued. /steer MESSAGE cancels and follows up. /paste composes multiple lines until /send; /history shows retained messages, /search TEXT searches this conversation; /search --all TEXT searches recent local conversations, and /compact reduces active context. Ctrl-C or /stop cancels current work. /new starts a conversation; /sessions lists saved conversations; /resume ID reopens one. Exiting stops foreground work. /background MESSAGE submits to a connected host; /tasks, /task ID and /cancel ID manage it. /schedule 1h MESSAGE, /schedules and /unschedule ID manage recurring host work.")
 			continue
 		}
 		if line == "/paste" {

@@ -41,6 +41,7 @@ live text and command output, input editing, completion, and these controls:
 | `/stop`, Ctrl-C | Cancel current work and clear queued requests |
 | `/new`, `/sessions`, `/resume ID` | Create, list, or reopen conversations |
 | `/history`, `/search TEXT`, `/compact` | Inspect, search, or compact the conversation |
+| `/search --all TEXT` | Search recent conversations in the local project |
 | `/agents` | Show connected agents and their models |
 | `/approve`, `/deny` | Decide a pending local tool action |
 | `/exit` | Exit and stop foreground work |
@@ -67,6 +68,10 @@ micro chat --host project
 # In another terminal, in the same project:
 micro chat project
 ```
+
+Ask about earlier decisions normally: the local agent can search recent
+conversations in this project and return their source session IDs. Hosted agents
+control their own recall scope.
 
 Interactive replies render Markdown above the prompt and remain in scrollback.
 Command output stays plain text; piped output preserves Markdown source.
