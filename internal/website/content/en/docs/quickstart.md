@@ -4,22 +4,32 @@ description: "Start a conversation, develop services, and use them as agent tool
 ---
 
 
+These chat features are on `master` and are not yet in the latest tagged release.
+The binary installer and `@latest` install the tagged release.
+
 Install [Go 1.26 or newer](https://go.dev/doc/install), then the `micro` CLI:
 
 ```bash
-go install go-micro.dev/v6/cmd/micro@latest
+go install go-micro.dev/v6/cmd/micro@master
+export PATH="$(go env GOPATH)/bin:$PATH"
 ```
 
-Make sure `$(go env GOPATH)/bin` is on your `PATH`. Set a provider API key and
-start a conversation in a new directory:
+Start a conversation in a project directory:
 
 ```bash
-export OPENAI_API_KEY=your-api-key
 mkdir my-app && cd my-app
 micro chat
 ```
 
-Describe a capability you want to build, then ask the agent to use it. For example:
+Choose a provider and enter a key when prompted. A single configured provider
+environment key skips setup. Use `/provider` or `/model` to change configuration
+and `/login` to replace a key. No model request is made until you send a prompt.
+
+Start by asking it to inspect your project. File reads do not require approval;
+changes and commands ask for `/approve` or `/deny`. `/stop` cancels work.
+Reopen chat in the same directory to continue the conversation.
+
+To develop a service, describe the capability and then ask the agent to use it:
 
 ```text
 Build a notes service that can save, list, and search notes.

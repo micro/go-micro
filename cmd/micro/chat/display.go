@@ -19,6 +19,7 @@ type chatDisplay struct {
 	pending  string
 	markdown strings.Builder
 	updated  time.Time
+	busy     bool
 }
 
 func terminalText(s string) string {
@@ -43,7 +44,7 @@ func (d *chatDisplay) token(text string) {
 	rendered := renderMarkdown(d.markdown.String(), width)
 	rows := min(6, max(1, height/3))
 	preview := markdownPreview(rendered, width, rows)
-	d.terminal.SetPrompt(preview + "\n" + "micro > ")
+	d.terminal.SetPrompt(preview + "\n" + d.prompt())
 	d.terminal.Refresh()
 }
 
@@ -61,12 +62,12 @@ func (d *chatDisplay) output(text string) {
 	defer d.mu.Unlock()
 	d.pending += terminalText(text)
 	if index := strings.LastIndexByte(d.pending, '\n'); index >= 0 {
-		d.terminal.SetPrompt("micro > ")
+		d.terminal.SetPrompt(d.prompt())
 		fmt.Fprint(d.terminal.Stdout(), d.pending[:index+1])
 		d.pending = d.pending[index+1:]
 	}
 	width, height := d.size()
-	prompt := "micro > "
+	prompt := d.prompt()
 	if d.pending != "" {
 		prompt = markdownPreview(d.pending, width, max(1, height/3)) + "\n" + prompt
 	}
@@ -77,7 +78,7 @@ func (d *chatDisplay) output(text string) {
 func (d *chatDisplay) flush() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.terminal.SetPrompt("micro > ")
+	d.terminal.SetPrompt(d.prompt())
 	if d.markdown.Len() > 0 {
 		width, _ := d.size()
 		fmt.Fprintln(d.terminal.Stdout(), renderMarkdown(d.markdown.String(), width))
@@ -88,5 +89,20 @@ func (d *chatDisplay) flush() {
 		fmt.Fprintln(d.terminal.Stdout(), d.pending)
 		d.pending = ""
 	}
+	d.terminal.Refresh()
+}
+
+func (d *chatDisplay) prompt() string {
+	if d.busy {
+		return "micro (working) > "
+	}
+	return "micro > "
+}
+
+func (d *chatDisplay) setBusy(busy bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.busy = busy
+	d.terminal.SetPrompt(d.prompt())
 	d.terminal.Refresh()
 }

@@ -81,3 +81,45 @@ func TestUnknownProviderDoesNotReplaceSettings(t *testing.T) {
 		t.Fatal("failed switch changed configuration")
 	}
 }
+
+func TestConfigureProviderFromEnvironment(t *testing.T) {
+	for _, provider := range model.RegisteredProviders("model") {
+		t.Setenv(envVarForProvider(provider), "")
+	}
+	t.Setenv("GROQ_API_KEY", "environment-key")
+	s := &session{state: store.NewMemoryStore()}
+	flags := flag.NewFlagSet("chat", flag.ContinueOnError)
+	flags.String("prompt", "hello", "")
+	ctx := cli.NewContext(cli.NewApp(), flags, nil)
+	if err := s.configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if s.provider != "groq" {
+		t.Fatalf("provider = %s", s.provider)
+	}
+	records, err := s.conversations().Read("settings")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var saved settings
+	if err := records[0].Decode(&saved); err != nil {
+		t.Fatal(err)
+	}
+	if saved.APIKey != "" {
+		t.Fatal("environment key copied to storage")
+	}
+
+	// More than one configured key must not choose a provider arbitrarily.
+	t.Setenv("OPENAI_API_KEY", "other-environment-key")
+	s = &session{state: store.NewMemoryStore()}
+	if err := s.configure(ctx); err == nil {
+		t.Fatal("ambiguous keys accepted")
+	}
+	flags.String("provider", "groq", "")
+	if err := s.configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if s.provider != "groq" {
+		t.Fatalf("explicit provider = %s", s.provider)
+	}
+}

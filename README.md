@@ -22,12 +22,15 @@ for how the pieces fit together.
 
 ## Create an agent
 
+The interactive development experience below is on `master` and is not yet in
+the latest tagged release. Use matching framework and CLI versions.
+
 With [Go 1.26 or newer](https://go.dev/doc/install):
 
 ```bash
 mkdir assistant && cd assistant
 go mod init example.com/assistant
-go get go-micro.dev/v6
+go get go-micro.dev/v6@master
 export OPENAI_API_KEY=your-api-key
 ```
 
@@ -70,7 +73,8 @@ the CLI.
 Install the optional CLI and talk to the agent from another terminal:
 
 ```bash
-go install go-micro.dev/v6/cmd/micro@latest
+go install go-micro.dev/v6/cmd/micro@master
+export PATH="$(go env GOPATH)/bin:$PATH"
 micro chat
 ```
 
@@ -78,7 +82,9 @@ Chat routes to registered agents. With one agent, no agent name or local
 provider key is needed. With multiple agents, a local model routes requests.
 
 Run `micro chat` in a project to work with files, commands, skills, and service
-tools. Conversations are saved; `/model` and `/provider` change the local model.
+tools. First launch lets you choose a provider and enter a key, or uses an existing
+provider environment key. It asks before changing files or running commands.
+Reopen it in the same directory to continue. `/help` lists the controls.
 For work that continues after chat exits, connect to a running agent host.
 See [interactive agent development](internal/website/content/en/docs/interactive-agent.md)
 for chat controls, background work, schedules, and extension points.

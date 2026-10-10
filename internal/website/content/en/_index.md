@@ -173,7 +173,7 @@ Get the code
 </div>
 <div class="col-lg-6 p-4">
 <h2>Develop Through Conversation</h2>
-<p>Start with <code>micro chat</code> in a new project. With no registered agents, the development agent can generate a missing service, build and start it, and discover its endpoints as tools. Set OPENAI_API_KEY, then describe what you need. Generated services become tools on your next message. If one agent is already running, chat connects directly without a local provider key.</p>
+<p>Start with <code>micro chat</code> in a new project. With no registered agents, the development agent can generate a missing service, build and start it, and discover its endpoints as tools. Choose a provider on first launch, then describe what you need. This experience is currently available from master; follow the <a href="/docs/quickstart/">Quick Start</a> to install it. Generated services become tools on your next message. If one agent is already running, chat connects directly without a local provider key.</p>
 <pre><code><span style="color:#a82424">$</span> <span style="color:#6639a6">micro chat</span></code><br>
 <code><span style="color:#a82424">&gt;</span> Build a notes service that can save, list, and search notes.</code></pre>
 <a class="btn btn-go mt-3" href="/docs/getting-started.html">Create Your Agent</a>

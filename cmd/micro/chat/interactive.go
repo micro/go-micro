@@ -44,7 +44,7 @@ func (s *session) interactive(ctx context.Context) error {
 	terminal, err := readline.NewEx(&readline.Config{
 		Prompt: "micro > ",
 		AutoComplete: readline.NewPrefixCompleter(
-			readline.PcItem("/agents"), readline.PcItem("/schedule"), readline.PcItem("/schedules"), readline.PcItem("/unschedule"), readline.PcItem("/compact"), readline.PcItem("/search"), readline.PcItem("/background"), readline.PcItem("/tasks"), readline.PcItem("/task"), readline.PcItem("/cancel"), readline.PcItem("/paste"), readline.PcItem("/steer"), readline.PcItem("/queue"), readline.PcItem("/history"), readline.PcItem("/skills"), readline.PcItem("/model"), readline.PcItem("/models"), readline.PcItem("/provider"),
+			readline.PcItem("/login"), readline.PcItem("/agents"), readline.PcItem("/schedule"), readline.PcItem("/schedules"), readline.PcItem("/unschedule"), readline.PcItem("/compact"), readline.PcItem("/search"), readline.PcItem("/background"), readline.PcItem("/tasks"), readline.PcItem("/task"), readline.PcItem("/cancel"), readline.PcItem("/paste"), readline.PcItem("/steer"), readline.PcItem("/queue"), readline.PcItem("/history"), readline.PcItem("/skills"), readline.PcItem("/model"), readline.PcItem("/models"), readline.PcItem("/provider"),
 			readline.PcItem("/new"), readline.PcItem("/sessions"),
 			readline.PcItem("/resume"), readline.PcItem("/stop"),
 			readline.PcItem("/approve"), readline.PcItem("/deny"), readline.PcItem("/help"), readline.PcItem("/exit")),
@@ -57,7 +57,7 @@ func (s *session) interactive(ctx context.Context) error {
 	defer func() { s.display = nil }()
 	s.output = terminal.Stdout()
 	defer func() { s.output = nil }()
-	fmt.Fprintf(s.writer(), "Session %s\n/new · /sessions · /resume ID · /stop · /exit\n", s.id)
+	fmt.Fprintf(s.writer(), "Session %s\n\n", s.id)
 	if err := s.showHistoryContext(ctx); err != nil {
 		return err
 	}
@@ -91,6 +91,7 @@ func (s *session) interactive(ctx context.Context) error {
 		case <-done:
 			cancel()
 			cancel, done = nil, nil
+			s.display.setBusy(false)
 			if len(queued) > 0 {
 				next := queued[0]
 				queued = queued[1:]
@@ -150,7 +151,7 @@ func (s *session) interactive(ctx context.Context) error {
 			continue
 		}
 		if line == "/help" {
-			fmt.Fprintln(s.writer(), "Use /model, /models or /provider to select the local model. Use /approve or /deny for a proposed tool action. Requests entered while busy are queued. /steer MESSAGE cancels and follows up. /paste composes multiple lines until /send; /history shows retained messages, /search TEXT searches this conversation; /search --all TEXT searches recent local conversations, and /compact reduces active context. Ctrl-C or /stop cancels current work. /new starts a conversation; /sessions lists saved conversations; /resume ID reopens one. Exiting stops foreground work. /background MESSAGE submits to a connected host; /tasks, /task ID and /cancel ID manage it. /schedule 1h MESSAGE, /schedules and /unschedule ID manage recurring host work.")
+			s.help()
 			continue
 		}
 		if line == "/paste" {
@@ -222,7 +223,7 @@ func (s *session) interactive(ctx context.Context) error {
 			for _, skill := range skills {
 				fmt.Fprintf(s.writer(), "%s: %s\n", skill.Name, skill.Description)
 			}
-		case line == "/models" || line == "/model" || strings.HasPrefix(line, "/model ") || line == "/provider" || strings.HasPrefix(line, "/provider "):
+		case line == "/login" || line == "/models" || line == "/model" || strings.HasPrefix(line, "/model ") || line == "/provider" || strings.HasPrefix(line, "/provider "):
 			if err := s.modelCommand(ctx, terminal, line); err != nil {
 				fmt.Fprintf(s.writer(), "%v\n", err)
 			}
@@ -275,10 +276,15 @@ func (s *session) interactive(ctx context.Context) error {
 
 func (s *session) startPrompt(ctx context.Context, line string) (context.CancelFunc, <-chan error) {
 	ctx, cancel := context.WithCancel(ctx)
+	if s.display != nil {
+		s.display.setBusy(true)
+	}
 	done := make(chan error, 1)
 	go func() {
 		err := s.ask(ctx, line)
-		if err != nil {
+		if errors.Is(err, context.Canceled) {
+			fmt.Fprintln(s.writer(), "Stopped.")
+		} else if err != nil {
 			fmt.Fprintf(s.writer(), "Error: %v\n", err)
 		}
 		done <- err
