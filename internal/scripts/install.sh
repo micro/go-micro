@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Install script for micro CLI
 # Usage: curl -fsSL https://go-micro.dev/install.sh | sh
 
@@ -28,7 +28,7 @@ esac
 if [ -n "${MICRO_INSTALL_DIR:-}" ]; then
     INSTALL_DIR="$MICRO_INSTALL_DIR"
     mkdir -p "$INSTALL_DIR"
-elif [ "$EUID" -eq 0 ] || [ "$(id -u)" -eq 0 ]; then
+elif [ "$(id -u)" -eq 0 ]; then
     INSTALL_DIR="/usr/local/bin"
 else
     INSTALL_DIR="$HOME/.local/bin"
@@ -46,15 +46,16 @@ fi
 
 # Create temp directory for extraction
 TMP_DIR=$(mktemp -d)
+trap 'rm -rf "$TMP_DIR"' EXIT HUP INT TERM
 TMP_FILE="${TMP_DIR}/micro.tar.gz"
 
 # Download, or use a local release archive supplied by the deterministic smoke
 # harness. The default path still fetches the documented GitHub release artifact.
 if [ -n "${MICRO_INSTALL_ARCHIVE:-}" ]; then
     cp "$MICRO_INSTALL_ARCHIVE" "$TMP_FILE"
-elif command -v curl &> /dev/null; then
+elif command -v curl >/dev/null 2>&1; then
     curl -fsSL "$URL" -o "$TMP_FILE"
-elif command -v wget &> /dev/null; then
+elif command -v wget >/dev/null 2>&1; then
     wget -q "$URL" -O "$TMP_FILE"
 else
     echo "Error: curl or wget required"
@@ -94,12 +95,14 @@ echo "✓ Installed micro to $INSTALL_DIR/micro"
 echo ""
 
 # Verify
-if command -v micro &> /dev/null; then
-    micro --version
-else
+"$INSTALL_DIR/micro" --version
+case ":$PATH:" in
+  *":$INSTALL_DIR:"*) ;;
+  *)
     echo "Note: Add $INSTALL_DIR to your PATH:"
     echo "  export PATH=\"\$PATH:$INSTALL_DIR\""
-fi
+    ;;
+esac
 
 echo ""
 echo "Get started:"

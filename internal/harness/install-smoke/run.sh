@@ -23,7 +23,9 @@ MICRO_INSTALL_DIR="$INSTALL_DIR" \
 MICRO_INSTALL_ARCHIVE="$ARCHIVE" \
 MICRO_VERSION="local-smoke" \
 PATH="$INSTALL_DIR:$PATH" \
-  "$ROOT/internal/scripts/install.sh" > "$TMP_DIR/install.out"
+  sh "$ROOT/internal/scripts/install.sh" > "$TMP_DIR/install.out"
+
+cmp "$ROOT/internal/scripts/install.sh" "$ROOT/internal/website/static/install.sh"
 
 MICRO="$INSTALL_DIR/micro"
 if [[ ! -x "$MICRO" ]]; then
@@ -132,5 +134,7 @@ require_ordered_output "installed zero-to-hero lifecycle wayfinding" \
   "make harness" \
   "zero-to-hero.html" \
   -- zero-to-hero
+
+python3 "$ROOT/internal/harness/chat/run.py" "$MICRO"
 
 echo "✓ install smoke path verified"

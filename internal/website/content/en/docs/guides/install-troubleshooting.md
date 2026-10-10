@@ -42,12 +42,17 @@ If `command -v micro` prints nothing, add the install directory to `PATH`, then
 open a new terminal and retry. Common locations are:
 
 ```sh
-export PATH="$HOME/.micro/bin:$PATH"      # binary installer
+export PATH="$HOME/.local/bin:$PATH"      # binary installer
 export PATH="$(go env GOPATH)/bin:$PATH"  # go install
 ```
 
 If `micro --version` shows an older binary than expected, remove the stale copy or
 put the intended install directory earlier in `PATH`.
+
+The interactive development experience documented on this site currently needs
+`go install go-micro.dev/v6/cmd/micro@master`. `@latest` and the binary installer
+use the latest tagged release. Use `go get go-micro.dev/v6@master` when building
+a host for this development CLI.
 
 ## 3. Run the no-secret smoke path
 

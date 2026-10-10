@@ -22,6 +22,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/chzyer/readline"
 	"github.com/urfave/cli/v2"
 	"go-micro.dev/v6/agent"
 	agentpb "go-micro.dev/v6/agent/proto"
@@ -68,7 +69,7 @@ var generateTool = model.Tool{
 func init() {
 	cmd.Register(&cli.Command{
 		Name:  "chat",
-		Usage: "Interactive AI chat that orchestrates your services",
+		Usage: "Work on your project with an interactive agent",
 		Description: `Start an interactive chat session that uses an LLM to call your services.
 
 With one registered agent, micro chat connects directly without a local API key.
@@ -92,7 +93,7 @@ Examples:
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "sandbox", Usage: "Run workspace commands in this Docker image with networking disabled"},
 			&cli.StringFlag{Name: "host", Usage: "Serve the local development agent under this name without a chat UI (loopback only); --yes allows unattended tool actions"},
-			&cli.StringFlag{Name: "provider", Usage: "AI provider (anthropic, openai, gemini, groq, mistral, together, atlascloud)", EnvVars: []string{"MICRO_AI_PROVIDER"}},
+			&cli.StringFlag{Name: "provider", Usage: "AI provider (anthropic, openai, gemini, groq, mistral, together, minimax, ollama, atlascloud)", EnvVars: []string{"MICRO_AI_PROVIDER"}},
 			&cli.StringFlag{Name: "api_key", Usage: "API key for the provider", EnvVars: []string{"MICRO_AI_API_KEY"}},
 			&cli.StringFlag{Name: "model", Usage: "Model name (uses provider default if unset)", EnvVars: []string{"MICRO_AI_MODEL"}},
 			&cli.StringFlag{Name: "base_url", Usage: "Override the provider's base URL", EnvVars: []string{"MICRO_AI_BASE_URL"}},
@@ -486,6 +487,9 @@ func run(c *cli.Context) error {
 	// Remote agents own their model configuration.
 	if len(s.agents) != 1 {
 		if err := s.configure(c); err != nil {
+			if errors.Is(err, io.EOF) || errors.Is(err, readline.ErrInterrupt) {
+				return nil
+			}
 			return err
 		}
 	}
@@ -540,36 +544,7 @@ func run(c *cli.Context) error {
 		return s.ask(c.Context, singlePrompt)
 	}
 
-	fmt.Fprintln(s.writer())
-	fmt.Fprintln(s.writer(), "  \033[1mmicro chat\033[0m")
-	fmt.Fprintln(s.writer())
-	if len(s.agents) != 1 {
-		fmt.Fprintf(s.writer(), "  Provider    \033[36m%s\033[0m\n", s.provider)
-		fmt.Fprintf(s.writer(), "  Model       \033[36m%s\033[0m\n", s.modelName)
-		fmt.Fprintln(s.writer())
-	}
-	if hasAgents {
-		fmt.Fprintln(s.writer(), "  Agents:")
-		for name, info := range s.agents {
-			fmt.Fprintf(s.writer(), "    \033[35m◆\033[0m %s \033[2m(%s)\033[0m\n", name, strings.Join(info.Services, ", "))
-		}
-		fmt.Fprintln(s.writer())
-	}
-	if !hasAgents {
-		fmt.Fprintln(s.writer(), "  Tools:")
-		for _, name := range []string{"workspace_skill", "workspace_read", "workspace_search", "workspace_write", "workspace_edit", "workspace_exec"} {
-			fmt.Fprintf(s.writer(), "    ● %s\n", name)
-		}
-		for _, t := range s.toolList {
-			fmt.Fprintf(s.writer(), "    \033[32m●\033[0m %s\n", t.OriginalName)
-		}
-	}
-	if len(s.toolList) == 0 && !hasAgents {
-		fmt.Fprintln(s.writer(), "    \033[33m(no services found)\033[0m")
-	}
-	fmt.Fprintln(s.writer())
-	fmt.Fprintln(s.writer(), "  Type a prompt and press enter. \033[2mCtrl-D or 'exit' to quit.\033[0m")
-	fmt.Fprintln(s.writer())
+	s.welcome()
 
 	return s.interactive(c.Context)
 }
@@ -761,6 +736,10 @@ func envVarForProvider(provider string) string {
 		return "TOGETHER_API_KEY"
 	case "atlascloud":
 		return "ATLASCLOUD_API_KEY"
+	case "minimax":
+		return "MINIMAX_API_KEY"
+	case "ollama":
+		return "OLLAMA_API_KEY"
 	default:
 		return "MICRO_AI_API_KEY"
 	}

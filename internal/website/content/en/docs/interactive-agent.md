@@ -10,9 +10,16 @@ them with its own product services.
 ## Start working
 
 ```bash
-export OPENAI_API_KEY=your-api-key
+go install go-micro.dev/v6/cmd/micro@master
+export PATH="$(go env GOPATH)/bin:$PATH"
 micro chat
 ```
+
+This page describes the development version on `master`; the latest tagged
+release does not yet include this experience. First launch offers a provider
+choice and a hidden API key prompt. A single configured provider environment key
+skips setup. Settings are saved per project. `/login` replaces an entered key;
+flags and environment credentials take precedence on restart.
 
 With no registered agents, chat starts a local development agent. With one
 registered agent, it connects directly without needing a local model key.
@@ -29,6 +36,9 @@ Catalogs currently cover OpenAI, Anthropic, Gemini, Groq, Mistral, and Together.
 Catalog IDs do not guarantee account access or suitability for tool use.
 
 ## Interaction and conversations
+
+The prompt shows `micro (working) >` during a request and returns to `micro >`
+when it finishes. `/help` groups the available controls.
 
 - `/paste` composes multiple lines until `/send`; `/cancel` discards them.
 - Requests entered during work are queued. `/queue` shows the pending requests.

@@ -6,20 +6,26 @@ Go Micro Command Line
 
 ## Install the CLI
 
-Install Go 1.26 or newer, then install `micro` via `go install`
+The interactive chat features documented here are on `master`, not yet in the
+latest tagged release. Install Go 1.26 or newer, then install the development CLI:
 
 ```
-go install go-micro.dev/v6/cmd/micro@latest
+go install go-micro.dev/v6/cmd/micro@master
+export PATH="$(go env GOPATH)/bin:$PATH"
 ```
 
 
 ## Develop through conversation
 
 ```bash
-export OPENAI_API_KEY=your-api-key
 mkdir my-app && cd my-app
 micro chat
 ```
+
+Choose a provider and enter a key when prompted. An existing provider environment
+key skips setup when it identifies one provider; `--provider NAME` selects explicitly.
+Use `/login` to replace a bad key. Keys entered here are saved for this project;
+environment variables and `--api_key` take precedence on restart.
 
 With no registered agents, the local agent works with project files, shell
 commands, skills, web pages, and registered service tools. It loads `AGENTS.md`
@@ -34,6 +40,7 @@ live text and command output, input editing, completion, and these controls:
 |---|---|
 | `/model`, `/model ID`, `/models` | Select a model or list the provider catalog |
 | `/provider`, `/provider NAME [URL]` | Select a provider and optionally its endpoint |
+| `/login` | Replace the current provider API key without losing the conversation |
 | `/skills` | List project and personal skills |
 | `/paste`, then `/send` or `/cancel` | Compose or discard a multiline request |
 | `/queue` | Show follow-ups entered while the agent is busy |

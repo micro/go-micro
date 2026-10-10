@@ -7,10 +7,13 @@ Go Micro is a framework for building services and agents in Go. Start with a
 conversation, develop the capabilities you need as services, and let the agent
 use their endpoints as tools.
 
+The chat experience described here is on `master`, not yet in the latest tagged
+release. Use the matching development framework and CLI in these examples.
+
 ## Start through conversation
 
 Follow the [Quick Start](../quickstart.md) to install Go 1.26+ and the v6 CLI,
-configure a provider key, and start `micro chat` in a new directory.
+choose a provider, and start `micro chat` in a new directory.
 With no registered agents, the CLI development agent can generate missing
 services, compile and start them, and discover their tools for use in the same
 conversation. `micro run --prompt "..." --provider openai` lets you review a design
@@ -32,7 +35,7 @@ In a new directory, initialize a module:
 ```bash
 mkdir assistant && cd assistant
 go mod init example.com/assistant
-go get go-micro.dev/v6
+go get go-micro.dev/v6@master
 ```
 
 Save this as `main.go`:

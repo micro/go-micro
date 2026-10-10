@@ -65,18 +65,21 @@ func choose(terminal *readline.Instance, title string, choices []string, current
 		fmt.Fprintf(terminal.Stdout(), "  %d. %s\n", i+1, name)
 	}
 	fmt.Fprintln(terminal.Stdout(), "Enter a number or name; empty input cancels.")
-	line, err := terminal.Readline()
-	if err != nil {
-		return "", err
-	}
-	line = strings.TrimSpace(line)
-	if number, err := strconv.Atoi(line); err == nil {
-		if number < 1 || number > len(choices) {
-			return "", fmt.Errorf("selection out of range")
+	for {
+		line, err := terminal.Readline()
+		if err != nil {
+			return "", err
 		}
-		return choices[number-1], nil
+		line = strings.TrimSpace(line)
+		if number, err := strconv.Atoi(line); err == nil {
+			if number < 1 || number > len(choices) {
+				fmt.Fprintln(terminal.Stdout(), "Selection out of range. Enter a listed number or name.")
+				continue
+			}
+			return choices[number-1], nil
+		}
+		return line, nil
 	}
-	return line, nil
 }
 
 func (s *session) modelCommand(ctx context.Context, terminal *readline.Instance, line string) error {
@@ -120,6 +123,32 @@ func (s *session) modelCommand(ctx context.Context, terminal *readline.Instance,
 		if err := s.selectModel(name); err != nil {
 			return err
 		}
+	case "/login":
+		var saved settings
+		records, err := s.conversations().Read(profileKey(s.provider, s.baseURL))
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return err
+		}
+		if len(records) > 0 {
+			if err := records[0].Decode(&saved); err != nil {
+				return err
+			}
+		}
+		saved.Provider, saved.Model, saved.BaseURL = s.provider, s.modelName, s.baseURL
+		fmt.Fprintf(s.writer(), "Replace the %s API key for this project. Empty input cancels.\n", s.provider)
+		entered, err := terminal.ReadPassword("API key: ")
+		if err != nil {
+			return err
+		}
+		key := strings.TrimSpace(string(entered))
+		if key == "" {
+			return nil
+		}
+		saved.APIKey = key
+		if err := s.saveModel(saved, key); err != nil {
+			return err
+		}
+		fmt.Fprintf(s.writer(), "Key saved. On restart, %s or --api_key takes precedence if set.\n", envVarForProvider(s.provider))
 	case "/provider":
 		provider, endpoint, _ := strings.Cut(arg, " ")
 		endpoint = strings.TrimSpace(endpoint)

@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: test test-race test-coverage harness demo-gif zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: chat-smoke test test-race test-coverage harness demo-gif zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -19,6 +19,7 @@ help:
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
 	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
+	@echo "  make chat-smoke    - Exercise chat setup, tools, approvals, and recovery in a terminal"
 	@echo "  make demo-gif      - Record the README quick-start demo GIF (VHS)"
 	@echo "  make zero-to-hero-transcript - Verify the ordered 0→hero lifecycle transcript"
 	@echo "  make inner-loop    - Verify scaffold → run/chat/inspect → deploy dry-run contract"
@@ -152,3 +153,7 @@ gorelease-dry-run:
 		-w /$(NAME) \
 		$(GORELEASER_DOCKER_IMAGE) \
 		--clean --verbose --skip=publish,validate --snapshot
+
+# Exercise actual chat setup, approvals, tools, recovery, and restart in a PTY.
+chat-smoke:
+	bash scripts/chat-smoke.sh
