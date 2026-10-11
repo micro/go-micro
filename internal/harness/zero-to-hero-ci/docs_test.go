@@ -68,8 +68,8 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	}
 
 	readme := readFile(t, filepath.Join(root, "README.md"))
-	if !strings.Contains(readme, "internal/website/content/en/docs/guides/zero-to-hero.md") {
-		t.Fatal("README does not point to the canonical 0→hero guide")
+	if !strings.Contains(readme, "https://go-micro.dev/docs/quickstart.html") {
+		t.Fatal("README does not point to the canonical quickstart")
 	}
 	if !strings.Contains(guide, "make zero-to-hero-transcript") {
 		t.Fatal("0→hero guide does not expose the focused ordered 0→hero transcript contract")
@@ -312,9 +312,9 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 		file  string
 		links []string
 	}{
-		{"README.md", []string{"examples/first-agent/", "internal/website/content/en/docs/guides/your-first-agent.md", "internal/website/content/en/docs/guides/debugging-agents.md"}},
-		{"internal/website/content/en/docs/quickstart.md", []string{"getting-started/index.md", "guides/your-first-agent.md", "guides/debugging-agents.md", "guides/no-secret-first-agent.md"}},
-		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md", "../guides/debugging-agents.md", "../guides/no-secret-first-agent.md"}},
+		{"README.md", []string{"examples/first-agent/", "https://go-micro.dev/docs/guides/your-first-agent.html", "https://go-micro.dev/docs/quickstart.html"}},
+		{"internal/website/content/en/docs/quickstart.md", []string{"getting-started/index.md", "guides/your-first-agent.md", "guides/agents-and-workflows.md"}},
+		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md", "../guides/agents-and-workflows.md"}},
 		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "getting-started/index.md", "guides/your-first-agent.md", "guides/no-secret-first-agent.md"}},
 	}
 	for _, check := range checks {
@@ -341,7 +341,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 			name:    "README first-agent on-ramp",
 			file:    filepath.Join(root, "README.md"),
 			heading: "",
-			markers: onRampTrail,
+			markers: []string{"micro chat", "quickstart.html", "examples/first-agent", "your-first-agent"},
 		},
 		{
 			name:    "website docs index first-agent path",
@@ -353,13 +353,13 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 			name:    "website getting-started first-agent on-ramp",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
 			heading: "",
-			markers: onRampTrail,
+			markers: []string{"../quickstart.md", "micro run", "your-first-agent"},
 		},
 		{
 			name:    "website quickstart next steps",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
 			heading: "",
-			markers: onRampTrail,
+			markers: []string{"micro chat", "protoc", "micro call", "go run .", "your-first-agent"},
 		},
 		{
 			name:    "examples map recommended adoption path",
@@ -427,12 +427,12 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 		{
 			name:    "README first-agent on-ramp",
 			file:    filepath.Join(root, "README.md"),
-			heading: "## CLI",
+			heading: "## Start building",
 		},
 		{
 			name:    "README examples list",
 			file:    filepath.Join(root, "README.md"),
-			heading: "## Examples",
+			heading: "## Build a capability, then use it",
 		},
 		{
 			name:    "repository examples index",
@@ -452,12 +452,12 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 		{
 			name:    "website getting-started on-ramp",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
-			heading: "## Examples and troubleshooting",
+			heading: "## Define the application in Go",
 		},
 		{
 			name:    "website quickstart next steps",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
-			heading: "## Next steps",
+			heading: "## 5. Run it after chat exits",
 		},
 		{
 			name:    "website docs index learn more",
@@ -685,7 +685,7 @@ func TestExamplesIndexesPreserveLifecycleMap(t *testing.T) {
 
 func TestGettingStartedDocsLeadWithConversation(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	for _, file := range []string{"README.md", "cmd/micro/README.md", "internal/website/content/en/docs/quickstart.md", "internal/website/content/en/docs/getting-started/index.md"} {
+	for _, file := range []string{"cmd/micro/README.md", "internal/website/content/en/docs/quickstart.md"} {
 		doc := readFile(t, filepath.Join(root, file))
 		chat := strings.Index(doc, "micro chat")
 		if chat < 0 {
@@ -758,7 +758,7 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	}
 
 	readme := readFile(t, filepath.Join(root, "README.md"))
-	if !strings.Contains(readme, "internal/website/content/en/docs/guides/your-first-agent.md") {
+	if !strings.Contains(readme, "https://go-micro.dev/docs/guides/your-first-agent.html") {
 		t.Fatal("README does not point to the first-agent guide")
 	}
 

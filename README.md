@@ -1,112 +1,64 @@
-# Go Micro [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/go-micro.dev/v6?tab=doc)
+# Go Micro
 
-A framework for services, tools and agents.
+A Go framework for building services, agents, and workflows.
 
-## Overview
+Write your application's capabilities as services. Go Micro handles discovery,
+RPC, and publish/subscribe so they can work together. Agents can discover and call
+those services as tools; workflows coordinate repeatable work across them.
+Use the service framework on its own, or add agents as your application grows.
 
-Go Micro started with service communication: RPC, discovery, and pub/sub built
-on pluggable interfaces. That foundation now gives agents tools they can discover
-and call. You can build services independently, add an agent to work with them,
-and use workflows for repeatable sequences of work.
+## Start building
 
-## Features
+With [Go 1.26+](https://go.dev/doc/install), install the CLI and open a project:
 
-- **Services** implement capabilities and own their data.
-- **Tools** provide access to services through a common interface.
-- **Agents** interpret requests and use tools to carry out work.
-- **Workflows** coordinate defined steps, including service calls and agent decisions.
-
-Registry, client/server, broker, transport, codec, and store remain independently
-usable. See the [architecture](internal/website/content/en/docs/architecture/index.md)
-for how the pieces fit together.
-
-## Create an agent
-
-The interactive development experience below is on `master` and is not yet in
-the latest tagged release. Use matching framework and CLI versions.
-
-With [Go 1.26 or newer](https://go.dev/doc/install):
-
-```bash
-mkdir assistant && cd assistant
-go mod init example.com/assistant
-go get go-micro.dev/v6@master
-export OPENAI_API_KEY=your-api-key
-```
-
-Save as `main.go`, then run `go run .`:
-
-```go
-package main
-
-import (
-    "log"
-    "os"
-
-    "go-micro.dev/v6"
-)
-
-func main() {
-    assistant := micro.NewAgent("assistant",
-        micro.AgentPrompt("Use your tools to carry out requests."),
-        micro.AgentProvider("openai"),
-        micro.AgentAPIKey(os.Getenv("OPENAI_API_KEY")),
-        micro.AgentServices(), // Start without application service tools.
-    )
-    if err := assistant.Run(); err != nil {
-        log.Fatal(err)
-    }
-}
-```
-
-Give it capabilities by writing services and selecting their registered names
-with `micro.AgentServices("notes", "search")`. These are services you supply;
-their endpoints become the agent's tools. An agent can return an answer, perform
-an action, or call a service that builds and saves something for later use.
-
-Follow [Your First Agent](internal/website/content/en/docs/guides/your-first-agent.md)
-for a complete service-backed agent. Agents can be called through Go, RPC, or
-the CLI.
-
-## CLI
-
-Install the optional CLI and talk to the agent from another terminal:
-
-```bash
+```sh
 go install go-micro.dev/v6/cmd/micro@master
 export PATH="$(go env GOPATH)/bin:$PATH"
+mkdir my-app && cd my-app
 micro chat
 ```
 
-Chat routes to registered agents. With one agent, no agent name or local
-provider key is needed. With multiple agents, a local model routes requests.
+This chat experience is on `master`, ahead of the latest tagged release.
+Choose a model provider and enter your key when prompted. The local agent can
+work with your files, run commands, and use registered services. It asks before
+actions that change files or run commands. Reopen chat in the same directory
+to continue; `/help` shows the controls.
 
-Run `micro chat` in a project to work with files, commands, skills, and service
-tools. First launch lets you choose a provider and enter a key, or uses an existing
-provider environment key. It asks before changing files or running commands.
-Reopen it in the same directory to continue. `/help` lists the controls.
-For work that continues after chat exits, connect to a running agent host.
-See [interactive agent development](internal/website/content/en/docs/interactive-agent.md)
-for chat controls, background work, schedules, and extension points.
+## Build a capability, then use it
 
-See the [Quick Start](internal/website/content/en/docs/quickstart.md) and
-[CLI reference](cmd/micro/README.md) for generation, hot reload, and deployment.
+Describe what you need. For example, after installing the
+[service-generation prerequisites](https://go-micro.dev/docs/quickstart.html#prerequisites):
 
-## Documentation
+```text
+Build a service named notes that saves and lists notes. Store them persistently.
+```
 
-- [Getting started](internal/website/content/en/docs/getting-started/index.md)
-- [Models and providers](model/README.md)
-- [Agents and workflows](internal/website/content/en/docs/guides/agents-and-workflows.md)
-- [Durability and recovery](internal/website/content/en/docs/guides/durability.md)
-- [Debugging agents](internal/website/content/en/docs/guides/debugging-agents.md)
-- [Full documentation](https://go-micro.dev/docs/) · [Go API reference](https://pkg.go.dev/go-micro.dev/v6)
+Review the proposed tool action. Once the service has built and registered, send
+a new message to use its tools:
 
-## Examples
+```text
+Save a note: the launch review is on Friday. Then list my notes.
+```
 
-Browse the [examples](examples/README.md), run the provider-free
-[first-agent example](examples/first-agent/), or follow the
-[0→hero reference](internal/website/content/en/docs/guides/zero-to-hero.md).
+You now have Go source to inspect and extend, and service endpoints that other
+applications can call too. The [complete walkthrough](https://go-micro.dev/docs/quickstart.html)
+shows what to check, how to change the service, and how to run it after chat exits.
+For a runnable example without a model key, see [first-agent](examples/first-agent/).
 
-## Community and support
+## Build on the framework
 
-[Discord](https://discord.gg/G8Gk5j3uXr) · [Commercial support](SUPPORT.md)
+- **Services:** typed requests, discovery, RPC, and events. [Build a service](https://go-micro.dev/docs/client-server.html).
+- **Agents:** models, history, tools, and approval policies you can extend in Go. [Build an agent](https://go-micro.dev/docs/guides/your-first-agent.html).
+- **Workflows:** defined steps around service calls and agent decisions. [Compose a workflow](https://go-micro.dev/docs/guides/agents-and-workflows.html).
+
+The CLI uses the same framework you import into your own programs. Infrastructure
+components—including registry, transport, broker, and store—are replaceable Go
+interfaces. Your services and agents can run independently of the development CLI.
+
+[Documentation](https://go-micro.dev/docs/index.html) ·
+[Go API](https://pkg.go.dev/go-micro.dev/v6) ·
+[Examples](examples/README.md) ·
+[Discord](https://discord.gg/G8Gk5j3uXr) ·
+[Support](SUPPORT.md)
+
+Apache 2.0 licensed.
