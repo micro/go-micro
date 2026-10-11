@@ -663,18 +663,12 @@ func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool,
 func runConsole(sigCh chan os.Signal) {
 	// Detect provider and API key from environment
 	provider := os.Getenv("MICRO_AI_PROVIDER")
-	apiKey := os.Getenv("MICRO_AI_API_KEY")
-	if apiKey == "" {
-		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
-			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY"} {
-			if v := os.Getenv(env); v != "" {
-				apiKey = v
-				break
-			}
-		}
-	}
 	if provider == "" {
 		provider = model.AutoDetectProvider("")
+	}
+	apiKey := os.Getenv("MICRO_AI_API_KEY")
+	if apiKey == "" {
+		apiKey = os.Getenv(model.APIKeyEnv(provider))
 	}
 
 	if apiKey == "" {
@@ -685,9 +679,6 @@ func runConsole(sigCh chan os.Signal) {
 		return
 	}
 
-	// Wait a moment for services to register
-	time.Sleep(2 * time.Second)
-
 	// Set up tools and model
 	reg := registry.DefaultRegistry
 	cl := clt.DefaultClient
@@ -697,6 +688,13 @@ func runConsole(sigCh chan os.Signal) {
 	modelOpts = append(modelOpts, model.WithAPIKey(apiKey))
 	modelOpts = append(modelOpts, model.WithToolHandler(tools.Handler()))
 	m := model.New(provider, modelOpts...)
+	if m == nil {
+		fmt.Fprintf(os.Stderr, "Unknown model provider %q. Set MICRO_AI_PROVIDER to a supported provider.\n", provider)
+		return
+	}
+
+	// Wait a moment for services to register.
+	time.Sleep(2 * time.Second)
 
 	hist := model.NewHistory(50)
 

@@ -24,6 +24,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"text/template"
@@ -42,7 +43,9 @@ import (
 	_ "go-micro.dev/v6/model/atlascloud"
 	_ "go-micro.dev/v6/model/gemini"
 	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/minimax"
 	_ "go-micro.dev/v6/model/mistral"
+	_ "go-micro.dev/v6/model/ollama"
 	_ "go-micro.dev/v6/model/openai"
 	_ "go-micro.dev/v6/model/together"
 )
@@ -82,12 +85,24 @@ type Result struct {
 // New creates a Flow with the given name and options.
 func New(name string, opts ...Option) *Flow {
 	o := Options{
-		Provider:     "openai",
+		Provider:     os.Getenv("MICRO_AI_PROVIDER"),
+		Model:        os.Getenv("MICRO_AI_MODEL"),
+		BaseURL:      os.Getenv("MICRO_AI_BASE_URL"),
 		SystemPrompt: "You are a service orchestrator. Use the available tools to fulfill the request. Explain what you do.",
 		HistoryLimit: 20,
 	}
 	for _, opt := range opts {
 		opt(&o)
+	}
+
+	if o.Provider == "" {
+		o.Provider = model.AutoDetectProvider(o.BaseURL)
+	}
+	if !o.apiKeySet && o.APIKey == "" {
+		o.APIKey = os.Getenv("MICRO_AI_API_KEY")
+		if o.APIKey == "" {
+			o.APIKey = os.Getenv(model.APIKeyEnv(o.Provider))
+		}
 	}
 
 	var tmpl *template.Template

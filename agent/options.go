@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"go-micro.dev/v6/broker"
@@ -45,6 +46,7 @@ type Options struct {
 	Provider     string
 	Model        string
 	APIKey       string
+	apiKeySet    bool
 	BaseURL      string
 	Address      string
 	Registry     registry.Registry
@@ -149,6 +151,9 @@ type Options struct {
 
 func newOptions(opts ...Option) Options {
 	o := Options{
+		Provider:          os.Getenv("MICRO_AI_PROVIDER"),
+		Model:             os.Getenv("MICRO_AI_MODEL"),
+		BaseURL:           os.Getenv("MICRO_AI_BASE_URL"),
 		Registry:          registry.DefaultRegistry,
 		Client:            client.DefaultClient,
 		Store:             store.DefaultStore,
@@ -166,7 +171,21 @@ func newOptions(opts ...Option) Options {
 	for _, opt := range opts {
 		opt(&o)
 	}
+	o.resolveProvider()
 	return o
+}
+
+// resolveProvider refreshes environment-derived credentials for the selected provider.
+func (o *Options) resolveProvider() {
+	if o.Provider == "" {
+		o.Provider = model.AutoDetectProvider(o.BaseURL)
+	}
+	if !o.apiKeySet {
+		o.APIKey = os.Getenv("MICRO_AI_API_KEY")
+		if o.APIKey == "" {
+			o.APIKey = os.Getenv(model.APIKeyEnv(o.Provider))
+		}
+	}
 }
 
 // Name sets the agent name.
@@ -197,7 +216,7 @@ func Model(m string) Option {
 
 // APIKey sets the API key for the LLM provider.
 func APIKey(k string) Option {
-	return func(o *Options) { o.APIKey = k }
+	return func(o *Options) { o.APIKey = k; o.apiKeySet = true }
 }
 
 // BaseURL sets the base URL for the LLM provider. Use this to point

@@ -68,4 +68,7 @@ Your Go code controls the provider, instructions, and allowed services. Change
 those options to build your own agent. For programmatic calls, the agent exposes
 `Ask(ctx, message)`; see the [agent API](https://pkg.go.dev/go-micro.dev/v6/agent).
 
+Configure the provider and its key in the agent process. The service and tools
+stay the same when you change models; chat connects to the running agent.
+
 **Next: [coordinate work with a workflow →](workflows.md)**

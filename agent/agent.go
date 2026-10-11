@@ -155,6 +155,7 @@ func (a *agentImpl) Init(opts ...Option) {
 	for _, o := range opts {
 		o(&a.opts)
 	}
+	a.opts.resolveProvider()
 	if previousSession != a.opts.Session {
 		a.mem = nil
 	}
@@ -280,6 +281,9 @@ func (a *agentImpl) Stream(ctx context.Context, message string) (model.Stream, e
 	}
 	if a.model == nil {
 		a.setup()
+		if a.model == nil {
+			return nil, fmt.Errorf("agent: unknown model provider %q", a.opts.Provider)
+		}
 	}
 	toolList, err := a.discoverTools()
 	if err != nil {
@@ -411,6 +415,9 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 }
 
 func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID string, existing *flow.Run, addUserMessage bool) (*Response, error) {
+	if a.model == nil {
+		return nil, fmt.Errorf("agent: unknown model provider %q", a.opts.Provider)
+	}
 	toolList, err := a.discoverTools()
 	if err != nil {
 		return nil, fmt.Errorf("discover tools: %w", err)
@@ -706,6 +713,9 @@ func (a *agentImpl) startServer() (<-chan struct{}, error) {
 
 	if a.model == nil {
 		a.setup()
+		if a.model == nil {
+			return nil, fmt.Errorf("agent: unknown model provider %q", a.opts.Provider)
+		}
 	}
 
 	sessionSupport := "v1"
