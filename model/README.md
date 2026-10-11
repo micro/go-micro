@@ -1,8 +1,23 @@
 # Model Package
 
-The `model` package provides simple, high-level interfaces for AI model providers. It supports text generation (`Model`), image generation (`ImageModel`), and video generation (`VideoModel`).
+The `model` package provides interfaces for AI model providers. It supports decisions (`Decider`), text generation (`Model`), image generation (`ImageModel`), and video generation (`VideoModel`).
 
 ## Interfaces
+
+### Decisions (Decider)
+
+```go
+type Decider interface {
+    Init(...Option) error
+    Options() Options
+    Decide(context.Context, *DecisionRequest) (*DecisionResponse, error)
+    String() string
+}
+```
+
+Deciders evaluate named questions against input and return values and probabilities.
+They are registered separately from text-generation providers.
+[TypeSafe](typesafe/README.md) implements yes/no probabilities, choices, and scores.
 
 ### Text Generation (Model)
 
