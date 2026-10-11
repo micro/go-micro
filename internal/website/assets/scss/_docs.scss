@@ -1,0 +1,43 @@
+// Five links and a single reading column for the documentation.
+.micro-docs {
+  .td-navbar { position: static; }
+  .micro-docs-layout {
+    display: grid;
+    grid-template-columns: 170px minmax(0, 760px);
+    gap: 48px;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 48px 24px 72px;
+  }
+  .micro-docs-nav {
+    display: flex;
+    flex-direction: column;
+    align-self: start;
+    gap: 6px;
+    position: sticky;
+    top: 24px;
+    a { padding: 8px 12px; border-radius: 4px; color: #35515a; text-decoration: none; }
+    a:hover { background: #f1f7f7; }
+    a[aria-current="page"] { background: #e8f3f5; color: #00596d; font-weight: 600; }
+  }
+  .micro-docs-content {
+    min-width: 0;
+    line-height: 1.7;
+    h1 { font-size: 2rem; font-weight: 600; margin-bottom: 24px; }
+    h2 { font-size: 1.4rem; font-weight: 600; margin: 32px 0 16px; }
+    h3 { font-size: 1.15rem; margin-top: 24px; }
+    a { text-decoration: underline; text-underline-offset: 3px; }
+    pre { padding: 18px; background: #f6f8fa; overflow-x: auto; border-radius: 4px; }
+    img { max-width: 100%; height: auto; }
+    table { width: 100%; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e2e8ec; vertical-align: top; }
+  }
+  .micro-docs-archive { font-size: .9rem; color: #52656c; }
+  a:focus-visible { outline: 3px solid #007d9c; outline-offset: 3px; }
+  @media (max-width: 767px) {
+    .micro-docs-layout { display: block; padding: 24px 20px 40px; }
+    .micro-docs-nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px; margin-bottom: 28px; font-size: .9rem; }
+    .micro-docs-nav a { padding: 6px 10px; }
+    .micro-docs-content h1 { font-size: 1.75rem; }
+  }
+}

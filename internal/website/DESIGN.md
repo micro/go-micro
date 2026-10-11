@@ -137,3 +137,15 @@ regardless of the SVG's own fill. Using `<img>` (not a CSS mask) keeps the
 intrinsic size, so the logo can't collapse to zero width inside the `d-flex`
 row. Assets live in `static/images/sponsors/`. Swap a logo by replacing the
 file and the `src`; the filter handles the color.
+
+## Documentation
+
+Use the five links in `data/docs.yaml`: Getting started, Services, Agents,
+Workflows, Reference. The docs layout has one reading column, with the same
+links wrapping above it on mobile. Do not restore the generated section tree,
+right-hand contents panel, feedback form, or automatic child-page lists.
+
+The current guides have `params.docs_main: true`. Search indexes only those
+pages. Older URLs remain readable with a link to the current guides, but stay
+out of the main navigation and search. Keep detailed options in package and
+CLI references; the guides should teach one connected path.

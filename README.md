@@ -24,8 +24,8 @@ go get go-micro.dev/v6
 ```
 
 See the [quickstart](https://go-micro.dev/docs/quickstart.html) for local development,
-[client/server guide](https://go-micro.dev/docs/client-server.html) for services,
-and [agent guide](https://go-micro.dev/docs/guides/your-first-agent.html) for agents.
+[services guide](https://go-micro.dev/docs/services.html) for services,
+and [agent guide](https://go-micro.dev/docs/agents.html) for agents.
 
 ## Documentation
 
