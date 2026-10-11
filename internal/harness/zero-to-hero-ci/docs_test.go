@@ -77,11 +77,6 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 	if !strings.Contains(guide, "make inner-loop") {
 		t.Fatal("0→hero guide does not expose the focused CLI inner-loop contract")
 	}
-
-	nav := readFile(t, filepath.Join(root, "internal", "website", "_data", "navigation.yml"))
-	if !strings.Contains(nav, "0→hero Reference") || !strings.Contains(nav, "/docs/guides/zero-to-hero.html") {
-		t.Fatal("website navigation does not expose the canonical 0→hero guide")
-	}
 }
 
 func TestZeroToHeroTranscriptTargetStaysOrdered(t *testing.T) {
@@ -167,38 +162,52 @@ deploy prod
 	}
 }
 
-func TestGuidesNavigationLeadsWithDoing(t *testing.T) {
+func TestDocsNavigation(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	nav := readFile(t, filepath.Join(root, "internal", "website", "_data", "navigation.yml"))
-
-	orderedGuides := []string{
-		"/docs/guides/no-secret-first-agent.html",
-		"/docs/guides/your-first-agent.html",
-		"/docs/guides/zero-to-hero.html",
-		"/docs/guides/plan-delegate.html",
-		"/docs/guides/agent-guardrails.html",
-		"/docs/guides/agents-and-workflows.html",
-		"/docs/guides/agent-patterns.html",
-		"/docs/guides/agent-harness.html",
-		"/docs/guides/agent-loops.html",
+	nav := readFile(t, filepath.Join(root, "internal", "website", "data", "docs.yaml"))
+	pages := []string{"quickstart", "services", "agents", "workflows", "reference"}
+	if strings.Count(nav, "- title:") != len(pages) {
+		t.Fatal("docs navigation should contain five entries")
 	}
-
 	last := -1
-	for _, guide := range orderedGuides {
-		idx := strings.Index(nav, guide)
-		if idx == -1 {
-			t.Fatalf("website navigation does not expose %s", guide)
-		}
-		if idx < last {
-			t.Fatalf("website navigation should lead with hands-on guides; %s appeared out of order", guide)
+	for _, page := range pages {
+		idx := strings.Index(nav, "path: /docs/"+page)
+		if idx < 0 || idx < last {
+			t.Fatalf("missing or out-of-order docs page %s", page)
 		}
 		last = idx
-
-		doc := strings.TrimPrefix(strings.TrimSuffix(guide, ".html"), "/docs/") + ".md"
-		if _, err := os.Stat(filepath.Join(root, "internal", "website", "content", "en", "docs", doc)); err != nil {
-			t.Fatalf("navigation links to missing guide %s: %v", guide, err)
+		doc := filepath.Join(root, "internal", "website", "content", "en", "docs", page+".md")
+		for _, link := range markdownLinks(readFile(t, doc)) {
+			assertWayfindingTargetExists(t, root, doc, link)
 		}
 	}
+}
+
+func TestCurrentDocsExamplesBuild(t *testing.T) {
+	root, err := filepath.Abs(filepath.Join("..", "..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspace := t.TempDir()
+	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/my-app\n\ngo 1.26\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+root+"\n")
+	for _, page := range []string{"services", "agents", "workflows"} {
+		doc := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", page+".md"))
+		_, code, ok := strings.Cut(doc, "```go\n")
+		if !ok {
+			t.Fatalf("%s has no Go program", page)
+		}
+		code, _, ok = strings.Cut(code, "```")
+		if !ok {
+			t.Fatalf("%s has an unclosed code fence", page)
+		}
+		dir := filepath.Join(workspace, page)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, filepath.Join(dir, "main.go"), code)
+	}
+	runInWorkspace(t, workspace, "go", "mod", "tidy")
+	runInWorkspace(t, workspace, "go", "build", "./...")
 }
 
 func TestYourFirstAgentTutorialSmoke(t *testing.T) {
@@ -312,10 +321,10 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 		file  string
 		links []string
 	}{
-		{"README.md", []string{"examples/README.md", "https://go-micro.dev/docs/guides/your-first-agent.html", "https://go-micro.dev/docs/quickstart.html"}},
-		{"internal/website/content/en/docs/quickstart.md", []string{"getting-started/index.md", "guides/your-first-agent.md", "guides/agents-and-workflows.md"}},
+		{"README.md", []string{"https://go-micro.dev/docs/agents.html", "https://go-micro.dev/docs/quickstart.html"}},
+		{"internal/website/content/en/docs/quickstart.md", []string{"services.md", "agents.md", "workflows.md"}},
 		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md", "../guides/agents-and-workflows.md"}},
-		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "getting-started/index.md", "guides/your-first-agent.md", "guides/no-secret-first-agent.md"}},
+		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "services.md", "agents.md", "workflows.md", "reference.md"}},
 	}
 	for _, check := range checks {
 		doc := readFile(t, filepath.Join(root, check.file))
@@ -330,7 +339,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 
 func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	onRampTrail := []string{"micro chat", "your-first-agent", "debugging-agents", "zero-to-hero"}
+	onRampTrail := []string{"quickstart.md", "services.md", "agents.md", "workflows.md"}
 	checks := []struct {
 		name    string
 		file    string
@@ -341,7 +350,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 			name:    "README first-agent on-ramp",
 			file:    filepath.Join(root, "README.md"),
 			heading: "",
-			markers: []string{"quickstart.html", "client-server.html", "your-first-agent"},
+			markers: []string{"quickstart.html", "services.html", "agents.html"},
 		},
 		{
 			name:    "website docs index first-agent path",
@@ -359,7 +368,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 			name:    "website quickstart next steps",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
 			heading: "",
-			markers: []string{"micro chat", "protoc", "micro call", "go run .", "your-first-agent"},
+			markers: []string{"Go 1.26", "go mod init", "services.md", "agents.md", "workflows.md"},
 		},
 		{
 			name:    "examples map recommended adoption path",
@@ -457,18 +466,21 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 		{
 			name:    "website quickstart next steps",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
-			heading: "## 5. Run it after chat exits",
+			heading: "## Build",
 		},
 		{
 			name:    "website docs index learn more",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "_index.md"),
-			heading: "## Start here",
+			heading: "",
 		},
 	}
 
 	for _, check := range checks {
 		t.Run(check.name, func(t *testing.T) {
-			section := firstMarkdownSection(t, readFile(t, check.file), check.heading)
+			section := readFile(t, check.file)
+			if check.heading != "" {
+				section = firstMarkdownSection(t, section, check.heading)
+			}
 			links := markdownLinks(section)
 			if len(links) == 0 {
 				t.Fatalf("%s has no Markdown links in %q", check.name, check.heading)
@@ -685,7 +697,7 @@ func TestExamplesIndexesPreserveLifecycleMap(t *testing.T) {
 
 func TestGettingStartedDocsLeadWithConversation(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	for _, file := range []string{"cmd/micro/README.md", "internal/website/content/en/docs/quickstart.md"} {
+	for _, file := range []string{"cmd/micro/README.md"} {
 		doc := readFile(t, filepath.Join(root, file))
 		chat := strings.Index(doc, "micro chat")
 		if chat < 0 {
@@ -758,7 +770,7 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	}
 
 	readme := readFile(t, filepath.Join(root, "README.md"))
-	if !strings.Contains(readme, "https://go-micro.dev/docs/guides/your-first-agent.html") {
+	if !strings.Contains(readme, "https://go-micro.dev/docs/agents.html") {
 		t.Fatal("README does not point to the first-agent guide")
 	}
 
@@ -1160,7 +1172,7 @@ func assertWayfindingTargetExists(t *testing.T, root, sourceFile, link string) {
 		switch {
 		case strings.HasPrefix(link, "https://go-micro.dev/docs/"):
 			link = strings.TrimPrefix(link, "https://go-micro.dev/docs/")
-			if link == "index.html" {
+			if link == "" || link == "index.html" {
 				link = "_index.html"
 			}
 			link = filepath.ToSlash(filepath.Join("internal", "website", "content", "en", "docs", strings.TrimSuffix(link, ".html")+".md"))

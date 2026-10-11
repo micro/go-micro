@@ -1,0 +1,10 @@
+{{- $pages := slice -}}
+{{- range where .Site.Pages "Params.docs_main" true -}}
+  {{- $pages = $pages | append (dict
+      "ref" .RelPermalink
+      "title" .Title
+      "body" .Plain
+      "excerpt" (.Plain | truncate 120)
+  ) -}}
+{{- end -}}
+{{- $pages | jsonify -}}

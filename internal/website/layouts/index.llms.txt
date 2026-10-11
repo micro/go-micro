@@ -1,0 +1,13 @@
+# Go Micro
+
+Go framework for services, agents, and workflows.
+
+## Documentation
+{{ range .Site.Data.docs }}{{ with $.Site.GetPage .path }}
+- [{{ .Title }}]({{ .Permalink }})
+{{ end }}{{ end }}
+
+## Reference
+
+- [Go API](https://pkg.go.dev/go-micro.dev/v6)
+- [CLI](https://github.com/micro/go-micro/blob/master/cmd/micro/README.md)
