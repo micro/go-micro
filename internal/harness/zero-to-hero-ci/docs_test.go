@@ -312,7 +312,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 		file  string
 		links []string
 	}{
-		{"README.md", []string{"examples/first-agent/", "https://go-micro.dev/docs/guides/your-first-agent.html", "https://go-micro.dev/docs/quickstart.html"}},
+		{"README.md", []string{"examples/README.md", "https://go-micro.dev/docs/guides/your-first-agent.html", "https://go-micro.dev/docs/quickstart.html"}},
 		{"internal/website/content/en/docs/quickstart.md", []string{"getting-started/index.md", "guides/your-first-agent.md", "guides/agents-and-workflows.md"}},
 		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md", "../guides/agents-and-workflows.md"}},
 		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "getting-started/index.md", "guides/your-first-agent.md", "guides/no-secret-first-agent.md"}},
@@ -341,7 +341,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 			name:    "README first-agent on-ramp",
 			file:    filepath.Join(root, "README.md"),
 			heading: "",
-			markers: []string{"micro chat", "quickstart.html", "examples/first-agent", "your-first-agent"},
+			markers: []string{"quickstart.html", "client-server.html", "your-first-agent"},
 		},
 		{
 			name:    "website docs index first-agent path",
@@ -427,12 +427,12 @@ func TestFirstAgentWayfindingLinkTargetsResolve(t *testing.T) {
 		{
 			name:    "README first-agent on-ramp",
 			file:    filepath.Join(root, "README.md"),
-			heading: "## Start building",
+			heading: "## Getting started",
 		},
 		{
 			name:    "README examples list",
 			file:    filepath.Join(root, "README.md"),
-			heading: "## Build a capability, then use it",
+			heading: "## Documentation",
 		},
 		{
 			name:    "repository examples index",
@@ -1160,6 +1160,9 @@ func assertWayfindingTargetExists(t *testing.T, root, sourceFile, link string) {
 		switch {
 		case strings.HasPrefix(link, "https://go-micro.dev/docs/"):
 			link = strings.TrimPrefix(link, "https://go-micro.dev/docs/")
+			if link == "index.html" {
+				link = "_index.html"
+			}
 			link = filepath.ToSlash(filepath.Join("internal", "website", "content", "en", "docs", strings.TrimSuffix(link, ".html")+".md"))
 		case strings.HasPrefix(link, "https://github.com/micro/go-micro/tree/master/"):
 			link = strings.TrimPrefix(link, "https://github.com/micro/go-micro/tree/master/")

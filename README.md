@@ -1,64 +1,45 @@
 # Go Micro
 
-A Go framework for building services, agents, and workflows.
+Go Micro is a Go framework for distributed systems development.
 
-Write your application's capabilities as services. Go Micro handles discovery,
-RPC, and publish/subscribe so they can work together. Agents can discover and call
-those services as tools; workflows coordinate repeatable work across them.
-Use the service framework on its own, or add agents as your application grows.
+It provides RPC, service discovery, messaging, storage, and configuration.
+Agents use services as tools; workflows coordinate service calls and agent tasks.
+Each component uses a Go interface with a default implementation that can be replaced.
 
-## Start building
+## Features
 
-With [Go 1.26+](https://go.dev/doc/install), install the CLI and open a project:
+- **RPC:** typed client/server communication with streaming and message encoding.
+- **Service discovery:** automatic registration, name resolution, and load balancing.
+- **Messaging:** publish/subscribe for asynchronous events.
+- **Storage and configuration:** pluggable data stores and dynamic configuration sources.
+- **Models and agents:** model providers, conversation history, tools, and agent execution.
+- **Workflows:** ordered steps, retries, and checkpoints.
+
+## Getting started
+
+Install the framework:
 
 ```sh
-go install go-micro.dev/v6/cmd/micro@master
-export PATH="$(go env GOPATH)/bin:$PATH"
-mkdir my-app && cd my-app
-micro chat
+go get go-micro.dev/v6
 ```
 
-This chat experience is on `master`, ahead of the latest tagged release.
-Choose a model provider and enter your key when prompted. The local agent can
-work with your files, run commands, and use registered services. It asks before
-actions that change files or run commands. Reopen chat in the same directory
-to continue; `/help` shows the controls.
+See the [quickstart](https://go-micro.dev/docs/quickstart.html) for local development,
+[client/server guide](https://go-micro.dev/docs/client-server.html) for services,
+and [agent guide](https://go-micro.dev/docs/guides/your-first-agent.html) for agents.
 
-## Build a capability, then use it
+## Documentation
 
-Describe what you need. For example, after installing the
-[service-generation prerequisites](https://go-micro.dev/docs/quickstart.html#prerequisites):
+- [Guides](https://go-micro.dev/docs/index.html)
+- [API reference](https://pkg.go.dev/go-micro.dev/v6)
+- [Examples](examples/README.md)
+- [CLI](cmd/micro/README.md)
+- [Protobuf code generation](cmd/protoc-gen-micro/README.md)
+- [Plugins](https://github.com/micro/plugins)
 
-```text
-Build a service named notes that saves and lists notes. Store them persistently.
-```
+## Community
 
-Review the proposed tool action. Once the service has built and registered, send
-a new message to use its tools:
+[Discord](https://discord.gg/G8Gk5j3uXr) · [Support](SUPPORT.md)
 
-```text
-Save a note: the launch review is on Friday. Then list my notes.
-```
+## License
 
-You now have Go source to inspect and extend, and service endpoints that other
-applications can call too. The [complete walkthrough](https://go-micro.dev/docs/quickstart.html)
-shows what to check, how to change the service, and how to run it after chat exits.
-For a runnable example without a model key, see [first-agent](examples/first-agent/).
-
-## Build on the framework
-
-- **Services:** typed requests, discovery, RPC, and events. [Build a service](https://go-micro.dev/docs/client-server.html).
-- **Agents:** models, history, tools, and approval policies you can extend in Go. [Build an agent](https://go-micro.dev/docs/guides/your-first-agent.html).
-- **Workflows:** defined steps around service calls and agent decisions. [Compose a workflow](https://go-micro.dev/docs/guides/agents-and-workflows.html).
-
-The CLI uses the same framework you import into your own programs. Infrastructure
-components—including registry, transport, broker, and store—are replaceable Go
-interfaces. Your services and agents can run independently of the development CLI.
-
-[Documentation](https://go-micro.dev/docs/index.html) ·
-[Go API](https://pkg.go.dev/go-micro.dev/v6) ·
-[Examples](examples/README.md) ·
-[Discord](https://discord.gg/G8Gk5j3uXr) ·
-[Support](SUPPORT.md)
-
-Apache 2.0 licensed.
+Apache 2.0
