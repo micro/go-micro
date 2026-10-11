@@ -8,11 +8,8 @@ Each component uses a Go interface with a default implementation that can be rep
 
 ## Features
 
-- **RPC:** typed client/server communication with streaming and message encoding.
-- **Service discovery:** automatic registration, name resolution, and load balancing.
-- **Messaging:** publish/subscribe for asynchronous events.
-- **Storage and configuration:** pluggable data stores and dynamic configuration sources.
-- **Models and agents:** model providers, conversation history, tools, and agent execution.
+- **Services:** RPC with streaming, message encoding and service discovery.
+- **Agents:** models, conversation history, tools, and agent execution.
 - **Workflows:** ordered steps, retries, and checkpoints.
 
 ## Getting started
