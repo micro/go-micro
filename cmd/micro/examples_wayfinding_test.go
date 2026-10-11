@@ -14,7 +14,7 @@ import (
 func TestExamplesWayfindingIndexStaysLinked(t *testing.T) {
 	root := filepath.Join("..", "..")
 	files := map[string]string{}
-	for _, name := range []string{"README.md", "examples/README.md", "examples/INDEX.md"} {
+	for _, name := range []string{"README.md", "internal/website/content/en/docs/reference.md", "examples/README.md", "examples/INDEX.md"} {
 		b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(name)))
 		if err != nil {
 			t.Fatalf("read %s: %v", name, err)
@@ -28,7 +28,11 @@ func TestExamplesWayfindingIndexStaysLinked(t *testing.T) {
 	}{
 		{
 			file: "README.md",
-			want: []string{"examples/README.md", "examples/first-agent/", "zero-to-hero.md"},
+			want: []string{"https://go-micro.dev/docs/"},
+		},
+		{
+			file: "internal/website/content/en/docs/reference.md",
+			want: []string{"https://github.com/micro/go-micro/tree/master/examples"},
 		},
 		{
 			file: "examples/README.md",
