@@ -4,6 +4,20 @@ Style contract for the Hugo/ Docsy landing pages (`content/en/_index.md`,
 `content/en/support.md`) and the shortcodes that build them
 (`layouts/_shortcodes/blocks/*`, `layouts/_shortcodes/elements/*`).
 
+## Homepage
+
+The homepage uses semantic sections in `content/en/_index.md` and styles scoped
+to `.micro-home` in `assets/scss/_landing.scss`. Keep the intro and install path
+visible together on desktop; stack them on mobile. Use white backgrounds, a pale
+teal setup panel, readable dark text, and the existing Go blue for links.
+
+Lead with the developer outcome and a complete journey. API option names belong
+in the guides. Show real commands and clearly identified example prompts, not
+invented terminal output or generated screenshots. Link all primary start actions
+to `/docs/quickstart.html`. Keep the service framework useful independently of AI.
+
+The shared block shortcodes below remain available to support and other pages.
+
 ## Color tokens
 
 Defined in `assets/scss/_variables_project_after_bs.scss` and merged into
@@ -33,7 +47,7 @@ by hand.
 
 ## Section rhythm
 
-The landing pages (`content/en/_index.md`, `content/en/support.md`) use
+The support page (`content/en/support.md`) uses
 `color="light" pattern=true padding="py-5"`. Cards use white or a pale cyan
 background with dark text and subtle borders. The navbar is white and the footer
 is light. Light mode is set for the whole site in `hugo.yaml` and the project

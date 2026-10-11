@@ -1,0 +1,75 @@
+// Homepage only. Keep documentation and support layouts unchanged.
+.micro-home {
+  background: #fff;
+  color: #172c32;
+
+  .td-main { padding: 0; }
+  .micro-landing {
+    max-width: 1160px;
+    margin: auto;
+    padding: 0 28px;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  h1, h2, h3 { color: #142e36; letter-spacing: -.035em; }
+  h1 { font-size: clamp(2.7rem, 4.4vw, 4rem); line-height: 1.08; font-weight: 650; margin: 18px 0 24px; }
+  h2 { font-size: clamp(1.8rem, 3vw, 2.35rem); line-height: 1.2; font-weight: 600; }
+  h3 { font-size: 1.3rem; font-weight: 600; letter-spacing: -.02em; margin: 16px 0 12px; }
+  p { margin: 0 0 20px; }
+  a { color: #006b83; text-underline-offset: 4px; }
+  a:focus-visible { outline: 3px solid #007d9c; outline-offset: 5px; }
+  .micro-eyebrow { color: #006b83; font-size: .82rem; font-weight: 600; letter-spacing: .055em; margin-bottom: 12px; }
+  .micro-lead { font-size: 1.15rem; color: #425a62; line-height: 1.7; max-width: 490px; }
+  .micro-caption { font-size: .85rem; color: #53676e; margin: 18px 0 0; }
+  .micro-intro { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; padding: 76px 0 64px; }
+  .micro-actions { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin: 30px 0 20px; font-size: .95rem; }
+  .micro-button { display: inline-flex; align-items: center; justify-content: center; gap: 20px; background: #00758a; color: #fff; padding: 12px 18px; border-radius: 6px; text-decoration: none; font-weight: 500; }
+  .micro-button:hover { background: #005b6d; color: #fff; }
+  .micro-start { background: #f1f7f7; border: 1px solid #d3e3e5; border-radius: 12px; padding: 28px; min-width: 0; font-size: .95rem; }
+  .micro-start-heading { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; }
+  .micro-start-heading h2 { font-size: 1.2rem; letter-spacing: -.02em; margin-bottom: 14px; }
+  .micro-start-heading span { color: #607b83; font-size: .8rem; }
+  pre { padding: 18px; border: 1px solid #dce6e8; border-radius: 6px; background: #fff; color: #173e48; overflow-x: auto; line-height: 1.8; margin: 20px 0; font-size: .77rem; }
+  pre code { color: inherit; background: none; padding: 0; white-space: pre; }
+  .micro-journey { border-top: 1px solid #dce6e8; padding: 58px 0; }
+  .micro-section-heading { max-width: 680px; margin-bottom: 32px; }
+  .micro-section-heading > p:last-child { color: #53676e; margin-top: 16px; }
+  .micro-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; padding: 0; margin: 0; }
+  .micro-steps li { min-width: 0; }
+  .micro-step-number { color: #00758a; font-size: .85rem; font-weight: 600; }
+  .micro-steps p { font-size: .95rem; color: #425a62; }
+  blockquote { border-left: 2px solid #8bc5cd; padding: 0 0 0 16px; font-size: .95rem; margin: 20px 0 0; color: #264851; }
+  .micro-follow { display: flex; justify-content: space-between; align-items: baseline; gap: 28px; border-top: 1px solid #e2eaec; padding-top: 24px; margin-top: 32px; font-size: .9rem; }
+  .micro-follow p { margin: 0; max-width: 650px; }
+  .micro-follow a { flex-shrink: 0; }
+  .micro-foundation { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; border-top: 1px solid #dce6e8; padding: 60px 0; }
+  .micro-foundation h2 { margin-bottom: 24px; }
+  .micro-foundation p { color: #425a62; }
+  .micro-building-blocks { margin: 0; }
+  .micro-building-blocks > div { border-bottom: 1px solid #e2eaec; padding: 0 0 22px; margin-bottom: 22px; }
+  dt { font-size: 1.12rem; font-weight: 600; margin-bottom: 6px; }
+  dd { margin: 0; color: #425a62; font-size: .95rem; }
+  dd a { display: block; margin-top: 8px; }
+  .micro-finish { display: flex; gap: 28px; justify-content: space-between; align-items: center; background: #f1f7f7; border-radius: 10px; padding: 32px; margin-bottom: 56px; }
+  .micro-finish h2 { font-size: 1.7rem; }
+  .micro-finish p { color: #53676e; margin: 12px 0 0; }
+  .micro-finish .micro-button { flex-shrink: 0; }
+
+  @media (max-width: 900px) {
+    .micro-intro { grid-template-columns: 1fr; gap: 32px; padding: 45px 0; }
+    .micro-lead { max-width: 650px; }
+    .micro-foundation { gap: 35px; }
+    .micro-follow { display: block; }
+    .micro-follow a { display: inline-block; margin-top: 14px; }
+  }
+  @media (max-width: 600px) {
+    .micro-landing { padding: 0 20px; font-size: 16px; }
+    .micro-intro { padding-top: 35px; }
+    .micro-start { padding: 20px; }
+    .micro-steps, .micro-foundation { grid-template-columns: 1fr; gap: 28px; }
+    .micro-journey, .micro-foundation { padding: 36px 0; }
+    .micro-finish { display: block; padding: 24px; margin-bottom: 32px; }
+    .micro-finish .micro-button { margin-top: 22px; }
+    .micro-actions { gap: 18px; }
+  }
+}

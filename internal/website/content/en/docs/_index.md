@@ -7,20 +7,19 @@ menu:
     weight: 10
     pre: <i class='fa-solid fa-book'></i>
 ---
-## Build with an agent
+## Build services, agents, and workflows
 
-Go Micro is a framework for building services and agents in Go. Describe what you need
-in `micro chat`, develop services, and use their endpoints as tools through
-conversation. You can also create an agent directly with `micro.NewAgent`, choose
-its model and instructions, and assign the services it can use.
+Go Micro connects services through discovery, RPC, and publish/subscribe.
+Use it to build services on their own, give agents access to their endpoints as
+tools, or coordinate repeatable work with workflows. The CLI provides a local
+development experience; the same framework is available to your Go programs.
 
-For the relationship between services, models, agents, workflows, and applications,
-read the [architecture overview](architecture/index.md).
+For how these parts fit together, read the [architecture overview](architecture/index.md).
 
 ## Start here
 
-1. [Quick Start](quickstart.md): install the CLI and develop through conversation.
-2. [Getting Started](getting-started/index.md): create a Go agent and give it services as tools.
+1. [Build your first project](quickstart.md): open `micro chat`, build a service, use it, and extend it.
+2. [Keep developing](getting-started/index.md): run your services locally and define your application in Go.
 3. [Your First Agent](guides/your-first-agent.md): build and run a complete service-backed agent.
 
 A provider key is needed for live chat and generation. To try the runtime without

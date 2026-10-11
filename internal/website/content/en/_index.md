@@ -1,218 +1,66 @@
 ---
 title: Go Micro
-description: Build an agent, develop services, and use them through conversation.
+description: Build services in Go. Connect them, give agents tools to use them, and coordinate work with workflows.
 params:
-  body_class: bg-pattern
+  body_class: micro-home
 ---
 
-{{% blocks/hero
-  height="full td-below-navbar"
-  color="light"
-  pattern=true
-%}}
+<div class="micro-landing">
+<section class="micro-intro" aria-labelledby="intro-title">
+<div>
+<p class="micro-eyebrow">The Go framework for services and agents</p>
+<h1 id="intro-title">Build services.<br>Put agents to work.</h1>
+<p class="micro-lead">Turn what your software does into something an agent can use. Go Micro connects your services, exposes their capabilities as tools, and gives you a framework to build on.</p>
+<div class="micro-actions">
+<a class="micro-button" href="/docs/quickstart.html">Build your first project <span aria-hidden="true">→</span></a>
+<a href="https://github.com/micro/go-micro">Explore the code</a>
+</div>
+<p class="micro-caption">Open source · Apache 2.0 · Built in Go</p>
+</div>
+<div class="micro-start" aria-labelledby="start-title">
+<div class="micro-start-heading"><h2 id="start-title">Start with a conversation</h2><span>01</span></div>
+<p>Install the CLI, open a project, and describe what you want to build.</p>
+<pre aria-label="Install and start micro chat"><code>go install go-micro.dev/v6/cmd/micro@master
+export PATH="$(go env GOPATH)/bin:$PATH"
+mkdir my-app &amp;&amp; cd my-app
+micro chat</code></pre>
+<p>Choose your model provider. The agent can read and change your project, run commands, and call your services. You approve file changes, commands, and service actions.</p>
+<p class="micro-caption">Requires Go 1.26+ and access to a model. This chat experience is on the development branch. <a href="/docs/quickstart.html">Setup and prerequisites →</a></p>
+</div>
+</section>
 
-<div class="d-flex justify-content-center align-items-center mb-5">
-<div class="logo-container position-relative text-center" role="button">
+<section class="micro-journey" aria-labelledby="journey-title">
+<div class="micro-section-heading">
+<p class="micro-eyebrow">From an idea to a capability you can use</p>
+<h2 id="journey-title">Build it. Use it. Make it yours.</h2>
+<p>Start with the work you need done. A notes service is one small way to try the whole journey.</p>
+</div>
+<ol class="micro-steps">
+<li><span class="micro-step-number">01 / Build</span><h3>Describe the capability</h3><p>Ask the agent to build a service. Review its actions as it creates the source, compiles it, and starts it locally.</p><blockquote>Build a service named notes that saves and lists notes. Store them persistently.</blockquote></li>
+<li><span class="micro-step-number">02 / Use</span><h3>Give it real work</h3><p>Once the service is running, send a new request. The agent discovers its endpoints as tools and calls them.</p><blockquote>Save a note: the launch review is on Friday. Then list my notes.</blockquote></li>
+<li><span class="micro-step-number">03 / Extend</span><h3>Keep building</h3><p>Read the generated Go code. Change it yourself or ask the agent to extend it. Run the service independently when you leave chat.</p><blockquote>Add search to the notes service, then verify it finds my launch note.</blockquote></li>
+</ol>
+<div class="micro-follow"><p>You own the Go source and can run the services independently. Other applications can call the same capabilities.</p><a href="/docs/quickstart.html">Follow the complete walkthrough →</a></div>
+</section>
 
-<!-- Glow -->
-<div class="logo-glow position-absolute top-0 start-0 w-100 h-100 rounded-circle"></div>
+<section class="micro-foundation" aria-labelledby="foundation-title">
+<div>
+<p class="micro-eyebrow">A service framework you can build on</p>
+<h2 id="foundation-title">Write the capability.<br>Let the framework connect it.</h2>
+<p>Go Micro handles service discovery, RPC, and publish/subscribe so your services can find each other, make requests, and react to events.</p>
+<p>Storage, configuration, and infrastructure integrations use replaceable Go interfaces. Start locally and choose the components your deployment needs.</p>
+<p>Use services on their own, give agents access to them as tools, or compose them into workflows.</p>
+<a href="/docs/architecture.html">Explore the framework →</a>
+</div>
+<dl class="micro-building-blocks">
+<div><dt>Services</dt><dd>Implement your application’s capabilities and own its data. Call them from Go or through a gateway.<a href="/docs/client-server.html">Build services →</a></dd></div>
+<div><dt>Agents</dt><dd>Combine a model, conversation history, and tools to carry out requests. Define and extend their behaviour in Go.<a href="/docs/guides/your-first-agent.html">Build an agent →</a></dd></div>
+<div><dt>Workflows</dt><dd>Define repeatable steps around service calls and agent decisions, with recorded progress.<a href="/docs/guides/agents-and-workflows.html">Compose a workflow →</a></dd></div>
+</dl>
+</section>
 
-<svg width="300" height="300" viewBox="0 0 200 200" class="hexagon relative z-10">
-<!-- Defs for gradients -->
-<defs>
-<linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-<stop offset="0%" style="stop-color:#00ADD8;stop-opacity:1"></stop>
-<stop offset="100%" style="stop-color:#5DC9E2;stop-opacity:1"></stop>
-</linearGradient>
-<linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-<stop offset="0%" style="stop-color:#00ADD8;stop-opacity:0.8"></stop>
-<stop offset="100%" style="stop-color:#00ADD8;stop-opacity:0.3"></stop>
-</linearGradient>
-</defs>
-<!-- Outer Hexagon -->
-<polygon points="100,10 185,55 185,145 100,190 15,145 15,55" fill="none" stroke="url(#hexGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polygon>
-<!-- Inner Network Lines -->
-<line x1="100" y1="100" x2="100" y2="55" stroke="url(#lineGradient)" stroke-width="2" class="network-line"></line>
-<line x1="100" y1="100" x2="142.5" y2="77.5" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 0.2s"></line>
-<line x1="100" y1="100" x2="142.5" y2="122.5" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 0.4s"></line>
-<line x1="100" y1="100" x2="100" y2="145" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 0.6s"></line>
-<line x1="100" y1="100" x2="57.5" y2="122.5" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 0.8s"></line>
-<line x1="100" y1="100" x2="57.5" y2="77.5" stroke="url(#lineGradient)" stroke-width="2" class="network-line" style="animation-delay: 1s"></line>
-<!-- Cross connections for distributed system look -->
-<line x1="100" y1="55" x2="142.5" y2="77.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.2s"></line>
-<line x1="142.5" y1="77.5" x2="142.5" y2="122.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.3s"></line>
-<line x1="142.5" y1="122.5" x2="100" y2="145" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.4s"></line>
-<line x1="100" y1="145" x2="57.5" y2="122.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.5s"></line>
-<line x1="57.5" y1="122.5" x2="57.5" y2="77.5" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.6s"></line>
-<line x1="57.5" y1="77.5" x2="100" y2="55" stroke="rgba(0,173,216,0.2)" stroke-width="1" class="network-line" style="animation-delay: 1.7s"></line>
-<!-- Central Node (Core) -->
-<circle cx="100" cy="100" r="12" fill="#ffffff" stroke="#00ADD8" stroke-width="3" class="network-node"></circle>
-<circle cx="100" cy="100" r="6" fill="#00ADD8" class="network-node pulse"></circle>
-<!-- Outer Nodes (Microservices) -->
-<circle cx="100" cy="55" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-1"></circle>
-<circle cx="142.5" cy="77.5" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-2"></circle>
-<circle cx="142.5" cy="122.5" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-3"></circle>
-<circle cx="100" cy="145" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-4"></circle>
-<circle cx="57.5" cy="122.5" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-5"></circle>
-<circle cx="57.5" cy="77.5" r="6" fill="#ffffff" stroke="#00ADD8" stroke-width="2" class="network-node node-6"></circle>
-<!-- Data packets animation -->
-<circle cx="100" cy="77.5" r="2" fill="#5DC9E2" opacity="0">
-<animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="0s"></animate>
-<animate attributeName="cy" values="100;55" dur="2s" repeatCount="indefinite" begin="0s"></animate>
-</circle>
-<circle cx="121.25" cy="88.75" r="2" fill="#5DC9E2" opacity="0">
-<animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" begin="0.3s"></animate>
-<animate attributeName="cx" values="100;142.5" dur="2s" repeatCount="indefinite" begin="0.3s"></animate>
-<animate attributeName="cy" values="100;77.5" dur="2s" repeatCount="indefinite" begin="0.3s"></animate>
-</circle>
-</svg>
-
-<!-- Text -->
-<div class="text-center mb-5">
-    <h1 class="display-3 fw-bold mb-4">
-        <span class="gradient-text">Go Micro</span></br>
-        A Framework for agents, tools and services
-    </h1>
-    <p class="lead text-gray-custom mb-5 mx-auto">
-        Build an agent, give it services as tools, and use them through conversation.
-    </p>
+<section class="micro-finish" aria-labelledby="finish-title">
+<div><h2 id="finish-title">Start small. Build something useful.</h2><p>One project, your code, and a framework that grows with it.</p></div>
+<a class="micro-button" href="/docs/quickstart.html">Get started <span aria-hidden="true">→</span></a>
+</section>
 </div>
-
-</div>
-</div>
-
-<!-- prettier-ignore -->
-<div class="td-cta-buttons my-5">
-<a class="download-btn btn btn-go btn-lg d-inline-flex align-items-center gap-2" href="/docs/quickstart.html">
-Get started
-<i class="fa-solid fa-book-open-reader"></i>
-</a>
-<a class="btn btn-outline-go btn-lg d-inline-flex align-items-center gap-2"
-href="{{% param github_project_repo %}}"
-target="_blank" rel="noopener noreferrer">
-Get the code
-<i class="fa-brands fa-github"></i>
-</a>
-</div>
-{{% blocks/link-down color="info" %}}
-{{% /blocks/hero %}}
-
-{{% blocks/section color="light" type="row" pattern=true padding="py-5" %}}
-<div class="row g-4 justify-content-center">
-<h2>Features</h2>
-<p class="text-body-secondary mb-4">Build services, give agents tools to call them, and coordinate work with flows.
-</p>
-</div>
-<div class="row g-4 justify-content-center">
-<div class="col-lg-4 col-md-6">
-{{% elements/variant-card
-    color="gradient"
-    title="Agent Harness"
-    subtitle="A model, memory, tools, plan/delegate, guardrails, and execution middleware around every agent."
-%}}
-<div class="p-3 display-3">🤖</div>
-{{% /elements/variant-card %}}
-</div>
-
-<div class="col-lg-4 col-md-6">
-{{% elements/variant-card
-    color="gradient"
-    title="Services as Tools"
-    subtitle="Build services in Go or generate them from a prompt. Their endpoints become typed tools automatically."
-%}}
-<div class="p-3 display-3">🔧</div>
-{{% /elements/variant-card %}}
-</div>
-
-<div class="col-lg-4 col-md-6">
-{{% elements/variant-card
-    color="gradient"
-    title="Workflows"
-    subtitle="Use fixed, checkpointed code paths for deterministic work; hand off to agents when the path is dynamic."
-%}}
-<div class="p-3 display-3">⚙️</div>
-{{% /elements/variant-card %}}
-</div>
-
-<div class="col-lg-4 col-md-6">
-{{% elements/variant-card
-    color="gradient"
-    title="MCP Gateway"
-    subtitle="Every service endpoint is automatically an AI-callable tool via the Model Context Protocol."
-%}}
-<div class="p-3 display-3">🌐</div>
-{{% /elements/variant-card %}}
-</div>
-
-<div class="col-lg-4 col-md-6">
-{{% elements/variant-card
-    color="gradient"
-    title="A2A Gateway"
-    subtitle="Every agent is reachable over the Agent2Agent protocol — discovered and called by agents on any framework."
-%}}
-<div class="p-3 display-3">🤝</div>
-{{% /elements/variant-card %}}
-</div>
-
-<div class="col-lg-4 col-md-6">
-{{% elements/variant-card
-    color="gradient"
-    title="Pluggable Everything"
-    subtitle="All abstractions are Go interfaces. Swap any component without changing your code."
-%}}
-<div class="p-3 display-3">🔌</div>
-{{% /elements/variant-card %}}
-</div>
-</div>
-{{% /blocks/section %}}
-
-{{% blocks/section color="light" pattern=true padding="py-5" %}}
-<div class="row align-items-center">
-<div class="col-lg-6 p-4">
-<img src="/images/generated/mcp-agent.jpg" alt="AI agent calling microservices via MCP" class="img-fluid rounded-4 shadow" />
-</div>
-<div class="col-lg-6 p-4">
-<h2>Develop Through Conversation</h2>
-<p>Start with <code>micro chat</code> in a new project. With no registered agents, the development agent can generate a missing service, build and start it, and discover its endpoints as tools. Choose a provider on first launch, then describe what you need. This experience is currently available from master; follow the <a href="/docs/quickstart/">Quick Start</a> to install it. Generated services become tools on your next message. If one agent is already running, chat connects directly without a local provider key.</p>
-<pre><code><span style="color:#a82424">$</span> <span style="color:#6639a6">micro chat</span></code><br>
-<code><span style="color:#a82424">&gt;</span> Build a notes service that can save, list, and search notes.</code></pre>
-<a class="btn btn-go mt-3" href="/docs/getting-started.html">Create Your Agent</a>
-</div>
-</div>
-{{% /blocks/section %}}
-
-{{% blocks/section color="light" pattern=true padding="py-5" %}}
-<div class="row align-items-center">
-<div class="col-lg-6 p-4">
-<img src="/images/generated/architecture.jpg" alt="Go Micro architecture diagram" class="img-fluid rounded-4 shadow" />
-</div>
-<div class="col-lg-6 p-4 order-lg-first">
-<h2>Distributed Systems for Agents</h2>
-<p>Agents need the same substrate services do: discovery, RPC, events, state, auth, observability, and deployment. Swap any component without changing your code — go from mDNS to Consul, or HTTP to gRPC, with a single option.</p>
-</div>
-</div>
-{{% /blocks/section %}}
-
-{{% blocks/section color="light" pattern=true padding="py-5" %}}
-<div class="row align-items-center">
-<div class="col-lg-6 p-4">
-<img src="/images/generated/developer-experience.jpg" alt="Terminal showing micro run and micro chat" class="img-fluid rounded-4 shadow" />
-</div>
-<div class="col-lg-6 p-4">
-<h2>Developer Experience</h2>
-<p>Create agents with <code>micro.NewAgent</code> and scaffold services with <code>micro new</code>. Assign services as tools with <code>micro.AgentServices</code>. <code>micro run</code> starts everything with hot reload, an API gateway, and an interactive console, and <code>micro chat</code> talks to your agents and services from the terminal.</p>
-</div>
-</div>
-{{% /blocks/section %}}
-
-{{% blocks/section color="light" pattern=true padding="py-5" type="text-center" %}}
-<h2>Trusted by Developers</h2>
-<p class="text-body-secondary mb-4">23,000+ stars on GitHub. Production-ready. Apache 2.0 licensed.</p>
-<div class="d-flex gap-3 justify-content-center flex-wrap">
-<a href="/docs/getting-started.html" class="btn btn-go">Get Started</a>
-<a href="/docs/" class="btn btn-outline-go">Read the Docs</a>
-<a href="https://discord.gg/G8Gk5j3uXr" class="btn btn-outline-go">Join Discord</a>
-<a href="/blog/" class="btn btn-outline-go">Blog</a>
-</div>
-{{% /blocks/section %}}
-
