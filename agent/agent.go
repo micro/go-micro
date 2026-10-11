@@ -155,6 +155,7 @@ func (a *agentImpl) Init(opts ...Option) {
 	for _, o := range opts {
 		o(&a.opts)
 	}
+	a.opts.resolveProvider()
 	if previousSession != a.opts.Session {
 		a.mem = nil
 	}

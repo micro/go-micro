@@ -259,6 +259,9 @@ func discoverExisting(baseDir string) string {
 // but regenerates the handler (allowing iterative improvement).
 func Generate(ctx context.Context, baseDir string, design *ServiceDesign, provider, apiKey, model string) error {
 	m := newModel(provider, apiKey, model)
+	if m == nil {
+		return fmt.Errorf("unknown provider: %s", provider)
+	}
 
 	for i, svc := range design.Services {
 		if ctx.Err() != nil {

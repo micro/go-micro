@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -414,5 +415,17 @@ func TestIsTruncated(t *testing.T) {
 				t.Errorf("isTruncated() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestGenerateUnknownProvider(t *testing.T) {
+	dir := t.TempDir()
+	err := Generate(context.Background(), dir, &ServiceDesign{}, "misspelled-provider", "test-key", "")
+	if err == nil || !strings.Contains(err.Error(), "unknown provider") {
+		t.Fatalf("Generate error = %v", err)
+	}
+	files, err := os.ReadDir(dir)
+	if err != nil || len(files) != 0 {
+		t.Fatalf("unknown provider modified project: %v %v", files, err)
 	}
 }

@@ -49,3 +49,30 @@ func TestUnknownProviderReturnsError(t *testing.T) {
 		t.Fatalf("Stream error = %v", err)
 	}
 }
+
+func TestInitRefreshesProviderKey(t *testing.T) {
+	t.Setenv("MICRO_AI_PROVIDER", "openai")
+	t.Setenv("MICRO_AI_API_KEY", "")
+	t.Setenv("OPENAI_API_KEY", "openai-test-key")
+	t.Setenv("MISTRAL_API_KEY", "mistral-test-key")
+	t.Setenv("ANTHROPIC_API_KEY", "")
+	a := New()
+	a.Init(Provider("mistral"))
+	if a.Options().APIKey != "mistral-test-key" {
+		t.Fatal("provider switch retained the previous provider's key")
+	}
+	a.Init(Provider("anthropic"))
+	if a.Options().APIKey != "" {
+		t.Fatal("provider without credentials retained another provider's key")
+	}
+	a.Init(APIKey("explicit-key"), Provider("openai"))
+	a.Init(Provider("mistral"))
+	if a.Options().APIKey != "explicit-key" {
+		t.Fatal("Init replaced an explicitly configured key")
+	}
+	a.Init(APIKey(""))
+	a.Init(Provider("openai"))
+	if a.Options().APIKey != "" {
+		t.Fatal("Init replaced an explicitly empty key")
+	}
+}

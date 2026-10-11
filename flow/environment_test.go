@@ -1,6 +1,11 @@
 package flow
 
-import "testing"
+import (
+	"go-micro.dev/v6/broker"
+	"go-micro.dev/v6/client"
+	"go-micro.dev/v6/registry"
+	"testing"
+)
 
 func TestProviderEnvironment(t *testing.T) {
 	t.Setenv("MICRO_AI_PROVIDER", "mistral")
@@ -19,5 +24,20 @@ func TestProviderEnvironment(t *testing.T) {
 	o = New("test", Provider("openai"), Model("explicit"), BaseURL(""), APIKey("explicit-key")).opts
 	if o.Provider != "openai" || o.Model != "explicit" || o.APIKey != "explicit-key" || o.BaseURL != "" {
 		t.Fatal("explicit flow options did not override environment")
+	}
+}
+
+func TestEnvironmentProvidersRegistered(t *testing.T) {
+	for _, provider := range []string{"ollama", "minimax"} {
+		t.Run(provider, func(t *testing.T) {
+			t.Setenv("MICRO_AI_PROVIDER", provider)
+			f := New("test")
+			if err := f.Register(registry.NewMemoryRegistry(), broker.NewMemoryBroker(), client.NewClient()); err != nil {
+				t.Fatal(err)
+			}
+			if f.model.String() != provider {
+				t.Fatalf("registered %q instead of %q", f.model.String(), provider)
+			}
+		})
 	}
 }

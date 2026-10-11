@@ -171,16 +171,21 @@ func newOptions(opts ...Option) Options {
 	for _, opt := range opts {
 		opt(&o)
 	}
+	o.resolveProvider()
+	return o
+}
+
+// resolveProvider refreshes environment-derived credentials for the selected provider.
+func (o *Options) resolveProvider() {
 	if o.Provider == "" {
 		o.Provider = model.AutoDetectProvider(o.BaseURL)
 	}
-	if !o.apiKeySet && o.APIKey == "" {
+	if !o.apiKeySet {
 		o.APIKey = os.Getenv("MICRO_AI_API_KEY")
 		if o.APIKey == "" {
 			o.APIKey = os.Getenv(model.APIKeyEnv(o.Provider))
 		}
 	}
-	return o
 }
 
 // Name sets the agent name.
