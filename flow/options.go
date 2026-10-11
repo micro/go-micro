@@ -17,7 +17,8 @@ type Options struct {
 	// Provider is the AI provider name (e.g. "anthropic", "openai").
 	Provider string
 	// APIKey for the AI provider.
-	APIKey string
+	APIKey    string
+	apiKeySet bool
 	// Model overrides the provider's default model.
 	Model string
 	// BaseURL overrides the provider's default base URL.
@@ -79,7 +80,7 @@ func Provider(name string) Option {
 
 // APIKey sets the API key for the AI provider.
 func APIKey(key string) Option {
-	return func(o *Options) { o.APIKey = key }
+	return func(o *Options) { o.APIKey = key; o.apiKeySet = true }
 }
 
 // Model sets the model name.

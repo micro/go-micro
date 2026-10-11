@@ -21,9 +21,9 @@ params:
 <div class="micro-start-heading"><h2 id="start-title">Start a Go project</h2></div>
 <pre aria-label="Create a Go Micro project"><code>mkdir my-app &amp;&amp; cd my-app
 go mod init example.com/my-app
-go get go-micro.dev/v6@master</code></pre>
+go get go-micro.dev/v6@latest</code></pre>
 <p>Write a service, give an agent access to it, and coordinate work with workflows.</p>
-<p class="micro-caption">Requires Go 1.26+. The guides use the development version. <a href="/docs/quickstart.html">Get started →</a></p>
+<p class="micro-caption">Requires Go 1.26+. <a href="/docs/quickstart.html">Get started →</a></p>
 </div>
 </section>
 

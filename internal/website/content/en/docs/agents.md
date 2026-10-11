@@ -68,4 +68,8 @@ Your Go code controls the provider, instructions, and allowed services. Change
 those options to build your own agent. For programmatic calls, the agent exposes
 `Ask(ctx, message)`; see the [agent API](https://pkg.go.dev/go-micro.dev/v6/agent).
 
+To use Mistral with this example, change the provider to `"mistral"` and
+the key variable to `"MISTRAL_API_KEY"`. The service and tools stay the same.
+Set the key in the terminal running the agent, not the chat terminal.
+
 **Next: [coordinate work with a workflow →](workflows.md)**

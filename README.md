@@ -17,7 +17,7 @@ Each component uses a Go interface with a default implementation that can be rep
 Install the framework:
 
 ```sh
-go get go-micro.dev/v6
+go get go-micro.dev/v6@latest
 ```
 
 See the [quickstart](https://go-micro.dev/docs/quickstart.html) for local development,

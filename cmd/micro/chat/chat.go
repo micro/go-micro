@@ -721,28 +721,7 @@ func fallbackAPIKey(provider string) string {
 }
 
 func envVarForProvider(provider string) string {
-	switch provider {
-	case "anthropic":
-		return "ANTHROPIC_API_KEY"
-	case "openai":
-		return "OPENAI_API_KEY"
-	case "gemini":
-		return "GEMINI_API_KEY"
-	case "groq":
-		return "GROQ_API_KEY"
-	case "mistral":
-		return "MISTRAL_API_KEY"
-	case "together":
-		return "TOGETHER_API_KEY"
-	case "atlascloud":
-		return "ATLASCLOUD_API_KEY"
-	case "minimax":
-		return "MINIMAX_API_KEY"
-	case "ollama":
-		return "OLLAMA_API_KEY"
-	default:
-		return "MICRO_AI_API_KEY"
-	}
+	return model.APIKeyEnv(provider)
 }
 
 func truncateResult(s string) string {

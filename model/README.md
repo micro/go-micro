@@ -422,3 +422,20 @@ go test ./model/...
 ## Examples
 
 See the [CLI chat implementation](../cmd/micro/chat/chat.go) for a complete example of using the model package with tool execution.
+
+
+### Agent and workflow configuration
+
+On the development branch, Go agents and workflows use the same environment
+variables as the CLI: `MICRO_AI_PROVIDER`, `MICRO_AI_MODEL`,
+`MICRO_AI_BASE_URL`, and `MICRO_AI_API_KEY`. Explicit Go options override them.
+If no generic API key is set, the selected provider's key is used, such as
+`MISTRAL_API_KEY` or `OPENAI_API_KEY`. With no provider or endpoint configured,
+the default is OpenAI. An unknown provider is an error.
+
+Chat can also save project settings and prompt for configuration. Go programs
+do not read chat's saved credentials. When connecting to a running agent,
+configure the model in that agent's process.
+
+Direct `model.New` calls continue to take explicit options. An empty provider
+name selects OpenAI; an unregistered name returns nil.

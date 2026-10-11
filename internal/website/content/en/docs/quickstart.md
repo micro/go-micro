@@ -17,10 +17,10 @@ Install [Go 1.26 or newer](https://go.dev/doc/install), then create a project:
 mkdir my-app
 cd my-app
 go mod init example.com/my-app
-go get go-micro.dev/v6@master
+go get go-micro.dev/v6@latest
 ```
 
-These guides use the development version on `master`.
+Use the same release of the framework and CLI.
 
 ## Build
 
@@ -35,7 +35,7 @@ Start with **[Services →](services.md)**. It needs no model or API key.
 The CLI calls services, runs projects, and connects to agents:
 
 ```sh
-go install go-micro.dev/v6/cmd/micro@master
+go install go-micro.dev/v6/cmd/micro@latest
 export PATH="$(go env GOPATH)/bin:$PATH"
 ```
 

@@ -54,5 +54,17 @@ retain that data if you need to resume after a restart. Completed steps are
 skipped on resume, but an interrupted step can run again. Make operations safe
 to repeat before enabling retries.
 
+Calling `Execute` again starts a new run. To recover unfinished runs after
+restarting, recreate the same flow with the same store and replace the
+`Execute` call with:
+
+```go
+if _, err := f.ResumePending(context.Background()); err != nil {
+    log.Fatal(err)
+}
+```
+
+This resumes unfinished work; it does not start a new run.
+
 For configuration and recovery methods, see the
 [flow API](https://pkg.go.dev/go-micro.dev/v6/flow).

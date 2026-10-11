@@ -240,19 +240,15 @@ func Register(name string, fn NewFunc) {
 	providers[name] = fn
 }
 
-// New creates a new Model instance based on the provider name
+// New creates a model for provider. An empty name selects OpenAI.
+// Unknown or unregistered providers return nil.
 func New(provider string, opts ...Option) Model {
+	if provider == "" {
+		provider = "openai"
+	}
 	if fn, ok := providers[provider]; ok {
 		return fn(opts...)
 	}
-
-	// Default to first registered provider
-	if len(providers) > 0 {
-		for _, fn := range providers {
-			return fn(opts...)
-		}
-	}
-
 	return nil
 }
 
