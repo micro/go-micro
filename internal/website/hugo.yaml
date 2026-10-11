@@ -221,11 +221,6 @@ params:
 
   links:
     # End user relevant links. These will show up on left side of footer and in the community page if you have one.
-    user:
-      - name: Discord
-        url: https://discord.gg/jwTYuUVAGh
-        icon: fa-brands fa-discord
-        desc: Discussion and help from your fellow users
       # - name: Stack Overflow
       #   url: https://example.org/stack
       #   icon: fab fa-stack-overflow

@@ -36,10 +36,6 @@ and [agent guide](https://go-micro.dev/docs/guides/your-first-agent.html) for ag
 - [Protobuf code generation](cmd/protoc-gen-micro/README.md)
 - [Plugins](https://github.com/micro/plugins)
 
-## Community
-
-[Discord](https://discord.gg/G8Gk5j3uXr) · [Support](SUPPORT.md)
-
 ## License
 
 Apache 2.0
