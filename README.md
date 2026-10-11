@@ -29,12 +29,9 @@ and [agent guide](https://go-micro.dev/docs/guides/your-first-agent.html) for ag
 
 ## Documentation
 
-- [Guides](https://go-micro.dev/docs/index.html)
-- [API reference](https://pkg.go.dev/go-micro.dev/v6)
-- [Examples](examples/README.md)
-- [CLI](cmd/micro/README.md)
-- [Protobuf code generation](cmd/protoc-gen-micro/README.md)
-- [Plugins](https://github.com/micro/plugins)
+- [Index](https://go-micro.dev/docs/)
+- [Protobuf](cmd/protoc-gen-micro/README.md)
+- [PKG.go.dev](https://pkg.go.dev/go-micro.dev/v6)
 
 ## License
 
