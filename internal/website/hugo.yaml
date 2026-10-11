@@ -173,7 +173,7 @@ params:
     authors: >-
       Go Micro [Apache 2.0
       Licensed](https://www.apache.org/licenses/LICENSE-2.0) |
-    from_year: 2026
+    from_year: 2015
     to_year: 2026
 
   # User interface configuration
