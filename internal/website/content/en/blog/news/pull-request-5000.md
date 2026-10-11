@@ -2,7 +2,7 @@
 title: "Pull request #5000"
 linkTitle: "Pull request #5000"
 date: 2026-10-11T15:46:00+01:00
-description: "Go Micro reaches PR #5000. A moment to thank the people behind the project and look at what comes next."
+description: "A decade of Go Micro, the move from services to agents and workflows, and a renewed ability to keep building."
 category:
 - news
 tags:
@@ -11,59 +11,76 @@ tags:
 ---
 
 We've just merged [pull request #5000](https://github.com/micro/go-micro/pull/5000)
-in Go Micro.
+in Go Micro. It feels like a good moment to reflect on a project that has been
+part of my life for more than a decade.
 
-It's a good moment to pause. An open source framework is built through years of
-people using it, finding problems, asking questions, contributing fixes, and
-challenging decisions. Thank you to everyone who has done that for Go Micro.
+Maintaining any piece of software for that long is difficult. The industry
+moves, people's needs change, and so does your own interest and energy. Keeping
+something useful means revisiting decisions, supporting what people already
+depend on, and finding a reason to keep going.
 
-## What brought us here
+Thank you to everyone who has used Go Micro, contributed to it, reported a
+problem, or questioned its direction over the years. That continued involvement
+is part of what makes it possible to maintain a project this long.
 
-Go Micro started with the building blocks for services in Go: a client, a server,
-a registry, a broker, a transport, and a codec. The idea was straightforward.
-Write your service and let the framework handle how it communicates. Give each
-component an interface and a default implementation, so developers can replace
-the parts they need to.
+## Services are still the foundation
 
-Storage and configuration extended that foundation. More recently, agents have
-given services another kind of caller. A service operation can become a tool
-that a model uses. Workflows coordinate those operations when the sequence is
-known.
+Go Micro started with a simple idea: make it easier to build services in Go.
+A client, a server, a registry, a broker, a transport, and a codec gave developers
+the building blocks for service communication. Storage and configuration grew
+around them. Interfaces and useful defaults let people start small and replace
+the parts they needed to.
 
-The value still comes from something quite ordinary: being able to build useful
-software without wiring everything together yourself.
+Those services are still the core building blocks of everything we're doing.
+They contain the operations, data, and application logic that make a system
+useful.
 
-## What #5000 changed
+An agent needs a way to act. Services give it that: operations it can discover
+and call as tools. A workflow gives those operations a sequence when the order
+of work is known. Both build on the same capabilities that another Go program,
+an API, or a user interface can use.
 
-The milestone PR is about consistency. It aligns installation instructions,
-makes provider configuration more predictable, and checks the path from a
-service to an agent to a workflow.
+That makes the move from services to agents and workflows a natural evolution
+of the framework. The service you build remains useful as the ways of
+interacting with it change. An agent can choose what to call, while the service
+continues to define what that operation does.
 
-It also removes a surprising behaviour: an unknown model provider could fall
-back to an arbitrary registered provider. Now it fails clearly. Changing an
-agent's provider refreshes credentials taken from the environment, and existing
-provider-specific environment variables remain supported.
+## A renewed ability to build
 
-The verification includes a real local RPC call, an agent calling that service
-through provider adapters, and a workflow recovering from saved progress without
-repeating a completed step. The provider replies in that test are simulated;
-the service calls and stored checkpoints are real.
+AI has also changed how I work on Go Micro itself.
 
-These are small details, but they determine whether the framework does what a
-developer expects.
+Tools such as GitHub Copilot, Claude Code, and Codex have brought a renewal of
+interest and ability. I can explore an idea, work through changes, and revisit
+parts of the project that would previously have taken too much time to tackle.
+There is less friction between seeing what needs to change and being able to
+do something about it.
 
-## The next part
+Not getting bogged down in the code has helped a lot. It leaves more room to
+think about the framework as a whole: what it is for, how the pieces fit
+together, and what it feels like for someone trying to use it.
 
-Our focus is simplicity. A shorter README. Fewer paths through the documentation.
-A clear way to build a service, let an agent use it, and coordinate work.
+The responsibility for those decisions remains. Generated code still needs
+review, testing, and a clear reason to exist. Being able to make more changes
+makes it even more important to decide which changes are worth making.
 
-The same standard applies to the code: understandable interfaces, useful
-defaults, and room to extend things in Go. Supporting more models should fit
-that design without making every application more complicated.
+I see that renewed interest beyond this project too. Across the industry,
+people are reconsidering what they can build and what existing software can
+become. For a long-running project, that is an opportunity to return to its
+foundations and find new uses for them.
 
-If you've used Go Micro for years, thank you for sticking with it. If you're
-coming to it now, [start with the guides](/docs/quickstart.html). And if something
-is harder than it should be, [tell us](https://github.com/micro/go-micro/issues).
+## Keeping it simple
 
-That's the work ahead: make the framework easier to understand, easier to use,
-and dependable enough to build on.
+The next stage of Go Micro is about making services, agents, and workflows fit
+together in a way that is easy to understand and extend.
+
+That means keeping services useful on their own, making agents programmable in
+Go, and giving developers a clear way to coordinate work. It also means shorter
+documentation, fewer competing starting points, and paying attention to the
+whole experience rather than just adding capabilities.
+
+After a decade, there is still more to build. AI has helped restore the energy
+and ability to do that work. The aim remains familiar: make it easier for
+developers to build useful software.
+
+[Start with the guides](/docs/quickstart.html), or
+[join us on GitHub](https://github.com/micro/go-micro).
