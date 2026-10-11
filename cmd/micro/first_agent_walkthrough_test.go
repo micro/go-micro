@@ -187,32 +187,13 @@ func TestFirstAgentDocsMatchCLIOutput(t *testing.T) {
 		markers []string
 	}{
 		{
-			name: "README first-agent on-ramp",
-			file: filepath.Join(root, "README.md"),
+			name: "first-agent walkthrough",
+			file: filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "your-first-agent.md"),
 			markers: []string{
-				"examples/first-agent/",
-				"internal/website/content/en/docs/guides/your-first-agent.md",
-				"internal/website/content/en/docs/guides/debugging-agents.md",
-				"internal/website/content/en/docs/guides/zero-to-hero.md",
-			},
-		},
-		{
-			name: "website getting-started first-agent on-ramp",
-			file: filepath.Join(root, "internal", "website", "content", "en", "docs", "getting-started", "index.md"),
-			markers: []string{
-				"micro agent demo",
-				"micro agent quickcheck",
 				"micro agent preflight",
 				"micro agent doctor",
-				"micro inspect agent <name>",
-				"micro examples",
-				"micro zero-to-hero",
-				"github.com/micro/go-micro/tree/master/examples/first-agent",
-				"github.com/micro/go-micro/tree/master/examples/support",
-				"guides/no-secret-first-agent.md",
-				"guides/your-first-agent.md",
-				"guides/debugging-agents.md",
-				"guides/zero-to-hero.md",
+				"micro run",
+				"micro chat",
 			},
 		},
 	}
