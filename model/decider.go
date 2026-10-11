@@ -44,13 +44,13 @@ type DecisionRequest struct {
 // Choice is an option name; Score is a weighted level index.
 type Answer struct {
 	Type          QuestionType       `json:"type"`
-	Noul          float64            `json:"noul,omitempty"`
-	Choice        string             `json:"choice,omitempty"`
-	Score         float64            `json:"score,omitempty"`
+	Noul          float64            `json:"noul"`
+	Choice        string             `json:"choice"`
+	Score         float64            `json:"score"`
 	Probabilities map[string]float64 `json:"probabilities,omitempty"`
 	// Confidence is returned for Choice and Score, not Noul.
-	Confidence float64           `json:"confidence,omitempty"`
-	Legend     map[string]string `json:"legend,omitempty"`
+	Confidence float64        `json:"confidence"`
+	Legend     map[string]any `json:"legend,omitempty"`
 }
 
 // DecisionResponse holds one answer per question.

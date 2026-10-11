@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -183,5 +184,49 @@ func TestInvalidChoiceAndScore(t *testing.T) {
 		if err == nil {
 			t.Errorf("invalid answer accepted: %s", tt.answer)
 		}
+	}
+}
+
+func TestDecisionResponseRoundTrip(t *testing.T) {
+	questions := map[string]model.Question{
+		"negative": {Type: model.Noul},
+		"choice":   {Type: model.Choice, Criteria: map[string]string{"a": "A", "b": "B"}},
+		"score":    {Type: model.Score, Criteria: []any{map[string]any{"label": "Low"}, []any{"High", "Blocking"}}},
+	}
+	data := []byte(`{"model":"jev-latest","answers":{
+  "negative":{"type":"noul","noul":0},
+  "choice":{"type":"choice","choice":"a","probabilities":{"a":0.5,"b":0.5},"confidence":0},
+  "score":{"type":"score","score":0,"probabilities":{"0":1,"1":0},"confidence":1,"legend":{"0":{"label":"Low"},"1":["High","Blocking"]}}
+ },"usage":{"input_tokens":10,"output_tokens":5}}`)
+	response, err := decodeResponse(data, questions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantLegend := map[string]any{"0": map[string]any{"label": "Low"}, "1": []any{"High", "Blocking"}}
+	if !reflect.DeepEqual(response.Answers["score"].Legend, wantLegend) {
+		t.Fatalf("structured legend lost: %#v", response.Answers["score"].Legend)
+	}
+	// A persisted or forwarded answer must still satisfy the provider's decoder.
+	encoded, err := json.Marshal(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := decodeResponse(encoded, questions)
+	if err != nil {
+		t.Fatalf("round-trip failed: %v; JSON: %s", err, encoded)
+	}
+	if !reflect.DeepEqual(response, restored) {
+		t.Fatalf("response changed after round-trip: %#v", restored)
+	}
+	// Score confidence can also legitimately be zero.
+	answer := response.Answers["score"]
+	answer.Confidence = 0
+	response.Answers["score"] = answer
+	encoded, err = json.Marshal(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := decodeResponse(encoded, questions); err != nil {
+		t.Fatal(err)
 	}
 }
