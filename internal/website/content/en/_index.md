@@ -12,7 +12,7 @@ params:
 <h1 id="intro-title">Build services.<br>Put agents to work.</h1>
 <p class="micro-lead">Turn what your software does into something an agent can use. Go Micro connects your services, exposes their capabilities as tools, and gives you a framework to build on.</p>
 <div class="micro-actions">
-<a class="micro-button" href="/docs/quickstart.html">Build your first project <span aria-hidden="true">→</span></a>
+<a class="micro-button" href="/docs/quickstart.html">Get started <span aria-hidden="true">→</span></a>
 <a href="https://github.com/micro/go-micro">Explore the code</a>
 </div>
 <p class="micro-caption">Open source · Apache 2.0 · Built in Go</p>
