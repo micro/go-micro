@@ -41,6 +41,7 @@ import (
 	_ "go-micro.dev/v6/model/mistral"
 	_ "go-micro.dev/v6/model/ollama"
 	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/openrouter"
 	_ "go-micro.dev/v6/model/together"
 )
 

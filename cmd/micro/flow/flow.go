@@ -338,6 +338,7 @@ func fallbackKey(provider string) string {
 		"gemini":     "GEMINI_API_KEY",
 		"groq":       "GROQ_API_KEY",
 		"mistral":    "MISTRAL_API_KEY",
+		"openrouter": "OPENROUTER_API_KEY",
 		"together":   "TOGETHER_API_KEY",
 		"atlascloud": "ATLASCLOUD_API_KEY",
 	}

@@ -18,6 +18,7 @@ import (
 	"syscall"
 
 	"go-micro.dev/v6/cmd/micro/cli/generate"
+	"go-micro.dev/v6/model"
 	"text/template"
 	"time"
 
@@ -413,16 +414,15 @@ func printTree(dir string) {
 
 func runPrompt(cliCtx *cli.Context, prompt string) error {
 	provider := cliCtx.String("provider")
+	if provider == "" {
+		provider = model.AutoDetectProvider("")
+	}
 	apiKey := cliCtx.String("api_key")
 	if apiKey == "" {
-		// Try provider-specific env vars
-		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
-			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY", "MICRO_AI_API_KEY"} {
-			if v := os.Getenv(env); v != "" {
-				apiKey = v
-				break
-			}
-		}
+		apiKey = os.Getenv("MICRO_AI_API_KEY")
+	}
+	if apiKey == "" {
+		apiKey = os.Getenv(model.APIKeyEnv(provider))
 	}
 	if apiKey == "" {
 		return fmt.Errorf("--api_key or a provider API key env var is required for --prompt")

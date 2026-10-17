@@ -39,6 +39,7 @@ import (
 	_ "go-micro.dev/v6/model/groq"
 	_ "go-micro.dev/v6/model/mistral"
 	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/openrouter"
 	_ "go-micro.dev/v6/model/together"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
