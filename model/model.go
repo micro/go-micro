@@ -258,6 +258,8 @@ func AutoDetectProvider(baseURL string) string {
 		return "openai"
 	}
 	switch {
+	case strings.Contains(baseURL, "openrouter.ai"):
+		return "openrouter"
 	case strings.Contains(baseURL, "anthropic"):
 		return "anthropic"
 	case strings.Contains(baseURL, "atlascloud"):

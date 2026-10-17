@@ -869,15 +869,15 @@ Examples:
 
 func runWithPrompt(c *cli.Context, prompt string) error {
 	provider := c.String("provider")
+	if provider == "" {
+		provider = model.AutoDetectProvider("")
+	}
 	apiKey := c.String("api_key")
 	if apiKey == "" {
-		for _, env := range []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
-			"ATLASCLOUD_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "TOGETHER_API_KEY", "MICRO_AI_API_KEY"} {
-			if v := os.Getenv(env); v != "" {
-				apiKey = v
-				break
-			}
-		}
+		apiKey = os.Getenv("MICRO_AI_API_KEY")
+	}
+	if apiKey == "" {
+		apiKey = os.Getenv(model.APIKeyEnv(provider))
 	}
 	if apiKey == "" {
 		return fmt.Errorf("--api_key or a provider API key env var is required for --prompt")

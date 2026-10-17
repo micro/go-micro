@@ -18,3 +18,11 @@ func TestProviderSelection(t *testing.T) {
 		t.Fatal("explicit provider must be preserved")
 	}
 }
+
+func TestOpenRouterDetection(t *testing.T) {
+	for _, endpoint := range []string{"https://openrouter.ai/api", "https://openrouter.ai/api/v1"} {
+		if got := model.AutoDetectProvider(endpoint); got != "openrouter" {
+			t.Fatalf("provider for %s = %s", endpoint, got)
+		}
+	}
+}
