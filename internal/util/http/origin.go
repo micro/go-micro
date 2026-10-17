@@ -1,5 +1,4 @@
-// Package browserorigin validates browser request origins without trusting proxy headers.
-package browserorigin
+package http
 
 import (
 	"net"
@@ -8,10 +7,10 @@ import (
 	"strings"
 )
 
-// Allowed permits non-browser clients, same-origin browsers, and explicitly
+// OriginAllowed permits non-browser clients, same-origin browsers, and explicitly
 // trusted origins. A wildcard never grants access. Proxies must preserve Host;
 // TLS-terminating deployments can explicitly allow their public HTTPS origin.
-func Allowed(r *http.Request, trusted []string) bool {
+func OriginAllowed(r *http.Request, trusted []string) bool {
 	values := r.Header.Values("Origin")
 	if len(values) == 0 {
 		return r.Header.Get("Sec-Fetch-Site") != "cross-site"

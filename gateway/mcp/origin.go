@@ -3,7 +3,7 @@ package mcp
 import (
 	"net/http"
 
-	"go-micro.dev/v6/internal/browserorigin"
+	httputil "go-micro.dev/v6/internal/util/http"
 )
 
 func (s *Server) checkOrigin(w http.ResponseWriter, r *http.Request) bool {
@@ -12,7 +12,7 @@ func (s *Server) checkOrigin(w http.ResponseWriter, r *http.Request) bool {
 
 func checkBrowserOrigin(w http.ResponseWriter, r *http.Request, allowed []string) bool {
 	w.Header().Add("Vary", "Origin")
-	if !browserorigin.Allowed(r, allowed) {
+	if !httputil.OriginAllowed(r, allowed) {
 		http.Error(w, "Forbidden origin", http.StatusForbidden)
 		return false
 	}
