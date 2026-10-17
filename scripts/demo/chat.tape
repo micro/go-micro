@@ -2,7 +2,7 @@
 # Requires a configured OPENAI_API_KEY, micro from this checkout, Go, and VHS.
 # Review the actual tool requests; do not approve unrelated actions.
 # Timings depend on the provider. Adjust after a rehearsal.
-Output internal/demo/chat.gif
+Output scripts/demo/chat.gif
 Set Shell "bash"
 Set Theme "GitHub Light"
 Set FontSize 16

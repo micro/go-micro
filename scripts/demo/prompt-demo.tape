@@ -1,11 +1,11 @@
 # VHS tape: the hero demo — generate a system from a prompt and talk to it.
-# Record with: ANTHROPIC_API_KEY=... vhs internal/demo/prompt-demo.tape
+# Record with: ANTHROPIC_API_KEY=... vhs scripts/demo/prompt-demo.tape
 #
 # MANUAL RECORDING ONLY: generation time depends on the live provider, so the
 # sleeps below are generous estimates — expect to tune them (or trim the video)
 # per recording. Record in an empty scratch directory.
 
-Output internal/demo/prompt-demo.gif
+Output scripts/demo/prompt-demo.gif
 
 Set Shell "bash"
 Set FontSize 15

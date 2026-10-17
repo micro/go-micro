@@ -62,10 +62,10 @@ harness:
 	$(MAKE) provider-conformance-mock
 
 # Record the README quick-start demo GIF with VHS (no provider key needed).
-# See internal/demo/README.md for the keyed hero demo (prompt-demo.tape).
+# See scripts/demo/README.md for the keyed hero demo (prompt-demo.tape).
 demo-gif:
 	@command -v vhs >/dev/null || { echo "vhs not found — install with: go install github.com/charmbracelet/vhs@latest (needs ttyd + ffmpeg)"; exit 1; }
-	vhs internal/demo/first-run.tape
+	vhs scripts/demo/first-run.tape
 
 # Verify the maintained 0→hero transcript in the same order documented for new
 # developers: scaffold → run/chat/inspect → support-agent chat → flow history →

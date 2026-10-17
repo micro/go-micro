@@ -45,7 +45,7 @@ CLI being demoed is on `PATH`:
 ```bash
 go install github.com/charmbracelet/vhs@latest
 make demo-gif                       # records first-run.gif (no key needed)
-vhs internal/demo/prompt-demo.tape  # manual: live-provider timing, tune sleeps
+vhs scripts/demo/prompt-demo.tape  # manual: live-provider timing, tune sleeps
 ```
 
 Record in a scratch directory — the tapes scaffold real services where they run.
@@ -56,7 +56,7 @@ Once recorded, embed at the top of the README (below the Overview) and on the
 website homepage:
 
 ```markdown
-![micro run --prompt demo](internal/demo/prompt-demo.gif)
+![micro run --prompt demo](scripts/demo/prompt-demo.gif)
 ```
 
 Keep GIFs under ~10MB so GitHub renders them inline. `first-run.gif` is the

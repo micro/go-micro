@@ -1,8 +1,8 @@
 # VHS tape: the no-key quick start — scaffold → run → call.
-# Record with: vhs internal/demo/first-run.tape  (see internal/demo/README.md)
+# Record with: vhs scripts/demo/first-run.tape  (see scripts/demo/README.md)
 # Requires: vhs, ttyd, ffmpeg, and the micro CLI on PATH. No provider key needed.
 
-Output internal/demo/first-run.gif
+Output scripts/demo/first-run.gif
 
 Set Shell "bash"
 Set FontSize 15
