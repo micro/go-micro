@@ -31,11 +31,12 @@ func Generate(ctx context.Context, opts model.Options, req *model.Request, call 
 
 	pending := resp.ToolCalls
 	for round := 0; len(pending) > 0 && round < MaxToolRounds; round++ {
-		messages = append(messages, map[string]any{
-			"role":       "assistant",
-			"content":    raw["content"],
-			"tool_calls": raw["tool_calls"],
-		})
+		message := make(map[string]any, len(raw)+1)
+		for key, value := range raw {
+			message[key] = value
+		}
+		message["role"] = "assistant"
+		messages = append(messages, message)
 		for _, tc := range pending {
 			content := opts.ToolHandler(ctx, tc).Content
 			messages = append(messages, map[string]any{

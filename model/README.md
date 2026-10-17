@@ -439,3 +439,22 @@ configure the model in that agent's process.
 
 Direct `model.New` calls continue to take explicit options. An empty provider
 name selects OpenAI; an unregistered name returns nil.
+
+### OpenRouter
+
+Import `go-micro.dev/v6/model/openrouter` to register the provider, then use
+`model.New("openrouter", model.WithAPIKey(key), model.WithModel("vendor/model"))`.
+The default model is `openrouter/auto`; choose a model with tool support for agents.
+The default base URL is `https://openrouter.ai/api` (the provider appends `/v1`).
+Model discovery and tool calling are supported. Tool-driven replies are buffered;
+reasoning metadata is preserved between tool calls. Text-only streaming is available.
+
+For the CLI:
+
+```sh
+export OPENROUTER_API_KEY="your-key"
+micro chat --provider openrouter --model "vendor/model"
+```
+
+Replace `vendor/model` with an OpenRouter model ID. Agent and flow configuration
+also recognise `OPENROUTER_API_KEY`; `MICRO_AI_API_KEY` remains an override.

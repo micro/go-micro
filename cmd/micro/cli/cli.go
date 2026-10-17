@@ -146,7 +146,7 @@ func init() {
 				},
 				&cli.StringFlag{
 					Name:    "provider",
-					Usage:   "AI provider for --prompt (anthropic, openai, gemini, atlascloud, groq, mistral, together)",
+					Usage:   "AI provider for --prompt (anthropic, openai, gemini, atlascloud, groq, mistral, openrouter, together)",
 					EnvVars: []string{"MICRO_AI_PROVIDER"},
 				},
 				&cli.StringFlag{

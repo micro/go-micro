@@ -557,7 +557,7 @@ ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
 > send a welcome email to Alice
 ```
 
-Supports: `--provider` (anthropic, openai, gemini, atlascloud, groq, mistral, together), `--prompt` for single-shot mode, `--model` and `--base_url` for overrides.
+Supports: `--provider` (anthropic, openai, gemini, atlascloud, groq, mistral, openrouter, together), `--prompt` for single-shot mode, `--model` and `--base_url` for overrides.
 
 Environment variables: `MICRO_AI_PROVIDER`, `MICRO_AI_API_KEY`, or provider-specific keys like `ANTHROPIC_API_KEY`.
 
