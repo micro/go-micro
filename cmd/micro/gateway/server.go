@@ -31,7 +31,7 @@ import (
 	"go-micro.dev/v6/cmd"
 	codecBytes "go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/gateway/mcp"
-	"go-micro.dev/v6/internal/browserorigin"
+	httputil "go-micro.dev/v6/internal/util/http"
 	"go-micro.dev/v6/model"
 	_ "go-micro.dev/v6/model/anthropic"
 	_ "go-micro.dev/v6/model/atlascloud"
@@ -168,7 +168,7 @@ func deleteUserTokens(storeInst store.Store, userID string) {
 func authRequired(storeInst store.Store) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != http.MethodGet && r.Method != http.MethodHead && !browserorigin.Allowed(r, []string{"https://" + r.Host}) {
+			if r.Method != http.MethodGet && r.Method != http.MethodHead && !httputil.OriginAllowed(r, []string{"https://" + r.Host}) {
 				http.Error(w, "Forbidden origin", http.StatusForbidden)
 				return
 			}
@@ -321,7 +321,7 @@ func registerHandlers(mux *http.ServeMux, tmpls *templates, storeInst store.Stor
 		// Local development skips authentication, but still rejects foreign browser origins.
 		wrap = func(h http.HandlerFunc) http.HandlerFunc {
 			return func(w http.ResponseWriter, r *http.Request) {
-				if !browserorigin.Allowed(r, []string{"https://" + r.Host}) {
+				if !httputil.OriginAllowed(r, []string{"https://" + r.Host}) {
 					http.Error(w, "Forbidden origin", http.StatusForbidden)
 					return
 				}
@@ -1501,7 +1501,7 @@ Use the token printed at startup, or generate more on the <a href='/auth/tokens'
 			_ = renderPage(w, tmpls.authUsers, map[string]any{"Title": "Users", "Users": users, "User": user})
 		}))
 		mux.HandleFunc("/auth/login", func(w http.ResponseWriter, r *http.Request) {
-			if r.Method == http.MethodPost && !browserorigin.Allowed(r, []string{"https://" + r.Host}) {
+			if r.Method == http.MethodPost && !httputil.OriginAllowed(r, []string{"https://" + r.Host}) {
 				http.Error(w, "Forbidden origin", http.StatusForbidden)
 				return
 			}

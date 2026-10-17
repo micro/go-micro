@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Smoke-test the documented install.sh path without network access.
 # It builds the local CLI, packages it like a release archive, installs it into a
-# temporary bin directory through internal/scripts/install.sh, then checks the
+# temporary bin directory through scripts/install.sh, then checks the
 # first-run command boundaries shown in the getting-started docs.
 
 set -euo pipefail
@@ -23,9 +23,9 @@ MICRO_INSTALL_DIR="$INSTALL_DIR" \
 MICRO_INSTALL_ARCHIVE="$ARCHIVE" \
 MICRO_VERSION="local-smoke" \
 PATH="$INSTALL_DIR:$PATH" \
-  sh "$ROOT/internal/scripts/install.sh" > "$TMP_DIR/install.out"
+  sh "$ROOT/scripts/install.sh" > "$TMP_DIR/install.out"
 
-cmp "$ROOT/internal/scripts/install.sh" "$ROOT/internal/website/static/install.sh"
+cmp "$ROOT/scripts/install.sh" "$ROOT/internal/website/static/install.sh"
 
 MICRO="$INSTALL_DIR/micro"
 if [[ ! -x "$MICRO" ]]; then
