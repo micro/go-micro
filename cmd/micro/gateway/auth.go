@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/urfave/cli/v2"
+	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/store"
 )
 
 // authToken is the static machine token accepted as an admin ("*" scope)
@@ -65,14 +67,7 @@ func AuthFlags() []cli.Flag {
 // reachable even in auth-off mode; the returned string is non-empty only when a
 // token was generated and should be printed once.
 func ResolveAuth(c *cli.Context, addr string) (enabled bool, generatedToken string) {
-	switch strings.ToLower(authOverride(c)) {
-	case "off", "false", "no", "0":
-		enabled = false
-	case "on", "true", "yes", "1":
-		enabled = true
-	default:
-		enabled = isExposed(addr)
-	}
+	enabled = requiresAuth(c, addr)
 
 	if tok := c.String("auth-token"); tok != "" {
 		authToken = tok
@@ -81,6 +76,44 @@ func ResolveAuth(c *cli.Context, addr string) (enabled bool, generatedToken stri
 		generatedToken = authToken
 	}
 	return enabled, generatedToken
+}
+
+func requiresAuth(c *cli.Context, addr string) bool {
+	switch strings.ToLower(authOverride(c)) {
+	case "off", "false", "no", "0":
+		return false
+	case "on", "true", "yes", "1":
+		return true
+	default:
+		return isExposed(addr)
+	}
+}
+
+// gatewayAuth accepts the same machine token and stored JWTs as the HTTP gateway.
+type gatewayAuth struct{ auth.Auth }
+
+func (a gatewayAuth) Inspect(token string) (*auth.Account, error) {
+	if tokenMatches(token) {
+		return &auth.Account{ID: "admin", Scopes: []string{"*", "micro:admin"}}, nil
+	}
+	claims, err := ParseJWT(token)
+	if err != nil || isTokenRevoked(store.DefaultStore, token) {
+		return nil, auth.ErrInvalidToken
+	}
+	id, _ := claims["sub"].(string)
+	if id == "" {
+		return nil, auth.ErrInvalidToken
+	}
+	account := &auth.Account{ID: id}
+	account.Type, _ = claims["type"].(string)
+	if scopes, ok := claims["scopes"].([]interface{}); ok {
+		for _, scope := range scopes {
+			if value, ok := scope.(string); ok {
+				account.Scopes = append(account.Scopes, value)
+			}
+		}
+	}
+	return account, nil
 }
 
 func authOverride(c *cli.Context) string {

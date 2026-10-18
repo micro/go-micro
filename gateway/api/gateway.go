@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -43,6 +44,8 @@ type Gateway struct {
 	opts   Options
 	server *http.Server
 	mux    *http.ServeMux
+	done   chan struct{}
+	err    error
 }
 
 // New creates a new gateway with the given options and starts it.
@@ -79,18 +82,26 @@ func New(opts Options) (*Gateway, error) {
 		Handler: mux,
 	}
 
+	listener, err := net.Listen("tcp", opts.Address)
+	if err != nil {
+		return nil, err
+	}
+	opts.Address = listener.Addr().String()
+
 	gw := &Gateway{
 		opts:   opts,
 		server: server,
 		mux:    mux,
+		done:   make(chan struct{}),
 	}
 
-	// Start server in background
+	// Start server in background after binding successfully.
 	go func() {
 		opts.Logger.Printf("[gateway] Listening on %s (auth: %v)", opts.Address, opts.AuthEnabled)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			opts.Logger.Printf("[gateway] Server error: %v", err)
+		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			gw.err = err
 		}
+		close(gw.done)
 	}()
 
 	return gw, nil
@@ -108,8 +119,12 @@ func Run(opts Options) error {
 
 // Wait blocks until the server is shut down
 func (g *Gateway) Wait() error {
-	<-g.opts.Context.Done()
-	return g.Stop()
+	select {
+	case <-g.opts.Context.Done():
+		return g.Stop()
+	case <-g.done:
+		return g.err
+	}
 }
 
 // Stop gracefully shuts down the gateway

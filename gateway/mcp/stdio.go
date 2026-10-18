@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/metadata"
 
 	"github.com/google/uuid"
@@ -115,6 +116,10 @@ func (t *StdioTransport) Serve() error {
 
 // handleRequest processes a single JSON-RPC request
 func (t *StdioTransport) handleRequest(req *JSONRPCRequest) {
+	// Notifications, including initialized, must not receive a response.
+	if req.ID == nil {
+		return
+	}
 	switch req.Method {
 	case "initialize":
 		t.handleInitialize(req)
@@ -275,13 +280,9 @@ func (t *StdioTransport) handleToolsCall(req *JSONRPCRequest) {
 
 	// Make RPC call
 	start := time.Now()
-	rpcReq := t.server.opts.Client.NewRequest(tool.Service, tool.Endpoint, &struct {
-		Data []byte
-	}{Data: inputBytes})
+	rpcReq := t.server.opts.Client.NewRequest(tool.Service, tool.Endpoint, &bytes.Frame{Data: inputBytes})
 
-	var rsp struct {
-		Data []byte
-	}
+	var rsp bytes.Frame
 
 	if err := t.server.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
 		setSpanError(span, err)

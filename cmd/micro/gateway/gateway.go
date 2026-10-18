@@ -26,16 +26,8 @@ type Gateway = api.Gateway
 func StartGateway(opts GatewayOptions) (*Gateway, error) {
 	// Initialize auth if enabled (server-specific setup)
 	if opts.AuthEnabled {
-		if err := initAuth(); err != nil {
-			return nil, fmt.Errorf("failed to initialize auth: %w", err)
-		}
-
-		homeDir, _ := os.UserHomeDir()
-		keyDir := filepath.Join(homeDir, "micro", "keys")
-		privPath := filepath.Join(keyDir, "private.pem")
-		pubPath := filepath.Join(keyDir, "public.pem")
-		if err := InitJWTKeys(privPath, pubPath); err != nil {
-			return nil, fmt.Errorf("failed to init JWT keys: %w", err)
+		if err := initGatewayAuth(); err != nil {
+			return nil, err
 		}
 	}
 
@@ -69,4 +61,19 @@ func RunGateway(opts GatewayOptions) error {
 		return err
 	}
 	return gw.Wait()
+}
+
+func initGatewayAuth() error {
+	if err := initAuth(); err != nil {
+		return fmt.Errorf("initialize auth: %w", err)
+	}
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	keyDir := filepath.Join(homeDir, "micro", "keys")
+	if err := InitJWTKeys(filepath.Join(keyDir, "private.pem"), filepath.Join(keyDir, "public.pem")); err != nil {
+		return fmt.Errorf("initialize JWT keys: %w", err)
+	}
+	return nil
 }

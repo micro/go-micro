@@ -2,7 +2,12 @@ package gateway
 
 import (
 	"flag"
+	"go-micro.dev/v6/store"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/urfave/cli/v2"
 )
@@ -82,5 +87,73 @@ func TestTokenMatchesEmpty(t *testing.T) {
 	authToken = ""
 	if tokenMatches("") || tokenMatches("anything") {
 		t.Fatal("an empty static token must never match")
+	}
+}
+
+func TestMCPAuthUsesListenerAndGatewayToken(t *testing.T) {
+	t.Setenv("MICRO_AUTH", "")
+	old := authToken
+	t.Cleanup(func() { authToken = old })
+	for _, tc := range []struct {
+		address          string
+		force, off, want bool
+	}{
+		{"127.0.0.1:3000", false, false, false},
+		{":3000", false, false, true},
+		{"127.0.0.1:3000", true, false, true},
+		{":3000", false, true, false},
+	} {
+		c := newCtx(t, "journey-token", tc.force, tc.off)
+		ResolveAuth(c, "127.0.0.1:8080")
+		opts, err := buildMCPOptions(c, tc.address)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if (opts.Auth != nil) != tc.want {
+			t.Fatalf("%+v: Auth = %v", tc, opts.Auth)
+		}
+		if !tc.want {
+			continue
+		}
+		acc, err := opts.Auth.Inspect("journey-token")
+		if err != nil || acc.ID != "admin" {
+			t.Fatalf("machine token: %v %v", acc, err)
+		}
+		for _, token := range []string{"", "wrong", "journey-token"} {
+			r := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+			if token != "" {
+				r.Header.Set("Authorization", "Bearer "+token)
+			}
+			err := opts.AuthFunc(r)
+			if (err == nil) != (token == "journey-token") {
+				t.Fatalf("token %q: %v", token, err)
+			}
+		}
+	}
+}
+
+func TestMCPAuthJWTScopesAndRevocation(t *testing.T) {
+	oldStore, oldPrivate, oldPublic := store.DefaultStore, jwtPrivateKey, jwtPublicKey
+	store.DefaultStore = store.NewMemoryStore()
+	t.Cleanup(func() { store.DefaultStore = oldStore; jwtPrivateKey = oldPrivate; jwtPublicKey = oldPublic })
+	dir := t.TempDir()
+	if err := InitJWTKeys(filepath.Join(dir, "private.pem"), filepath.Join(dir, "public.pem")); err != nil {
+		t.Fatal(err)
+	}
+	token, err := GenerateJWT("reader", "user", []string{"notes:read"}, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storeJWTToken(store.DefaultStore, token, "reader")
+	a := gatewayAuth{}
+	acc, err := a.Inspect(token)
+	if err != nil || acc.ID != "reader" || len(acc.Scopes) != 1 || acc.Scopes[0] != "notes:read" {
+		t.Fatalf("JWT: %v %v", acc, err)
+	}
+	if err := store.DefaultStore.Delete("jwt/" + token); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Inspect(token); err == nil {
+		t.Fatal("revoked JWT accepted")
 	}
 }

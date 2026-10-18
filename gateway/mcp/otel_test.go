@@ -19,7 +19,7 @@ import (
 // newTestTP creates a TracerProvider with an in-memory exporter.
 func newTestTP() (*tracetest.InMemoryExporter, trace.TracerProvider) {
 	exp := tracetest.NewInMemoryExporter()
-	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exp))
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exp), sdktrace.WithSampler(sdktrace.AlwaysSample()))
 	return exp, tp
 }
 

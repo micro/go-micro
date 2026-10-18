@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -97,6 +98,10 @@ type Options struct {
 	// Address to listen on for SSE transport (e.g., ":3000")
 	// Leave empty for stdio transport
 	Address string
+
+	// Tools limits the exposed catalog to these exact tool names.
+	// Empty exposes all discovered and framework tools.
+	Tools []string
 
 	// Client for making RPC calls (defaults to client.DefaultClient)
 	Client client.Client
@@ -402,6 +407,14 @@ func (s *Server) discoverServices() error {
 	// Register framework primitives as tools.
 	// When Auth is configured, they require micro:admin scope.
 	s.registerFrameworkTools()
+
+	if len(s.opts.Tools) > 0 {
+		for name := range s.tools {
+			if !slices.Contains(s.opts.Tools, name) {
+				delete(s.tools, name)
+			}
+		}
+	}
 
 	s.opts.Logger.Printf("[mcp] Discovered %d tools from %d services (incl. framework)", len(s.tools), len(s.resolver.Services()))
 	return nil
@@ -1025,7 +1038,7 @@ func (s *Server) recordCircuit(toolName string, success bool) {
 func hasScope(accountScopes, requiredScopes []string) bool {
 	for _, req := range requiredScopes {
 		for _, have := range accountScopes {
-			if strings.EqualFold(have, req) {
+			if have == "*" || strings.EqualFold(have, req) {
 				return true
 			}
 		}

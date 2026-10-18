@@ -27,6 +27,17 @@ go test -race ./cmd/micro/chat ./agent/workspace ./examples/first-agent
 
 This proves CLI plumbing and real tool effects, not live model quality, provider
 account access, mDNS discovery between machines, or Docker execution. Before a
-release, also run the [live recording](../../demo/README.md) with a supported
-provider/model, inspect the actual file change, restart chat, and verify it can
-continue the task. Keep that verification separate from the deterministic test.
+release, also repeat the journey with a supported provider/model, inspect the
+actual file change, restart chat, and verify it can continue the task. Keep that
+verification separate from the deterministic test.
+
+## Services and external clients
+
+`make service-smoke` builds the service and agent from the website guides, then
+checks real RPC, HTTP, Streamable HTTP MCP, stdio MCP, local chat, and chat with
+a custom Go agent. It checks authentication and tool selection too. Install
+`nats-server` first (`go install github.com/nats-io/nats-server/v2@v2.11.3`).
+
+This uses a local NATS registry so it also runs where multicast is unavailable.
+Only the model is scripted. The Go agent uses the documented NATS registry and
+client options, with a loopback bind address. CI runs both smoke tests.

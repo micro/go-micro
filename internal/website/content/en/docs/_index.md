@@ -14,7 +14,7 @@ menu:
 
 Go Micro is a Go framework for services, agents, and workflows.
 
-**[Get started →](quickstart.md)**
+**[Get started →](quickstart.md)** Build a service, call it, and connect through MCP or chat.
 
 - [Services](services.md): expose and call application operations.
 - [Agents](agents.md): use services as tools through a model.

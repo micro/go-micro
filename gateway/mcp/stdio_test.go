@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/client"
+	codecbytes "go-micro.dev/v6/codec/bytes"
 )
 
 // fakeCallClient overrides Call to return canned data or an error; NewRequest
@@ -23,7 +24,7 @@ func (f *fakeCallClient) Call(ctx context.Context, req client.Request, rsp inter
 	if f.err != nil {
 		return f.err
 	}
-	if r, ok := rsp.(*struct{ Data []byte }); ok {
+	if r, ok := rsp.(*codecbytes.Frame); ok {
 		r.Data = f.data
 	}
 	return nil
@@ -116,5 +117,15 @@ func TestStdio_ToolsCall_FailureIsIsErrorResult(t *testing.T) {
 	}
 	if text := toolResultText(t, resp.Result); text == "" {
 		t.Error("isError result should carry the error text")
+	}
+}
+
+func TestStdioNotificationHasNoResponse(t *testing.T) {
+	var output bytes.Buffer
+	transport := NewStdioTransport(newTestServer(Options{}))
+	transport.writer = bufio.NewWriter(&output)
+	transport.handleRequest(&JSONRPCRequest{JSONRPC: "2.0", Method: "notifications/initialized"})
+	if output.Len() != 0 {
+		t.Fatalf("notification produced a response: %s", output.String())
 	}
 }

@@ -72,6 +72,7 @@ Examples:
   # Custom registry
   micro mcp serve --registry consul --registry_address consul:8500`,
 				Flags: []cli.Flag{
+					&cli.StringSliceFlag{Name: "tool", Usage: "Expose only this MCP tool (repeatable; default: all tools)"},
 					&cli.StringSliceFlag{
 						Name:    "mcp-allowed-origins",
 						Usage:   "Exact trusted browser origins for MCP (repeatable)",
@@ -256,6 +257,7 @@ func serveAction(ctx *cli.Context) error {
 	// Create MCP server options
 	opts := mcp.Options{
 		AllowedOrigins: ctx.StringSlice("mcp-allowed-origins"),
+		Tools:          ctx.StringSlice("tool"),
 		Registry:       reg,
 		Address:        ctx.String("address"),
 		Context:        context.Background(),

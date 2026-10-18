@@ -2,7 +2,7 @@
 
 Go Micro Command Line
 
-`micro gateway` is the current gateway command; `micro server` remains a deprecated alias used in the examples below.
+`micro gateway` exposes services over HTTP and MCP. `micro server` is a deprecated alias.
 
 ## Install the CLI
 
@@ -580,8 +580,8 @@ micro flow exec --prompt "List all users" --provider anthropic
 Expose services as MCP tools for AI agents:
 
 ```bash
-micro mcp serve              # stdio transport (for Claude Code)
-micro mcp serve --address :3000  # HTTP/SSE transport
+micro mcp serve --tool notes.Notes.List  # local stdio MCP client
+micro mcp serve --address 127.0.0.1:3000  # Streamable HTTP at /mcp
 micro mcp list               # list available tools
 micro mcp test <tool>        # test a tool
 ```
@@ -590,17 +590,29 @@ micro mcp test <tool>        # test a tool
 
 Use protobuf for code generation with [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro)
 
-## Server
+## micro gateway
 
-The micro server is a production web dashboard and authenticated API gateway for interacting with services that are already running (e.g., managed by systemd via `micro deploy`). It does **not** build, run, or watch services — for local development, use `micro run` instead.
+Expose running services through HTTP and MCP:
 
-Run it like so
-
+```sh
+micro gateway --address 127.0.0.1:8080 \
+  --mcp-address 127.0.0.1:3000 --mcp-tool notes.Notes.List
 ```
-micro server
-```
 
-Use the machine token printed at startup (or set `MICRO_AUTH_TOKEN`) to access the gateway. There is no default username/password. Loopback gateways do not require authentication unless explicitly enabled.
+Connect a Streamable HTTP MCP client to `http://127.0.0.1:3000/mcp`.
+`/mcp/tools` on the dashboard is a JSON listing, not an MCP connection URL.
+Repeat `--mcp-tool` to select additional tools. This limits MCP only; the HTTP
+API still routes discovered services. Omitting the flag exposes the full MCP
+catalog, including framework tools.
+
+Each listener requires authentication by default when bound beyond loopback.
+Use `--auth` to require it locally, or `--no-auth` to explicitly disable it.
+`MICRO_AUTH_TOKEN` supplies a bearer token accepted by both listeners; otherwise
+one is generated and printed at startup. Stored gateway JWTs also work over MCP
+with their scopes and revocation checks. Use HTTPS for remote access.
+
+The gateway discovers running services; it does not build or start them.
+For the local development runner, use `micro run`.
 
 ### API Endpoints 
 
@@ -627,7 +639,7 @@ The web dashboard provides a modern, secure UI for managing and exploring your M
 To get started, run:
 
 ```
-micro server
+micro gateway
 ```
 
 Use the machine token printed at startup (or set `MICRO_AUTH_TOKEN`) to access the gateway. There is no default username/password. Loopback gateways do not require authentication unless explicitly enabled.
@@ -636,11 +648,11 @@ Use the machine token printed at startup (or set `MICRO_AUTH_TOKEN`) to access t
 
 ## Gateway Architecture
 
-The `micro run` and `micro server` commands both use a unified gateway implementation (`cmd/micro/gateway/server.go`), providing consistent HTTP-to-RPC translation, service discovery, and web UI capabilities.
+The `micro run` and `micro gateway` commands both use a unified gateway implementation (`cmd/micro/gateway/server.go`), providing consistent HTTP-to-RPC translation, service discovery, and web UI capabilities.
 
 ### Key Differences
 
-| Feature | `micro run` | `micro server` |
+| Feature | `micro run` | `micro gateway` |
 |---------|-------------|----------------|
 | **Purpose** | Development | Production |
 | **Authentication** | Depends on bind address | Depends on bind address |
@@ -673,7 +685,7 @@ Both commands provide:
 
 ### Authentication & Scopes
 
-Both `micro run` and `micro server` use the same `auth.Account` type from the go-micro framework. The gateway stores accounts under `auth/<id>` in the default store and uses JWT tokens with RS256 signing.
+Both `micro run` and `micro gateway` use the same `auth.Account` type from the go-micro framework. The gateway stores accounts under `auth/<id>` in the default store and uses JWT tokens with RS256 signing.
 
 **Scope enforcement** applies to all call paths:
 
