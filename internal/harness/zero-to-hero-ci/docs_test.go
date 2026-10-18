@@ -190,7 +190,7 @@ func TestCurrentDocsExamplesBuild(t *testing.T) {
 	}
 	workspace := t.TempDir()
 	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/my-app\n\ngo 1.26\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+root+"\n")
-	for _, page := range []string{"services", "agents", "workflows"} {
+	for _, page := range []string{"quickstart", "services", "agents", "workflows"} {
 		doc := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", page+".md"))
 		_, code, ok := strings.Cut(doc, "```go\n")
 		if !ok {
@@ -199,6 +199,11 @@ func TestCurrentDocsExamplesBuild(t *testing.T) {
 		code, _, ok = strings.Cut(code, "```")
 		if !ok {
 			t.Fatalf("%s has an unclosed code fence", page)
+		}
+		if page == "services" {
+			// The client fragment uses the service and types from the quickstart.
+			service := readFile(t, filepath.Join(workspace, "quickstart", "main.go"))
+			code = service + "\nfunc callNotes(service micro.Service, ctx context.Context) error {\n" + code + "\nreturn nil\n}\n"
 		}
 		dir := filepath.Join(workspace, page)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -321,7 +326,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 		file  string
 		links []string
 	}{
-		{"README.md", []string{"https://go-micro.dev/docs/agents.html", "https://go-micro.dev/docs/quickstart.html"}},
+		{"README.md", []string{"https://go-micro.dev/docs/quickstart.html"}},
 		{"internal/website/content/en/docs/quickstart.md", []string{"services.md", "agents.md", "workflows.md"}},
 		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md", "../guides/agents-and-workflows.md"}},
 		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "services.md", "agents.md", "workflows.md", "reference.md"}},
@@ -350,7 +355,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 			name:    "README first-agent on-ramp",
 			file:    filepath.Join(root, "README.md"),
 			heading: "",
-			markers: []string{"quickstart.html", "services.html", "agents.html"},
+			markers: []string{"quickstart.html"},
 		},
 		{
 			name:    "website docs index first-agent path",
@@ -770,8 +775,8 @@ func TestNoSecretFirstAgentTranscript(t *testing.T) {
 	}
 
 	readme := readFile(t, filepath.Join(root, "README.md"))
-	if !strings.Contains(readme, "https://go-micro.dev/docs/agents.html") {
-		t.Fatal("README does not point to the first-agent guide")
+	if !strings.Contains(readme, "https://go-micro.dev/docs/quickstart.html") {
+		t.Fatal("README does not point to the quickstart")
 	}
 
 	firstAgent := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "guides", "your-first-agent.md"))
