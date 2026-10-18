@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the documented service through RPC, HTTP, MCP and a Go agent.
 
-Usage: python3 internal/harness/services.py /path/to/micro /path/to/nats-server
+Usage: python3 internal/harness/services.py /path/to/micro /path/to/nats-server [version]
 Requires Go and a NATS server binary. Uses only loopback servers and a scripted
 model; no provider credentials. Builds the Go examples directly from the docs.
 """
@@ -21,6 +21,7 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
+VERSION = sys.argv[3] if len(sys.argv) > 3 else ""
 MICRO, NATS = map(lambda p: str(Path(p).resolve()), sys.argv[1:3])
 
 
@@ -114,7 +115,10 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
     stack.callback(cleanup)
     nats = start([NATS, "-a", "127.0.0.1", "-p", str(reg)])
     wait_port(reg, nats)
-    (work / "go.mod").write_text(f"module example.com/journey\n\ngo 1.26.0\nrequire go-micro.dev/v6 v6.0.0\nreplace go-micro.dev/v6 => {ROOT}\n")
+    module = f"module example.com/journey\n\ngo 1.26.0\nrequire go-micro.dev/v6 {VERSION or 'v6.0.0'}\n"
+    if not VERSION:
+        module += f"replace go-micro.dev/v6 => {ROOT}\n"
+    (work / "go.mod").write_text(module)
 
     def build(doc, output):
         code = (ROOT / "internal/website/content/en/docs" / doc).read_text().split("```go\n")[1].split("```")[0]

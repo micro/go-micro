@@ -8,5 +8,10 @@ nats_bin=$(command -v nats-server) || {
   echo 'Install the test dependency: go install github.com/nats-io/nats-server/v2@v2.11.3' >&2
   exit 1
 }
-go build -o "$service_tmp/micro" ./cmd/micro
-python3 internal/harness/services.py "$service_tmp/micro" "$nats_bin"
+version=${1:-}
+if [[ -n "$version" ]]; then
+  GOBIN="$service_tmp" go install "go-micro.dev/v6/cmd/micro@$version"
+else
+  go build -o "$service_tmp/micro" ./cmd/micro
+fi
+python3 internal/harness/services.py "$service_tmp/micro" "$nats_bin" "$version"

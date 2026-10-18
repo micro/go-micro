@@ -13,16 +13,15 @@ You only need a model account if you use Go Micro's own agent.
 With [Go 1.26 or newer](https://go.dev/doc/install):
 
 ```sh
-go install go-micro.dev/v6/cmd/micro@master
+go install go-micro.dev/v6/cmd/micro@v6.15.1
 export PATH="$(go env GOPATH)/bin:$PATH"
 mkdir my-app
 cd my-app
 go mod init example.com/my-app
-go get go-micro.dev/v6@master
+go get go-micro.dev/v6@v6.15.1
 ```
 
-This guide follows the development version (`@master`). Use the same version
-of the framework and CLI.
+This guide uses v6.15.1 of both the framework and CLI.
 
 ## Write a service
 
