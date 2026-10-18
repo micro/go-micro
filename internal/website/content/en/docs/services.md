@@ -9,7 +9,7 @@ A service exposes Go methods over RPC. Go Micro registers it so other programs
 can find it by name.
 
 The [getting-started guide](quickstart.md) builds a notes service and calls it
-through RPC, HTTP, and MCP. Continue with that service here.
+over RPC. Continue with that service here.
 
 ## Call from Go
 
@@ -53,4 +53,5 @@ For a custom Go agent, pass the registry and client explicitly as shown in the
 Go handlers work without code generation. For shared protobuf contracts, use
 [protoc-gen-micro](https://github.com/micro/go-micro/tree/master/cmd/protoc-gen-micro).
 
-**Next: [give an agent access to this service →](agents.md)**
+Use the service with [an external agent through MCP](guides/services-with-claude-code.md),
+[terminal chat](guides/chat-with-services.md), or [your own Go agent](agents.md).

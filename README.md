@@ -21,8 +21,11 @@ Install the framework:
 go get go-micro.dev/v6@latest
 ```
 
-Follow the [quickstart](https://go-micro.dev/docs/quickstart.html) to build a service,
-call it, and connect an agent through MCP or `micro chat`.
+- [Build and run a service](https://go-micro.dev/docs/quickstart.html) — Go code and RPC; no model needed.
+- [Expose services to agents](https://go-micro.dev/docs/guides/services-with-claude-code.html) — connect your existing agent through MCP.
+- [Chat with services](https://go-micro.dev/docs/guides/chat-with-services.html) — use Go Micro’s agent from the terminal.
+
+Choose what you need. Chat does not require the gateway.
 
 ## Documentation
 
