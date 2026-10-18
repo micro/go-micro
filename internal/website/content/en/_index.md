@@ -10,7 +10,7 @@ params:
 <div>
 <p class="micro-eyebrow">The Go framework for services and agents</p>
 <h1 id="intro-title">Build services.<br>Put agents to work.</h1>
-<p class="micro-lead">Turn what your software does into something an agent can use. Go Micro connects your services, exposes their capabilities as tools, and gives you a framework to build on.</p>
+<p class="micro-lead">Build services in Go. Call them from your applications, connect agents through MCP, or write your own agents and workflows.</p>
 <div class="micro-actions">
 <a class="micro-button" href="/docs/quickstart.html">Get started <span aria-hidden="true">→</span></a>
 <a href="https://github.com/micro/go-micro">Explore the code</a>
@@ -18,12 +18,16 @@ params:
 <p class="micro-caption">Open source · Apache 2.0 · Built in Go</p>
 </div>
 <div class="micro-start" aria-labelledby="start-title">
-<div class="micro-start-heading"><h2 id="start-title">Start a Go project</h2></div>
-<pre aria-label="Create a Go Micro project"><code>mkdir my-app &amp;&amp; cd my-app
-go mod init example.com/my-app
-go get go-micro.dev/v6@latest</code></pre>
-<p>Write a service, give an agent access to it, and coordinate work with workflows.</p>
-<p class="micro-caption">Requires Go 1.26+. <a href="/docs/quickstart.html">Get started →</a></p>
+<div class="micro-start-heading"><h2 id="start-title">One service, available to your agent</h2></div>
+<pre aria-label="Call the notes service from the getting-started guide"><code>$ micro call notes Notes.List '{}'
+{
+  "notes": [
+    "Review the release",
+    "Update the documentation"
+  ]
+}</code></pre>
+<p>Expose the same operation through MCP, use it in chat, or call it from your Go code.</p>
+<p class="micro-caption"><a href="/docs/quickstart.html">Build this service and connect it →</a></p>
 </div>
 </section>
 
@@ -37,7 +41,7 @@ go get go-micro.dev/v6@latest</code></pre>
 <a href="/docs/reference.html">Explore the framework →</a>
 </div>
 <dl class="micro-building-blocks">
-<div><dt>Services</dt><dd>Implement your application’s capabilities and own its data. Call them from Go or through a gateway.<a href="/docs/services.html">Build services →</a></dd></div>
+<div><dt>Services</dt><dd>Implement your application’s capabilities and own its data. Call them from Go, HTTP, or an MCP client.<a href="/docs/services.html">Build services →</a></dd></div>
 <div><dt>Agents</dt><dd>Combine a model, conversation history, and tools to carry out requests. Define and extend their behaviour in Go.<a href="/docs/agents.html">Build an agent →</a></dd></div>
 <div><dt>Workflows</dt><dd>Define repeatable steps around service calls and agent decisions, with recorded progress.<a href="/docs/workflows.html">Compose a workflow →</a></dd></div>
 </dl>

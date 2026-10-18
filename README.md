@@ -4,6 +4,7 @@ Go Micro is a Go framework for distributed systems development.
 
 It provides RPC, service discovery, messaging, storage, and configuration.
 Agents use services as tools; workflows coordinate service calls and agent tasks.
+The gateway exposes services through HTTP and MCP for other applications and agents.
 Each component uses a Go interface with a default implementation that can be replaced.
 
 ## Features
@@ -20,9 +21,8 @@ Install the framework:
 go get go-micro.dev/v6@latest
 ```
 
-See the [quickstart](https://go-micro.dev/docs/quickstart.html) for local development,
-[services guide](https://go-micro.dev/docs/services.html) for services,
-and [agent guide](https://go-micro.dev/docs/agents.html) for agents.
+Follow the [quickstart](https://go-micro.dev/docs/quickstart.html) to build a service,
+call it, and connect an agent through MCP or `micro chat`.
 
 ## Documentation
 

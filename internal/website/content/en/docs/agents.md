@@ -71,4 +71,23 @@ those options to build your own agent. For programmatic calls, the agent exposes
 Configure the provider and its key in the agent process. The service and tools
 stay the same when you change models; chat connects to the running agent.
 
+## Discovery
+
+Agents use mDNS by default. For another registry, give the agent and its client
+the same registry. For NATS, import `agent`, `client`, `registry`, and
+`registry/nats` from `go-micro.dev/v6`, then add these options:
+
+```go
+reg := nats.NewNatsRegistry(registry.Addrs("127.0.0.1:4222"))
+a := micro.NewAgent("assistant",
+    agent.WithRegistry(reg),
+    agent.WithClient(client.NewClient(client.Registry(reg))),
+    micro.AgentServices("notes"),
+    // Your model and instructions, as above.
+)
+```
+
+The CLI's `MICRO_REGISTRY` settings configure CLI processes. Library code selects
+its components through Go options.
+
 **Next: [coordinate work with a workflow →](workflows.md)**

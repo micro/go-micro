@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"go-micro.dev/v6/auth"
+	"go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/metadata"
 
 	"github.com/google/uuid"
@@ -265,13 +266,9 @@ func (wc *wsConn) handleToolsCall(req *JSONRPCRequest) {
 
 	// Make RPC call
 	start := time.Now()
-	rpcReq := wc.server.opts.Client.NewRequest(tool.Service, tool.Endpoint, &struct {
-		Data []byte
-	}{Data: inputBytes})
+	rpcReq := wc.server.opts.Client.NewRequest(tool.Service, tool.Endpoint, &bytes.Frame{Data: inputBytes})
 
-	var rsp struct {
-		Data []byte
-	}
+	var rsp bytes.Frame
 
 	if err := wc.server.opts.Client.Call(ctx, rpcReq, &rsp); err != nil {
 		setSpanError(span, err)

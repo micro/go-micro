@@ -45,7 +45,6 @@ import (
 	"go-micro.dev/v6/store"
 	"go-micro.dev/v6/wrapper/x402"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/sync/errgroup"
 )
 
 // HTML is the embedded filesystem for templates and static files, set by main.go
@@ -1583,20 +1582,28 @@ func Run(c *cli.Context) error {
 		Context:     c.Context,
 	}
 
-	if authEnabled {
+	if authEnabled || (mcpAddr != "" && requiresAuth(c, mcpAddr)) {
 		if genToken != "" {
-			log.Printf("[auth] on (%s is exposed). Token (shown once): %s", addr, genToken)
+			log.Printf("[auth] Token for authenticated gateway listeners (shown once): %s", genToken)
 		} else {
-			log.Printf("[auth] on (%s is exposed). Using supplied MICRO_AUTH_TOKEN.", addr)
+			log.Printf("[auth] Using supplied bearer token for authenticated gateway listeners.")
 		}
 	} else {
 		log.Printf("[auth] off (%s is loopback). Scoped/paid tools still require a token.", addr)
 	}
 
-	// The MCP gateway runs independently of the HTTP API gateway, carrying the
-	// production controls (rate limiting, scopes, auth, audit, circuit breaker,
-	// x402 payments). Both gateways are started explicitly below and shut down
-	// together when the first one exits or a signal arrives.
+	if !authEnabled && mcpAddr != "" && requiresAuth(c, mcpAddr) {
+		if err := initGatewayAuth(); err != nil {
+			return err
+		}
+	}
+	gw, err := StartGateway(opts)
+	if err != nil {
+		return fmt.Errorf("failed to start gateway: %w", err)
+	}
+	defer func() { _ = gw.Stop() }()
+	log.Printf("[gateway] HTTP API: %s/api", gatewayURL(addr))
+
 	var mcpServer *mcp.Server
 	if mcpAddr != "" {
 		mcpOpts, err := buildMCPOptions(c, mcpAddr)
@@ -1607,38 +1614,34 @@ func Run(c *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to start MCP gateway: %w", err)
 		}
-		log.Printf("[mcp] gateway on %s", mcpAddr)
-	}
-
-	gw, err := StartGateway(opts)
-	if err != nil {
-		return fmt.Errorf("failed to start gateway: %w", err)
+		defer func() { _ = mcpServer.Stop() }()
+		log.Printf("[gateway] MCP client URL: %s/mcp", gatewayURL(mcpAddr))
+		if names := c.StringSlice("mcp-tool"); len(names) > 0 {
+			log.Printf("[gateway] MCP tools: %s", strings.Join(names, ", "))
+		}
+	} else {
+		log.Printf("[gateway] MCP is off; add --mcp-address 127.0.0.1:3000 to connect an MCP client")
 	}
 
 	// Run both gateways until a signal or the first gateway exits.
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
-	var eg errgroup.Group
-	eg.Go(func() error { return gw.Wait() })
+	defer signal.Stop(sigCh)
+	errCh := make(chan error, 2)
+	go func() { errCh <- gw.Wait() }()
 	if mcpServer != nil {
-		eg.Go(func() error { return mcpServer.Serve() })
+		go func() { errCh <- mcpServer.Serve() }()
 	}
 
-	errCh := make(chan error, 1)
-	go func() { errCh <- eg.Wait() }()
-
 	select {
+	case <-c.Done():
 	case <-sigCh:
 		log.Printf("[gateway] shutting down")
 	case err = <-errCh:
 		log.Printf("[gateway] gateway exited: %v", err)
 	}
 
-	_ = gw.Stop()
-	if mcpServer != nil {
-		_ = mcpServer.Stop()
-	}
 	return err
 }
 
@@ -1648,6 +1651,7 @@ func buildMCPOptions(c *cli.Context, addr string) (mcp.Options, error) {
 	logger := log.New(os.Stdout, "[mcp-gateway] ", log.LstdFlags)
 	opts := mcp.Options{
 		AllowedOrigins: c.StringSlice("mcp-allowed-origins"),
+		Tools:          c.StringSlice("mcp-tool"),
 		Registry:       registry.DefaultRegistry,
 		Address:        addr,
 		Context:        c.Context,
@@ -1676,9 +1680,13 @@ func buildMCPOptions(c *cli.Context, addr string) (mcp.Options, error) {
 		logger.Printf("rate limit: %.0f req/s, burst %d", rps, c.Int("rate-burst"))
 	}
 
-	if c.Bool("auth") {
-		opts.Auth = jwt.NewAuth()
-		logger.Printf("JWT authentication enabled")
+	if requiresAuth(c, addr) {
+		opts.Auth = gatewayAuth{Auth: jwt.NewAuth()}
+		opts.AuthFunc = func(r *http.Request) error {
+			_, err := opts.Auth.Inspect(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
+			return err
+		}
+		logger.Printf("authentication enabled; use the gateway bearer token")
 	}
 
 	if scopes := c.StringSlice("scope"); len(scopes) > 0 {
@@ -1790,6 +1798,7 @@ func parseStartTime(s string) (time.Time, error) {
 // gatewayFlags are shared by `micro gateway` and its deprecated `server` alias.
 func gatewayFlags() []cli.Flag {
 	flags := []cli.Flag{
+		&cli.StringSliceFlag{Name: "mcp-tool", Usage: "Expose only this MCP tool (repeatable; default: all tools)"},
 		&cli.StringFlag{
 			Name:    "address",
 			Usage:   "HTTP address for the dashboard/API",
@@ -1886,7 +1895,7 @@ Examples:
   micro gateway                                 # dashboard/API on :8080
   micro gateway --mcp-address :3000             # + MCP gateway on :3000
   micro gateway --mcp-address :3000 --auth --audit --rate-limit 100
-  micro gateway --registry consul --registry_address consul:8500 --mcp-address :3000`,
+  micro --registry consul --registry_address consul:8500 gateway --mcp-address :3000`,
 		Action: Run,
 		Flags:  gatewayFlags(),
 	})
@@ -1902,4 +1911,12 @@ Examples:
 		},
 		Flags: gatewayFlags(),
 	})
+}
+
+// gatewayURL turns a listen address into a local connection URL.
+func gatewayURL(address string) string {
+	if strings.HasPrefix(address, ":") {
+		address = "localhost" + address
+	}
+	return "http://" + address
 }

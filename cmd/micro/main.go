@@ -2,7 +2,10 @@ package main
 
 import (
 	"embed"
+	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
+	"go-micro.dev/v6/registry"
+	"go-micro.dev/v6/store"
 	"os/exec"
 	"runtime/debug"
 	"strings"
@@ -86,6 +89,10 @@ func init() {
 func main() {
 	_ = cmd.Init(
 		cmd.Name("micro"),
+		// CLI commands and legacy gateway handlers share the selected components.
+		cmd.Registry(&registry.DefaultRegistry),
+		cmd.Client(&client.DefaultClient),
+		cmd.Store(&store.DefaultStore),
 		cmd.Version(getVersion()),
 	)
 }

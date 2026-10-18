@@ -8,7 +8,7 @@ LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: chat-smoke test test-race test-coverage harness zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: service-smoke chat-smoke test test-race test-coverage harness zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -150,3 +150,6 @@ gorelease-dry-run:
 # Exercise actual chat setup, approvals, tools, recovery, and restart in a PTY.
 chat-smoke:
 	bash scripts/chat-smoke.sh
+
+service-smoke:
+	bash scripts/service-smoke.sh

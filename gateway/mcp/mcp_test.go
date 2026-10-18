@@ -74,6 +74,7 @@ func TestHasScope(t *testing.T) {
 		required []string
 		want     bool
 	}{
+		{"admin wildcard", []string{"*"}, []string{"notes:read"}, true},
 		{"match single", []string{"blog:write"}, []string{"blog:write"}, true},
 		{"match one of many", []string{"blog:read", "blog:write"}, []string{"blog:write"}, true},
 		{"no match", []string{"blog:read"}, []string{"blog:write"}, false},
@@ -564,5 +565,29 @@ func TestScopesFromGatewayOptions(t *testing.T) {
 	}
 	if len(deleteTool.Scopes) != 2 || deleteTool.Scopes[0] != "blog:admin" || deleteTool.Scopes[1] != "sudo" {
 		t.Errorf("expected gateway scopes [blog:admin sudo], got: %v", deleteTool.Scopes)
+	}
+}
+
+func TestToolSelectionSurvivesDiscovery(t *testing.T) {
+	reg := registry.NewMemoryRegistry()
+	service := &registry.Service{Name: "notes", Version: "1", Nodes: []*registry.Node{{Id: "notes-1", Address: "127.0.0.1:1"}}, Endpoints: []*registry.Endpoint{{Name: "Notes.List"}, {Name: "Notes.Delete"}}}
+	if err := reg.Register(service); err != nil {
+		t.Fatal(err)
+	}
+	s := newTestServer(Options{Registry: reg, Tools: []string{"notes.Notes.List"}})
+	for i := 0; i < 2; i++ {
+		if err := s.discoverServices(); err != nil {
+			t.Fatal(err)
+		}
+		tools := s.GetTools()
+		if len(tools) != 1 || tools[0].Name != "notes.Notes.List" {
+			t.Fatalf("unexpected tools: %+v", tools)
+		}
+		req := httptest.NewRequest(http.MethodPost, "/mcp/call", bytes.NewBufferString(`{"tool":"notes.Notes.Delete","input":{}}`))
+		rsp := httptest.NewRecorder()
+		s.handleCallTool(rsp, req)
+		if rsp.Code == http.StatusOK {
+			t.Fatal("excluded tool can still be called")
+		}
 	}
 }
