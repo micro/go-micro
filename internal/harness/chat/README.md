@@ -41,3 +41,12 @@ a custom Go agent. It checks authentication and tool selection too. Install
 This uses a local NATS registry so it also runs where multicast is unavailable.
 Only the model is scripted. The Go agent uses the documented NATS registry and
 client options, with a loopback bind address. CI runs both smoke tests.
+
+To check a published version instead of the checkout:
+
+```bash
+bash scripts/service-smoke.sh v6.15.1
+```
+
+This installs the tagged CLI and builds the guide examples against the same
+module version, without a local source replacement.
