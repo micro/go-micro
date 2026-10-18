@@ -14,7 +14,13 @@ menu:
 
 Go Micro is a Go framework for services, agents, and workflows.
 
-**[Get started →](quickstart.md)** Build a service, call it, and connect through MCP or chat.
+Choose a starting point:
+
+- [Build and run a service](quickstart.md) — Go code and RPC; no model needed.
+- [Expose services to agents](guides/services-with-claude-code.md) — connect Claude Code through MCP.
+- [Chat with services](guides/chat-with-services.md) — use Go Micro’s terminal agent, without a gateway.
+
+For extending your application:
 
 - [Services](services.md): expose and call application operations.
 - [Agents](agents.md): use services as tools through a model.

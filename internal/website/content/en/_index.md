@@ -18,7 +18,7 @@ params:
 <p class="micro-caption">Open source · Apache 2.0 · Built in Go</p>
 </div>
 <div class="micro-start" aria-labelledby="start-title">
-<div class="micro-start-heading"><h2 id="start-title">One service, available to your agent</h2></div>
+<div class="micro-start-heading"><h2 id="start-title">A running service</h2></div>
 <pre aria-label="Call the notes service from the getting-started guide"><code>$ micro call notes Notes.List '{}'
 {
   "notes": [
@@ -27,7 +27,7 @@ params:
   ]
 }</code></pre>
 <p>Expose the same operation through MCP, use it in chat, or call it from your Go code.</p>
-<p class="micro-caption"><a href="/docs/quickstart.html">Build this service and connect it →</a></p>
+<p class="micro-caption"><a href="/docs/quickstart.html">Build and run this service →</a></p>
 </div>
 </section>
 
@@ -37,13 +37,13 @@ params:
 <h2 id="foundation-title">Write the capability.<br>Let the framework connect it.</h2>
 <p>Go Micro handles service discovery, RPC, and publish/subscribe so your services can find each other, make requests, and react to events.</p>
 <p>Storage, configuration, and infrastructure integrations use replaceable Go interfaces. Start locally and choose the components your deployment needs.</p>
-<p>Use services on their own, give agents access to them as tools, or compose them into workflows.</p>
+<p>Use services on their own, <a href="/docs/agents.html">build your own agent</a>, or <a href="/docs/workflows.html">compose a workflow</a>.</p>
 <a href="/docs/reference.html">Explore the framework →</a>
 </div>
 <dl class="micro-building-blocks">
-<div><dt>Services</dt><dd>Implement your application’s capabilities and own its data. Call them from Go, HTTP, or an MCP client.<a href="/docs/services.html">Build services →</a></dd></div>
-<div><dt>Agents</dt><dd>Combine a model, conversation history, and tools to carry out requests. Define and extend their behaviour in Go.<a href="/docs/agents.html">Build an agent →</a></dd></div>
-<div><dt>Workflows</dt><dd>Define repeatable steps around service calls and agent decisions, with recorded progress.<a href="/docs/workflows.html">Compose a workflow →</a></dd></div>
+<div><dt>Build a service</dt><dd>Write Go methods, run the service, and call it over RPC. No model or agent needed.<a href="/docs/quickstart.html">Build and run →</a></dd></div>
+<div><dt>Expose it to agents</dt><dd>Already have services and an agent? Use the gateway to expose operations through MCP.<a href="/docs/guides/services-with-claude-code.html">Connect Claude Code →</a></dd></div>
+<div><dt>Chat with it</dt><dd>Use Go Micro’s terminal agent to call your services. No gateway required.<a href="/docs/guides/chat-with-services.html">Start chatting →</a></dd></div>
 </dl>
 </section>
 
