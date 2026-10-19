@@ -265,7 +265,8 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	return response, rawMessage, nil
 }
 
-const defaultImageModel = "gpt-image-1"
+// gpt-image-1 is shut down on 2026-10-23 (https://developers.openai.com/api/docs/deprecations).
+const defaultImageModel = "gpt-image-2"
 
 func (p *Provider) GenerateImage(ctx context.Context, req *model.ImageRequest, opts ...model.GenerateOption) (*model.ImageResponse, error) {
 	modelName := req.Model

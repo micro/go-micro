@@ -220,3 +220,24 @@ func TestProvider_GenerateImage_NoAPIKey(t *testing.T) {
 func TestProvider_ImplementsImageModel(t *testing.T) {
 	var _ model.ImageModel = (*Provider)(nil)
 }
+
+func TestProvider_GenerateImageDefaultModel(t *testing.T) {
+	var body map[string]any
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"b64_json":"aGk="}]}`))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(model.WithAPIKey("test-key"), model.WithBaseURL(ts.URL))
+	if _, err := p.GenerateImage(context.Background(), &model.ImageRequest{Prompt: "a cat"}); err != nil {
+		t.Fatalf("GenerateImage failed: %v", err)
+	}
+	// gpt-image-1 is shut down on 2026-10-23.
+	if body["model"] != "gpt-image-2" {
+		t.Errorf("Expected default image model 'gpt-image-2', got %v", body["model"])
+	}
+}
