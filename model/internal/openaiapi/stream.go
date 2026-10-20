@@ -15,7 +15,15 @@ import (
 
 // Stream opens an OpenAI-compatible chat completions SSE stream.
 func Stream(ctx context.Context, opts model.Options, req *model.Request, basePath string) (model.Stream, error) {
+	return StreamWithRequest(ctx, opts, req, basePath, nil)
+}
+
+// StreamWithRequest applies provider-specific parameters before serialization.
+func StreamWithRequest(ctx context.Context, opts model.Options, req *model.Request, basePath string, prepare func(map[string]any)) (model.Stream, error) {
 	apiReq := Request(opts, Messages(req), nil)
+	if prepare != nil {
+		prepare(apiReq)
+	}
 	apiReq["stream"] = true
 	apiReq["stream_options"] = map[string]any{"include_usage": true}
 	reqBody, err := json.Marshal(apiReq)

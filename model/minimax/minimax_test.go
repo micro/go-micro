@@ -20,7 +20,7 @@ func TestProvider_String(t *testing.T) {
 
 func TestProvider_Defaults(t *testing.T) {
 	opts := NewProvider().Options()
-	if opts.Model != "MiniMax-M3" {
+	if opts.Model != "MiniMax-M3.1-Flash" {
 		t.Errorf("default model = %q", opts.Model)
 	}
 	if opts.BaseURL != "https://api.minimax.io" {
@@ -39,7 +39,11 @@ func TestProvider_Init(t *testing.T) {
 }
 
 func TestProvider_Generate_NoAPIKey(t *testing.T) {
-	if _, err := NewProvider().Generate(context.Background(), &model.Request{Prompt: "hi"}); err == nil {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer ts.Close()
+	if _, err := NewProvider(model.WithBaseURL(ts.URL)).Generate(context.Background(), &model.Request{Prompt: "hi"}); err == nil {
 		t.Error("expected error without API key")
 	}
 }

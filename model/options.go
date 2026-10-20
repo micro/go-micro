@@ -18,8 +18,8 @@ type Options struct {
 	ToolHandler ToolHandler
 	// MaxTokens caps the length of the response (0 = provider default)
 	MaxTokens int
-	// Thinking controls Anthropic's extended-thinking mode. Empty leaves the
-	// provider default in place.
+	// Thinking controls extended thinking for supporting providers. Empty leaves
+	// the provider default in place.
 	Thinking ThinkingMode
 	// Effort controls reasoning depth for providers that support it.
 	Effort string

@@ -50,7 +50,7 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 	}
 	result := &model.Response{}
 	calls := map[int]*streamedTool{}
-	var text strings.Builder
+	var text, reasoning strings.Builder
 	scanner := bufio.NewScanner(response.Body)
 	scanner.Buffer(make([]byte, 4096), 4*1024*1024)
 	complete := false
@@ -72,8 +72,9 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 				Index        int    `json:"index"`
 				FinishReason string `json:"finish_reason"`
 				Delta        struct {
-					Content   string `json:"content"`
-					ToolCalls []struct {
+					ReasoningContent string `json:"reasoning_content"`
+					Content          string `json:"content"`
+					ToolCalls        []struct {
 						Index int `json:"index"`
 						streamedTool
 					} `json:"tool_calls"`
@@ -98,6 +99,7 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 			if choice.FinishReason != "" {
 				result.StopReason = choice.FinishReason
 			}
+			reasoning.WriteString(choice.Delta.ReasoningContent)
 			if choice.Delta.Content != "" {
 				text.WriteString(choice.Delta.Content)
 				onToken(choice.Delta.Content)
@@ -148,5 +150,9 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 		raw = append(raw, call)
 		result.ToolCalls = append(result.ToolCalls, model.ToolCall{ID: call.ID, Name: call.Function.Name, Input: input})
 	}
-	return result, map[string]any{"content": result.Reply, "tool_calls": raw}, nil
+	message := map[string]any{"content": result.Reply, "tool_calls": raw}
+	if reasoning.Len() > 0 {
+		message["reasoning_content"] = reasoning.String()
+	}
+	return result, message, nil
 }
