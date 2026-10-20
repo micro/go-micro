@@ -92,8 +92,8 @@ func TestProvider_Defaults(t *testing.T) {
 	p := NewProvider()
 
 	opts := p.Options()
-	if opts.Model != "claude-sonnet-4-20250514" {
-		t.Errorf("Expected default model 'claude-sonnet-4-20250514', got '%s'", opts.Model)
+	if opts.Model != "claude-sonnet-5-5" {
+		t.Errorf("Expected default model 'claude-sonnet-5-5', got '%s'", opts.Model)
 	}
 	if opts.BaseURL != "https://api.anthropic.com" {
 		t.Errorf("Expected default base URL 'https://api.anthropic.com', got '%s'", opts.BaseURL)

@@ -33,7 +33,7 @@ func NewProvider(opts ...model.Option) *Provider {
 
 	// Set defaults if not provided
 	if options.Model == "" {
-		options.Model = "claude-sonnet-4-20250514"
+		options.Model = "claude-sonnet-5-5"
 	}
 	if options.BaseURL == "" {
 		options.BaseURL = "https://api.anthropic.com"
