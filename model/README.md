@@ -348,7 +348,9 @@ Flash uses adaptive thinking only. `model.WithEffort` accepts `low`, `medium`,
 `high`, `xhigh`, or `max`; omitting it retains the API default (`max`). Disabling
 thinking or selecting an unsupported effort returns an error before sending a
 request. M3 supports adaptive or disabled thinking and ignores reasoning effort.
-These settings apply to generation, streaming, and tool follow-ups.
+These settings apply to generation, streaming, and tool follow-ups. Returned
+reasoning content is preserved in tool history, including streamed reasoning
+fragments, without exposing it through the visible-text callback.
 
 The model picker shows current MiniMax text routes from the live OpenRouter
 catalog, with Flash (`minimax/minimax-m3.1-flash:free`) before M3 when available.

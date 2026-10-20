@@ -85,18 +85,23 @@ func TestRequestBoundary(t *testing.T) {
 						if !reflect.DeepEqual(messages[1].(map[string]any)["content"], content) {
 							t.Errorf("lost structured history: %v", messages)
 						}
-						if calls == 2 && messages[len(messages)-1].(map[string]any)["tool_call_id"] != "call1" {
-							t.Errorf("lost tool result: %v", messages)
+						if calls == 2 {
+							if messages[len(messages)-1].(map[string]any)["tool_call_id"] != "call1" {
+								t.Errorf("lost tool result: %v", messages)
+							}
+							if messages[len(messages)-2].(map[string]any)["reasoning_content"] != "first thought" {
+								t.Errorf("lost reasoning continuity: %v", messages)
+							}
 						}
 						answer := `{"choices":[{"message":{"content":"done"}}]}`
 						if mode == "generate" && calls == 1 {
-							answer = `{"choices":[{"message":{"content":"","tool_calls":[{"id":"call1","type":"function","function":{"name":"lookup","arguments":"{}"}}]}}]}`
+							answer = `{"choices":[{"message":{"content":"","reasoning_content":"first thought","tool_calls":[{"id":"call1","type":"function","function":{"name":"lookup","arguments":"{}"}}]}}]}`
 						} else if mode != "generate" {
 							if body["stream"] != true {
 								t.Error("missing stream flag")
 							}
 							if mode == "token_callback" && calls == 1 {
-								answer = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"id\":\"call1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{}\"}}]},\"finish_reason\":\"tool_calls\"}]}\n\ndata: [DONE]\n\n"
+								answer = "data: {\"choices\":[{\"delta\":{\"reasoning_content\":\"first \"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"reasoning_content\":\"thought\",\"tool_calls\":[{\"index\":0,\"id\":\"call1\",\"type\":\"function\",\"function\":{\"name\":\"lookup\",\"arguments\":\"{}\"}}]},\"finish_reason\":\"tool_calls\"}]}\n\ndata: [DONE]\n\n"
 							} else {
 								answer = "data: {\"choices\":[{\"delta\":{\"content\":\"done\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"
 							}

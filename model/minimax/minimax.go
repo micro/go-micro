@@ -128,8 +128,9 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	var chatResp struct {
 		Choices []struct {
 			Message struct {
-				Content   string `json:"content"`
-				ToolCalls []struct {
+				ReasoningContent string `json:"reasoning_content"`
+				Content          string `json:"content"`
+				ToolCalls        []struct {
 					ID       string `json:"id"`
 					Type     string `json:"type"`
 					Function struct {
@@ -166,6 +167,10 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	rawMessage := map[string]any{
 		"content":    choice.Message.Content,
 		"tool_calls": choice.Message.ToolCalls,
+	}
+
+	if choice.Message.ReasoningContent != "" {
+		rawMessage["reasoning_content"] = choice.Message.ReasoningContent
 	}
 
 	return response, rawMessage, nil
