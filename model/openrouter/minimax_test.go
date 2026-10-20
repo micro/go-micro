@@ -38,7 +38,7 @@ func TestMiniMaxChoicesPreserveExplicitModels(t *testing.T) {
 	defer server.Close()
 	p := NewProvider(model.WithBaseURL(server.URL), model.WithAPIKey("test-key"), model.WithModel("minimax/minimax-m2.7"))
 	choices, err := model.ListModels(context.Background(), p)
-	want := []string{"minimax/hailuo", "minimax/minimax-m3.1-flash:free", "minimax/minimax-m3", "minimax/minimax-video-01", "minimax/speech-02", "vendor/model"}
+	want := []string{"minimax/hailuo", "minimax/minimax-01", "minimax/minimax-m2.7", "minimax/minimax-m3", "minimax/minimax-m3.1-flash", "minimax/minimax-m3.1-flash:free", "minimax/minimax-video-01", "minimax/speech-02", "vendor/model"}
 	if err != nil || !reflect.DeepEqual(choices, want) {
 		t.Fatalf("choices=%v error=%v", choices, err)
 	}
@@ -131,7 +131,7 @@ func TestMiniMaxChoicesDoNotInventRoutes(t *testing.T) {
 	defer server.Close()
 	p := NewProvider(model.WithBaseURL(server.URL))
 	choices, err := model.ListModels(context.Background(), p)
-	if err != nil || !reflect.DeepEqual(choices, []string{"minimax/minimax-m3", "vendor/model"}) {
+	if err != nil || !reflect.DeepEqual(choices, []string{"minimax/minimax-m2.7", "minimax/minimax-m3", "vendor/model"}) {
 		t.Fatalf("choices=%v error=%v", choices, err)
 	}
 }
