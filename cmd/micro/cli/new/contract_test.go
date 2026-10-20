@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -93,6 +94,27 @@ func TestPrintNextStepsNoMCPSkipsMCPHints(t *testing.T) {
 		if strings.Contains(out.String(), notWant) {
 			t.Fatalf("--no-mcp next steps should not include %q:\n%s", notWant, out.String())
 		}
+	}
+}
+
+func TestNewReturnsTidyError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses a shell script in place of go")
+	}
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	t.Setenv("MICRO_NEW_GO_MICRO_REPLACE", "")
+	t.Setenv("PATH", tmp)
+	if err := os.WriteFile(filepath.Join(tmp, "go"), []byte("#!/bin/sh\nexit 1\n"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	set := flag.NewFlagSet("micro-new", flag.ContinueOnError)
+	if err := set.Parse([]string{"example"}); err != nil {
+		t.Fatal(err)
+	}
+	err := Run(cli.NewContext(cli.NewApp(), set, nil))
+	if err == nil || !strings.Contains(err.Error(), "go mod tidy:") {
+		t.Fatalf("expected dependency error, got %v", err)
 	}
 }
 
