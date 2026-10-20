@@ -23,17 +23,14 @@ type streamedTool struct {
 	} `json:"function"`
 }
 
-// unindexedToolSlot picks the call a streamed tool_calls delta belongs to when it carries no
-// index. OpenAI numbers every call, but Gemini's OpenAI-compatible endpoint streams each
-// parallel call whole, in its own chunk, without one. A delta starts a new call when it
-// brings an id that differs from the latest call's, or a name after the latest call already
-// has one; anything else continues the latest call.
+// Without an index, a different ID starts a call. Name and argument fragments
+// continue the current call.
 func unindexedToolSlot(calls map[int]*streamedTool, latest int, delta streamedTool) int {
 	current := calls[latest]
 	if current == nil {
 		return 0
 	}
-	if (delta.ID != "" && current.ID != "" && delta.ID != current.ID) || (delta.Function.Name != "" && current.Function.Name != "") {
+	if delta.ID != "" && current.ID != "" && delta.ID != current.ID {
 		return latest + 1
 	}
 	return latest

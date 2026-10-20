@@ -38,7 +38,7 @@ func TestMiniMaxChoicesPreserveExplicitModels(t *testing.T) {
 	defer server.Close()
 	p := NewProvider(model.WithBaseURL(server.URL), model.WithAPIKey("test-key"), model.WithModel("MiniMaxAI/MiniMax-M2.7"))
 	choices, err := model.ListModels(context.Background(), p)
-	want := []string{"MiniMaxAI/MiniMax-M3", "vendor/model"}
+	want := []string{"MiniMaxAI/MiniMax-M2.7", "MiniMaxAI/MiniMax-M3", "vendor/model"}
 	if err != nil || !reflect.DeepEqual(choices, want) {
 		t.Fatalf("choices=%v error=%v", choices, err)
 	}

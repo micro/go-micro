@@ -352,11 +352,9 @@ These settings apply to generation, streaming, and tool follow-ups. Returned
 reasoning content is preserved in tool history, including streamed reasoning
 fragments, without exposing it through the visible-text callback.
 
-The model picker shows current MiniMax text routes from the live OpenRouter
-catalog, with Flash (`minimax/minimax-m3.1-flash:free`) before M3 when available.
-Together exposes only its verified `MiniMaxAI/MiniMax-M3` text route in the picker;
-no Flash route is inferred. Explicit `/model ID` selections are independent of
-the picker.
+The model picker lists the provider’s live catalog in alphabetical order, without
+filtering model families or preferring specific routes. Explicit `/model ID`
+selections remain available independently of the picker.
 
 See the [MiniMax model guide](https://platform.minimax.io/docs/guides/models-intro.md).
 

@@ -159,3 +159,19 @@ func TestGenerateSumsUsageAcrossToolRounds(t *testing.T) {
 		t.Fatalf("usage=%+v want %+v", resp.Usage, want)
 	}
 }
+
+func TestStreamCallContinuesUnindexedToolName(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, `data: {"choices":[{"delta":{"tool_calls":[{"id":"call1","function":{"name":"get_","arguments":""}}]}}]}`)
+		fmt.Fprintln(w, `data: {"choices":[{"delta":{"tool_calls":[{"function":{"name":"weather","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}`)
+		fmt.Fprintln(w, "data: [DONE]")
+	}))
+	defer server.Close()
+	resp, _, err := streamCall(context.Background(), model.Options{BaseURL: server.URL}, map[string]any{}, func(string) {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.ToolCalls) != 1 || resp.ToolCalls[0].Name != "get_weather" || resp.ToolCalls[0].ID != "call1" {
+		t.Fatalf("fragmented name became separate calls: %+v", resp.ToolCalls)
+	}
+}
