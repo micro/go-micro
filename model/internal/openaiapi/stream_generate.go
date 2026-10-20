@@ -23,6 +23,22 @@ type streamedTool struct {
 	} `json:"function"`
 }
 
+// unindexedToolSlot picks the call a streamed tool_calls delta belongs to when it carries no
+// index. OpenAI numbers every call, but Gemini's OpenAI-compatible endpoint streams each
+// parallel call whole, in its own chunk, without one. A delta starts a new call when it
+// brings an id that differs from the latest call's, or a name after the latest call already
+// has one; anything else continues the latest call.
+func unindexedToolSlot(calls map[int]*streamedTool, latest int, delta streamedTool) int {
+	current := calls[latest]
+	if current == nil {
+		return 0
+	}
+	if (delta.ID != "" && current.ID != "" && delta.ID != current.ID) || (delta.Function.Name != "" && current.Function.Name != "") {
+		return latest + 1
+	}
+	return latest
+}
+
 // streamCall assembles one assistant message while delivering text immediately.
 // Generate owns tool execution and uses the assembled message for the next turn.
 func streamCall(ctx context.Context, opts model.Options, req map[string]any, onToken func(string)) (*model.Response, map[string]any, error) {
@@ -50,6 +66,7 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 	}
 	result := &model.Response{}
 	calls := map[int]*streamedTool{}
+	latest := -1
 	var text, reasoning strings.Builder
 	scanner := bufio.NewScanner(response.Body)
 	scanner.Buffer(make([]byte, 4096), 4*1024*1024)
@@ -75,7 +92,7 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 					ReasoningContent string `json:"reasoning_content"`
 					Content          string `json:"content"`
 					ToolCalls        []struct {
-						Index int `json:"index"`
+						Index *int `json:"index"`
 						streamedTool
 					} `json:"tool_calls"`
 				} `json:"delta"`
@@ -105,13 +122,18 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 				onToken(choice.Delta.Content)
 			}
 			for _, delta := range choice.Delta.ToolCalls {
-				if delta.Index < 0 || delta.Index > 1024 {
-					return nil, nil, fmt.Errorf("invalid tool index %d", delta.Index)
+				index := unindexedToolSlot(calls, latest, delta.streamedTool)
+				if delta.Index != nil {
+					index = *delta.Index
 				}
-				call := calls[delta.Index]
+				if index < 0 || index > 1024 {
+					return nil, nil, fmt.Errorf("invalid tool index %d", index)
+				}
+				latest = index
+				call := calls[index]
 				if call == nil {
 					call = &streamedTool{Type: "function"}
-					calls[delta.Index] = call
+					calls[index] = call
 				}
 				call.ID += delta.ID
 				call.Function.Name += delta.Function.Name
