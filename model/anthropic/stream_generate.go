@@ -75,7 +75,8 @@ func readMessage(reader io.Reader, onToken func(string)) ([]byte, error) {
 				return nil, fmt.Errorf("invalid content block stop")
 			}
 			open = -1
-			if raw, ok := inputs[event.Index]; ok {
+			// a tool without parameters streams a single empty partial_json
+			if raw, ok := inputs[event.Index]; ok && strings.TrimSpace(raw) != "" {
 				var input map[string]any
 				if err := json.Unmarshal([]byte(raw), &input); err != nil {
 					return nil, fmt.Errorf("tool arguments: %w", err)

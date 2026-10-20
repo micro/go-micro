@@ -43,3 +43,27 @@ data: {"type":"message_stop"}
 		t.Fatal("accepted unfinished tool input")
 	}
 }
+
+func TestReadMessageAcceptsToolWithoutArguments(t *testing.T) {
+	data := `data: {"type":"message_start","message":{"role":"assistant"}}
+data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"one","name":"now","input":{}}}
+data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":""}}
+data: {"type":"content_block_stop","index":0}
+data: {"type":"message_delta","delta":{"stop_reason":"tool_use"}}
+data: {"type":"message_stop"}
+`
+	raw, err := readMessage(strings.NewReader(data), func(string) {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result struct {
+		Content []map[string]any `json:"content"`
+	}
+	if err := json.Unmarshal(raw, &result); err != nil {
+		t.Fatal(err)
+	}
+	input, ok := result.Content[0]["input"].(map[string]any)
+	if !ok || len(input) != 0 {
+		t.Fatalf("content=%v", result.Content)
+	}
+}
