@@ -239,11 +239,11 @@ It reports support from Go Micro's provider registry, so the matrix reflects the
 ```go
 m := model.New("anthropic",
     model.WithAPIKey("sk-ant-..."),
-    model.WithModel("claude-sonnet-4-20250514"), // default
+    model.WithModel("claude-sonnet-5-5"), // default
 )
 ```
 
-Default model: `claude-sonnet-4-20250514`
+Default model: `claude-sonnet-5-5`
 Default base URL: `https://api.anthropic.com`
 
 ### OpenAI GPT
