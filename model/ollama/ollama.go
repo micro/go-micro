@@ -200,7 +200,13 @@ func (p *Provider) generateOpenAI(ctx context.Context, req *model.Request) (*mod
 
 		followUpResp, followUpRaw, err := p.callOpenAI(ctx, followUpReq)
 		if err != nil {
-			break
+			return nil, err
+		}
+		// Every request of the tool round is billed, not only the first one.
+		resp.Usage = model.Usage{
+			InputTokens:  resp.Usage.InputTokens + followUpResp.Usage.InputTokens,
+			OutputTokens: resp.Usage.OutputTokens + followUpResp.Usage.OutputTokens,
+			TotalTokens:  resp.Usage.TotalTokens + followUpResp.Usage.TotalTokens,
 		}
 
 		if len(followUpResp.ToolCalls) > 0 {
