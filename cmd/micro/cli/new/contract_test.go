@@ -103,6 +103,7 @@ func TestNewReturnsTidyError(t *testing.T) {
 	}
 	tmp := t.TempDir()
 	t.Chdir(tmp)
+	t.Setenv("GO111MODULE", "on")
 	t.Setenv("MICRO_NEW_GO_MICRO_REPLACE", "")
 	t.Setenv("PATH", tmp)
 	if err := os.WriteFile(filepath.Join(tmp, "go"), []byte("#!/bin/sh\nexit 1\n"), 0755); err != nil {
@@ -115,6 +116,26 @@ func TestNewReturnsTidyError(t *testing.T) {
 	err := Run(cli.NewContext(cli.NewApp(), set, nil))
 	if err == nil || !strings.Contains(err.Error(), "go mod tidy:") {
 		t.Fatalf("expected dependency error, got %v", err)
+	}
+}
+
+func TestNewWithoutModules(t *testing.T) {
+	tmp := t.TempDir()
+	t.Chdir(tmp)
+	t.Setenv("GO111MODULE", "off")
+	t.Setenv("PATH", tmp) // No Go toolchain: module resolution must not run.
+	t.Setenv("MICRO_NEW_GO_MICRO_REPLACE", filepath.Join(tmp, "missing"))
+	set := flag.NewFlagSet("micro-new", flag.ContinueOnError)
+	if err := set.Parse([]string{"example"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := Run(cli.NewContext(cli.NewApp(), set, nil)); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"go.mod", "go.sum"} {
+		if _, err := os.Stat(filepath.Join(tmp, "example", name)); !os.IsNotExist(err) {
+			t.Fatalf("unexpected %s in GOPATH mode: %v", name, err)
+		}
 	}
 }
 

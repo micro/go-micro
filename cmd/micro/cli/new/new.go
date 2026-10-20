@@ -263,20 +263,22 @@ func Run(ctx *cli.Context) error {
 		return err
 	}
 
-	// Resolve dependencies.
-	if c.MicroReplace != "" {
-		// Reuse verified checksums when developing against a local checkout.
-		sums, err := os.ReadFile(filepath.Join(c.MicroReplace, "go.sum"))
-		if err != nil {
-			return err
+	// Resolve dependencies only in module mode.
+	if os.Getenv("GO111MODULE") != "off" {
+		if c.MicroReplace != "" {
+			// Reuse verified checksums when developing against a local checkout.
+			sums, err := os.ReadFile(filepath.Join(c.MicroReplace, "go.sum"))
+			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(filepath.Join(dir, "go.sum"), sums, 0644); err != nil {
+				return err
+			}
 		}
-		if err := os.WriteFile(filepath.Join(dir, "go.sum"), sums, 0644); err != nil {
-			return err
+		fmt.Println("\nRunning 'go mod tidy'...")
+		if err := runInDir(dir, "go mod tidy"); err != nil {
+			return fmt.Errorf("go mod tidy: %w", err)
 		}
-	}
-	fmt.Println("\nRunning 'go mod tidy'...")
-	if err := runInDir(dir, "go mod tidy"); err != nil {
-		return fmt.Errorf("go mod tidy: %w", err)
 	}
 
 	// Generate protobuf code only when the proto workflow is used, and only
