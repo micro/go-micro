@@ -39,7 +39,7 @@ func NewProvider(opts ...model.Option) *Provider {
 	options := model.NewOptions(opts...)
 
 	if options.Model == "" {
-		options.Model = "gemini-2.5-flash"
+		options.Model = "gemini-3.8-flash"
 	}
 	if options.BaseURL == "" {
 		options.BaseURL = "https://generativelanguage.googleapis.com"
