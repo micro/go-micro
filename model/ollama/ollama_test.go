@@ -440,3 +440,79 @@ func TestCloud_GenerateSumsUsageAcrossToolRounds(t *testing.T) {
 		t.Fatalf("usage=%+v want %+v", resp.Usage, want)
 	}
 }
+
+// A failed follow-up request after a tool round must reach the caller instead of
+// being swallowed.
+func TestNative_GenerateToolRoundFollowUpError(t *testing.T) {
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		if callCount == 1 {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{
+				"message": {"role": "assistant", "content": "",
+					"tool_calls": [{"function": {"name": "search", "arguments": "{}"}}]},
+				"prompt_eval_count": 10, "eval_count": 5, "done": true
+			}`))
+			return
+		}
+		http.Error(w, "upstream down", http.StatusBadGateway)
+	}))
+	defer srv.Close()
+
+	p := NewProvider(
+		model.WithBaseURL(srv.URL),
+		model.WithModel("llama3.2"),
+		model.WithToolHandler(func(ctx context.Context, call model.ToolCall) model.ToolResult {
+			return model.ToolResult{ID: call.ID, Content: "ok"}
+		}),
+	)
+	_, err := p.Generate(context.Background(), &model.Request{
+		Prompt: "Search",
+		Tools:  []model.Tool{{Name: "search", Description: "Search"}},
+	})
+	if err == nil {
+		t.Fatal("expected the follow-up request error, got nil")
+	}
+}
+
+// Every request of a tool round is billed, so the response has to report the usage of all of them.
+func TestNative_GenerateSumsUsageAcrossToolRounds(t *testing.T) {
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		w.Header().Set("Content-Type", "application/json")
+		if callCount == 1 {
+			w.Write([]byte(`{
+				"message": {"role": "assistant", "content": "",
+					"tool_calls": [{"function": {"name": "search", "arguments": "{}"}}]},
+				"prompt_eval_count": 10, "eval_count": 5, "done": true
+			}`))
+			return
+		}
+		w.Write([]byte(`{
+			"message": {"role": "assistant", "content": "done"},
+			"prompt_eval_count": 20, "eval_count": 7, "done": true
+		}`))
+	}))
+	defer srv.Close()
+
+	p := NewProvider(
+		model.WithBaseURL(srv.URL),
+		model.WithModel("llama3.2"),
+		model.WithToolHandler(func(ctx context.Context, call model.ToolCall) model.ToolResult {
+			return model.ToolResult{ID: call.ID, Content: "ok"}
+		}),
+	)
+	resp, err := p.Generate(context.Background(), &model.Request{
+		Prompt: "Search",
+		Tools:  []model.Tool{{Name: "search", Description: "Search"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := model.Usage{InputTokens: 30, OutputTokens: 12, TotalTokens: 42}
+	if resp.Usage != want {
+		t.Fatalf("usage=%+v want %+v", resp.Usage, want)
+	}
+}
