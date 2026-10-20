@@ -132,3 +132,30 @@ func TestGenerateContinuesUnindexedToolCallFragments(t *testing.T) {
 		t.Fatalf("fragments were not joined into one call: %+v", seen)
 	}
 }
+
+// Every request of a tool round is billed, so the response has to report the usage of all of them.
+func TestGenerateSumsUsageAcrossToolRounds(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "text/event-stream")
+		if requests == 1 {
+			fmt.Fprintln(w, `data: {"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call1","function":{"name":"echo","arguments":"{\"text\":\"hi\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15}}`)
+		} else {
+			fmt.Fprintln(w, `data: {"choices":[{"index":0,"delta":{"content":"done"},"finish_reason":"stop"}],"usage":{"prompt_tokens":20,"completion_tokens":7,"total_tokens":27}}`)
+		}
+		fmt.Fprintln(w, "data: [DONE]")
+	}))
+	defer server.Close()
+	opts := model.Options{BaseURL: server.URL, ToolHandler: func(context.Context, model.ToolCall) model.ToolResult {
+		return model.ToolResult{Content: "ok"}
+	}}
+	resp, err := Generate(context.Background(), opts, &model.Request{Tools: []model.Tool{{Name: "echo"}}}, nil, model.WithTokenHandler(func(string) {}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := model.Usage{InputTokens: 30, OutputTokens: 12, TotalTokens: 42}
+	if resp.Usage != want {
+		t.Fatalf("usage=%+v want %+v", resp.Usage, want)
+	}
+}

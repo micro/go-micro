@@ -67,6 +67,12 @@ func GenerateWithRequest(ctx context.Context, opts model.Options, req *model.Req
 			resp.Answer = next.Reply
 		}
 		resp.StopReason = next.StopReason
+		// Every request of the tool round is billed, not only the first one.
+		resp.Usage = model.Usage{
+			InputTokens:  resp.Usage.InputTokens + next.Usage.InputTokens,
+			OutputTokens: resp.Usage.OutputTokens + next.Usage.OutputTokens,
+			TotalTokens:  resp.Usage.TotalTokens + next.Usage.TotalTokens,
+		}
 		pending, raw = next.ToolCalls, nextRaw
 		resp.ToolCalls = append(resp.ToolCalls, next.ToolCalls...)
 	}
