@@ -106,7 +106,7 @@ func TestRequestBoundary(t *testing.T) {
 								answer = "data: {\"choices\":[{\"delta\":{\"content\":\"done\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"
 							}
 						}
-						return &http.Response{StatusCode: 200, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(answer))}, nil
+						return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(answer))}, nil
 					})}
 					t.Cleanup(func() { http.DefaultClient = original })
 					p := model.New("minimax", model.WithAPIKey("test-key"), model.WithBaseURL(endpoint), model.WithModel(test.selected), model.WithEffort(test.effort), model.WithThinking(test.mode), model.WithMaxTokens(1234), model.WithToolHandler(func(_ context.Context, call model.ToolCall) model.ToolResult {

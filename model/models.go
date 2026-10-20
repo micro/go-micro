@@ -31,10 +31,23 @@ func ListModels(ctx context.Context, provider Model) ([]string, error) {
 	var result []string
 	for _, name := range names {
 		lower := strings.ToLower(name)
-		family := strings.TrimPrefix(lower, "minimax/minimax-m")
-		miniMaxText := (family != lower && len(family) > 0 && family[0] >= '0' && family[0] <= '9') || strings.HasPrefix(lower, "minimax/minimax-text-") || lower == "minimax/minimax-01"
-		if provider.String() == "openrouter" && miniMaxText && name != "minimax/minimax-m3.1-flash:free" && name != "minimax/minimax-m3" {
-			continue
+		prefix := "minimax/"
+		if provider.String() == "together" {
+			prefix = "minimaxai/"
+		}
+		family := strings.TrimPrefix(lower, prefix+"minimax-m")
+		miniMaxText := (family != lower && len(family) > 0 && family[0] >= '0' && family[0] <= '9') || strings.HasPrefix(lower, prefix+"minimax-text-") || lower == prefix+"minimax-01"
+		if miniMaxText {
+			switch provider.String() {
+			case "openrouter":
+				if name != "minimax/minimax-m3.1-flash:free" && name != "minimax/minimax-m3" {
+					continue
+				}
+			case "together":
+				if name != "MiniMaxAI/MiniMax-M3" {
+					continue
+				}
+			}
 		}
 		if name != "" && !seen[name] {
 			result = append(result, name)

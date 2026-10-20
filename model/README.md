@@ -354,7 +354,9 @@ fragments, without exposing it through the visible-text callback.
 
 The model picker shows current MiniMax text routes from the live OpenRouter
 catalog, with Flash (`minimax/minimax-m3.1-flash:free`) before M3 when available.
-Explicit `/model ID` selections are independent of the picker.
+Together exposes only its verified `MiniMaxAI/MiniMax-M3` text route in the picker;
+no Flash route is inferred. Explicit `/model ID` selections are independent of
+the picker.
 
 See the [MiniMax model guide](https://platform.minimax.io/docs/guides/models-intro.md).
 
