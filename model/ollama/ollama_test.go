@@ -189,6 +189,37 @@ func TestNative_Stream(t *testing.T) {
 	}
 }
 
+func TestNative_StreamReportsUsage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"message":{"role":"assistant","content":"Hello"},"done":false}` + "\n"))
+		w.Write([]byte(`{"message":{"role":"assistant","content":""},"done":true,"prompt_eval_count":11,"eval_count":4}` + "\n"))
+	}))
+	defer srv.Close()
+
+	p := NewProvider(model.WithBaseURL(srv.URL), model.WithModel("llama3.2"))
+	stream, err := p.Stream(context.Background(), &model.Request{Prompt: "Hi"})
+	if err != nil {
+		t.Fatalf("Stream failed: %v", err)
+	}
+	defer stream.Close()
+
+	var usage model.Usage
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			break
+		}
+		if resp.Usage.TotalTokens > 0 {
+			usage = resp.Usage
+		}
+	}
+	want := model.Usage{InputTokens: 11, OutputTokens: 4, TotalTokens: 15}
+	if usage != want {
+		t.Errorf("Expected usage %+v, got %+v", want, usage)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Cloud mode (Ollama Cloud: /v1/chat/completions)
 // ---------------------------------------------------------------------------

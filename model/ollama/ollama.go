@@ -684,9 +684,13 @@ type ndjsonStream struct {
 	body    io.ReadCloser
 	scanner *bufio.Scanner
 	closed  bool
+	done    bool
 }
 
 func (s *ndjsonStream) Recv() (*model.Response, error) {
+	if s.done {
+		return nil, io.EOF
+	}
 	for s.scanner.Scan() {
 		line := strings.TrimSpace(s.scanner.Text())
 		if line == "" {
@@ -696,12 +700,22 @@ func (s *ndjsonStream) Recv() (*model.Response, error) {
 			Message struct {
 				Content string `json:"content"`
 			} `json:"message"`
-			Done bool `json:"done"`
+			Done            bool `json:"done"`
+			PromptEvalCount int  `json:"prompt_eval_count"`
+			EvalCount       int  `json:"eval_count"`
 		}
 		if err := json.Unmarshal([]byte(line), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
 		}
 		if chunk.Done {
+			s.done = true
+			if chunk.PromptEvalCount > 0 || chunk.EvalCount > 0 {
+				return &model.Response{Usage: model.Usage{
+					InputTokens:  chunk.PromptEvalCount,
+					OutputTokens: chunk.EvalCount,
+					TotalTokens:  chunk.PromptEvalCount + chunk.EvalCount,
+				}}, nil
+			}
 			return nil, io.EOF
 		}
 		if chunk.Message.Content != "" {
