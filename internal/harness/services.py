@@ -118,6 +118,7 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
     module = f"module example.com/journey\n\ngo 1.26.0\nrequire go-micro.dev/v6 {VERSION or 'v6.0.0'}\n"
     if not VERSION:
         module += f"replace go-micro.dev/v6 => {ROOT}\n"
+        (work / "go.sum").write_bytes((ROOT / "go.sum").read_bytes())
     (work / "go.mod").write_text(module)
 
     def build(doc, output):
