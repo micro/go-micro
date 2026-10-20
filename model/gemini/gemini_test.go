@@ -64,8 +64,8 @@ func TestProvider_Defaults(t *testing.T) {
 	p := NewProvider()
 
 	opts := p.Options()
-	if opts.Model != "gemini-2.5-flash" {
-		t.Errorf("Expected default model 'gemini-2.5-flash', got '%s'", opts.Model)
+	if opts.Model != "gemini-3.8-flash" {
+		t.Errorf("Expected default model 'gemini-3.8-flash', got '%s'", opts.Model)
 	}
 	if opts.BaseURL != "https://generativelanguage.googleapis.com" {
 		t.Errorf("Expected default base URL 'https://generativelanguage.googleapis.com', got '%s'", opts.BaseURL)
@@ -90,7 +90,7 @@ func TestProvider_Stream(t *testing.T) {
 	var sawRequest bool
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sawRequest = true
-		if r.URL.Path != "/v1beta/models/gemini-2.5-flash:streamGenerateContent" {
+		if r.URL.Path != "/v1beta/models/gemini-3.8-flash:streamGenerateContent" {
 			t.Fatalf("path = %s, want streamGenerateContent", r.URL.Path)
 		}
 		if r.URL.Query().Get("alt") != "sse" {
