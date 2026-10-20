@@ -58,19 +58,28 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 	return response, err
 }
 func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
-	return openaiapi.Stream(ctx, p.opts, req, "/v1/chat/completions")
+	switch p.opts.Model {
+	case "minimax/minimax-m3.1-flash:free", "minimax/minimax-m3":
+		return openaiapi.StreamWithRequest(ctx, p.opts, req, "/v1/chat/completions", prepareReasoning)
+	default:
+		return openaiapi.Stream(ctx, p.opts, req, "/v1/chat/completions")
+	}
 }
 func (p *Provider) Models(ctx context.Context) ([]string, error) {
 	return catalog.List(ctx, strings.TrimRight(p.opts.BaseURL, "/")+"/v1/models", p.opts.APIKey, "openai")
 }
 
-// callAPI makes one OpenRouter chat completion request.
-func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, map[string]any, error) {
-	// OpenRouter uses a reasoning object rather than reasoning_effort.
+// prepareReasoning uses the gateway's reasoning object.
+func prepareReasoning(req map[string]any) {
 	if effort, ok := req["reasoning_effort"]; ok {
 		req["reasoning"] = map[string]any{"effort": effort}
 		delete(req, "reasoning_effort")
 	}
+}
+
+// callAPI makes one OpenRouter chat completion request.
+func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, map[string]any, error) {
+	prepareReasoning(req)
 	// Marshal request
 	reqBody, err := json.Marshal(req)
 	if err != nil {

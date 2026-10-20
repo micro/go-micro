@@ -1,6 +1,6 @@
 // Package minimax implements the MiniMax model provider.
 //
-// MiniMax offers its flagship MiniMax-M3 model via an OpenAI-compatible
+// MiniMax offers MiniMax-M3.1-Flash and MiniMax-M3 via an OpenAI-compatible
 // chat completions endpoint.
 //
 // Usage:
@@ -40,7 +40,7 @@ type Provider struct {
 func NewProvider(opts ...model.Option) *Provider {
 	options := model.NewOptions(opts...)
 	if options.Model == "" {
-		options.Model = "MiniMax-M3"
+		options.Model = "MiniMax-M3.1-Flash"
 	}
 	if options.BaseURL == "" {
 		options.BaseURL = "https://api.minimax.io"
@@ -59,11 +59,44 @@ func (p *Provider) Options() model.Options { return p.opts }
 func (p *Provider) String() string         { return "minimax" }
 
 func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (*model.Response, error) {
-	return openaiapi.Generate(ctx, p.opts, req, p.callAPI, opts...)
+	if err := p.validateOptions(); err != nil {
+		return nil, err
+	}
+	return openaiapi.GenerateWithRequest(ctx, p.opts, req, p.callAPI, p.prepareRequest, opts...)
 }
 
 func (p *Provider) Stream(ctx context.Context, req *model.Request, opts ...model.GenerateOption) (model.Stream, error) {
-	return openaiapi.Stream(ctx, p.opts, req, "/v1/chat/completions")
+	if err := p.validateOptions(); err != nil {
+		return nil, err
+	}
+	return openaiapi.StreamWithRequest(ctx, p.opts, req, "/v1/chat/completions", p.prepareRequest)
+}
+
+func (p *Provider) validateOptions() error {
+	if p.opts.Model == "MiniMax-M3.1-Flash" {
+		if p.opts.Thinking != "" && p.opts.Thinking != model.ThinkingAdaptive {
+			return fmt.Errorf("MiniMax-M3.1-Flash supports only adaptive thinking")
+		}
+		switch p.opts.Effort {
+		case "", "low", "medium", "high", "xhigh", "max":
+		default:
+			return fmt.Errorf("unsupported MiniMax-M3.1-Flash reasoning effort: %q", p.opts.Effort)
+		}
+	}
+	return nil
+}
+
+func (p *Provider) prepareRequest(req map[string]any) {
+	switch p.opts.Model {
+	case "MiniMax-M3":
+		// M3 ignores reasoning effort; its default thinking mode is adaptive.
+		delete(req, "reasoning_effort")
+		if p.opts.Thinking != "" {
+			req["thinking"] = map[string]any{"type": p.opts.Thinking}
+		}
+	case "MiniMax-M3.1-Flash":
+		req["thinking"] = map[string]any{"type": "adaptive"}
+	}
 }
 
 func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Response, map[string]any, error) {

@@ -333,14 +333,28 @@ Atlas Cloud is an enterprise AI infrastructure platform offering high-performanc
 ```go
 m := model.New("minimax",
     model.WithAPIKey("your-key"),
-    model.WithModel("MiniMax-M3"), // default
+    model.WithModel("MiniMax-M3.1-Flash"), // default
 )
 ```
 
-Default model: `MiniMax-M3`
+Default model: `MiniMax-M3.1-Flash`
 Default base URL: `https://api.minimax.io`
 
-MiniMax offers its flagship MiniMax-M3 model via an OpenAI-compatible chat completions endpoint.
+MiniMax-M3.1-Flash and MiniMax-M3 use the chat completions endpoint. To use the
+China endpoint, set `model.WithBaseURL("https://api.minimax.cn")`. Explicit model
+IDs, including saved legacy IDs and custom deployments, are preserved.
+
+Flash uses adaptive thinking only. `model.WithEffort` accepts `low`, `medium`,
+`high`, `xhigh`, or `max`; omitting it retains the API default (`max`). Disabling
+thinking or selecting an unsupported effort returns an error before sending a
+request. M3 supports adaptive or disabled thinking and ignores reasoning effort.
+These settings apply to generation, streaming, and tool follow-ups.
+
+The model picker shows current MiniMax text routes from the live OpenRouter
+catalog, with Flash (`minimax/minimax-m3.1-flash:free`) before M3 when available.
+Explicit `/model ID` selections are independent of the picker.
+
+See the [MiniMax model guide](https://platform.minimax.io/docs/guides/models-intro.md).
 
 ### Ollama
 

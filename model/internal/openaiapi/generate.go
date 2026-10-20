@@ -15,9 +15,22 @@ const MaxToolRounds = 12
 // call performs one provider request; automatic tool execution remains supported
 // here for callers of the v6 model API that supply a ToolHandler.
 func Generate(ctx context.Context, opts model.Options, req *model.Request, call func(context.Context, map[string]any) (*model.Response, map[string]any, error), options ...model.GenerateOption) (*model.Response, error) {
+	return GenerateWithRequest(ctx, opts, req, call, nil, options...)
+}
+
+// GenerateWithRequest applies provider-specific parameters to every request,
+// including streaming generation and tool follow-ups.
+func GenerateWithRequest(ctx context.Context, opts model.Options, req *model.Request, call func(context.Context, map[string]any) (*model.Response, map[string]any, error), prepare func(map[string]any), options ...model.GenerateOption) (*model.Response, error) {
 	if onToken := model.NewGenerateOptions(options...).OnToken; onToken != nil {
 		call = func(ctx context.Context, req map[string]any) (*model.Response, map[string]any, error) {
 			return streamCall(ctx, opts, req, onToken)
+		}
+	}
+	if prepare != nil {
+		send := call
+		call = func(ctx context.Context, request map[string]any) (*model.Response, map[string]any, error) {
+			prepare(request)
+			return send(ctx, request)
 		}
 	}
 	messages := Messages(req)
