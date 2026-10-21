@@ -255,13 +255,15 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// Create new context with the metadata
 		ctx := metadata.NewContext(context.Background(), header)
 
-		// Set the timeout from the header if we have it
+		// Set the timeout from the header if we have it. The cancel runs once
+		// this request has been served (below), not when ServeConn returns: a
+		// defer here would keep every request's context, timer and header copy
+		// alive until the connection closes, which on a pooled keep-alive
+		// connection grows with every request it carries.
+		cancel := context.CancelFunc(func() {})
 		if len(to) > 0 {
 			if n, err := strconv.ParseUint(to, 10, 64); err == nil {
-				var cancel context.CancelFunc
-
 				ctx, cancel = context.WithTimeout(ctx, time.Duration(n))
-				defer cancel()
 			}
 		}
 
@@ -290,6 +292,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 				}
 
 				pool.Release(psock)
+				cancel()
 
 				continue
 			}
@@ -355,6 +358,7 @@ func (s *rpcServer) ServeConn(sock transport.Socket) {
 		// Serve the request in a go routine as this may be a stream
 		go func(psock *socket.Socket) {
 			defer s.deferer(pool, psock, wg)
+			defer cancel()
 
 			s.serveReq(ctx, msg, &request, &response, rcodec)
 		}(psock)
