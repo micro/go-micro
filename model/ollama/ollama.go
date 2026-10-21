@@ -296,9 +296,12 @@ func (p *Provider) callOpenAI(ctx context.Context, req map[string]any) (*model.R
 
 	var rawToolCalls []map[string]any
 	for _, tc := range choice.Message.ToolCalls {
+		args := strings.TrimSpace(tc.Function.Arguments)
 		var input map[string]any
-		if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
+		if args == "" {
 			input = map[string]any{}
+		} else if err := json.Unmarshal([]byte(args), &input); err != nil {
+			return nil, nil, fmt.Errorf("tool %s arguments: %w", tc.Function.Name, err)
 		}
 		response.ToolCalls = append(response.ToolCalls, model.ToolCall{
 			ID:    tc.ID,
@@ -609,8 +612,10 @@ func (p *Provider) callNative(ctx context.Context, req map[string]any) (*model.R
 		var input map[string]any
 		switch v := tc.Function.Arguments.(type) {
 		case string:
-			if err := json.Unmarshal([]byte(v), &input); err != nil {
+			if args := strings.TrimSpace(v); args == "" {
 				input = map[string]any{}
+			} else if err := json.Unmarshal([]byte(args), &input); err != nil {
+				return nil, nil, fmt.Errorf("tool %s arguments: %w", tc.Function.Name, err)
 			}
 		case map[string]any:
 			input = v
