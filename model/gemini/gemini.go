@@ -151,6 +151,12 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 				resp.Answer = followUpResp.Reply
 			}
 			pending, raw = followUpResp.ToolCalls, followUpRaw
+			// Every request of the tool round is billed, not only the first one.
+			resp.Usage = model.Usage{
+				InputTokens:  resp.Usage.InputTokens + followUpResp.Usage.InputTokens,
+				OutputTokens: resp.Usage.OutputTokens + followUpResp.Usage.OutputTokens,
+				TotalTokens:  resp.Usage.TotalTokens + followUpResp.Usage.TotalTokens,
+			}
 			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
 		}
 	}
@@ -233,15 +239,12 @@ func (s *streamReader) Recv() (*model.Response, error) {
 			Candidates []struct {
 				Content struct {
 					Parts []struct {
-						Text string `json:"text"`
+						Thought bool   `json:"thought"`
+						Text    string `json:"text"`
 					} `json:"parts"`
 				} `json:"content"`
 			} `json:"candidates"`
-			UsageMetadata *struct {
-				PromptTokenCount     int `json:"promptTokenCount"`
-				CandidatesTokenCount int `json:"candidatesTokenCount"`
-				TotalTokenCount      int `json:"totalTokenCount"`
-			} `json:"usageMetadata"`
+			UsageMetadata *usageMetadata `json:"usageMetadata"`
 		}
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
@@ -252,26 +255,44 @@ func (s *streamReader) Recv() (*model.Response, error) {
 		for _, candidate := range chunk.Candidates {
 			var parts []string
 			for _, part := range candidate.Content.Parts {
-				if part.Text != "" {
+				if part.Text != "" && !part.Thought {
 					parts = append(parts, part.Text)
 				}
 			}
 			if len(parts) > 0 {
-				return &model.Response{Reply: strings.Join(parts, "")}, nil
+				resp := &model.Response{Reply: strings.Join(parts, "")}
+				if chunk.UsageMetadata != nil {
+					resp.Usage = chunk.UsageMetadata.usage()
+				}
+				return resp, nil
 			}
 		}
 		if chunk.UsageMetadata != nil {
-			return &model.Response{Usage: model.Usage{
-				InputTokens:  chunk.UsageMetadata.PromptTokenCount,
-				OutputTokens: chunk.UsageMetadata.CandidatesTokenCount,
-				TotalTokens:  chunk.UsageMetadata.TotalTokenCount,
-			}}, nil
+			return &model.Response{Usage: chunk.UsageMetadata.usage()}, nil
 		}
 	}
 	if err := s.scanner.Err(); err != nil {
 		return nil, err
 	}
 	return nil, io.EOF
+}
+
+// usageMetadata is the token accounting Gemini attaches to a response or a
+// stream chunk. Thinking tokens are billed as output but are not part of
+// candidatesTokenCount.
+type usageMetadata struct {
+	PromptTokenCount     int `json:"promptTokenCount"`
+	CandidatesTokenCount int `json:"candidatesTokenCount"`
+	ThoughtsTokenCount   int `json:"thoughtsTokenCount"`
+	TotalTokenCount      int `json:"totalTokenCount"`
+}
+
+func (u *usageMetadata) usage() model.Usage {
+	return model.Usage{
+		InputTokens:  u.PromptTokenCount,
+		OutputTokens: u.CandidatesTokenCount + u.ThoughtsTokenCount,
+		TotalTokens:  u.TotalTokenCount,
+	}
 }
 
 func (s *streamReader) Close() error {
@@ -332,6 +353,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any, onToken func
 				} `json:"parts"`
 			} `json:"content"`
 		} `json:"candidates"`
+		UsageMetadata *usageMetadata `json:"usageMetadata"`
 	}
 
 	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
@@ -344,6 +366,9 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any, onToken func
 
 	parts := geminiResp.Candidates[0].Content.Parts
 	response := &model.Response{}
+	if geminiResp.UsageMetadata != nil {
+		response.Usage = geminiResp.UsageMetadata.usage()
+	}
 
 	var replyParts []string
 
