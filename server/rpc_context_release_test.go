@@ -22,8 +22,8 @@ func (h *CtxHandler) Call(ctx context.Context, _ *CtxReq, _ *CtxRsp) error {
 }
 
 // TestRequestContextReleasedAfterReply verifies that a request's context is
-// cancelled once the request has been served, while its connection stays
-// open. Cancelling it only when ServeConn returns kept every request's
+// canceled once the request has been served, while its connection stays
+// open. Canceling it only when ServeConn returns kept every request's
 // context, timer and header copy alive for the life of a pooled keep-alive
 // connection, so memory grew with each request the connection carried.
 func TestRequestContextReleasedAfterReply(t *testing.T) {
