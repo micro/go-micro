@@ -93,6 +93,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	}
 
 	var chatResp struct {
+		Usage   openaiapi.ChatUsage `json:"usage"`
 		Choices []struct {
 			FinishReason string `json:"finish_reason"`
 			Message      struct {
@@ -117,10 +118,10 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	}
 
 	choice := chatResp.Choices[0]
-	if choice.FinishReason == "length" && strings.TrimSpace(choice.Message.Content) == "" && len(choice.Message.ToolCalls) == 0 {
-		return nil, nil, model.ErrOutputLimit
+	if err := openaiapi.CheckOutputLimit(choice.FinishReason, choice.Message.Content, len(choice.Message.ToolCalls)); err != nil {
+		return nil, nil, err
 	}
-	response := &model.Response{Reply: choice.Message.Content}
+	response := &model.Response{Reply: choice.Message.Content, Usage: chatResp.Usage.Usage()}
 
 	response.StopReason = choice.FinishReason
 
