@@ -185,3 +185,69 @@ func TestProvider_Stream(t *testing.T) {
 		t.Fatalf("stop reason = %q, want end_turn", stopReason)
 	}
 }
+
+func TestProvider_GenerateReportsUsageOfEveryRequest(t *testing.T) {
+	calls := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		if calls == 1 {
+			_, _ = w.Write([]byte(`{"content":[{"type":"tool_use","id":"t1","name":"lookup","input":{}}],"stop_reason":"tool_use","usage":{"input_tokens":10,"output_tokens":4,"cache_read_input_tokens":100,"cache_creation_input_tokens":20}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"content":[{"type":"text","text":"done"}],"stop_reason":"end_turn","usage":{"input_tokens":3,"output_tokens":5,"cache_read_input_tokens":120}}`))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(model.WithAPIKey("test-key"), model.WithBaseURL(ts.URL),
+		model.WithToolHandler(func(context.Context, model.ToolCall) model.ToolResult {
+			return model.ToolResult{Content: "ok"}
+		}))
+	resp, err := p.Generate(context.Background(), &model.Request{
+		Prompt: "Hello",
+		Tools:  []model.Tool{{Name: "lookup"}},
+	})
+	if err != nil {
+		t.Fatalf("Generate failed: %v", err)
+	}
+	// input_tokens excludes cached tokens, so they are added back in.
+	want := model.Usage{InputTokens: 10 + 100 + 20 + 3 + 120, OutputTokens: 4 + 5, TotalTokens: 10 + 100 + 20 + 3 + 120 + 4 + 5}
+	if resp.Usage != want {
+		t.Fatalf("usage = %+v, want %+v", resp.Usage, want)
+	}
+}
+
+func TestProvider_StreamCountsCachedInputTokens(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte(`data: {"type":"message_start","message":{"usage":{"input_tokens":2,"cache_read_input_tokens":100,"cache_creation_input_tokens":20}}}` + "\n\n"))
+		_, _ = w.Write([]byte(`data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":3}}` + "\n\n"))
+		_, _ = w.Write([]byte(`data: {"type":"message_stop"}` + "\n\n"))
+	}))
+	defer ts.Close()
+
+	p := NewProvider(model.WithAPIKey("test-key"), model.WithBaseURL(ts.URL))
+	stream, err := p.Stream(context.Background(), &model.Request{Prompt: "Hello"})
+	if err != nil {
+		t.Fatalf("Stream failed: %v", err)
+	}
+	defer stream.Close()
+
+	var first model.Usage
+	for {
+		chunk, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			t.Fatalf("Recv failed: %v", err)
+		}
+		if first.TotalTokens == 0 {
+			first = chunk.Usage
+		}
+	}
+	want := model.Usage{InputTokens: 122, OutputTokens: 0, TotalTokens: 122}
+	if first != want {
+		t.Fatalf("message_start usage = %+v, want %+v", first, want)
+	}
+}
