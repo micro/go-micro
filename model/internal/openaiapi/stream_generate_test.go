@@ -175,3 +175,33 @@ func TestStreamCallContinuesUnindexedToolName(t *testing.T) {
 		t.Fatalf("fragmented name became separate calls: %+v", resp.ToolCalls)
 	}
 }
+
+func TestGenerateAcceptsToolCallWithoutArguments(t *testing.T) {
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "text/event-stream")
+		if requests == 1 {
+			fmt.Fprintln(w, `data: {"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"call1","function":{"name":"now"}}]},"finish_reason":"tool_calls"}]}`)
+		} else {
+			fmt.Fprintln(w, `data: {"choices":[{"index":0,"delta":{"content":"Done"},"finish_reason":"stop"}]}`)
+		}
+		fmt.Fprintln(w, "data: [DONE]")
+	}))
+	defer server.Close()
+	calls := 0
+	opts := model.Options{BaseURL: server.URL, ToolHandler: func(_ context.Context, call model.ToolCall) model.ToolResult {
+		calls++
+		if len(call.Input) != 0 {
+			t.Errorf("unexpected input: %v", call.Input)
+		}
+		return model.ToolResult{Content: "noon"}
+	}}
+	resp, err := Generate(context.Background(), opts, &model.Request{Tools: []model.Tool{{Name: "now"}}}, nil, model.WithTokenHandler(func(string) {}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 || resp.Answer != "Done" {
+		t.Fatalf("calls=%d response=%+v", calls, resp)
+	}
+}

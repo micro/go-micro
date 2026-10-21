@@ -116,3 +116,32 @@ func TestAPIError(t *testing.T) {
 		t.Fatal("expected authentication error")
 	}
 }
+
+func TestToolCallWithoutArguments(t *testing.T) {
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		if calls == 1 {
+			fmt.Fprint(w, `{"choices":[{"finish_reason":"tool_calls","message":{"content":null,"tool_calls":[{"id":"call1","type":"function","function":{"name":"now","arguments":""}}]}}]}`)
+			return
+		}
+		fmt.Fprint(w, `{"choices":[{"finish_reason":"stop","message":{"content":"Done"}}]}`)
+	}))
+	defer server.Close()
+	executed := 0
+	provider := NewProvider(model.WithBaseURL(server.URL), model.WithAPIKey("test-key"), model.WithModel("test/model"), model.WithToolHandler(func(ctx context.Context, call model.ToolCall) model.ToolResult {
+		executed++
+		if len(call.Input) != 0 {
+			t.Errorf("unexpected input: %v", call.Input)
+		}
+		return model.ToolResult{Content: "noon"}
+	}))
+	response, err := provider.Generate(context.Background(), &model.Request{Prompt: "time?", Tools: []model.Tool{{Name: "now"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if executed != 1 || response.Answer != "Done" {
+		t.Fatalf("tools=%d response=%+v", executed, response)
+	}
+}
