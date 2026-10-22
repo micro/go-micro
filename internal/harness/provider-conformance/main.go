@@ -29,6 +29,7 @@ import (
 	_ "go-micro.dev/v6/model/atlascloud"
 	_ "go-micro.dev/v6/model/gemini"
 	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/litellm"
 	_ "go-micro.dev/v6/model/minimax"
 	_ "go-micro.dev/v6/model/mistral"
 	_ "go-micro.dev/v6/model/openai"
@@ -55,6 +56,7 @@ var providerEnv = map[string]string{
 	"mistral":    "MISTRAL_API_KEY",
 	"together":   "TOGETHER_API_KEY",
 	"atlascloud": "ATLASCLOUD_API_KEY",
+	"litellm":    "LITELLM_API_KEY",
 }
 
 func main() {

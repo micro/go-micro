@@ -12,6 +12,7 @@ import (
 	_ "go-micro.dev/v6/model/atlascloud"
 	_ "go-micro.dev/v6/model/gemini"
 	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/litellm"
 	_ "go-micro.dev/v6/model/mistral"
 	_ "go-micro.dev/v6/model/openai"
 	_ "go-micro.dev/v6/model/openrouter"

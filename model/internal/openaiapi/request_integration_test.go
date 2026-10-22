@@ -12,6 +12,7 @@ import (
 
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/model/groq"
+	"go-micro.dev/v6/model/litellm"
 	"go-micro.dev/v6/model/minimax"
 	"go-micro.dev/v6/model/mistral"
 	"go-micro.dev/v6/model/openai"
@@ -25,6 +26,7 @@ func compatibleProviders() map[string]func(...model.Option) model.Model {
 		"mistral":  func(opts ...model.Option) model.Model { return mistral.NewProvider(opts...) },
 		"minimax":  func(opts ...model.Option) model.Model { return minimax.NewProvider(opts...) },
 		"together": func(opts ...model.Option) model.Model { return together.NewProvider(opts...) },
+		"litellm":  func(opts ...model.Option) model.Model { return litellm.NewProvider(opts...) },
 	}
 }
 

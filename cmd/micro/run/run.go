@@ -33,6 +33,7 @@ import (
 	_ "go-micro.dev/v6/model/atlascloud"
 	_ "go-micro.dev/v6/model/gemini"
 	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/litellm"
 	_ "go-micro.dev/v6/model/mistral"
 	_ "go-micro.dev/v6/model/openai"
 	_ "go-micro.dev/v6/model/openrouter"
@@ -855,7 +856,7 @@ Examples:
 			},
 			&cli.StringFlag{
 				Name:    "provider",
-				Usage:   "AI provider for --prompt (anthropic, openai, gemini, atlascloud, groq, mistral, openrouter, together)",
+				Usage:   "AI provider for --prompt (anthropic, openai, gemini, atlascloud, groq, mistral, openrouter, together, litellm)",
 				EnvVars: []string{"MICRO_AI_PROVIDER"},
 			},
 			&cli.StringFlag{

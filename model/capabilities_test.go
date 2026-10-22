@@ -9,6 +9,7 @@ import (
 	_ "go-micro.dev/v6/model/atlascloud"
 	_ "go-micro.dev/v6/model/gemini"
 	_ "go-micro.dev/v6/model/groq"
+	_ "go-micro.dev/v6/model/litellm"
 	_ "go-micro.dev/v6/model/minimax"
 	_ "go-micro.dev/v6/model/mistral"
 	_ "go-micro.dev/v6/model/openai"
@@ -17,13 +18,13 @@ import (
 
 func TestRegisteredProviders(t *testing.T) {
 	got := model.RegisteredProviders("")
-	want := []string{"anthropic", "atlascloud", "gemini", "groq", "minimax", "mistral", "openai", "together"}
+	want := []string{"anthropic", "atlascloud", "gemini", "groq", "litellm", "minimax", "mistral", "openai", "together"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders() = %#v, want %#v", got, want)
 	}
 
 	got = model.RegisteredProviders("image")
-	want = []string{"atlascloud", "openai"}
+	want = []string{"atlascloud", "litellm", "openai"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(image) = %#v, want %#v", got, want)
 	}
@@ -35,7 +36,7 @@ func TestRegisteredProviders(t *testing.T) {
 	}
 
 	got = model.RegisteredProviders("stream")
-	want = []string{"anthropic", "atlascloud", "gemini", "groq", "minimax", "mistral", "openai", "together"}
+	want = []string{"anthropic", "atlascloud", "gemini", "groq", "litellm", "minimax", "mistral", "openai", "together"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(stream) = %#v, want %#v", got, want)
 	}
@@ -48,6 +49,7 @@ func TestCapabilityRows(t *testing.T) {
 		{Provider: "atlascloud", Capabilities: model.Capabilities{Model: true, Image: true, Video: true, Stream: true}},
 		{Provider: "gemini", Capabilities: model.Capabilities{Model: true, Stream: true}},
 		{Provider: "groq", Capabilities: model.Capabilities{Model: true, Stream: true, ToolStream: true}},
+		{Provider: "litellm", Capabilities: model.Capabilities{Model: true, Image: true, Stream: true, ToolStream: true}},
 		{Provider: "minimax", Capabilities: model.Capabilities{Model: true, Stream: true, ToolStream: true}},
 		{Provider: "mistral", Capabilities: model.Capabilities{Model: true, Stream: true, ToolStream: true}},
 		{Provider: "openai", Capabilities: model.Capabilities{Model: true, Image: true, Stream: true, ToolStream: true}},
@@ -61,7 +63,7 @@ func TestCapabilityRows(t *testing.T) {
 func TestCapabilityMatrix(t *testing.T) {
 	matrix := model.CapabilityMatrix()
 
-	for _, provider := range []string{"anthropic", "atlascloud", "gemini", "groq", "minimax", "mistral", "openai", "together"} {
+	for _, provider := range []string{"anthropic", "atlascloud", "gemini", "groq", "litellm", "minimax", "mistral", "openai", "together"} {
 		caps, ok := matrix[provider]
 		if !ok {
 			t.Fatalf("CapabilityMatrix missing %q", provider)
@@ -90,7 +92,7 @@ func TestRegisterStream(t *testing.T) {
 	}
 
 	got := model.RegisteredProviders("stream")
-	want := []string{"anthropic", "atlascloud", "gemini", "groq", "minimax", "mistral", "openai", "test-stream", "together"}
+	want := []string{"anthropic", "atlascloud", "gemini", "groq", "litellm", "minimax", "mistral", "openai", "test-stream", "together"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(stream) = %#v, want %#v", got, want)
 	}
@@ -104,7 +106,7 @@ func TestRegisterToolStream(t *testing.T) {
 	}
 
 	got := model.RegisteredProviders("tool_stream")
-	want := []string{"anthropic", "groq", "minimax", "mistral", "openai", "test-tool-stream", "together"}
+	want := []string{"anthropic", "groq", "litellm", "minimax", "mistral", "openai", "test-tool-stream", "together"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("RegisteredProviders(tool_stream) = %#v, want %#v", got, want)
 	}

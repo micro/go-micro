@@ -37,7 +37,10 @@ func StreamWithRequest(ctx context.Context, opts model.Options, req *model.Reque
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "text/event-stream")
-	httpReq.Header.Set("Authorization", "Bearer "+opts.APIKey)
+	// Keyless gateways (a LiteLLM proxy without a master key) take no auth header.
+	if opts.APIKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+opts.APIKey)
+	}
 
 	httpResp, err := http.DefaultClient.Do(httpReq)
 	if err != nil {

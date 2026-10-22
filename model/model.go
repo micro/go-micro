@@ -274,6 +274,8 @@ func AutoDetectProvider(baseURL string) string {
 		return "mistral"
 	case strings.Contains(baseURL, "together"):
 		return "together"
+	case strings.Contains(baseURL, "litellm"):
+		return "litellm"
 	default:
 		return "openai"
 	}
