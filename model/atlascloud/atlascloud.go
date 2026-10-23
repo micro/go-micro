@@ -494,9 +494,12 @@ func (p *Provider) callAPI(ctx context.Context, phase string, req map[string]any
 	}
 
 	for _, tc := range choice.Message.ToolCalls {
+		args := strings.TrimSpace(tc.Function.Arguments)
 		var input map[string]any
-		if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
+		if args == "" {
 			input = map[string]any{}
+		} else if err := json.Unmarshal([]byte(args), &input); err != nil {
+			return nil, nil, fmt.Errorf("tool %s arguments: %w", tc.Function.Name, err)
 		}
 		response.ToolCalls = append(response.ToolCalls, model.ToolCall{
 			ID:    tc.ID,
