@@ -116,3 +116,58 @@ func TestAPIError(t *testing.T) {
 		t.Fatal("expected authentication error")
 	}
 }
+
+func TestToolCallWithoutArguments(t *testing.T) {
+	calls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		if calls == 1 {
+			fmt.Fprint(w, `{"choices":[{"finish_reason":"tool_calls","message":{"content":null,"tool_calls":[{"id":"call1","type":"function","function":{"name":"now","arguments":""}}]}}]}`)
+			return
+		}
+		var request struct {
+			Messages []struct {
+				ToolCalls []struct {
+					Function struct {
+						Arguments string `json:"arguments"`
+					} `json:"function"`
+				} `json:"tool_calls"`
+			} `json:"messages"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			t.Error(err)
+			return
+		}
+		found := 0
+		for _, message := range request.Messages {
+			for _, call := range message.ToolCalls {
+				found++
+				if args := call.Function.Arguments; args != "{}" {
+					t.Errorf("follow-up arguments = %q, want {}", args)
+				}
+			}
+		}
+		if found != 1 {
+			t.Errorf("follow-up tool calls = %d, want 1", found)
+		}
+
+		fmt.Fprint(w, `{"choices":[{"finish_reason":"stop","message":{"content":"Done"}}]}`)
+	}))
+	defer server.Close()
+	executed := 0
+	provider := NewProvider(model.WithBaseURL(server.URL), model.WithAPIKey("test-key"), model.WithModel("test/model"), model.WithToolHandler(func(ctx context.Context, call model.ToolCall) model.ToolResult {
+		executed++
+		if call.Input == nil || len(call.Input) != 0 {
+			t.Errorf("unexpected input: %v", call.Input)
+		}
+		return model.ToolResult{Content: "noon"}
+	}))
+	response, err := provider.Generate(context.Background(), &model.Request{Prompt: "time?", Tools: []model.Tool{{Name: "now"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if executed != 1 || response.Answer != "Done" {
+		t.Fatalf("tools=%d response=%+v", executed, response)
+	}
+}

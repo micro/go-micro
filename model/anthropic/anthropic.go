@@ -214,6 +214,8 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 		if err != nil {
 			return nil, fmt.Errorf("tool follow-up: %w", err)
 		}
+		// Every request of the tool round is billed, not only the first one.
+		resp.Usage = usage(resp.Usage.InputTokens+followUpResp.Usage.InputTokens, resp.Usage.OutputTokens+followUpResp.Usage.OutputTokens)
 
 		if len(followUpResp.ToolCalls) > 0 {
 			resp.ToolCalls = append(resp.ToolCalls, followUpResp.ToolCalls...)
@@ -275,6 +277,7 @@ type streamReader struct {
 	body    io.ReadCloser
 	scanner *bufio.Scanner
 	closed  bool
+	usage   anthropicUsage
 }
 
 func (s *streamReader) Recv() (*model.Response, error) {
@@ -295,15 +298,9 @@ func (s *streamReader) Recv() (*model.Response, error) {
 				StopReason string `json:"stop_reason"`
 			} `json:"delta"`
 			Message struct {
-				Usage struct {
-					InputTokens  int `json:"input_tokens"`
-					OutputTokens int `json:"output_tokens"`
-				} `json:"usage"`
+				Usage anthropicUsage `json:"usage"`
 			} `json:"message"`
-			Usage *struct {
-				InputTokens  int `json:"input_tokens"`
-				OutputTokens int `json:"output_tokens"`
-			} `json:"usage"`
+			Usage json.RawMessage `json:"usage"`
 		}
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
@@ -314,16 +311,19 @@ func (s *streamReader) Recv() (*model.Response, error) {
 				return &model.Response{Reply: chunk.Delta.Text}, nil
 			}
 		case "message_start":
-			if chunk.Message.Usage.InputTokens > 0 || chunk.Message.Usage.OutputTokens > 0 {
-				return &model.Response{Usage: usage(chunk.Message.Usage.InputTokens, chunk.Message.Usage.OutputTokens)}, nil
+			s.usage = chunk.Message.Usage
+			if u := fromUsage(s.usage); u.TotalTokens > 0 {
+				return &model.Response{Usage: u}, nil
 			}
 		case "message_delta":
 			if chunk.Delta.StopReason != "" || chunk.Usage != nil {
-				response := &model.Response{StopReason: chunk.Delta.StopReason}
 				if chunk.Usage != nil {
-					response.Usage = usage(chunk.Usage.InputTokens, chunk.Usage.OutputTokens)
+					// Counters are cumulative. Omitted fields retain their previous values.
+					if err := json.Unmarshal(chunk.Usage, &s.usage); err != nil {
+						return nil, fmt.Errorf("failed to parse stream usage: %w", err)
+					}
 				}
-				return response, nil
+				return &model.Response{StopReason: chunk.Delta.StopReason, Usage: fromUsage(s.usage)}, nil
 			}
 		case "message_stop":
 			return nil, io.EOF
@@ -343,6 +343,21 @@ func (s *streamReader) Close() error {
 	}
 	s.closed = true
 	return s.body.Close()
+}
+
+// anthropicUsage is the usage object of a message, a message_start event or a
+// message_delta event.
+type anthropicUsage struct {
+	InputTokens              int `json:"input_tokens"`
+	OutputTokens             int `json:"output_tokens"`
+	CacheReadInputTokens     int `json:"cache_read_input_tokens"`
+	CacheCreationInputTokens int `json:"cache_creation_input_tokens"`
+}
+
+// fromUsage converts Anthropic usage to model.Usage. input_tokens leaves out the
+// tokens read from or written to the prompt cache, so they are added back in.
+func fromUsage(u anthropicUsage) model.Usage {
+	return usage(u.InputTokens+u.CacheReadInputTokens+u.CacheCreationInputTokens, u.OutputTokens)
 }
 
 func usage(input, output int) model.Usage {
@@ -402,14 +417,18 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any, onToken func
 			Name  string          `json:"name"`
 			Input json.RawMessage `json:"input"`
 		} `json:"content"`
-		StopReason string `json:"stop_reason"`
+		StopReason string         `json:"stop_reason"`
+		Usage      anthropicUsage `json:"usage"`
 	}
 
 	if err := json.Unmarshal(respBody, &anthropicResp); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	response := &model.Response{StopReason: anthropicResp.StopReason}
+	response := &model.Response{
+		StopReason: anthropicResp.StopReason,
+		Usage:      fromUsage(anthropicResp.Usage),
+	}
 
 	// Extract text reply
 	var replyParts []string
