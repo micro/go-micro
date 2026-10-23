@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -255,5 +256,37 @@ func TestProvider_StreamCountsCachedInputTokens(t *testing.T) {
 	}
 	if first != want {
 		t.Fatalf("message_start usage = %+v, want %+v", first, want)
+	}
+}
+
+func TestProvider_StreamUpdatesUsageCounters(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		fmt.Fprintln(w, `data: {"type":"message_start","message":{"usage":{"input_tokens":2,"cache_read_input_tokens":100,"cache_creation_input_tokens":20,"output_tokens":1}}}`)
+		fmt.Fprintln(w, `data: {"type":"message_delta","usage":{"input_tokens":4,"cache_read_input_tokens":120,"output_tokens":3}}`)
+		fmt.Fprintln(w, `data: {"type":"message_delta","usage":{"cache_creation_input_tokens":0}}`)
+		fmt.Fprintln(w, `data: {"type":"message_delta","delta":{"stop_reason":"end_turn"}}`)
+		fmt.Fprintln(w, `data: {"type":"message_stop"}`)
+	}))
+	defer ts.Close()
+	p := NewProvider(model.WithAPIKey("test-key"), model.WithBaseURL(ts.URL))
+	stream, err := p.Stream(context.Background(), &model.Request{Prompt: "Hello"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	for i, want := range []model.Usage{
+		{InputTokens: 122, OutputTokens: 1, TotalTokens: 123},
+		{InputTokens: 144, OutputTokens: 3, TotalTokens: 147},
+		{InputTokens: 124, OutputTokens: 3, TotalTokens: 127},
+		{InputTokens: 124, OutputTokens: 3, TotalTokens: 127},
+	} {
+		got, err := stream.Recv()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Usage != want {
+			t.Fatalf("event %d: usage = %+v, want %+v", i, got.Usage, want)
+		}
 	}
 }

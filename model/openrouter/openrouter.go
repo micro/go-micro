@@ -157,7 +157,7 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 
 	// Extract tool calls
 	for _, tc := range choice.Message.ToolCalls {
-		var input map[string]any
+		input := map[string]any{}
 		if args := strings.TrimSpace(tc.Function.Arguments); args != "" {
 			if err := json.Unmarshal([]byte(args), &input); err != nil {
 				return nil, nil, fmt.Errorf("tool %s arguments: %w", tc.Function.Name, err)

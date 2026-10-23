@@ -192,7 +192,7 @@ func TestGenerateAcceptsToolCallWithoutArguments(t *testing.T) {
 	calls := 0
 	opts := model.Options{BaseURL: server.URL, ToolHandler: func(_ context.Context, call model.ToolCall) model.ToolResult {
 		calls++
-		if len(call.Input) != 0 {
+		if call.Input == nil || len(call.Input) != 0 {
 			t.Errorf("unexpected input: %v", call.Input)
 		}
 		return model.ToolResult{Content: "noon"}

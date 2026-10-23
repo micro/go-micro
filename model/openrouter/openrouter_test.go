@@ -158,7 +158,7 @@ func TestToolCallWithoutArguments(t *testing.T) {
 	executed := 0
 	provider := NewProvider(model.WithBaseURL(server.URL), model.WithAPIKey("test-key"), model.WithModel("test/model"), model.WithToolHandler(func(ctx context.Context, call model.ToolCall) model.ToolResult {
 		executed++
-		if len(call.Input) != 0 {
+		if call.Input == nil || len(call.Input) != 0 {
 			t.Errorf("unexpected input: %v", call.Input)
 		}
 		return model.ToolResult{Content: "noon"}

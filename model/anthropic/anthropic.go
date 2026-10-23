@@ -277,7 +277,7 @@ type streamReader struct {
 	body    io.ReadCloser
 	scanner *bufio.Scanner
 	closed  bool
-	usage   model.Usage
+	usage   anthropicUsage
 }
 
 func (s *streamReader) Recv() (*model.Response, error) {
@@ -300,7 +300,7 @@ func (s *streamReader) Recv() (*model.Response, error) {
 			Message struct {
 				Usage anthropicUsage `json:"usage"`
 			} `json:"message"`
-			Usage *anthropicUsage `json:"usage"`
+			Usage json.RawMessage `json:"usage"`
 		}
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
@@ -311,17 +311,19 @@ func (s *streamReader) Recv() (*model.Response, error) {
 				return &model.Response{Reply: chunk.Delta.Text}, nil
 			}
 		case "message_start":
-			s.usage = fromUsage(chunk.Message.Usage)
-			if s.usage.TotalTokens > 0 {
-				return &model.Response{Usage: s.usage}, nil
+			s.usage = chunk.Message.Usage
+			if u := fromUsage(s.usage); u.TotalTokens > 0 {
+				return &model.Response{Usage: u}, nil
 			}
 		case "message_delta":
 			if chunk.Delta.StopReason != "" || chunk.Usage != nil {
 				if chunk.Usage != nil {
-					// Output usage is cumulative; input usage comes from message_start.
-					s.usage = usage(s.usage.InputTokens, chunk.Usage.OutputTokens)
+					// Counters are cumulative. Omitted fields retain their previous values.
+					if err := json.Unmarshal(chunk.Usage, &s.usage); err != nil {
+						return nil, fmt.Errorf("failed to parse stream usage: %w", err)
+					}
 				}
-				return &model.Response{StopReason: chunk.Delta.StopReason, Usage: s.usage}, nil
+				return &model.Response{StopReason: chunk.Delta.StopReason, Usage: fromUsage(s.usage)}, nil
 			}
 		case "message_stop":
 			return nil, io.EOF

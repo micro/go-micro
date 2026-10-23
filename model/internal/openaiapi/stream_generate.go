@@ -166,6 +166,7 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 		var input map[string]any
 		if args := strings.TrimSpace(call.Function.Arguments); args == "" {
 			call.Function.Arguments = "{}"
+			input = map[string]any{}
 		} else if err := json.Unmarshal([]byte(args), &input); err != nil {
 			return nil, nil, fmt.Errorf("tool %s arguments: %w", call.Function.Name, err)
 		}
