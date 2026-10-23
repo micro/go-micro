@@ -341,6 +341,7 @@ func fallbackKey(provider string) string {
 		"openrouter": "OPENROUTER_API_KEY",
 		"together":   "TOGETHER_API_KEY",
 		"atlascloud": "ATLASCLOUD_API_KEY",
+		"litellm":    "LITELLM_API_KEY",
 	}
 	if env, ok := envMap[provider]; ok {
 		return os.Getenv(env)

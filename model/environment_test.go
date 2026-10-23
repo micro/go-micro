@@ -20,6 +20,9 @@ func TestProviderSelection(t *testing.T) {
 }
 
 func TestOpenRouterDetection(t *testing.T) {
+	if got := model.AutoDetectProvider("https://litellm.example.com"); got != "litellm" {
+		t.Errorf("AutoDetectProvider(litellm) = %q", got)
+	}
 	for _, endpoint := range []string{"https://openrouter.ai/api", "https://openrouter.ai/api/v1"} {
 		if got := model.AutoDetectProvider(endpoint); got != "openrouter" {
 			t.Fatalf("provider for %s = %s", endpoint, got)

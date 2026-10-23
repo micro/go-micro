@@ -6,7 +6,7 @@ import "strings"
 // Providers without a dedicated variable use MICRO_AI_API_KEY.
 func APIKeyEnv(provider string) string {
 	switch provider {
-	case "openrouter", "openai", "anthropic", "gemini", "groq", "mistral", "together", "minimax", "ollama", "atlascloud":
+	case "openrouter", "openai", "anthropic", "gemini", "groq", "mistral", "together", "minimax", "ollama", "atlascloud", "litellm":
 		return strings.ToUpper(provider) + "_API_KEY"
 	default:
 		return "MICRO_AI_API_KEY"
