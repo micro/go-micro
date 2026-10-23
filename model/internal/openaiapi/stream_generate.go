@@ -162,8 +162,11 @@ func streamCall(ctx context.Context, opts model.Options, req map[string]any, onT
 	raw := make([]*streamedTool, 0, len(calls))
 	for _, index := range indices {
 		call := calls[index]
+		// A tool without parameters may stream no arguments at all.
 		var input map[string]any
-		if err := json.Unmarshal([]byte(call.Function.Arguments), &input); err != nil {
+		if args := strings.TrimSpace(call.Function.Arguments); args == "" {
+			call.Function.Arguments = "{}"
+		} else if err := json.Unmarshal([]byte(args), &input); err != nil {
 			return nil, nil, fmt.Errorf("tool %s arguments: %w", call.Function.Name, err)
 		}
 		if call.ID == "" || call.Function.Name == "" {

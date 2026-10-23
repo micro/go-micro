@@ -158,8 +158,10 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 	// Extract tool calls
 	for _, tc := range choice.Message.ToolCalls {
 		var input map[string]any
-		if err := json.Unmarshal([]byte(tc.Function.Arguments), &input); err != nil {
-			return nil, nil, fmt.Errorf("tool %s arguments: %w", tc.Function.Name, err)
+		if args := strings.TrimSpace(tc.Function.Arguments); args != "" {
+			if err := json.Unmarshal([]byte(args), &input); err != nil {
+				return nil, nil, fmt.Errorf("tool %s arguments: %w", tc.Function.Name, err)
+			}
 		}
 		response.ToolCalls = append(response.ToolCalls, model.ToolCall{
 			ID:    tc.ID,
@@ -178,6 +180,21 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any) (*model.Resp
 		return nil, nil, err
 	}
 	rawMessage := raw.Choices[0].Message
+	if calls, ok := rawMessage["tool_calls"].([]any); ok {
+		for _, call := range calls {
+			tool, ok := call.(map[string]any)
+			if !ok {
+				continue
+			}
+			function, ok := tool["function"].(map[string]any)
+			if !ok {
+				continue
+			}
+			if args, _ := function["arguments"].(string); strings.TrimSpace(args) == "" {
+				function["arguments"] = "{}"
+			}
+		}
+	}
 
 	return response, rawMessage, nil
 }
