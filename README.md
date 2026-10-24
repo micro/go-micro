@@ -3,15 +3,14 @@
 Go Micro is a Go framework for distributed systems development.
 
 It provides RPC, service discovery, messaging, storage, and configuration.
-Agents use services as tools; workflows coordinate service calls and agent tasks.
+Agents use services as tools to carry out work.
 The gateway exposes services through HTTP and MCP for other applications and agents.
 Each component uses a Go interface with a default implementation that can be replaced.
 
 ## Features
 
 - **Services:** RPC with streaming, message encoding and service discovery.
-- **Agents:** models, conversation history, tools, and agent execution.
-- **Workflows:** ordered steps, retries, and checkpoints.
+- **Agents:** models, conversation history, tools, background tasks, and recovery.
 
 ## Getting started
 

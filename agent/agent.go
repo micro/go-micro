@@ -26,7 +26,6 @@ import (
 
 	"github.com/google/uuid"
 	pb "go-micro.dev/v6/agent/proto"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/logger"
 	"go-micro.dev/v6/model"
@@ -114,7 +113,7 @@ type agentImpl struct {
 	// currentRun points at the checkpoint record for the Ask currently
 	// holding mu. Tool execution updates it so resumed runs can reuse
 	// completed tool results without replaying side effects.
-	currentRun *flow.Run
+	currentRun *Run
 
 	// delegateCalls collapses concurrent equivalent delegate tool calls so a
 	// provider replay cannot fan out duplicate delegated side effects before the
@@ -361,9 +360,8 @@ func (a *agentImpl) StreamChat(ctx context.Context, stream pb.Agent_StreamChatSt
 	}
 }
 
-// Pending returns checkpointed agent runs that have not completed. It mirrors
-// flow.Pending for startup recovery loops that drain durable agent work.
-func Pending(ctx context.Context, ag Agent) ([]flow.Run, error) {
+// Pending returns checkpointed agent runs that have not completed.
+func Pending(ctx context.Context, ag Agent) ([]Run, error) {
 	a, ok := ag.(*agentImpl)
 	if !ok {
 		return nil, fmt.Errorf("agent pending: unsupported agent implementation %T", ag)
@@ -416,7 +414,7 @@ func (a *agentImpl) ask(ctx context.Context, message, parentRunID string) (*Resp
 	return a.askLocked(ctx, uuid.New().String(), message, parentRunID, nil, true)
 }
 
-func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID string, existing *flow.Run, addUserMessage bool) (*Response, error) {
+func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID string, existing *Run, addUserMessage bool) (*Response, error) {
 	if a.model == nil {
 		return nil, fmt.Errorf("agent: unknown model provider %q", a.opts.Provider)
 	}
@@ -524,7 +522,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 				run.Steps = a.currentRun.Steps
 			}
 			if len(run.Steps) == 0 {
-				run.Steps = []flow.StepRecord{{Name: agentAskStep}}
+				run.Steps = []StepRecord{{Name: agentAskStep}}
 			}
 			run.Steps[0].Status = run.Status
 			run.Steps[0].Attempts = attempts
@@ -645,7 +643,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 				run.Steps = a.currentRun.Steps
 			}
 			if len(run.Steps) == 0 {
-				run.Steps = []flow.StepRecord{{Name: agentAskStep}}
+				run.Steps = []StepRecord{{Name: agentAskStep}}
 			}
 			run.Steps[0].Status = "failed"
 			run.Steps[0].Error = err.Error()
@@ -662,7 +660,7 @@ func (a *agentImpl) askLocked(ctx context.Context, runID, message, parentRunID s
 		run.Steps = a.currentRun.Steps
 	}
 	if len(run.Steps) == 0 {
-		run.Steps = []flow.StepRecord{{Name: agentAskStep}}
+		run.Steps = []StepRecord{{Name: agentAskStep}}
 	}
 	run.Steps[0].Status = "done"
 	run.Steps[0].Attempts++

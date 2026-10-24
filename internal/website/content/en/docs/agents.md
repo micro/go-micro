@@ -90,4 +90,18 @@ a := micro.NewAgent("assistant",
 The CLI's `MICRO_REGISTRY` settings configure CLI processes. Library code selects
 its components through Go options.
 
-**Next: [coordinate work with a workflow →](workflows.md)**
+## Execution
+
+`Ask` runs work in the caller's context. `StartTask` runs work in the agent host
+and returns a task ID; `GetTask` reads its result and `StopTask` cancels it.
+Scheduled work uses that same task path. Keep the host running with `Run` and
+shut it down with `Stop`.
+
+For recovery, configure `agent.WithCheckpoint(agent.StoreCheckpoint(st, "assistant"))`,
+where `st` is your persistent store. `agent.Pending` lists unfinished runs and
+`agent.Resume` resumes a chosen run. Recovery is explicit: a tool interrupted by
+a crash may already have performed its action.
+
+These are agent capabilities; no workflow definition is required.
+[Workflows](workflows.md) remain available for applications that need a predefined
+sequence of operations.

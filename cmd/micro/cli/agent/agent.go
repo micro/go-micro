@@ -12,7 +12,6 @@ import (
 	"github.com/urfave/cli/v2"
 	goagent "go-micro.dev/v6/agent"
 	"go-micro.dev/v6/cmd"
-	aiflow "go-micro.dev/v6/flow"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -421,7 +420,7 @@ func resumeInputRun(ctx context.Context, w io.Writer, name, runID, input string)
 	if input == "" {
 		return fmt.Errorf("input required: pass --input <text>")
 	}
-	cp := aiflow.StoreCheckpoint(store.DefaultStore, name)
+	cp := goagent.StoreCheckpoint(store.DefaultStore, name)
 	run, ok, err := cp.Load(ctx, runID)
 	if err != nil {
 		return err
@@ -451,7 +450,7 @@ func resumeInputRun(ctx context.Context, w io.Writer, name, runID, input string)
 		}
 	}
 	if len(run.Steps) == 0 {
-		run.Steps = []aiflow.StepRecord{{Name: "ask", Status: "done", Result: "human input: " + input}}
+		run.Steps = []goagent.StepRecord{{Name: "ask", Status: "done", Result: "human input: " + input}}
 	}
 	if err := cp.Save(ctx, run); err != nil {
 		return err

@@ -7,7 +7,6 @@ import (
 
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
@@ -102,7 +101,7 @@ type Options struct {
 	MemoryRecallLimit int
 	// Checkpoint persists agent Ask runs so callers can resume by run id
 	// after a restart without replaying a run that already completed.
-	Checkpoint flow.Checkpoint
+	Checkpoint Checkpoint
 
 	// MaxSteps bounds the number of tool executions per Ask (0 =
 	// unbounded). Once exceeded, further tool calls are refused and the
@@ -402,12 +401,11 @@ func MemoryRecallLimit(n int) Option {
 	return func(o *Options) { o.MemoryRecallLimit = n }
 }
 
-// WithCheckpoint sets the durability backend for agent Ask runs. The
-// Checkpoint interface is shared with flow so services, agents, and workflows
-// can use one execution history backend. When set, each Ask is saved as a
+// WithCheckpoint sets storage for agent execution progress.
+// When set, each Ask is saved as a
 // single-step run keyed by run id; Resume returns a completed run's persisted
 // response instead of calling the model again.
-func WithCheckpoint(c flow.Checkpoint) Option {
+func WithCheckpoint(c Checkpoint) Option {
 	return func(o *Options) { o.Checkpoint = c }
 }
 

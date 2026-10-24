@@ -12,7 +12,6 @@ import (
 	"time"
 
 	codecBytes "go-micro.dev/v6/codec/bytes"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/gateway/a2a"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
@@ -470,7 +469,7 @@ func (a *agentImpl) approveWrap(next model.ToolHandler) model.ToolHandler {
 					a.approvalErr = err
 					return refused(call.ID, model.RefusedApproval, err.Error())
 				}
-				a.currentRun.Steps = append(a.currentRun.Steps, flow.StepRecord{Name: approvalPrefix + decision.ID, Status: "pending", Result: string(data)})
+				a.currentRun.Steps = append(a.currentRun.Steps, StepRecord{Name: approvalPrefix + decision.ID, Status: "pending", Result: string(data)})
 				a.pause = &approvalPause{ApprovalID: decision.ID, Tool: call.Name, Message: decision.Reason}
 				// ponytail: persistApprovalPause never returns nil (PausedError or save err), so no nil check
 				if err := a.persistApprovalPause(ctx, a.currentRun); !errors.Is(err, ErrRunPaused) {
