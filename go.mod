@@ -2,7 +2,7 @@ module go-micro.dev/v6
 
 go 1.26.0
 
-toolchain go1.26.9
+toolchain go1.26.10
 
 require (
 	charm.land/glamour/v2 v2.0.1
