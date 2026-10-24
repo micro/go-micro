@@ -9,7 +9,7 @@ import (
 	"go-micro.dev/v6/store"
 )
 
-func TestScheduleSurvivesRestartAndUsesFlow(t *testing.T) {
+func TestScheduleSurvivesRestartAndUsesTask(t *testing.T) {
 	calls := 0
 	fakeGen = func(context.Context, model.Options, *model.Request) (*model.Response, error) {
 		calls++
@@ -22,7 +22,8 @@ func TestScheduleSurvivesRestartAndUsesFlow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	restarted := newTestAgent(Name("scheduled"), WithStore(st))
+	cp := StoreCheckpoint(st, "scheduled")
+	restarted := newTestAgent(Name("scheduled"), WithStore(st), WithCheckpoint(cp))
 	defer restarted.Stop()
 	now := entry.Next.Add(time.Second)
 	if err := restarted.tickSchedules(context.Background(), now); err != nil {
@@ -39,8 +40,16 @@ func TestScheduleSurvivesRestartAndUsesFlow(t *testing.T) {
 		t.Fatalf("entries=%+v err=%v", entries, err)
 	}
 	task, err := restarted.GetTask(context.Background(), entries[0].LastTask)
-	if err != nil || task.Status != "done" || task.Response.ParentID == "" {
+	if err != nil || task.Status != "done" || task.Response.RunID != task.ID {
 		t.Fatalf("task=%+v err=%v", task, err)
+	}
+	run, found, err := cp.Load(context.Background(), task.ID)
+	if err != nil || !found || run.Status != "done" || run.Dispatch != "schedule" || run.Trigger != entry.ID || run.ParentID != "" {
+		t.Fatalf("scheduled run=%+v found=%v err=%v", run, found, err)
+	}
+	wrapperRuns, err := StoreCheckpoint(st, "scheduled-schedules").List(context.Background())
+	if err != nil || len(wrapperRuns) != 0 {
+		t.Fatalf("unexpected workflow runs=%+v err=%v", wrapperRuns, err)
 	}
 	history, err := LoadHistory(st, "scheduled", "daily")
 	if err != nil || len(history) != 2 || history[1].Content != "scheduled result" {

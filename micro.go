@@ -1,4 +1,4 @@
-// Package micro is a pluggable framework for services, agents, and workflows.
+// Package micro is a pluggable framework for services and agents.
 package micro
 
 import (
@@ -35,6 +35,9 @@ type AgentOption = agent.Option
 
 // Flow coordinates predefined steps, service calls, and agent decisions.
 type Flow = flow.Flow
+
+// AgentRun records one agent execution.
+type AgentRun = agent.Run
 
 // FlowRun is a checkpointed flow or agent run record.
 type FlowRun = flow.Run
@@ -245,7 +248,7 @@ func AgentWithCheckpoint(c Checkpoint) AgentOption { return agent.WithCheckpoint
 
 // AgentPending returns checkpointed agent runs that have not completed.
 // Use it at process startup to discover agent work that should be resumed.
-func AgentPending(ctx context.Context, a Agent) ([]FlowRun, error) { return agent.Pending(ctx, a) }
+func AgentPending(ctx context.Context, a Agent) ([]AgentRun, error) { return agent.Pending(ctx, a) }
 
 // AgentResume resumes a checkpointed agent run by id. Completed runs return
 // the persisted response, including completed tool-call metadata, without
@@ -312,8 +315,8 @@ type FlowState = flow.State
 // FlowStepFunc performs one step's work.
 type FlowStepFunc = flow.StepFunc
 
-// Checkpoint persists and resumes flow runs (durable execution).
-type Checkpoint = flow.Checkpoint
+// Checkpoint stores execution progress for recovery.
+type Checkpoint = agent.Checkpoint
 
 // FlowSteps makes the flow run an ordered list of steps per event,
 // checkpointed between each, instead of a single LLM turn.
@@ -379,10 +382,10 @@ func FlowOnIteration(fn func(iter int, state FlowState)) FlowLoopOption {
 }
 
 // StoreCheckpoint returns a store-backed Checkpoint whose run keys are
-// namespaced under scope (pass the flow name so each flow's runs stay in
-// their own keyspace). A nil store uses the default store.
+// namespaced under scope (the agent or workflow name). A nil store uses
+// the default store.
 func StoreCheckpoint(s store.Store, scope string) Checkpoint {
-	return flow.StoreCheckpoint(s, scope)
+	return agent.StoreCheckpoint(s, scope)
 }
 
 // NewGroup creates a service group for running multiple services

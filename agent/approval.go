@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 )
 
@@ -119,7 +118,7 @@ func (a *agentImpl) ResumeApproval(ctx context.Context, runID, approvalID string
 	return a.askLocked(ctx, run.ID, string(run.State.Data), run.ParentID, &run, false)
 }
 
-func pendingApproval(run flow.Run) *PausedError {
+func pendingApproval(run Run) *PausedError {
 	for _, step := range run.Steps {
 		if strings.HasPrefix(step.Name, approvalPrefix) && step.Status == "pending" {
 			var record approvalRecord
@@ -132,7 +131,7 @@ func pendingApproval(run flow.Run) *PausedError {
 	return nil
 }
 
-func (a *agentImpl) persistApprovalPause(ctx context.Context, run *flow.Run) error {
+func (a *agentImpl) persistApprovalPause(ctx context.Context, run *Run) error {
 	run.Status = "paused"
 	run.State.Stage = agentApprovalStep
 	run.Steps[0].Status = "paused"
@@ -144,7 +143,7 @@ func (a *agentImpl) persistApprovalPause(ctx context.Context, run *flow.Run) err
 }
 
 // resolveApprovedCalls runs persisted decisions before asking the model again.
-func (a *agentImpl) resolveApprovedCalls(ctx context.Context, run *flow.Run, tools []model.Tool) ([]model.Message, error) {
+func (a *agentImpl) resolveApprovedCalls(ctx context.Context, run *Run, tools []model.Tool) ([]model.Message, error) {
 	var messages []model.Message
 	for i := 0; i < len(run.Steps); i++ {
 		step := run.Steps[i]

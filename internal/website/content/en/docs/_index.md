@@ -12,7 +12,7 @@ menu:
     weight: 10
 ---
 
-Go Micro is a Go framework for services, agents, and workflows.
+Go Micro is a Go framework for services and agents.
 
 Choose a starting point:
 
@@ -24,6 +24,5 @@ For extending your application:
 
 - [Services](services.md): expose and call application operations.
 - [Agents](agents.md): use services as tools through a model.
-- [Workflows](workflows.md): run steps in a defined order.
 
 [Reference](reference.md) covers the individual packages and CLI.

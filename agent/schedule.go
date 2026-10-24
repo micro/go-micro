@@ -9,8 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	pb "go-micro.dev/v6/agent/proto"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/metadata"
+	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
@@ -147,27 +147,18 @@ func (a *agentImpl) tickSchedules(ctx context.Context, now time.Time) error {
 		if err != nil {
 			return err
 		}
-		f := flow.New(a.opts.Name+"-schedule-"+entry.ID,
-			flow.WithCheckpoint(flow.StoreCheckpoint(a.opts.Store, a.opts.Name+"-schedules")),
-			flow.Steps(flow.Step{Name: "agent", Run: func(ctx context.Context, in flow.State) (flow.State, error) {
-				task, err := a.StartTask(WithSession(ctx, entry.Session), entry.Message)
-				if err != nil {
-					return in, err
-				}
-				entry.LastTask = task.ID
-				result, err := a.waitTask(ctx, task.ID)
-				if err != nil {
-					return in, err
-				}
-				if result.Status != "done" {
-					return in, fmt.Errorf("scheduled task %s: %s", task.ID, result.Error)
-				}
-				if result.Response != nil {
-					in.Data = []byte(result.Response.Reply)
-				}
-				return in, nil
-			}}))
-		err = flow.Scheduled(f, entry.Message).Tick(ctx)
+		info, _ := model.RunInfoFrom(ctx)
+		info.Dispatch = "schedule"
+		info.Trigger = entry.ID
+		task, err := a.StartTask(model.WithRunInfo(WithSession(ctx, entry.Session), info), entry.Message)
+		if err == nil {
+			entry.LastTask = task.ID
+			var result *Task
+			result, err = a.waitTask(ctx, task.ID)
+			if err == nil && result.Status != "done" {
+				err = fmt.Errorf("scheduled task %s: %s", task.ID, result.Error)
+			}
+		}
 		entry.Error = ""
 		if err != nil {
 			entry.Error = err.Error()

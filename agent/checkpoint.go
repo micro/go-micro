@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 )
 
@@ -18,9 +17,9 @@ const (
 	agentInputStep    = "input-required"
 )
 
-func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info model.RunInfo, existing *flow.Run) flow.Run {
+func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info model.RunInfo, existing *Run) Run {
 	now := time.Now()
-	run := flow.Run{
+	run := Run{
 		ID:         runID,
 		ParentID:   parentRunID,
 		Flow:       a.opts.Name,
@@ -28,8 +27,8 @@ func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info mo
 		OriginStep: info.Step,
 		Dispatch:   info.Dispatch,
 		Trigger:    info.Trigger,
-		State:      flow.State{Stage: agentAskStep, Data: []byte(message)},
-		Steps:      []flow.StepRecord{{Name: agentAskStep, Status: "in_progress"}},
+		State:      State{Stage: agentAskStep, Data: []byte(message)},
+		Steps:      []StepRecord{{Name: agentAskStep, Status: "in_progress"}},
 		Status:     "running",
 		Started:    now,
 		Updated:    now,
@@ -39,7 +38,7 @@ func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info mo
 		run.Status = "running"
 		run.State.Stage = agentAskStep
 		if len(run.Steps) == 0 {
-			run.Steps = []flow.StepRecord{{Name: agentAskStep}}
+			run.Steps = []StepRecord{{Name: agentAskStep}}
 		}
 		run.Steps[0].Status = "in_progress"
 		run.Steps[0].Error = ""
@@ -48,7 +47,7 @@ func (a *agentImpl) newCheckpointRun(runID, message, parentRunID string, info mo
 	return run
 }
 
-func (a *agentImpl) saveRun(ctx context.Context, run flow.Run) error {
+func (a *agentImpl) saveRun(ctx context.Context, run Run) error {
 	if a.opts.Checkpoint == nil {
 		return nil
 	}
@@ -186,7 +185,7 @@ func (a *agentImpl) resumeInput(ctx context.Context, runID, input string) (*Resp
 	return a.askLocked(ctx, run.ID, message, run.ParentID, &run, true)
 }
 
-func (a *agentImpl) pending(ctx context.Context) ([]flow.Run, error) {
+func (a *agentImpl) pending(ctx context.Context) ([]Run, error) {
 	if a.opts.Checkpoint == nil {
 		return nil, nil
 	}
@@ -281,11 +280,11 @@ func (a *agentImpl) checkpointToolWrap(next model.ToolHandler) model.ToolHandler
 			return model.ToolResult{ID: call.ID, Value: rec.Result, Content: rec.Result}
 		}
 
-		idx := upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
+		idx := upsertStep(&run.Steps, StepRecord{Name: name, Status: "in_progress"})
 		_ = a.saveRun(ctx, *run)
 		res := next(ctx, call)
 		if idx < 0 || idx >= len(run.Steps) || run.Steps[idx].Name != name {
-			idx = upsertStep(&run.Steps, flow.StepRecord{Name: name, Status: "in_progress"})
+			idx = upsertStep(&run.Steps, StepRecord{Name: name, Status: "in_progress"})
 		}
 		run.Steps[idx].Attempts++
 		if res.Refused != "" {
@@ -307,16 +306,16 @@ func toolCheckpointName(call model.ToolCall) string {
 	return "tool:" + call.Name + ":" + string(b)
 }
 
-func findStep(steps []flow.StepRecord, name string) (flow.StepRecord, bool) {
+func findStep(steps []StepRecord, name string) (StepRecord, bool) {
 	for _, step := range steps {
 		if step.Name == name {
 			return step, true
 		}
 	}
-	return flow.StepRecord{}, false
+	return StepRecord{}, false
 }
 
-func upsertStep(steps *[]flow.StepRecord, rec flow.StepRecord) int {
+func upsertStep(steps *[]StepRecord, rec StepRecord) int {
 	for i := range *steps {
 		if (*steps)[i].Name == rec.Name {
 			(*steps)[i].Status = rec.Status
@@ -325,13 +324,13 @@ func upsertStep(steps *[]flow.StepRecord, rec flow.StepRecord) int {
 		}
 	}
 	if len(*steps) == 0 || (*steps)[0].Name != agentAskStep {
-		*steps = append([]flow.StepRecord{{Name: agentAskStep, Status: "in_progress"}}, (*steps)...)
+		*steps = append([]StepRecord{{Name: agentAskStep, Status: "in_progress"}}, (*steps)...)
 	}
 	*steps = append(*steps, rec)
 	return len(*steps) - 1
 }
 
-func checkpointToolCalls(steps []flow.StepRecord) []model.ToolCall {
+func checkpointToolCalls(steps []StepRecord) []model.ToolCall {
 	calls := make([]model.ToolCall, 0, len(steps))
 	for _, step := range steps {
 		call, ok := checkpointToolCall(step)
@@ -343,7 +342,7 @@ func checkpointToolCalls(steps []flow.StepRecord) []model.ToolCall {
 	return calls
 }
 
-func checkpointToolCall(step flow.StepRecord) (model.ToolCall, bool) {
+func checkpointToolCall(step StepRecord) (model.ToolCall, bool) {
 	if step.Status != "done" || !strings.HasPrefix(step.Name, "tool:") {
 		return model.ToolCall{}, false
 	}

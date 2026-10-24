@@ -1,6 +1,6 @@
 ---
 title: Go Micro
-description: Build services in Go. Connect them, give agents tools to use them, and coordinate work with workflows.
+description: Build services in Go. Connect them and give agents tools to use them.
 params:
   body_class: micro-home
 ---
@@ -10,7 +10,7 @@ params:
 <div>
 <p class="micro-eyebrow">The Go framework for services and agents</p>
 <h1 id="intro-title">Build services.<br>Put agents to work.</h1>
-<p class="micro-lead">Build services in Go. Call them from your applications, connect agents through MCP, or write your own agents and workflows.</p>
+<p class="micro-lead">Build services in Go. Call them from your applications, connect agents through MCP, or write your own agents.</p>
 <div class="micro-actions">
 <a class="micro-button" href="/docs/quickstart.html">Get started <span aria-hidden="true">→</span></a>
 <a href="https://github.com/micro/go-micro">Explore the code</a>
@@ -37,7 +37,7 @@ params:
 <h2 id="foundation-title">Write the capability.<br>Let the framework connect it.</h2>
 <p>Go Micro handles service discovery, RPC, and publish/subscribe so your services can find each other, make requests, and react to events.</p>
 <p>Storage, configuration, and infrastructure integrations use replaceable Go interfaces. Start locally and choose the components your deployment needs.</p>
-<p>Use services on their own, <a href="/docs/agents.html">build your own agent</a>, or <a href="/docs/workflows.html">compose a workflow</a>.</p>
+<p>Use services on their own or <a href="/docs/agents.html">build your own agent</a>.</p>
 <a href="/docs/reference.html">Explore the framework →</a>
 </div>
 <dl class="micro-building-blocks">
