@@ -190,8 +190,19 @@ func TestCurrentDocsExamplesBuild(t *testing.T) {
 	}
 	workspace := t.TempDir()
 	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/my-app\n\ngo 1.26\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+root+"\n")
-	for _, page := range []string{"quickstart", "services", "agents", "workflows"} {
-		doc := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", page+".md"))
+	for _, page := range []string{"quickstart", "services", "agents", "standalone-agent", "workflows"} {
+		docPage := page
+		if page == "standalone-agent" {
+			docPage = "agents"
+		}
+		doc := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", docPage+".md"))
+		if page == "standalone-agent" {
+			var found bool
+			_, doc, found = strings.Cut(doc, "## Standalone agent")
+			if !found {
+				t.Fatal("agents guide has no standalone example")
+			}
+		}
 		_, code, ok := strings.Cut(doc, "```go\n")
 		if !ok {
 			t.Fatalf("%s has no Go program", page)
@@ -204,6 +215,16 @@ func TestCurrentDocsExamplesBuild(t *testing.T) {
 			// The client fragment uses the service and types from the quickstart.
 			service := readFile(t, filepath.Join(workspace, "quickstart", "main.go"))
 			code = service + "\nfunc callNotes(service micro.Service, ctx context.Context) error {\n" + code + "\nreturn nil\n}\n"
+		}
+		if page == "agents" {
+			// Supply the service and handler surrounding the attachment fragment.
+			service := readFile(t, filepath.Join(workspace, "quickstart", "main.go"))
+			declarations, _, found := strings.Cut(service, "func main()")
+			if !found {
+				t.Fatal("quickstart has no main function")
+			}
+			code = strings.ReplaceAll(code, "handler.New()", "new(Notes)")
+			code = declarations + "\nfunc main() {\nservice := micro.NewService(\"notes\")\n" + code + "\n}\n"
 		}
 		dir := filepath.Join(workspace, page)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -329,7 +350,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 		{"README.md", []string{"https://go-micro.dev/docs/quickstart.html"}},
 		{"internal/website/content/en/docs/quickstart.md", []string{"services.md", "agents.md", "workflows.md"}},
 		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md", "../guides/agents-and-workflows.md"}},
-		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "services.md", "agents.md", "workflows.md", "reference.md"}},
+		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "services.md", "agents.md", "reference.md"}},
 	}
 	for _, check := range checks {
 		doc := readFile(t, filepath.Join(root, check.file))
@@ -344,7 +365,7 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 
 func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
-	onRampTrail := []string{"quickstart.md", "services.md", "agents.md", "workflows.md"}
+	onRampTrail := []string{"quickstart.md", "services.md", "agents.md"}
 	checks := []struct {
 		name    string
 		file    string

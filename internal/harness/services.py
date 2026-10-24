@@ -98,7 +98,7 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
     # Reuse build caches; the CLI's home/config remain isolated.
     for name in ("GOPATH", "GOCACHE"):
         env[name] = subprocess.check_output(["go", "env", name], text=True).strip()
-    env["GOTOOLCHAIN"] = "go1.26.9"
+    env["GOTOOLCHAIN"] = "go1.26.10"
     reg, api, mcp = port(), port(), port()
     env.update(MICRO_REGISTRY="nats", MICRO_REGISTRY_ADDRESS=f"127.0.0.1:{reg}")
 
