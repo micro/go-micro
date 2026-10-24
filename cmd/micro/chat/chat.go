@@ -37,6 +37,7 @@ import (
 	"go-micro.dev/v6/store"
 
 	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/apiroute"
 	_ "go-micro.dev/v6/model/atlascloud"
 	_ "go-micro.dev/v6/model/gemini"
 	_ "go-micro.dev/v6/model/groq"
@@ -95,7 +96,7 @@ Examples:
 		Flags: []cli.Flag{
 			&cli.StringFlag{Name: "sandbox", Usage: "Run workspace commands in this Docker image with networking disabled"},
 			&cli.StringFlag{Name: "host", Usage: "Serve the local development agent under this name without a chat UI (loopback only); --yes allows unattended tool actions"},
-			&cli.StringFlag{Name: "provider", Usage: "AI provider (anthropic, openai, gemini, groq, mistral, openrouter, together, minimax, ollama, atlascloud, litellm)", EnvVars: []string{"MICRO_AI_PROVIDER"}},
+			&cli.StringFlag{Name: "provider", Usage: "AI provider (anthropic, openai, gemini, groq, mistral, openrouter, api-route, together, minimax, ollama, atlascloud, litellm)", EnvVars: []string{"MICRO_AI_PROVIDER"}},
 			&cli.StringFlag{Name: "api_key", Usage: "API key for the provider", EnvVars: []string{"MICRO_AI_API_KEY"}},
 			&cli.StringFlag{Name: "model", Usage: "Model name (uses provider default if unset)", EnvVars: []string{"MICRO_AI_MODEL"}},
 			&cli.StringFlag{Name: "base_url", Usage: "Override the provider's base URL", EnvVars: []string{"MICRO_AI_BASE_URL"}},
