@@ -2,7 +2,7 @@
 title: "CLI & Gateway Guide"
 ---
 
-The Go Micro CLI provides two gateway modes for accessing your microservices: development (`micro run`) and production (`micro server`). Both use the same underlying gateway architecture, ensuring consistent behavior across environments.
+The Go Micro CLI provides two gateway modes for accessing your microservices: development (`micro run --gateway`) and production (`micro server`). Both use the same underlying gateway architecture, ensuring consistent behavior across environments.
 
 `micro gateway` is the current gateway command; `micro server` remains a deprecated alias used in the examples below.
 
@@ -30,7 +30,7 @@ The Go Micro CLI provides two gateway modes for accessing your microservices: de
 
 ## Quick Comparison
 
-| Feature | `micro run` | `micro server` |
+| Feature | `micro run --gateway` | `micro server` |
 |---------|-------------|----------------|
 | **Purpose** | Local development | Production API gateway |
 | **Authentication** | Depends on bind address | Depends on bind address |
@@ -39,7 +39,7 @@ The Go Micro CLI provides two gateway modes for accessing your microservices: de
 | **Endpoint Scopes** | Yes (`/auth/scopes`) | Yes (`/auth/scopes`) |
 | **Best For** | Coding, testing, iteration | Deployed environments |
 
-## Development Mode: `micro run`
+## Development Mode: `micro run --gateway`
 
 ### Quick Start
 
@@ -47,7 +47,7 @@ The Go Micro CLI provides two gateway modes for accessing your microservices: de
 # Create and run a service
 micro new myservice
 cd myservice
-micro run
+micro run --gateway
 ```
 
 Open http://localhost:8080 - no login required!
@@ -64,7 +64,7 @@ Open http://localhost:8080 - no login required!
 
 ```bash
 # Start with hot reload
-micro run
+micro run --gateway
 
 # On an exposed gateway, use http://localhost:8080/?token=<startup-token>
 # Or use a token for API calls:
@@ -204,7 +204,7 @@ No gateway restart needed!
 
 ### 6. Endpoint Scopes
 
-Scopes provide fine-grained access control over which tokens can call which endpoints. Both `micro run` and `micro server` support scopes.
+Scopes provide fine-grained access control over which tokens can call which endpoints. Both `micro run --gateway` and `micro server` support scopes.
 
 **Set up endpoint scopes:**
 
@@ -241,7 +241,7 @@ micro gateway --mcp-address :3000
 micro gateway --mcp-address :3000 --auth --audit --rate-limit 100
 
 # Development loop, same flag
-micro run --mcp-address :3000
+micro run --gateway --mcp-address :3000
 ```
 
 The MCP gateway serves four transports on its address (`:3000` in the examples):
@@ -287,7 +287,7 @@ The unification is internal - your code keeps working.
 
 ```bash
 # 1. Develop locally without auth
-micro run
+micro run --gateway
 # Test: curl http://localhost:8080/api/...
 
 # 2. Build for production
@@ -322,7 +322,7 @@ service web
     depends api worker
 
 # Start all with gateway
-micro run
+micro run --gateway
 ```
 
 See [micro run guide](micro-run.md) for configuration details.
@@ -427,7 +427,7 @@ This gives you full control over gateway configuration in custom deployments.
 
 ### Port already in use
 
-**Problem**: `micro run` or `micro server` won't start
+**Problem**: `micro run --gateway` or `micro server` won't start
 
 **Solution**:
 ```bash

@@ -42,5 +42,6 @@ If an agent is already registered, `micro chat` connects to it instead;
 the running agent owns its model configuration. You do not need to start a
 second agent or enter its credentials in the client.
 
-To choose instructions, model, and service access in your own code,
-[define an agent in Go](../agents.md).
+To host chat on your own service, use `micro new weather --agent` with a CLI
+installed from `master`, or attach an agent using `service.Handle`.
+See [New → Run → Chat](../agents.md#new--run--chat) for the scaffold and Go API.

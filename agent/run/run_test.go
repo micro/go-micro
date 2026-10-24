@@ -20,9 +20,8 @@ func TestExistingCheckpointRemainsReadable(t *testing.T) {
 	if err != nil || !found || record.State.String() != "hi" || record.Steps[0].Result != "hello" {
 		t.Fatalf("run=%+v found=%v err=%v", record, found, err)
 	}
-	var old flow.Checkpoint = cp
 	record.Status = "waiting"
-	if err := old.Save(context.Background(), record); err != nil {
+	if err := cp.Save(context.Background(), record); err != nil {
 		t.Fatal(err)
 	}
 	restored, found, err := flow.StoreCheckpoint(st, "assistant").Load(context.Background(), "saved")

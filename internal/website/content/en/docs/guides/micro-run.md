@@ -2,7 +2,8 @@
 title: "micro run - Local Development"
 ---
 
-`micro run` provides a complete development environment for Go microservices.
+`micro run` builds, runs, and watches your services. Use `micro chat` for
+conversation and `micro gateway` for HTTP and MCP.
 
 > **Note**: This guide focuses on `micro run` features. For a comparison with `micro server` and gateway architecture details, see the [CLI & Gateway Guide](cli-gateway.md).
 
@@ -16,11 +17,19 @@ cd helloworld
 micro run
 ```
 
-Open http://localhost:8080 to see your service.
+Call it from another terminal:
+
+```sh
+micro call helloworld Helloworld.Call '{"name":"World"}'
+```
 
 ## What You Get
 
-When you run `micro run`, you get:
+Plain `micro run` shows service logs and watches for changes. It does not start
+a gateway or chat console. Ctrl-C stops the services.
+
+For the optional web dashboard and HTTP API, run `micro gateway` separately,
+or use `micro run --gateway`. The gateway provides:
 
 | URL | Description |
 |-----|-------------|
@@ -262,18 +271,18 @@ micro run github.com/myorg/blog   # remote repo
 ## Options
 
 ```bash
-micro run                        # Gateway on :8080, hot reload
-micro run --address :3000        # Custom gateway port
-micro run --no-gateway           # Services only, no HTTP gateway
+micro run                        # Services with hot reload
+micro run --gateway --address :3000        # Custom gateway port
+micro run --gateway             # Also start the HTTP gateway
 micro run --no-watch             # Disable hot reload
 micro run --env production       # Use production environment
-micro run --mcp-address :3000    # Enable the MCP gateway for AI clients (runs alongside the HTTP gateway)
+micro run --mcp-address :3000    # Enable the MCP gateway for AI clients (independent of the HTTP gateway)
 ```
 
 ## Going to production
 
 `micro run` has no production mode by design — it's the dev inner loop. In
-development it also hands you a gateway for free (`--no-gateway` to skip); in
+development the gateway is optional (`--gateway`); in
 production you don't run `micro run` at all. To ship:
 
 1. **Build each service**: `go build` produces a static binary.

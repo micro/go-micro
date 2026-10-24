@@ -13,14 +13,14 @@ go-micro provides a clear workflow from development to production:
 
 | Stage | Command | Purpose |
 |-------|---------|---------|
-| **Develop** | `micro run` | Local dev with hot reload and API gateway |
+| **Develop** | `micro run` | Local development with hot reload |
 | **Build** | `micro build` | Compile production binaries for any target OS |
 | **Deploy** | `micro deploy` | Push binaries to a remote Linux server via SSH + systemd |
 | **Dashboard** | `micro server` | Optional production web UI with JWT auth and user management |
 
 Each command has a distinct role — they don't overlap:
 
-- **`micro run`** builds, runs, and watches services locally. It includes a lightweight gateway. Use it for development.
+- **`micro run`** builds, runs, and watches services locally. Use `micro gateway` separately, or opt in with `micro run --gateway`. Use it for development.
 - **`micro build`** compiles binaries without running them. Use it to prepare release artifacts.
 - **`micro deploy`** sends binaries to a remote server and manages them with systemd. It builds automatically if needed.
 - **`micro server`** provides an authenticated web dashboard for services that are already running. It does NOT build or run services.

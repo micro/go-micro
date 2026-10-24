@@ -81,6 +81,7 @@ type agentImpl struct {
 	tools       *model.Tools
 	mem         Memory
 	server      server.Server
+	attached    bool
 	mu          sync.Mutex
 	sessionMu   sync.Mutex
 	sessions    map[string]*sessionLock
@@ -704,6 +705,9 @@ func (a *agentImpl) Chat(ctx context.Context, req *pb.ChatRequest, rsp *pb.ChatR
 func (a *agentImpl) startServer() (<-chan struct{}, error) {
 	a.lifecycle.Lock()
 	defer a.lifecycle.Unlock()
+	if a.attached {
+		return nil, errors.New("agent: attached to a service; run the service instead")
+	}
 	a.tasks.mu.Lock()
 	stopped := a.tasks.stopped
 	a.tasks.mu.Unlock()
@@ -718,71 +722,24 @@ func (a *agentImpl) startServer() (<-chan struct{}, error) {
 		}
 	}
 
-	sessionSupport := "v1"
-	if a.opts.Memory != nil {
-		if _, ok := a.opts.Memory.(SessionMemory); !ok {
-			sessionSupport = ""
-		}
-	}
-	modelName := a.opts.Model
-	if a.model != nil {
-		modelName = a.model.Options().Model
-	}
 	serverOpts := []server.Option{
 		server.Name(a.opts.Name),
 		server.Address(a.opts.Address),
 		server.Registry(a.opts.Registry),
-		server.Metadata(map[string]string{
-			"interaction":     "v1",
-			"sessions":        sessionSupport,
-			"session_history": sessionSupport,
-			"tasks":           sessionSupport,
-			"schedules":       sessionSupport,
-			"provider":        a.opts.Provider,
-			"model":           modelName,
-			"type":            "agent",
-			"services":        strings.Join(a.opts.Services, ","),
-		}),
 	}
 	if a.opts.Broker != nil {
 		serverOpts = append(serverOpts, server.Broker(a.opts.Broker))
 	}
 	a.server = server.NewServer(serverOpts...)
 
-	if err := pb.RegisterAgentHandler(a.server, a); err != nil {
-		return nil, err
-	}
-	if err := pb.RegisterAgentInteractionHandler(a.server, &interactionHandler{agent: a}); err != nil {
-		return nil, err
-	}
-	if err := pb.RegisterAgentSessionsHandler(a.server, &sessionHandler{agent: a}); err != nil {
-		return nil, err
-	}
-
-	if err := pb.RegisterAgentTasksHandler(a.server, &taskHandler{agent: a}); err != nil {
-		return nil, err
-	}
-
-	if err := pb.RegisterAgentSchedulesHandler(a.server, &scheduleHandler{agent: a}); err != nil {
+	if err := a.registerHandlers(a.server); err != nil {
 		return nil, err
 	}
 	if err := a.server.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start agent: %w", err)
 	}
 
-	a.tasks.mu.Lock()
-	a.tasks.address = a.server.Options().Address
-	a.tasks.mu.Unlock()
-	stopCh := make(chan struct{})
-	a.stopCh = stopCh
-	ctx, cancel := context.WithCancel(context.Background())
-	a.schedules.cancel = cancel
-	a.schedules.done = make(chan struct{})
-	go func() {
-		a.schedules.err = a.runSchedules(ctx)
-		close(a.schedules.done)
-	}()
-	return stopCh, nil
+	return a.startHost(), nil
 }
 
 func (a *agentImpl) Run() error {
@@ -845,7 +802,7 @@ func (a *agentImpl) Stop() error {
 		close(a.stopCh)
 		a.stopCh = nil
 	}
-	if a.server != nil {
+	if a.server != nil && !a.attached {
 		return a.server.Stop()
 	}
 	return nil
@@ -859,7 +816,7 @@ func (a *agentImpl) discoverTools() ([]model.Tool, error) {
 
 	var scoped []model.Tool
 	for _, t := range all {
-		if strings.HasPrefix(t.OriginalName, a.opts.Name+".") {
+		if agentEndpoint(t.OriginalName) {
 			continue
 		}
 		if a.opts.Services == nil {

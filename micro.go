@@ -78,6 +78,8 @@ func New(name string, opts ...Option) Service {
 }
 
 // NewAgent creates a new AI agent that manages the given services.
+// Attach it with service.Handle(agent) to share a service's RPC server and
+// lifecycle, or call agent.Run() to host it independently.
 //
 //	agent := micro.NewAgent("task-mgr",
 //	    micro.AgentServices("task"),

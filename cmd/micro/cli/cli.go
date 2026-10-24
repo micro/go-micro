@@ -123,10 +123,15 @@ func init() {
 			Usage:     "Create a new service",
 			ArgsUsage: "[name]",
 			UsageText: `  micro new helloworld                          # scaffold a single service
+  micro new weather --agent                    # host an agent on the service
   micro new --prompt "a todo list with tasks"    # AI-design multiple services
   micro new --prompt "add tags to the task service"  # extend existing services`,
 			Action: new.Run,
 			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:  "agent",
+					Usage: "Host an agent on the generated service (no MCP listener)",
+				},
 				&cli.BoolFlag{
 					Name:  "no-mcp",
 					Usage: "Disable MCP gateway integration in generated code",
