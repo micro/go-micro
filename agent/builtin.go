@@ -949,11 +949,11 @@ func (a *agentImpl) isAgent(name string) bool {
 	if err != nil || len(recs) == 0 {
 		return false
 	}
-	if recs[0].Metadata != nil && recs[0].Metadata["type"] == "agent" {
+	if recs[0].Metadata["type"] == "agent" || recs[0].Metadata["agent"] == "v1" {
 		return true
 	}
 	for _, n := range recs[0].Nodes {
-		if n.Metadata != nil && n.Metadata["type"] == "agent" {
+		if n.Metadata["type"] == "agent" || n.Metadata["agent"] == "v1" {
 			return true
 		}
 	}

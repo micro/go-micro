@@ -68,10 +68,10 @@ func listAgents(c *cli.Context) error {
 			continue
 		}
 		meta := recs[0].Metadata
-		isAgent := meta != nil && meta["type"] == "agent"
+		isAgent := meta["type"] == "agent" || meta["agent"] == "v1"
 		if !isAgent && len(recs[0].Nodes) > 0 {
 			nm := recs[0].Nodes[0].Metadata
-			isAgent = nm != nil && nm["type"] == "agent"
+			isAgent = nm["type"] == "agent" || nm["agent"] == "v1"
 		}
 		if !isAgent {
 			continue

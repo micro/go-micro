@@ -109,3 +109,29 @@ func main() {
 }
 `
 )
+
+// MainAgent hosts the agent and business handlers on the same service.
+var MainAgent = `package main
+
+import (
+ "{{.Dir}}/handler"
+
+ "go-micro.dev/v6"
+ log "go-micro.dev/v6/logger"
+)
+
+func main() {
+ service := micro.NewService("{{lower .Alias}}")
+ service.Init()
+
+ if err := service.Handle(handler.New()); err != nil {
+  log.Fatal(err)
+ }
+ if err := service.Handle(micro.NewAgent("{{lower .Alias}}")); err != nil {
+  log.Fatal(err)
+ }
+ if err := service.Run(); err != nil {
+  log.Fatal(err)
+ }
+}
+`

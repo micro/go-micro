@@ -149,11 +149,11 @@ history, and no-secret fallback checks.`,
 							continue
 						}
 						meta := records[0].Metadata
-						if meta == nil || meta["type"] != "agent" {
+						if meta["type"] != "agent" && meta["agent"] != "v1" {
 							if len(records[0].Nodes) > 0 {
 								meta = records[0].Nodes[0].Metadata
 							}
-							if meta == nil || meta["type"] != "agent" {
+							if meta["type"] != "agent" && meta["agent"] != "v1" {
 								continue
 							}
 						}

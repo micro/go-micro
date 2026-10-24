@@ -161,3 +161,32 @@ make dev      # Run with hot reload (requires air)
 ` + "```" + `
 `
 )
+
+var ReadmeAgent = `# {{title .Alias}}
+
+Run the service with a model provider key:
+
+` + "```sh" + `
+export OPENAI_API_KEY=... # or another supported provider key
+go run .
+` + "```" + `
+
+In another terminal:
+
+` + "```sh" + `
+micro call {{lower .Alias}} {{title .Alias}}.Call '{"name":"Alice"}'
+micro chat {{lower .Alias}}
+` + "```" + `
+
+Ask it to greet Alice. The starter handler returns "Hello Alice"; it does not
+implement domain logic. Add your own methods in ` + "`handler/`" + ` to give the
+agent capabilities. RPC and chat use the same service. Provider credentials
+belong on the service; the chat client does not need them.
+
+The agent can use this service's business handlers as tools. Configure
+` + "`micro.AgentServices(...)`" + ` to include other services. No MCP gateway is
+started. To expose handlers to an external agent, run ` + "`micro gateway`" + `
+separately.
+
+[Documentation](https://go-micro.dev/docs/agents)
+`

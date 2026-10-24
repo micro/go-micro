@@ -58,6 +58,7 @@ def wait_port(number, process):
 
 class Model(http.server.BaseHTTPRequestHandler):
     calls = 0
+    weather_calls = 0
 
     def log_message(self, *args):
         pass
@@ -65,7 +66,18 @@ class Model(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         results = [m for m in request["messages"] if m["role"] == "tool"]
-        if results:
+        weather = any("Weather_Call" in t["function"]["name"] for t in request.get("tools", []))
+        if weather:
+            names = [t["function"]["name"] for t in request["tools"]]
+            assert not any("_Agent" in name for name in names), names
+            if results:
+                assert "Hello Alice" in json.dumps(results), results
+                Model.weather_calls += 1
+                message = {"role": "assistant", "content": "Hello Alice"}
+            else:
+                name = next(name for name in names if "Weather_Call" in name)
+                message = {"role": "assistant", "content": "", "tool_calls": [{"id": "weather01", "type": "function", "function": {"name": name, "arguments": '{"name":"Alice"}'}}]}
+        elif results:
             assert "Review the release" in json.dumps(results), results
             Model.calls += 1
             message = {"role": "assistant", "content": "Review the release; Update the documentation."}
@@ -122,7 +134,10 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
     (work / "go.mod").write_text(module)
 
     def build(doc, output):
-        code = (ROOT / "internal/website/content/en/docs" / doc).read_text().split("```go\n")[1].split("```")[0]
+        text = (ROOT / "internal/website/content/en/docs" / doc).read_text()
+        if output == "assistant":
+            text = text.split("## Standalone agent")[1]
+        code = text.split("```go\n")[1].split("```")[0]
         code = code.replace('micro "go-micro.dev/v6"', 'micro "go-micro.dev/v6"\n _ "go-micro.dev/v6/cmd/defaults"')
         if output == "assistant":
             code = code.replace('micro "go-micro.dev/v6"', 'micro "go-micro.dev/v6"\n "go-micro.dev/v6/agent"\n "go-micro.dev/v6/client"\n "go-micro.dev/v6/registry"\n "go-micro.dev/v6/registry/nats"')
@@ -208,3 +223,29 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
     assert remote.returncode == 0 and "Review the release" in remote.stdout, (remote.stdout, remote.stderr)
     assert Model.calls == 2, Model.calls
     print("PASS: documented custom Go agent; micro chat connects without client credentials", flush=True)
+
+    if not VERSION:
+        env["MICRO_NEW_GO_MICRO_REPLACE"] = str(ROOT)
+        subprocess.run([MICRO, "new", "weather", "--agent"], cwd=work, env=env, check=True, timeout=120)
+        source = work / "weather" / "main.go"
+        # Enable NATS for this test environment; the generated default uses mDNS.
+        source.write_text(source.read_text().replace('"go-micro.dev/v6"', '"go-micro.dev/v6"\n _ "go-micro.dev/v6/cmd/defaults"'))
+        subprocess.run(["go", "build", "-o", str(work / "weather-service"), "."], cwd=source.parent, env=env, check=True, timeout=120)
+        weather = start([str(work / "weather-service"), "--server_address", "127.0.0.1:0"])
+        for _ in range(50):
+            call = subprocess.run([MICRO, "call", "weather", "Weather.Call", '{"name":"Bob"}'], env=remote_env, cwd=work, capture_output=True, text=True, timeout=10)
+            if call.returncode == 0:
+                break
+            time.sleep(.1)
+        assert call.returncode == 0 and "Hello Bob" in call.stdout, (call.stdout, call.stderr)
+        remote = subprocess.run([MICRO, "chat", "--prompt", "Greet Alice", "weather"], env=remote_env, cwd=work, capture_output=True, text=True, timeout=20)
+        assert remote.returncode == 0 and "Hello Alice" in remote.stdout, (remote.stdout, remote.stderr)
+        assert Model.weather_calls == 1, Model.weather_calls
+        interactive = subprocess.run([MICRO, "chat", "--new", "weather"], input="Greet Alice\nexit\n", env=remote_env, cwd=work, capture_output=True, text=True, timeout=20)
+        assert interactive.returncode == 0 and "Hello Alice" in interactive.stdout, (interactive.stdout, interactive.stderr)
+        assert Model.weather_calls == 2, Model.weather_calls
+        weather.terminate()
+        weather.wait(timeout=10)
+        listing = subprocess.run([MICRO, "list", "services"], env=remote_env, cwd=work, capture_output=True, text=True, timeout=10)
+        assert "weather" not in listing.stdout, listing.stdout
+        print("PASS: micro new weather --agent; generated service RPC, remote chat, tool call and shutdown", flush=True)

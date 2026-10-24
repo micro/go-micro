@@ -22,6 +22,7 @@ go get go-micro.dev/v6@latest
 
 - [Build and run a service](https://go-micro.dev/docs/quickstart.html) — Go code and RPC; no model needed.
 - [Expose services to agents](https://go-micro.dev/docs/guides/services-with-claude-code.html) — connect your existing agent through MCP.
+- [Build a service with an agent](https://go-micro.dev/docs/agents.html) — scaffold, run, and chat with your service.
 - [Chat with services](https://go-micro.dev/docs/guides/chat-with-services.html) — use Go Micro’s agent from the terminal.
 
 Choose what you need. Chat does not require the gateway.

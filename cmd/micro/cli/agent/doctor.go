@@ -141,11 +141,11 @@ func checkAgentRegistration(deps doctorDeps) ([]string, preflightCheck) {
 }
 
 func serviceIsAgent(svc *registry.Service) bool {
-	if svc.Metadata != nil && svc.Metadata["type"] == "agent" {
+	if svc.Metadata["type"] == "agent" || svc.Metadata["agent"] == "v1" {
 		return true
 	}
 	for _, node := range svc.Nodes {
-		if node.Metadata != nil && node.Metadata["type"] == "agent" {
+		if node.Metadata["type"] == "agent" || node.Metadata["agent"] == "v1" {
 			return true
 		}
 	}

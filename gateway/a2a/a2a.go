@@ -441,11 +441,11 @@ func (g *Gateway) cards() ([]AgentCard, error) {
 
 // agentMetadata returns the metadata of a service iff it is an agent.
 func agentMetadata(svc *registry.Service) map[string]string {
-	if svc.Metadata != nil && svc.Metadata["type"] == "agent" {
+	if svc.Metadata["type"] == "agent" || svc.Metadata["agent"] == "v1" {
 		return svc.Metadata
 	}
 	for _, n := range svc.Nodes {
-		if n.Metadata != nil && n.Metadata["type"] == "agent" {
+		if n.Metadata["type"] == "agent" || n.Metadata["agent"] == "v1" {
 			return n.Metadata
 		}
 	}

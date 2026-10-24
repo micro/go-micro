@@ -281,3 +281,49 @@ func TestGeneratedCallContract(t *testing.T) {
 		t.Fatalf("generated service call contract failed: %v\n%s", err, out)
 	}
 }
+
+func TestAgentScaffold(t *testing.T) {
+	for _, args := range [][]string{{"--agent", "weather"}, {"weather", "--agent"}} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			t.Chdir(t.TempDir())
+			t.Setenv("GO111MODULE", "off")
+			set := flag.NewFlagSet("new", flag.ContinueOnError)
+			set.Bool("agent", false, "")
+			if err := set.Parse(args); err != nil {
+				t.Fatal(err)
+			}
+			if err := Run(cli.NewContext(cli.NewApp(), set, nil)); err != nil {
+				t.Fatal(err)
+			}
+			main, err := os.ReadFile("weather/main.go")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(main), `service.Handle(micro.NewAgent("weather"))`) || strings.Contains(string(main), "WithMCP") {
+				t.Fatalf("unexpected scaffold:\n%s", main)
+			}
+			readme, err := os.ReadFile("weather/README.md")
+			if err != nil || !strings.Contains(string(readme), "micro chat weather") {
+				t.Fatalf("README: %s %v", readme, err)
+			}
+		})
+	}
+}
+
+func TestAgentRejectsIncompatibleScaffold(t *testing.T) {
+	for _, extra := range []string{"--proto", "--template=crud", "--prompt=weather"} {
+		t.Run(extra, func(t *testing.T) {
+			set := flag.NewFlagSet("new", flag.ContinueOnError)
+			set.Bool("agent", false, "")
+			set.Bool("proto", false, "")
+			set.String("template", "", "")
+			set.String("prompt", "", "")
+			if err := set.Parse([]string{"--agent", extra, "weather"}); err != nil {
+				t.Fatal(err)
+			}
+			if err := Run(cli.NewContext(cli.NewApp(), set, nil)); err == nil {
+				t.Fatal("accepted incompatible scaffold")
+			}
+		})
+	}
+}

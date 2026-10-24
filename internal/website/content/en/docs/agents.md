@@ -8,9 +8,66 @@ params:
 An agent combines a model, instructions, and tools. Service endpoints become its
 tools, so you can use the same operations from code and conversation.
 
-## Create an agent
+## New → Run → Chat
 
-Keep the [notes service](services.md) running. In your project, create
+Install the CLI from `master` until this feature is released:
+
+```sh
+go install go-micro.dev/v6/cmd/micro@master
+```
+
+Create and run a service with an agent:
+
+```sh
+micro new weather --agent
+cd weather
+export OPENAI_API_KEY=your-key # or another supported provider key
+go run .
+```
+
+In another terminal:
+
+```sh
+micro call weather Weather.Call '{"name":"Alice"}'
+micro chat weather
+```
+
+Ask it to greet Alice. The generated `Weather.Call` handler returns “Hello Alice”.
+The name does not generate weather functionality: add your own methods in
+`handler/` to implement that. The agent uses those methods as tools.
+
+The service hosts RPC and chat on the same server, with one discovery entry and
+one lifecycle. Configure the provider on the service; the chat client needs no
+model credentials. No gateway or second agent process is required.
+
+## Add an agent to a service
+
+Register your business handlers, then attach an agent before running the service:
+
+```go
+if err := service.Handle(handler.New()); err != nil {
+    log.Fatal(err)
+}
+if err := service.Handle(micro.NewAgent("weather")); err != nil {
+    log.Fatal(err)
+}
+if err := service.Run(); err != nil {
+    log.Fatal(err)
+}
+```
+
+The service owns the agent's name, client, registry, broker, storage, and shutdown.
+By default, the attached agent can use only this service's business endpoints.
+Use `micro.AgentServices("weather", "notes")` to select other services as well.
+Agent chat, session, task, and schedule endpoints are excluded from model tools.
+
+`micro new --agent` uses the default Go handler template. It does not need a model
+key to scaffold the project. `--prompt` is a separate, optional code-generation
+path; it is not part of this workflow.
+
+## Standalone agent
+
+An agent can also run separately and use existing services. Keep the [notes service](services.md) running. In your project, create
 `cmd/assistant/main.go`:
 
 ```go

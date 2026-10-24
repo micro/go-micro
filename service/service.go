@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"os"
 	"os/signal"
 	rtime "runtime"
@@ -36,6 +37,12 @@ type Service interface {
 	Run() error
 	// String returns the implementation name.
 	String() string
+}
+
+// Handler registers RPC endpoints and lifecycle hooks on a service.
+// Ordinary RPC handlers do not need to implement this interface.
+type Handler interface {
+	Register(*Options) error
 }
 
 type serviceImpl struct {
@@ -131,6 +138,7 @@ func (s *serviceImpl) Start() error {
 
 	for _, fn := range s.opts.AfterStart {
 		if err := fn(); err != nil {
+			_ = s.Stop()
 			return err
 		}
 	}
@@ -161,6 +169,12 @@ func (s *serviceImpl) Stop() error {
 }
 
 func (s *serviceImpl) Handle(v interface{}, opts ...server.HandlerOption) error {
+	if h, ok := v.(Handler); ok {
+		if len(opts) != 0 {
+			return errors.New("service: handler options are not supported for lifecycle handlers")
+		}
+		return h.Register(&s.opts)
+	}
 	return s.opts.Server.Handle(
 		s.opts.Server.NewHandler(v, opts...),
 	)

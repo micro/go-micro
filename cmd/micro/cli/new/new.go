@@ -168,6 +168,17 @@ func addFileToTree(root treeprint.Tree, file string) {
 }
 
 func Run(ctx *cli.Context) error {
+	// Accept the common name-first spelling: micro new weather --agent.
+	withAgent := ctx.Bool("agent")
+	for _, arg := range ctx.Args().Tail() {
+		if arg != "--agent" {
+			return fmt.Errorf("unexpected argument %q; place options before the service name", arg)
+		}
+		withAgent = true
+	}
+	if withAgent && (ctx.Bool("proto") || (ctx.String("template") != "" && ctx.String("template") != "default") || ctx.String("prompt") != "") {
+		return fmt.Errorf("--agent uses the default Go handler template; omit --proto, --template and --prompt")
+	}
 	// Handle --prompt: design services with AI, then generate each one
 	if prompt := ctx.String("prompt"); prompt != "" {
 		return runPrompt(ctx, prompt)
@@ -205,7 +216,7 @@ func Run(ctx *cli.Context) error {
 	}
 	goDir = filepath.Join(goPath, "src", path.Clean(dir))
 
-	noMCP := ctx.Bool("no-mcp")
+	noMCP := ctx.Bool("no-mcp") || withAgent
 	templateName := ctx.String("template")
 
 	// The default template is protoless: handlers are registered by
@@ -240,11 +251,15 @@ func Run(ctx *cli.Context) error {
 		if noMCP {
 			mainTmpl = tmpl.MainNoProtoNoMCP
 		}
+		readmeTmpl := tmpl.ReadmeNoProto
+		if withAgent {
+			mainTmpl, readmeTmpl = tmpl.MainAgent, tmpl.ReadmeAgent
+		}
 		c.Files = []file{
 			{"main.go", mainTmpl},
 			{"handler/" + dir + ".go", tmpl.HandlerNoProto},
 			{"Makefile", tmpl.MakefileNoProto},
-			{"README.md", tmpl.ReadmeNoProto},
+			{"README.md", readmeTmpl},
 			{".gitignore", tmpl.GitIgnore},
 		}
 	}
@@ -301,7 +316,11 @@ func Run(ctx *cli.Context) error {
 
 	fmt.Println()
 	fmt.Printf("  \033[32m✓\033[0m Service \033[36m%s\033[0m created\n\n", dir)
-	printNextSteps(os.Stdout, dir, noMCP)
+	if withAgent {
+		fmt.Printf("  Next steps:\n    cd %s\n    export OPENAI_API_KEY=...  # or another supported provider key\n    go run .\n\n  In another terminal:\n    micro chat %s\n\n", dir, dir)
+	} else {
+		printNextSteps(os.Stdout, dir, noMCP)
+	}
 	return nil
 }
 
