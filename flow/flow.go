@@ -40,6 +40,7 @@ import (
 
 	// Register default providers.
 	_ "go-micro.dev/v6/model/anthropic"
+	_ "go-micro.dev/v6/model/apiroute"
 	_ "go-micro.dev/v6/model/atlascloud"
 	_ "go-micro.dev/v6/model/gemini"
 	_ "go-micro.dev/v6/model/groq"
