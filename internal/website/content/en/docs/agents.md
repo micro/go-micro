@@ -22,7 +22,7 @@ Create and run a service with an agent:
 micro new weather --agent
 cd weather
 export OPENAI_API_KEY=your-key # or another supported provider key
-go run .
+micro run
 ```
 
 In another terminal:
@@ -38,7 +38,8 @@ The name does not generate weather functionality: add your own methods in
 
 The service hosts RPC and chat on the same server, with one discovery entry and
 one lifecycle. Configure the provider on the service; the chat client needs no
-model credentials. No gateway or second agent process is required.
+model credentials. `micro run` builds and watches the service; `go run .` also works.
+Use `micro gateway` separately when you need HTTP or MCP.
 
 ## Add an agent to a service
 

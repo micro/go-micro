@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import signal
 import select
 import subprocess
 import sys
@@ -101,9 +102,9 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
     reg, api, mcp = port(), port(), port()
     env.update(MICRO_REGISTRY="nats", MICRO_REGISTRY_ADDRESS=f"127.0.0.1:{reg}")
 
-    def start(args):
+    def start(args, cwd=None):
         log = open(work / f"process-{len(processes)}.log", "w+")
-        p = subprocess.Popen(args, cwd=work, env=env, stdout=log, stderr=log)
+        p = subprocess.Popen(args, cwd=cwd or work, env=env, stdin=subprocess.DEVNULL, stdout=log, stderr=log)
         processes.append((p, log))
         return p
 
@@ -230,9 +231,13 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
         source = work / "weather" / "main.go"
         # Enable NATS for this test environment; the generated default uses mDNS.
         source.write_text(source.read_text().replace('"go-micro.dev/v6"', '"go-micro.dev/v6"\n _ "go-micro.dev/v6/cmd/defaults"'))
-        subprocess.run(["go", "build", "-o", str(work / "weather-service"), "."], cwd=source.parent, env=env, check=True, timeout=120)
-        weather = start([str(work / "weather-service"), "--server_address", "127.0.0.1:0"])
-        for _ in range(50):
+        env["MICRO_SERVER_ADDRESS"] = "127.0.0.1:0"
+        # Holding the default gateway port proves plain run does not bind it.
+        occupied_gateway = stack.enter_context(socket.socket())
+        occupied_gateway.bind(("127.0.0.1", 8080))
+        occupied_gateway.listen()
+        weather = start([MICRO, "run"], cwd=source.parent)
+        for _ in range(150):
             call = subprocess.run([MICRO, "call", "weather", "Weather.Call", '{"name":"Bob"}'], env=remote_env, cwd=work, capture_output=True, text=True, timeout=10)
             if call.returncode == 0:
                 break
@@ -244,8 +249,40 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
         interactive = subprocess.run([MICRO, "chat", "--new", "weather"], input="Greet Alice\nexit\n", env=remote_env, cwd=work, capture_output=True, text=True, timeout=20)
         assert interactive.returncode == 0 and "Hello Alice" in interactive.stdout, (interactive.stdout, interactive.stderr)
         assert Model.weather_calls == 2, Model.weather_calls
-        weather.terminate()
+        handler = source.parent / "handler" / "weather.go"
+        handler.write_text(handler.read_text().replace('"Hello "', '"Hi "'))
+        for _ in range(150):
+            call = subprocess.run([MICRO, "call", "weather", "Weather.Call", '{"name":"Bob"}'], env=remote_env, cwd=work, capture_output=True, text=True, timeout=10)
+            if call.returncode == 0 and "Hi Bob" in call.stdout:
+                break
+            time.sleep(.1)
+        assert call.returncode == 0 and "Hi Bob" in call.stdout, (call.stdout, call.stderr)
+        weather.send_signal(signal.SIGINT)
         weather.wait(timeout=10)
         listing = subprocess.run([MICRO, "list", "services"], env=remote_env, cwd=work, capture_output=True, text=True, timeout=10)
         assert "weather" not in listing.stdout, listing.stdout
-        print("PASS: micro new weather --agent; generated service RPC, remote chat, tool call and shutdown", flush=True)
+        assert weather.returncode == 0, weather.returncode
+        assert not list((work / "micro" / "run").glob("weather-*.pid")), "child PID file remains"
+        for process, log in processes:
+            if process is weather:
+                log.flush()
+                log.seek(0)
+                output = log.read()
+                assert "Watching for changes" in output, output
+                assert "Dashboard" not in output and "Type a message" not in output and "Auth:" not in output, output
+        print("PASS: micro new weather --agent; micro run without gateway/console, RPC, chat and Ctrl-C shutdown", flush=True)
+
+        optional_port = port()
+        optional = start([MICRO, "run", "--gateway", "--address", f"127.0.0.1:{optional_port}", "--no-watch"], cwd=source.parent)
+        wait_port(optional_port, optional)
+        for _ in range(150):
+            call = subprocess.run([MICRO, "call", "weather", "Weather.Call", '{"name":"Bob"}'], env=remote_env, cwd=work, capture_output=True, text=True, timeout=10)
+            if call.returncode == 0:
+                break
+            time.sleep(.1)
+        assert call.returncode == 0 and "Hi Bob" in call.stdout, (call.stdout, call.stderr)
+        assert "Hi Bob" in json.dumps(post(f"http://127.0.0.1:{optional_port}/api/weather/Weather/Call", {"name": "Bob"}))
+        optional.send_signal(signal.SIGINT)
+        optional.wait(timeout=10)
+        assert optional.returncode == 0, optional.returncode
+        print("PASS: hot reload updates RPC; explicit --gateway serves HTTP and stops cleanly", flush=True)

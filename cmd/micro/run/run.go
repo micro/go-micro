@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"crypto/md5"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -19,7 +18,6 @@ import (
 	"time"
 
 	"github.com/urfave/cli/v2"
-	clt "go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
 	"go-micro.dev/v6/cmd/micro/cli/generate"
 	"go-micro.dev/v6/cmd/micro/gateway"
@@ -369,7 +367,7 @@ func Run(c *cli.Context) error {
 		return fmt.Errorf("no services found")
 	}
 
-	// Start gateway unless disabled
+	// Start the HTTP gateway only when explicitly requested.
 	var gw *gateway.Gateway
 	var mcpServer *mcp.Server
 	gatewayAddr := c.String("address")
@@ -377,12 +375,11 @@ func Run(c *cli.Context) error {
 		gatewayAddr = "127.0.0.1:8080"
 	}
 
-	// Auth follows the socket. micro run binds loopback by default, so auth is
-	// off for the local dev loop — no login to call your own tools — while
-	// scoped/paid tools still require the machine token.
-	authEnabled, authToken := gateway.ResolveAuth(c, gatewayAddr)
-
-	if !c.Bool("no-gateway") {
+	// Auth is only configured when the optional HTTP gateway is enabled.
+	var authEnabled bool
+	var authToken string
+	if c.Bool("gateway") && !c.Bool("no-gateway") {
+		authEnabled, authToken = gateway.ResolveAuth(c, gatewayAddr)
 		var err error
 		gw, err = gateway.StartGateway(gateway.GatewayOptions{
 			Address:     gatewayAddr,
@@ -505,12 +502,9 @@ func Run(c *cli.Context) error {
 		}()
 	}
 
-	// Interactive console or wait for signal
-	if c.Bool("detach") {
-		<-sigCh
-	} else {
-		runConsole(sigCh)
-	}
+	// Run supervises services; micro chat owns the conversation.
+	<-sigCh
+	signal.Stop(sigCh)
 	fmt.Println("\nShutting down...")
 
 	close(shutdown)
@@ -602,11 +596,9 @@ func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool,
 		// AI-callable tool, so surface it rather than hiding it behind a flag.
 		fmt.Printf("  MCP Tools   \033[36mhttp://%s/mcp/tools\033[0m\n", gw.Addr())
 		fmt.Printf("  Health      \033[36mhttp://%s/health\033[0m\n", gw.Addr())
-		if mcpAddr != "" {
-			// Optional standalone MCP protocol server (e.g. for MCP clients).
-			fmt.Printf("  MCP Server  \033[36mhttp://%s\033[0m (full MCP protocol)\n", mcpAddr)
-			fmt.Printf("  WebSocket   \033[36mws://%s/mcp/ws\033[0m\n", mcpAddr)
-		}
+	}
+	if mcpAddr != "" {
+		fmt.Printf("  MCP Server  \033[36mhttp://%s\033[0m\n", mcpAddr)
 	}
 
 	var agents, svcs []*serviceProcess
@@ -640,18 +632,20 @@ func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool,
 		}
 	}
 
-	fmt.Println()
-	if authEnabled {
-		fmt.Println("  Auth: \033[32mon\033[0m (address is exposed)")
-		if authToken != "" {
-			fmt.Printf("  Token: \033[36m%s\033[0m \033[2m(shown once — use as Authorization: Bearer)\033[0m\n", authToken)
+	if gw != nil {
+		fmt.Println()
+		if authEnabled {
+			fmt.Println("  Auth: \033[32mon\033[0m (address is exposed)")
+			if authToken != "" {
+				fmt.Printf("  Token: \033[36m%s\033[0m \033[2m(shown once — use as Authorization: Bearer)\033[0m\n", authToken)
+			} else {
+				fmt.Println("  Token: \033[2mset via MICRO_AUTH_TOKEN\033[0m")
+			}
 		} else {
-			fmt.Println("  Token: \033[2mset via MICRO_AUTH_TOKEN\033[0m")
-		}
-	} else {
-		fmt.Println("  Auth: \033[2moff (loopback — no login needed)\033[0m")
-		if authToken != "" {
-			fmt.Printf("  \033[2mScoped/paid tools need a token: %s\033[0m\n", authToken)
+			fmt.Println("  Auth: \033[2moff (loopback — no login needed)\033[0m")
+			if authToken != "" {
+				fmt.Printf("  \033[2mScoped/paid tools need a token: %s\033[0m\n", authToken)
+			}
 		}
 	}
 
@@ -662,156 +656,26 @@ func printBanner(services []*serviceProcess, gw *gateway.Gateway, watching bool,
 	fmt.Println()
 }
 
-func runConsole(sigCh chan os.Signal) {
-	// Detect provider and API key from environment
-	provider := os.Getenv("MICRO_AI_PROVIDER")
-	if provider == "" {
-		provider = model.AutoDetectProvider("")
-	}
-	apiKey := os.Getenv("MICRO_AI_API_KEY")
-	if apiKey == "" {
-		apiKey = os.Getenv(model.APIKeyEnv(provider))
-	}
-
-	if apiKey == "" {
-		fmt.Println("  \033[2mSet MICRO_AI_API_KEY to enable the interactive console.\033[0m")
-		fmt.Println("  \033[2mCtrl-C to stop.\033[0m")
-		fmt.Println()
-		<-sigCh
-		return
-	}
-
-	// Set up tools and model
-	reg := registry.DefaultRegistry
-	cl := clt.DefaultClient
-	tools := model.NewTools(reg, model.ToolClient(cl))
-
-	var modelOpts []model.Option
-	modelOpts = append(modelOpts, model.WithAPIKey(apiKey))
-	modelOpts = append(modelOpts, model.WithToolHandler(tools.Handler()))
-	m := model.New(provider, modelOpts...)
-	if m == nil {
-		fmt.Fprintf(os.Stderr, "Unknown model provider %q. Set MICRO_AI_PROVIDER to a supported provider.\n", provider)
-		return
-	}
-
-	// Wait a moment for services to register.
-	time.Sleep(2 * time.Second)
-
-	hist := model.NewHistory(50)
-
-	// Build system prompt with service list
-	discovered, _ := tools.Discover()
-	serviceNames := make(map[string]bool)
-	for _, t := range discovered {
-		parts := strings.SplitN(t.OriginalName, ".", 2)
-		if len(parts) == 2 {
-			serviceNames[parts[0]] = true
-		}
-	}
-	var svcList []string
-	for name := range serviceNames {
-		svcList = append(svcList, name)
-	}
-
-	sysPrompt := fmt.Sprintf("You are an agent that orchestrates microservices. Available services: %s. "+
-		"Use the available tools to fulfill requests. When you call a tool, explain what you are doing. "+
-		"If a capability doesn't exist, say so.",
-		strings.Join(svcList, ", "))
-
-	fmt.Printf("  \033[2m%d tools from %d services. Type a message or Ctrl-C to stop.\033[0m\n\n",
-		len(discovered), len(serviceNames))
-
-	// Interactive REPL
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Buffer(make([]byte, 0, 4096), 1024*1024)
-
-	done := make(chan struct{})
-	go func() {
-		for {
-			fmt.Print("\033[1;36m>\033[0m ")
-			if !scanner.Scan() {
-				close(done)
-				return
-			}
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" {
-				continue
-			}
-
-			hist.Add("user", line)
-			resp, err := m.Generate(context.Background(), &model.Request{
-				Prompt:       line,
-				SystemPrompt: sysPrompt,
-				Tools:        discovered,
-				Messages:     hist.Messages(),
-			})
-			if err != nil {
-				fmt.Printf("\033[31merror:\033[0m %v\n\n", err)
-				continue
-			}
-
-			if resp.Reply != "" {
-				hist.Add("assistant", resp.Reply)
-				fmt.Println(resp.Reply)
-			}
-			for _, tc := range resp.ToolCalls {
-				args, _ := json.Marshal(tc.Input)
-				fmt.Printf("  \033[33m→\033[0m \033[2m%s\033[0m(%s)\n", tc.Name, args)
-				if tc.Result != "" {
-					result := tc.Result
-					if len(result) > 200 {
-						result = result[:200] + "..."
-					}
-					fmt.Printf("  \033[32m←\033[0m \033[2m%s\033[0m\n", result)
-				}
-			}
-			if resp.Answer != "" {
-				hist.Add("assistant", resp.Answer)
-				fmt.Println()
-				fmt.Println(resp.Answer)
-			}
-			fmt.Println()
-		}
-	}()
-
-	select {
-	case <-sigCh:
-	case <-done:
-	}
-}
-
 func init() {
 	cmd.Register(&cli.Command{
 		Name:  "run",
-		Usage: "Development mode: run services with hot reload and API gateway",
-		Description: `Run discovers and runs services in a directory (development mode).
-
-Starts an HTTP gateway on :8080 providing:
-  - Web dashboard at /
-  - Agent playground at /agent (AI chat with MCP tools)
-  - API explorer at /api
-  - API proxy at /api/{service}/{endpoint}
-  - MCP tools at /mcp/tools
-  - Health checks at /health
+		Usage: "Build, run, and watch services",
+		Description: `Build and run services in a directory, watch for changes, and show logs.
+Use micro chat to talk to an agent and micro gateway to expose services.
 
 With a micro.mu or micro.json config file, services start in dependency order.
 Without config, all main.go files are discovered and run.
 
-micro run is a local development tool — it builds and supervises service
-processes with hot reload. It is not a production runtime: there is no daemon,
-and processes stop when micro run exits. For production, build each service
-(go build) and run it under a process manager or scheduler — systemd,
-Docker/Compose, or Kubernetes (see deploy/kubernetes).
+Processes stop when micro run exits. For production, build each service and
+run it under a process manager such as systemd, Docker, or Kubernetes.
 
 Examples:
-  micro run                    # Run with gateway on :8080
-  micro run --address :3000    # Gateway on custom port
-  micro run --no-gateway       # Services only, no HTTP gateway
-  micro run --no-watch         # Disable hot reload
-  micro run --env production   # Use production environment
-  micro run --mcp-address :3000  # Enable MCP protocol gateway
-  micro run --prompt "an order system for dropshipping"  # Generate and run`,
+  micro run                       # Run services with hot reload
+  micro run --no-watch             # Disable hot reload
+  micro run --gateway              # Also start the HTTP gateway
+  micro run --gateway --address :3000
+  micro run --mcp-address :3001     # Explicitly start an MCP gateway
+  micro run --env production       # Use production environment`,
 		Action: Run,
 		Flags: append([]cli.Flag{
 			&cli.StringFlag{
@@ -821,8 +685,13 @@ Examples:
 				Value:   "127.0.0.1:8080",
 			},
 			&cli.BoolFlag{
-				Name:  "no-gateway",
-				Usage: "Disable HTTP gateway",
+				Name:  "gateway",
+				Usage: "Also start the HTTP gateway",
+			},
+			&cli.BoolFlag{
+				Name:   "no-gateway",
+				Usage:  "Deprecated: services run without a gateway by default",
+				Hidden: true,
 			},
 			&cli.BoolFlag{
 				Name:  "no-watch",
@@ -831,7 +700,8 @@ Examples:
 			&cli.BoolFlag{
 				Name:    "detach",
 				Aliases: []string{"d"},
-				Usage:   "Run without interactive console (background mode)",
+				Usage:   "Deprecated: run no longer starts an interactive console",
+				Hidden:  true,
 			},
 			&cli.StringFlag{
 				Name:    "env",

@@ -158,23 +158,18 @@ Run your service:
 micro run
 ```
 
-This starts:
-- **API Gateway** on http://localhost:8080
-- **Web Dashboard** at http://localhost:8080
-- **Agent Playground** at http://localhost:8080/agent
-- **API Explorer** at http://localhost:8080/api
-- **MCP Tools** at http://localhost:8080/mcp/tools
-- **Hot Reload** watching for file changes
-- **Services** in dependency order
+This builds and runs the service, shows its logs, and rebuilds it when Go files
+change. Ctrl-C stops it. There is no chat console or gateway by default.
 
-Open http://localhost:8080 to see your services and call them from the browser.
+In another terminal:
 
-Call the generated service from another terminal:
-
+```sh
+micro call helloworld Helloworld.Call '{"name":"World"}'
+micro chat
 ```
-curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call \
-  -H 'Content-Type: application/json' -d '{"name":"World"}'
-```
+
+Use `micro gateway` separately for HTTP and MCP, or opt in with
+`micro run --gateway`.
 
 ## Optional no-key examples
 
@@ -190,31 +185,11 @@ micro zero-to-hero
 
 `micro agent quickcheck` (alias: `micro agent debug`) prints the short recovery map when scaffold → run → chat → inspect stalls. Those commands point at the smallest mock-model first-agent example, the no-secret transcript, and the 0→hero support app before you add provider-backed chat.
 
-### Output
-
-```
-  ┌─────────────────────────────────────────────────────────────┐
-  │                                                             │
-  │   Micro                                                     │
-  │                                                             │
-  │   Web:     http://localhost:8080                            │
-  │   API:     http://localhost:8080/api/{service}/{method}     │
-  │   Health:  http://localhost:8080/health                     │
-  │                                                             │
-  │   Services:                                                 │
-  │     ● helloworld                                            │
-  │                                                             │
-  │   Watching for changes...                                   │
-  │                                                             │
-  └─────────────────────────────────────────────────────────────┘
-```
-
 ### Options
 
 ```
-micro run                    # Gateway on :8080, hot reload enabled
-micro run --address :3000    # Gateway on custom port
-micro run --no-gateway       # Services only, no HTTP gateway
+micro run                    # Services and hot reload
+micro run --gateway --address :3000 # Optional HTTP gateway
 micro run --no-watch         # Disable hot reload
 micro run --env production   # Use production environment
 micro run github.com/micro/blog  # Clone and run from GitHub
@@ -222,7 +197,7 @@ micro run github.com/micro/blog  # Clone and run from GitHub
 
 ### Calling Services
 
-Via curl:
+After starting `micro gateway`, call via curl:
 ```bash
 curl -X POST http://localhost:8080/api/helloworld/Helloworld.Call -d '{"name": "World"}'
 ```
@@ -648,11 +623,11 @@ Use the machine token printed at startup (or set `MICRO_AUTH_TOKEN`) to access t
 
 ## Gateway Architecture
 
-The `micro run` and `micro gateway` commands both use a unified gateway implementation (`cmd/micro/gateway/server.go`), providing consistent HTTP-to-RPC translation, service discovery, and web UI capabilities.
+`micro run --gateway` and `micro gateway` both use a unified gateway implementation (`cmd/micro/gateway/server.go`), providing consistent HTTP-to-RPC translation, service discovery, and web UI capabilities.
 
 ### Key Differences
 
-| Feature | `micro run` | `micro gateway` |
+| Feature | `micro run --gateway` | `micro gateway` |
 |---------|-------------|----------------|
 | **Purpose** | Development | Production |
 | **Authentication** | Depends on bind address | Depends on bind address |

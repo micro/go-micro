@@ -317,7 +317,7 @@ func Run(ctx *cli.Context) error {
 	fmt.Println()
 	fmt.Printf("  \033[32m✓\033[0m Service \033[36m%s\033[0m created\n\n", dir)
 	if withAgent {
-		fmt.Printf("  Next steps:\n    cd %s\n    export OPENAI_API_KEY=...  # or another supported provider key\n    go run .\n\n  In another terminal:\n    micro chat %s\n\n", dir, dir)
+		fmt.Printf("  Next steps:\n    cd %s\n    export OPENAI_API_KEY=...  # or another supported provider key\n    micro run\n\n  In another terminal:\n    micro chat %s\n\n", dir, dir)
 	} else {
 		printNextSteps(os.Stdout, dir, noMCP)
 	}

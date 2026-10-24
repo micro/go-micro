@@ -168,7 +168,7 @@ Run the service with a model provider key:
 
 ` + "```sh" + `
 export OPENAI_API_KEY=... # or another supported provider key
-go run .
+micro run
 ` + "```" + `
 
 In another terminal:
