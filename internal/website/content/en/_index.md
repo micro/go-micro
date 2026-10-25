@@ -11,11 +11,32 @@ params:
 <h1 id="intro-title">A Go framework for<br>services and agents.</h1>
 <p class="micro-lead">Build distributed applications with RPC, service discovery, messaging, storage, and configuration. Create agents that use your services as tools.</p>
 <div class="micro-actions">
-<a class="micro-button" href="/docs/">Documentation <span aria-hidden="true">→</span></a>
+<a class="micro-button" href="/docs/quickstart.html">Get Started <span aria-hidden="true">→</span></a>
 <a href="https://github.com/micro/go-micro">GitHub</a>
 </div>
 <p class="micro-caption">Open source · Apache 2.0</p>
 </div>
+<figure class="micro-example" aria-labelledby="example-title">
+<figcaption id="example-title"><span>Services + agents</span><span>Go</span></figcaption>
+<pre><code>service := micro.NewService("notes")
+service.Init()
+
+if err := service.Handle(new(Notes)); err != nil {
+    log.Fatal(err)
+}
+
+if err := service.Handle(
+    micro.NewAgent("notes"),
+); err != nil {
+    log.Fatal(err)
+}
+
+if err := service.Run(); err != nil {
+    log.Fatal(err)
+}</code></pre>
+<p>One service, available through RPC and an agent.</p>
+<a href="/docs/agents.html#add-an-agent-to-a-service">Add an agent to your service →</a>
+</figure>
 </section>
 
 <section class="micro-journey" aria-label="Explore the framework">
