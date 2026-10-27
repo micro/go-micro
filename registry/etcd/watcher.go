@@ -66,6 +66,9 @@ func (ew *etcdWatcher) Next() (*registry.Result, error) {
 				action = "delete"
 
 				// get service from prevKv
+				if ev.PrevKv == nil {
+					continue
+				}
 				service = decode(ev.PrevKv.Value)
 			}
 
