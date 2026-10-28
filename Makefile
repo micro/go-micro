@@ -1,9 +1,7 @@
 NAME = micro
-GIT_COMMIT = $(shell git rev-parse --short HEAD)
 GIT_TAG = $(shell git describe --abbrev=0 --tags --always --match "v*")
-GIT_IMPORT = go-micro.dev/v5/cmd/micro
-BUILD_DATE = $(shell date +%s)
-LDFLAGS = -X $(GIT_IMPORT).BuildDate=$(BUILD_DATE) -X $(GIT_IMPORT).GitCommit=$(GIT_COMMIT) -X $(GIT_IMPORT).GitTag=$(GIT_TAG)
+GIT_IMPORT = go-micro.dev/v6/cmd/micro
+LDFLAGS = -X $(GIT_IMPORT).version=$(GIT_TAG)
 
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
@@ -122,7 +120,7 @@ install-tools:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/kyoh86/richgo@latest
-	go install go-micro.dev/v5/cmd/protoc-gen-micro@latest
+	go install go-micro.dev/v6/cmd/protoc-gen-micro@latest
 	@echo "Tools installed successfully"
 
 # Generate protobuf code

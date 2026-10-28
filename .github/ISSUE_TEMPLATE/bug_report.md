@@ -25,7 +25,7 @@ A clear and concise description of what you expected to happen.
 ```
 
 ## Environment
-- Go Micro version: [e.g. v5.3.0]
+- Go Micro version: [run `go list -m go-micro.dev/v6` or provide the exact module version]
 - Go version: [run `go version`]
 - OS/Platform: [e.g. Ubuntu 22.04, macOS 14, Docker]
 - Plugins/Integrations: [e.g. consul registry, nats broker, redis cache]
@@ -47,5 +47,5 @@ Add any other context about the problem here.
 ## Helpful Resources
 - [Troubleshooting Guide](https://github.com/micro/go-micro/tree/master/internal/website/docs/getting-started.md)
 - [Examples](https://github.com/micro/go-micro/tree/master/examples)
-- [API Reference](https://pkg.go.dev/go-micro.dev/v5)
+- [API Reference](https://pkg.go.dev/go-micro.dev/v6)
 - [Discord Community](https://discord.gg/G8Gk5j3uXr)

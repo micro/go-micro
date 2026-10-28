@@ -4,6 +4,29 @@ title: "Roadmap"
 
 Go Micro is a framework for building **agents and services** in Go. An agent is a distributed system — it discovers services, calls them, holds state, and recovers from failure — so building an agent is building a service. The roadmap has two jobs: make **agentic development** excellent, and make the **developer experience** around it excellent. Nothing else.
 
+This page is the **canonical roadmap**. `ROADMAP.md` is a repository overview
+that links here; when the two differ, this page governs prioritization.
+
+## How roadmap work is tracked
+
+Every accepted roadmap item must have an owning issue, acceptance criteria, a
+target release or "no release commitment", a v6-compatible or v7-breaking
+classification, and its required tests and documentation. Status is one of
+proposed, accepted, in progress, shipped, or deferred.
+
+Issue proposals must also identify effects on service-only applications,
+agents, flows, gateways, provider plugins, and stored run/checkpoint formats.
+Service-only use remains first-class and must not acquire an AI dependency to
+receive framework fixes.
+
+| Workstream | Status | Compatibility | Commitment |
+| --- | --- | --- | --- |
+| x402 buyer in the agent runtime | Proposed flagship | v6-compatible | No release commitment |
+| AP2 mandate foundation ([#3552](https://github.com/micro/go-micro/issues/3552)) | Proposed | v6-compatible | No release commitment |
+| gRPC-reflection MCP | Proposed | v6-compatible | No release commitment |
+| Kubernetes operator and CRDs | Proposed | v6-compatible | No release commitment |
+| v7 execution contract | Proposed design review | v7-breaking | No release commitment |
+
 ## Towards v7 — proposal
 
 A [v7 proposal](v7.md) explores a consistent model/agent execution contract and
@@ -35,13 +58,17 @@ These constrain everything below:
 4. **Interaction is as important as running.** Talking to an agent, inspecting runs and history — end to end, not just "it starts."
 5. **Battle-tested.** Works across every provider, fails safely, and is observable.
 
-## Now — hardening ("functional on every level")
+## Now — flagship capability
 
-The priority is that what exists works everywhere, under real conditions.
+**Agents that pay (x402 buyer in the runtime).** The seller middleware and
+budget-capped buyer client exist. The next capability is an opt-in `AgentPayer`
+that handles a payment-required tool call, obtains approval, settles within a
+budget, retries safely, and records spend in run metadata and traces. Its parent
+issue must decompose approval/security boundaries, observability, a runnable
+example, and a key-free test path before implementation is accepted.
 
-- **Cross-provider conformance.** Each of the seven providers implements its own tool-call loop; today only the mock and one live provider are exercised. A suite that runs the same agent scenario (tool-calling, multi-step, plan/delegate, guardrails) across every provider, gated on keys, on a schedule.
-- **Failure & resilience.** Provider timeouts, rate limits, and cancellation mid-run; deadline/`context` propagation through the agent loop; retry and backoff at the model call.
-- **The getting-started contract.** Define and CI-verify the 0→1 and 0→hero flows so they can't silently break.
+AP2 mandate work remains a separate proposed foundation and is not a second
+flagship milestone.
 
 ## Shipped agent depth
 
@@ -52,21 +79,29 @@ The priority is that what exists works everywhere, under real conditions.
   agent runs, model turns, tool calls, retries, delegation lineage, and resume
   checkpoints so production runs are traceable.
 
-## Next — agentic depth
+## Next — reach and deployment
 
-- **Streaming.** Broaden provider-backed `model.Stream` coverage and keep chat plus A2A `message/stream` working end to end for real chat and long-task UX.
-- **Resume operations polish.** Keep improving CLI/docs breadcrumbs for finding
-  pending agent runs and deciding whether to call resume, resume-input, or stream
-  resume in production.
-- **Observability hardening.** Keep span attributes and run inspection coherent
-  across agents, flows, and gateways as more providers and workflow paths are
-  exercised.
+- **gRPC-reflection MCP.** Derive MCP tools from external gRPC services through
+  server reflection rather than requiring go-micro-native handlers.
+- **Kubernetes operator and CRDs.** Reconcile `Agent`, `Service`, and `Flow`
+  resources into deployments connected to the registry.
 
 ## Later
 
+- **Runtime-fitness loop** — exercise a persistent dogfood application against
+  runtime latency, error, and cost signals with canary and rollback boundaries.
 - **Memory management** — summarization and retrieval (RAG) beyond a fixed buffer.
 - **Human-in-the-loop** — broaden pause/resume UX around `input-required` runs and approvals.
 - **A2A** — richer live-stream reconnection (`tasks/resubscribe`) and `input-required` handoffs.
+
+## Ongoing — capped maintenance and developer experience
+
+Cross-provider conformance, cancellation, retry/backoff, streaming,
+observability, and the scaffold → run → chat → inspect → deploy loop continue,
+but do not compete with the flagship capability as equal roadmap priorities.
+The 0→1 and 0→hero paths, mock provider conformance, and deterministic harness
+are release gates. Live-provider conformance runs on a schedule when credentials
+are available.
 
 ## Developer experience (ongoing)
 
@@ -78,6 +113,10 @@ The priority is that what exists works everywhere, under real conditions.
 ## How it's sustained
 
 The framework is the product. It's funded by **sponsorship** from the people and companies who run it — not a hosted service, not an enterprise tier, not venture funding. The model is deliberate: keep refining the framework, aligned users adopt and depend on it, and that dependence funds the work. (See [Bringing an OSS project back from the dead](/blog/2026/06/18/bringing-an-open-source-project-back-from-the-dead.html) for why.)
+
+See [Adoption and Sustainability](project/adoption.md) for the no-runtime-
+telemetry baseline and quarterly aggregate review, and [Version Support](project/version-support.md)
+for the release and backport policy.
 
 ## Feedback
 
