@@ -6,7 +6,7 @@ LDFLAGS = -X $(GIT_IMPORT).version=$(GIT_TAG)
 # GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser-cross:v1.25.7
 GORELEASER_DOCKER_IMAGE = ghcr.io/goreleaser/goreleaser:latest
 
-.PHONY: service-smoke chat-smoke test test-race test-coverage harness recovery-gate zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
+.PHONY: service-smoke chat-smoke test test-race test-coverage harness composition-gate recovery-gate zero-to-hero-transcript inner-loop cli-wayfinding docs-wayfinding install-smoke provider-conformance-mock provider-conformance lint fmt install-tools proto clean help gorelease-dry-run gorelease-dry-run-docker
 
 # Default target
 help:
@@ -17,6 +17,7 @@ help:
 	@echo "  make test-coverage - Run tests with coverage"
 	@echo "  make lint          - Run linter"
 	@echo "  make harness       - Run deterministic getting-started and end-to-end harnesses"
+	@echo "  make composition-gate - Run restartable service-agent-flow acceptance fixture"
 	@echo "  make recovery-gate - Run restart and failure-injection acceptance fixture"
 	@echo "  make chat-smoke    - Exercise chat setup, tools, approvals, and recovery in a terminal"
 	@echo "  make zero-to-hero-transcript - Verify the ordered 0→hero lifecycle transcript"
@@ -57,8 +58,14 @@ harness:
 	$(MAKE) inner-loop
 	$(MAKE) zero-to-hero-transcript
 	go run ./internal/harness/agent-flow
+	$(MAKE) composition-gate
 	$(MAKE) recovery-gate
 	$(MAKE) provider-conformance-mock
+
+# Provider-free complete-composition contract: real RPC, bounded agent tool
+# work, durable approval, replacement flow hosts, and an idempotent final effect.
+composition-gate:
+	go run -race ./internal/harness/composition
 
 # Provider-free v7 recovery contract: replace a flow host while retaining its
 # checkpoint, preserve waiting work and lineage, inject an ambiguous effect and
