@@ -5,7 +5,7 @@ description: "The audited v6 execution boundaries and v7 compatibility decisions
 
 # Execution contract
 
-This is the Stage 1 contract matrix tracked by
+This is the shipped Stage 1 contract matrix tracked by
 [#5044](https://github.com/micro/go-micro/issues/5044). It describes v6 as it
 exists; it does not promise exactly-once effects or pre-approve a v7 API. An
 invocation succeeding means its local boundary completed, not that an external
@@ -85,3 +85,10 @@ resume, models an ambiguous effect, exhausts a retry budget, and proves that
 stable idempotency keys prevent duplicate final effects. This is the v6 recovery
 baseline; a portable cross-host lease or compare-and-swap checkpoint contract
 remains v7 work.
+
+The next executable increment is the complete composition tracked by
+[#5049](https://github.com/micro/go-micro/issues/5049). Unlike the focused
+recovery fixture, it joins real service RPC, agent dispatch through service
+tools, durable approval, and an idempotent final operation in one inspectable
+run. It remains a v6-compatible acceptance test; breaking provider and stored-
+record changes stay behind the Stage 5 migration gate.
