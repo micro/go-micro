@@ -10,9 +10,9 @@ You can use these parts independently and extend them through Go interfaces.
 ## Build your first project
 
 Follow [Build your first project](../quickstart.md) for the complete path:
-install the CLI, open chat, build a service, call it, change it, and run it after
-chat exits. The walkthrough lists the required tools and what to check at each
-step. The interactive development experience currently requires `master`.
+install the released CLI, build a service, and call it over RPC without model
+credentials. The service-and-agent scaffold below is currently available only
+from `master`.
 
 ## Keep developing locally
 

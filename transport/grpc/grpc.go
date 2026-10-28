@@ -101,6 +101,9 @@ func (t *grpcTransport) Dial(addr string, opts ...transport.DialOption) (transpo
 	options := []grpc.DialOption{
 		grpc.WithTimeout(dopts.Timeout),
 	}
+	if mnet.PrivateAddress(addr) {
+		options = append(options, grpc.WithNoProxy())
+	}
 
 	if t.opts.Secure || t.opts.TLSConfig != nil {
 		config := t.opts.TLSConfig

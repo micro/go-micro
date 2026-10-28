@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+
+	mnet "go-micro.dev/v6/internal/util/net"
 )
 
 const (
@@ -16,6 +18,14 @@ const (
 )
 
 func getURL(addr string) (*url.URL, error) {
+	// Service addresses discovered from a local registry must not be sent to an
+	// outbound HTTP proxy. Apart from leaking internal addresses, doing so makes
+	// the default mDNS experience fail in environments which set HTTP_PROXY but
+	// do not include the container or LAN subnet in NO_PROXY.
+	if mnet.PrivateAddress(addr) {
+		return nil, nil
+	}
+
 	r := &http.Request{
 		URL: &url.URL{
 			Scheme: "https",

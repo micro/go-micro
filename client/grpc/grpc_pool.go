@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	mnet "go-micro.dev/v6/internal/util/net"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 )
@@ -136,6 +137,13 @@ func (p *pool) getConn(dialCtx context.Context, addr string, opts ...grpc.DialOp
 	p.Unlock()
 
 	//  create new conn
+	// Registry results commonly point at loopback, container, or LAN addresses.
+	// Those service-to-service connections must not inherit an outbound proxy
+	// from the developer's shell; grpc-go otherwise proxies them unless every
+	// dynamic address is repeated in NO_PROXY.
+	if mnet.PrivateAddress(addr) {
+		opts = append(opts, grpc.WithNoProxy())
+	}
 	cc, err := grpc.DialContext(dialCtx, addr, opts...)
 	if err != nil {
 		return nil, err
