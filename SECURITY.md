@@ -4,12 +4,14 @@
 
 We actively support the following versions of go-micro:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.x     | :white_check_mark: |
-| 4.x     | :x:                |
-| 3.x     | :x:                |
-| < 3.0   | :x:                |
+| Version | Support level |
+| ------- | ------------- |
+| 6.x     | Active development and security fixes |
+| 5.x     | Security fixes only |
+| 4.x and earlier | End of life |
+
+The complete policy, including Go toolchain support, release cadence, backports,
+and migration guidance, is documented in [Version Support](internal/website/content/en/docs/project/version-support.md).
 
 ## Reporting a Vulnerability
 
@@ -58,7 +60,7 @@ When using go-micro in production:
 ### TLS/Transport Security
 
 ```go
-import "go-micro.dev/v5/transport"
+import "go-micro.dev/v6/transport"
 
 // Enable TLS verification (recommended)
 os.Setenv("MICRO_TLS_SECURE", "true")
@@ -72,7 +74,7 @@ See [TLS Security Update](internal/website/docs/TLS_SECURITY_UPDATE.md) for deta
 ### Authentication
 
 ```go
-import "go-micro.dev/v5/auth"
+import "go-micro.dev/v6/auth"
 
 // Use JWT authentication
 service := micro.NewService(
@@ -101,7 +103,7 @@ func (h *Handler) Create(ctx context.Context, req *Request, rsp *Response) error
 Implement rate limiting for public-facing services:
 
 ```go
-import "go-micro.dev/v5/client"
+import "go-micro.dev/v6/client"
 
 // Client-side rate limiting
 client.NewClient(
@@ -147,15 +149,15 @@ go-micro uses reflection for automatic handler registration. While this is a del
 
 ### TLS Certificate Verification
 
-**Default behavior in v5**: TLS certificate verification is **disabled** for backward compatibility.
-
-**Production recommendation**: Enable secure mode:
+**Default behavior in v6**: TLS certificate verification is enabled. Do not
+disable verification in production. Older releases may require secure mode to
+be enabled explicitly:
 
 ```bash
 export MICRO_TLS_SECURE=true
 ```
 
-This will be the default in v6.
+See the v5 to v6 migration guide before upgrading security-sensitive services.
 
 ## Security Updates
 

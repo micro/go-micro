@@ -9,8 +9,10 @@ already have, and building an agent is building a service. The roadmap has two
 jobs: make **agentic development** excellent, and make the **developer experience**
 around it excellent.
 
-The full, current roadmap lives at **[go-micro.dev/docs/roadmap](https://go-micro.dev/docs/roadmap)**
-([source](internal/website/content/en/docs/roadmap.md)). The highlights:
+The full, authoritative roadmap lives at **[go-micro.dev/docs/roadmap](https://go-micro.dev/docs/roadmap)**
+([source](internal/website/content/en/docs/roadmap.md)). This file is an overview;
+roadmap status, ownership, compatibility, and release commitments are maintained
+only in the canonical source.
 
 ## Towards v7 — proposal
 
@@ -115,3 +117,7 @@ Pick an item, open an issue to discuss the approach, and submit a PR. Or join th
 
 Major versions (v5 → v6) carry breaking changes; minors are backward-compatible.
 See the [v5 → v6 migration guide](https://go-micro.dev/docs/guides/migration/v5-to-v6).
+The authoritative release, Go toolchain, and backport policy is
+[Version Support](internal/website/content/en/docs/project/version-support.md).
+Adoption is measured without mandatory runtime telemetry as described in
+[Adoption and Sustainability](internal/website/content/en/docs/project/adoption.md).

@@ -39,7 +39,7 @@ go test -memprofile=mem.prof -bench=.
 ```
 
 ## Environment
-- Go Micro version: [e.g. v5.3.0]
+- Go Micro version: [run `go list -m go-micro.dev/v6` or provide the exact module version]
 - Go version: [run `go version`]
 - Hardware: [e.g. 4 CPU, 8GB RAM]
 - OS: [e.g. Ubuntu 22.04]

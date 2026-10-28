@@ -1,0 +1,25 @@
+name: Release Gates
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-harness:
+    name: Build and deterministic harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build all packages
+        run: go build ./...
+      - name: Run 0-to-1, 0-to-hero, composition, and provider gates
+        run: make harness
