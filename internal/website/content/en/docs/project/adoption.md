@@ -39,3 +39,11 @@ identifying respondents. It should cover:
 Sparse data should be reported as unknown rather than inferred. Survey answers
 are voluntary, and maintainers should not publish small cohorts that could
 identify an organization.
+
+Use the repository's **Production user survey** issue template to collect the
+voluntary inputs and the **Quarterly adoption review** template to publish a
+report. A review period should be named as `YYYY-QN`; unanswered fields remain
+`Unknown`, and free-form responses must be aggregated rather than reproduced.
+The first period is 2026 Q4: maintainers track the
+[voluntary survey](https://github.com/micro/go-micro/issues/5045) and
+[aggregate review](https://github.com/micro/go-micro/issues/5046) in public.

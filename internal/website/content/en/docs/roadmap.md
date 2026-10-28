@@ -21,11 +21,11 @@ receive framework fixes.
 
 | Workstream | Status | Compatibility | Commitment |
 | --- | --- | --- | --- |
-| x402 buyer in the agent runtime | Proposed flagship | v6-compatible | No release commitment |
+| x402 buyer in the agent runtime | Shipped | v6-compatible | v6 |
 | AP2 mandate foundation ([#3552](https://github.com/micro/go-micro/issues/3552)) | Proposed | v6-compatible | No release commitment |
 | gRPC-reflection MCP | Proposed | v6-compatible | No release commitment |
 | Kubernetes operator and CRDs | Proposed | v6-compatible | No release commitment |
-| v7 execution contract | Proposed design review | v7-breaking | No release commitment |
+| v7 execution contract ([#5044](https://github.com/micro/go-micro/issues/5044)) | Accepted design review | mixed; see contract matrix | No release commitment |
 
 ## Towards v7 — proposal
 
@@ -58,17 +58,31 @@ These constrain everything below:
 4. **Interaction is as important as running.** Talking to an agent, inspecting runs and history — end to end, not just "it starts."
 5. **Battle-tested.** Works across every provider, fails safely, and is observable.
 
-## Now — flagship capability
+## Shipped flagship capability
 
-**Agents that pay (x402 buyer in the runtime).** The seller middleware and
-budget-capped buyer client exist. The next capability is an opt-in `AgentPayer`
-that handles a payment-required tool call, obtains approval, settles within a
-budget, retries safely, and records spend in run metadata and traces. Its parent
-issue must decompose approval/security boundaries, observability, a runnable
-example, and a key-free test path before implementation is accepted.
+**Agents that pay (x402 buyer in the runtime).** The opt-in `AgentPayer` and
+`AgentBudget` APIs handle payment-required tool results, enforce approval before
+payment, settle within a per-run budget, retry the request, and emit spend
+events. Key-free tests cover successful payment, retries, missing payers, and
+over-budget refusal.
+
+The provider-free `examples/agent-x402-buyer` program documents the complete
+local path without live funds. Remaining follow-up is broader interactive
+approval UX and provider/gateway conformance when another integration exposes a
+gap; it is not grounds to describe the runtime capability as unimplemented.
 
 AP2 mandate work remains a separate proposed foundation and is not a second
 flagship milestone.
+
+## Now — execution contract
+
+The current flagship is the documentation-only first stage of the v7 execution
+contract, tracked by [#5044](https://github.com/micro/go-micro/issues/5044).
+The [contract matrix](project/execution-contract.md) records current ownership,
+outcomes, and compatibility decisions before any public API changes. The next
+implementation gate is the restart/failure-injection fixture described in the
+v7 plan; gRPC-reflection MCP and Kubernetes deployment remain candidates until
+that recovery work is scoped.
 
 ## Shipped agent depth
 
