@@ -16,6 +16,10 @@ Install the CLI from `master` until this feature is released:
 go install go-micro.dev/v6/cmd/micro@master
 ```
 
+The released v6.15.1 CLI supports the service-only [getting-started
+path](quickstart.md), but does not include this combined scaffold. Check the
+binary you are about to use with `micro --version`.
+
 Create and run a service with an agent:
 
 ```sh

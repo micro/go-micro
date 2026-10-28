@@ -25,6 +25,21 @@ func HostPort(addr string, port interface{}) string {
 	return fmt.Sprintf("%s:%v", host, port)
 }
 
+// PrivateAddress reports whether addr points to a host that should be reached
+// directly rather than through an outbound proxy.
+func PrivateAddress(addr string) bool {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		host = addr
+	}
+	host = strings.Trim(host, "[]")
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsUnspecified())
+}
+
 // Listen takes addr:portmin-portmax and binds to the first available port
 // Example: Listen("localhost:5000-6000", fn).
 func Listen(addr string, fn func(string) (net.Listener, error)) (net.Listener, error) {

@@ -208,14 +208,14 @@ func run(ctx context.Context) error {
 	if err := failing.Execute(ctx, "x"); err == nil {
 		return errors.New("failed tool reported success")
 	}
-	cancelCP := flow.StoreCheckpoint(st, "cancelled")
-	cancelled := flow.New("composition-cancelled", flow.Steps(flow.Step{Name: "cancelled", Run: func(_ context.Context, in flow.State) (flow.State, error) { return in, context.Canceled }}), flow.WithCheckpoint(cancelCP))
-	if err := cancelled.Execute(ctx, "x"); !errors.Is(err, context.Canceled) {
+	cancelCP := flow.StoreCheckpoint(st, "canceled")
+	canceled := flow.New("composition-canceled", flow.Steps(flow.Step{Name: "canceled", Run: func(_ context.Context, in flow.State) (flow.State, error) { return in, context.Canceled }}), flow.WithCheckpoint(cancelCP))
+	if err := canceled.Execute(ctx, "x"); !errors.Is(err, context.Canceled) {
 		return fmt.Errorf("cancel outcome=%v", err)
 	}
 	cancelledRuns, _ := cancelCP.List(ctx)
 	if len(cancelledRuns) != 1 || cancelledRuns[0].Status != "failed" || cancelledRuns[0].Steps[0].ErrorKind != string(model.ErrorKindCanceled) {
-		return fmt.Errorf("cancelled run was not a terminal non-success: %+v", cancelledRuns)
+		return fmt.Errorf("canceled run was not a terminal non-success: %+v", cancelledRuns)
 	}
 	return nil
 }
