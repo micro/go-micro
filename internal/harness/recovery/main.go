@@ -94,6 +94,7 @@ func run(ctx context.Context) error {
 	// not promise a cross-host lease in v6, so both may reach the operation. The
 	// stable business idempotency key is the required safety boundary.
 	finalBarrier = newBarrier(2)
+	cp.synchronizeLoads(runID, 2)
 	host3 := flow.New("recovery-gate", flow.Steps(steps(true)...), flow.WithCheckpoint(cp))
 	errCh := make(chan error, 2)
 	for range 2 {
@@ -133,8 +134,10 @@ func run(ctx context.Context) error {
 }
 
 type memoryCheckpoint struct {
-	mu   sync.Mutex
-	runs map[string]flow.Run
+	mu          sync.Mutex
+	runs        map[string]flow.Run
+	loadRunID   string
+	loadBarrier *barrier
 }
 
 func newCheckpoint() *memoryCheckpoint { return &memoryCheckpoint{runs: make(map[string]flow.Run)} }
@@ -148,9 +151,26 @@ func (c *memoryCheckpoint) Save(_ context.Context, run flow.Run) error {
 
 func (c *memoryCheckpoint) Load(_ context.Context, id string) (flow.Run, bool, error) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	run, ok := c.runs[id]
+	b := c.loadBarrier
+	if id != c.loadRunID {
+		b = nil
+	}
+	c.mu.Unlock()
+	if b != nil {
+		b.arrive(0)
+	}
 	return cloneRun(run), ok, nil
+}
+
+// synchronizeLoads makes the duplicate-delivery scenario deterministic: both
+// simulated hosts observe the same waiting record before either advances it.
+// This is fixture coordination, not a lease supplied by Checkpoint.
+func (c *memoryCheckpoint) synchronizeLoads(id string, n int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.loadRunID = id
+	c.loadBarrier = newBarrier(n)
 }
 
 func (c *memoryCheckpoint) Delete(_ context.Context, id string) error {

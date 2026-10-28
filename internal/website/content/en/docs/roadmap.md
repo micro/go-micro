@@ -26,7 +26,7 @@ receive framework fixes.
 | gRPC-reflection MCP | Proposed | v6-compatible | No release commitment |
 | Kubernetes operator and CRDs | Proposed | v6-compatible | No release commitment |
 | v7 execution contract ([#5044](https://github.com/micro/go-micro/issues/5044)) | Shipped design baseline | mixed; see contract matrix | v6 documentation |
-| Restartable service-agent-flow composition ([#5049](https://github.com/micro/go-micro/issues/5049)) | Accepted | v6-compatible fixture | No release commitment |
+| Restartable service-agent-flow composition ([#5049](https://github.com/micro/go-micro/issues/5049)) | Shipped | v6-compatible fixture | v6 |
 
 ## Towards v7 — proposal
 
@@ -75,15 +75,16 @@ gap; it is not grounds to describe the runtime capability as unimplemented.
 AP2 mandate work remains a separate proposed foundation and is not a second
 flagship milestone.
 
-## Now — complete composition
+## Shipped — complete composition
 
-The execution-contract audit and provider-free recovery gate are shipped. The
-current work is the single restartable service-agent-flow composition tracked by
-[#5049](https://github.com/micro/go-micro/issues/5049). It must call a service,
-dispatch bounded agent work through service tools, pause for durable approval,
-and complete one idempotent final operation while preserving inspectable
-lineage across replacement hosts. This is a v6-compatible acceptance fixture,
-not permission to begin the breaking model/agent split.
+The execution-contract audit, provider-free recovery gate, and single
+restartable service-agent-flow composition tracked by
+[#5049](https://github.com/micro/go-micro/issues/5049) are shipped. The fixture
+calls real services, dispatches bounded agent work through service tools, pauses
+for durable approval, and completes one idempotent final operation while
+preserving inspectable lineage across replacement hosts. The race-enabled,
+key-free fixture is a v6-compatible acceptance gate, not permission to begin
+the breaking model/agent split.
 
 The [contract matrix](project/execution-contract.md) remains the compatibility
 baseline. gRPC-reflection MCP and Kubernetes deployment remain candidates for
