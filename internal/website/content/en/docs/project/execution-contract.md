@@ -79,7 +79,9 @@ error-kind metadata; a stored schema change requires versioning and migration.
 - Unify prompt-driven flow execution with the agent harness where public
   behavior changes.
 
-The next gate is an executable fixture that restarts at each boundary, preserves
-waiting state and lineage, injects duplicate/concurrent resume, models an
-ambiguous effect, exhausts a budget, and proves an idempotent final operation is
-not duplicated.
+The executable `make recovery-gate` fixture replaces a flow host while retaining
+its checkpoint, preserves waiting state and lineage, injects duplicate concurrent
+resume, models an ambiguous effect, exhausts a retry budget, and proves that
+stable idempotency keys prevent duplicate final effects. This is the v6 recovery
+baseline; a portable cross-host lease or compare-and-swap checkpoint contract
+remains v7 work.
