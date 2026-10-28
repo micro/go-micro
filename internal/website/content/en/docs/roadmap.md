@@ -25,7 +25,8 @@ receive framework fixes.
 | AP2 mandate foundation ([#3552](https://github.com/micro/go-micro/issues/3552)) | Proposed | v6-compatible | No release commitment |
 | gRPC-reflection MCP | Proposed | v6-compatible | No release commitment |
 | Kubernetes operator and CRDs | Proposed | v6-compatible | No release commitment |
-| v7 execution contract ([#5044](https://github.com/micro/go-micro/issues/5044)) | Accepted design review | mixed; see contract matrix | No release commitment |
+| v7 execution contract ([#5044](https://github.com/micro/go-micro/issues/5044)) | Shipped design baseline | mixed; see contract matrix | v6 documentation |
+| Restartable service-agent-flow composition ([#5049](https://github.com/micro/go-micro/issues/5049)) | Accepted | v6-compatible fixture | No release commitment |
 
 ## Towards v7 — proposal
 
@@ -74,15 +75,19 @@ gap; it is not grounds to describe the runtime capability as unimplemented.
 AP2 mandate work remains a separate proposed foundation and is not a second
 flagship milestone.
 
-## Now — execution contract
+## Now — complete composition
 
-The current flagship is the documentation-only first stage of the v7 execution
-contract, tracked by [#5044](https://github.com/micro/go-micro/issues/5044).
-The [contract matrix](project/execution-contract.md) records current ownership,
-outcomes, and compatibility decisions before any public API changes. The next
-implementation gate is the restart/failure-injection fixture described in the
-v7 plan; gRPC-reflection MCP and Kubernetes deployment remain candidates until
-that recovery work is scoped.
+The execution-contract audit and provider-free recovery gate are shipped. The
+current work is the single restartable service-agent-flow composition tracked by
+[#5049](https://github.com/micro/go-micro/issues/5049). It must call a service,
+dispatch bounded agent work through service tools, pause for durable approval,
+and complete one idempotent final operation while preserving inspectable
+lineage across replacement hosts. This is a v6-compatible acceptance fixture,
+not permission to begin the breaking model/agent split.
+
+The [contract matrix](project/execution-contract.md) remains the compatibility
+baseline. gRPC-reflection MCP and Kubernetes deployment remain candidates for
+the next net-new capability; neither is accepted as a simultaneous flagship.
 
 ## Shipped agent depth
 
