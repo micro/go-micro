@@ -14,6 +14,7 @@ from pathlib import Path
 import pty
 import re
 import select
+import signal
 import struct
 import subprocess
 import sys
@@ -29,6 +30,7 @@ ERRORS = []
 RELEASE = threading.Event()
 HOLD_STARTED = threading.Event()
 CANCEL_STARTED = threading.Event()
+STREAM_RELEASE = threading.Event()
 
 
 class Provider(http.server.BaseHTTPRequestHandler):
@@ -84,6 +86,21 @@ class Provider(http.server.BaseHTTPRequestHandler):
                 self.wfile.flush()
                 HOLD_STARTED.set()
                 assert RELEASE.wait(10), "queued input did not arrive"
+                self.wfile.write(b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+                return
+            elif prompt == "Stream several paragraphs":
+                self.send_response(200)
+                self.send_header("Content-Type", "text/event-stream")
+                self.end_headers()
+                paragraphs = [f"Paragraph-{i:02d} contains enough text to wrap across several terminal columns.\n\n" for i in range(12)]
+                paragraphs += ["```go\n", 'fmt.Println("streamed-code")\n', "\n", "```\n"]
+                for paragraph in paragraphs:
+                    # Split boundaries across events, as a real provider does.
+                    for part in [paragraph[:-1], paragraph[-1:]]:
+                        chunk = {"choices": [{"index": 0, "delta": {"content": part}}]}
+                        self.wfile.write(("data: " + json.dumps(chunk) + "\n\n").encode())
+                        self.wfile.flush()
+                assert STREAM_RELEASE.wait(10), "completed blocks were not visible before completion"
                 self.wfile.write(b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
                 return
             elif prompt == "Wait for cancellation":
@@ -207,6 +224,21 @@ try:
         t.expect("test-model")
         t.send("1")
         t.expect("Model: test-model")
+        fcntl.ioctl(t.master, termios.TIOCSWINSZ, struct.pack("HHHH", 8, 42, 0, 0))
+        t.process.send_signal(signal.SIGWINCH)
+        t.send("Stream several paragraphs")
+        t.expect("streamed-code")
+        # The provider is still blocked: this must be live output, not a final reply.
+        t.send("Follow up after streaming")
+        t.expect("Queued")
+        STREAM_RELEASE.set()
+        t.expect("Reply received.")
+        t.expect("micro >")
+        for marker in [f"Paragraph-{i:02d}" for i in range(12)] + ["streamed-code"]:
+            assert t.output.count(marker) == 1, f"duplicated or missing {marker}: {t.output}"
+        fcntl.ioctl(t.master, termios.TIOCSWINSZ, struct.pack("HHHH", 30, 100, 0, 0))
+        t.process.send_signal(signal.SIGWINCH)
+        print("PASS: live Markdown blocks, code fences, narrow terminal scrolling and queued input; no duplicate replies")
         t.send("Update the greeting")
         t.expect("Approve workspace_write?")
         assert (project / "greeting.txt").read_text() == "before\n"

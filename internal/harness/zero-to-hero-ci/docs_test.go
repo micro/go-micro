@@ -732,7 +732,7 @@ func TestGettingStartedDocsLeadWithConversation(t *testing.T) {
 		if service := strings.Index(doc, "micro new helloworld"); service >= 0 && service < chat {
 			t.Errorf("%s introduces the service scaffold before development chat", file)
 		}
-		for _, marker := range []string{"Go 1.26", "registered agents", "provider"} {
+		for _, marker := range []string{"Go 1.26", "micro chat NAME", "/agent NAME", "/agent micro", "provider"} {
 			if !strings.Contains(doc, marker) {
 				t.Errorf("%s missing prerequisite or routing detail %q", file, marker)
 			}

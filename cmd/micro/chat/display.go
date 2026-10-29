@@ -10,8 +10,8 @@ import (
 	"github.com/chzyer/readline"
 )
 
-// chatDisplay keeps the editable prompt stable and commits each formatted
-// reply once. Tool output stays plain text.
+// chatDisplay keeps reply text out of the editable prompt. Completed Markdown
+// blocks are printed once as they arrive. Tool output stays plain text.
 type chatDisplay struct {
 	terminal *readline.Instance
 	mu       sync.Mutex
@@ -34,17 +34,21 @@ func (d *chatDisplay) token(text string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.markdown.WriteString(terminalText(text))
-	// readline cannot reliably erase a changing multiline prompt. Keep reply
-	// text out of the prompt so wrapped previews never leak into scrollback.
-	// The working prompt and tool events remain visible until flush.
+	text = d.markdown.String()
+	if end := completeMarkdown(text); end > 0 {
+		width := d.width()
+		fmt.Fprintln(d.terminal.Stdout(), renderMarkdown(text[:end], width))
+		d.markdown.Reset()
+		d.markdown.WriteString(text[end:])
+	}
 }
 
-func (d *chatDisplay) size() (int, int) {
-	width, height, err := readline.GetSize(int(os.Stdout.Fd()))
-	if err != nil || width < 10 || height < 3 {
-		return 80, 24
+func (d *chatDisplay) width() int {
+	width, _, err := readline.GetSize(int(os.Stdout.Fd()))
+	if err != nil || width < 10 {
+		return 80
 	}
-	return width - 1, height
+	return width - 1
 }
 
 // output preserves command output, including Markdown-like syntax.
@@ -57,12 +61,8 @@ func (d *chatDisplay) output(text string) {
 		fmt.Fprint(d.terminal.Stdout(), d.pending[:index+1])
 		d.pending = d.pending[index+1:]
 	}
-	width, height := d.size()
-	prompt := d.prompt()
-	if d.pending != "" {
-		prompt = markdownPreview(d.pending, width, max(1, height/3)) + "\n" + prompt
-	}
-	d.terminal.SetPrompt(prompt)
+	// Keep incomplete command lines out of the prompt too. A newline or flush
+	// commits the remainder without redrawing it into scrollback.
 	d.terminal.Refresh()
 }
 
@@ -71,7 +71,7 @@ func (d *chatDisplay) flush() {
 	defer d.mu.Unlock()
 	d.terminal.SetPrompt(d.prompt())
 	if d.markdown.Len() > 0 {
-		width, _ := d.size()
+		width := d.width()
 		fmt.Fprintln(d.terminal.Stdout(), renderMarkdown(d.markdown.String(), width))
 		d.markdown.Reset()
 	}

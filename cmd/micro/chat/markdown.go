@@ -44,15 +44,35 @@ func renderMarkdown(text string, width int) string {
 	return strings.Trim(rendered, "\n")
 }
 
-// Keep the live preview small enough for the editable prompt to stay on screen.
-// The complete reply is committed to scrollback when the turn finishes.
-func markdownPreview(rendered string, width, rows int) string {
-	lines := strings.Split(rendered, "\n")
-	if len(lines) > rows {
-		lines = lines[len(lines)-rows:]
+// completeMarkdown returns the end of the last complete block. Keep fenced code
+// together so a blank line inside a code block cannot trigger an early render.
+func completeMarkdown(text string) int {
+	end, offset := 0, 0
+	var fence byte
+	length := 0
+	for {
+		newline := strings.IndexByte(text[offset:], '\n')
+		if newline < 0 {
+			return end
+		}
+		next := offset + newline + 1
+		line := strings.TrimSpace(text[offset:next])
+		if len(line) >= 3 && (line[0] == '`' || line[0] == '~') {
+			count := 0
+			for count < len(line) && line[count] == line[0] {
+				count++
+			}
+			if count >= 3 {
+				if fence == 0 {
+					fence, length = line[0], count
+				} else if line[0] == fence && count >= length && strings.TrimSpace(line[count:]) == "" {
+					fence, length = 0, 0
+					end = next
+				}
+			}
+		} else if line == "" && fence == 0 {
+			end = next
+		}
+		offset = next
 	}
-	for i, line := range lines {
-		lines[i] = terminalansi.Truncate(line, width, "…")
-	}
-	return strings.Join(lines, "\n")
 }
