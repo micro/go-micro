@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	pb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/model"
@@ -49,14 +48,11 @@ func TestInteractionApproval(t *testing.T) {
 			defer a.Stop()
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
-			stream, err := pb.NewAgentInteractionService(a.Name(), client.NewClient(client.Registry(reg))).Chat(WithSession(ctx, "session"))
+			stream, err := NewClient(a.Name(), client.NewClient(client.Registry(reg))).StreamAsk(WithSession(ctx, "session"), "write")
 			if err != nil {
 				t.Fatal(err)
 			}
 			defer stream.Close()
-			if err := stream.Send(&pb.InteractionRequest{Message: "write"}); err != nil {
-				t.Fatal(err)
-			}
 			seen := map[string]bool{}
 			for {
 				event, err := stream.Recv()
@@ -66,33 +62,33 @@ func TestInteractionApproval(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				seen[event.Type] = true
-				if event.Type == string(StreamEventApproval) {
+				seen[string(event.Type)] = true
+				if event.Type == StreamEventApproval {
 					if mode == "host denies" {
 						t.Fatal("host denial overridden")
 					}
 					if executed.Load() != 0 {
 						t.Fatal("executed before approval")
 					}
-					if event.ToolCall.Name != "write" || event.ApprovalId == "" {
+					if event.ToolCall.Name != "write" || event.ApprovalID == "" {
 						t.Fatalf("approval: %+v", event)
 					}
 					if mode == "disconnect" {
 						stream.Close()
 						break
 					}
-					id := event.ApprovalId
+					id := event.ApprovalID
 					if mode == "wrong decision" {
 						id = "wrong"
 					}
-					if err := stream.Send(&pb.InteractionRequest{ApprovalId: id, Approved: mode == "approve"}); err != nil {
+					if err := stream.Approve(id, mode == "approve"); err != nil {
 						t.Fatal(err)
 					}
 					if mode == "wrong decision" {
 						break
 					}
 				}
-				if event.Type == string(StreamEventDone) {
+				if event.Type == StreamEventDone {
 					if _, err := stream.Recv(); !errors.Is(err, io.EOF) {
 						t.Fatalf("end of stream: %v", err)
 					}
@@ -137,16 +133,11 @@ func TestInteractionReturnsProviderError(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer a.Stop()
-	api := pb.NewAgentInteractionService(a.Name(), client.NewClient(client.Registry(reg)))
+	api := NewClient(a.Name(), client.NewClient(client.Registry(reg)))
 	for i := 0; i < 2; i++ {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		stream, err := api.Chat(WithSession(ctx, "error-session"))
+		stream, err := api.StreamAsk(WithSession(ctx, "error-session"), "hello")
 		if err != nil {
-			cancel()
-			t.Fatal(err)
-		}
-		if err := stream.Send(&pb.InteractionRequest{Message: "hello"}); err != nil {
-			stream.Close()
 			cancel()
 			t.Fatal(err)
 		}

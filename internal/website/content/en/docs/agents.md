@@ -168,3 +168,57 @@ a crash may already have performed its action.
 These are agent capabilities; no workflow definition is required.
 [Workflows](workflows.md) remain available for applications that need a predefined
 sequence of operations.
+
+## Call an agent from Go
+
+Use the same registry configuration as the running agent. The host owns its
+model credentials and tools; the client only needs RPC access.
+
+```go
+remote := agent.NewClient("assistant", client.DefaultClient)
+ctx := agent.WithSession(context.Background(), "my-conversation")
+response, err := remote.Ask(ctx, "What notes do I have?")
+if err != nil {
+    return err
+}
+fmt.Println(response.Reply)
+```
+
+The packages are `go-micro.dev/v6/agent` and `go-micro.dev/v6/client`.
+Reuse the session ID to continue a conversation. Use a different ID for each
+conversation; the host must authenticate and authorize access separately.
+
+For live text, tool activity and approvals, use `remote.StreamAsk(ctx, message)`.
+It returns the same `agent.StreamEvent` values used by local agents:
+
+```go
+stream, err := remote.StreamAsk(ctx, "Read my notes")
+if err != nil {
+    return err
+}
+defer stream.Close()
+for {
+    event, err := stream.Recv()
+    if errors.Is(err, io.EOF) {
+        break
+    }
+    if err != nil {
+        return err
+    }
+    switch event.Type {
+    case agent.StreamEventToken:
+        fmt.Print(event.Token)
+    case agent.StreamEventApproval:
+        // Ask the user here. This example refuses the action.
+        if err := stream.Approve(event.ApprovalID, false); err != nil {
+            return err
+        }
+    }
+}
+```
+
+Cancelling the context or closing the stream cancels unfinished work. Use
+`stream.Context()` when waiting for a user decision so a disconnect also ends
+the wait. A disconnect before completion returns an error; calls are never
+retried automatically because actions may already have taken effect. Streaming
+requires a host with the `AgentInteraction` endpoint.
