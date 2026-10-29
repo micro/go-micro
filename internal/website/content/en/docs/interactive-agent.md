@@ -205,6 +205,7 @@ options without using the CLI. No product-specific assistant runtime is required
 
 The terminal prints completed Markdown paragraphs and fenced code blocks as they arrive,
 and prints the unfinished block when the reply ends. Each block appears once.
+Content containing brackets is held until completion to preserve Markdown reference links.
 Command output stays plain text; incomplete lines wait for a newline or completion.
 It uses the terminal’s foreground and background and respects `NO_COLOR`; piped
 output retains Markdown source. No separate graphical UI is included. Live

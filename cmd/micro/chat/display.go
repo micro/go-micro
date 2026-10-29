@@ -35,7 +35,9 @@ func (d *chatDisplay) token(text string) {
 	defer d.mu.Unlock()
 	d.markdown.WriteString(terminalText(text))
 	text = d.markdown.String()
-	if end := completeMarkdown(text); end > 0 {
+	// Reference links and their definitions may occur in different blocks.
+	// Conservatively retain the rest of the document from the first bracket.
+	if end := completeMarkdown(text); end > 0 && !strings.Contains(text[:end], "[") {
 		width := d.width()
 		fmt.Fprintln(d.terminal.Stdout(), renderMarkdown(text[:end], width))
 		d.markdown.Reset()
