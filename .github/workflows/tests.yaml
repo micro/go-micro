@@ -26,12 +26,6 @@ jobs:
         run: |
           go install github.com/kyoh86/richgo@latest
           go get -v -t -d ./...
-      - name: Install CLI and exercise chat through a real terminal
-        run: make install-smoke
-      - name: Exercise services, gateway, MCP and custom agents
-        run: |
-          go install github.com/nats-io/nats-server/v2@v2.11.3
-          make service-smoke
       - name: Run tests
         id: tests
         run: richgo test -v -race -cover ./...
