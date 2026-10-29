@@ -203,8 +203,10 @@ options without using the CLI. No product-specific assistant runtime is required
 | Delegation | Existing agent delegation with visible local target/task and agent listing |
 | Web research | Fetch and configurable search; full browser automation remains external |
 
-The terminal renders Markdown replies with a small live preview above the prompt,
-then prints the complete reply into scrollback. Command output stays plain text.
+The terminal prints completed Markdown paragraphs and fenced code blocks as they arrive,
+and prints the unfinished block when the reply ends. Each block appears once.
+Content containing brackets is held until completion to preserve Markdown reference links.
+Command output stays plain text; incomplete lines wait for a newline or completion.
 It uses the terminal’s foreground and background and respects `NO_COLOR`; piped
 output retains Markdown source. No separate graphical UI is included. Live
 streaming for all providers, distributed scheduling, and full browser automation

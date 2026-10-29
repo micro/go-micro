@@ -22,19 +22,28 @@ func TestMarkdownReply(t *testing.T) {
 	}
 }
 
-func TestMarkdownNoColorAndPreview(t *testing.T) {
+func TestMarkdownNoColor(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	rendered := renderMarkdown("# Heading\n\n**Text** and a [link](https://example.com)", 30)
 	if strings.Contains(rendered, "\x1b") {
 		t.Fatalf("NO_COLOR emitted escapes: %q", rendered)
 	}
-	preview := markdownPreview("hidden\n短い行\n"+strings.Repeat("wide ", 20), 20, 2)
-	if strings.Contains(preview, "hidden") {
-		t.Fatalf("preview not bounded: %q", preview)
-	}
-	for _, line := range strings.Split(preview, "\n") {
-		if ansi.StringWidth(line) > 20 {
-			t.Fatalf("preview too wide: %q", line)
-		}
+}
+
+func TestCompleteMarkdown(t *testing.T) {
+	for _, test := range []struct{ name, text, ready string }{
+		{"partial paragraph", "Hello", ""},
+		{"paragraph", "Hello\n\nStill writing", "Hello\n\n"},
+		{"open code", "Before\n\n```go\nfirst\n\nsecond", "Before\n\n"},
+		{"closed code", "```go\nfirst\n\nsecond\n```\nAfter", "```go\nfirst\n\nsecond\n```\n"},
+		{"shorter fence", "````go\n```\n\nmore", ""},
+		{"tilde fence", "~~~go\nx\n\n~~~\n", "~~~go\nx\n\n~~~\n"},
+		{"partial closing fence", "```go\nx\n```", ""},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.text[:completeMarkdown(test.text)]; got != test.ready {
+				t.Fatalf("ready %q, want %q", got, test.ready)
+			}
+		})
 	}
 }
