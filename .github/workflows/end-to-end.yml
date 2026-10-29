@@ -1,4 +1,4 @@
-name: Release Gates
+name: End-to-end tests
 
 on:
   push:
@@ -10,8 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  deterministic-harness:
-    name: Build and deterministic harness
+  end-to-end:
+    name: End-to-end tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,5 +21,9 @@ jobs:
           cache: true
       - name: Build all packages
         run: go build ./...
-      - name: Run 0-to-1, 0-to-hero, composition, recovery, and provider gates
+      - name: Test CLI journeys, agents, recovery and providers
         run: make harness
+      - name: Install NATS for service tests
+        run: go install github.com/nats-io/nats-server/v2@v2.11.3
+      - name: Test services, gateway and MCP
+        run: make service-smoke

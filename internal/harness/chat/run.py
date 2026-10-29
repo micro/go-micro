@@ -27,6 +27,8 @@ ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 REQUESTS = []
 ERRORS = []
 RELEASE = threading.Event()
+HOLD_STARTED = threading.Event()
+CANCEL_STARTED = threading.Event()
 
 
 class Provider(http.server.BaseHTTPRequestHandler):
@@ -80,6 +82,7 @@ class Provider(http.server.BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b'data: {"choices":[{"index":0,"delta":{"content":"Holding request"}}]}\n\n')
                 self.wfile.flush()
+                HOLD_STARTED.set()
                 assert RELEASE.wait(10), "queued input did not arrive"
                 self.wfile.write(b'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
                 return
@@ -89,6 +92,8 @@ class Provider(http.server.BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b'data: {"choices":[{"index":0,"delta":{"content":"Waiting for cancellation"}}]}\n\n')
                 self.wfile.flush()
+                # Signal request readiness independently of how replies are rendered.
+                CANCEL_STARTED.set()
                 # Client cancellation closes the HTTP stream. Do not hold up server shutdown.
                 time.sleep(3)
                 return
@@ -242,7 +247,8 @@ try:
         t.expect("Reply received.")
         t.expect("micro >")
         t.send("Wait for cancellation")
-        t.expect("Waiting for cancellation")
+        t.expect("micro (working) >")
+        assert CANCEL_STARTED.wait(10), "cancellable model request did not start"
         t.send("/stop")
         t.expect("Stopped.")
         t.expect("micro >")
@@ -250,7 +256,8 @@ try:
         t.expect("Reply received.")
         t.expect("micro >")
         t.send("Hold this request")
-        t.expect("Holding request")
+        t.expect("micro (working) >")
+        assert HOLD_STARTED.wait(10), "held model request did not start"
         t.send("Queued followup")
         t.expect("Queued (1)")
         RELEASE.set()
