@@ -10,9 +10,9 @@ import (
 	"os/exec"
 	"testing"
 
+	agentpb "go-micro.dev/v6/agent/proto"
 	"go-micro.dev/v6/client"
 	"go-micro.dev/v6/cmd"
-	"go-micro.dev/v6/codec/bytes"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
@@ -124,7 +124,7 @@ type remoteClient struct {
 
 func (c *remoteClient) Call(_ context.Context, _ client.Request, rsp any, _ ...client.CallOption) error {
 	c.calls++
-	rsp.(*bytes.Frame).Data = []byte(`{"reply":"done"}`)
+	rsp.(*agentpb.ChatResponse).Reply = "done"
 	return nil
 }
 func (c *remoteClient) Stream(context.Context, client.Request, ...client.CallOption) (client.Stream, error) {
