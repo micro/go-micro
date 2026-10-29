@@ -21,7 +21,7 @@ type Client interface {
 }
 
 // ClientStream receives agent events and answers approval requests.
-// Context is cancelled when the connection fails, including while waiting for
+// Context is canceled when the connection fails, including while waiting for
 // approval. Close cancels unfinished work. Always close the stream when done.
 type ClientStream interface {
 	AgentStream
@@ -67,7 +67,10 @@ func (c *agentClient) StreamAsk(ctx context.Context, message string) (ClientStre
 	}
 	s := &remoteStream{ctx: ctx, cancel: cancel, stream: stream, events: make(chan *StreamEvent, 1)}
 	stop := context.AfterFunc(ctx, func() { _ = s.closeTransport() })
-	go func() { defer stop(); s.receive() }()
+	go func() {
+		defer stop()
+		s.receive()
+	}()
 	return s, nil
 }
 
@@ -119,7 +122,7 @@ func (s *remoteStream) Recv() (*StreamEvent, error) {
 
 func (s *remoteStream) receive() {
 	defer close(s.events)
-	defer s.closeTransport()
+	defer func() { _ = s.closeTransport() }()
 	for {
 		event, err := s.stream.Recv()
 		if errors.Is(err, io.EOF) {
