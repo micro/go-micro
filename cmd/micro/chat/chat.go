@@ -74,9 +74,9 @@ func init() {
 		Usage: "Work on your project with an interactive agent",
 		Description: `Start an interactive chat session that uses an LLM to call your services.
 
-With one registered agent, micro chat connects directly without a local API key.
-Use micro chat NAME to select a particular agent when several are running.
-With no registered agents, chat uses a local development agent.
+micro chat always starts the local development agent.
+Use micro chat NAME to connect to a registered agent without a local API key.
+Use /agents to list agents and /agent NAME to switch during a conversation.
 
 micro chat discovers every service in the registry, exposes each endpoint as a
 tool alongside workspace and web tools. Describe the work you need done.
@@ -124,18 +124,20 @@ type agentInfo struct {
 }
 
 type session struct {
-	display       *chatDisplay
-	workspace     *workspace.Workspace
-	instructions  string
-	approvals     chan approvalRequest
-	approvalMu    sync.Mutex
-	yes           bool
-	interactiveUI bool
-	hosting       bool
-	id            string
-	state         store.Store
-	output        io.Writer
-	project       string
+	configureLocal func() error
+	localReady     bool
+	display        *chatDisplay
+	workspace      *workspace.Workspace
+	instructions   string
+	approvals      chan approvalRequest
+	approvalMu     sync.Mutex
+	yes            bool
+	interactiveUI  bool
+	hosting        bool
+	id             string
+	state          store.Store
+	output         io.Writer
+	project        string
 
 	provider  string
 	apiKey    string
@@ -469,33 +471,25 @@ func run(c *cli.Context) error {
 		cl:        cl,
 		stream:    streamOutput,
 	}
-	hasAgents := s.discoverAgents()
 	if c.String("host") != "" {
-		s.agents = nil
-		hasAgents = false
 		targetAgent = ""
 	}
 	if targetAgent != "" {
-		if _, ok := s.agents[targetAgent]; !ok {
-			return fmt.Errorf("agent %q is not registered; run `micro agent list` to see available agents", targetAgent)
+		if err := s.selectAgent(targetAgent); err != nil {
+			return err
 		}
-		s.agents = map[string]agentInfo{targetAgent: s.agents[targetAgent]}
-		hasAgents = true
 	}
 	if err := s.openSession(c.String("session"), c.Bool("new")); err != nil {
 		return err
 	}
 	defer func() { _ = s.state.Close() }()
-	// Remote agents own their model configuration.
-	if len(s.agents) != 1 {
+	s.configureLocal = func() error {
+		if s.localReady {
+			return nil
+		}
 		if err := s.configure(c); err != nil {
-			if errors.Is(err, io.EOF) || errors.Is(err, readline.ErrInterrupt) {
-				return nil
-			}
 			return err
 		}
-	}
-	if !hasAgents {
 		var err error
 		skillsHome, err := os.UserHomeDir()
 		if err != nil {
@@ -511,6 +505,16 @@ func run(c *cli.Context) error {
 		}
 		if instructions != "" {
 			s.instructions = "\n\nProject instructions (AGENTS.md):\n" + instructions
+		}
+		s.localReady = true
+		return nil
+	}
+	if len(s.agents) == 0 {
+		if err := s.configureLocal(); err != nil {
+			if errors.Is(err, io.EOF) || errors.Is(err, readline.ErrInterrupt) {
+				return nil
+			}
+			return err
 		}
 	}
 	s.yes = c.Bool("yes")

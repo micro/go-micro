@@ -32,7 +32,11 @@ func (s *session) conversations() store.Store {
 	if dir == "" {
 		dir, _ = os.Getwd()
 	}
-	return store.Scope(s.state, "chat", fmt.Sprintf("%x", sha256.Sum256([]byte(dir))))
+	key := dir
+	if name := s.agentName(); name != "micro" {
+		key += "\x00" + name
+	}
+	return store.Scope(s.state, "chat", fmt.Sprintf("%x", sha256.Sum256([]byte(key))))
 }
 
 func (s *session) openSession(id string, fresh bool) error {

@@ -27,7 +27,7 @@ key skips setup when it identifies one provider; `--provider NAME` selects expli
 Use `/login` to replace a bad key. Keys entered here are saved for this project;
 environment variables and `--api_key` take precedence on restart.
 
-With no registered agents, the local agent works with project files, shell
+Plain `micro chat` starts the built-in agent, which works with project files, shell
 commands, skills, web pages, and registered service tools. It loads `AGENTS.md`
 and includes directory-specific instructions when reading files. Mutating tools
 and network requests use `/approve` or `/deny`; `--yes` allows unattended actions.
@@ -49,7 +49,8 @@ live text and command output, input editing, completion, and these controls:
 | `/new`, `/sessions`, `/resume ID` | Create, list, or reopen conversations |
 | `/history`, `/search TEXT`, `/compact` | Inspect, search, or compact the conversation |
 | `/search --all TEXT` | Search recent conversations in the local project |
-| `/agents` | Show connected agents and their models |
+| `/agents` | List available agents |
+| `/agent NAME` | Switch agent; `/agent micro` returns to the built-in agent |
 | `/approve`, `/deny` | Decide a pending local tool action |
 | `/exit` | Exit and stop foreground work |
 
@@ -115,18 +116,16 @@ To review a design before generating and running the project:
 micro run --prompt "a notes service with saving, listing, and search" --provider openai
 ```
 
-If agents are already registered, `micro chat` routes requests to them.
-`micro chat <name>` optionally selects a named agent. Create named
-agents with `micro.NewAgent` and assign service tools with `micro.AgentServices`;
-see the [Getting Started guide](../../internal/website/content/en/docs/getting-started/index.md).
+Use `micro chat NAME` to connect to a registered agent using its model and
+credentials, without a local provider key. Create agents with `micro.NewAgent`
+and assign service tools with `micro.AgentServices`; see
+[Getting Started](../../internal/website/content/en/docs/getting-started/index.md).
 
+Inside chat, `/agents` lists available agents, `/agent NAME` connects to one,
+and `/agent micro` returns to the built-in agent. Each keeps its own conversation.
 
-OpenAI is the default provider. For another provider, use
-`micro chat --provider anthropic` with its API key. When exactly one agent is
-registered, `micro chat` connects directly using that agent’s model and credentials.
-With multiple agents, the CLI needs a provider key to route requests;
-`micro chat <name>` connects directly to one without a local key. Put flags before
-the optional agent name.
+OpenAI is the default local provider. For another provider, use
+`micro chat --provider anthropic` with its API key. Put flags before the agent name.
 
 ## Create a service
 

@@ -7,6 +7,7 @@ import (
 
 func (s *session) welcome() {
 	fmt.Fprintln(s.writer(), "\nmicro chat")
+	fmt.Fprintf(s.writer(), "Connected to %s. /agents lists agents; /agent NAME switches.\n", terminalText(s.agentName()))
 	fmt.Fprintf(s.writer(), "Project: %s\n", terminalText(s.project))
 	if len(s.agents) == 0 {
 		fmt.Fprintf(s.writer(), "Model:   %s / %s\n", s.provider, s.modelName)
@@ -50,7 +51,8 @@ Work
   /queue                Show queued requests
   /paste                Compose multiple lines; /send submits, /cancel discards
   /skills               List available skills
-  /agents               Show connected agents
+  /agents               List available agents
+  /agent NAME           Switch agent; /agent micro returns to the local agent
 
 Model (local agent)
   /provider [NAME [URL]] Select a provider

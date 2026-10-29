@@ -110,10 +110,10 @@ go run ./cmd/assistant
 Wait for the agent to register, then in a third terminal:
 
 ```sh
-micro chat
+micro chat assistant
 ```
 
-With `assistant` as the only registered agent, chat connects to it. Ask:
+This connects explicitly to `assistant`. Ask:
 
 ```text
 What notes do I have?
@@ -123,8 +123,9 @@ The agent can call `Notes.List` and answer using its result. Check the tool
 activity to see that the service was called. This uses your model provider and
 incurs its normal API charges.
 
-Use `/agents` to check the connection. If other agents are running,
-`micro chat assistant` connects to this one explicitly.
+Use `/agents` to list available agents and `/agent NAME` to switch.
+`/agent micro` returns to the built-in development agent. Each destination keeps
+its own conversation. Plain `micro chat` always starts the built-in agent.
 
 Your Go code controls the provider, instructions, and allowed services. Change
 those options to build your own agent. For programmatic calls, the agent exposes
