@@ -12,7 +12,7 @@ You do not need the gateway or an external MCP client.
 Install the CLI:
 
 ```sh
-go install go-micro.dev/v6/cmd/micro@v6.15.1
+go install go-micro.dev/v6/cmd/micro@master
 export PATH="$(go env GOPATH)/bin:$PATH"
 ```
 
@@ -32,16 +32,20 @@ The CLI and service must use the same registry. See
 micro chat
 ```
 
-With no registered agent, this starts a local development agent. On first use,
+This starts the built-in development agent, even when other agents are registered. On first use,
 choose a provider, enter its key, and select a model. Requests use that provider
 account. Ask **“What notes do I have?”** and check the service call in the tool
 activity. The quickstart service returns “Review the release” and
 “Update the documentation”.
 
-If an agent is already registered, `micro chat` connects to it instead;
+To connect to a registered agent, use `micro chat NAME` or `/agent NAME` in chat;
 the running agent owns its model configuration. You do not need to start a
 second agent or enter its credentials in the client.
 
 To host chat on your own service, use `micro new weather --agent` with a CLI
 installed from `master`, or attach an agent using `service.Handle`.
 See [New → Run → Chat](../agents.md#new--run--chat) for the scaffold and Go API.
+
+Use `/agents` to list available agents and `/agent micro` to return to the built-in
+agent. The prompt shows the active agent, and conversations stay separate.
+These explicit routing controls currently require the CLI from `master`.

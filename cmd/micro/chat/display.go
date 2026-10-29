@@ -18,6 +18,7 @@ type chatDisplay struct {
 	pending  string
 	markdown strings.Builder
 	busy     bool
+	name     string
 }
 
 func terminalText(s string) string {
@@ -82,16 +83,28 @@ func (d *chatDisplay) flush() {
 }
 
 func (d *chatDisplay) prompt() string {
-	if d.busy {
-		return "micro (working) > "
+	name := d.name
+	if name == "" {
+		name = "micro"
 	}
-	return "micro > "
+	if d.busy {
+		return name + " (working) > "
+	}
+	return name + " > "
 }
 
 func (d *chatDisplay) setBusy(busy bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.busy = busy
+	d.terminal.SetPrompt(d.prompt())
+	d.terminal.Refresh()
+}
+
+func (d *chatDisplay) setAgent(name string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.name = terminalText(name)
 	d.terminal.SetPrompt(d.prompt())
 	d.terminal.Refresh()
 }

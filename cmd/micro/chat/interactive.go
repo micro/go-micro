@@ -42,9 +42,9 @@ func (s *session) interactive(ctx context.Context) error {
 	defer func() { s.interactiveUI = false }()
 	s.stream = true
 	terminal, err := readline.NewEx(&readline.Config{
-		Prompt: "micro > ",
+		Prompt: terminalText(s.agentName()) + " > ",
 		AutoComplete: readline.NewPrefixCompleter(
-			readline.PcItem("/login"), readline.PcItem("/agents"), readline.PcItem("/schedule"), readline.PcItem("/schedules"), readline.PcItem("/unschedule"), readline.PcItem("/compact"), readline.PcItem("/search"), readline.PcItem("/background"), readline.PcItem("/tasks"), readline.PcItem("/task"), readline.PcItem("/cancel"), readline.PcItem("/paste"), readline.PcItem("/steer"), readline.PcItem("/queue"), readline.PcItem("/history"), readline.PcItem("/skills"), readline.PcItem("/model"), readline.PcItem("/models"), readline.PcItem("/provider"),
+			readline.PcItem("/login"), readline.PcItem("/agents"), readline.PcItem("/agent"), readline.PcItem("/schedule"), readline.PcItem("/schedules"), readline.PcItem("/unschedule"), readline.PcItem("/compact"), readline.PcItem("/search"), readline.PcItem("/background"), readline.PcItem("/tasks"), readline.PcItem("/task"), readline.PcItem("/cancel"), readline.PcItem("/paste"), readline.PcItem("/steer"), readline.PcItem("/queue"), readline.PcItem("/history"), readline.PcItem("/skills"), readline.PcItem("/model"), readline.PcItem("/models"), readline.PcItem("/provider"),
 			readline.PcItem("/new"), readline.PcItem("/sessions"),
 			readline.PcItem("/resume"), readline.PcItem("/stop"),
 			readline.PcItem("/approve"), readline.PcItem("/deny"), readline.PcItem("/help"), readline.PcItem("/exit")),
@@ -53,7 +53,7 @@ func (s *session) interactive(ctx context.Context) error {
 		return err
 	}
 	defer terminal.Close()
-	s.display = &chatDisplay{terminal: terminal}
+	s.display = &chatDisplay{terminal: terminal, name: terminalText(s.agentName())}
 	defer func() { s.display = nil }()
 	s.output = terminal.Stdout()
 	defer func() { s.output = nil }()
@@ -200,18 +200,25 @@ func (s *session) interactive(ctx context.Context) error {
 				fmt.Fprintln(s.writer(), err)
 			}
 		case line == "/agents":
-			for name, info := range s.agents {
-				fmt.Fprintf(s.writer(), "%s  %s / %s\n", name, info.Provider, info.Model)
+			s.listAgents()
+		case line == "/agent" || strings.HasPrefix(line, "/agent "):
+			name := strings.TrimSpace(strings.TrimPrefix(line, "/agent"))
+			if name == "" {
+				fmt.Fprintf(s.writer(), "Current agent: %s. Use /agent NAME or /agent micro.\n", s.agentName())
+				continue
 			}
-			if len(s.agents) == 0 {
-				fmt.Fprintln(s.writer(), "Local development agent; no registered agents.")
+			if err := s.switchAgent(name); err != nil {
+				fmt.Fprintln(s.writer(), err)
+				continue
 			}
+			s.display.setAgent(s.agentName())
+			fmt.Fprintf(s.writer(), "Connected to %s. Session %s\n", s.agentName(), s.id)
 		case line == "/history":
 			if err := s.showHistoryContext(ctx); err != nil {
 				fmt.Fprintln(s.writer(), err)
 			}
 		case line == "/skills":
-			if s.workspace == nil {
+			if s.workspace == nil || len(s.agents) > 0 {
 				fmt.Fprintln(s.writer(), "Skills are owned by the connected agent.")
 				continue
 			}

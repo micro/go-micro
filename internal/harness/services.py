@@ -9,6 +9,7 @@ import contextlib
 import http.server
 import json
 import os
+import pty
 from pathlib import Path
 import socket
 import signal
@@ -220,10 +221,52 @@ with tempfile.TemporaryDirectory(prefix="micro-services-") as tmp, contextlib.Ex
             break
         time.sleep(.1)
     remote_env = {k: v for k, v in env.items() if k not in ("OPENAI_API_KEY", "MICRO_AI_BASE_URL")}
-    remote = subprocess.run([MICRO, "chat", "--prompt", "What notes do I have?"], env=remote_env, cwd=work, capture_output=True, text=True, timeout=20)
+    remote = subprocess.run([MICRO, "chat", "--prompt", "What notes do I have?", "assistant"], env=remote_env, cwd=work, capture_output=True, text=True, timeout=20)
     assert remote.returncode == 0 and "Review the release" in remote.stdout, (remote.stdout, remote.stderr)
     assert Model.calls == 2, Model.calls
     print("PASS: documented custom Go agent; micro chat connects without client credentials", flush=True)
+
+    if not VERSION:
+        # Exercise agent switching in the real interactive terminal.
+        master, slave = pty.openpty()
+        chat = subprocess.Popen([MICRO, "chat", "--provider", "openai"],
+                                stdin=slave, stdout=slave, stderr=slave, env=env, cwd=work)
+        os.close(slave)
+        transcript = bytearray()
+
+        def expect(text):
+            deadline = time.monotonic() + 15
+            while time.monotonic() < deadline:
+                if text.encode() in transcript:
+                    transcript.clear()
+                    return
+                if select.select([master], [], [], .1)[0]:
+                    transcript.extend(os.read(master, 65536))
+            raise AssertionError(f"Missing {text!r}: {transcript.decode(errors='replace')}")
+
+        def send(text):
+            os.write(master, text.encode() + b"\r")
+
+        try:
+            expect("micro >")
+            send("/agents")
+            expect("Current: micro")
+            send("/agent assistant")
+            expect("assistant >")
+            send("/agent missing-agent")
+            expect('is not registered')
+            send("/agent")
+            expect("Current agent: assistant")
+            send("/agent micro")
+            expect("micro >")
+            send("/exit")
+            assert chat.wait(timeout=5) == 0
+        finally:
+            if chat.poll() is None:
+                chat.kill()
+                chat.wait()
+            os.close(master)
+        print("PASS: plain chat stays local; /agents lists; /agent switches and updates the prompt", flush=True)
 
     if not VERSION:
         env["MICRO_NEW_GO_MICRO_REPLACE"] = str(ROOT)

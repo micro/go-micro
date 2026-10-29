@@ -217,7 +217,7 @@ func TestRouterUsesConfiguredHarness(t *testing.T) {
 	}
 }
 
-func TestChatDiscoversSingleAgentWithoutLocalModel(t *testing.T) {
+func TestChatExplicitAgentWithoutLocalModel(t *testing.T) {
 	oldDir := store.DefaultDir
 	store.DefaultDir = t.TempDir()
 	defer func() { store.DefaultDir = oldDir }()
@@ -253,6 +253,9 @@ func TestChatDiscoversSingleAgentWithoutLocalModel(t *testing.T) {
 				prompt = ""
 			}
 			flags.String("prompt", prompt, "")
+			if err := flags.Parse([]string{"assistant"}); err != nil {
+				t.Fatal(err)
+			}
 			ctx := cli.NewContext(cli.NewApp(), flags, nil)
 			if err := run(ctx); err != nil {
 				t.Fatal(err)

@@ -21,9 +21,11 @@ choice and a hidden API key prompt. A single configured provider environment key
 skips setup. Settings are saved per project. `/login` replaces an entered key;
 flags and environment credentials take precedence on restart.
 
-With no registered agents, chat starts a local development agent. With one
-registered agent, it connects directly without needing a local model key.
-`micro chat NAME` selects a host when several agents are registered.
+Plain `micro chat` starts the built-in development agent. `micro chat NAME`
+connects to a registered agent without a local model key. Inside chat, `/agents`
+lists available agents, `/agent NAME` connects to one, and `/agent micro` returns
+to the built-in agent. The prompt identifies the selected agent, and each keeps
+its own conversation.
 
 Use `/model` and `/provider` to change the local configuration without clearing
 history. `/models` queries the live provider catalog; `/model ID` works without
