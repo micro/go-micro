@@ -5,20 +5,18 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
 	"unicode"
 
 	"github.com/chzyer/readline"
 )
 
-// chatDisplay previews replies above the editable prompt, then commits the
-// formatted reply to scrollback. Tool output stays plain text.
+// chatDisplay keeps the editable prompt stable and commits each formatted
+// reply once. Tool output stays plain text.
 type chatDisplay struct {
 	terminal *readline.Instance
 	mu       sync.Mutex
 	pending  string
 	markdown strings.Builder
-	updated  time.Time
 	busy     bool
 }
 
@@ -35,17 +33,9 @@ func (d *chatDisplay) token(text string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.markdown.WriteString(terminalText(text))
-	// Avoid re-rendering the reply for every token in a fast provider stream.
-	if time.Since(d.updated) < 80*time.Millisecond {
-		return
-	}
-	d.updated = time.Now()
-	width, height := d.size()
-	rendered := renderMarkdown(d.markdown.String(), width)
-	rows := min(6, max(1, height/3))
-	preview := markdownPreview(rendered, width, rows)
-	d.terminal.SetPrompt(preview + "\n" + d.prompt())
-	d.terminal.Refresh()
+	// readline cannot reliably erase a changing multiline prompt. Keep reply
+	// text out of the prompt so wrapped previews never leak into scrollback.
+	// The working prompt and tool events remain visible until flush.
 }
 
 func (d *chatDisplay) size() (int, int) {
@@ -83,7 +73,6 @@ func (d *chatDisplay) flush() {
 		width, _ := d.size()
 		fmt.Fprintln(d.terminal.Stdout(), renderMarkdown(d.markdown.String(), width))
 		d.markdown.Reset()
-		d.updated = time.Time{}
 	}
 	if d.pending != "" {
 		fmt.Fprintln(d.terminal.Stdout(), d.pending)
