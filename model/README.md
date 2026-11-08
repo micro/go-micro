@@ -314,6 +314,20 @@ Default base URL: `https://api.together.xyz`
 
 Together AI provides fast inference for open-weight models via an OpenAI-compatible endpoint.
 
+### Runcrate
+
+```go
+m := model.New("runcrate",
+    model.WithAPIKey("your-key"),
+    model.WithModel("meta-llama/Llama-3.3-70B-Instruct-Turbo"), // default
+)
+```
+
+Default model: `meta-llama/Llama-3.3-70B-Instruct-Turbo`
+Default base URL: `https://api.runcrate.ai` (the provider appends `/v1`)
+
+Runcrate is an AI cloud that serves open-weight models via an OpenAI-compatible endpoint. Model discovery, tool calling, and streaming are supported. The CLI and agent configuration read `RUNCRATE_API_KEY`.
+
 ### Atlas Cloud
 
 ```go

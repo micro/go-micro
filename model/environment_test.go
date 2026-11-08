@@ -23,6 +23,9 @@ func TestOpenRouterDetection(t *testing.T) {
 	if got := model.AutoDetectProvider("https://litellm.example.com"); got != "litellm" {
 		t.Errorf("AutoDetectProvider(litellm) = %q", got)
 	}
+	if got := model.AutoDetectProvider("https://api.runcrate.ai"); got != "runcrate" {
+		t.Errorf("AutoDetectProvider(runcrate) = %q", got)
+	}
 	for _, endpoint := range []string{"https://openrouter.ai/api", "https://openrouter.ai/api/v1"} {
 		if got := model.AutoDetectProvider(endpoint); got != "openrouter" {
 			t.Fatalf("provider for %s = %s", endpoint, got)

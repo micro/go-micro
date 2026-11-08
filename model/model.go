@@ -276,6 +276,8 @@ func AutoDetectProvider(baseURL string) string {
 		return "together"
 	case strings.Contains(baseURL, "litellm"):
 		return "litellm"
+	case strings.Contains(baseURL, "runcrate"):
+		return "runcrate"
 	default:
 		return "openai"
 	}

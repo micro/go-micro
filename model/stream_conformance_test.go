@@ -22,6 +22,7 @@ import (
 	_ "go-micro.dev/v6/model/minimax"
 	_ "go-micro.dev/v6/model/mistral"
 	_ "go-micro.dev/v6/model/openai"
+	_ "go-micro.dev/v6/model/runcrate"
 	_ "go-micro.dev/v6/model/together"
 )
 

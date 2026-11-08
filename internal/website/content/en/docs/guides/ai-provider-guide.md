@@ -48,6 +48,7 @@ The built-in providers currently register these capability interfaces:
 | `mistral` | Yes | No | No | Yes | Yes |
 | `ollama` | Yes | No | No | Yes | Yes |
 | `openai` | Yes | Yes | No | Yes | Yes |
+| `runcrate` | Yes | No | No | Yes | Yes |
 | `together` | Yes | No | No | Yes | Yes |
 
 ## Step 1: Implement the `model.Model` Interface
