@@ -258,6 +258,36 @@ m := model.New("openai",
 Default model: `gpt-4o`
 Default base URL: `https://api.openai.com`
 
+### OpenAI-compatible endpoints
+
+Use `openai` with your endpoint, API key and model name; a separate provider is
+not needed for an API that implements OpenAI Chat Completions.
+
+```sh
+export MICRO_AI_PROVIDER=openai
+export MICRO_AI_BASE_URL=https://api.example.com
+export MICRO_AI_API_KEY=your-key
+export MICRO_AI_MODEL=your-model
+micro chat
+```
+
+For direct Go use, import `go-micro.dev/v6/model/openai` to register it:
+
+```go
+m := model.New("openai",
+    model.WithBaseURL("https://api.example.com"),
+    model.WithAPIKey("your-key"),
+    model.WithModel("your-model"),
+)
+```
+
+Use the base URL **without `/v1`**: the provider appends `/v1/chat/completions`
+for chat and `/v1/models` for model discovery. A path prefix is allowed: a base
+URL of `https://example.com/api` sends chat requests to
+`https://example.com/api/v1/chat/completions`. The CLI also accepts `--base_url`.
+Streaming, tool calling and other features depend on what the endpoint and
+selected model actually support.
+
 ### Google Gemini
 
 ```go

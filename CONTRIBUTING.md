@@ -50,6 +50,19 @@ See `make help` for all available commands.
 
 ## Making Changes
 
+### Model providers
+
+Prefer a small set of well-supported protocol implementations. An OpenAI-compatible
+service should use the existing `openai` provider with a configured base URL,
+API key and model name. See [compatible endpoints](model/README.md#openai-compatible-endpoints).
+A different URL, default model or credential variable alone does not justify a
+new built-in provider.
+
+Before proposing a provider, explain the protocol or behaviour that existing
+implementations cannot support, how it will be tested, and who will maintain it.
+Provider-specific integrations can live in external Go packages and register
+through `model.Register`; they do not need to be bundled into the CLI or core.
+
 ### Code Guidelines
 
 - Follow standard Go conventions (use `gofmt`, `golint`)

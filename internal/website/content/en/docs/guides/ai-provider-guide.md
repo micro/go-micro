@@ -8,11 +8,35 @@ be available via `model.New("yourprovider")` and automatically usable by the
 MCP gateway, the agent playground, and any service that calls
 `model.New()`.
 
+## Before adding a provider
+
+For an OpenAI-compatible API, configure the existing `openai` provider:
+
+```sh
+export MICRO_AI_PROVIDER=openai
+export MICRO_AI_BASE_URL=https://api.example.com
+export MICRO_AI_API_KEY=your-key
+export MICRO_AI_MODEL=your-model
+micro chat
+```
+
+The base URL must exclude `/v1`: Go Micro appends `/v1/chat/completions` for chat
+and `/v1/models` for discovery. In Go, pass `model.WithBaseURL`,
+`model.WithAPIKey` and `model.WithModel` to `model.New("openai", ...)`, with
+`go-micro.dev/v6/model/openai` imported. Features such as streaming and tool
+calling still depend on the endpoint and selected model.
+
+A new built-in provider needs a protocol or behaviour that existing providers
+cannot support, tests, and a maintenance commitment. Changing a URL, default
+model or key variable is not enough. You can also maintain an external Go
+package that registers with `model.Register`; core inclusion is not required.
+
 ## Overview
 
 The `model` package uses the same plugin pattern as the rest of go-micro:
 define an interface, register an implementation, and let users swap
-providers with a single import. All providers live under `model/<name>/`.
+providers with a single import. Built-in providers live under `model/<name>/`; external providers use the same
+registration interface.
 
 **Files you will create:**
 
