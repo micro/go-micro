@@ -12,6 +12,9 @@ tags:
 aliases:
   - /blog/21
 ---
+
+> Historical article: the standalone flow package and flow CLI commands have since been removed. Use services and agents for current development.
+
 Almost every agent demo starts the same way: a human types a prompt, the agent responds. That framing is a habit from chat, and it hides the more useful case. The agents worth running don't wait for you to ask. They run because something happened — a user signed up, a payment failed, a deployment finished, a metric crossed a line. In those systems there is no prompt, because there is no human in the loop. The event is the prompt.
 
 Go Micro has had the pieces for this since we added [workflows](/blog/2026/06/08/not-everything-should-be-an-agent.html): a `Flow` subscribes to a broker topic, and an `Agent` reasons and acts. Putting them together is the point of this post.
@@ -39,7 +42,7 @@ f := micro.NewFlow("onboard",
 
 When a `user.created` event lands on the broker, the flow renders it into a prompt and hands it to the onboarder over RPC. The agent looks at its tools, creates the workspace, sends the welcome, and stops. No one typed anything.
 
-There's a runnable version of exactly this in [`internal/harness/agent-flow`](https://github.com/micro/go-micro/tree/master/internal/harness/agent-flow) — real services, registry, RPC, broker, and the agent loop, with only the model mocked so it runs without a key:
+There's a runnable version of exactly this in [`internal/harness/agent-flow`](https://github.com/micro/go-micro/tree/8b4578aa45cefe3336d211cfd93537d62d9f29d2/internal/harness/agent-flow) — real services, registry, RPC, broker, and the agent loop, with only the model mocked so it runs without a key:
 
 ```
 > event: publishing events.user.created {"email":"alice@acme.com"}

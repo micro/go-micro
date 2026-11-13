@@ -164,8 +164,7 @@ are stored in the selected conversation and remain inspectable after completion.
 
 `/schedule 1h MESSAGE` saves a recurring request; `/schedules` lists definitions
 and `/unschedule ID` removes future dispatches. Go callers use
-`agent.ScheduleTask`, `ListSchedules`, and `RemoveSchedule`. Each dispatch runs
-through `flow.Scheduled` and creates an inspectable background agent task.
+`agent.ScheduleTask`, `ListSchedules`, and `RemoveSchedule`. Each dispatch creates an inspectable background agent task.
 
 Schedule definitions and next dispatch times survive restarts. Intervals are at
 least one minute. Missed intervals coalesce into one dispatch; the next time is
@@ -197,7 +196,7 @@ options without using the CLI. No product-specific assistant runtime is required
 | Memory | Compaction, archive search, and scoped cross-conversation keyword recall |
 | Background commands | Host-owned processes with list/stop/cleanup |
 | Work after UI exit | Submitted tasks on a running agent host |
-| Scheduled work | Persisted intervals dispatched through flows |
+| Scheduled work | Persisted intervals dispatched by the agent host |
 | Isolated commands | Optional Docker execution; host tools have separate policies |
 | Programmatic extension | Existing interfaces plus optional capabilities and ordinary tools |
 | Delegation | Existing agent delegation with visible local target/task and agent listing |

@@ -58,7 +58,7 @@ Go Micro is maintained by two AI tools — **Codex** (you) and **Claude Code** (
 
 - Keep the 0→1 path current: scaffold, run, call, chat, inspect.
 - Keep the 0→hero example current: a realistic multi-agent system that exercises
-  agents, services, flows, MCP, A2A, and observability.
+  agents, services, MCP, A2A, and observability.
 - Add runnable examples for new primitives before adding broad prose.
 
 ### 5. Hardening backlog
@@ -122,7 +122,6 @@ make test
 make harness
 make lint
 go run ./examples/hello-world
-go run ./internal/harness/universe
 ```
 
 ### Week 2: choose one roadmap slice

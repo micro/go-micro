@@ -40,7 +40,7 @@ func TestExamplesWayfindingIndexStaysLinked(t *testing.T) {
 		},
 		{
 			file: "examples/INDEX.md",
-			want: []string{"go run ./examples/first-agent", "go run ./examples/support", "mcp/hello", "mcp/workflow", "flow-durable", "micro examples"},
+			want: []string{"go run ./examples/first-agent", "go run ./examples/support", "mcp/hello", "mcp/workflow", "micro examples"},
 		},
 	} {
 		for _, want := range check.want {

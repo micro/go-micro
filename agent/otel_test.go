@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 	"go.opentelemetry.io/otel/attribute"
@@ -648,7 +647,7 @@ func TestAgentCheckpointAndResumeTimelineEvents(t *testing.T) {
 	exp := tracetest.NewInMemoryExporter()
 	tp := trace.NewTracerProvider(trace.WithSyncer(exp))
 	st := store.NewMemoryStore()
-	cp := flow.StoreCheckpoint(st, "resume-otel-agent")
+	cp := StoreCheckpoint(st, "resume-otel-agent")
 	first := true
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if first {

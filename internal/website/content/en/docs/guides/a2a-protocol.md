@@ -4,7 +4,7 @@ title: "Agent2Agent (A2A)"
 
 Go Micro speaks the [Agent2Agent (A2A) protocol](https://a2a-protocol.org) — the open standard for agents on different frameworks to discover and call each other over HTTP. The A2A gateway is the agent-side analogue of the [MCP gateway](../mcp.md): MCP exposes your services as tools, A2A exposes your agents as agents.
 
-There is nothing to add to an agent. An agent already registers in the registry with `type=agent` metadata; the gateway discovers it, generates an **Agent Card** from that metadata, and translates incoming A2A tasks to the agent's existing `Agent.Chat` RPC — the same call `delegate` and flows use.
+There is nothing to add to an agent. An agent already registers in the registry with `type=agent` metadata; the gateway discovers it, generates an **Agent Card** from that metadata, and translates incoming A2A tasks to the agent's existing `Agent.Chat` RPC — the same call `delegate` uses.
 
 ## Run it
 
@@ -143,31 +143,15 @@ outage. If a token is configured, it is sent as `Authorization: Bearer <token>`.
 
 ## Calling out to other agents
 
-The gateway makes your agents reachable *from* the A2A ecosystem. The
-client (`a2a.Client`) is the other direction: it lets a Go Micro agent or
-flow call an agent on any framework, by URL.
+Use `a2a.Client` to call an agent on another framework:
 
 ```go
 reply, err := a2a.NewClient("https://other.example.com/agents/research").
     Send(ctx, "Summarize the latest on X")
 ```
 
-It's wired into the two places that hand off work:
-
-- **A flow step** — `flow.A2A(url)` is the cross-framework counterpart to
-  `flow.Dispatch(name)` (which dispatches to a local agent):
-
-  ```go
-  flow.Step{Name: "research", Run: flow.A2A("https://other.example.com/agents/research")}
-  ```
-
-- **Agent delegate** — when an agent's `delegate` target is an `http(s)`
-  URL, the subtask is sent to that external agent over A2A instead of to a
-  locally registered one. Nothing else changes; the model just delegates
-  to a URL.
-
-`Send` handles the task lifecycle: if the remote returns a task that isn't
-yet terminal, it polls `tasks/get` until it completes.
+An agent's `delegate` tool also accepts an HTTP(S) URL as its target. `Send`
+polls `tasks/get` until the remote task completes when it is not yet terminal.
 
 ## Scope
 
@@ -182,7 +166,7 @@ This is the JSON-RPC binding for task execution:
 - **`input-required`** task state carries human-input handoffs (for example checkpointed approval pauses) in task status, artifacts, and history; continue the task by sending a follow-up message with the same `taskId` and `contextId`.
 - **Agent Card** discovery, generated from the registry.
 
-Both directions work: the gateway exposes your agents, and `a2a.Client` (via `flow.A2A` or `delegate` to a URL) calls external ones. The task binding is what makes a Go Micro agent both reachable from, and able to reach, the A2A ecosystem today.
+Both directions work: the gateway exposes your agents, and `a2a.Client` (via `delegate` to a URL) calls external ones. The task binding is what makes a Go Micro agent both reachable from, and able to reach, the A2A ecosystem today.
 
 ## AP2 mandate layer (opt-in)
 
@@ -210,5 +194,4 @@ ledger. The x402 payment path still performs its own verification and settlement
 ## See also
 
 - [MCP & AI Agents](../mcp.md) — exposing services as tools
-- [Agents and Workflows](agents-and-workflows.md) — the agent model
 - [A2A protocol specification](https://a2a-protocol.org)

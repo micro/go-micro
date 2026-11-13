@@ -166,7 +166,6 @@ where `st` is your persistent store. `agent.Pending` lists unfinished runs and
 a crash may already have performed its action.
 
 These are agent capabilities; no workflow definition is required.
-[Workflows](workflows.md) remain available for applications that need a predefined
 sequence of operations.
 
 ## Call an agent from Go

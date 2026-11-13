@@ -1,7 +1,7 @@
 # Examples wayfinding
 
 Use this index when you want the shortest path from a first runnable agent to the
-next services, agents, workflows, and interop examples. Every command below is
+next services, agents, and interop examples. Every command below is
 provider-free unless the example README says otherwise.
 
 ## Pick by goal
@@ -15,7 +15,6 @@ provider-free unless the example README says otherwise.
 | Try a paid tool with x402 | [`agent-x402-buyer`](./agent-x402-buyer/) | `go run ./examples/agent-x402-buyer` | [`Payments (x402)` guide](../internal/website/docs/guides/x402-payments.md) |
 | Try A2A or gRPC interop next | [`agent-demo`](./agent-demo/) plus gateway docs | run the example, then use the gateway docs | [`grpc`](./grpc/) and [`grpc-interop`](./grpc-interop/) |
 | Call a service with grpcurl | [`grpc`](./grpc/) | `grpcurl -plaintext localhost:8080 list` then `grpcurl -plaintext -d '{"name":"World"}' localhost:8080 helloworld.Say.Hello` | [`grpc-interop`](./grpc-interop/) |
-| Add workflow durability | [`flow-durable`](./flow-durable/) | `go run ./examples/flow-durable` | [`flow-loop`](./flow-loop/) |
 
 ## Recommended adoption path
 
@@ -26,14 +25,12 @@ provider-free unless the example README says otherwise.
    no provider key.
 3. **0→hero reference:** run [`support`](./support/) with
    `go run ./examples/support`; it keeps typed services, an agent chat loop, an
-   event-driven flow, and an approval gate in one maintained example.
+   approval gate in one maintained example.
 4. **Interop next:** use [`mcp/hello`](./mcp/hello/), [`mcp/crud`](./mcp/crud/),
    and [`mcp/workflow`](./mcp/workflow/) when you are ready to expose tools to
    external AI clients.
 5. **Paid tools:** run [`agent-x402-buyer`](./agent-x402-buyer/) to see an
    agent pay a local x402-protected tool with a mock facilitator and budget.
-6. **Workflow depth:** use [`flow-durable`](./flow-durable/) once the agent path
-   needs checkpointed, resumable deterministic work.
 
 ## CLI wayfinding
 

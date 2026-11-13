@@ -5,11 +5,11 @@ title: "No-secret first-agent transcript"
 This is the fastest first-agent success path when you do not have a provider key
 handy. It starts from the maintained `examples/support` app and uses the
 repository harness that CI already runs: real Go Micro services, registry,
-broker, client, store, agent loop, flow handoff, and guardrail code with only the
+broker, client, store, agent loop, and guardrail code with only the
 LLM provider mocked.
 
 Use it before the live-provider [Your First Agent](your-first-agent.md)
-walkthrough when you want to see the services → agents → workflows lifecycle run
+walkthrough when you want to see the services → agents lifecycle run
 end to end with no secrets.
 
 ## What this proves
@@ -17,7 +17,6 @@ end to end with no secrets.
 - **Services** expose typed `customers`, `tickets`, and `notify` endpoints.
 - **The `support` agent** discovers those endpoints as tools and uses them to
   triage a ticket.
-- **The `intake` flow** turns a `ticket.created` event into an agent run.
 - **The approval gate** intercepts the customer email action before the tool
   executes.
 
@@ -61,7 +60,7 @@ support agent: Hi Alice — thanks for reaching out...
 ```
 
 That single run is the no-secret version of the first-agent loop: a service
-capability exists, an agent calls it as a tool, and workflow infrastructure can
+capability exists, an agent calls it as a tool, and application code can
 trigger and inspect the work.
 
 ## CI-backed check
@@ -74,7 +73,7 @@ go test ./examples/support -run TestRunSupportMockSmoke -count=1
 ```
 
 For the broader no-secret contract that also checks scaffold, chat/inspect CLI
-boundaries, flow history, deploy dry-run, and mock provider conformance, run:
+boundaries, agent history, deploy dry-run, and mock provider conformance, run:
 
 ```sh
 make harness

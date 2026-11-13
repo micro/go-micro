@@ -45,7 +45,6 @@ go-micro/
 ├── config/         # Dynamic config (env, file, etcd, NATS)
 ├── errors/         # Error handling
 ├── events/         # Event system (NATS JetStream)
-├── flow/           # Event-driven LLM orchestration
 ├── gateway/
 │   ├── api/        # REST API gateway
 │   └── mcp/        # MCP gateway (core AI integration)

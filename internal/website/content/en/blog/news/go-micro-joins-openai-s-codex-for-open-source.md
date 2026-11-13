@@ -20,13 +20,13 @@ Codex for Open Source backs maintainers directly: the constant, unglamorous work
 
 ## Why it fits Go Micro
 
-There's a neat symmetry here. Go Micro is a framework for **agentic development** — agents that use tools, services that are automatically AI-callable, workflows that [loop until the job is done](/docs/guides/agent-loops.html). Building and maintaining it with an agentic coding tool is that same idea pointed back at itself: tools calling tools.
+There's a neat symmetry here. Go Micro is a framework for **agentic development** — agents that use tools, services that are automatically AI-callable, workflows that [loop until the job is done](https://github.com/micro/go-micro/blob/8b4578aa45cefe3336d211cfd93537d62d9f29d2/internal/website/content/en/docs/guides/agent-loops.md). Building and maintaining it with an agentic coding tool is that same idea pointed back at itself: tools calling tools.
 
 It also lines up with what's already in the box. `openai` has been a first-class model provider in Go Micro since the AI-native rewrite — one of [several](/docs/guides/ai-provider-guide.html) behind the same `model.Model` interface. So you can build *on* OpenAI models with Go Micro, and now we build Go Micro itself with OpenAI's tooling.
 
 ## What we'll use it for
 
-Honestly: throughput. More reviewed PRs, faster releases, quicker issue triage, more examples and docs. The recent run of work — [agent loops](/docs/guides/agent-loops.html), [A2A](/blog/2026/06/18/agents-across-frameworks-a2a.html), durable flows, a blocking lint gate in CI — is the pace we want to keep, and maintainer tooling is what sustains it.
+Honestly: throughput. More reviewed PRs, faster releases, quicker issue triage, more examples and docs. The recent run of work — [agent loops](https://github.com/micro/go-micro/blob/8b4578aa45cefe3336d211cfd93537d62d9f29d2/internal/website/content/en/docs/guides/agent-loops.md), [A2A](/blog/2026/06/18/agents-across-frameworks-a2a.html), durable flows, a blocking lint gate in CI — is the pace we want to keep, and maintainer tooling is what sustains it.
 
 ## Thanks
 

@@ -6,7 +6,6 @@ import (
 	"io"
 	"testing"
 
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
@@ -22,7 +21,7 @@ func TestResumeTransientFailureAfterRestart(t *testing.T) {
 			t.Run(failure.name+"/"+mode, func(t *testing.T) {
 				ctx := context.Background()
 				st := store.NewMemoryStore()
-				cp := flow.StoreCheckpoint(st, "recovery")
+				cp := StoreCheckpoint(st, "recovery")
 				modelCalls, toolCalls := 0, 0
 				fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 					modelCalls++

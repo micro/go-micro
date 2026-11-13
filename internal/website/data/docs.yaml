@@ -4,7 +4,5 @@
   path: /docs/services
 - title: Agents
   path: /docs/agents
-- title: Workflows
-  path: /docs/workflows
 - title: Reference
   path: /docs/reference

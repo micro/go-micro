@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
@@ -198,7 +197,7 @@ func TestAgentStreamCanceledContextSkipsProviderCallAndMemory(t *testing.T) {
 
 func TestResumeStreamAskDoesNotReplayCompletedTool(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewStore(), "stream-resume-agent")
+	cp := StoreCheckpoint(store.NewStore(), "stream-resume-agent")
 	toolRuns := 0
 	first := true
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {

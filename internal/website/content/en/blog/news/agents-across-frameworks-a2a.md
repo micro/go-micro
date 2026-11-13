@@ -12,6 +12,9 @@ tags:
 aliases:
   - /blog/26
 ---
+
+> Historical article: the standalone flow package and flow CLI commands have since been removed. Use services and agents for current development.
+
 Inside a Go Micro system, agents already talk to each other. An agent is a service with an `Agent.Chat` endpoint, so `delegate` just calls another agent over RPC. That works as long as everyone is on Go Micro. The moment an agent is built on a different framework, the conversation stops: it can't call yours, and yours can't call it.
 
 [A2A](https://a2a-protocol.org) — the open Agent2Agent protocol — is the standard that closes that gap, and Go Micro now speaks it.

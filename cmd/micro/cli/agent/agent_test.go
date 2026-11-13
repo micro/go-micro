@@ -9,7 +9,7 @@ import (
 	"time"
 
 	goagent "go-micro.dev/v6/agent"
-	aiflow "go-micro.dev/v6/flow"
+	agentrun "go-micro.dev/v6/agent/run"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
@@ -147,8 +147,8 @@ func TestResumeInputRunCompletesCheckpointAndInspectSummary(t *testing.T) {
 	t.Cleanup(func() { store.DefaultStore = oldStore })
 
 	ctx := context.Background()
-	cp := aiflow.StoreCheckpoint(store.DefaultStore, "runner")
-	run := aiflow.Run{ID: "run-input", Flow: "runner", Status: "paused", State: aiflow.State{Stage: "input-required"}, Steps: []aiflow.StepRecord{{Name: "ask", Status: "paused", Error: "Which region?"}}}
+	cp := agentrun.StoreCheckpoint(store.DefaultStore, "runner")
+	run := agentrun.Run{ID: "run-input", Flow: "runner", Status: "paused", State: agentrun.State{Stage: "input-required"}, Steps: []agentrun.StepRecord{{Name: "ask", Status: "paused", Error: "Which region?"}}}
 	if err := run.State.Set(cliInputPause{OriginalMessage: "deploy", Prompt: "Which region?"}); err != nil {
 		t.Fatalf("set pause: %v", err)
 	}

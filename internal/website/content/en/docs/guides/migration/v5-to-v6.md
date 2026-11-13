@@ -44,26 +44,8 @@ that an agent, not just a human on a trusted network, can reach an endpoint.
 - **Self-signed certs (local/dev):** opt out with `MICRO_TLS_INSECURE=true`, or
   call `tls.InsecureConfig()` directly.
 
-## 3. `NewService` is the service constructor
-
-The service constructor is now symmetric with `NewAgent` and `NewFlow`:
-
-```go
-service := micro.NewService("greeter", micro.Address(":8080"))
-agent   := micro.NewAgent("task-mgr", micro.AgentServices("task"))
-flow    := micro.NewFlow("onboard", micro.FlowTrigger("events.user.created"))
-```
-
-- `micro.New("greeter", ...)` still works as a **deprecated alias** — no rush,
-  but prefer `NewService`.
-- The old name-less form `micro.NewService(micro.Name("greeter"), ...)` is
-  **removed**; pass the name positionally: `micro.NewService("greeter", ...)`.
-
-Generated services already use `NewService` — re-running `micro new` or
-`micro run --prompt` emits the v6 form.
-
 ## That's it
 
-No other API changed. Agents, services, flows, the registry/broker/store
+No other API changed. Agents, services, the registry/broker/store
 interfaces, MCP, A2A, and x402 all work as they did — just under
 `go-micro.dev/v6` and secure by default.

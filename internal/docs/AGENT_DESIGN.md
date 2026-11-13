@@ -115,7 +115,7 @@ An agent only sees the endpoints of its assigned services (plus excludes its own
 Agents persist conversation history in the store. Memory survives restarts.
 Each agent's state is confined to its own store table (database `agent`,
 table `{name}`) via `store.Scope`, so agents don't share a global table
-with each other, with services, or with flows.
+with each other or with services.
 
 ```
 database "agent", table "{name}":
@@ -124,7 +124,7 @@ database "agent", table "{name}":
 
 ## Durable Ask / StreamAsk runs
 
-Agents can opt into the same checkpoint backend used by flows with
+Agents can opt into the agent checkpoint backend with
 `micro.AgentWithCheckpoint(...)`. When enabled, each `Ask` or `StreamAsk` run is
 persisted with its input, terminal status, response, and tool-call records. If
 the process or transport drops after a tool has completed but before the model
@@ -262,15 +262,11 @@ micro chat                          # routes to agents automatically
 micro call task-mgr Agent.Chat '{"message": "..."}'  # direct RPC
 ```
 
-The split is consistent across services, agents, and flows: **`list`**
+The split is consistent across services and agents: **`list`**
 shows what's *running* (from the registry, filtered by type), while
 **`history`/`runs`** show *durable* state from the scoped store —
 available whether or not the component is currently running.
 
-```bash
-micro flow list                     # list running flows (registry, type=flow)
-micro flow runs checkout            # durable run history for a flow (scoped store)
-```
 
 ## Generation
 

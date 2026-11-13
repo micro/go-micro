@@ -25,7 +25,7 @@ func TestZeroToHeroReadmeDocumentsLifecycle(t *testing.T) {
 		"Scaffold services",
 		"Run the harness",
 		"Chat through an agent",
-		"Inspect the workflow",
+		"Inspect the agent",
 		"go test ./examples/support",
 	} {
 		if !strings.Contains(doc, want) {
@@ -43,18 +43,15 @@ func TestZeroToHeroInspectTranscript(t *testing.T) {
 	got := stripANSI(out)
 
 	for _, want := range []string{
-		`> event: events.ticket.created {"customer":"alice@acme.com","id":"ticket-1","subject":"Can't log in"}`,
+		`> ticket: {"customer":"alice@acme.com","id":"ticket-1","subject":"Can't log in"}`,
 		`[customers] looked up Alice (pro plan)`,
 		`[tickets] ticket-1 → priority=high status=in_progress`,
 		`approval gate notify_NotifyService_Send(alice@acme.com) — approved`,
 		`[notify] 📨 to=alice@acme.com: "Hi Alice — thanks for reaching out. We've bumped this to high priority and are on it."`,
 		`support agent: Triaged ticket-1 for Alice and sent a reply.`,
 		`inspect transcript:`,
-		`micro inspect flow intake`,
-		`flow: intake runs=1 latest.reply="Triaged ticket-1 for Alice and sent a reply."`,
 		`micro agent history support`,
-		`agent: support runs=1 latest.status=completed`,
-		`✓ ticket triaged and the customer was replied to — triggered by an event`,
+		`✓ ticket triaged and the customer was replied to — handled by the agent`,
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("support transcript missing %q\n--- got ---\n%s", want, got)
@@ -67,9 +64,7 @@ func TestZeroToHeroInspectTranscript(t *testing.T) {
 	}
 	for _, want := range []string{
 		"Expected inspect transcript",
-		"micro inspect flow intake",
 		"micro agent history support",
-		"agent: support runs=1 latest.status=completed",
 	} {
 		if !strings.Contains(string(readme), want) {
 			t.Fatalf("README.md missing transcript contract %q", want)

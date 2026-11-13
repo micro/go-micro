@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	pb "go-micro.dev/v6/agent/proto"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/metadata"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
@@ -155,12 +154,12 @@ func TestChatPreservesTransportedFlowLineageThroughToolExecution(t *testing.T) {
 }
 
 func TestResumeRestoresPersistedFlowLineage(t *testing.T) {
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "ops-agent")
-	run := flow.Run{
+	cp := StoreCheckpoint(store.NewMemoryStore(), "ops-agent")
+	run := Run{
 		ID: "agent-run-resume", ParentID: "flow-run-resume", Flow: "ops-agent",
 		OriginFlow: "daily-ops", OriginStep: "summarize", Dispatch: "schedule", Trigger: "daily-review",
-		State: flow.State{Stage: "ask", Data: []byte("resume review")},
-		Steps: []flow.StepRecord{{Name: "ask", Status: "failed"}}, Status: "failed",
+		State: State{Stage: "ask", Data: []byte("resume review")},
+		Steps: []StepRecord{{Name: "ask", Status: "failed"}}, Status: "failed",
 	}
 	if err := cp.Save(context.Background(), run); err != nil {
 		t.Fatal(err)

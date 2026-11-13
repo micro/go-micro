@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
@@ -21,7 +20,7 @@ func TestDurableApprovalExecutesSavedCallAfterRestart(t *testing.T) {
 		}
 		t.Run(name, func(t *testing.T) {
 			st := store.NewMemoryStore()
-			cp := flow.StoreCheckpoint(st, "approval")
+			cp := StoreCheckpoint(st, "approval")
 			toolCalls, modelCalls, approvalCalls := 0, 0, 0
 			ctx := context.WithValue(context.Background(), approvalIdentityKey{}, "reviewer")
 			makeAgent := func() *agentImpl {
@@ -122,11 +121,11 @@ func TestDurableApprovalExecutesSavedCallAfterRestart(t *testing.T) {
 }
 
 type failingApprovalCheckpoint struct {
-	flow.Checkpoint
+	Checkpoint
 	saves int
 }
 
-func (cp *failingApprovalCheckpoint) Save(ctx context.Context, run flow.Run) error {
+func (cp *failingApprovalCheckpoint) Save(ctx context.Context, run Run) error {
 	cp.saves++
 	if cp.saves == 2 {
 		return errors.New("approval storage unavailable")
@@ -134,7 +133,7 @@ func (cp *failingApprovalCheckpoint) Save(ctx context.Context, run flow.Run) err
 	return cp.Checkpoint.Save(ctx, run)
 }
 func TestDurableApprovalFailsClosedOnSaveError(t *testing.T) {
-	cp := &failingApprovalCheckpoint{Checkpoint: flow.StoreCheckpoint(store.NewMemoryStore(), "failed-approval")}
+	cp := &failingApprovalCheckpoint{Checkpoint: StoreCheckpoint(store.NewMemoryStore(), "failed-approval")}
 	executed := 0
 	a := newTestAgent(Name("save-failure"), WithCheckpoint(cp), WithApproval(func(context.Context, model.ToolCall) (ApprovalDecision, error) {
 		return ApprovalDecision{Status: ApprovalPending, ID: "review"}, nil
@@ -154,7 +153,7 @@ func TestDurableApprovalFailsClosedOnSaveError(t *testing.T) {
 }
 
 func TestDurableApprovalReturnsPauseAfterProviderCancellation(t *testing.T) {
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "canceled-approval")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "canceled-approval")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a := newTestAgent(Name("cancel-after-save"), WithCheckpoint(cp), WithApproval(func(context.Context, model.ToolCall) (ApprovalDecision, error) {

@@ -48,14 +48,10 @@ guides:
     url: /docs/guides/plan-delegate.html
   - title: Agent Guardrails
     url: /docs/guides/agent-guardrails.html
-  - title: Agents and Workflows
-    url: /docs/guides/agents-and-workflows.html
   - title: Agent Integration Patterns
     url: /docs/guides/agent-patterns.html
   - title: The Agent Harness
     url: /docs/guides/agent-harness.html
-  - title: Agent Loops
-    url: /docs/guides/agent-loops.html
   - title: Agent2Agent (A2A)
     url: /docs/guides/a2a-protocol.html
   - title: AI Provider Guide

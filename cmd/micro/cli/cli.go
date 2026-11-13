@@ -27,14 +27,14 @@ import (
 const zeroToHeroHelp = `0→hero no-secret lifecycle demo
 
 Run this from a go-micro repository checkout when you want one command that
-proves the maintained services → agents → workflows path without provider keys:
+proves the maintained services → agents path without provider keys:
 
   ./internal/harness/zero-to-hero-ci/run.sh
 
 That script runs the same deterministic path CI uses:
-  - CLI discovery for scaffold, run, chat, inspect, flow runs, and deploy dry-run
+  - CLI discovery for scaffold, run, chat, inspect and deploy dry-run
   - the smallest first-agent example
-  - the support-desk reference app with services, an agent, a flow, and an approval gate
+  - the support-desk reference app with services, an agent and an approval gate
   - plan/delegate and universe harnesses with only the model mocked
 
 If you only want the runnable examples first:
@@ -59,9 +59,9 @@ examples map, open examples/INDEX.md:
        go test ./internal/harness/zero-to-hero-ci -run TestNoSecretFirstAgentTranscript -count=1
      Exercises service tools, mock-model chat, and inspectable run history.
 
-  3. Full services → agents → workflows reference app
+  3. Full services → agents reference app
        go run ./examples/support
-     Shows the support desk service, agent, workflow, and approval gate together.
+     Shows the support desk service, agent and approval gate together.
 
 Then continue the same path with the installed CLI:
   micro agent demo
@@ -191,7 +191,7 @@ func init() {
 			Name:  "examples",
 			Usage: "Show provider-free first-agent example paths",
 			Description: `Print the maintained no-secret examples for the services → agents →
-workflows on-ramp: first-agent, transcript, support app, and matching guides.`,
+agents on-ramp: first-agent, transcript, support app, and matching guides.`,
 			Action: func(ctx *cli.Context) error {
 				fmt.Fprintln(ctx.App.Writer, examplesWayfinding)
 				return nil
@@ -200,7 +200,7 @@ workflows on-ramp: first-agent, transcript, support app, and matching guides.`,
 		{
 			Name:  "zero-to-hero",
 			Usage: "Show the no-secret 0→hero lifecycle demo command",
-			Description: `Print the maintained provider-free services → agents → workflows
+			Description: `Print the maintained provider-free services → agents
 lifecycle command and the smaller runnable examples it covers.`,
 			Aliases: []string{"hero"},
 			Action: func(ctx *cli.Context) error {

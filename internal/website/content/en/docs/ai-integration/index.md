@@ -17,7 +17,7 @@ model.Tools                →  discovers services + executes RPCs programmatica
     ↓
 model.Model                →  calls LLMs (Anthropic, OpenAI, Gemini, Atlas Cloud, ...)
     ↓
-agent / flow / micro chat  →  agent-managed, event-driven, or interactive orchestration
+agent / micro chat  →  agent-managed or interactive orchestration
 ```
 
 Every layer is optional. You can use go-micro without AI. You can use the `model` package without MCP. But when you stack them, you get services that AI agents can discover and orchestrate automatically.
@@ -125,32 +125,6 @@ ANTHROPIC_API_KEY=sk-ant-... micro chat --provider anthropic
 ```
 
 Conversations persist through the agent memory store. Use `/new` to start a separate conversation, `/sessions` to list them, and `/resume ID` to continue one.
-
-### 7. micro flow (event-driven orchestration)
-
-Subscribe to broker events and let an LLM orchestrate the response:
-
-```go
-import "go-micro.dev/v6/flow"
-
-f := flow.New("onboard",
-    flow.Trigger("events.user.created"),
-    flow.Prompt("New user: {{.Data}}. Send welcome email and create workspace."),
-    flow.Provider("anthropic"),
-    flow.APIKey(key),
-)
-f.Register(service.Options().Registry, service.Options().Broker, service.Client())
-```
-
-Or from the CLI:
-
-```bash
-micro flow run --trigger events.user.created \
-  --prompt "New user: {{.Data}}. Send welcome email." \
-  --provider anthropic
-
-micro flow exec --prompt "List all users" --provider anthropic
-```
 
 ### 8. micro api (HTTP gateway)
 

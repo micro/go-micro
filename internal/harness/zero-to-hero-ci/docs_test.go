@@ -31,10 +31,7 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 		"go test ./examples/support -run 'TestRunSupportMockSmoke|TestZeroToHeroReadmeDocumentsLifecycle|TestZeroToHeroInspectTranscript' -count=1",
 		"./internal/harness/zero-to-hero-ci/run.sh",
 		"micro zero-to-hero",
-		"go run ./internal/harness/agent-flow",
 		"make provider-conformance-mock",
-		"internal/harness/plan-delegate",
-		"internal/harness/universe",
 	} {
 		if !strings.Contains(guide, want) {
 			t.Fatalf("0→hero guide missing %q", want)
@@ -60,7 +57,6 @@ func TestZeroToHeroReferenceDocs(t *testing.T) {
 		"chat/inspect:",
 		"first-agent app:",
 		"0→hero app:",
-		"flow history:",
 	} {
 		if !strings.Contains(runScript, want) {
 			t.Fatalf("0→hero CI run script missing debuggable boundary label %q", want)
@@ -96,7 +92,6 @@ func TestZeroToHeroTranscriptTargetStaysOrdered(t *testing.T) {
 		`run_step "chat/inspect: no-secret first-agent transcript and docs"`,
 		`run_step "first-agent app: runnable provider-free example"`,
 		`run_step "0→hero app: support lifecycle smoke"`,
-		`run_step "flow history: deterministic services → agents → workflows harnesses"`,
 		`run_step "deploy dry-run: configured target plan"`,
 	})
 
@@ -165,9 +160,9 @@ deploy prod
 func TestDocsNavigation(t *testing.T) {
 	root := filepath.Clean(filepath.Join("..", "..", ".."))
 	nav := readFile(t, filepath.Join(root, "internal", "website", "data", "docs.yaml"))
-	pages := []string{"quickstart", "services", "agents", "workflows", "reference"}
+	pages := []string{"quickstart", "services", "agents", "reference"}
 	if strings.Count(nav, "- title:") != len(pages) {
-		t.Fatal("docs navigation should contain five entries")
+		t.Fatal("docs navigation should contain four entries")
 	}
 	last := -1
 	for _, page := range pages {
@@ -190,7 +185,7 @@ func TestCurrentDocsExamplesBuild(t *testing.T) {
 	}
 	workspace := t.TempDir()
 	writeFile(t, filepath.Join(workspace, "go.mod"), "module example.com/my-app\n\ngo 1.26\n\nrequire go-micro.dev/v6 v6.0.0\n\nreplace go-micro.dev/v6 => "+root+"\n")
-	for _, page := range []string{"quickstart", "services", "agents", "standalone-agent", "workflows"} {
+	for _, page := range []string{"quickstart", "services", "agents", "standalone-agent"} {
 		docPage := page
 		if page == "standalone-agent" {
 			docPage = "agents"
@@ -311,16 +306,14 @@ func TestArchitectureDocsAlignWithAgentHarnessLifecycle(t *testing.T) {
 	doc := readFile(t, filepath.Join(root, "internal", "website", "content", "en", "docs", "architecture", "index.md"))
 
 	for _, want := range []string{
-		"services → agents → workflows lifecycle",
+		"services → agents lifecycle",
 		"## Service substrate",
 		"## Agent harness",
-		"## Workflows",
 		"## Interop gateways",
 		"`model` / `model.Model`",
 		"`store` / memory",
 		"`model.Tools`",
 		"`agent`",
-		"`flow`",
 		"`micro mcp`",
 		"`micro a2a`",
 		"[AI Integration](../ai-integration/index.md)",
@@ -335,7 +328,6 @@ func TestArchitectureDocsAlignWithAgentHarnessLifecycle(t *testing.T) {
 	assertOrderedMarkers(t, "architecture lifecycle", doc, []string{
 		"## Service substrate",
 		"## Agent harness",
-		"## Workflows",
 		"## Interop gateways",
 		"## Developer path",
 	})
@@ -348,8 +340,8 @@ func TestFirstAgentWayfindingDocs(t *testing.T) {
 		links []string
 	}{
 		{"README.md", []string{"https://go-micro.dev/docs/quickstart.html"}},
-		{"internal/website/content/en/docs/quickstart.md", []string{"services.md", "agents.md", "workflows.md"}},
-		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md", "../guides/agents-and-workflows.md"}},
+		{"internal/website/content/en/docs/quickstart.md", []string{"services.md", "agents.md"}},
+		{"internal/website/content/en/docs/getting-started/index.md", []string{"../quickstart.md", "../guides/your-first-agent.md"}},
 		{"internal/website/content/en/docs/_index.md", []string{"quickstart.md", "services.md", "agents.md", "reference.md"}},
 	}
 	for _, check := range checks {
@@ -394,7 +386,7 @@ func TestFirstAgentWayfindingCanonicalTrailStaysInSync(t *testing.T) {
 			name:    "website quickstart next steps",
 			file:    filepath.Join(root, "internal", "website", "content", "en", "docs", "quickstart.md"),
 			heading: "",
-			markers: []string{"Go 1.26", "go mod init", "services.md", "agents.md", "workflows.md"},
+			markers: []string{"Go 1.26", "go mod init", "services.md", "agents.md"},
 		},
 		{
 			name:    "examples map recommended adoption path",
@@ -674,10 +666,9 @@ func TestExamplesIndexesPreserveLifecycleMap(t *testing.T) {
 				"support",
 				"services",
 				"agents",
-				"workflows",
 				"Debugging and observability",
 			},
-			ordered: []string{"1. First service", "2. First agent", "3. First workflow"},
+			ordered: []string{"1. First service", "2. First agent"},
 		},
 		{
 			name:    "website examples lifecycle map",
@@ -690,7 +681,6 @@ func TestExamplesIndexesPreserveLifecycleMap(t *testing.T) {
 				"examples/support",
 				"services",
 				"agents",
-				"workflows",
 				"debugging-agents.md",
 			},
 			ordered: []string{"0→1 service", "Provider-free first agent", "0→hero lifecycle"},
