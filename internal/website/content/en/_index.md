@@ -18,22 +18,25 @@ params:
 </div>
 <figure class="micro-example" aria-labelledby="example-title">
 <figcaption id="example-title"><span>Services + agents</span><span>Go</span></figcaption>
-<pre><code>service := micro.NewService("notes")
+{{< highlight go >}}
+service := micro.NewService("notes")
 service.Init()
 
-if err := service.Handle(new(Notes)); err != nil {
-    log.Fatal(err)
+err := service.Handle(new(Notes))
+if err != nil {
+	log.Fatal(err)
 }
 
-if err := service.Handle(
-    micro.NewAgent("notes"),
-); err != nil {
-    log.Fatal(err)
+agent := micro.NewAgent("notes")
+err = service.Handle(agent)
+if err != nil {
+	log.Fatal(err)
 }
 
 if err := service.Run(); err != nil {
-    log.Fatal(err)
-}</code></pre>
+	log.Fatal(err)
+}
+{{< /highlight >}}
 <p>One service, available through RPC and an agent.</p>
 <a href="/docs/agents.html#add-an-agent-to-a-service">Add an agent to your service →</a>
 </figure>
