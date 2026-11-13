@@ -21,10 +21,12 @@
   .micro-eyebrow { color: #006b83; font-size: .82rem; font-weight: 600; letter-spacing: .055em; margin-bottom: 12px; }
   .micro-lead { font-size: 1.15rem; color: #425a62; line-height: 1.7; max-width: 720px; }
   .micro-caption { font-size: .85rem; color: #53676e; margin: 18px 0 0; }
-  .micro-intro { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 48px; padding: 76px 0 64px; }
+  .micro-intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 48px; padding: 76px 0 64px; }
   .micro-example { min-width: 0; margin: 0; border: 1px solid #d3e3e5; border-radius: 12px; background: #f5f9fa; overflow: hidden; box-shadow: 0 12px 36px rgba(20, 46, 54, .06); }
   .micro-example figcaption { display: flex; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #d3e3e5; font-size: .8rem; color: #425a62; }
-  .micro-example pre { border: 0; border-radius: 0; margin: 0; padding: 22px 20px; background: transparent; font-size: .78rem; line-height: 1.7; }
+  .micro-example .highlight { margin: 0; background: transparent; }
+  .micro-example pre { border: 0; border-radius: 0; margin: 0; padding: 22px 20px; background: transparent; font-size: .8125rem; line-height: 1.65; tab-size: 2; white-space: pre; overflow-wrap: normal; word-break: normal; overflow-x: auto; }
+  .micro-example pre code { display: block; font-size: inherit; line-height: inherit; }
   .micro-example p { margin: 0; padding: 0 20px; font-size: .85rem; color: #425a62; }
   .micro-example > a { display: inline-block; margin: 10px 20px 20px; font-size: .85rem; }
   .micro-actions { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin: 30px 0 20px; font-size: .95rem; }
@@ -71,6 +73,10 @@
   @media (max-width: 600px) {
     .micro-landing { padding: 0 20px; font-size: 16px; }
     .micro-intro { padding-top: 35px; }
+    .micro-example pre { padding: 16px 12px; }
+    .micro-example figcaption { padding: 12px; }
+    .micro-example p { padding: 0 12px; }
+    .micro-example > a { margin: 10px 12px 16px; }
     .micro-start { padding: 20px; }
     .micro-steps, .micro-foundation { grid-template-columns: 1fr; gap: 28px; }
     .micro-journey, .micro-foundation { padding: 36px 0; }
