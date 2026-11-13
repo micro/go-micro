@@ -2,7 +2,7 @@
 
 This directory contains runnable examples that take you through the Go Micro
 lifecycle: start with a service, expose it as agent-usable capability, then
-coordinate work with workflows.
+call services from agents.
 
 
 ## Quick Start
@@ -13,13 +13,14 @@ or follow the first-agent path below instead of reading the directories alphabet
 
 ## Recommended first-agent path
 
-This path is the canonical services → agents → workflows route through the examples map. Debugging and observability wayfinding stays nearby once the first run works.
+This path is the canonical services → agents route through the examples map. Debugging and observability wayfinding stays nearby once the first run works.
 
 | Step | Start here | What you learn | Next step |
 |------|------------|----------------|-----------|
 | 1. First service | [`hello-world`](./hello-world/) | Build the 0→1 service path: create and register a basic RPC service, add a handler, call it with a client, and expose health checks. | Move to [`agent-demo`](./agent-demo/) to see services used by an agent. |
 | 2. First agent | [`first-agent`](./first-agent/) | Run the smallest service-backed agent with a deterministic mock model and no provider key. | Compare with [`agent-demo`](./agent-demo/) or the maintained 0-to-hero path in [`support`](./support/). |
-| 3. First workflow | [`support`](./support/) | Follow typed services into an agent chat loop, an event-driven `intake` flow, and an approval gate in one runnable reference. | Deepen the workflow model with [`flow-durable`](./flow-durable/). |
+
+| 3. Support agent | [`support`](./support/) | Call typed services through an agent with an approval gate. | Inspect the result and adapt the tools. |
 
 For the shortest AI-tooling bridge, the MCP path is
 [`mcp/hello`](./mcp/hello/) → [`mcp/crud`](./mcp/crud/) →
@@ -107,24 +108,7 @@ before the run can continue.
 Local-model agent wiring for developers experimenting with Ollama-backed model
 calls.
 
-### 3. Workflows — coordinate longer-running work
-
-#### [support](./support/)
-A maintained 0-to-hero reference path in one runnable file:
-- **scaffold** typed `customers`, `tickets`, and `notify` services
-- **run/chat** with a support agent that uses those services as tools
-- **inspect** the event-driven `intake` flow and approval gate
-- **CI** keeps the deterministic mock-model journey runnable with `go test ./examples/support`
-
-#### [flow-durable](./flow-durable/)
-A workflow as ordered, checkpointed steps that survives a crash and resumes where it stopped:
-- **steps** — a flow is a task with stages (`reserve → charge → confirm`), not just one LLM turn
-- **Checkpoint** — each step is persisted; on `Resume`, completed steps are not re-run (no duplicate side effects)
-
-#### [flow-loop](./flow-loop/)
-A looping flow example for repeated workflow steps.
-
-### 4. MCP and agent integration examples
+### 3. MCP and agent integration examples
 
 See the [mcp/](./mcp/) directory for AI agent integration examples:
 - **[hello](./mcp/hello/)** - Minimal MCP service (start here)

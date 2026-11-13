@@ -112,6 +112,6 @@ Closes #5678
 ```
 
 Use the North Star to keep the queue honest: favor small improvements that move
-developers through the services → agents → workflows lifecycle, and surface
+developers through the services → agents lifecycle, and surface
 breaking API or brand/positioning decisions for humans instead of auto-merging
 them.

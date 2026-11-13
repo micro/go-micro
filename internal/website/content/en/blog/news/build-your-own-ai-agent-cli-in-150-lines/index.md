@@ -12,6 +12,9 @@ tags:
 aliases:
   - /blog/11
 ---
+
+> Historical article: the standalone flow package and flow CLI commands have since been removed. Use services and agents for current development.
+
 ![](developer-experience.jpg)
 
 We [introduced `micro chat`](/blog/2026/05/29/micro-chat-talk-to-your-services.html) — a CLI that lets you talk to your microservices through an LLM. People asked how it works under the hood. The honest answer: it's about 150 lines, and there's no magic. This post walks through every piece so you can build your own — for go-micro, for your own framework, or for whatever services you have.

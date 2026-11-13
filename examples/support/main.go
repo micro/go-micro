@@ -1,10 +1,9 @@
-// Support desk — a real-world agent built from services, a flow, and a
+// Support desk — a real-world agent built from services and a
 // guardrail. It's the "zero to hero" shape: a few services, an agent that
-// manages them, an event that triggers the agent, and a human-in-the-loop
+// manages them, a request to the agent, and a human-in-the-loop
 // gate on the one action that touches a customer.
 //
-// The scenario: a customer files a ticket. A ticket.created event triggers
-// the support agent, which looks the customer up, sets the ticket's
+// The scenario: a customer files a ticket. The support agent looks the customer up, sets the ticket's
 // priority, and drafts a reply — but it can't actually email the customer
 // without passing the approval gate.
 //
@@ -31,7 +30,6 @@ import (
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/broker"
 	"go-micro.dev/v6/client"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/selector"
@@ -270,48 +268,21 @@ func runSupport(provider string) error {
 
 	waitFor(reg, "customers", "tickets", "notify", "support")
 
-	// A new ticket arrives, and a flow turns the event into work for the
-	// agent: the event is the prompt.
-	intake := flow.New("intake",
-		flow.Trigger("events.ticket.created"),
-		flow.Agent("support"),
-		flow.Prompt("A new support ticket arrived: {{.Data}}. Handle it."),
-	)
-	if err := intake.Register(reg, br, cl); err != nil {
-		return fmt.Errorf("flow register: %w", err)
-	}
-	defer intake.Stop()
-
-	// The customer files a ticket (it exists before the event fires).
+	// Create the ticket before asking the agent to handle it.
 	tickets.seed(&Ticket{ID: "ticket-1", Customer: "alice@acme.com", Subject: "Can't log in", Body: "I'm locked out.", Status: "open"})
 	body, _ := json.Marshal(map[string]string{"id": "ticket-1", "customer": "alice@acme.com", "subject": "Can't log in"})
 
-	fmt.Println("\033[1m> event:\033[0m events.ticket.created", string(body))
+	fmt.Println("\033[1m> ticket:\033[0m", string(body))
 	fmt.Println()
-	if err := br.Publish("events.ticket.created", &broker.Message{Body: body}); err != nil {
-		return fmt.Errorf("publish: %w", err)
+	reply, err := support.Ask(context.Background(), "Handle this support ticket: "+string(body))
+	if err != nil {
+		return err
 	}
-
-	// Wait for the agent to act.
-	deadline := time.Now().Add(20 * time.Second)
-	for time.Now().Before(deadline) {
-		if notify.sent >= 1 {
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-
-	if rs := intake.Results(); len(rs) > 0 {
-		latest := rs[len(rs)-1]
-		fmt.Printf("\n\033[1msupport agent:\033[0m %s\n", latest.Reply)
-		fmt.Println("\n\033[1minspect transcript:\033[0m")
-		fmt.Println("  micro inspect flow intake")
-		fmt.Printf("  flow: intake runs=%d latest.reply=%q\n", len(rs), latest.Reply)
-		fmt.Println("  micro agent history support")
-		fmt.Printf("  agent: support runs=%d latest.status=completed\n", len(rs))
-	}
+	fmt.Printf("\nsupport agent: %s\n", reply.Reply)
+	fmt.Println("\ninspect transcript:")
+	fmt.Println("  micro agent history support")
 	if notify.sent >= 1 {
-		fmt.Println("\n\033[32m✓ ticket triaged and the customer was replied to — triggered by an event\033[0m")
+		fmt.Println("\n\033[32m✓ ticket triaged and the customer was replied to — handled by the agent\033[0m")
 		return nil
 	}
 	fmt.Println("\n\033[31m✗ the agent did not complete the triage\033[0m")

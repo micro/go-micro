@@ -1,6 +1,6 @@
 # Provider conformance
 
-This harness keeps the services → agents → workflows lifecycle honest across the
+This harness keeps the services → agents lifecycle honest across the
 supported AI providers. It runs the same end-to-end scenarios against each
 configured provider and treats missing provider keys as an explicit skip, so the
 suite is safe for local development, forks, and scheduled CI.
@@ -11,10 +11,6 @@ suite is safe for local development, forks, and scheduled CI.
 agent test and the harnesses in `internal/harness`:
 
 - `agent` — provider tool-call conformance through `agent.Ask`, including run metadata propagation.
-- `universe` — service discovery plus agent tool calls over the real runtime.
-- `agent-flow` — a workflow event that drives an agent to call services.
-- `plan-delegate` — plan persistence plus agent-to-agent delegation and service
-  calls.
 - `a2a-stream-fallback` — A2A `message/stream` through the gateway, including
   fallback from unsupported provider streaming to the tool-calling `Ask` path while
   preserving run metadata.
@@ -22,7 +18,7 @@ agent test and the harnesses in `internal/harness`:
 The command also emits the registered provider capability matrix so the run shows
 which providers advertise model, image, video, and streaming support. Console output
 and summary artifacts label each harness with the phase it is proving (for example,
-model call + tool call, workflow event + tool call, or streaming fallback + tool
+model call + tool call, streaming fallback + tool
 call), so provider failures identify the failed lifecycle phase instead of only the
 provider name.
 
@@ -76,7 +72,7 @@ manual dispatch can narrow `providers` or `harnesses`, and can set
 missing; scheduled runs keep the safe default and report missing keys as skips.
 That job:
 
-1. runs the same `agent`, `universe`, `agent-flow`, `plan-delegate`, and `a2a-stream-fallback` harness list,
+1. runs the same `agent`, `a2a-streaming`, and `a2a-stream-fallback` harness list,
 2. reads the provider keys from repository secrets,
 3. skips providers whose secrets are absent,
 4. fails when any configured provider fails a harness, and

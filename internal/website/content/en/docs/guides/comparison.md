@@ -155,8 +155,7 @@ through a sidecar from many languages. [Dapr Agents](https://docs.dapr.io/develo
 adds an agent framework on top of those runtime capabilities.
 
 Go Micro overlaps with Dapr on distributed-systems primitives, but the product
-shape is different: Go Micro is a Go framework where services, agents, tools,
-and flows are built from the same runtime. A service endpoint can become an
+shape is different: Go Micro is a Go framework where services, agents and tools are built from the same runtime. A service endpoint can become an
 AI-callable tool, and an agent is itself a registered service with memory,
 guardrails, planning, delegation, MCP, and A2A around it.
 
@@ -211,8 +210,6 @@ Kubernetes deployment first-class.
    itself an agent.
 4. If your platform already uses Dapr, keep Dapr components behind the service
    boundary and let Go Micro present the agent/tool contract.
-5. Move deterministic multi-step work into flows only after the service/tool
-   boundary is stable.
 
 ## vs Agent Frameworks (Google ADK)
 
@@ -225,7 +222,7 @@ and supports multi-agent systems, evaluation, and deployment to Cloud Run / GKE.
 They overlap on agents but solve different problems. ADK is a library for building
 an agent process — you define an agent, its tools, and a model, then run and deploy
 it. Go Micro is the harness around agents once they operate real systems: service
-discovery, inter-service RPC, pub/sub, durable flows, tool execution, and deployment.
+discovery, inter-service RPC, pub/sub, tool execution, and deployment.
 Those pieces are out of scope for ADK, and you bring your own.
 
 In Go Micro an agent is built as an ordinary service: it registers in the registry,
@@ -241,7 +238,6 @@ also gives you the discovery, RPC, pub/sub, config, and deployment around them.
 | **Inter-service RPC, load balancing, pub/sub** | Built-in | Not in scope |
 | **MCP** | Every service endpoint is automatically an MCP tool (no extra code) | MCP tools, wired explicitly |
 | **A2A** | Agents are A2A-reachable services | Supported |
-| **Deterministic orchestration** | Flows | Graph workflows |
 | **Multi-agent** | Agents discover & call each other via the registry; `plan`/`delegate` built in | Composition, routing, workflow patterns |
 | **Evaluation suite** | Harnesses/conformance today; first-class evaluation is a gap | Yes (criteria, user/env simulation, metrics) |
 | **Context engineering** | Store-backed memory | "Context as source code" (auto filter/summarize/token tracking) |
@@ -258,7 +254,7 @@ also gives you the discovery, RPC, pub/sub, config, and deployment around them.
   registered, discoverable, load-balanced, and deployed the same way
 - You want your existing services to become agent tools with **zero extra code**
   (every endpoint is an MCP tool automatically)
-- You're building in Go and want one set of primitives for services, agents, and flows
+- You're building in Go and want one set of primitives for services and agents
 
 ### They interoperate
 
@@ -280,14 +276,12 @@ SDK you run alongside your services** — you compose agents and tools into grap
 conditional workflows, and your microservices (tRPC) live separately and are called
 into. Go Micro starts from the premise that **an agent is a service** — one runtime
 where every endpoint is automatically a tool, an agent registers and is discovered and
-load-balanced like anything else, and workflows are durable code paths rather than a
-graph DSL. The premise is that the line between "your services" and "your agents" is
+load-balanced like anything else, and deterministic business logic stays in service code. The premise is that the line between "your services" and "your agents" is
 accidental complexity; remove it and there's less to wire and keep in sync.
 
 | | Go Micro | tRPC-Agent-Go |
 |---|----------|---------------|
 | **Primary unit** | A harnessed service (an agent is a service with an LLM inside) | An agent |
-| **Orchestration** | Durable `flow` steps + `Loop` — plain code paths | Graph / Chain / Parallel / Cycle agents (graph DSL) |
 | **Services as tools** | Every endpoint is automatically an MCP tool | Function tools + MCP, wired explicitly |
 | **Service runtime** | Built in — agents *are* services (registry, RPC, load balancing, pub/sub) | Runs alongside your existing service stack (tRPC) |
 | **MCP / A2A** | Both, generated from the registry | Both |
@@ -302,10 +296,10 @@ accidental complexity; remove it and there's less to wire and keep in sync.
 - You want first-class evaluation and self-evolution today, with a large team behind it
 
 ### When to choose Go Micro
-- You want one runtime where services, agents, and flows are the same primitives —
+- You want one runtime where services and agents are the same primitives —
   registered, discoverable, and deployed the same way
 - You want your existing services to become agent tools with zero extra code
-- You prefer durable flows and plain code paths over a graph DSL, in a small,
+- You prefer plain Go code paths in a small,
   independent framework you can hold in your head
 
 ### They interoperate

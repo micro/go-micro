@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"go-micro.dev/v6/agent"
-	"go-micro.dev/v6/flow"
+	"go-micro.dev/v6/agent/run"
 	"go-micro.dev/v6/store"
 )
 
@@ -24,7 +24,7 @@ func TestExistingCheckpointRemainsReadable(t *testing.T) {
 	if err := cp.Save(context.Background(), record); err != nil {
 		t.Fatal(err)
 	}
-	restored, found, err := flow.StoreCheckpoint(st, "assistant").Load(context.Background(), "saved")
+	restored, found, err := run.StoreCheckpoint(st, "assistant").Load(context.Background(), "saved")
 	if err != nil || !found || restored.Status != "waiting" {
 		t.Fatalf("run=%+v found=%v err=%v", restored, found, err)
 	}

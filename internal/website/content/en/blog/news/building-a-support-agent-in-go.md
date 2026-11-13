@@ -12,6 +12,9 @@ tags:
 aliases:
   - /blog/28
 ---
+
+> Historical article: the standalone flow package and flow CLI commands have since been removed. Use services and agents for current development.
+
 Most agent demos are a chat box wired to one tool. Real systems aren't that — they're a handful of services, an agent that operates them, something that triggers the agent without a human typing, and a gate on the actions you don't want it taking on its own. Here's that, built end to end. The full code is in [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support); it runs with no API key.
 
 The scenario: a customer files a ticket. That should trigger an agent to look the customer up, set a priority, and reply — but it must not email anyone without passing an approval gate.

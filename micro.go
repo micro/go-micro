@@ -7,7 +7,6 @@ import (
 
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/client"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/server"
 	"go-micro.dev/v6/service"
@@ -33,17 +32,8 @@ type AgentStream = agent.AgentStream
 // AgentOption configures an Agent.
 type AgentOption = agent.Option
 
-// Flow coordinates predefined steps, service calls, and agent decisions.
-type Flow = flow.Flow
-
 // AgentRun records one agent execution.
 type AgentRun = agent.Run
-
-// FlowRun is a checkpointed flow or agent run record.
-type FlowRun = flow.Run
-
-// FlowOption configures a Flow.
-type FlowOption = flow.Option
 
 // Group is a set of services that share lifecycle management.
 type Group = service.Group
@@ -279,112 +269,11 @@ func AgentResumeStreamAsk(ctx context.Context, a Agent, runID string) (AgentStre
 	return agent.ResumeStreamAsk(ctx, a, runID)
 }
 
-// NewFlow creates an event-driven LLM orchestration unit.
-//
-//	f := micro.NewFlow("onboard-user",
-//	    micro.FlowTrigger("events.user.created"),
-//	    micro.FlowPrompt("New user: {{.Data}}. Send welcome email."),
-//	    micro.FlowProvider("anthropic"),
-//	)
-//	f.Register(service.Options().Registry, service.Options().Broker, service.Client())
-func NewFlow(name string, opts ...FlowOption) *Flow {
-	return flow.New(name, opts...)
-}
-
-// FlowTrigger sets the broker topic that triggers the flow.
-func FlowTrigger(topic string) FlowOption { return flow.Trigger(topic) }
-
-// FlowPrompt sets the prompt template. Use {{.Data}} for the event payload.
-func FlowPrompt(p string) FlowOption { return flow.Prompt(p) }
-
-// FlowProvider sets the LLM provider.
-func FlowProvider(p string) FlowOption { return flow.Provider(p) }
-
-// FlowAPIKey sets the API key for the LLM provider.
-func FlowAPIKey(k string) FlowOption { return flow.APIKey(k) }
-
-// FlowAgent makes the flow hand each event to a named agent over RPC —
-// the flow triggers, the agent reasons. Without it, the flow runs a
-// single LLM step itself.
-func FlowAgent(name string) FlowOption { return flow.Agent(name) }
-
-// FlowStep is one unit of a stepped flow.
-type FlowStep = flow.Step
-
-// FlowState carries data across the steps of a flow run.
-type FlowState = flow.State
-
-// FlowStepFunc performs one step's work.
-type FlowStepFunc = flow.StepFunc
-
-// Checkpoint stores execution progress for recovery.
+// Checkpoint stores agent execution progress for recovery.
 type Checkpoint = agent.Checkpoint
 
-// FlowSteps makes the flow run an ordered list of steps per event,
-// checkpointed between each, instead of a single LLM turn.
-func FlowSteps(steps ...FlowStep) FlowOption { return flow.Steps(steps...) }
-
-// FlowRetry sets the flow-level retry count per step (a Step's own Retry
-// overrides it).
-func FlowRetry(n int) FlowOption { return flow.Retry(n) }
-
-// FlowRetryBackoff sets the delay between failed step attempts.
-func FlowRetryBackoff(d time.Duration) FlowOption { return flow.RetryBackoff(d) }
-
-// FlowWithCheckpoint sets the durability backend for stepped runs.
-// Stepped flows default to a store-backed checkpoint.
-func FlowWithCheckpoint(c Checkpoint) FlowOption { return flow.WithCheckpoint(c) }
-
-// FlowDeleteOnSuccess removes a run's checkpoint on success (failed runs
-// are always kept). Default: retain all.
-func FlowDeleteOnSuccess() FlowOption { return flow.DeleteOnSuccess() }
-
-// FlowTraceProvider enables OpenTelemetry spans for stepped flow runs and steps.
-func FlowTraceProvider(tp trace.TracerProvider) FlowOption { return flow.TraceProvider(tp) }
-
-// FlowCall is a step action: an RPC to a service endpoint, sending the
-// state data as the request and storing the response.
-func FlowCall(service, endpoint string) FlowStepFunc { return flow.Call(service, endpoint) }
-
-// FlowLLM is a step action: one augmented-LLM turn with the services as
-// tools, storing the reply.
-func FlowLLM(prompt string) FlowStepFunc { return flow.LLM(prompt) }
-
-// FlowDispatch is a step action: hand the state data to a registered
-// agent over RPC, storing its reply.
-func FlowDispatch(agent string) FlowStepFunc { return flow.Dispatch(agent) }
-
-// FlowLoopOption configures a FlowLoop.
-type FlowLoopOption = flow.LoopOption
-
-// FlowLoopCondition decides whether a FlowLoop should stop, given the latest
-// state and the iteration just completed.
-type FlowLoopCondition = flow.LoopCondition
-
-// FlowLoop is a step action that runs body repeatedly until a stop condition
-// is met or the iteration cap is reached — the agentic loop, with a
-// guaranteed ceiling so it can't run away. Compose it as a FlowStep's Run.
-func FlowLoop(body FlowStepFunc, opts ...FlowLoopOption) FlowStepFunc {
-	return flow.Loop(body, opts...)
-}
-
-// FlowLoopMax sets a loop's hard iteration cap — the budget guardrail.
-func FlowLoopMax(n int) FlowLoopOption { return flow.LoopMax(n) }
-
-// FlowUntil stops a loop when cond returns true (a code-defined exit).
-func FlowUntil(cond FlowLoopCondition) FlowLoopOption { return flow.Until(cond) }
-
-// FlowUntilLLM stops a loop when the flow's model judges the goal met — the
-// supervised "Ralph" loop. Requires a flow model (set FlowProvider/FlowAPIKey).
-func FlowUntilLLM(question string) FlowLoopOption { return flow.UntilLLM(question) }
-
-// FlowOnIteration runs fn after each loop iteration (progress/observability).
-func FlowOnIteration(fn func(iter int, state FlowState)) FlowLoopOption {
-	return flow.OnIteration(fn)
-}
-
 // StoreCheckpoint returns a store-backed Checkpoint whose run keys are
-// namespaced under scope (the agent or workflow name). A nil store uses
+// namespaced under scope (the agent name). A nil store uses
 // the default store.
 func StoreCheckpoint(s store.Store, scope string) Checkpoint {
 	return agent.StoreCheckpoint(s, scope)

@@ -21,7 +21,6 @@ import (
 	_ "go-micro.dev/v6/cmd/micro/cli"
 	_ "go-micro.dev/v6/cmd/micro/cli/build"
 	_ "go-micro.dev/v6/cmd/micro/cli/deploy"
-	_ "go-micro.dev/v6/cmd/micro/flow"
 	"go-micro.dev/v6/cmd/micro/gateway"
 	_ "go-micro.dev/v6/cmd/micro/inspect"
 	_ "go-micro.dev/v6/cmd/micro/loop"

@@ -3,7 +3,6 @@ package test_test
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,7 +12,6 @@ import (
 	micro "go-micro.dev/v6"
 	"go-micro.dev/v6/agent"
 	"go-micro.dev/v6/broker"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
 )
@@ -106,48 +104,4 @@ func TestDeveloperJourney(t *testing.T) {
 		})
 	}
 
-	dir := t.TempDir()
-	newStore := func() store.Store { return store.NewFileStore(store.DirOption(dir)) }
-	st := newStore()
-	fail := true
-	makeFlow := func(st store.Store) *flow.Flow {
-		f := flow.New("read-notes", flow.WithCheckpoint(flow.StoreCheckpoint(st, "read-notes")), flow.Steps(
-			flow.Step{Name: "list", Run: flow.Call("notes", "JourneyNotes.List")},
-			flow.Step{Name: "save", Run: func(_ context.Context, in flow.State) (flow.State, error) {
-				if fail {
-					return in, errors.New("destination unavailable")
-				}
-				if !strings.Contains(in.String(), "Review the release") {
-					t.Error("lost service response")
-				}
-				return in, nil
-			}},
-		))
-		if err := f.Register(reg, br, svc.Client()); err != nil {
-			t.Fatal(err)
-		}
-		return f
-	}
-	f := makeFlow(st)
-	if err := f.Execute(ctx, "{}"); err == nil {
-		t.Fatal("expected interrupted workflow")
-	}
-	before := notes.calls.Load()
-	if err := st.Close(); err != nil {
-		t.Fatal(err)
-	}
-	st = newStore()
-	defer st.Close()
-	fail = false
-	f = makeFlow(st)
-	if _, err := f.ResumePending(ctx); err != nil {
-		t.Fatal(err)
-	}
-	if notes.calls.Load() != before {
-		t.Fatal("resume repeated completed service call")
-	}
-	pending, err := f.Pending(ctx)
-	if err != nil || len(pending) != 0 {
-		t.Fatalf("unfinished workflow: %v %v", pending, err)
-	}
 }

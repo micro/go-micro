@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased: services and agents cleanup
+
+- Removed the `flow` package, `micro.NewFlow` / `Flow*` helpers, flow CLI commands, and unused top-level Kubernetes deployment prototype.
+- Agent checkpoints and recovery remain supported through `agent` and `agent/run`.
+
 All notable changes to Go Micro are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/) and versions
@@ -80,7 +85,6 @@ below is kept current between tags and rolled into the next version when it ship
 ### Added
 - **A2A inbound AP2 mandate verification (opt-in)** — set `Options.AP2PublicKey` (or `a2a.WithAP2PublicKey` for embedded handlers) and the gateway verifies AP2 payment/checkout mandates carried on incoming messages — signature and task/context binding — recording the outcome in each task's `ap2Verifications`, with the x402 settlement rail carried through for the paid path. Off by default. (`gateway/a2a/`)
 - **Flow human-in-the-loop pause/resume** — a flow step can suspend a run for external input with `flow.Await(key, prompt)`: the run checkpoints with status `waiting`, `Flow.Waiting` lists suspended runs, and `Flow.ResumeWith(ctx, runID, input)` injects the input and continues. Recovery skips waiting runs since they need input, not a restart. (`flow/`)
-- **Kubernetes reconcile core (alpha)** — `kubernetes.Reconcile(desired, observed)` decides the action needed to converge an `Agent`/`Service`/`Flow` resource toward its Deployment and returns `Ready`/`Error` conditions; dependency-free and unit-testable, on top of the embedded CRD foundation. (`deploy/kubernetes/`)
 - **In-process "local network" fast-path (opt-in)** — `client.Local()` lets a unary `Call` to a co-located service skip the network transport and dispatch straight to the server's handlers (raw `codec/bytes.Frame` bodies — the shape agent/MCP/flow tool calls use). Benchmark: ~545µs → ~28µs (≈20×) with ~3.6× fewer allocations. `micro.Local()` turns it on service-wide. Off by default. (`client/`, `server/`, `service/`, `internal/network/`)
 - **gRPC-reflection MCP** — the MCP gateway can expose reflected gRPC services as agent tools. (`gateway/mcp/`)
 - **x402 buyer example and agent spend observability** — a runnable buyer-agent example, with x402 spend surfaced in run observability. (`examples/`, `agent/`, `wrapper/x402/`)

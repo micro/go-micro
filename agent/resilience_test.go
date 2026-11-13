@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
@@ -85,7 +84,7 @@ func TestAskRetriesTransientErrorsThenSurfacesStructuredError(t *testing.T) {
 
 func TestModelRetryDoesNotDuplicateCheckpointedToolSideEffects(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "retry-tool-dedupe-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "retry-tool-dedupe-agent")
 	attempts := 0
 	toolRuns := 0
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
@@ -302,7 +301,7 @@ func TestAskCheckpointRecordsOperationalFailureStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cp := flow.StoreCheckpoint(store.NewMemoryStore(), "terminal-"+strings.ReplaceAll(tt.name, " ", "-"))
+			cp := StoreCheckpoint(store.NewMemoryStore(), "terminal-"+strings.ReplaceAll(tt.name, " ", "-"))
 			fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 				return nil, tt.err
 			}

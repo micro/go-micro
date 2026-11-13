@@ -1,6 +1,6 @@
 ---
 title: "Architecture"
-description: "How services, models, agents, and workflows fit together."
+description: "How services, models and agents fit together."
 ---
 
 Go Micro began as a framework for service communication. RPC clients and servers,
@@ -9,7 +9,7 @@ without tying their business logic to one infrastructure provider. Storage,
 configuration, and authentication support that same application boundary.
 
 Agents extend this foundation: a service endpoint can also be a tool. The
-services → agents → workflows lifecycle describes how these components compose;
+services → agents lifecycle describes how these components compose;
 it is not a requirement to adopt all of them or a replacement for RPC.
 
 | Component | Responsibility | Public entry point |
@@ -17,7 +17,6 @@ it is not a requirement to adopt all of them or a replacement for RPC.
 | Service | Implement capabilities and own application data | `micro.NewService` |
 | Model | Adapt model requests, responses, and tool calls to a provider | `model.Model` |
 | Agent | Interpret a request and use tools, memory, and execution controls | `micro.NewAgent` |
-| Workflow | Coordinate predefined steps, with agent decisions where needed | `micro.NewFlow` |
 | Application | Combine these components with users, interfaces, and usable outputs | Your program or a runtime such as Mu |
 
 ## Service substrate
@@ -70,20 +69,6 @@ See [AI Integration](../ai-integration/index.md),
 [guardrails](../guides/agent-guardrails.md), and
 [durability and recovery](../guides/durability.md).
 
-## Workflows
-
-Use `flow` when the sequence is defined: call a service, validate a result,
-dispatch to an agent, and save the outcome. Flows can react to broker events or
-run through their execution APIs. A prompt-driven flow can also let a model
-choose tools; a workflow does not require every step to use a model.
-
-Flows save checkpoints between steps. Recovery needs persistent storage, and an
-interrupted step may execute again. An agent's plan is its working plan;
-a workflow is the sequence defined by application code. Neither is automatically
-a user-facing task queue or a guarantee that an external action succeeded.
-
-See [Agents and Workflows](../guides/agents-and-workflows.md).
-
 ## Interop gateways
 
 - **`micro api`** exposes service RPC over HTTP.
@@ -92,22 +77,6 @@ See [Agents and Workflows](../guides/agents-and-workflows.md).
 
 Gateways derive their service and agent descriptions from registry metadata.
 An application can expose the same capabilities to Go clients, agents, and a UI.
-
-## Services, agents, and flows
-
-Services expose capabilities and own their data. Agents choose capabilities in
-response to a goal. Flows coordinate explicit steps, calling services and agents
-where needed. The same service remains usable directly, without a model.
-
-The next development priority is consistent execution across these boundaries:
-run identity, completion, cancellation, retry budgets, approval, and recovery.
-Existing checkpoints are useful, but interrupted operations can execute again;
-external effects require service-level idempotency. See the [v7 plan](../v7.md)
-for the implementation sequence and acceptance criteria.
-
-Applications can provide interfaces and store outputs using these components.
-App generation, rendering, publishing, and product accounts belong to applications
-and hosts such as Mu. Go Micro does not define a separate app package.
 
 ## Developer path
 

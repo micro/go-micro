@@ -4,7 +4,7 @@ description: "Build a service, use it through an agent, and extend your applicat
 ---
 
 Go Micro connects services through discovery, RPC, and publish/subscribe. Agents
-use service endpoints as tools. Workflows coordinate defined sequences of work.
+use service endpoints as tools.
 You can use these parts independently and extend them through Go interfaces.
 
 ## Build your first project
@@ -37,7 +37,6 @@ loop are also available to your own Go programs.
 
 - [Build a service](../client-server.md): implement typed handlers and call them over RPC.
 - [Build an agent](../guides/your-first-agent.md): give it instructions and services to use as tools.
-- [Compose a workflow](../guides/agents-and-workflows.md): combine service calls and agent decisions into defined steps.
 - [Choose infrastructure](../architecture/index.md): understand the registry, transport, broker, store, and other replaceable components.
 - [Deploy](../deployment.md): run your application beyond local development.
 

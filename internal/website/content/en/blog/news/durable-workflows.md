@@ -12,6 +12,9 @@ tags:
 aliases:
   - /blog/24
 ---
+
+> Historical article: the standalone flow package and flow CLI commands have since been removed. Use services and agents for current development.
+
 A workflow that calls real services is rarely instant and rarely side-effect-free. It reserves inventory at step one, charges a card at step two, sends a confirmation at step three. Each of those changes the world. So when the process dies between step two and step three — a deploy, an OOM, a node going away — you can't just run it again from the top: that reserves twice and charges twice. And if the workflow was triggered by an event with no human watching, nobody noticed it died at all.
 
 This is the oldest problem in distributed systems, and it has an established answer: **durable execution** — checkpoint progress as you go, and on restart resume from where you stopped instead of from the beginning. Go Micro flows now do this.
@@ -90,4 +93,4 @@ type Checkpoint interface {
 
 That's the through-line. Durable execution isn't a workflow engine you adopt alongside your services; it's a store and an interface, and the workflow is still just an ordered list of steps you can read. Same as everything else in Go Micro — the abstraction is the service, and this is one more thing the substrate underneath it now handles.
 
-See the [Agents and Workflows guide](/docs/guides/agents-and-workflows.html) for the full reference.
+See the [Agents and Workflows guide](https://github.com/micro/go-micro/blob/8b4578aa45cefe3336d211cfd93537d62d9f29d2/internal/website/content/en/docs/guides/agents-and-workflows.md) for the full reference.

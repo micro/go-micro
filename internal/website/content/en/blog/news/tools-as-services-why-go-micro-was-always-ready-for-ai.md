@@ -12,6 +12,9 @@ tags:
 aliases:
   - /blog/12
 ---
+
+> Historical article: the standalone flow package and flow CLI commands have since been removed. Use services and agents for current development.
+
 When people see `micro chat` or the MCP gateway, they assume we built something new. We didn't. We exposed something that was already there.
 
 Go Micro has always treated services as self-describing, addressable units. Every service registers its name, endpoints, and request types with the registry. Every endpoint is callable through a standardised path. The only thing that changed is *who's calling*.

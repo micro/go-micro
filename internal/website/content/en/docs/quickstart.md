@@ -89,4 +89,3 @@ Your service is running and can be called by other applications. You can stop he
 
 - [Services](services.md): service calls, discovery, and protobuf contracts.
 - [Agents](agents.md): define your own agent in Go.
-- [Workflows](workflows.md): coordinate operations in a defined order.

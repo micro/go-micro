@@ -86,7 +86,6 @@ require_output "first-agent preflight" "preflight" agent preflight --help
 require_output "local runtime" "micro run" run --help
 require_output "agent chat" "micro chat" chat --help
 require_output "agent inspection" "micro inspect agent" inspect agent --help
-require_output "flow inspection" "micro inspect flow" inspect flow --help
 
 require_ordered_output "installed first-agent docs wayfinding" \
   "micro agent demo" \

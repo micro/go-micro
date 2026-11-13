@@ -21,16 +21,16 @@ func TestZeroToHeroCLIBoundaries(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"run", "chat", "flow", "inspect", "deploy", "zero-to-hero"} {
+	for _, want := range []string{"run", "chat", "inspect", "deploy", "zero-to-hero"} {
 		if !commands[want] {
 			t.Fatalf("missing %q command", want)
 		}
 	}
-	if !subcommands["flow"]["runs"] {
-		t.Fatal("missing inspect boundary: flow runs")
+	if commands["flow"] || subcommands["inspect"]["flow"] {
+		t.Fatal("removed flow command is registered")
 	}
-	if !subcommands["inspect"]["agent"] || !subcommands["inspect"]["flow"] {
-		t.Fatal("missing inspect boundary: inspect agent/flow")
+	if !subcommands["inspect"]["agent"] {
+		t.Fatal("missing inspect boundary: inspect agent")
 	}
 
 	var hasDeployDryRun bool
@@ -69,7 +69,7 @@ func TestZeroToHeroCommandPrintsMaintainedNoSecretPath(t *testing.T) {
 		"go run ./examples/first-agent",
 		"go run ./examples/support",
 		"make harness",
-		"services → agents → workflows",
+		"services → agents",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("micro zero-to-hero output missing %q:\n%s", want, got)

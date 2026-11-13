@@ -12,6 +12,9 @@ tags:
 aliases:
   - /blog/10
 ---
+
+> Historical article: the standalone flow package and flow CLI commands have since been removed. Use services and agents for current development.
+
 ![](developer-experience.jpg)
 
 We built `micro chat` — a CLI that lets you talk to your microservices through an LLM. It discovers every service in the registry, exposes each endpoint as a tool, and lets a model decide which RPCs to call based on what you ask.

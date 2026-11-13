@@ -48,7 +48,7 @@ contract. For the exact scheduled command, run:
 ```sh
 go run ./internal/harness/provider-conformance \
   -providers anthropic,openai,gemini,groq,minimax,mistral,together,atlascloud \
-  -harnesses agent,universe,agent-flow,plan-delegate,a2a-stream-fallback \
+  -harnesses agent,a2a-stream-fallback \
   -summary-json provider-conformance-summary.json \
   -summary-markdown provider-conformance-summary.md \
   -capabilities-markdown provider-capabilities.md

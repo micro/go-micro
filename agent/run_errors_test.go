@@ -6,17 +6,16 @@ import (
 	"fmt"
 	"testing"
 
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/store"
 )
 
 func TestTypedRunErrors(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "typed-errors")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "typed-errors")
 	a := newTestAgent(Name("typed-errors"), WithCheckpoint(cp))
 	for _, status := range []string{"canceled", "expired"} {
-		if err := cp.Save(ctx, flow.Run{ID: status, Status: status}); err != nil {
+		if err := cp.Save(ctx, Run{ID: status, Status: status}); err != nil {
 			t.Fatal(err)
 		}
 		_, err := Resume(ctx, a, status)
@@ -25,7 +24,7 @@ func TestTypedRunErrors(t *testing.T) {
 			t.Fatalf("unexpected terminal error: %v", err)
 		}
 	}
-	if err := cp.Save(ctx, flow.Run{ID: "input", Status: "paused", State: flow.State{Stage: agentInputStep}}); err != nil {
+	if err := cp.Save(ctx, Run{ID: "input", Status: "paused", State: State{Stage: agentInputStep}}); err != nil {
 		t.Fatal(err)
 	}
 	_, err := Resume(ctx, a, "input")
@@ -37,7 +36,7 @@ func TestTypedRunErrors(t *testing.T) {
 
 func TestTypedMultilinePause(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "typed-pause")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "typed-pause")
 	reason := "First question?\nSecond question?"
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		opts.ToolHandler(ctx, model.ToolCall{ID: "ask-human", Name: toolHumanInput, Input: map[string]any{"prompt": reason}})

@@ -19,7 +19,7 @@ If you want to run the lifecycle before copying code, start with the [no-secret 
 go run ./examples/support
 ```
 
-It uses a deterministic mock model by default, so it needs no provider key, and it exercises the same shape this guide teaches: services become tools, an agent uses them, and a flow can trigger the work. Use the transcript for expected output, then use this guide when you are ready to build the smaller 0→1 version yourself.
+It uses a deterministic mock model by default, so it needs no provider key, and it exercises the same shape this guide teaches: services become tools, an agent uses them. Use the transcript for expected output, then use this guide when you are ready to build the smaller 0→1 version yourself.
 
 ## What you'll build
 
@@ -206,24 +206,7 @@ uses the `task` service before answering.
   and stored conversation history in memory.
 
 That is the core lifecycle: services provide capability, agents use the
-capability, and the same runtime can later put the interaction behind a flow.
-
-## 5. Make it a workflow when the path is event-driven
-
-Once the prompt should run because something happened rather than because a
-human typed a message, move the handoff into a flow:
-
-```go
-flow := micro.NewFlow("task-triage",
-	micro.FlowTrigger("tasks.created"),
-	micro.FlowPrompt("Review this new task and decide the next action: {{.Data}}"),
-	micro.FlowProvider("openai"),
-	micro.FlowAPIKey(os.Getenv("OPENAI_API_KEY")),
-)
-```
-
-Use flows for deterministic triggers and long-running orchestration; keep the
-agent for judgment, tool use, and handoffs when the path is not known up front.
+capability.
 
 ## Troubleshooting
 
@@ -232,7 +215,7 @@ agent for judgment, tool use, and handoffs when the path is not known up front.
 | The agent says it cannot access tasks. | Confirm the agent was created with `micro.AgentServices("task")` and that `micro agent list` shows `assistant`. |
 | Tool calls use the wrong fields. | Add or improve doc comments and `@example` tags on the service methods. |
 | Plain service calls work but chat fails. | Check that your provider key is exported in the shell that runs `micro run`. |
-| You need a no-secret reference path. | Run `make harness` from the Go Micro repository; it exercises the services → agents → workflows lifecycle with a mock provider. |
+| You need a no-secret reference path. | Run `make harness` from the Go Micro repository; it exercises the services → agents lifecycle with a mock provider. |
 
 ## Next steps
 
@@ -241,6 +224,4 @@ agent for judgment, tool use, and handoffs when the path is not known up front.
 - Run the [no-secret first-agent transcript](no-secret-first-agent.md) or [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) for the no-secret support-desk lifecycle.
 - Run [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate)
   to see planning and delegation across agents.
-- Read [Debugging your agent](debugging-agents.md) when a chat turn does not call the tool you expected, loops, refuses a call, loses memory, or fails after a flow handoff.
-- Read [Agents and Workflows](agents-and-workflows.md) when you are ready to
-  compose agents behind durable flows.
+- Read [Debugging your agent](debugging-agents.md) when a chat turn does not call the tool you expected, loops, refuses a call, loses memory, or fails during a tool call.

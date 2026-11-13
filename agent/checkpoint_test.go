@@ -9,7 +9,6 @@ import (
 
 	"go-micro.dev/v6/client"
 	codecBytes "go-micro.dev/v6/codec/bytes"
-	"go-micro.dev/v6/flow"
 	"go-micro.dev/v6/model"
 	"go-micro.dev/v6/registry"
 	"go-micro.dev/v6/store"
@@ -17,7 +16,7 @@ import (
 
 func TestResumeCompletedCheckpointDoesNotReplayModel(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "durable-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "durable-agent")
 	calls := 0
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		calls++
@@ -59,7 +58,7 @@ func TestResumeCompletedCheckpointDoesNotReplayModel(t *testing.T) {
 
 func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "tool-resume-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "tool-resume-agent")
 	toolRuns := 0
 	first := true
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
@@ -117,7 +116,7 @@ func TestResumeFailedCheckpointDoesNotReplayCompletedTool(t *testing.T) {
 
 func TestCheckpointSkipsDuplicateToolWithinAsk(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "tool-dedupe-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "tool-dedupe-agent")
 	toolRuns := 0
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler == nil {
@@ -156,12 +155,12 @@ func TestCheckpointSkipsDuplicateToolWithinAsk(t *testing.T) {
 
 func TestCheckpointToolWrapSurvivesClearedCurrentRun(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "tool-cleared-run-agent")
-	run := flow.Run{
+	cp := StoreCheckpoint(store.NewMemoryStore(), "tool-cleared-run-agent")
+	run := Run{
 		ID:     "run-1",
 		Flow:   "tool-cleared-run-agent",
 		Status: "running",
-		Steps:  []flow.StepRecord{{Name: agentAskStep, Status: "in_progress"}},
+		Steps:  []StepRecord{{Name: agentAskStep, Status: "in_progress"}},
 	}
 	a := &agentImpl{
 		opts:       newOptions(Name("tool-cleared-run-agent"), WithCheckpoint(cp)),
@@ -195,7 +194,7 @@ func TestCheckpointToolWrapSurvivesClearedCurrentRun(t *testing.T) {
 
 func TestCheckpointContinuesRunWithUnfinishedPlanStep(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "unfinished-plan-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "unfinished-plan-agent")
 
 	reg := registry.NewMemoryRegistry()
 	if err := reg.Register(&registry.Service{
@@ -270,7 +269,7 @@ func TestCheckpointContinuesRunWithUnfinishedPlanStep(t *testing.T) {
 
 func TestCheckpointContinuesRunThroughSeveralSingleStepTurns(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "single-step-plan-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "single-step-plan-agent")
 
 	completed := []string{}
 	modelCalls := 0
@@ -337,7 +336,7 @@ func TestCheckpointContinuesRunThroughSeveralSingleStepTurns(t *testing.T) {
 func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMemoryStore()
-	cp := flow.StoreCheckpoint(st, "restart-resume-agent")
+	cp := StoreCheckpoint(st, "restart-resume-agent")
 	toolRuns := 0
 	modelCalls := 0
 	failFirst := true
@@ -448,7 +447,7 @@ func TestResumeFailedCheckpointAfterFreshAgentRestart(t *testing.T) {
 func TestResumePendingAfterFreshAgentRestartDoesNotReplayCompletedTool(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMemoryStore()
-	cp := flow.StoreCheckpoint(st, "startup-resume-agent")
+	cp := StoreCheckpoint(st, "startup-resume-agent")
 	toolRuns := 0
 	failFirst := true
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
@@ -513,7 +512,7 @@ func TestResumePendingAfterFreshAgentRestartDoesNotReplayCompletedTool(t *testin
 func TestResumeFailedCheckpointDoesNotDuplicateCompactedMemory(t *testing.T) {
 	ctx := context.Background()
 	st := store.NewMemoryStore()
-	cp := flow.StoreCheckpoint(st, "memory-resume-agent")
+	cp := StoreCheckpoint(st, "memory-resume-agent")
 	failRetry := true
 	var sawRecall bool
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
@@ -578,12 +577,12 @@ func countMemoryContent(messages []model.Message, needle string) int {
 
 func TestResumePendingResumesOldestAgentRunsUntilFailure(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "resume-pending-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "resume-pending-agent")
 	base := time.Date(2026, 7, 7, 12, 0, 0, 0, time.UTC)
-	for _, run := range []flow.Run{
-		{ID: "run-ok", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("ok")}, Started: base},
-		{ID: "run-blocked", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("block")}, Started: base.Add(time.Minute)},
-		{ID: "run-later", Flow: "resume-pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("later")}, Started: base.Add(2 * time.Minute)},
+	for _, run := range []Run{
+		{ID: "run-ok", Flow: "resume-pending-agent", Status: "failed", State: State{Stage: agentAskStep, Data: []byte("ok")}, Started: base},
+		{ID: "run-blocked", Flow: "resume-pending-agent", Status: "failed", State: State{Stage: agentAskStep, Data: []byte("block")}, Started: base.Add(time.Minute)},
+		{ID: "run-later", Flow: "resume-pending-agent", Status: "failed", State: State{Stage: agentAskStep, Data: []byte("later")}, Started: base.Add(2 * time.Minute)},
 	} {
 		if err := cp.Save(ctx, run); err != nil {
 			t.Fatalf("Save(%s): %v", run.ID, err)
@@ -623,8 +622,8 @@ func TestResumePendingResumesOldestAgentRunsUntilFailure(t *testing.T) {
 
 func TestPendingReturnsUnfinishedAgentRuns(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "pending-agent")
-	run := flow.Run{ID: "run-1", Flow: "pending-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("retry me")}}
+	cp := StoreCheckpoint(store.NewMemoryStore(), "pending-agent")
+	run := Run{ID: "run-1", Flow: "pending-agent", Status: "failed", State: State{Stage: agentAskStep, Data: []byte("retry me")}}
 	if err := cp.Save(ctx, run); err != nil {
 		t.Fatalf("Save: %v", err)
 	}
@@ -640,12 +639,12 @@ func TestPendingReturnsUnfinishedAgentRuns(t *testing.T) {
 
 func TestPendingSkipsTerminalCanceledAndExpiredAgentRuns(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "terminal-agent")
-	for _, run := range []flow.Run{
-		{ID: "active", Flow: "terminal-agent", Status: "failed", State: flow.State{Stage: agentAskStep, Data: []byte("retry me")}},
-		{ID: "done", Flow: "terminal-agent", Status: "done", State: flow.State{Stage: agentAskStep, Data: []byte("done")}},
-		{ID: "canceled", Flow: "terminal-agent", Status: "canceled", State: flow.State{Stage: agentAskStep, Data: []byte("canceled")}},
-		{ID: "expired", Flow: "terminal-agent", Status: "expired", State: flow.State{Stage: agentAskStep, Data: []byte("expired")}},
+	cp := StoreCheckpoint(store.NewMemoryStore(), "terminal-agent")
+	for _, run := range []Run{
+		{ID: "active", Flow: "terminal-agent", Status: "failed", State: State{Stage: agentAskStep, Data: []byte("retry me")}},
+		{ID: "done", Flow: "terminal-agent", Status: "done", State: State{Stage: agentAskStep, Data: []byte("done")}},
+		{ID: "canceled", Flow: "terminal-agent", Status: "canceled", State: State{Stage: agentAskStep, Data: []byte("canceled")}},
+		{ID: "expired", Flow: "terminal-agent", Status: "expired", State: State{Stage: agentAskStep, Data: []byte("expired")}},
 	} {
 		if err := cp.Save(ctx, run); err != nil {
 			t.Fatalf("Save(%s): %v", run.ID, err)
@@ -669,7 +668,7 @@ func TestPendingSkipsTerminalCanceledAndExpiredAgentRuns(t *testing.T) {
 
 func TestHumanInputPauseResumesSameRunWithInput(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "input-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "input-agent")
 	calls := 0
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		calls++
@@ -727,7 +726,7 @@ func TestHumanInputPauseResumesSameRunWithInput(t *testing.T) {
 
 func TestHumanInputResumeHonorsCanceledContextAndLeavesRunPending(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "input-cancel-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "input-cancel-agent")
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		if opts.ToolHandler != nil {
 			opts.ToolHandler(ctx, model.ToolCall{ID: "input-1", Name: toolHumanInput, Input: map[string]any{"prompt": "Approve deploy?"}})
@@ -772,7 +771,7 @@ func TestHumanInputResumeHonorsCanceledContextAndLeavesRunPending(t *testing.T) 
 
 func TestApprovalDenialPausesCheckpointedRunAndResumeContinues(t *testing.T) {
 	ctx := context.Background()
-	cp := flow.StoreCheckpoint(store.NewMemoryStore(), "approval-agent")
+	cp := StoreCheckpoint(store.NewMemoryStore(), "approval-agent")
 	calls := 0
 	fakeGen = func(ctx context.Context, opts model.Options, req *model.Request) (*model.Response, error) {
 		calls++

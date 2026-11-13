@@ -535,20 +535,6 @@ Supports: `--provider` (anthropic, openai, gemini, atlascloud, groq, mistral, op
 
 Environment variables: `MICRO_AI_PROVIDER`, `MICRO_AI_API_KEY`, or provider-specific keys like `ANTHROPIC_API_KEY`.
 
-### micro flow
-
-Event-driven LLM orchestration:
-
-```bash
-# Subscribe to events and react
-micro flow run --trigger events.user.created \
-  --prompt "New user: {{.Data}}. Send welcome email." \
-  --provider anthropic
-
-# One-shot execution
-micro flow exec --prompt "List all users" --provider anthropic
-```
-
 ### micro mcp
 
 Expose services as MCP tools for AI agents:

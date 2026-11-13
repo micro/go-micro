@@ -15,7 +15,7 @@ classification, and its required tests and documentation. Status is one of
 proposed, accepted, in progress, shipped, or deferred.
 
 Issue proposals must also identify effects on service-only applications,
-agents, flows, gateways, provider plugins, and stored run/checkpoint formats.
+agents, gateways, provider plugins, and stored run/checkpoint formats.
 Service-only use remains first-class and must not acquire an AI dependency to
 receive framework fixes.
 
@@ -26,7 +26,6 @@ receive framework fixes.
 | gRPC-reflection MCP | Proposed | v6-compatible | No release commitment |
 | Kubernetes operator and CRDs | Proposed | v6-compatible | No release commitment |
 | v7 execution contract ([#5044](https://github.com/micro/go-micro/issues/5044)) | Shipped design baseline | mixed; see contract matrix | v6 documentation |
-| Restartable service-agent-flow composition ([#5049](https://github.com/micro/go-micro/issues/5049)) | Shipped | v6-compatible fixture | v6 |
 
 ## Towards v7 — proposal
 
@@ -41,7 +40,6 @@ The foundation is in place:
 
 - **Services** — register, discover, RPC, events; every endpoint is automatically an MCP tool.
 - **Agents** — a model with memory and tools that manages services, with `plan`, `delegate`, guardrails (`MaxSteps`, `LoopLimit`, `ApproveTool`), tool-execution middleware (`WrapTool`), run metadata, checkpoint/resume, and OpenTelemetry run spans built in.
-- **Flows** — durable, event-driven workflows: ordered steps that checkpoint and resume after a crash.
 - **Interop** — the MCP gateway (services as tools) and the A2A gateway (agents as agents, both directions, including A2A streaming, push notifications, and multi-turn continuation), both generated from the registry; x402 for paid tools.
 - **Secure by default** — TLS verification on, state scoped per component.
 
@@ -75,21 +73,6 @@ gap; it is not grounds to describe the runtime capability as unimplemented.
 AP2 mandate work remains a separate proposed foundation and is not a second
 flagship milestone.
 
-## Shipped — complete composition
-
-The execution-contract audit, provider-free recovery gate, and single
-restartable service-agent-flow composition tracked by
-[#5049](https://github.com/micro/go-micro/issues/5049) are shipped. The fixture
-calls real services, dispatches bounded agent work through service tools, pauses
-for durable approval, and completes one idempotent final operation while
-preserving inspectable lineage across replacement hosts. The race-enabled,
-key-free fixture is a v6-compatible acceptance gate, not permission to begin
-the breaking model/agent split.
-
-The [contract matrix](project/execution-contract.md) remains the compatibility
-baseline. gRPC-reflection MCP and Kubernetes deployment remain candidates for
-the next net-new capability; neither is accepted as a simultaneous flagship.
-
 ## Shipped agent depth
 
 - **Durable agent loop.** Opt-in `Checkpoint` support now lets agent `Ask` and
@@ -103,8 +86,6 @@ the next net-new capability; neither is accepted as a simultaneous flagship.
 
 - **gRPC-reflection MCP.** Derive MCP tools from external gRPC services through
   server reflection rather than requiring go-micro-native handlers.
-- **Kubernetes operator and CRDs.** Reconcile `Agent`, `Service`, and `Flow`
-  resources into deployments connected to the registry.
 
 ## Later
 

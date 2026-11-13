@@ -154,5 +154,5 @@ The full, runnable code is in [examples/agent-plan-delegate](https://github.com/
 `plan` and `delegate` don't add a new layer to the framework — they're tools, the same primitive everything else uses. That's deliberate: services are the only abstraction, the LLM calls them as tools, and an agent's own capabilities are no exception.
 
 - [Agent Integration Patterns](agent-patterns.md) — Pattern 9 covers planning and delegation
-- [AI Integration](../ai-integration/index.md) — agents, flows, and the model interface
+- [AI Integration](../ai-integration/index.md) — agents and the model interface
 - [Store](../store.md) — where agent memory lives

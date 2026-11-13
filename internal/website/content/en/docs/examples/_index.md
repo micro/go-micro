@@ -7,7 +7,7 @@ weight: 3
 
 Runnable examples are the fastest way to move from reading the guides to changing
 one thing. Start with the path that matches where you are in the services →
-agents → workflows lifecycle.
+agents lifecycle.
 
 ## Start here
 
@@ -18,10 +18,9 @@ For the provider-free first-agent route, run [`examples/first-agent`](https://gi
 | 0→1 service | [`examples/hello-world`](https://github.com/micro/go-micro/tree/master/examples/hello-world) | Smallest RPC service with a client call and health checks. |
 | Provider-free first agent | [`examples/first-agent`](https://github.com/micro/go-micro/tree/master/examples/first-agent) | Smallest service-backed agent with a deterministic mock model; no provider key required. |
 | First service-backed agent | [`examples/agent-demo`](https://github.com/micro/go-micro/tree/master/examples/agent-demo) | Multi-service project/task/team app with agent playground integration. |
-| 0→hero lifecycle | [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) | No-secret support-desk story: typed services, an agent, an event-driven flow, and a guardrail. |
+| 0→hero lifecycle | [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support) | No-secret support-desk story: typed services, an agent and a guardrail. |
 | Planning and delegation | [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate) | Two agents collaborate through `plan` and `delegate` over normal Go Micro RPC. |
 | Durable agent runs | [`examples/agent-durable`](https://github.com/micro/go-micro/tree/master/examples/agent-durable) | Checkpoint and resume a model-directed run without replaying completed tool side effects. |
-| Durable workflows | [`examples/flow-durable`](https://github.com/micro/go-micro/tree/master/examples/flow-durable) | Ordered, checkpointed flow steps resume without duplicating completed side effects. |
 | AI-callable services | [`examples/mcp`](https://github.com/micro/go-micro/tree/master/examples/mcp) | MCP examples that expose service endpoints as model tools. |
 
 ## Guide-to-example map
@@ -44,19 +43,17 @@ For the provider-free first-agent route, run [`examples/first-agent`](https://gi
   for the human-readable scenario, then `make harness` for the full CI contract.
 - [Plan & Delegate](../guides/plan-delegate.md) → run
   [`examples/agent-plan-delegate`](https://github.com/micro/go-micro/tree/master/examples/agent-plan-delegate).
-- [Agents and Workflows](../guides/agents-and-workflows.md) → run
-  [`examples/flow-durable`](https://github.com/micro/go-micro/tree/master/examples/flow-durable)
   for deterministic checkpointed steps,
   [`examples/agent-durable`](https://github.com/micro/go-micro/tree/master/examples/agent-durable)
   for model-directed checkpointed runs, and
   [`examples/support`](https://github.com/micro/go-micro/tree/master/examples/support)
-  for the full services → agents → workflows lifecycle.
+  for the full services → agents lifecycle.
 
 ## Repository examples
 
 See the repository [examples index](https://github.com/micro/go-micro/tree/master/examples)
 for the complete runnable list, including deployment, auth, gRPC interop, MCP,
-agent, and flow examples.
+and agent examples.
 
 ## More
 

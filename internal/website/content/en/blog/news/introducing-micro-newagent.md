@@ -11,6 +11,9 @@ tags:
 aliases:
   - /blog/16
 ---
+
+> Historical article: the standalone flow package and flow CLI commands have since been removed. Use services and agents for current development.
+
 Go Micro now has three core abstractions:
 
 ```go

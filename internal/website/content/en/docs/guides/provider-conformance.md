@@ -3,9 +3,9 @@ title: "Provider Conformance Matrix"
 ---
 
 Go Micro treats model providers as interchangeable pieces of the same agent
-harness: services expose tools, agents reason over them, and workflows stitch the
+harness: services expose tools and agents reason over them, connecting the
 work together. The conformance harness keeps that promise honest by running the
-same deterministic services → agents → workflows scenarios against every
+same deterministic services → agents scenarios against every
 configured provider.
 
 The live harness is in `internal/harness/provider-conformance`. It skips
@@ -70,7 +70,7 @@ Use `-providers` to select a provider and `-harnesses` to narrow the scenario:
 ```sh
 go run ./internal/harness/provider-conformance \
   -providers openai,anthropic \
-  -harnesses agent-flow,plan-delegate
+  -harnesses agent,a2a-streaming
 ```
 
 By default missing live-provider keys are reported as skips. Add
@@ -102,6 +102,5 @@ go run ./internal/harness/provider-conformance \
 ## Related docs
 
 - [The Agent Harness](agent-harness.md)
-- [Agents and Workflows](agents-and-workflows.md)
 - [AI Provider Guide](ai-provider-guide.md)
 - [Roadmap](/docs/roadmap.html)

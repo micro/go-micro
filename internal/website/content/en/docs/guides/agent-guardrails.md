@@ -117,7 +117,6 @@ These are most important when no human is in the loop. An agent [triggered by an
 ## See also
 
 - [Plan & Delegate](plan-delegate.md) — the agent's built-in tools
-- [Agents and Workflows](agents-and-workflows.md) — where agents fit
 
 ## Durable human approval
 

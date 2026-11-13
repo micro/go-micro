@@ -7,7 +7,7 @@ and tool guardrails. `micro chat` uses this package for its development agent an
 for routing requests between registered agents. A single registered agent is
 called directly and owns its model and credentials.
 
-The framework also supplies discovery, RPC, storage, and flows. Those support
+The framework also supplies discovery, RPC and storage. Those support
 agents, but are not substitutes for managing the model's conversation and tools.
 
 ## Current limits
@@ -30,12 +30,11 @@ agents, but are not substitutes for managing the model's conversation and tools.
 | Tools | Every service endpoint is an MCP-callable tool from registry metadata — no extra code | Shipped |
 | Memory | Store-backed agent memory (`AgentMemory`), durable across restarts | Shipped |
 | Guardrails | `MaxSteps`, `LoopLimit`, `ApproveTool`, tool wrappers — enforced at the call site | Shipped |
-| Workflows | Durable flows; `micro.FlowLoop` for run-until-done | Shipped |
 | Planning / delegation | Built-in `plan` and `delegate` tools on every agent | Shipped |
 | Discovery & RPC | Registry + client; agents and services find and call each other | Shipped |
 | Interop | MCP (tools), A2A (agents), x402 (paid tools) | Shipped |
 | Resilience | Per-call timeout with context propagation; opt-in retry/backoff (`ModelRetry`) across the loop | Shipped |
-| Durable runs | Checkpoint and resume an agent run with the same checkpoint backend flows use | Shipped |
+| Durable runs | Checkpoint and resume an agent run with agent checkpoint storage | Shipped |
 | Observability | `RunInfo` → OpenTelemetry spans for runs, model calls, tools, delegation, and failures; persisted run history | Shipped |
 | Streaming | `model.Stream` through chat, agent, and A2A | In progress |
 
@@ -44,8 +43,7 @@ and the work is happening in the open.
 
 ## Durable agent runs
 
-Agents can persist their execution history to the same `Checkpoint` backend as
-flows. A checkpointed `Ask` records the run id, original prompt, model result,
+Agents can persist their execution history to the `agent.Checkpoint` backend. A checkpointed `Ask` records the run id, original prompt, model result,
 and completed tool calls. If the process restarts after a tool result has been saved but
 before the model finishes, `AgentResume` continues the same run and returns the
 recorded tool result instead of re-running the side effect. If a run already
@@ -68,19 +66,8 @@ if err != nil {
 _ = resp
 ```
 
-Choose the boundary deliberately: use a durable flow when the steps are known
-(`reserve`, `charge`, `confirm`) and each step has deterministic retry/resume
-semantics. Use a checkpointed agent run when the model is deciding which tools to
-call or how many turns it needs, while reusing recorded tool results. Flows and agents share the same
-`Checkpoint` interface. Recovery still depends on the service handling repeated
-actions safely.
-
-For human-in-the-loop runs that pause through the built-in `request_input` tool,
-resume with the operator's response:
-
-```go
-_, err := micro.AgentResumeInput(ctx, agent, runID, "Deploy to us-east-1")
-```
+Use an agent when the model needs to choose tools and adapt its next action.
+Keep deterministic business logic in services.
 
 ## Observing agent runs
 
@@ -124,8 +111,6 @@ layer, not in spite of it:
   executes the call.
 - **Agents are services** — they register, load-balance, expose `Agent.Chat`, and
   are reachable by other agents.
-- **Workflows are code paths** — use a flow when the path is known; hand off to an
-  agent when it isn't.
 - **Safety lives at execution** — guardrails run on the one path every tool call
   takes.
 

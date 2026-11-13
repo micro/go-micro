@@ -27,11 +27,11 @@ func TestValidateSelectionRejectsUnknownProvider(t *testing.T) {
 }
 
 func TestValidateSelectionRejectsUnsafeHarnessName(t *testing.T) {
-	err := validateSelection([]string{"mock"}, []string{"../agent-flow"})
+	err := validateSelection([]string{"mock"}, []string{"../a2a-stream-fallback"})
 	if err == nil {
 		t.Fatal("validateSelection returned nil for unsafe harness name")
 	}
-	if !strings.Contains(err.Error(), `invalid harness name "../agent-flow"`) {
+	if !strings.Contains(err.Error(), `invalid harness name "../a2a-stream-fallback"`) {
 		t.Fatalf("validateSelection error = %q, want invalid harness message", err)
 	}
 }
@@ -78,14 +78,14 @@ func TestCapabilityMatrixHasRegisteredProviders(t *testing.T) {
 }
 
 func TestMissingKeyResultsReportsEachHarness(t *testing.T) {
-	results := missingKeyResults("openai", []string{"agent", "plan-delegate"}, statusSkipped, "set OPENAI_API_KEY")
+	results := missingKeyResults("openai", []string{"agent", "a2a-streaming"}, statusSkipped, "set OPENAI_API_KEY")
 	if len(results) != 2 {
 		t.Fatalf("missingKeyResults returned %d results, want 2", len(results))
 	}
 
 	wants := []conformanceResult{
 		{Provider: "openai", Harness: "agent", Phase: harnessPhase("agent"), Status: statusSkipped, Error: "set OPENAI_API_KEY"},
-		{Provider: "openai", Harness: "plan-delegate", Phase: harnessPhase("plan-delegate"), Status: statusSkipped, Error: "set OPENAI_API_KEY"},
+		{Provider: "openai", Harness: "a2a-streaming", Phase: harnessPhase("a2a-streaming"), Status: statusSkipped, Error: "set OPENAI_API_KEY"},
 	}
 	for i, want := range wants {
 		if results[i] != want {
@@ -125,7 +125,7 @@ func TestWriteSummaryMarkdown(t *testing.T) {
 	summary := conformanceSummary{
 		Capabilities: []model.CapabilityRow{{Provider: "mock", Capabilities: model.Capabilities{Model: true}}},
 		Results: []conformanceResult{
-			{Provider: "mock", Harness: "agent-flow", Phase: harnessPhase("agent-flow"), Status: statusPassed},
+			{Provider: "mock", Harness: "a2a-stream-fallback", Phase: harnessPhase("a2a-stream-fallback"), Status: statusPassed},
 			{Provider: "live", Status: statusSkipped, Error: "missing | key"},
 		},
 		Passed:  1,
@@ -146,7 +146,7 @@ func TestWriteSummaryMarkdown(t *testing.T) {
 		"Providers: —.",
 		"Harnesses: —.",
 		"| mock | ✅ | — | — | — |",
-		"| mock | agent-flow | workflow event + tool call | passed | — |",
+		"| mock | a2a-stream-fallback | streaming fallback + tool call | passed | — |",
 		"| live | — | — | skipped | missing \\| key |",
 	} {
 		if !strings.Contains(got, want) {

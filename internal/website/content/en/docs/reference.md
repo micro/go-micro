@@ -14,7 +14,6 @@ component or option.
 | Discovery and messaging | [registry](https://pkg.go.dev/go-micro.dev/v6/registry), [broker](https://pkg.go.dev/go-micro.dev/v6/broker) |
 | Storage and configuration | [store](https://pkg.go.dev/go-micro.dev/v6/store), [config](https://pkg.go.dev/go-micro.dev/v6/config) |
 | Models and agents | [model](https://pkg.go.dev/go-micro.dev/v6/model), [agent](https://pkg.go.dev/go-micro.dev/v6/agent) |
-| Workflows | [flow](https://pkg.go.dev/go-micro.dev/v6/flow) |
 
 - [CLI commands](https://github.com/micro/go-micro/blob/master/cmd/micro/README.md)
 - [Examples](https://github.com/micro/go-micro/tree/master/examples)
