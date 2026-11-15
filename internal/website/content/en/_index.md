@@ -11,8 +11,8 @@ params:
 <h1 id="intro-title">A Go framework for<br>services and agents.</h1>
 <p class="micro-lead">Build distributed applications with RPC, service discovery, messaging, storage, and configuration. Create agents that use your services as tools.</p>
 <div class="micro-actions">
-<a class="micro-button" href="/docs/quickstart.html">Get Started <span aria-hidden="true">→</span></a>
-<a href="https://github.com/micro/go-micro">GitHub</a>
+<a class="micro-button" href="/docs/quickstart.html">Get Started</a>
+<a class="micro-button micro-button-secondary" href="https://github.com/micro/go-micro">GitHub</a>
 </div>
 <p class="micro-caption">Open source · Apache 2.0</p>
 </div>
