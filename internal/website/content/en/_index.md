@@ -19,26 +19,21 @@ params:
 <figure class="micro-example" aria-labelledby="example-title">
 <figcaption id="example-title"><span>Services + agents</span><span>Go</span></figcaption>
 {{< highlight go >}}
-service := micro.NewService("notes")
-service.Init()
+agent := micro.NewAgent("support",
+	micro.AgentServices(
+		"tickets", "customers",
+	),
+	micro.AgentPrompt(
+		"Help customers resolve issues.",
+	),
+)
 
-err := service.Handle(new(Notes))
-if err != nil {
-	log.Fatal(err)
-}
-
-agent := micro.NewAgent("notes")
-err = service.Handle(agent)
-if err != nil {
-	log.Fatal(err)
-}
-
-if err := service.Run(); err != nil {
+if err := agent.Run(); err != nil {
 	log.Fatal(err)
 }
 {{< /highlight >}}
-<p>One service, available through RPC and an agent.</p>
-<a href="/docs/agents.html#add-an-agent-to-a-service">Add an agent to your service →</a>
+<p>An agent using your existing ticket and customer services as tools.</p>
+<a href="/docs/agents.html#standalone-agent">Build an agent →</a>
 </figure>
 </section>
 
