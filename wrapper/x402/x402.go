@@ -96,6 +96,22 @@ type Settler interface {
 	Settle(ctx context.Context, payment string, req Requirements) (Result, error)
 }
 
+// Challenger is an optional capability: a Facilitator that adds per-challenge
+// data to the requirements a 402 response carries, such as a fresh order id
+// the payment must commit to. Verify and Settle still receive the operator's
+// requirements unchanged; only the 402 body is affected.
+type Challenger interface {
+	Challenge(req Requirements) Requirements
+}
+
+// challengeFor returns the requirements to put in a 402 body.
+func challengeFor(fac Facilitator, req Requirements) Requirements {
+	if ch, ok := fac.(Challenger); ok {
+		return ch.Challenge(req)
+	}
+	return req
+}
+
 // Config configures payment enforcement for a set of routes or tools.
 type Config struct {
 	// PayTo is the address payments are sent to. Required.
@@ -205,16 +221,16 @@ func (c Config) Require(w http.ResponseWriter, r *http.Request, amount, resource
 		return true // free
 	}
 	req := c.requirements(amount, resource)
+	fac := c.facilitator()
 
 	payment := Payment(r)
 	if payment == "" {
-		writeChallenge(w, req, "payment required")
+		writeChallenge(w, challengeFor(fac, req), "payment required")
 		return false
 	}
-	fac := c.facilitator()
 	res, err := fac.Verify(r.Context(), payment, req)
 	if err != nil {
-		writeChallenge(w, req, "payment verification failed: "+err.Error())
+		writeChallenge(w, challengeFor(fac, req), "payment verification failed: "+err.Error())
 		return false
 	}
 	if !res.Valid {
@@ -222,7 +238,7 @@ func (c Config) Require(w http.ResponseWriter, r *http.Request, amount, resource
 		if reason == "" {
 			reason = "payment invalid"
 		}
-		writeChallenge(w, req, reason)
+		writeChallenge(w, challengeFor(fac, req), reason)
 		return false
 	}
 	// Capture the funds when the facilitator can settle. Verify alone only
@@ -231,13 +247,13 @@ func (c Config) Require(w http.ResponseWriter, r *http.Request, amount, resource
 	if c.RequireSettlement && !canSettle {
 		// Fail closed: a paid config must not serve the resource on a
 		// verify-only facilitator, or it gives the tool away for free.
-		writeChallenge(w, req, "payment settlement unavailable")
+		writeChallenge(w, challengeFor(fac, req), "payment settlement unavailable")
 		return false
 	}
 	if canSettle {
 		sres, err := s.Settle(r.Context(), payment, req)
 		if err != nil {
-			writeChallenge(w, req, "payment settlement failed: "+err.Error())
+			writeChallenge(w, challengeFor(fac, req), "payment settlement failed: "+err.Error())
 			return false
 		}
 		if !sres.Valid {
@@ -245,7 +261,7 @@ func (c Config) Require(w http.ResponseWriter, r *http.Request, amount, resource
 			if reason == "" {
 				reason = "settlement rejected"
 			}
-			writeChallenge(w, req, reason)
+			writeChallenge(w, challengeFor(fac, req), reason)
 			return false
 		}
 		if sres.Settlement != "" {

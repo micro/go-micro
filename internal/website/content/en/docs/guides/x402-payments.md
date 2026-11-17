@@ -34,6 +34,27 @@ type Facilitator interface {
 }
 ```
 
+A facilitator may also implement `Challenger` to add per-challenge data (such as a fresh order id) to the `402` body; `Verify` and `Settle` still receive the operator's requirements.
+
+### Self-hosted Nano facilitator
+
+`wrapper/x402/nano` verifies `nano:mainnet` payments with scheme `exact` against a Nano node RPC you run or choose. It is off unless you configure it, uses only the standard library, and holds no key or seed:
+
+```go
+claims, err := nano.OpenFileClaimStore("/var/lib/myservice/nano-claims")
+fac, err := nano.NewFacilitator("https://node.example/rpc", "nano_1...", claims)
+price, err := nano.RawFromXNO("0.001") // 1 XNO = 10^30 raw
+
+pay := x402.Middleware(x402.Config{
+    PayTo:       "nano_1...",
+    Network:     "nano",
+    Amount:      price.String(),
+    Facilitator: fac,
+})
+```
+
+Each `402` carries a fresh order id and a `representative` account in `extra` that commits to (order id, payTo, amount). The payer sends exactly that amount to `payTo` with that representative, then sends `{"scheme":"exact","network":"nano:mainnet","payload":{"orderId":"...","block":"<hash>"}}` (base64) as `X-PAYMENT`. The block must be confirmed, pay the exact amount and carry the commitment; it is then claimed in the claims file before the request is served, so a block pays for one order once, including after a restart. Run one process per claims file (the file is locked).
+
 ## At the MCP gateway
 
 Because every endpoint is already an MCP tool, the gateway is where you charge. Payments are wired into both `micro mcp serve` and the `micro gateway` command, gated on `/mcp/call` (listing tools and health stay free), and **off unless you set a pay-to address**.

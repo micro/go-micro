@@ -27,6 +27,8 @@ func NormalizeNetwork(n string) string {
 		return "eip155:8453"
 	case "base-sepolia", "eip155:84532":
 		return "eip155:84532"
+	case "nano", "nano:mainnet":
+		return "nano:mainnet" // verified by wrapper/x402/nano
 	default:
 		return n
 	}
