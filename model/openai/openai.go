@@ -122,6 +122,9 @@ func (s *openAIStream) Recv() (*model.Response, error) {
 			return nil, io.EOF
 		}
 		var chunk struct {
+			Error *struct {
+				Message string `json:"message"`
+			} `json:"error"`
 			Choices []struct {
 				FinishReason string `json:"finish_reason"`
 				Delta        struct {
@@ -136,6 +139,9 @@ func (s *openAIStream) Recv() (*model.Response, error) {
 		}
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
+		}
+		if chunk.Error != nil {
+			return nil, fmt.Errorf("stream: %s", chunk.Error.Message)
 		}
 		response := &model.Response{}
 		if len(chunk.Choices) > 0 {
