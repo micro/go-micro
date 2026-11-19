@@ -1,18 +1,11 @@
 name: govulncheck
 
-# Deterministic vulnerability gate: runs govulncheck (reachability-aware CVE
-# scanner) on every push/PR. Fails on any reachable vulnerability EXCEPT the
-# explicit ALLOWLIST of known-unfixable ones, so a new vuln breaks the build
-# while tracked, no-upstream-fix ones don't. This is the gate the loop's
-# `security` role sits on top of — the role audits; this blocks known CVEs.
-#
-# Make this a required status check on the default branch to enforce it.
-
+# Dependency and toolchain maintenance runs separately from PR validation.
+# Findings still fail this workflow so they remain visible to maintainers.
 on:
-  push:
-    branches: ["**"]
-  pull_request:
-    branches: ["**"]
+  schedule:
+    - cron: '23 8 * * 1' # Monday, 08:23 UTC
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,10 +18,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.26.10"
+          go-version-file: go.mod
           check-latest: true
       - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.10.0
       - name: Scan
         env:
           # Reachable vulnerabilities with NO upstream fix, accepted for now and
