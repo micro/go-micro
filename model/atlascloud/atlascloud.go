@@ -354,6 +354,9 @@ func (s *atlasStream) Recv() (*model.Response, error) {
 			return nil, io.EOF
 		}
 		var chunk struct {
+			Error *struct {
+				Message string `json:"message"`
+			} `json:"error"`
 			Choices []struct {
 				Delta struct {
 					Content string `json:"content"`
@@ -367,6 +370,9 @@ func (s *atlasStream) Recv() (*model.Response, error) {
 		}
 		if err := json.Unmarshal([]byte(data), &chunk); err != nil {
 			return nil, fmt.Errorf("failed to parse stream chunk: %w", err)
+		}
+		if chunk.Error != nil {
+			return nil, fmt.Errorf("stream: %s", chunk.Error.Message)
 		}
 		if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != "" {
 			return &model.Response{Reply: chunk.Choices[0].Delta.Content}, nil
