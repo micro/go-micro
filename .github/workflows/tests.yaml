@@ -17,9 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.26.10"
+          go-version-file: go.mod
           check-latest: true
           cache: true
       - name: Get dependencies
@@ -54,9 +54,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.26.10"
+          go-version-file: go.mod
           check-latest: true
           cache: true
       - name: Get dependencies
