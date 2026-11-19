@@ -27,6 +27,10 @@ go get go-micro.dev/v6@latest
 
 Choose what you need. Chat does not require the gateway.
 
+## Integrations
+
+[Browse integrations](https://go-micro.dev/integrations.html), [propose one](https://github.com/micro/go-micro/issues/new?template=integration.md), or submit a listing PR. Community listings are free; sponsored placement and integration work help fund maintenance.
+
 ## Documentation
 
 - [Index](https://go-micro.dev/docs/)
