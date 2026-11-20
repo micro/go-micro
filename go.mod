@@ -1,8 +1,6 @@
 module go-micro.dev/v5
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.26.0
 
 require (
 	github.com/bitly/go-simplejson v0.5.0
@@ -37,9 +35,9 @@ require (
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.45.0
-	golang.org/x/net v0.47.0
-	golang.org/x/sync v0.18.0
+	golang.org/x/crypto v0.59.0
+	golang.org/x/net v0.62.0
+	golang.org/x/sync v0.25.0
 	google.golang.org/grpc v1.71.1
 	google.golang.org/grpc/examples v0.0.0-20250515150734-f2d3e11f3057
 	google.golang.org/protobuf v1.36.6
@@ -94,11 +92,11 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/mod v0.29.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/mod v0.42.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.38.0 // indirect
+	golang.org/x/tools v0.52.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250324211829-b45e905df463 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
