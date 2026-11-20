@@ -93,19 +93,13 @@ func (p *Provider) isCloud() bool {
 	return strings.Contains(p.opts.BaseURL, "ollama.com")
 }
 
-// chatPath returns the API endpoint path for chat completions.
-func (p *Provider) chatPath() string {
+// chatURL accepts both the Cloud origin and its documented /v1 API base.
+func (p *Provider) chatURL() string {
+	base := strings.TrimRight(p.opts.BaseURL, "/")
 	if p.isCloud() {
-		return "/v1/chat/completions"
+		return strings.TrimSuffix(base, "/v1") + "/v1/chat/completions"
 	}
-	return "/api/chat"
-}
-
-// streamPath returns the API endpoint path for streaming chat.
-// Ollama Cloud uses the same /v1/chat/completions with stream:true.
-// Local Ollama uses /api/chat with stream:true.
-func (p *Provider) streamPath() string {
-	return p.chatPath()
+	return base + "/api/chat"
 }
 
 // Generate generates a response from the Ollama model.
@@ -235,7 +229,7 @@ func (p *Provider) callOpenAI(ctx context.Context, req map[string]any) (*model.R
 		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + p.chatPath()
+	apiURL := p.chatURL()
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
@@ -342,7 +336,7 @@ func (p *Provider) streamOpenAI(ctx context.Context, req *model.Request) (model.
 		return nil, fmt.Errorf("failed to marshal stream request: %w", err)
 	}
 
-	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + p.streamPath()
+	apiURL := p.chatURL()
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stream request: %w", err)
@@ -557,7 +551,7 @@ func (p *Provider) callNative(ctx context.Context, req map[string]any) (*model.R
 		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + p.chatPath()
+	apiURL := p.chatURL()
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create request: %w", err)
@@ -667,7 +661,7 @@ func (p *Provider) streamNative(ctx context.Context, req *model.Request) (model.
 		return nil, fmt.Errorf("failed to marshal stream request: %w", err)
 	}
 
-	apiURL := strings.TrimRight(p.opts.BaseURL, "/") + p.streamPath()
+	apiURL := p.chatURL()
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stream request: %w", err)
