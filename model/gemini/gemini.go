@@ -304,6 +304,9 @@ func (s *streamReader) Close() error {
 }
 
 func (p *Provider) callAPI(ctx context.Context, req map[string]any, onToken func(string)) (*model.Response, []map[string]any, error) {
+	if p.opts.MaxTokens > 0 {
+		req["generationConfig"] = map[string]any{"maxOutputTokens": p.opts.MaxTokens}
+	}
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
