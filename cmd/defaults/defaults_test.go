@@ -11,16 +11,17 @@ import (
 // available again, exactly as when cmd imported the plugins directly.
 func TestDefaultsRegisterAllPlugins(t *testing.T) {
 	for name, m := range map[string]int{
-		"brokers: nats":      boolToInt(cmd.DefaultBrokers["nats"] != nil),
-		"brokers: rabbitmq":  boolToInt(cmd.DefaultBrokers["rabbitmq"] != nil),
-		"registries: consul": boolToInt(cmd.DefaultRegistries["consul"] != nil),
-		"registries: etcd":   boolToInt(cmd.DefaultRegistries["etcd"] != nil),
-		"registries: nats":   boolToInt(cmd.DefaultRegistries["nats"] != nil),
-		"transports: nats":   boolToInt(cmd.DefaultTransports["nats"] != nil),
-		"stores: mysql":      boolToInt(cmd.DefaultStores["mysql"] != nil),
-		"stores: natsjskv":   boolToInt(cmd.DefaultStores["natsjskv"] != nil),
-		"stores: postgres":   boolToInt(cmd.DefaultStores["postgres"] != nil),
-		"caches: redis":      boolToInt(cmd.DefaultCaches["redis"] != nil),
+		"brokers: nats":          boolToInt(cmd.DefaultBrokers["nats"] != nil),
+		"brokers: rabbitmq":      boolToInt(cmd.DefaultBrokers["rabbitmq"] != nil),
+		"registries: consul":     boolToInt(cmd.DefaultRegistries["consul"] != nil),
+		"registries: etcd":       boolToInt(cmd.DefaultRegistries["etcd"] != nil),
+		"registries: kubernetes": boolToInt(cmd.DefaultRegistries["kubernetes"] != nil),
+		"registries: nats":       boolToInt(cmd.DefaultRegistries["nats"] != nil),
+		"transports: nats":       boolToInt(cmd.DefaultTransports["nats"] != nil),
+		"stores: mysql":          boolToInt(cmd.DefaultStores["mysql"] != nil),
+		"stores: natsjskv":       boolToInt(cmd.DefaultStores["natsjskv"] != nil),
+		"stores: postgres":       boolToInt(cmd.DefaultStores["postgres"] != nil),
+		"caches: redis":          boolToInt(cmd.DefaultCaches["redis"] != nil),
 	} {
 		if m != 1 {
 			t.Errorf("%s not registered", name)

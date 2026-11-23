@@ -21,6 +21,7 @@ import (
 	"go-micro.dev/v6/cache/redis"
 	"go-micro.dev/v6/registry/consul"
 	"go-micro.dev/v6/registry/etcd"
+	"go-micro.dev/v6/registry/kubernetes"
 	nregistry "go-micro.dev/v6/registry/nats"
 	"go-micro.dev/v6/store/mysql"
 	natsjskv "go-micro.dev/v6/store/nats-js-kv"
@@ -37,6 +38,7 @@ func init() {
 
 	cmd.DefaultRegistries["consul"] = consul.NewConsulRegistry
 	cmd.DefaultRegistries["etcd"] = etcd.NewEtcdRegistry
+	cmd.DefaultRegistries["kubernetes"] = kubernetes.NewRegistry
 	cmd.DefaultRegistries["nats"] = nregistry.NewNatsRegistry
 
 	cmd.DefaultTransports["nats"] = ntransport.NewTransport
