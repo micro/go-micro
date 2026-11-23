@@ -114,7 +114,10 @@ func (p *Provider) Generate(ctx context.Context, req *model.Request, opts ...mod
 		for round := 0; len(pending) > 0 && round < maxToolRounds; round++ {
 			var resultParts []map[string]any
 			for _, tc := range pending {
-				result := p.opts.ToolHandler(ctx, tc).Value
+				result, err := encodeToolResponse(p.opts.ToolHandler(ctx, tc))
+				if err != nil {
+					return nil, fmt.Errorf("tool %q response: %w", tc.Name, err)
+				}
 				resultParts = append(resultParts, map[string]any{
 					"functionResponse": map[string]any{
 						"name":     tc.Name,
@@ -406,6 +409,23 @@ func (p *Provider) callAPI(ctx context.Context, req map[string]any, onToken func
 		response.Reply = strings.Join(replyParts, "")
 	}
 	return response, raw.Candidates[0].Content.Parts, nil
+}
+
+// encodeToolResponse preserves object results and wraps other JSON values to
+// satisfy Gemini's object-only FunctionResponse.response field.
+func encodeToolResponse(result model.ToolResult) (json.RawMessage, error) {
+	value := result.Value
+	if value == nil {
+		value = result.Content
+	}
+	data, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	if len(data) > 0 && data[0] == '{' {
+		return data, nil
+	}
+	return json.Marshal(map[string]json.RawMessage{"result": data})
 }
 
 type functionCallPB struct {
