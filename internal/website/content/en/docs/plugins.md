@@ -5,7 +5,7 @@ title: "Plugins"
 Plugins are scoped under each interface directory within this repository. To use a plugin, import it directly from the corresponding interface subpackage and pass it to your service via options.
 
 Common interfaces and locations:
-- Registry: `go-micro.dev/v6/registry/*` (e.g. `consul`, `etcd`, `nats`, `mdns`)
+- Registry: `go-micro.dev/v6/registry/*` (e.g. `consul`, `etcd`, `kubernetes`, `nats`, `mdns`)
 - Broker: `go-micro.dev/v6/broker/*` (e.g. `nats`, `rabbitmq`, `http`, `memory`)
 - Transport: `go-micro.dev/v6/transport/*` (e.g. `nats`, default `http`)
 - Server: `go-micro.dev/v6/server/*` (e.g. `grpc` for native gRPC compatibility)
@@ -41,6 +41,22 @@ import (
 
 func main() {
     reg := etcd.NewRegistry()
+    svc := micro.NewService("plugin-example", micro.Registry(reg))
+    svc.Init()
+    svc.Run()
+}
+```
+
+Kubernetes (pods annotated through the Kubernetes API; see
+[registry/kubernetes](https://github.com/micro/go-micro/tree/master/registry/kubernetes) for RBAC):
+```go
+import (
+    "go-micro.dev/v6"
+    "go-micro.dev/v6/registry/kubernetes"
+)
+
+func main() {
+    reg := kubernetes.NewRegistry()
     svc := micro.NewService("plugin-example", micro.Registry(reg))
     svc.Init()
     svc.Run()
