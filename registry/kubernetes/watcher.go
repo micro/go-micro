@@ -99,8 +99,8 @@ func (k *k8sWatcher) handleEvent(event watch.Event) {
 
 	//nolint:exhaustive
 	switch event.Type {
-	// Pod was modified
-	case watch.Modified:
+	// Pod entered the watch or was modified.
+	case watch.Added, watch.Modified:
 		k.RLock()
 		cache := k.pods[pod.Metadata.Name]
 		k.RUnlock()

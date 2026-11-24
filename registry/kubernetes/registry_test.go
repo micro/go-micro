@@ -1,7 +1,10 @@
 package kubernetes
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 	"time"
@@ -236,5 +239,56 @@ func TestNewRegistryWithAddress(t *testing.T) {
 	}
 	if r.Options().Timeout != 3*time.Second {
 		t.Fatalf("Init did not apply Timeout: %v", r.Options().Timeout)
+	}
+}
+
+func TestWatchReceivesNewMatchingPod(t *testing.T) {
+	for _, eventType := range []watch.EventType{watch.Added, watch.Modified} {
+		t.Run(string(eventType), func(t *testing.T) {
+			pod := annotatedPod("pod-1", podRunning, "greeter", v5Annotation)
+			body, err := json.Marshal(pod)
+			if err != nil {
+				t.Fatal(err)
+			}
+			event, err := json.Marshal(watch.Event{Type: eventType, Object: body})
+			if err != nil {
+				t.Fatal(err)
+			}
+			listed := make(chan struct{})
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.URL.Query().Get("watch") == "true" {
+					w.WriteHeader(http.StatusOK)
+					w.(http.Flusher).Flush()
+					select {
+					case <-listed:
+					case <-r.Context().Done():
+						return
+					}
+					_, _ = w.Write(append(event, '\n'))
+					return
+				}
+				_, _ = w.Write([]byte(`{"items":[]}`))
+				close(listed)
+			}))
+			defer server.Close()
+
+			r := NewRegistry(registry.Addrs(server.URL))
+			watcher, err := r.Watch()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer watcher.Stop()
+			result, err := watcher.Next()
+			if err != nil {
+				t.Fatalf("Next: %v", err)
+			}
+			if result.Action != "create" || result.Service.Name != "greeter" || result.Service.Version != "1.2.0" {
+				t.Fatalf("unexpected watch result: %+v", result)
+			}
+			if len(result.Service.Nodes) != 1 || result.Service.Nodes[0].Id != "greeter-abc" {
+				t.Fatalf("lost service nodes: %+v", result.Service.Nodes)
+			}
+		})
 	}
 }
