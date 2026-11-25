@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -72,4 +73,30 @@ func TestBodyWatcher(t *testing.T) {
 	t.Log("Closing up")
 	w.Stop()
 	close(ch)
+}
+
+func TestBodyWatcherRejectsHTTPError(t *testing.T) {
+	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden, http.StatusInternalServerError} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(status)
+				fmt.Fprintln(w, `{"kind":"Status","status":"Failure","message":"watch not permitted"}`)
+			}))
+			defer server.Close()
+			req, err := http.NewRequest(http.MethodGet, server.URL, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			watcher, err := NewBodyWatcher(req, server.Client())
+			if watcher != nil {
+				watcher.Stop()
+			}
+			if err == nil || !strings.Contains(err.Error(), http.StatusText(status)) {
+				t.Fatalf("expected an HTTP %d error, got watcher=%v, err=%v", status, watcher != nil, err)
+			}
+			if watcher != nil {
+				t.Fatal("rejected watch returned a watcher")
+			}
+		})
+	}
 }
