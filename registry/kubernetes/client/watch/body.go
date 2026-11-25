@@ -95,6 +95,13 @@ func NewBodyWatcher(req *http.Request, client *http.Client) (Watch, error) {
 		return nil, errors.Wrap(err, "body watcher failed to make http request")
 	}
 
+	if res.StatusCode != http.StatusOK {
+		cancel()
+		//nolint:errcheck
+		res.Body.Close()
+		return nil, errors.Errorf("body watcher request failed: %s", res.Status)
+	}
+
 	wr := &bodyWatcher{
 		ctx:     ctx,
 		results: make(chan Event),
